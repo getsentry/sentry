@@ -1,15 +1,16 @@
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {useAuthToken} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {useSelectedCodeTab} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import type {OnboardingStep} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  stepsToMarkdown,
-  stepsToText,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/stepsToMarkdown';
+import {stepsToMarkdown} from 'sentry/components/onboarding/gettingStartedDoc/utils/stepsToMarkdown';
+import {IconCopy} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 interface OnboardingCopyAsDropdownProps {
   organization: Organization;
@@ -18,8 +19,8 @@ interface OnboardingCopyAsDropdownProps {
 }
 
 /**
- * CopyAsDropdown pre-wired for onboarding steps. Reads from SelectedCodeTabContext
- * to copy only the user's currently selected tab variant.
+ * A "Copy to Markdown" button pre-wired for onboarding steps. Reads from
+ * SelectedCodeTabContext to copy only the user's currently selected tab variant.
  *
  * Must be rendered inside a `<SelectedCodeTabProvider>`.
  */
@@ -33,34 +34,26 @@ export function OnboardingCopyAsDropdown({
 
   return (
     <Flex justify="end" marginBottom="xs">
-      <CopyAsDropdown
-        size="xs"
-        items={CopyAsDropdown.makeDefaultCopyAsOptions({
-          markdown: () => {
+      <Tooltip title={t('Let an LLM do all the work instead')}>
+        <Button
+          size="xs"
+          icon={<IconCopy />}
+          onClick={() => {
             trackAnalytics('onboarding.copy_instructions', {
               organization,
               format: 'markdown',
               source,
             });
-            return stepsToMarkdown(steps, {
+            const markdown = stepsToMarkdown(steps, {
               selectedTabLabel: selectedTab ?? undefined,
               authToken,
             });
-          },
-          text: () => {
-            trackAnalytics('onboarding.copy_instructions', {
-              organization,
-              format: 'text',
-              source,
-            });
-            return stepsToText(steps, {
-              selectedTabLabel: selectedTab ?? undefined,
-              authToken,
-            });
-          },
-          json: undefined,
-        })}
-      />
+            copyToClipboard(markdown);
+          }}
+        >
+          {t('Copy as Markdown')}
+        </Button>
+      </Tooltip>
     </Flex>
   );
 }
