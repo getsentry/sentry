@@ -162,7 +162,7 @@ export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
   return root;
 }
 
-export function ServerTree() {
+export function ServerTree({noVisualizationPadding}: {noVisualizationPadding?: boolean}) {
   const organization = useOrganization();
   const {query} = useTransactionNameQuery();
   const pageFilterChartParams = usePageFilterChartParams();
@@ -198,8 +198,8 @@ export function ServerTree() {
 
   const tree = useMemo(() => mapResponseToTree(treeData), [treeData]);
 
-  return (
-    <StyledPanel>
+  const children = (
+    <Fragment>
       <TreeWidgetVisualization tree={tree} />
       {treeRequest.isLoading ? (
         <LoadingIndicator />
@@ -208,8 +208,14 @@ export function ServerTree() {
           {t('No results found')}
         </EmptyMessage>
       )}
-    </StyledPanel>
+    </Fragment>
   );
+
+  if (noVisualizationPadding) {
+    return children;
+  }
+
+  return <StyledPanel>{children}</StyledPanel>;
 }
 
 function sortTreeChildren(a: TreeNode, b: TreeNode): number {

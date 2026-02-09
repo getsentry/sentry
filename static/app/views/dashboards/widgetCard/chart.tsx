@@ -746,7 +746,7 @@ function DetailsComponent(props: TableComponentProps): React.ReactNode {
 }
 
 function ServerTreeComponent(): React.ReactNode {
-  return <ServerTreeWidgetVisualization />;
+  return <ServerTreeWidgetVisualization noVisualizationPadding />;
 }
 
 function WheelComponent(props: TableComponentProps): React.ReactNode {
