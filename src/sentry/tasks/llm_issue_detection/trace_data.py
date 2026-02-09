@@ -12,6 +12,7 @@ from sentry.seer.explorer.utils import normalize_description
 from sentry.seer.sentry_data_models import TraceMetadata
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.tasks.llm_issue_detection.detection import TraceMetadataWithSpanCount
 
 logger = logging.getLogger(__name__)
 
@@ -25,16 +26,16 @@ def get_valid_trace_ids_by_span_count(
     trace_ids: list[str],
     snuba_params: SnubaParams,
     config: SearchResolverConfig,
-) -> set[str]:
+) -> dict[str, int]:
     """
     Query span counts for all trace_ids in one query.
-    Return set of trace_ids with valid span counts.
+    Returns a dict mapping trace_id to span count for traces with valid span counts.
 
     This filters out traces that are too small (lack context) or too large
     (exceed LLM context limits) before sending to Seer for analysis.
     """
     if not trace_ids:
-        return set()
+        return {}
 
     result = Spans.run_table_query(
         params=snuba_params,
@@ -49,7 +50,7 @@ def get_valid_trace_ids_by_span_count(
     )
 
     return {
-        row["trace"]
+        row["trace"]: row["count()"]
         for row in result.get("data", [])
         if LOWER_SPAN_LIMIT <= row["count()"] <= UPPER_SPAN_LIMIT
     }
@@ -59,7 +60,7 @@ def get_project_top_transaction_traces_for_llm_detection(
     project_id: int,
     limit: int,
     start_time_delta_minutes: int,
-) -> list[TraceMetadata]:
+) -> list[TraceMetadataWithSpanCount]:
     """
     Get top transactions by total time spent, return one semi-randomly chosen trace per transaction.
     Filters traces by span count before returning.
@@ -156,4 +157,12 @@ def get_project_top_transaction_traces_for_llm_detection(
         all_trace_ids, transaction_snuba_params, config
     )
 
-    return [t for t in trace_metadata if t.trace_id in valid_trace_ids]
+    return [
+        TraceMetadataWithSpanCount(
+            trace_id=t.trace_id,
+            transaction_name=t.transaction_name,
+            span_count=valid_trace_ids[t.trace_id],
+        )
+        for t in trace_metadata
+        if t.trace_id in valid_trace_ids
+    ]
