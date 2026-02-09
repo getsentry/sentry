@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.preprod.analytics import PreprodArtifactApiListBuildsEvent
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.testutils.cases import APITestCase
 
 
@@ -742,3 +742,43 @@ class OrganizationPreprodListBuildsEndpointTest(APITestCase):
         builds = response.json()["builds"]
         assert len(builds) == 1
         assert builds[0]["app_info"]["app_id"] == "com.example.app4"
+
+    def test_list_builds_excludes_not_ran_size_analysis(self) -> None:
+        self.create_preprod_artifact_size_metrics(
+            self.artifact1, state=PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN
+        )
+        response = self.client.get(
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        builds = response.json()["builds"]
+        assert len(builds) == 3
+        app_ids = {b["app_info"]["app_id"] for b in builds}
+        assert "com.example.app" not in app_ids
+
+    def test_list_builds_includes_completed_size_analysis(self) -> None:
+        self.create_preprod_artifact_size_metrics(
+            self.artifact1, state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        )
+        response = self.client.get(
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        builds = response.json()["builds"]
+        assert len(builds) == 4
+        app_ids = {b["app_info"]["app_id"] for b in builds}
+        assert "com.example.app" in app_ids
+
+    def test_list_builds_includes_no_size_metrics(self) -> None:
+        response = self.client.get(
+            f"{self._get_url()}?project={self.project.id}&project={self.project2.id}",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+        assert response.status_code == 200
+        builds = response.json()["builds"]
+        assert len(builds) == 4

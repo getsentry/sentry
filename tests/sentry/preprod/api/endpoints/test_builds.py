@@ -4,6 +4,7 @@ import pytest
 from django.urls import reverse
 from django.utils.functional import cached_property
 
+from sentry.preprod.models import PreprodArtifactSizeMetrics
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -844,6 +845,50 @@ class BuildsEndpointTest(APITestCase):
         data = response.json()
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "com.example.android"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_excludes_builds_with_not_ran_size_metrics(self) -> None:
+        artifact = self.create_preprod_artifact(app_id="not_ran.app")
+        self.create_preprod_artifact_size_metrics(
+            artifact, state=PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN
+        )
+        response = self._request({})
+        self._assert_is_successful(response)
+        assert len(response.json()) == 0
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_includes_builds_with_completed_size_metrics(self) -> None:
+        artifact = self.create_preprod_artifact(app_id="completed.app")
+        self.create_preprod_artifact_size_metrics(
+            artifact, state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        )
+        response = self._request({})
+        self._assert_is_successful(response)
+        assert len(response.json()) == 1
+        assert response.json()[0]["app_info"]["app_id"] == "completed.app"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_includes_builds_with_no_size_metrics(self) -> None:
+        self.create_preprod_artifact(app_id="no_metrics.app")
+        response = self._request({})
+        self._assert_is_successful(response)
+        assert len(response.json()) == 1
+        assert response.json()[0]["app_info"]["app_id"] == "no_metrics.app"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_excludes_build_with_mixed_metrics_including_not_ran(self) -> None:
+        artifact = self.create_preprod_artifact(app_id="mixed.app")
+        self.create_preprod_artifact_size_metrics(
+            artifact, state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        )
+        self.create_preprod_artifact_size_metrics(
+            artifact,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+        )
+        response = self._request({})
+        self._assert_is_successful(response)
+        assert len(response.json()) == 0
 
 
 class QuerysetForQueryTest(APITestCase):

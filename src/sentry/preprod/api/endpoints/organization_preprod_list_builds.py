@@ -23,7 +23,7 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
     transform_preprod_artifact_to_build_details,
 )
 from sentry.preprod.api.validators import PreprodListBuildsValidator
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.utils import parse_release_version
 
 logger = logging.getLogger(__name__)
@@ -91,6 +91,9 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
             )
             .prefetch_related("preprodartifactsizemetrics_set")
             .filter(project_id__in=project_ids)
+            .exclude(
+                preprodartifactsizemetrics__state=PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+            )
         )
 
         if start and end:
