@@ -1,4 +1,4 @@
-import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -14,16 +14,15 @@ import type {ConversationDrawerOpenSource} from 'sentry/utils/analytics/conversa
 import useOrganization from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
-import {getIsExecuteToolSpan} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {MessagesPanel} from 'sentry/views/insights/pages/conversations/components/messagesPanel';
 import {
   useConversation,
   type UseConversationsOptions,
 } from 'sentry/views/insights/pages/conversations/hooks/useConversation';
+import {useFocusedToolSpan} from 'sentry/views/insights/pages/conversations/hooks/useFocusedToolSpan';
 import {useUrlConversationDrawer} from 'sentry/views/insights/pages/conversations/hooks/useUrlConversationDrawer';
 import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conversations/utils/urlParams';
-import {SpanFields} from 'sentry/views/insights/types';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
@@ -48,7 +47,21 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
     useConversationDrawerQueryState();
   const selectedNodeKey = conversationDrawerQueryState.spanId;
   const focusedTool = conversationDrawerQueryState.focusedTool;
-  const hasProcessedFocusedTool = useRef(false);
+
+  useFocusedToolSpan({
+    nodes,
+    focusedTool,
+    isLoading,
+    onSpanFound: useCallback(
+      (spanId: string) => {
+        setConversationDrawerQueryState({
+          spanId,
+          focusedTool: null,
+        });
+      },
+      [setConversationDrawerQueryState]
+    ),
+  });
 
   const handleSelectNode = useCallback(
     (node: AITraceSpanNode) => {
@@ -71,31 +84,6 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
       nodes.find(node => node.id === defaultNodeId)
     );
   }, [nodes, selectedNodeKey, defaultNodeId]);
-
-  // Handle focusedTool param - find first tool span with matching name
-  useEffect(() => {
-    if (isLoading || !focusedTool || hasProcessedFocusedTool.current) {
-      return;
-    }
-
-    const toolSpan = nodes.find(node => {
-      const opType = node.attributes?.[SpanFields.GEN_AI_OPERATION_TYPE] as
-        | string
-        | undefined;
-      const toolName = node.attributes?.[SpanFields.GEN_AI_TOOL_NAME] as
-        | string
-        | undefined;
-      return getIsExecuteToolSpan(opType) && toolName === focusedTool;
-    });
-
-    if (toolSpan) {
-      hasProcessedFocusedTool.current = true;
-      setConversationDrawerQueryState({
-        spanId: toolSpan.id,
-        focusedTool: null,
-      });
-    }
-  }, [isLoading, focusedTool, nodes, setConversationDrawerQueryState]);
 
   useEffect(() => {
     if (isLoading || !defaultNodeId || focusedTool) {
