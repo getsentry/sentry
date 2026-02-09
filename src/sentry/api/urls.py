@@ -793,6 +793,7 @@ from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesE
 from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
+from .endpoints.project_filter_add_release import ProjectFilterAddReleaseEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
@@ -2847,6 +2848,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/filters/$",
         ProjectFiltersEndpoint.as_view(),
         name="sentry-api-0-project-filters",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/filters/add-release/$",
+        ProjectFilterAddReleaseEndpoint.as_view(),
+        name="sentry-api-0-project-filters-add-release",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/filters/(?P<filter_id>[^/]+)/$",

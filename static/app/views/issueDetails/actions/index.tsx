@@ -381,6 +381,49 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     ));
   };
 
+  const onDiscardRelease = () => {
+    const releaseVersion = event?.release?.version;
+    if (!releaseVersion) {
+      return;
+    }
+
+    openConfirmModal({
+      message: t(
+        'Are you sure you want to discard all future events from release "%s"? This will add the release to your project\'s inbound data filters.',
+        releaseVersion
+      ),
+      priority: 'danger',
+      confirmText: t('Discard Events'),
+      onConfirm: () => {
+        addLoadingMessage(t('Adding release to filters\u2026'));
+
+        api.request(
+          `/projects/${organization.slug}/${project.slug}/filters/add-release/`,
+          {
+            method: 'POST',
+            data: {release: releaseVersion},
+            success: () => {
+              clearIndicators();
+              addSuccessMessage(
+                t('Successfully added release %s to inbound filters', releaseVersion)
+              );
+              trackAnalytics('issue_details.discard_release_clicked', {
+                organization,
+                release: releaseVersion,
+                ...getAnalyticsDataForGroup(group),
+                ...getAnalyicsDataForProject(project),
+              });
+            },
+            error: () => {
+              clearIndicators();
+              addSuccessMessage(t('Failed to add release to filters'));
+            },
+          }
+        );
+      },
+    });
+  };
+
   const handleClick = (onClick: (event?: MouseEvent) => void) => {
     return function (innerEvent: MouseEvent) {
       if (disabled) {
@@ -571,6 +614,14 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             label: t('Reprocess events'),
             hidden: !displayReprocessEventAction(event),
             onAction: onReprocessEvent,
+          },
+          {
+            key: 'discard-release',
+            priority: 'danger',
+            label: t('Discard events from this release'),
+            hidden: !event?.release?.version,
+            disabled: !event?.release?.version,
+            onAction: onDiscardRelease,
           },
           {
             key: 'delete-issue',
