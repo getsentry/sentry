@@ -379,8 +379,7 @@ function Visualize({error, setError}: VisualizeProps) {
       ? state.yAxis
       : state.fields;
 
-  const canHaveAlias =
-    !isTimeSeriesWidget && !isBigNumberWidget && !isCategoricalBarWidget;
+  const canHaveAlias = isTableWidget;
 
   // Determines whether "Add Series/Column/Equation" buttons are shown:
   // - Line, Area, Bar (Time Series): Can add multiple Y-axis series

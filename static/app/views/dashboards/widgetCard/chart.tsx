@@ -727,7 +727,6 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
     return <LoadingPlaceholder />;
   }
 
-  // Transform table data to categorical series format
   const query = widget.queries[0];
   const tableData = tableResults[0];
 

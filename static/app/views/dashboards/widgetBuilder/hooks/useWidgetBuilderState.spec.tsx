@@ -2303,9 +2303,9 @@ describe('useWidgetBuilderState', () => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
-            // Errors dataset defaults: transaction (X-axis) + count_unique(user) (aggregate)
+            // Errors dataset defaults: title (X-axis) + count_unique(user) (aggregate)
             field: serializeFields([
-              {kind: FieldValueKind.FIELD, field: 'transaction'},
+              {kind: FieldValueKind.FIELD, field: 'title'},
               {
                 kind: FieldValueKind.FUNCTION,
                 function: ['count_unique', 'user', undefined, undefined],

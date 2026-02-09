@@ -19,7 +19,9 @@ import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useI
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
+import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 
 export function WidgetBuilderXAxisSelector() {
   const organization = useOrganization();
@@ -30,10 +32,20 @@ export function WidgetBuilderXAxisSelector() {
 
   const tags: TagCollection = useTags();
 
+  let hiddenKeys: string[] = [];
+  if (state.dataset === WidgetType.TRACEMETRICS) {
+    hiddenKeys = HiddenTraceMetricGroupByFields;
+  } else if (state.dataset === WidgetType.PREPROD_APP_SIZE) {
+    hiddenKeys = HIDDEN_PREPROD_ATTRIBUTES;
+  }
+
   // Only use string tags for categorical X-axis (numeric values don't make good
   // categories). This has a major caveat that _some_ numerical tags like HTTP
   // response status _are_ good for grouping, so we may want to allow that.
-  const {tags: stringSpanTags, isLoading: isLoadingSpanTags} = useTraceItemTags('string');
+  const {tags: stringSpanTags, isLoading: isLoadingSpanTags} = useTraceItemTags(
+    'string',
+    hiddenKeys
+  );
 
   const datasetConfig = getDatasetConfig(state.dataset);
 
@@ -104,7 +116,7 @@ export function WidgetBuilderXAxisSelector() {
       field: 'xAxis',
       from: source,
       new_widget: !isEditing,
-      value: '',
+      value: String(option.value),
       widget_type: state.dataset ?? '',
       organization,
     });
