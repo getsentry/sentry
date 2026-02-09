@@ -520,11 +520,12 @@ def _triggers_snuba_reset(item: pytest.Item) -> bool:
 # This list should shrink over time as tests are fixed to scope their queries.
 # See docs/service-classification-investigation.md "The No Cleanup Approach" for details.
 FORCE_SERIAL_FILES: set[str] = {
-    # Category A: Metrics queries that may aggregate broadly
+    # Category A: Metrics queries that aggregate broadly
     "tests/sentry/releases/endpoints/test_organization_release_health_data.py",
     "tests/sentry/sentry_metrics/querying/data/test_api.py",
     "tests/sentry/snuba/metrics/test_metrics_layer/test_metrics_enhanced_performance.py",
     "tests/sentry/snuba/metrics/test_metrics_layer/test_release_health.py",
+    "tests/sentry/release_health/release_monitor/test_metrics.py",
     # Category B: Dynamic sampling — intentionally broad org scanning
     "tests/sentry/dynamic_sampling/tasks/test_common.py",
     "tests/sentry/dynamic_sampling/tasks/test_tasks.py",
@@ -534,11 +535,17 @@ FORCE_SERIAL_FILES: set[str] = {
     "tests/sentry/tasks/test_daily_summary.py",
     "tests/sentry/tasks/test_weekly_reports.py",
     "tests/sentry/rules/history/test_preview.py",
-    # Category D: Endpoint tests with potentially broad queries
+    # Category D: Endpoint tests with broad queries (both sentry/ and snuba/ paths)
     "tests/sentry/api/endpoints/test_organization_events_histogram.py",
     "tests/sentry/api/endpoints/test_organization_events_trends.py",
     "tests/sentry/api/endpoints/test_organization_root_cause_analysis.py",
     "tests/sentry/replays/endpoints/test_organization_replay_index.py",
+    "tests/snuba/api/endpoints/test_organization_events_histogram.py",
+    "tests/snuba/api/endpoints/test_organization_events_trends.py",
+    # Category E: Event frequency rules — broad time-window queries
+    "tests/snuba/rules/conditions/test_event_frequency.py",
+    # Category F: Relay integration — event pipeline timing issues under load
+    "tests/relay_integration/test_integration.py",
 }
 
 

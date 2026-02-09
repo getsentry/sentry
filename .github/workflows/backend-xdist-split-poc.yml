@@ -50,10 +50,10 @@ jobs:
         with:
           mode: backend-ci
 
-      - name: Run parallel tests (xdist -n 3)
+      - name: Run parallel tests (xdist -n 2)
         run: |
           echo "=== Group A: xdist-parallel tests (reset_snuba skipped) ==="
-          echo "Shard ${{ matrix.instance }} of 20, xdist workers: 3"
+          echo "Shard ${{ matrix.instance }} of 20, xdist workers: 2"
           python3 -b -m pytest \
             tests \
             --reuse-db \
@@ -62,7 +62,7 @@ jobs:
             --ignore tests/js \
             --ignore tests/tools \
             --xdist-group=parallel \
-            -n 3 \
+            -n 2 \
             --dist=loadfile \
             --json-report \
             --json-report-file=".artifacts/pytest.json" \

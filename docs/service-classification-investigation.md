@@ -1116,3 +1116,100 @@ The "no cleanup" approach is viable if:
 
 This would eliminate `reset_snuba` entirely under xdist, giving maximum parallelism with zero
 cleanup overhead — the cleanest possible solution.
+
+---
+
+## Iteration 7: "No Cleanup" Implementation — Skip reset_snuba Entirely
+
+### Strategy
+
+Instead of classifying tests by whether they *trigger* `reset_snuba` (Iteration 6's approach), we
+flip the model: **skip `reset_snuba` for all parallel tests** and rely on unique snowflake IDs for
+ClickHouse isolation. Only a small set of files with broadly-scoped queries (`FORCE_SERIAL_FILES`)
+run single-threaded with normal `reset_snuba` cleanup.
+
+### How It Works
+
+1. **Snowflake ID isolation**: Every `Factories.create_project()` / `create_organization()` call
+   generates a globally unique snowflake ID (53-bit integer encoding timestamp + region + sequence,
+   backed by Redis). Since every ClickHouse row is tagged with `project_id`, and every well-behaved
+   test queries `WHERE project_id = <unique_id>`, tests naturally isolate without needing TRUNCATE.
+
+2. **`XDIST_SKIP_SNUBA_RESET=1`**: Environment variable that makes the `reset_snuba` fixture a
+   no-op (early return). Set in the parallel workflow jobs.
+
+3. **`FORCE_SERIAL_FILES`**: Hardcoded set of ~15 test file paths whose ClickHouse queries are
+   broadly scoped (don't filter by project_id). These are routed to the serial group via
+   `--xdist-group=serial` and run with normal `reset_snuba` cleanup.
+
+4. **`--xdist-group` filter**: `pytest_collection_modifyitems` hook routes tests based on
+   `_force_serial()` (file in FORCE_SERIAL_FILES?) instead of `_triggers_snuba_reset()`.
+
+### Changes Made
+
+- `src/sentry/testutils/pytest/fixtures.py`: `reset_snuba` checks `XDIST_SKIP_SNUBA_RESET` env var
+- `src/sentry/testutils/pytest/sentry.py`: Added `FORCE_SERIAL_FILES` set, `_force_serial()`,
+  updated `--xdist-group` to use file-based routing
+- `.github/workflows/backend-xdist-split-poc.yml`: 20 parallel shards (-n 2) + 2 serial shards
+
+### Run 1 Results (20 parallel shards @ -n 3, 2 serial shards)
+
+**Serial shards: 2/2 passed** — The FORCE_SERIAL_FILES tests work correctly with normal cleanup.
+
+**Parallel shards: 12/20 passed, 5 failed, 8 still running (with worker crashes)**
+
+#### Test Failures (stale ClickHouse data — expected)
+
+| Failing Test | Shards | Root Cause |
+| --- | --- | --- |
+| `tests/snuba/rules/conditions/test_event_frequency.py` | 3 shards | Event frequency queries see extra events from other workers. `assert 2 == 1`, `assert False is True`. Broadly scoped time-window queries. |
+| `tests/snuba/api/endpoints/test_organization_events_trends.py` | 2 shards | Transaction count queries: `assert 0 == 1` (count_range_1). Trends endpoint aggregates without tight project filter. |
+| `tests/snuba/api/endpoints/test_organization_events_histogram.py` | 1 shard | Was in FORCE_SERIAL_FILES but under **wrong path** (`tests/sentry/...` vs `tests/snuba/...`). Path mismatch meant it wasn't routed to serial. |
+| `tests/sentry/release_health/release_monitor/test_metrics.py` | 1 shard | Metrics counts off: `assert 14 == 15`, `assert 0.03 in [0.02, 0]`. Session/release health metrics see extra data. |
+| `tests/relay_integration/test_integration.py` | 2 shards | `assert None is not None` — event not found after store. Likely a relay→Snuba pipeline timing issue under load. |
+
+#### Worker Crashes (`[gw2] node down: Not properly terminated`)
+
+Multiple shards experienced xdist worker crashes with `node down: Not properly terminated`. The
+associated `TimeoutError: timed out` in the Django test server is a **symptom**, not the cause:
+
+1. xdist worker dies (likely OOM)
+2. Its orphaned Django test server socket times out waiting for a request
+3. xdist detects the dead worker and spawns a replacement
+
+**Probable cause: OOM on GitHub Actions runners (~7GB RAM)**. With `-n 3`, each shard runs:
+- 3 full Sentry Django processes (each is very heavy)
+- Postgres, Redis, Kafka, ClickHouse, Snuba, Symbolicator (Docker containers)
+- Without TRUNCATE, ClickHouse tables grow unbounded — data accumulates across all tests
+
+**Fix: Drop to `-n 2`** to reduce memory pressure. Two Django workers + devservices should fit
+within 7GB more comfortably.
+
+#### Path Mismatches in FORCE_SERIAL_FILES
+
+The original list had paths under `tests/sentry/api/endpoints/` but the actual failing tests are
+under `tests/snuba/api/endpoints/`. Both directories contain test files with the same names:
+- `tests/sentry/api/endpoints/test_organization_events_histogram.py` (in list, may not exist)
+- `tests/snuba/api/endpoints/test_organization_events_histogram.py` (actual failing file)
+
+Same for `test_organization_events_trends.py`.
+
+#### Files to Add to FORCE_SERIAL_FILES
+
+Based on Run 1 failures:
+- `tests/snuba/rules/conditions/test_event_frequency.py` — broad time-window event frequency queries
+- `tests/snuba/api/endpoints/test_organization_events_trends.py` — trends aggregation
+- `tests/snuba/api/endpoints/test_organization_events_histogram.py` — histogram aggregation
+- `tests/sentry/release_health/release_monitor/test_metrics.py` — release health metrics counts
+- `tests/relay_integration/test_integration.py` — relay integration event pipeline
+
+#### Key Insight: Accidental Passes
+
+A green test in this run **does not prove correctness**. Tests can pass accidentally because:
+- Their shard happened to have no overlapping writes from other workers
+- Stale data coincidentally satisfied assertions (e.g., `count >= 1` always passes with extra data)
+- The broad query returned correct results by luck of timing
+
+This means the FORCE_SERIAL_FILES list will likely need multiple iterations to stabilize. Strategy:
+run the suite repeatedly, collect new failures each time, add files to the list, repeat until
+stable. Tests that fail intermittently across runs are the most important to catch.
