@@ -563,9 +563,3 @@ class Provider(Protocol):
         repository: Repository,
         thread_node_id: str,
     ) -> None: ...
-
-    def delete_review_comment_graphql(
-        self,
-        repository: Repository,
-        comment_node_id: str,
-    ) -> None: ...

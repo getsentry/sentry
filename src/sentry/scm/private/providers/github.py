@@ -866,9 +866,3 @@ class GitHubProvider(Provider):
             self.client.resolve_review_thread(thread_node_id)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-
-    def delete_review_comment_graphql(self, repository: Repository, comment_node_id: str) -> None:
-        try:
-            self.client.delete_pull_request_review_comment(comment_node_id)
-        except ApiError as e:
-            raise SCMProviderException(str(e)) from e

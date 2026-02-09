@@ -389,6 +389,3 @@ class SourceCodeManager:
 
     def resolve_review_thread(self, thread_node_id: str) -> None:
         return self._exec(lambda r, p: p.resolve_review_thread(r, thread_node_id))
-
-    def delete_review_comment_graphql(self, comment_node_id: str) -> None:
-        return self._exec(lambda r, p: p.delete_review_comment_graphql(r, comment_node_id))

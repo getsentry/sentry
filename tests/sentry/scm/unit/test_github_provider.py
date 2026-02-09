@@ -58,7 +58,6 @@ ALL_PROVIDER_METHODS: list[tuple[str, dict[str, Any]]] = [
     ("get_pull_request_comments", {"pull_request_id": "42"}),
     ("minimize_comment", {"comment_node_id": "IC_abc", "reason": "OUTDATED"}),
     ("resolve_review_thread", {"thread_node_id": "PRT_abc"}),
-    ("delete_review_comment_graphql", {"comment_node_id": "PRRC_abc"}),
     ("create_pull_request_comment", {"pull_request_id": "42", "body": "test"}),
     ("delete_pull_request_comment", {"comment_id": "201"}),
     ("get_issue_comment_reactions", {"comment_id": "101"}),
@@ -424,11 +423,6 @@ CLIENT_DELEGATION_TESTS: list[
         "resolve_review_thread",
         {"thread_node_id": "PRT_abc"},
         ("resolve_review_thread", ("PRT_abc",), {}),
-    ),
-    (
-        "delete_review_comment_graphql",
-        {"comment_node_id": "PRRC_abc"},
-        ("delete_pull_request_review_comment", ("PRRC_abc",), {}),
     ),
 ]
 

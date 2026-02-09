@@ -1017,9 +1017,6 @@ class BaseTestProvider(Provider):
     def resolve_review_thread(self, repository: Repository, thread_node_id: str) -> None:
         return None
 
-    def delete_review_comment_graphql(self, repository: Repository, comment_node_id: str) -> None:
-        return None
-
 
 class FakeGitHubApiClient(GitHubApiClient):
     """
