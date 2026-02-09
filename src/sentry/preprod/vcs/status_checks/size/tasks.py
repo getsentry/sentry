@@ -64,7 +64,7 @@ class StatusCheckPostPolicy(StrEnum):
     May still post if the lock times out or extras can't be read."""
 
     ALWAYS_POST = "always_post"
-    """Bypass dedup and always post. Used by the rerun endpoint."""
+    """Bypass dedup and always post."""
 
 
 # Action identifier for the "Approve" button on GitHub check runs.
