@@ -94,6 +94,13 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
             )
 
         project = self.context["ownership"].project
+        organization = project.organization
+
+        # If open team membership is enabled, users can assign any team as owner since they could
+        # join any team anyway
+        if organization and organization.flags.allow_joinleave:
+            return
+
         user_team_count = OrganizationMemberTeam.objects.filter(
             team__slug__in=team_slugs,
             team__projectteam__project=project,
