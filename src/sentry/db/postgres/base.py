@@ -125,6 +125,10 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
     def close(self, reconnect=False):
         """
         This ensures we don't error if the connection has already been closed.
+        
+        When reconnect=True, also resets transaction state to avoid stale
+        connection references in Django's transaction context that can cause
+        InterfaceError when trying to set autocommit on a closed connection.
         """
         if self.connection is not None:
             if not self.connection.closed:
@@ -135,3 +139,15 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
                     # like pgbouncer idle timeout.
                     pass
             self.connection = None
+        
+        # When reconnecting, reset transaction state to avoid stale references
+        # that can cause "connection already closed" errors on subsequent operations
+        if reconnect:
+            self.in_atomic_block = False
+            self.needs_rollback = False
+            self.savepoint_ids = []
+            self.commit_on_exit = True
+            self.run_on_commit = []
+            self.run_commit_hooks_on_set_autocommit_on = False
+            if hasattr(self, 'closed_in_transaction'):
+                self.closed_in_transaction = False
