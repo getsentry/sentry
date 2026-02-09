@@ -4,24 +4,20 @@ import styled from '@emotion/styled';
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 
-import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {OnboardingCopyAsDropdown} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyAsDropdown';
+import {SelectedCodeTabProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   ProductSolution,
   StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
-import {
-  stepsToMarkdown,
-  stepsToText,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/stepsToMarkdown';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -247,61 +243,44 @@ function Onboarding({organization, project}: OnboardingProps) {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
-      <Flex justify="end" marginBottom="xs">
-        <CopyAsDropdown
-          size="xs"
-          items={CopyAsDropdown.makeDefaultCopyAsOptions({
-            markdown: () => {
-              trackAnalytics('onboarding.copy_instructions', {
-                organization,
-                format: 'markdown',
-                source: 'metrics_onboarding',
-              });
-              return stepsToMarkdown(steps);
-            },
-            text: () => {
-              trackAnalytics('onboarding.copy_instructions', {
-                organization,
-                format: 'text',
-                source: 'metrics_onboarding',
-              });
-              return stepsToText(steps);
-            },
-            json: undefined,
-          })}
+      <SelectedCodeTabProvider>
+        <OnboardingCopyAsDropdown
+          steps={steps}
+          organization={organization}
+          source="metrics_onboarding"
         />
-      </Flex>
-      <GuidedSteps
-        initialStep={decodeInteger(location.query.guidedStep)}
-        onStepChange={step => {
-          navigate({
-            pathname: location.pathname,
-            query: {
-              ...location.query,
-              guidedStep: step,
-            },
-          });
-        }}
-      >
-        {steps.map((step, index) => {
-          const title = step.title ?? STEP_TITLES[step.type];
-          return (
-            <GuidedSteps.Step key={title} stepKey={title} title={title}>
-              <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
-              {index === steps.length - 1 ? (
-                <GuidedSteps.ButtonWrapper>
-                  <GuidedSteps.BackButton size="md" />
-                </GuidedSteps.ButtonWrapper>
-              ) : (
-                <GuidedSteps.ButtonWrapper>
-                  <GuidedSteps.BackButton size="md" />
-                  <GuidedSteps.NextButton size="md" />
-                </GuidedSteps.ButtonWrapper>
-              )}
-            </GuidedSteps.Step>
-          );
-        })}
-      </GuidedSteps>
+        <GuidedSteps
+          initialStep={decodeInteger(location.query.guidedStep)}
+          onStepChange={step => {
+            navigate({
+              pathname: location.pathname,
+              query: {
+                ...location.query,
+                guidedStep: step,
+              },
+            });
+          }}
+        >
+          {steps.map((step, index) => {
+            const title = step.title ?? STEP_TITLES[step.type];
+            return (
+              <GuidedSteps.Step key={title} stepKey={title} title={title}>
+                <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+                {index === steps.length - 1 ? (
+                  <GuidedSteps.ButtonWrapper>
+                    <GuidedSteps.BackButton size="md" />
+                  </GuidedSteps.ButtonWrapper>
+                ) : (
+                  <GuidedSteps.ButtonWrapper>
+                    <GuidedSteps.BackButton size="md" />
+                    <GuidedSteps.NextButton size="md" />
+                  </GuidedSteps.ButtonWrapper>
+                )}
+              </GuidedSteps.Step>
+            );
+          })}
+        </GuidedSteps>
+      </SelectedCodeTabProvider>
     </OnboardingPanel>
   );
 }

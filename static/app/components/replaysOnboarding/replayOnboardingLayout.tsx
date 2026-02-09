@@ -1,24 +1,20 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
-import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
+import {OnboardingCopyAsDropdown} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyAsDropdown';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
+import {SelectedCodeTabProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
-import {
-  stepsToMarkdown,
-  stepsToText,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/stepsToMarkdown';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import ReplayConfigToggle from 'sentry/components/replaysOnboarding/replayConfigToggle';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -112,68 +108,51 @@ export function ReplayOnboardingLayout({
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <Wrapper>
         {introduction && <Stack margin="0 0 xl 0">{introduction}</Stack>}
-        <Flex justify="end" marginBottom="xs">
-          <CopyAsDropdown
-            size="xs"
-            items={CopyAsDropdown.makeDefaultCopyAsOptions({
-              markdown: () => {
-                trackAnalytics('onboarding.copy_instructions', {
-                  organization,
-                  format: 'markdown',
-                  source: 'replay_onboarding',
-                });
-                return stepsToMarkdown(steps);
-              },
-              text: () => {
-                trackAnalytics('onboarding.copy_instructions', {
-                  organization,
-                  format: 'text',
-                  source: 'replay_onboarding',
-                });
-                return stepsToText(steps);
-              },
-              json: undefined,
-            })}
+        <SelectedCodeTabProvider>
+          <OnboardingCopyAsDropdown
+            steps={steps}
+            organization={organization}
+            source="replay_onboarding"
           />
-        </Flex>
-        <Stack gap="lg">
-          {steps
-            // TODO(aknaus): Move inserting the toggle into the docs definitions
-            // once the content blocks migration is done. This logic here is very brittle.
-            .map(step => {
-              if (step.type !== StepType.CONFIGURE || hideMaskBlockToggles) {
-                return step;
-              }
-
-              if (step.content) {
-                // Insert the feedback config toggle before the code block
-                const codeIndex = step.content?.findIndex(b => b.type === 'code');
-                if (codeIndex === -1) {
+          <Stack gap="lg">
+            {steps
+              // TODO(aknaus): Move inserting the toggle into the docs definitions
+              // once the content blocks migration is done. This logic here is very brittle.
+              .map(step => {
+                if (step.type !== StepType.CONFIGURE || hideMaskBlockToggles) {
                   return step;
                 }
-                const newContent = [...step.content];
-                if (codeIndex !== undefined) {
-                  newContent.splice(codeIndex, 0, {
-                    type: 'custom',
-                    bottomMargin: false,
-                    content: replayConfigToggle,
-                  });
+
+                if (step.content) {
+                  // Insert the feedback config toggle before the code block
+                  const codeIndex = step.content?.findIndex(b => b.type === 'code');
+                  if (codeIndex === -1) {
+                    return step;
+                  }
+                  const newContent = [...step.content];
+                  if (codeIndex !== undefined) {
+                    newContent.splice(codeIndex, 0, {
+                      type: 'custom',
+                      bottomMargin: false,
+                      content: replayConfigToggle,
+                    });
+                  }
+                  return {
+                    ...step,
+                    content: newContent,
+                  };
                 }
+
                 return {
                   ...step,
-                  content: newContent,
+                  codeHeader: replayConfigToggle,
                 };
-              }
-
-              return {
-                ...step,
-                codeHeader: replayConfigToggle,
-              };
-            })
-            .map(step => (
-              <Step key={step.title ?? step.type} {...step} />
-            ))}
-        </Stack>
+              })
+              .map(step => (
+                <Step key={step.title ?? step.type} {...step} />
+              ))}
+          </Stack>
+        </SelectedCodeTabProvider>
       </Wrapper>
     </AuthTokenGeneratorProvider>
   );

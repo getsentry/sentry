@@ -5,6 +5,7 @@ import beautify from 'js-beautify';
 import {CodeBlock} from '@sentry/scraps/code';
 
 import {AuthTokenGenerator} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
+import {useSelectedCodeTab} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {PACKAGE_LOADING_PLACEHOLDER} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 interface OnboardingCodeSnippetProps extends Omit<
@@ -100,9 +101,15 @@ export function TabbedCodeSnippet({
   onCopy,
   onSelectAndCopy,
 }: TabbedCodeSnippetProps) {
-  const [selectedTabValue, setSelectedTabValue] = useState(tabs[0]!.value);
-  const selectedTab = tabs.find(tab => tab.value === selectedTabValue) ?? tabs[0]!;
-  const {code, language, filename} = selectedTab;
+  const {selectedTab: contextTab, setSelectedTab: setContextTab} = useSelectedCodeTab();
+
+  // Use context tab if it matches one of this block's tabs, otherwise fall back to first tab
+  const initialTab =
+    (contextTab && tabs.find(tab => tab.label === contextTab)?.value) || tabs[0]!.value;
+
+  const [selectedTabValue, setSelectedTabValue] = useState(initialTab);
+  const resolvedTab = tabs.find(tab => tab.value === selectedTabValue) ?? tabs[0]!;
+  const {code, language, filename} = resolvedTab;
 
   return (
     <OnboardingCodeSnippet
@@ -111,7 +118,13 @@ export function TabbedCodeSnippet({
       onSelectAndCopy={onSelectAndCopy}
       tabs={tabs}
       selectedTab={selectedTabValue}
-      onTabClick={value => setSelectedTabValue(value)}
+      onTabClick={value => {
+        setSelectedTabValue(value);
+        const clickedTab = tabs.find(tab => tab.value === value);
+        if (clickedTab?.label) {
+          setContextTab(clickedTab.label);
+        }
+      }}
       filename={filename}
     >
       {code}

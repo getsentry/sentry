@@ -191,7 +191,7 @@ describe('contentBlockToMarkdown', () => {
     expect(result).toContain('import * as Sentry from "@sentry/node";');
   });
 
-  it('converts tabbed CodeBlock', () => {
+  it('converts tabbed CodeBlock with only first tab by default', () => {
     const block: ContentBlock = {
       type: 'code',
       tabs: [
@@ -200,10 +200,58 @@ describe('contentBlockToMarkdown', () => {
       ],
     };
     const result = contentBlockToMarkdown(block);
-    expect(result).toContain('**npm**');
-    expect(result).toContain('```bash\nnpm install @sentry/node\n```');
-    expect(result).toContain('**yarn**');
-    expect(result).toContain('```bash\nyarn add @sentry/node\n```');
+    expect(result).toBe('```bash\nnpm install @sentry/node\n```');
+    expect(result).not.toContain('yarn');
+  });
+
+  it('converts tabbed CodeBlock with selectedTabLabel option', () => {
+    const block: ContentBlock = {
+      type: 'code',
+      tabs: [
+        {code: 'npm install @sentry/node', language: 'bash', label: 'npm'},
+        {code: 'yarn add @sentry/node', language: 'bash', label: 'yarn'},
+        {code: 'pnpm add @sentry/node', language: 'bash', label: 'pnpm'},
+      ],
+    };
+    const result = contentBlockToMarkdown(block, {selectedTabLabel: 'yarn'});
+    expect(result).toBe('```bash\nyarn add @sentry/node\n```');
+    expect(result).not.toContain('npm install');
+    expect(result).not.toContain('pnpm');
+  });
+
+  it('falls back to first tab when selectedTabLabel does not match', () => {
+    const block: ContentBlock = {
+      type: 'code',
+      tabs: [
+        {code: 'npm install @sentry/node', language: 'bash', label: 'npm'},
+        {code: 'yarn add @sentry/node', language: 'bash', label: 'yarn'},
+      ],
+    };
+    const result = contentBlockToMarkdown(block, {selectedTabLabel: 'bun'});
+    expect(result).toBe('```bash\nnpm install @sentry/node\n```');
+  });
+
+  it('includes filename for matched tabbed CodeBlock', () => {
+    const block: ContentBlock = {
+      type: 'code',
+      tabs: [
+        {
+          code: 'import sentry from "@sentry/node"',
+          language: 'javascript',
+          label: 'ESM',
+          filename: 'app.mjs',
+        },
+        {
+          code: 'const sentry = require("@sentry/node")',
+          language: 'javascript',
+          label: 'CJS',
+          filename: 'app.cjs',
+        },
+      ],
+    };
+    const result = contentBlockToMarkdown(block, {selectedTabLabel: 'CJS'});
+    expect(result).toContain('// app.cjs');
+    expect(result).toContain('const sentry = require("@sentry/node")');
   });
 
   it('converts AlertBlock', () => {
@@ -351,6 +399,27 @@ describe('stepsToMarkdown', () => {
     expect(result).toContain('> **Note:** Requires Python 3.6+');
     expect(result).toContain('### Optional Dependencies');
     expect(result).toContain('- flask\n- django\n- celery');
+  });
+
+  it('passes selectedTabLabel option through to content blocks', () => {
+    const steps: OnboardingStep[] = [
+      {
+        type: StepType.INSTALL,
+        content: [
+          {
+            type: 'code',
+            tabs: [
+              {code: 'npm install @sentry/node', language: 'bash', label: 'npm'},
+              {code: 'yarn add @sentry/node', language: 'bash', label: 'yarn'},
+            ],
+          },
+        ],
+      },
+    ];
+
+    const result = stepsToMarkdown(steps, {selectedTabLabel: 'yarn'});
+    expect(result).toContain('```bash\nyarn add @sentry/node\n```');
+    expect(result).not.toContain('npm install');
   });
 
   it('skips false conditional blocks', () => {

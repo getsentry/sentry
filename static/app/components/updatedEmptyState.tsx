@@ -6,21 +6,18 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {OnboardingCopyAsDropdown} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyAsDropdown';
+import {SelectedCodeTabProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
-import {
-  stepsToMarkdown,
-  stepsToText,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/stepsToMarkdown';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
@@ -184,62 +181,45 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
         <Body>
           <Setup>
             <SetupTitle project={project} />
-            <Flex justify="end" marginBottom="xs">
-              <CopyAsDropdown
-                size="xs"
-                items={CopyAsDropdown.makeDefaultCopyAsOptions({
-                  markdown: () => {
-                    trackAnalytics('onboarding.copy_instructions', {
-                      organization,
-                      format: 'markdown',
-                      source: 'issues_onboarding',
-                    });
-                    return stepsToMarkdown(steps);
-                  },
-                  text: () => {
-                    trackAnalytics('onboarding.copy_instructions', {
-                      organization,
-                      format: 'text',
-                      source: 'issues_onboarding',
-                    });
-                    return stepsToText(steps);
-                  },
-                  json: undefined,
-                })}
+            <SelectedCodeTabProvider>
+              <OnboardingCopyAsDropdown
+                steps={steps}
+                organization={organization}
+                source="issues_onboarding"
               />
-            </Flex>
-            <GuidedSteps
-              initialStep={decodeInteger(location.query.guidedStep)}
-              onStepChange={step => {
-                navigate({
-                  pathname: location.pathname,
-                  query: {
-                    ...location.query,
-                    guidedStep: step,
-                  },
-                });
-              }}
-            >
-              {steps.map((step, index) => {
-                const title = step.title ?? StepTitles[step.type ?? 'install'];
-                const isLastStep = index === steps.length - 1;
-                return (
-                  <GuidedSteps.Step key={index} stepKey={title} title={title}>
-                    <ContentBlocksRenderer
-                      contentBlocks={step.content}
-                      spacing={space(1)}
-                    />
-                    <GuidedSteps.ButtonWrapper>
-                      <GuidedSteps.BackButton size="md" />
-                      <GuidedSteps.NextButton size="md" />
-                      {isLastStep && <WaitingIndicator project={project} />}
-                    </GuidedSteps.ButtonWrapper>
-                    {/* This spacer ensures the whole pulse effect is visible, as the parent has overflow: hidden */}
-                    {isLastStep && <PulseSpacer />}
-                  </GuidedSteps.Step>
-                );
-              })}
-            </GuidedSteps>
+              <GuidedSteps
+                initialStep={decodeInteger(location.query.guidedStep)}
+                onStepChange={step => {
+                  navigate({
+                    pathname: location.pathname,
+                    query: {
+                      ...location.query,
+                      guidedStep: step,
+                    },
+                  });
+                }}
+              >
+                {steps.map((step, index) => {
+                  const title = step.title ?? StepTitles[step.type ?? 'install'];
+                  const isLastStep = index === steps.length - 1;
+                  return (
+                    <GuidedSteps.Step key={index} stepKey={title} title={title}>
+                      <ContentBlocksRenderer
+                        contentBlocks={step.content}
+                        spacing={space(1)}
+                      />
+                      <GuidedSteps.ButtonWrapper>
+                        <GuidedSteps.BackButton size="md" />
+                        <GuidedSteps.NextButton size="md" />
+                        {isLastStep && <WaitingIndicator project={project} />}
+                      </GuidedSteps.ButtonWrapper>
+                      {/* This spacer ensures the whole pulse effect is visible, as the parent has overflow: hidden */}
+                      {isLastStep && <PulseSpacer />}
+                    </GuidedSteps.Step>
+                  );
+                })}
+              </GuidedSteps>
+            </SelectedCodeTabProvider>
           </Setup>
           <Preview>
             <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>

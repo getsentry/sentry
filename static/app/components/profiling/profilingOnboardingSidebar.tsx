@@ -11,6 +11,8 @@ import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DeprecatedPlatformInfo} from 'sentry/components/onboarding/gettingStartedDoc/deprecatedPlatformInfo';
+import {OnboardingCopyAsDropdown} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyAsDropdown';
+import {SelectedCodeTabProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   DocsPageLocation,
@@ -361,11 +363,18 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
   return (
     <Wrapper>
       {doc.introduction && <Introduction>{doc.introduction(docParams)}</Introduction>}
-      <Steps>
-        {steps.map(step => {
-          return <Step key={step.title ?? step.type} {...step} />;
-        })}
-      </Steps>
+      <SelectedCodeTabProvider>
+        <OnboardingCopyAsDropdown
+          steps={steps}
+          organization={props.organization}
+          source="profiling_sidebar_onboarding"
+        />
+        <Steps>
+          {steps.map(step => {
+            return <Step key={step.title ?? step.type} {...step} />;
+          })}
+        </Steps>
+      </SelectedCodeTabProvider>
     </Wrapper>
   );
 }

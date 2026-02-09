@@ -138,24 +138,39 @@ export function reactNodeToText(node: React.ReactNode): string {
   }
 }
 
+interface MarkdownOptions {
+  selectedTabLabel?: string;
+}
+
 /**
  * Converts a single ContentBlock to markdown text.
  */
-export function contentBlockToMarkdown(block: ContentBlock): string {
+export function contentBlockToMarkdown(
+  block: ContentBlock,
+  options?: MarkdownOptions
+): string {
   switch (block.type) {
     case 'text':
       return reactNodeToText(block.text);
 
     case 'code': {
       if ('tabs' in block && block.tabs) {
-        return block.tabs
-          .map(tab => {
-            const header = tab.label
-              ? `**${tab.label}**${tab.filename ? ` (${tab.filename})` : ''}\n\n`
-              : '';
-            return `${header}\`\`\`${tab.language}\n${tab.code}\n\`\`\``;
-          })
-          .join('\n\n');
+        // If a specific tab is selected, output only that tab
+        const matchedTab = options?.selectedTabLabel
+          ? block.tabs.find(tab => tab.label === options.selectedTabLabel)
+          : undefined;
+
+        if (matchedTab) {
+          const filenameComment = matchedTab.filename
+            ? `// ${matchedTab.filename}\n`
+            : '';
+          return `\`\`\`${matchedTab.language}\n${filenameComment}${matchedTab.code}\n\`\`\``;
+        }
+
+        // Default: output only the first tab (what the user sees by default)
+        const firstTab = block.tabs[0]!;
+        const filenameComment = firstTab.filename ? `// ${firstTab.filename}\n` : '';
+        return `\`\`\`${firstTab.language}\n${filenameComment}${firstTab.code}\n\`\`\``;
       }
       // Single code block
       const singleBlock = block as Extract<ContentBlock, {type: 'code'}> & {
@@ -180,7 +195,10 @@ export function contentBlockToMarkdown(block: ContentBlock): string {
       if (!block.condition) {
         return '';
       }
-      return block.content.map(contentBlockToMarkdown).filter(Boolean).join('\n\n');
+      return block.content
+        .map(b => contentBlockToMarkdown(b, options))
+        .filter(Boolean)
+        .join('\n\n');
 
     case 'custom':
       return reactNodeToText(block.content);
@@ -206,11 +224,17 @@ function stepTitle(step: OnboardingStep): string {
  * Converts an array of OnboardingStep objects to a markdown string.
  * Each step becomes a ## heading followed by its content blocks.
  */
-export function stepsToMarkdown(steps: OnboardingStep[]): string {
+export function stepsToMarkdown(
+  steps: OnboardingStep[],
+  options?: MarkdownOptions
+): string {
   return steps
     .map(step => {
       const heading = `## ${stepTitle(step)}`;
-      const body = step.content.map(contentBlockToMarkdown).filter(Boolean).join('\n\n');
+      const body = step.content
+        .map(b => contentBlockToMarkdown(b, options))
+        .filter(Boolean)
+        .join('\n\n');
       return `${heading}\n\n${body}`;
     })
     .join('\n\n');
@@ -258,7 +282,7 @@ function stripMarkdownFormatting(markdown: string): string {
  * Same as stepsToMarkdown but with markdown formatting stripped.
  * Code blocks are preserved as-is.
  */
-export function stepsToText(steps: OnboardingStep[]): string {
-  const markdown = stepsToMarkdown(steps);
+export function stepsToText(steps: OnboardingStep[], options?: MarkdownOptions): string {
+  const markdown = stepsToMarkdown(steps, options);
   return stripMarkdownFormatting(markdown);
 }

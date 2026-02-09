@@ -5,14 +5,14 @@ import {PlatformIcon} from 'platformicons';
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {OnboardingCopyAsDropdown} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyAsDropdown';
+import {SelectedCodeTabProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   DocsParams,
@@ -20,10 +20,6 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {DocsPageLocation} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
-import {
-  stepsToMarkdown,
-  stepsToText,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/stepsToMarkdown';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
@@ -42,7 +38,6 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeInteger} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -339,54 +334,37 @@ export function Onboarding() {
         <PlatformOptionDropdown platformOptions={integrationOptions} />
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
-      <Flex justify="end" marginBottom="xs">
-        <CopyAsDropdown
-          size="xs"
-          items={CopyAsDropdown.makeDefaultCopyAsOptions({
-            markdown: () => {
-              trackAnalytics('onboarding.copy_instructions', {
-                organization,
-                format: 'markdown',
-                source: 'agent_monitoring_onboarding',
-              });
-              return stepsToMarkdown(steps);
-            },
-            text: () => {
-              trackAnalytics('onboarding.copy_instructions', {
-                organization,
-                format: 'text',
-                source: 'agent_monitoring_onboarding',
-              });
-              return stepsToText(steps);
-            },
-            json: undefined,
-          })}
+      <SelectedCodeTabProvider>
+        <OnboardingCopyAsDropdown
+          steps={steps}
+          organization={organization}
+          source="agent_monitoring_onboarding"
         />
-      </Flex>
-      <GuidedSteps
-        initialStep={decodeInteger(location.query.guidedStep)}
-        onStepChange={step => {
-          navigate({
-            pathname: location.pathname,
-            query: {
-              ...location.query,
-              guidedStep: step,
-            },
-          });
-        }}
-      >
-        {steps
-          // Only show non-collapsible steps
-          .filter(step => !step.collapsible)
-          .map((step, index) => (
-            <StepRenderer
-              key={step.title || step.type}
-              project={project}
-              step={step}
-              isLastStep={index === steps.length - 1}
-            />
-          ))}
-      </GuidedSteps>
+        <GuidedSteps
+          initialStep={decodeInteger(location.query.guidedStep)}
+          onStepChange={step => {
+            navigate({
+              pathname: location.pathname,
+              query: {
+                ...location.query,
+                guidedStep: step,
+              },
+            });
+          }}
+        >
+          {steps
+            // Only show non-collapsible steps
+            .filter(step => !step.collapsible)
+            .map((step, index) => (
+              <StepRenderer
+                key={step.title || step.type}
+                project={project}
+                step={step}
+                isLastStep={index === steps.length - 1}
+              />
+            ))}
+        </GuidedSteps>
+      </SelectedCodeTabProvider>
     </OnboardingPanel>
   );
 }
