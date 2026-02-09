@@ -51,24 +51,45 @@ export function Avatar({
   tooltipOptions,
   hasTooltip = false,
   'data-test-id': testId,
-  ...props
+  ...avatarProps
 }: GravatarBaseAvatarProps | LetterBaseAvatarProps | UploadBaseAvatarProps) {
+  // Destructure avatar-specific props to prevent spreading onto DOM
+  const {type, identifier, name, title, round, suggested, ...restProps} = avatarProps;
+
   return (
     <Tooltip title={tooltip} disabled={!hasTooltip} {...tooltipOptions} skipWrapper>
       <AvatarContainer
         ref={ref as React.Ref<HTMLSpanElement>}
-        data-test-id={testId ?? `${props.type}-avatar`}
+        data-test-id={testId ?? `${type}-avatar`}
         className={classNames('avatar', className)}
-        suggested={!!props.suggested}
+        round={round}
+        suggested={!!suggested}
         style={{...(size ? {height: size, width: size} : {}), ...style}}
-        {...props}
+        title={title}
+        {...restProps}
       >
-        {props.type === 'upload' ? (
-          <ImageAvatar src={buildUploadUrl(props.uploadUrl)} {...props} />
-        ) : props.type === 'gravatar' ? (
-          <Gravatar {...props} />
-        ) : props.type === 'letter_avatar' ? (
-          <LetterAvatar {...(props as LetterBaseAvatarProps)} />
+        {type === 'upload' ? (
+          <ImageAvatar
+            src={buildUploadUrl((avatarProps as UploadBaseAvatarProps).uploadUrl)}
+            identifier={identifier}
+            name={name}
+            round={round}
+            suggested={suggested}
+          />
+        ) : type === 'gravatar' ? (
+          <Gravatar
+            gravatarId={(avatarProps as GravatarBaseAvatarProps).gravatarId}
+            name={name}
+            round={round}
+            suggested={suggested}
+          />
+        ) : type === 'letter_avatar' ? (
+          <LetterAvatar
+            identifier={identifier}
+            name={name}
+            round={round}
+            suggested={suggested}
+          />
         ) : null}
       </AvatarContainer>
     </Tooltip>

@@ -184,7 +184,7 @@ describe('UserAvatar', () => {
 
       render(<UserAvatar user={user} />);
       const img = screen.getByRole('img');
-      expect(img).toHaveAttribute('src', 'https://example.com/avatar.jpg');
+      expect(img).toHaveAttribute('src', 'https://example.com/avatar.jpg?s=120');
     });
 
     it('renders letter avatar when avatarType is letter_avatar', () => {
