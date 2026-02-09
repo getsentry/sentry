@@ -33,7 +33,7 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
                 raise ValueError(f"No target identifier found for action type: {action.type}")
 
             sentry_app_installations = app_service.get_many(
-                filter=dict(app_ids=[target_identifier], organization_id=organization_id)
+                filter=dict(app_ids=[int(target_identifier)], organization_id=organization_id)
             )
 
             if sentry_app_installations is None or len(sentry_app_installations) != 1:
