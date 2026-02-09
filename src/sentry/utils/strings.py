@@ -108,9 +108,7 @@ def soft_break(
             for HTML contexts so that copied text contains no invisible
             characters.
     """
-    delimiters = re.compile(
-        r"([{}]+)".format("".join(map(re.escape, ",.$:/+@!?()<>[]{}")))
-    )
+    delimiters = re.compile(r"([{}]+)".format("".join(map(re.escape, ",.$:/+@!?()<>[]{}"))))
 
     def soft_break_delimiter(match: re.Match[str]) -> str:
         results = []
@@ -128,9 +126,7 @@ def soft_break(
     return re.sub(rf"\S{{{length},}}", soft_break_delimiter, value)
 
 
-valid_dot_atom_characters = frozenset(
-    string.ascii_letters + string.digits + ".!#$%&'*+-/=?^_`{|}~"
-)
+valid_dot_atom_characters = frozenset(string.ascii_letters + string.digits + ".!#$%&'*+-/=?^_`{|}~")
 
 
 def is_valid_dot_atom(value: str) -> bool:

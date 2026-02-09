@@ -19,9 +19,7 @@ from sentry.utils import json
 from sentry.utils.strings import soft_break as _soft_break
 from sentry.utils.strings import soft_hyphenate, truncatechars
 
-SentryVersion = namedtuple(
-    "SentryVersion", ["current", "latest", "update_available", "build"]
-)
+SentryVersion = namedtuple("SentryVersion", ["current", "latest", "update_available", "build"])
 
 register = template.Library()
 
@@ -317,9 +315,7 @@ def soft_break_html(value, length):
         _soft_break(
             escaped,
             length,
-            functools.partial(
-                soft_hyphenate, length=max(length // 10, 10), hyphen="<wbr>"
-            ),
+            functools.partial(soft_hyphenate, length=max(length // 10, 10), hyphen="<wbr>"),
             delimiter_break="<wbr>",
         )
     )
