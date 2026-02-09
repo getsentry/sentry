@@ -59,7 +59,7 @@ describe('mapAssertionFormErrors', () => {
     });
   });
 
-  it('preserves other dataSources fields when extracting assertion error', () => {
+  it('flattens dataSources fields to top level for FormModel error mapping', () => {
     const response = {
       dataSources: {
         assertion: {
@@ -73,10 +73,8 @@ describe('mapAssertionFormErrors', () => {
 
     expect(mapAssertionFormErrors(response)).toEqual({
       assertion: ['Compilation Error: Invalid expression'],
-      dataSources: {
-        url: ['Invalid URL format'],
-        method: ['Method is required'],
-      },
+      url: ['Invalid URL format'],
+      method: ['Method is required'],
     });
   });
 
@@ -100,6 +98,20 @@ describe('mapAssertionFormErrors', () => {
 
     expect(mapAssertionFormErrors(response)).toEqual({
       assertion: ['Already formatted error'],
+    });
+  });
+
+  it('preserves plain assertion validation errors in dataSources', () => {
+    const response = {
+      dataSources: {
+        assertion: ['This field is required.'],
+        url: ['Enter a valid URL.'],
+      },
+    };
+
+    expect(mapAssertionFormErrors(response)).toEqual({
+      assertion: ['This field is required.'],
+      url: ['Enter a valid URL.'],
     });
   });
 });

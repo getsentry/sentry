@@ -1,8 +1,10 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {FormProps} from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 import type {Data} from 'sentry/components/forms/types';
+import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import type {
   BaseDetectorUpdatePayload,
@@ -52,6 +54,9 @@ export function NewDetectorLayout<
     formDataToEndpointPayload,
   });
 
+  const [formModel] = useState(() => new FormModel());
+  const {onFieldChange} = useFormEagerValidation(formModel);
+
   const initialData = useMemo(() => {
     return {
       projectId: formContext.project.id,
@@ -70,8 +75,10 @@ export function NewDetectorLayout<
   ]);
 
   const formProps: FormProps = {
+    model: formModel,
     initialData,
     onSubmit: formSubmitHandler,
+    onFieldChange,
     mapFormErrors,
   };
 
