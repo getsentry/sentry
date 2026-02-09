@@ -183,31 +183,38 @@ export function useSortedFilterKeyItems({
   // Async key fetching with debounce when getTagKeys is provided
   const shouldFetchAsync = !!getTagKeys;
   const debouncedFilterValue = useDebouncedValue(filterValue);
-  const isDebouncing = filterValue !== debouncedFilterValue;
-  const {data: asyncKeys, isFetching} = useQuery({
+  const {data: asyncKeys, isFetching: isQueryLoading} = useQuery({
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: ['search-query-builder-tag-keys', debouncedFilterValue],
-    queryFn: ctx => getTagKeys?.(ctx.queryKey[1] ?? '') ?? [],
+    queryFn: ctx => getTagKeys!(ctx.queryKey[1] ?? ''),
     placeholderData: keepPreviousData,
     enabled: shouldFetchAsync,
   });
 
-  const isLoading = shouldFetchAsync && (isFetching || isDebouncing);
+  const isLoading = shouldFetchAsync && isQueryLoading;
 
   const flatKeys = useMemo(() => {
     const keys = Object.values(filterKeys);
-    if (!asyncKeys?.length) {
-      return keys;
-    }
+    if (!asyncKeys?.length) return keys;
+
     const existing = new Set(keys.map(k => k.key));
     return [...keys, ...asyncKeys.filter(k => !existing.has(k.key))];
   }, [filterKeys, asyncKeys]);
 
+  // Keys that exist only in asyncKeys and not in the static filterKeys.
+  // Used to partition results so async-only keys always render below static keys.
+  const asyncOnlyKeys = useMemo(() => {
+    if (!asyncKeys?.length) {
+      return new Set<string>();
+    }
+    return new Set(asyncKeys.filter(k => !(k.key in filterKeys)).map(k => k.key));
+  }, [asyncKeys, filterKeys]);
+
   // Merged lookup of static + async keys, used for validating search results.
   // Without this, async-only keys would be filtered out by the `filterKeys` check.
   const allKeysLookup = useMemo(() => {
-    if (!asyncKeys?.length) {
-      return filterKeys;
-    }
+    if (!asyncKeys?.length) return filterKeys;
+
     const merged = {...filterKeys};
     for (const tag of asyncKeys) {
       if (!(tag.key in merged)) {
@@ -246,9 +253,16 @@ export function useSortedFilterKeyItems({
   const items = useMemo(() => {
     if (!filterValue || !search) {
       if (!filterKeySections.length) {
-        return flatKeys
-          .map(key => createItem(key, getFieldDefinition(key.key)))
+        const allItems = flatKeys.map(key =>
+          createItem(key, getFieldDefinition(key.key))
+        );
+        const staticItems = allItems
+          .filter(item => !asyncOnlyKeys.has(item.value))
           .sort((a, b) => a.textValue.localeCompare(b.textValue));
+        const asyncItems = allItems
+          .filter(item => asyncOnlyKeys.has(item.value))
+          .sort((a, b) => a.textValue.localeCompare(b.textValue));
+        return [...staticItems, ...asyncItems];
       }
 
       const filterSectionKeys = [
@@ -263,7 +277,7 @@ export function useSortedFilterKeyItems({
 
     const searched = search.search(filterValue);
 
-    const keyItems = searched
+    const allKeyItems = searched
       .map(({item: filterSearchKeyItem}) => filterSearchKeyItem)
       .filter(
         filterSearchKeyItem =>
@@ -285,6 +299,12 @@ export function useSortedFilterKeyItems({
         const {key} = filterSearchKeyItem.item;
         return createItem(allKeysLookup[key]!, getFieldDefinition(key));
       });
+
+    // Partition so async-only keys always appear below static keys,
+    // preserving fuzzy score order within each group.
+    const staticKeyItems = allKeyItems.filter(item => !asyncOnlyKeys.has(item.value));
+    const asyncKeyItems = allKeyItems.filter(item => asyncOnlyKeys.has(item.value));
+    const keyItems = [...staticKeyItems, ...asyncKeyItems];
 
     const askSeerItem = [];
     if (enableAISearch) {
@@ -385,6 +405,7 @@ export function useSortedFilterKeyItems({
     return [...keyItems, ...askSeerItem];
   }, [
     allKeysLookup,
+    asyncOnlyKeys,
     disallowFreeText,
     enableAISearch,
     filterKeySections,
