@@ -151,6 +151,7 @@ export function SortBySelectors({
           // that is not in the group bys or aggregate).
           displayType === DisplayType.TABLE ||
           displayType === DisplayType.DETAILS ||
+          displayType === DisplayType.SERVER_TREE ||
           widgetType === WidgetType.TRACEMETRICS ? (
             <Select
               name="sortBy"

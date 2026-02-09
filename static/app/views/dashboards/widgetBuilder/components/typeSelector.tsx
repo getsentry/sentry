@@ -6,7 +6,7 @@ import {Select} from '@sentry/scraps/select';
 
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import {IconGraph, IconNumber, IconSettings, IconTable} from 'sentry/icons';
+import {IconGraph, IconList, IconNumber, IconSettings, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -28,6 +28,7 @@ const typeIcons: Partial<Record<DisplayType, React.ReactNode>> = {
   [DisplayType.TABLE]: <IconTable key="table" />,
   [DisplayType.BIG_NUMBER]: <IconNumber key="number" />,
   [DisplayType.DETAILS]: <IconSettings key="details" />,
+  [DisplayType.SERVER_TREE]: <IconList key="server_tree" />,
 };
 
 interface WidgetBuilderTypeSelectorProps {
@@ -55,6 +56,9 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
   };
 
   const hasDetailsWidget = organization.features.includes('dashboards-details-widget');
+  const hasServerTreeWidget = organization.features.includes(
+    'dashboards-server-tree-widget'
+  );
 
   // Use an array to define display type order explicitly.
   // Object key ordering in JS is technically specified but easy to break accidentally.
@@ -65,6 +69,9 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
     {type: DisplayType.TABLE, label: t('Table')},
     {type: DisplayType.BIG_NUMBER, label: t('Big Number')},
     ...(hasDetailsWidget ? [{type: DisplayType.DETAILS, label: t('Details')}] : []),
+    ...(hasServerTreeWidget
+      ? [{type: DisplayType.SERVER_TREE, label: t('Server Tree')}]
+      : []),
   ];
 
   // Issue series widgets query a different data source from table widgets.

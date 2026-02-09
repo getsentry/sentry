@@ -336,6 +336,12 @@ function useWidgetBuilderState(): {
               options
             );
             setQuery(query?.slice(0, 1), options);
+          } else if (action.payload === DisplayType.SERVER_TREE) {
+            setLimit(1, options);
+            setSort([], options);
+            setYAxis([], options);
+            setLegendAlias([], options);
+            setQuery(query?.slice(0, 1), options);
           } else {
             setFields(columnsWithoutAlias, options);
             const nextAggregates = [

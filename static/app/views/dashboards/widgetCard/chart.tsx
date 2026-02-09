@@ -76,6 +76,7 @@ import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/setti
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
+import {ServerTreeWidgetVisualization} from 'sentry/views/dashboards/widgets/serverTreeWidget/serverTreeWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {
   convertTableDataToTabularData,
@@ -215,6 +216,10 @@ function WidgetCardChart(props: WidgetCardChartProps) {
         <DetailsComponent tableResults={tableResults} {...props} />
       </TransitionChart>
     );
+  }
+
+  if (widget.displayType === DisplayType.SERVER_TREE) {
+    return <ServerTreeComponent />;
   }
 
   if (widget.displayType === DisplayType.WHEEL) {
@@ -738,6 +743,10 @@ function DetailsComponent(props: TableComponentProps): React.ReactNode {
   }
 
   return <DetailsWidgetVisualization span={singleSpan} />;
+}
+
+function ServerTreeComponent(): React.ReactNode {
+  return <ServerTreeWidgetVisualization />;
 }
 
 function WheelComponent(props: TableComponentProps): React.ReactNode {
