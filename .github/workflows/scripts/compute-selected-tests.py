@@ -3,23 +3,33 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import sqlite3
 import sys
 from pathlib import Path
 
-# Files that, if changed, should trigger the full test suite (can't determine affected tests)
-FULL_SUITE_TRIGGER_FILES = [
+# Files/patterns that, if matched by any changed file, should trigger the full test suite.
+# Strings are matched as suffixes, re.Pattern entries are matched with .search().
+FULL_SUITE_TRIGGERS: list[str | re.Pattern[str]] = [
     "sentry/testutils/pytest/sentry.py",
     "pyproject.toml",
     "Makefile",
     "sentry/conf/server.py",
     "sentry/web/urls.py",
+    # Django migrations can affect schema and invalidate selective test coverage
+    re.compile(r"/migrations/\d{4}_[^/]+\.py$"),
 ]
+
+
+def _matches_trigger(file_path: str, trigger: str | re.Pattern[str]) -> bool:
+    if isinstance(trigger, re.Pattern):
+        return trigger.search(file_path) is not None
+    return file_path.endswith(trigger)
 
 
 def should_run_full_suite(changed_files: list[str]) -> bool:
     for file_path in changed_files:
-        if any(file_path.endswith(trigger) for trigger in FULL_SUITE_TRIGGER_FILES):
+        if any(_matches_trigger(file_path, t) for t in FULL_SUITE_TRIGGERS):
             return True
     return False
 
@@ -100,7 +110,7 @@ def main() -> int:
         affected_test_files: set[str] = set()
     elif should_run_full_suite(changed_files):
         triggered_by = [
-            f for f in changed_files if any(f.endswith(t) for t in FULL_SUITE_TRIGGER_FILES)
+            f for f in changed_files if any(_matches_trigger(f, t) for t in FULL_SUITE_TRIGGERS)
         ]
         print(f"Full test suite triggered by: {', '.join(triggered_by)}")
         affected_test_files = set()
