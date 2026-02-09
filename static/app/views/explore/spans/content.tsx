@@ -1,10 +1,9 @@
 import type {ReactNode} from 'react';
-import {useEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {ButtonBar} from '@sentry/scraps/button';
 
-import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -15,14 +14,12 @@ import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
-import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {
   useMaxPickableDays,
   type MaxPickableDaysOptions,
 } from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
 import {
   MAX_DAYS_FOR_CROSS_EVENTS,
@@ -107,35 +104,6 @@ function ExploreContentInner() {
 }
 
 function SpansTabWrapper({children}: SpansTabContextProps) {
-  const pageFilters = usePageFilters();
-  const hasCrossEvents = useHasCrossEvents();
-
-  useEffect(() => {
-    if (!pageFilters.isReady || !hasCrossEvents) return;
-
-    const days = statsPeriodToDays(
-      pageFilters.selection.datetime.period,
-      pageFilters.selection.datetime.start,
-      pageFilters.selection.datetime.end
-    );
-
-    if (days > MAX_DAYS_FOR_CROSS_EVENTS) {
-      updateDateTime({
-        period: MAX_PERIOD_FOR_CROSS_EVENTS,
-        start: null,
-        end: null,
-        utc: pageFilters.selection.datetime.utc,
-      });
-    }
-  }, [
-    hasCrossEvents,
-    pageFilters.isReady,
-    pageFilters.selection.datetime.end,
-    pageFilters.selection.datetime.period,
-    pageFilters.selection.datetime.start,
-    pageFilters.selection.datetime.utc,
-  ]);
-
   return (
     <SpansTabTourProvider>
       <SpansTabTourTrigger />

@@ -30,10 +30,17 @@ type WireframeProps = {
   hierarchy: ViewHierarchyWindow[];
   onNodeSelect: (node?: ViewHierarchyWindow) => void;
   platform?: string;
+  positioning?: 'absolute' | 'relative';
   selectedNode?: ViewHierarchyWindow;
 };
 
-function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeProps) {
+function Wireframe({
+  hierarchy,
+  selectedNode,
+  onNodeSelect,
+  positioning,
+  platform,
+}: WireframeProps) {
   const theme = useTheme();
   const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
   const [overlayRef, setOverlayRef] = useState<HTMLCanvasElement | null>(null);
@@ -50,9 +57,10 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
     () =>
       getHierarchyDimensions(
         hierarchy,
-        ['flutter', 'dart-flutter'].includes(platform ?? '')
+        positioning === 'absolute' ||
+          (!positioning && ['flutter', 'dart-flutter'].includes(platform ?? ''))
       ),
-    [hierarchy, platform]
+    [hierarchy, platform, positioning]
   );
   const nodeLookupMap = useMemo(() => {
     const map = new Map<ViewHierarchyWindow, ViewNode>();

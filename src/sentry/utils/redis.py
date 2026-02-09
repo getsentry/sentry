@@ -344,7 +344,7 @@ def check_cluster_versions(
         # NOTE: This assumes there is no routing magic going on here, and
         # all requests to this host are being served by the same database.
         key = f"{host.host}:{host.port}"
-        versions[key] = Version([int(part) for part in info["redis_version"].split(".", 3)])
+        versions[key] = Version([int(part) for part in str(info["redis_version"]).split(".", 3)])
 
     check_versions(
         "Redis" if label is None else f"Redis ({label})", versions, required, recommended

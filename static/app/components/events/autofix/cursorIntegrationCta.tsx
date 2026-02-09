@@ -134,7 +134,7 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
           </Text>
           <div>
             <LinkButton
-              href="/settings/integrations/cursor/"
+              href={`/settings/${organization.slug}/integrations/cursor/`}
               priority="default"
               size="sm"
               onClick={handleInstallClick}
@@ -162,7 +162,9 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
               'You have the Cursor integration installed. Turn on Seer automation and set up hand off to trigger Cursor Cloud Agents during automation. [seerProjectSettings:Configure in Seer project settings] or [docsLink:read the docs] to learn more.',
               {
                 seerProjectSettings: (
-                  <Link to={`/settings/projects/${project.slug}/seer/`} />
+                  <Link
+                    to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                  />
                 ),
                 docsLink: (
                   <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />

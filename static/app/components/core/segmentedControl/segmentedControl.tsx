@@ -122,6 +122,7 @@ export function SegmentedControl<Value extends string>({
   return (
     <GroupWrap
       {...radioGroupProps}
+      {...props}
       size={size}
       priority={priority}
       ref={ref}

@@ -337,7 +337,7 @@ const TableRow = memo(function TableRow({
               size="xs"
               priority="link"
               icon={<IconSettings />}
-              to={`/organizations/${organization.slug}/settings/projects/${project.slug}/performance/`}
+              to={`/settings/${organization.slug}/projects/${project.slug}/performance/`}
             />
           )}
         </FirstCellLine>
