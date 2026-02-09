@@ -127,12 +127,15 @@ def _configure_test_env_regions() -> None:
 def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(
         "--xdist-snuba-phase",
-        choices=("only", "exclude"),
+        choices=("no-snuba", "snuba-writes", "snuba-reads"),
         default=None,
         help=(
-            "Split test execution for xdist compatibility. "
-            "'only' runs only ClickHouse-dependent tests (single-threaded phase). "
-            "'exclude' runs only non-ClickHouse tests (safe for xdist parallelism)."
+            "Three-phase test splitting for xdist compatibility with shared ClickHouse. "
+            "'no-snuba': tests with no ClickHouse interaction (safe for -n N). "
+            "'snuba-writes': tests that write to CH but never read (requires_snuba only, "
+            "no reset_snuba — safe for -n N since no TRUNCATE). "
+            "'snuba-reads': tests that read from CH (SnubaTestCase etc., use reset_snuba "
+            "TRUNCATE — must run single-threaded)."
         ),
     )
 
@@ -438,29 +441,48 @@ def _shuffle(items: list[pytest.Item], r: random.Random) -> None:
     items[:] = new_items
 
 
-def _needs_snuba(item: pytest.Item) -> bool:
-    """Check if a test item requires Snuba (ClickHouse).
+def _reads_clickhouse(item: pytest.Item) -> bool:
+    """Check if a test reads from ClickHouse (needs single-threaded execution).
 
-    Tests can declare Snuba dependency via:
-    - @pytest.mark.snuba (on SnubaTestCase and subclasses)
-    - @requires_snuba = @pytest.mark.usefixtures("_requires_snuba")
-    - @requires_kafka = @pytest.mark.usefixtures("_requires_kafka")
-      (Kafka consumers write to ClickHouse; these tests then read it back)
-    - pytestmark = [requires_snuba] or [requires_kafka] (module-level)
-    - Inheriting from RelayStoreHelper (reads from ClickHouse via eventstore)
+    These tests use reset_snuba (TRUNCATE TABLE) as an autouse fixture and
+    actively query ClickHouse for assertions. Must run single-threaded under
+    xdist because TRUNCATE is global.
+
+    Detected via:
+    - @pytest.mark.snuba (SnubaTestCase and subclasses — autouse reset_snuba)
+    - Inheriting from RelayStoreHelper (reads via eventstore.backend.get_event_by_id)
+    - Explicit reset_snuba usage without SnubaTestCase (3 known edge cases)
     """
+    # SnubaTestCase and subclasses: have @pytest.mark.snuba and autouse reset_snuba
     if any(mark.name == "snuba" for mark in item.iter_markers()):
         return True
-    for mark in item.iter_markers("usefixtures"):
-        if "_requires_snuba" in mark.args or "_requires_kafka" in mark.args:
-            return True
-    # RelayStoreHelper.post_and_retrieve_event() reads from ClickHouse via
-    # eventstore.backend.get_event_by_id(). These tests need to be on the
-    # snuba worker to avoid TRUNCATE TABLE wiping their data mid-test.
+    # RelayStoreHelper reads from ClickHouse via eventstore
     if item.cls is not None:
         for base in item.cls.__mro__:
             if base.__name__ == "RelayStoreHelper":
                 return True
+    # Edge cases: tests that use reset_snuba fixture directly without SnubaTestCase
+    # (test_reprocessing2.py, test_minidump_full.py, test_attributes.py)
+    if "reset_snuba" in getattr(item, "fixturenames", ()):
+        return True
+    return False
+
+
+def _writes_clickhouse_only(item: pytest.Item) -> bool:
+    """Check if a test writes to ClickHouse but doesn't read from it.
+
+    These tests need Snuba running (for eventstream writes via store_event)
+    but never query ClickHouse and don't use reset_snuba. Safe for xdist
+    parallelism since no TRUNCATE occurs.
+
+    Detected via:
+    - @requires_snuba = @pytest.mark.usefixtures("_requires_snuba")
+    - @requires_kafka = @pytest.mark.usefixtures("_requires_kafka")
+    (Only if not already classified as _reads_clickhouse)
+    """
+    for mark in item.iter_markers("usefixtures"):
+        if "_requires_snuba" in mark.args or "_requires_kafka" in mark.args:
+            return True
     return False
 
 
@@ -531,27 +553,38 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     if len(discard) > 0:
         config.hook.pytest_deselected(items=discard)
 
-    # Phase-based split for xdist compatibility. ClickHouse (Snuba) state is
-    # global and cannot be isolated between xdist workers (reset_snuba uses
-    # TRUNCATE TABLE). Instead of fighting shared state, we split execution:
-    #   Phase 1 (--xdist-snuba-phase=exclude): non-ClickHouse tests, safe for -n N
-    #   Phase 2 (--xdist-snuba-phase=only): ClickHouse tests, single-threaded
+    # Three-phase split for xdist compatibility with shared ClickHouse.
+    # reset_snuba uses TRUNCATE TABLE (global wipe), so tests that read from
+    # ClickHouse must run single-threaded. Tests that only write (via
+    # store_event → eventstream) are safe for parallel execution since they
+    # never call reset_snuba and never query ClickHouse.
+    #
+    #   Phase 1 (no-snuba, -n N):      no CH interaction
+    #   Phase 2 (snuba-writes, -n N):  writes to CH, never reads, no TRUNCATE
+    #   Phase 3 (snuba-reads, serial): reads from CH, uses TRUNCATE
     snuba_phase = config.getoption("--xdist-snuba-phase", default=None)
     if snuba_phase is not None:
-        snuba_items = []
-        non_snuba_items = []
-        for item in items:
-            if _needs_snuba(item):
-                snuba_items.append(item)
-            else:
-                non_snuba_items.append(item)
+        reads_items = []  # Phase 3: SnubaTestCase, RelayStoreHelper, reset_snuba users
+        writes_items = []  # Phase 2: requires_snuba/requires_kafka only
+        no_snuba_items = []  # Phase 1: everything else
 
-        if snuba_phase == "only":
-            deselected = non_snuba_items
-            items[:] = snuba_items
-        else:  # "exclude"
-            deselected = snuba_items
-            items[:] = non_snuba_items
+        for item in items:
+            if _reads_clickhouse(item):
+                reads_items.append(item)
+            elif _writes_clickhouse_only(item):
+                writes_items.append(item)
+            else:
+                no_snuba_items.append(item)
+
+        if snuba_phase == "no-snuba":
+            items[:] = no_snuba_items
+            deselected = reads_items + writes_items
+        elif snuba_phase == "snuba-writes":
+            items[:] = writes_items
+            deselected = reads_items + no_snuba_items
+        else:  # "snuba-reads"
+            items[:] = reads_items
+            deselected = writes_items + no_snuba_items
 
         if deselected:
             config.hook.pytest_deselected(items=deselected)

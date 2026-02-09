@@ -214,23 +214,23 @@ Python socket patching **cannot** detect these. However:
 
 Ran the classifier across 22 shards on the full backend suite (32,772 tests). Initial results:
 
-| Service | Tests | % |
-|---------|-------|---|
-| postgres | 23,682 | 72% |
-| redis | 1,478 | 4.5% |
-| snuba | 444 | 1.4% |
-| kafka | 254 | 0.8% |
-| symbolicator | 64 | 0.2% |
-| bigtable | 36 | 0.1% |
-| objectstore | 13 | <0.1% |
-| redis-cluster | 3 | <0.1% |
+| Service       | Tests  | %     |
+| ------------- | ------ | ----- |
+| postgres      | 23,682 | 72%   |
+| redis         | 1,478  | 4.5%  |
+| snuba         | 444    | 1.4%  |
+| kafka         | 254    | 0.8%  |
+| symbolicator  | 64     | 0.2%  |
+| bigtable      | 36     | 0.1%  |
+| objectstore   | 13     | <0.1% |
+| redis-cluster | 3      | <0.1% |
 
-| Tier | Tests | % |
-|------|-------|---|
-| postgres_only | 22,337 | 68% |
-| no_services | 8,651 | 26% |
-| other_services | 1,340 | 4% |
-| snuba_tier | 444 | 1.4% |
+| Tier           | Tests  | %    |
+| -------------- | ------ | ---- |
+| postgres_only  | 22,337 | 68%  |
+| no_services    | 8,651  | 26%  |
+| other_services | 1,340  | 4%   |
+| snuba_tier     | 444    | 1.4% |
 
 ### Sanity Check Failures
 
@@ -278,16 +278,16 @@ Changed the merge from assignment to set union (`merged_tests[test_id].update(se
 
 Applying the union merge to the existing shard data locally revealed a new issue:
 
-| Service | Count | Notes |
-|---------|-------|-------|
-| redis | 32,772 (100%) | Every test in every shard hits Redis |
-| postgres | 23,682 (72%) | Static detection |
-| snuba | 9,551 (29%) | Up from 444 - major improvement |
-| kafka | 254 | Static detection |
-| symbolicator | 64 | Static detection |
-| bigtable | 36 | Static detection |
-| redis-cluster | 30 | |
-| objectstore | 13 | Static detection |
+| Service       | Count         | Notes                                |
+| ------------- | ------------- | ------------------------------------ |
+| redis         | 32,772 (100%) | Every test in every shard hits Redis |
+| postgres      | 23,682 (72%)  | Static detection                     |
+| snuba         | 9,551 (29%)   | Up from 444 - major improvement      |
+| kafka         | 254           | Static detection                     |
+| symbolicator  | 64            | Static detection                     |
+| bigtable      | 36            | Static detection                     |
+| redis-cluster | 30            |                                      |
+| objectstore   | 13            | Static detection                     |
 
 ### Redis at 100%: Incidental Service Usage
 
@@ -306,6 +306,7 @@ The runtime classification tells us which tests **use** a service, not which tes
 ### Remaining ~71% Postgres-Only
 
 After accounting for Redis as baseline noise, the practical tier split is:
+
 - **~71% of tests**: Only need Postgres (+ Redis as baseline)
 - **~29% of tests**: Need Snuba stack
 - **<1%**: Need additional services (Symbolicator, Kafka, etc.)
@@ -360,37 +361,40 @@ Redis is a **baseline CI dependency** due to framework-level cleanup, not becaus
 
 ### Options Considered
 
-| Tiers | Benefit | Complexity |
-|-------|---------|------------|
-| **2 tiers** (Postgres+Redis vs Snuba) | Eliminates 4-5min Snuba startup for 71% of tests | Low |
-| **3 tiers** (add pure unit test) | Saves ~5s Postgres startup for 26% of tests | Medium, marginal gain |
-| **4 tiers** (add Symbolicator) | Avoids starting Symbolicator for 99% of tests | High, ~30s savings for 367 tests |
+| Tiers                                 | Benefit                                          | Complexity                       |
+| ------------------------------------- | ------------------------------------------------ | -------------------------------- |
+| **2 tiers** (Postgres+Redis vs Snuba) | Eliminates 4-5min Snuba startup for 71% of tests | Low                              |
+| **3 tiers** (add pure unit test)      | Saves ~5s Postgres startup for 26% of tests      | Medium, marginal gain            |
+| **4 tiers** (add Symbolicator)        | Avoids starting Symbolicator for 99% of tests    | High, ~30s savings for 367 tests |
 
 ### Service Startup Costs
 
-| Service | Startup Time |
-|---------|-------------|
-| Redis | <1s |
-| Postgres | ~5s |
-| Snuba (+ Clickhouse + Kafka) | ~4-5 min |
-| Symbolicator | ~30s |
-| Objectstore/Bigtable | ~5-10s each |
+| Service                      | Startup Time |
+| ---------------------------- | ------------ |
+| Redis                        | <1s          |
+| Postgres                     | ~5s          |
+| Snuba (+ Clickhouse + Kafka) | ~4-5 min     |
+| Symbolicator                 | ~30s         |
+| Objectstore/Bigtable         | ~5-10s each  |
 
 The Snuba stack accounts for **95%+ of setup time**. Everything else is seconds. Additional tiers beyond the Snuba split provide diminishing returns with increasing complexity.
 
 ### Chosen Approach: Two Tiers
 
 **Tier 1 (~71% of tests)**: Postgres + Redis
+
 - devservices mode: `migrations` (starts postgres + redis)
 - Tests that do NOT need Snuba
 - Setup time: ~10s
 
 **Tier 2 (~29% of tests)**: Full Snuba stack + everything
+
 - devservices mode: `backend-ci` (current behavior)
 - Tests that DO need Snuba (+ Symbolicator, Kafka, etc.)
 - Setup time: ~4-5 min
 
 Each tier is independently sharded:
+
 - Tier 1: ~23,221 tests / 1200 per shard = ~20 shards
 - Tier 2: ~9,551 tests / 1200 per shard = ~8 shards
 
@@ -485,6 +489,7 @@ services:
 ```
 
 This approach:
+
 - Provides real Kafka infrastructure (~10-15s startup)
 - Zero behavioral differences from current `backend-ci` CI
 - No mocking conflicts with test-level mocks
@@ -493,11 +498,11 @@ This approach:
 
 **Tradeoffs considered:**
 
-| Approach | Startup Cost | Risk | Production-ready? |
-|----------|-------------|------|-------------------|
-| Mock `SingletonProducer.produce` | 0s | Conflicts with test mocks, behavioral drift | No - rejected |
-| Kafka via `services:` block | ~10-15s | None (real infrastructure) | Yes - chosen |
-| `TASKWORKER_ALWAYS_EAGER=True` | 0s | Changes task execution behavior, bypasses BurstTaskRunner | No - rejected |
+| Approach                         | Startup Cost | Risk                                                      | Production-ready? |
+| -------------------------------- | ------------ | --------------------------------------------------------- | ----------------- |
+| Mock `SingletonProducer.produce` | 0s           | Conflicts with test mocks, behavioral drift               | No - rejected     |
+| Kafka via `services:` block      | ~10-15s      | None (real infrastructure)                                | Yes - chosen      |
+| `TASKWORKER_ALWAYS_EAGER=True`   | 0s           | Changes task execution behavior, bypasses BurstTaskRunner | No - rejected     |
 
 ## Remaining Tier 1 Failures: Environment-Dependent Tests
 
@@ -552,10 +557,12 @@ A previous PoC left `@pytest.mark.transaction_test` marker code in `sentry.py` w
 `pytest-rerunfailures` creates a TCP socket server/client when xdist is detected, used for crash recovery (segfault reruns). This causes `TimeoutError: timed out` on `conn.recv(1)` in every run. Tested with both v15.0 and v16.1 - same result.
 
 **Root cause deep dive:** The socket communication is gated by `HAS_PYTEST_HANDLECRASHITEM` in `pytest_configure`. When xdist is present AND the xdist version supports `pytest_handlecrashitem`, rerunfailures creates:
+
 - Master: `ServerStatusDB` - TCP socket server on localhost
 - Workers: `ClientStatusDB` - TCP client connecting to master
 
 The socket tracks rerun counts per test for crash recovery. The timeout likely comes from:
+
 - `localhost` resolving to different IP families (IPv4/IPv6) on server vs client
 - Possible interference with our `socket.send`/`sendall` patches from the service classifier plugin
 - Single-byte `recv(1)` protocol being fragile under load
@@ -607,6 +614,7 @@ The path forward requires changing `reset_snuba` from `TRUNCATE TABLE` (wipes ev
 **Snuba side:** Add a new test endpoint `/tests/{dataset}/delete?project_id=X` that uses Clickhouse lightweight deletes (`DELETE WHERE project_id = X`). Snuba already has `delete_from_storage()` infrastructure for this. Estimated ~20 lines of code.
 
 **Sentry side:**
+
 1. Change `reset_snuba` to call the new project-scoped endpoint instead of the TRUNCATE endpoint
 2. Track which project_ids the current worker has used
 3. Prefix snowflake Redis keys with xdist worker ID to prevent ID collisions
@@ -619,6 +627,7 @@ The path forward requires changing `reset_snuba` from `TRUNCATE TABLE` (wipes ev
 Three models use snowflake IDs (Organization, Project, Team) via Redis-backed counters. Under xdist, workers share Redis and collide on the counter keys.
 
 **Fix:** Prefix the Redis key with the xdist worker ID:
+
 - Current: `snowflakeid:project_snowflake_key:{timestamp}`
 - Under xdist: `snowflakeid:gw0:project_snowflake_key:{timestamp}`
 
@@ -626,18 +635,81 @@ This keeps snowflake testing enabled while preventing cross-worker collisions. N
 
 ### xdist Summary
 
-| What | Status |
-|------|--------|
-| Test collection consistency | Solved (TESTRUNUID seed + PYTHONHASHSEED=0) |
-| pytest-rerunfailures compatibility | Solved (HAS_PYTEST_HANDLECRASHITEM=False) |
-| Snuba data isolation | **Requires Snuba API change** (project-scoped delete) |
-| Snowflake ID collisions | Requires worker-prefixed Redis keys |
-| Performance with -n2 | ~25-35% speedup (11-13 min vs 17 min baseline) |
+| What                               | Status                                                |
+| ---------------------------------- | ----------------------------------------------------- |
+| Test collection consistency        | Solved (TESTRUNUID seed + PYTHONHASHSEED=0)           |
+| pytest-rerunfailures compatibility | Solved (HAS_PYTEST_HANDLECRASHITEM=False)             |
+| Snuba data isolation               | **Requires Snuba API change** (project-scoped delete) |
+| Snowflake ID collisions            | Requires worker-prefixed Redis keys                   |
+| Performance with -n2               | ~25-35% speedup (11-13 min vs 17 min baseline)        |
 
-xdist is promising but requires a small Snuba API addition for production use. The tiered approach works today without any cross-repo changes.
+## xdist Progress Log
+
+### Iteration 1: loadgroup (all snuba tests on one worker)
+
+- Used `--dist=loadgroup` to serialize all snuba tests onto a single xdist worker
+- **Result**: 43 unique failures — cross-worker ClickHouse contamination from non-snuba tests writing via `store_event()` → `SnubaEventStream._send()`
+
+### Iteration 2: \_send mock (prevent non-snuba CH writes)
+
+- Mocked `SnubaEventStream._send` and `_send_item` for non-snuba tests
+- Added file-level import scanning to detect implicit snuba dependencies
+- **Result**: 60 unique failures — worse. Mock was too aggressive, broke tests that implicitly needed CH. Detection was imperfect.
+
+### Iteration 3: Two-phase approach (current working solution)
+
+- Phase 1: non-snuba tests with xdist `-n 2 --dist=loadfile`
+- Phase 2: snuba tests single-threaded (identical to normal CI)
+- **Result**: 22/22 green after fixing snowflake test (`test_snowflake.py` hardcoded `region_snowflake_id=0`)
+- **Timing**: Phase 1 ~5.5 min (1100 tests), Phase 2 ~8 min (350 tests), total ~14 min
+- **Speedup**: ~18% (14 min vs 17 min baseline) — Phase 2 bottleneck limits gains
+
+### Iteration 4: Three-phase approach (next)
+
+**Key finding**: Not all "snuba tests" are equal.
+
+| Category                                                                     | Files | What they do                                     | Needs TRUNCATE?             |
+| ---------------------------------------------------------------------------- | ----- | ------------------------------------------------ | --------------------------- |
+| `SnubaTestCase` + metrics + replays                                          | ~200  | Write to AND read from ClickHouse                | Yes (autouse `reset_snuba`) |
+| `requires_snuba` only (no SnubaTestCase)                                     | ~185  | Write to CH via `store_event()`, never read      | No                          |
+| 3 edge cases (`test_reprocessing2`, `test_minidump_full`, `test_attributes`) | 3     | Use `reset_snuba` directly without SnubaTestCase | Yes                         |
+| Non-snuba tests                                                              | ~1849 | No CH interaction                                | No                          |
+
+The ~185 `requires_snuba`-only tests need Snuba _running_ (for eventstream writes to succeed) but never query ClickHouse. Without `reset_snuba`, no TRUNCATE happens, so they're safe for parallel execution.
+
+**Plan**:
+
+- Phase 1 (`-n 4`): Non-snuba tests — no CH interaction
+- Phase 2 (`-n 4`): `requires_snuba`-only tests — write to CH but never read, no TRUNCATE
+- Phase 3 (serial): True CH readers — `SnubaTestCase`, metrics, replays, + 3 edge cases
+
+**Projected timing** (4 workers):
+
+- Phase 1: ~1849 files / 4 workers ≈ 2-3 min
+- Phase 2: ~185 files / 4 workers ≈ 1 min
+- Phase 3: ~200 files, serial ≈ 3-5 min
+- Total: ~6-9 min (vs 17 min baseline = 47-65% speedup)
+
+### Future: Approach 2 — skip TRUNCATE entirely
+
+If all ClickHouse queries were properly project-scoped, `reset_snuba` would be unnecessary
+(each test creates unique snowflake IDs, queries filter by `project_id`).
+
+Early data from a test run skipping TRUNCATE showed only **14 unique failures across 6 files**:
+
+- Dynamic sampling metrics (4 tests) — aggregate across projects
+- Release health sessions (3 tests) — session counts not project-scoped
+- Metrics API (3 tests) — metrics queries with broad group-by
+- Metrics layer (1 test) — ANR rate aggregation
+- Event frequency rules (3 tests) — percent conditions counting broadly
+
+Fixing these ~14 tests would allow ALL tests to run in parallel with zero special-casing.
+This is the "holy grail" approach — kept in pocket for a follow-up iteration.
 
 ## Expected Impact
 
 **Tiered CI (working today):** ~68% of backend tests run with lighter services (setup ~15-20s vs ~2.5-3 min). Same 22 shards, same runner resources.
 
-**xdist (future, requires Snuba change):** Additional ~25-35% speedup within each shard via 2-worker parallelism. Combined with tiering, could reduce total CI wall-clock time significantly.
+**xdist three-phase (implementing):** ~91% of tests parallelized with `-n 4`. Projected 47-65% speedup (6-9 min vs 17 min baseline). No Snuba changes required.
+
+**xdist + query fixes (future):** Fix ~14 improperly-scoped queries → skip TRUNCATE → 100% of tests parallelized. Projected 70%+ speedup.

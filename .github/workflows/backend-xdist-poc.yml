@@ -1,4 +1,4 @@
-name: "[POC] backend xdist"
+name: '[POC] backend xdist'
 
 on:
   workflow_dispatch:
@@ -16,7 +16,7 @@ env:
 
 jobs:
   xdist-test:
-    name: "xdist (${{ matrix.instance }})"
+    name: 'xdist (${{ matrix.instance }})'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
@@ -25,14 +25,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+        instance:
+          [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
 
     env:
       MATRIX_INSTANCE_TOTAL: 22
       TEST_GROUP_STRATEGY: roundrobin
       # Fixed hash seed ensures deterministic dict/set iteration across xdist workers,
       # preventing "Different tests were collected" errors from parametrized tests.
-      PYTHONHASHSEED: "0"
+      PYTHONHASHSEED: '0'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -43,9 +44,9 @@ jobs:
         with:
           mode: backend-ci
 
-      - name: "Phase 1: Non-snuba tests (xdist -n2)"
+      - name: 'Phase 1: Non-snuba tests (xdist -n4)'
         run: |
-          echo "=== Phase 1: non-ClickHouse tests with xdist parallelism ==="
+          echo "=== Phase 1: tests with no ClickHouse interaction ==="
           python3 -b -m pytest \
             tests \
             --reuse-db \
@@ -53,18 +54,18 @@ jobs:
             --ignore tests/apidocs \
             --ignore tests/js \
             --ignore tests/tools \
-            --xdist-snuba-phase=exclude \
-            -n 2 \
+            --xdist-snuba-phase=no-snuba \
+            -n 4 \
             --dist=loadfile \
             --json-report \
             --json-report-file=".artifacts/pytest-phase1.json" \
             --json-report-omit=log \
             --junit-xml=.artifacts/pytest-phase1.junit.xml \
-            -o junit_suite_name=pytest-non-snuba
+            -o junit_suite_name=pytest-no-snuba
 
-      - name: "Phase 2: Snuba tests (single-threaded)"
+      - name: 'Phase 2: Snuba write-only tests (xdist -n4)'
         run: |
-          echo "=== Phase 2: ClickHouse-dependent tests, single-threaded ==="
+          echo "=== Phase 2: tests that write to CH but never read (no TRUNCATE) ==="
           python3 -b -m pytest \
             tests \
             --reuse-db \
@@ -72,12 +73,31 @@ jobs:
             --ignore tests/apidocs \
             --ignore tests/js \
             --ignore tests/tools \
-            --xdist-snuba-phase=only \
+            --xdist-snuba-phase=snuba-writes \
+            -n 4 \
+            --dist=loadfile \
             --json-report \
             --json-report-file=".artifacts/pytest-phase2.json" \
             --json-report-omit=log \
             --junit-xml=.artifacts/pytest-phase2.junit.xml \
-            -o junit_suite_name=pytest-snuba
+            -o junit_suite_name=pytest-snuba-writes
+
+      - name: 'Phase 3: Snuba read tests (single-threaded)'
+        run: |
+          echo "=== Phase 3: tests that read from CH (uses TRUNCATE, must be serial) ==="
+          python3 -b -m pytest \
+            tests \
+            --reuse-db \
+            --ignore tests/acceptance \
+            --ignore tests/apidocs \
+            --ignore tests/js \
+            --ignore tests/tools \
+            --xdist-snuba-phase=snuba-reads \
+            --json-report \
+            --json-report-file=".artifacts/pytest-phase3.json" \
+            --json-report-omit=log \
+            --junit-xml=.artifacts/pytest-phase3.junit.xml \
+            -o junit_suite_name=pytest-snuba-reads
 
       - name: Inspect failure
         if: failure()
