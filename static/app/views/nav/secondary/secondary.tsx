@@ -359,6 +359,7 @@ const SeparatorWrapper = styled('div')`
 
 const Separator = styled('hr')`
   height: 1px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.secondary};
   margin: 0 ${space(1)};
   border: none;

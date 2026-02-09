@@ -248,6 +248,7 @@ const StepWrapper = styled('div')`
     position: absolute;
     height: calc(100% + ${space(2)});
     width: 1px;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.primary};
     left: 17px;
   }
@@ -270,7 +271,7 @@ const StepNumber = styled('div')<{isActive: boolean}>`
       ? p.theme.tokens.graphics.accent.vibrant
       : p.theme.tokens.graphics.neutral.moderate};
   color: ${p => p.theme.colors.white};
-  border: 4px solid ${p => p.theme.tokens.background.primary};
+  border: 4px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const StepHeading = styled('h4')<{isActive: boolean}>`

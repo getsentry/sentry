@@ -280,6 +280,11 @@ function ExplorerPanel() {
       return;
     }
 
+    // While input is focused, prevent backtick from triggering superuser ViewAsHookMiddleware
+    if (e.key === '`') {
+      e.nativeEvent.stopImmediatePropagation();
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (inputValue.trim() && !isPolling) {

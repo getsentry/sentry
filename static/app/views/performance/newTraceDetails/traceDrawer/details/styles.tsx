@@ -60,6 +60,7 @@ import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
+import {tryParseJson} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {
   makeTraceContinuousProfilingLink,
   makeTransactionProfilingLink,
@@ -722,6 +723,7 @@ const SectionDivider = styled('hr')`
 const VerticalLine = styled('div')`
   width: 1px;
   height: 100%;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.border.primary};
   margin-top: ${space(0.5)};
 `;
@@ -1300,14 +1302,6 @@ const MultilineTextWrapper = styled('div')`
     margin-bottom: ${p => p.theme.space.md};
   }
 `;
-
-function tryParseJson(value: string) {
-  try {
-    return JSON.parse(value);
-  } catch (error) {
-    return value;
-  }
-}
 
 function MultilineJSON({
   value,

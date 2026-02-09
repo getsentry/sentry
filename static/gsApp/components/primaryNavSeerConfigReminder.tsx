@@ -101,6 +101,10 @@ function useCanSeeReminder(organization: Organization) {
     [hasSeatBasedSeer, hasLegacySeer, hasCodeReviewBeta, initialStep]
   );
 
+  if (!organization.features.includes('seer-config-reminder')) {
+    return {canSeeReminder: false, analyticsParams};
+  }
+
   if (!hasSeer) {
     return {canSeeReminder: false, analyticsParams};
   }
@@ -196,7 +200,7 @@ export default function PrimaryNavSeerConfigReminder() {
             <Flex justify="end">
               <LinkButton
                 to={{
-                  pathname: `/organizations/${organization.slug}/settings/seer/`,
+                  pathname: `/settings/${organization.slug}/seer/`,
                   query: {
                     tab: hasSeatBasedSeer
                       ? undefined

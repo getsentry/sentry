@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import defaultsImg from 'sentry-images/spot/seer-config-error.svg';
 
@@ -72,6 +73,9 @@ export function ConfigureDefaultsStep() {
           setCurrentStep(currentStep + 1);
         },
         onError: () => {
+          Sentry.captureException(
+            new Error('Seer Onboarding: Unable to update defaults')
+          );
           addErrorMessage(
             t('Failed to update Seer default settings, reload and try again')
           );

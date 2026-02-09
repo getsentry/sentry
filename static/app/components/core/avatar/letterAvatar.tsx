@@ -41,7 +41,8 @@ const LetterAvatarComponent = styled('svg')<LetterAvatarProps>`
   rect {
     fill: ${props =>
       props.suggested
-        ? props.theme.tokens.background.primary
+        ? // eslint-disable-next-line @sentry/scraps/use-semantic-token
+          props.theme.tokens.background.primary
         : getColor(props.identifier, props.theme).background};
   }
 
