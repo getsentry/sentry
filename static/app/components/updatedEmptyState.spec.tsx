@@ -1,3 +1,4 @@
+import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
@@ -16,7 +17,7 @@ function renderMockRequests({firstIssue}: {firstIssue?: string} = {}) {
   MockApiClient.addMockResponse({
     url: '/projects/org-slug/project-slug/issues/',
     method: 'GET',
-    body: [],
+    body: firstIssue ? [GroupFixture({id: '1', firstSeen: firstIssue})] : [],
   });
 
   MockApiClient.addMockResponse({
@@ -102,7 +103,10 @@ describe('UpdatedEmptyState', () => {
       )
     ).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Take me to my error'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Take me to my error'})).toHaveAttribute(
+      'href',
+      `/organizations/org-slug/issues/1/?referrer=onboarding-first-event-indicator`
+    );
 
     expect(screen.getByRole('button', {name: 'Back'})).toBeEnabled();
 
