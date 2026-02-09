@@ -47,4 +47,4 @@ class OrganizationContributors(DefaultFieldsModel):
 
     @property
     def is_bot(self) -> bool:
-        return self.alias is not None and (self.alias.endswith("[bot]") or self.alias == "copilot")
+        return self.alias is not None and (self.alias.endswith("[bot]") or self.alias == "Copilot")
