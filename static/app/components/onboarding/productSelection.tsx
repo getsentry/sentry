@@ -105,7 +105,7 @@ export const platformProductAvailability = {
   'dotnet-maui': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   'dotnet-winforms': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   'dotnet-wpf': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'dotnet-xamarin': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'dotnet-xamarin': [ProductSolution.PERFORMANCE_MONITORING],
   dart: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
   go: [

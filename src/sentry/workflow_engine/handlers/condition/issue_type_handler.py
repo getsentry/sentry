@@ -22,8 +22,11 @@ class IssueTypeConditionHandler(DataConditionHandler[WorkflowEventData]):
     def comparison_json_schema(cls) -> dict[str, Any]:
         return {
             "type": "object",
-            "properties": {"value": {"type": "integer", "enum": get_all_valid_type_ids()}},
-            "required": ["value"],
+            "properties": {
+                "value": {"type": "integer", "enum": get_all_valid_type_ids()},
+                "include": {"type": "boolean"},
+            },
+            "required": ["value"],  # if include is not present, then default to True
             "additionalProperties": False,
         }
 
@@ -35,4 +38,6 @@ class IssueTypeConditionHandler(DataConditionHandler[WorkflowEventData]):
         except (TypeError, InvalidGroupTypeError, KeyError, ValueError):
             return False
 
-        return group.issue_type == value
+        include = comparison.get("include", True)
+
+        return group.issue_type == value if include else group.issue_type != value

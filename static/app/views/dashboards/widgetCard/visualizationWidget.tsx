@@ -6,6 +6,7 @@ import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {IconWarning} from 'sentry/icons';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
@@ -30,6 +31,7 @@ import type {
   TimeSeries,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
+import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -305,6 +307,19 @@ function VisualizationWidgetContent({
   }
   if (errorDisplay) {
     return errorDisplay;
+  }
+
+  // Check for empty plottables before rendering the visualization
+  // This prevents TimeSeriesWidgetVisualization from throwing an error
+  // that would get caught by ErrorBoundary and persist across filter changes
+  const hasNoPlottableData = plottables.every(plottable => plottable.isEmpty);
+  if (hasNoPlottableData) {
+    return (
+      <Flex align="center" justify="center" height="100%" gap="xs">
+        <IconWarning size="sm" variant="muted" />
+        <Text variant="muted">{MISSING_DATA_MESSAGE}</Text>
+      </Flex>
+    );
   }
 
   const timeseriesContainerPadding: ContainerProps = {

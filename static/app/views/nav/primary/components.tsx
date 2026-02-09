@@ -310,6 +310,7 @@ const Separator = styled('hr')`
   outline: 0;
   border: 0;
   height: 1px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.secondary};
   margin: 0;
 `;
@@ -461,7 +462,7 @@ export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 2px solid ${p => p.theme.tokens.background.primary};
+  border: 2px solid ${p => p.theme.tokens.border.primary};
 
   ${p =>
     p.isMobile &&

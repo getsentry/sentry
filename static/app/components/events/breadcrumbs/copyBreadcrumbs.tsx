@@ -1,11 +1,6 @@
-import {useCallback} from 'react';
-
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
-import {IconCopy} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function escapeMarkdownCell(value: string): string {
@@ -66,56 +61,30 @@ interface CopyBreadcrumbsDropdownProps {
 }
 
 export function CopyBreadcrumbsDropdown({breadcrumbs}: CopyBreadcrumbsDropdownProps) {
-  const {copy} = useCopyToClipboard();
   const organization = useOrganization();
 
-  const handleCopyAsMarkdown = useCallback(() => {
-    const markdown = formatBreadcrumbsAsMarkdown(breadcrumbs);
-    copy(markdown, {
-      successMessage: t('Copied breadcrumbs to clipboard'),
-      errorMessage: t('Failed to copy breadcrumbs'),
-    });
-    trackAnalytics('breadcrumbs.drawer.action', {
-      control: 'copy',
-      value: 'markdown',
-      organization,
-    });
-  }, [copy, breadcrumbs, organization]);
-
-  const handleCopyAsText = useCallback(() => {
-    const text = formatBreadcrumbsAsText(breadcrumbs);
-    copy(text, {
-      successMessage: t('Copied breadcrumbs to clipboard'),
-      errorMessage: t('Failed to copy breadcrumbs'),
-    });
-    trackAnalytics('breadcrumbs.drawer.action', {
-      control: 'copy',
-      value: 'text',
-      organization,
-    });
-  }, [copy, breadcrumbs, organization]);
-
   return (
-    <DropdownMenu
+    <CopyAsDropdown
       size="xs"
-      triggerLabel={t('Copy')}
-      triggerProps={{
-        title: t('Copy Breadcrumbs'),
-        icon: <IconCopy />,
-        size: 'xs',
-      }}
-      items={[
-        {
-          key: 'copy-text',
-          label: t('As Text'),
-          onAction: handleCopyAsText,
+      items={CopyAsDropdown.makeDefaultCopyAsOptions({
+        text: () => {
+          trackAnalytics('breadcrumbs.drawer.action', {
+            control: 'copy',
+            value: 'text',
+            organization,
+          });
+          return formatBreadcrumbsAsText(breadcrumbs);
         },
-        {
-          key: 'copy-markdown',
-          label: t('As Markdown'),
-          onAction: handleCopyAsMarkdown,
+        markdown: () => {
+          trackAnalytics('breadcrumbs.drawer.action', {
+            control: 'copy',
+            value: 'markdown',
+            organization,
+          });
+          return formatBreadcrumbsAsMarkdown(breadcrumbs);
         },
-      ]}
+        json: undefined,
+      })}
     />
   );
 }

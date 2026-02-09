@@ -55,7 +55,7 @@ export function Button({
             }
           />
         )}
-        <ButtonLabel size={size} borderless={props.borderless}>
+        <ButtonLabel size={size}>
           {props.icon && (
             <Icon size={size} hasChildren={hasChildren}>
               <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
@@ -70,16 +70,14 @@ export function Button({
   );
 }
 
-export const StyledButton = styled('button')<ButtonProps>`
+const StyledButton = styled('button')<ButtonProps>`
   ${p => getButtonStyles(p as any)}
 `;
 
 const ButtonLabel = styled('span', {
   shouldForwardProp: prop =>
-    typeof prop === 'string' &&
-    isPropValid(prop) &&
-    !['size', 'borderless'].includes(prop),
-})<Pick<CommonButtonProps, 'size' | 'borderless'>>`
+    typeof prop === 'string' && isPropValid(prop) && !['size'].includes(prop),
+})<Pick<CommonButtonProps, 'size'>>`
   height: 100%;
   min-width: 0;
   display: flex;
