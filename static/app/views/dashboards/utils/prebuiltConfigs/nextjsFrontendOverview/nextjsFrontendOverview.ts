@@ -166,13 +166,23 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   {h: 3, minH: 3}
 );
 
+const CLIENT_TRANSACTIONS_TABLE_FIELDS = [
+  SpanFields.TRANSACTION,
+  SpanFields.PROJECT,
+  SpanFields.SPAN_OP,
+  `count(${SpanFields.SPAN_DURATION})`,
+  'failure_rate()',
+  `avg(${SpanFields.SPAN_DURATION})`,
+  `p95(${SpanFields.SPAN_DURATION})`,
+];
+
 const CLIENT_TRANSACTIONS_TABLE: Widget = {
   id: 'client-transactions-table',
   title: t('Client Transactions'),
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
   interval: '5m',
-  tableWidths: [-1, -1, -1, -1, -1, -1, -1, -1],
+  tableWidths: CLIENT_TRANSACTIONS_TABLE_FIELDS.map(() => -1),
   queries: [
     {
       name: '',
@@ -185,16 +195,7 @@ const CLIENT_TRANSACTIONS_TABLE: Widget = {
         `performance_score(${SpanFields.TOTAL_SCORE})`,
       ],
       columns: [SpanFields.TRANSACTION, SpanFields.SPAN_OP, SpanFields.PROJECT],
-      fields: [
-        SpanFields.TRANSACTION,
-        SpanFields.PROJECT,
-        SpanFields.SPAN_OP,
-        `count(${SpanFields.SPAN_DURATION})`,
-        'failure_rate()',
-        `avg(${SpanFields.SPAN_DURATION})`,
-        `p95(${SpanFields.SPAN_DURATION})`,
-        `performance_score(${SpanFields.TOTAL_SCORE})`,
-      ],
+      fields: CLIENT_TRANSACTIONS_TABLE_FIELDS,
       fieldAliases: [
         t('Transaction'),
         '',
@@ -217,13 +218,23 @@ const CLIENT_TRANSACTIONS_TABLE: Widget = {
   },
 };
 
+const SERVER_TRANSACTIONS_TABLE_FIELDS = [
+  SpanFields.TRANSACTION,
+  SpanFields.PROJECT,
+  `count(${SpanFields.SPAN_DURATION})`,
+  'failure_rate()',
+  `avg(${SpanFields.SPAN_DURATION})`,
+  `p95(${SpanFields.SPAN_DURATION})`,
+  `sum(${SpanFields.SPAN_DURATION})`,
+];
+
 const SERVER_TRANSACTIONS_TABLE: Widget = {
   id: 'server-transactions-table',
   title: t('Server Transactions'),
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
   interval: '5m',
-  tableWidths: [-1, -1, -1, -1, -1, -1, -1, -1],
+  tableWidths: SERVER_TRANSACTIONS_TABLE_FIELDS.map(() => -1),
   queries: [
     {
       name: '',
@@ -236,15 +247,7 @@ const SERVER_TRANSACTIONS_TABLE: Widget = {
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.TRANSACTION, SpanFields.PROJECT],
-      fields: [
-        SpanFields.TRANSACTION,
-        SpanFields.PROJECT,
-        `count(${SpanFields.SPAN_DURATION})`,
-        'failure_rate()',
-        `avg(${SpanFields.SPAN_DURATION})`,
-        `p95(${SpanFields.SPAN_DURATION})`,
-        `sum(${SpanFields.SPAN_DURATION})`,
-      ],
+      fields: SERVER_TRANSACTIONS_TABLE_FIELDS,
       fieldAliases: [
         t('Transaction'),
         '',
