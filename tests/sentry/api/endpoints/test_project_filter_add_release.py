@@ -5,6 +5,7 @@ from sentry.testutils.silo import region_silo_test
 @region_silo_test
 class ProjectFilterAddReleaseTest(APITestCase):
     endpoint = "sentry-api-0-project-filters-add-release"
+    method = "POST"
 
     def setUp(self):
         super().setUp()
