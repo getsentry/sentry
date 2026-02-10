@@ -20,65 +20,58 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.files.file import File
 from sentry.models.project import Project
-from sentry.preprod.api.schemas import VCS_SCHEMA_PROPERTIES
+from sentry.preprod.api.schemas import (
+    VCS_ERROR_MESSAGES,
+    VCS_SCHEMA_PROPERTIES,
+    VCS_SCHEMA_REQUIRED,
+)
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.snapshots.manifest import (
+    AndroidImageMetadata,
+    BYOImageMetadata,
+    SnapshotManifest,
+)
 from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils.json import dumps_htmlsafe
 
 logger = logging.getLogger(__name__)
 
-# Shared base properties for all image manifest types
-BASE_IMAGE_PROPERTIES: dict[str, Any] = {
-    "fileName": {"type": "string"},
-    "groupName": {"type": ["string", "null"]},
-    "displayName": {"type": ["string", "null"]},
-    "precision": {"type": ["integer", "null"], "minimum": 0},
-    "width": {"type": "integer", "minimum": 0},
-    "height": {"type": "integer", "minimum": 0},
-    "imageId": {"type": ["string", "null"]},
-}
-
-BASE_IMAGE_REQUIRED = ["width", "height"]
-
-BYO_IMAGE_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        **BASE_IMAGE_PROPERTIES,
-        "darkMode": {"type": "boolean"},
-        "orientation": {"type": "string", "enum": ["landscape", "portrait"]},
-        "device": {"type": "string"},
-    },
-    "required": [*BASE_IMAGE_REQUIRED, "orientation", "device"],
-    "additionalProperties": False,
-}
-
 SNAPSHOT_IMAGE_SCHEMA: dict[str, Any] = {
     "anyOf": [
-        BYO_IMAGE_SCHEMA,
-        # Add other image schemas here as needed (e.g. iOS/Android/etc)
+        BYOImageMetadata.schema(),
+        AndroidImageMetadata.schema(),
     ]
+}
+
+SNAPSHOT_REQUEST_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "app_id": {"type": "string", "maxLength": 255},
+        "images": {"type": "object", "additionalProperties": SNAPSHOT_IMAGE_SCHEMA},
+        **VCS_SCHEMA_PROPERTIES,
+    },
+    "required": ["app_id", "images", *VCS_SCHEMA_REQUIRED],
+    "additionalProperties": True,
+}
+
+SNAPSHOT_REQUEST_ERROR_MESSAGES: dict[str, str] = {
+    "app_id": "The app_id field is required and must be a string with maximum length of 255 characters.",
+    "images": "The images field is required and must be an object mapping image names to image metadata.",
+    **VCS_ERROR_MESSAGES,
 }
 
 
 def validate_preprod_snapshot_schema(request_body: bytes) -> tuple[dict[str, Any], str | None]:
-    schema = {
-        "type": "object",
-        "properties": {
-            **VCS_SCHEMA_PROPERTIES,
-            "images": {"type": "object", "additionalProperties": SNAPSHOT_IMAGE_SCHEMA},
-        },
-        "required": ["images"],
-        "additionalProperties": True,
-    }
-
     try:
         data = orjson.loads(request_body)
-        jsonschema.validate(data, schema)
+        jsonschema.validate(data, SNAPSHOT_REQUEST_SCHEMA)
         return data, None
     except jsonschema.ValidationError as e:
         error_message = e.message
+        if e.path:
+            if field := e.path[0]:
+                error_message = SNAPSHOT_REQUEST_ERROR_MESSAGES.get(str(field), error_message)
         return {}, error_message
     except (orjson.JSONDecodeError, TypeError):
         return {}, "Invalid json body"
@@ -138,7 +131,8 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         if error_message:
             return Response({"detail": error_message}, status=400)
 
-        images = data.get("images", [])
+        app_id = data.get("app_id")
+        images = data.get("images", {})
 
         # VCS info
         head_sha = data.get("head_sha")
@@ -168,6 +162,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             artifact = PreprodArtifact.objects.create(
                 project=project,
                 state=PreprodArtifact.ArtifactState.UPLOADED,
+                app_id=app_id,
                 commit_comparison=commit_comparison,
             )
 
@@ -197,17 +192,17 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 snapshot_metrics.extras = extras
                 snapshot_metrics.save(update_fields=["image_count", "extras"])
 
-            # Store manifest data in object store
-            manifest_data = {
-                "images": images,
-            }
+            # Serialize manifest using the Pydantic model for consistent format
+            manifest = SnapshotManifest(images=images)
 
+            # TODO: need to store in object store
             manifest_file = File.objects.create(
                 name="snapshot.json",
                 type="preprod.snapshot_manifest",
                 headers={"Content-Type": "application/json"},
             )
-            manifest_file.putfile(BytesIO(dumps_htmlsafe(manifest_data).encode()))
+            manifest_json = manifest.json(by_alias=True)
+            manifest_file.putfile(BytesIO(manifest_json.encode()))
 
             # Store manifest file reference in extras
             extras = snapshot_metrics.extras or {}
