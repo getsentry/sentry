@@ -91,10 +91,11 @@ def process_sentry_app_installation_deletes(
     payload: Mapping[str, Any],
     **kwds: Any,
 ):
-    action_service.update_action_status_for_sentry_app_via_sentry_app_id(
+    action_service.update_action_status_for_sentry_app_via_uuid__region(
         region_name=region_name,
         status=ObjectStatus.DISABLED,
         sentry_app_id=payload["sentry_app_id"],
+        organization_id=payload["organization_id"],
     )
 
 
