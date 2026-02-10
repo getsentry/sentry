@@ -637,16 +637,25 @@ export const usesTimeSeriesData = (displayType?: DisplayType) => {
     DisplayType.SERVER_TREE,
     DisplayType.TABLE,
     DisplayType.WHEEL,
+    DisplayType.RAGE_AND_DEAD_CLICKS,
   ].includes(displayType);
 };
 
 // Custom widgets that fetch their own data (and don't use genericWidgetQueries)
 // handle error state and loading state on their own
 export const widgetFetchesOwnData = (widgetType: DisplayType) => {
-  return widgetType === DisplayType.SERVER_TREE;
+  const widgetTypesThatFetchOwnData = [
+    DisplayType.SERVER_TREE,
+    DisplayType.RAGE_AND_DEAD_CLICKS,
+  ];
+  return widgetTypesThatFetchOwnData.includes(widgetType);
 };
 
 // Custom widgets for prebuilt dashboards are not editable at this time
 export const isWidgetEditable = (widgetType: DisplayType) => {
-  return widgetType !== DisplayType.SERVER_TREE;
+  const nonEditableWidgetTypes = [
+    DisplayType.SERVER_TREE,
+    DisplayType.RAGE_AND_DEAD_CLICKS,
+  ];
+  return !nonEditableWidgetTypes.includes(widgetType);
 };

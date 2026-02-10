@@ -83,6 +83,7 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
+import {RageAndDeadClicksWidgetVisualization} from 'sentry/views/dashboards/widgets/rageAndDeadClicksWidget/rageAndDeadClicksVisualization';
 import {ServerTreeWidgetVisualization} from 'sentry/views/dashboards/widgets/serverTreeWidget/serverTreeWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {
@@ -228,6 +229,10 @@ function WidgetCardChart(props: WidgetCardChartProps) {
 
   if (widget.displayType === DisplayType.SERVER_TREE) {
     return <ServerTreeComponent dashboardFilters={dashboardFilters} />;
+  }
+
+  if (widget.displayType === DisplayType.RAGE_AND_DEAD_CLICKS) {
+    return <RageAndDeadClicksWidgetVisualization />;
   }
 
   if (widget.displayType === DisplayType.WHEEL) {
