@@ -1,13 +1,12 @@
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useUrlConversationDrawer} from 'sentry/views/insights/pages/conversations/hooks/useUrlConversationDrawer';
 
 import {useConversationViewDrawer} from './conversationDrawer';
 
 jest.mock('sentry/utils/analytics');
-jest.mock('sentry/utils/useOrganization', () => jest.fn());
 jest.mock(
   'sentry/views/insights/pages/conversations/hooks/useUrlConversationDrawer',
   () => ({
@@ -16,7 +15,6 @@ jest.mock(
 );
 
 const mockedTrackAnalytics = trackAnalytics as jest.Mock;
-const mockedUseOrganization = useOrganization as unknown as jest.Mock;
 const mockedUseUrlConversationDrawer = useUrlConversationDrawer as unknown as jest.Mock;
 
 describe('useConversationViewDrawer', () => {
@@ -25,7 +23,6 @@ describe('useConversationViewDrawer', () => {
   beforeEach(() => {
     jest.resetAllMocks();
 
-    mockedUseOrganization.mockReturnValue({slug: 'test-org'});
     mockedUseUrlConversationDrawer.mockReturnValue({
       openDrawer: mockOpenDrawer,
       isDrawerOpen: false,
@@ -39,7 +36,9 @@ describe('useConversationViewDrawer', () => {
   });
 
   it('preserves focusedTool when auto-opening from a direct link', async () => {
-    renderHook(() => useConversationViewDrawer());
+    renderHookWithProviders(() => useConversationViewDrawer(), {
+      organization: OrganizationFixture({slug: 'test-org'}),
+    });
 
     await waitFor(() => {
       expect(mockOpenDrawer).toHaveBeenCalledTimes(1);
