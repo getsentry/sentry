@@ -1,4 +1,4 @@
-name: "[POC] backend tiered"
+name: '[POC] backend tiered'
 
 on:
   workflow_dispatch:
@@ -103,7 +103,7 @@ jobs:
   # Tier 1: Postgres + Redis + Redis-cluster + Kafka (fast setup, no Snuba/Clickhouse)
   tier1-test:
     needs: split-tiers
-    name: "tier1 (${{ matrix.instance }})"
+    name: 'tier1 (${{ matrix.instance }})'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
@@ -181,7 +181,7 @@ jobs:
   # Tier 2: Full Snuba stack (slow setup)
   tier2-test:
     needs: split-tiers
-    name: "tier2 (${{ matrix.instance }})"
+    name: 'tier2 (${{ matrix.instance }})'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:

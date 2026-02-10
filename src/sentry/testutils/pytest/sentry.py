@@ -403,6 +403,26 @@ def register_extensions() -> None:
     )
 
 
+def pytest_sessionstart(session: pytest.Session) -> None:
+    from sentry.taskworker.registry import TaskNamespace
+
+    # Store original send_task so tests that need it can restore it
+    TaskNamespace._original_send_task = TaskNamespace.send_task  # type: ignore[attr-defined]
+
+    # Prevent tests from producing real Kafka messages via the taskworker pipeline.
+    # Tests use TaskRunner (TASKWORKER_ALWAYS_EAGER=True) or BurstTaskRunner
+    # (_signal_send hook) which both operate before send_task in the call chain.
+    TaskNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[method-assign]
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    from sentry.taskworker.registry import TaskNamespace
+
+    if hasattr(TaskNamespace, "_original_send_task"):
+        TaskNamespace.send_task = TaskNamespace._original_send_task  # type: ignore[method-assign]
+        del TaskNamespace._original_send_task
+
+
 def pytest_runtest_setup(item: pytest.Item) -> None:
     if item.config.getvalue("nomigrations") and any(
         mark for mark in item.iter_markers(name="migrations")
@@ -534,9 +554,7 @@ def _triggers_snuba_reset(item: pytest.Item) -> bool:
 # Only relay_integration tests still need serial execution: they use the
 # Relay→Kafka→Consumer pipeline which writes to the default (shared) database,
 # not the per-worker database. Plus the per-test Docker container restart.
-FORCE_SERIAL_DIRS: tuple[str, ...] = (
-    "tests/relay_integration/",
-)
+FORCE_SERIAL_DIRS: tuple[str, ...] = ("tests/relay_integration/",)
 
 
 def _force_serial(item: pytest.Item) -> bool:
@@ -695,8 +713,8 @@ def _xdist_per_worker_snuba():
     from sentry.utils import snuba as _snuba_mod
 
     old_settings = settings.SENTRY_SNUBA
-    old_pool_host = getattr(_snuba_mod._snuba_pool, 'host', 'unknown')
-    old_pool_port = getattr(_snuba_mod._snuba_pool, 'port', 'unknown')
+    old_pool_host = getattr(_snuba_mod._snuba_pool, "host", "unknown")
+    old_pool_port = getattr(_snuba_mod._snuba_pool, "port", "unknown")
 
     with open(_diag_file, "w") as f:
         f.write(f"worker={worker_id}\n")
@@ -717,8 +735,8 @@ def _xdist_per_worker_snuba():
         timeout=settings.SENTRY_SNUBA_TIMEOUT,
         maxsize=10,
     )
-    new_pool_host = getattr(_snuba_mod._snuba_pool, 'host', 'unknown')
-    new_pool_port = getattr(_snuba_mod._snuba_pool, 'port', 'unknown')
+    new_pool_host = getattr(_snuba_mod._snuba_pool, "host", "unknown")
+    new_pool_port = getattr(_snuba_mod._snuba_pool, "port", "unknown")
 
     with open(_diag_file, "a") as f:
         f.write(f"AFTER settings.SENTRY_SNUBA={settings.SENTRY_SNUBA}\n")

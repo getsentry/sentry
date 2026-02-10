@@ -711,14 +711,14 @@ cross-contamination because the full test suite produces far more ClickHouse wri
 
 **Failure categories:**
 
-| Category | Failures | Root Cause |
-| --- | --- | --- |
-| ClickHouse data accumulation | ~35 | Metrics/event data from other workers inflates counts. Values are multiples of expected (e.g., 21000 == 3000, 84M == 12M). Queries across ~15 test files lack tight project/org scoping. |
-| Relay container conflicts | ~6 | Docker container `sentry_test_relay_server` has a fixed name. Two xdist workers creating it simultaneously → 409 Conflict. All show `assert None is not None`. |
-| Event frequency percent conditions | ~5 | ClickHouse event counts inflated by other workers' events within time windows. |
-| Rule preview KeyErrors | 3 | Group IDs from other workers appear in ClickHouse query results, causing KeyError lookups against Postgres (which rolled back those groups). |
-| Foreign key integrity errors | 1 | Org created by one worker rolled back in Postgres while ClickHouse still references it. |
-| Report test failures | 2 | Stale ClickHouse data causes wrong event counts/group IDs in report generation. |
+| Category                           | Failures | Root Cause                                                                                                                                                                               |
+| ---------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ClickHouse data accumulation       | ~35      | Metrics/event data from other workers inflates counts. Values are multiples of expected (e.g., 21000 == 3000, 84M == 12M). Queries across ~15 test files lack tight project/org scoping. |
+| Relay container conflicts          | ~6       | Docker container `sentry_test_relay_server` has a fixed name. Two xdist workers creating it simultaneously → 409 Conflict. All show `assert None is not None`.                           |
+| Event frequency percent conditions | ~5       | ClickHouse event counts inflated by other workers' events within time windows.                                                                                                           |
+| Rule preview KeyErrors             | 3        | Group IDs from other workers appear in ClickHouse query results, causing KeyError lookups against Postgres (which rolled back those groups).                                             |
+| Foreign key integrity errors       | 1        | Org created by one worker rolled back in Postgres while ClickHouse still references it.                                                                                                  |
+| Report test failures               | 2        | Stale ClickHouse data causes wrong event counts/group IDs in report generation.                                                                                                          |
 
 **Affected test files (ClickHouse accumulation):**
 
@@ -757,10 +757,10 @@ Reverted to the proven two-phase strategy:
 
 **Tiered CI** and **xdist** solve different problems and can be combined for maximum benefit:
 
-| Strategy | What it optimizes | Mechanism |
-| --- | --- | --- |
-| **Tiered CI** | Eliminates unnecessary service startup | 71% of tests skip Snuba stack (~4-5 min saved per shard) |
-| **xdist** | Parallelizes test execution within a shard | Multiple tests run concurrently on the same runner |
+| Strategy      | What it optimizes                          | Mechanism                                                |
+| ------------- | ------------------------------------------ | -------------------------------------------------------- |
+| **Tiered CI** | Eliminates unnecessary service startup     | 71% of tests skip Snuba stack (~4-5 min saved per shard) |
+| **xdist**     | Parallelizes test execution within a shard | Multiple tests run concurrently on the same runner       |
 
 These are orthogonal — tiered CI decides **which services to start**, xdist decides **how to run tests within a shard**.
 
@@ -797,12 +797,12 @@ Tier 2 (Full Snuba stack, ~29% of tests):
 
 ### Projected combined impact
 
-| Configuration | Tier 1 wall-clock | Tier 2 wall-clock | Overall wall-clock |
-| --- | --- | --- | --- |
-| Baseline (current CI) | N/A (single tier) | N/A | ~17 min |
-| Tiered only | ~12 min | ~18 min | ~18 min (Tier 2 bottleneck) |
-| xdist only (two-phase) | N/A | N/A | ~14 min |
-| **Tiered + xdist** | **~5 min** | **~12 min** | **~12 min** |
+| Configuration          | Tier 1 wall-clock | Tier 2 wall-clock | Overall wall-clock          |
+| ---------------------- | ----------------- | ----------------- | --------------------------- |
+| Baseline (current CI)  | N/A (single tier) | N/A               | ~17 min                     |
+| Tiered only            | ~12 min           | ~18 min           | ~18 min (Tier 2 bottleneck) |
+| xdist only (two-phase) | N/A               | N/A               | ~14 min                     |
+| **Tiered + xdist**     | **~5 min**        | **~12 min**       | **~12 min**                 |
 
 The combined approach targets a ~30% reduction in wall-clock time while using the same number of
 runners. Tier 1 finishes much faster, freeing 6 runners for other CI jobs.
@@ -820,14 +820,14 @@ runners. Tier 1 finishes much faster, freeing 6 runners for other CI jobs.
 
 ### What was tried and ruled out
 
-| Approach | Why rejected |
-| --- | --- |
-| Skip TRUNCATE entirely (Approach 2) | 50+ failures from unscoped ClickHouse queries. Not viable without major test refactoring. |
-| Three-phase split (writes vs reads) | Marginal gain over two-phase. Classification complexity not worth the 1-2 min savings. |
-| Mock SnubaEventStream._send | Broke tests with implicit Snuba dependencies. Fragile. |
-| loadgroup (all snuba on one worker) | Cross-worker contamination from non-snuba tests that write to CH via store_event(). |
-| Per-worker ClickHouse instances | Infeasible — Snuba manages CH lifecycle, can't easily spin up N instances. |
-| Project-scoped Snuba delete API | Requires Snuba-side changes. Clean but blocked on cross-team work. Best long-term solution. |
+| Approach                            | Why rejected                                                                                |
+| ----------------------------------- | ------------------------------------------------------------------------------------------- |
+| Skip TRUNCATE entirely (Approach 2) | 50+ failures from unscoped ClickHouse queries. Not viable without major test refactoring.   |
+| Three-phase split (writes vs reads) | Marginal gain over two-phase. Classification complexity not worth the 1-2 min savings.      |
+| Mock SnubaEventStream.\_send        | Broke tests with implicit Snuba dependencies. Fragile.                                      |
+| loadgroup (all snuba on one worker) | Cross-worker contamination from non-snuba tests that write to CH via store_event().         |
+| Per-worker ClickHouse instances     | Infeasible — Snuba manages CH lifecycle, can't easily spin up N instances.                  |
+| Project-scoped Snuba delete API     | Requires Snuba-side changes. Clean but blocked on cross-team work. Best long-term solution. |
 
 ## Classification Strategy Comparison: `_needs_snuba()` vs Runtime Socket Monitoring
 
@@ -837,22 +837,24 @@ We have two approaches to classify tests by service dependency. Here's a detaile
 
 **Mechanism:** Inspects pytest markers (`@pytest.mark.snuba`), fixtures (`requires_snuba`, `requires_kafka`), and class hierarchy (`RelayStoreHelper` inheritance) at collection time. No test execution required.
 
-| Aspect | Details |
-| --- | --- |
-| **Granularity** | Per-test (individual test methods) |
-| **Cost** | Zero — runs during pytest collection, <1s |
-| **Accuracy** | ~97% (misses `override_settings`-based dispatch, ~5 files) |
-| **Maintenance** | Self-maintaining — new tests that inherit from `SnubaTestCase` or use `requires_snuba` are automatically classified |
-| **Artifacts** | None — classification happens inline during the test run |
-| **Implementation** | ~25 lines of Python in `sentry.py`, already integrated via `--xdist-snuba-phase` |
+| Aspect             | Details                                                                                                             |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| **Granularity**    | Per-test (individual test methods)                                                                                  |
+| **Cost**           | Zero — runs during pytest collection, <1s                                                                           |
+| **Accuracy**       | ~97% (misses `override_settings`-based dispatch, ~5 files)                                                          |
+| **Maintenance**    | Self-maintaining — new tests that inherit from `SnubaTestCase` or use `requires_snuba` are automatically classified |
+| **Artifacts**      | None — classification happens inline during the test run                                                            |
+| **Implementation** | ~25 lines of Python in `sentry.py`, already integrated via `--xdist-snuba-phase`                                    |
 
 **What it catches:**
+
 - `@pytest.mark.snuba` (on `SnubaTestCase` and subclasses)
 - `@requires_snuba` / `@requires_kafka` (usefixtures markers)
 - `pytestmark = [requires_snuba]` (module-level)
 - `RelayStoreHelper` subclasses (read from ClickHouse via `eventstore`)
 
 **What it misses:**
+
 - Tests that hit Snuba purely through `override_settings` swapping a DummyBackend for a Snuba-backed one (~5 files, <0.5%)
 - Tests that call Snuba indirectly through deep call chains without any marker
 
@@ -860,22 +862,24 @@ We have two approaches to classify tests by service dependency. Here's a detaile
 
 **Mechanism:** Patches `socket.sendall` to call `getpeername()` on every network send, recording which ports (services) each test contacts. Runs as a pytest plugin during actual test execution across all 22 shards.
 
-| Aspect | Details |
-| --- | --- |
-| **Granularity** | Per-test (individual test methods), aggregated per-file |
-| **Cost** | Operational — requires a dedicated CI workflow (`classify-services.yml`), artifact upload/download, merge script |
-| **Accuracy** | ~100% for Python sockets; blind to C extensions (psycopg2, confluent_kafka) |
-| **Maintenance** | Classification JSON must be regenerated periodically; merge script had bugs (last-write-wins) |
-| **Artifacts** | JSON file (`test-service-classification.json`), split script, merge script |
-| **Implementation** | ~200 lines across `service_classifier.py`, `classify-services.yml`, `split-tests-by-tier.py` |
+| Aspect             | Details                                                                                                          |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| **Granularity**    | Per-test (individual test methods), aggregated per-file                                                          |
+| **Cost**           | Operational — requires a dedicated CI workflow (`classify-services.yml`), artifact upload/download, merge script |
+| **Accuracy**       | ~100% for Python sockets; blind to C extensions (psycopg2, confluent_kafka)                                      |
+| **Maintenance**    | Classification JSON must be regenerated periodically; merge script had bugs (last-write-wins)                    |
+| **Artifacts**      | JSON file (`test-service-classification.json`), split script, merge script                                       |
+| **Implementation** | ~200 lines across `service_classifier.py`, `classify-services.yml`, `split-tests-by-tier.py`                     |
 
 **What it catches:**
+
 - All Snuba HTTP calls (4 distinct paths) via port 1218
 - Redis connections via port 6379
 - Redis-cluster via ports 7000-7005
 - Any other Python-socket-based service communication
 
 **What it misses:**
+
 - Postgres (psycopg2 uses C sockets via libpq)
 - Kafka (confluent_kafka uses C sockets via librdkafka)
 - Incidental service contact (Redis at 100% due to framework cleanup in teardown)
@@ -886,7 +890,7 @@ For the combined tiered + xdist approach, `_needs_snuba()` is the better foundat
 
 1. **Zero operational overhead.** No classification workflow, no JSON artifacts, no split scripts, no artifact upload/download steps. The classification happens inline during pytest collection.
 
-2. **Directly addresses the TRUNCATE concern.** The primary reason for tiering is Snuba isolation. `_needs_snuba()` was designed specifically to identify tests that interact with ClickHouse (the `TRUNCATE TABLE` problem). Runtime socket monitoring detects *usage*, not *need* — leading to over-classification (e.g., Redis at 100%).
+2. **Directly addresses the TRUNCATE concern.** The primary reason for tiering is Snuba isolation. `_needs_snuba()` was designed specifically to identify tests that interact with ClickHouse (the `TRUNCATE TABLE` problem). Runtime socket monitoring detects _usage_, not _need_ — leading to over-classification (e.g., Redis at 100%).
 
 3. **Proven reliability for xdist.** The two-phase xdist approach (22/22 shards green) uses `_needs_snuba()` via `--xdist-snuba-phase`. The same function can drive tiering decisions with no additional code.
 
@@ -895,6 +899,7 @@ For the combined tiered + xdist approach, `_needs_snuba()` is the better foundat
 5. **Simpler architecture.** The combined workflow needs only `--xdist-snuba-phase` to split tests — the tiered POC's `split-tiers` job, artifact passing, and `SELECTED_TESTS_FILE` mechanism are all eliminated.
 
 The ~3% gap (tests that hit Snuba via `override_settings` without markers) is acceptable because:
+
 - These tests would fail fast in Tier 1 (no Snuba running), making misclassifications immediately visible
 - The `FORCE_TIER2_FILES` escape hatch can handle edge cases if needed
 - In practice, the xdist two-phase approach has been validated at 22/22 green with this classification
@@ -920,6 +925,7 @@ This eliminates the split-tiers job, artifact passing, and file-based test selec
 ### Workflow Design (backend-combined-poc.yml)
 
 **Tier 1: Non-Snuba tests (4 shards)**
+
 - `MATRIX_INSTANCE_TOTAL=4` (hash-distributes ALL tests into 4 groups)
 - `--xdist-snuba-phase=exclude` (deselects Snuba tests at collection time)
 - `-n 2 --dist=loadfile` (xdist parallelism — safe because no TRUNCATE conflict)
@@ -929,6 +935,7 @@ This eliminates the split-tiers job, artifact passing, and file-based test selec
 - With xdist -n2: ~10-12 min per shard
 
 **Tier 2: Snuba tests (18 shards)**
+
 - `MATRIX_INSTANCE_TOTAL=18` (hash-distributes ALL tests into 18 groups)
 - `--xdist-snuba-phase=only` (deselects non-Snuba tests at collection time)
 - Single-threaded (all tests need Snuba → TRUNCATE TABLE prevents parallelism)
@@ -941,6 +948,7 @@ This eliminates the split-tiers job, artifact passing, and file-based test selec
 ### Why tests don't overlap or get missed
 
 Each test is hash-distributed independently in each tier:
+
 - In Tier 1: `hash(nodeid) % 4` assigns each test to one of 4 shards. The phase filter then deselects Snuba tests. Result: each non-Snuba test runs in exactly one Tier 1 shard.
 - In Tier 2: `hash(nodeid) % 18` assigns each test to one of 18 shards. The phase filter then deselects non-Snuba tests. Result: each Snuba test runs in exactly one Tier 2 shard.
 - Non-Snuba tests assigned to Tier 2 shards are deselected (never run there).
@@ -949,17 +957,18 @@ Each test is hash-distributed independently in each tier:
 
 ### Projected Performance
 
-| Metric | Tier 1 (4 shards) | Tier 2 (18 shards) |
-| --- | --- | --- |
-| Tests per shard | ~5,500 | ~555 |
-| xdist workers | 2 | 1 (single-threaded) |
-| Setup time | ~15s (migrations) | ~4-5 min (backend-ci) |
-| Test execution | ~10-12 min | ~9-10 min |
-| Total shard time | ~10-12 min | ~13-15 min |
+| Metric           | Tier 1 (4 shards) | Tier 2 (18 shards)    |
+| ---------------- | ----------------- | --------------------- |
+| Tests per shard  | ~5,500            | ~555                  |
+| xdist workers    | 2                 | 1 (single-threaded)   |
+| Setup time       | ~15s (migrations) | ~4-5 min (backend-ci) |
+| Test execution   | ~10-12 min        | ~9-10 min             |
+| Total shard time | ~10-12 min        | ~13-15 min            |
 
 **Wall-clock time: ~13-15 min** (dominated by Tier 2 setup + execution). Tier 1 finishes first, freeing 4 runners for other CI jobs.
 
 Compared to:
+
 - Current CI: ~17 min
 - xdist-only (two-phase): ~14 min
 - Tiered-only (runtime classification): ~18 min (Tier 2 bottleneck from smaller shard count)
@@ -976,6 +985,7 @@ Tests with only `requires_snuba` write to ClickHouse but never read from it and 
 **Classification function: `_triggers_snuba_reset(item)`**
 
 Returns True if:
+
 1. `@pytest.mark.snuba` — SnubaTestCase and all subclasses (~200 files)
 2. `@pytest.mark.usefixtures("reset_snuba")` — explicit opt-in (ProfilesSnubaTestCase, etc.)
 3. `RelayStoreHelper` in MRO — reads from ClickHouse via eventstore
@@ -984,10 +994,10 @@ Everything else (~85% of all tests) is safe for xdist parallelism.
 
 **Workflow:** `backend-xdist-split-poc.yml` — two job groups, same `backend-ci` environment:
 
-| Group | Shards | xdist | Tests | Why safe |
-| --- | --- | --- | --- | --- |
-| parallel | 6 | `-n 3 --dist=loadfile` | ~85% (non-TRUNCATE) | No TRUNCATE TABLE → no cross-worker data wipes |
-| serial | 16 | single-threaded | ~15% (TRUNCATE) | TRUNCATE is table-wide → must serialize |
+| Group    | Shards | xdist                  | Tests               | Why safe                                       |
+| -------- | ------ | ---------------------- | ------------------- | ---------------------------------------------- |
+| parallel | 6      | `-n 3 --dist=loadfile` | ~85% (non-TRUNCATE) | No TRUNCATE TABLE → no cross-worker data wipes |
+| serial   | 16     | single-threaded        | ~15% (TRUNCATE)     | TRUNCATE is table-wide → must serialize        |
 
 CLI: `--xdist-group=parallel` or `--xdist-group=serial`
 
@@ -1041,12 +1051,12 @@ analysis of each file:
 
 #### Category A: Already scoped, likely spurious failures (trivial to verify)
 
-| File | Base Class | Query Pattern | Assessment |
-| --- | --- | --- | --- |
-| `test_organization_release_health_data.py` (~12 failures) | MetricsAPIBaseTestCase | API endpoints with org/project params | Queries go through scoped API layer. Verify all endpoints pass project params correctly. |
-| `test_api.py` (~10 failures) | BaseMetricsTestCase | `run_queries()` with org/projects params | Already accepts `organization` and `projects` parameters. |
-| `test_metrics_enhanced_performance.py` (~7 failures) | BaseMetricsLayerTestCase | `get_series()` with `build_metrics_query(project_ids=...)` | Already scoped by project. |
-| `test_release_health.py` (2 failures) | BaseMetricsLayerTestCase | `get_series()` with project scoping | Same as above. |
+| File                                                      | Base Class               | Query Pattern                                              | Assessment                                                                               |
+| --------------------------------------------------------- | ------------------------ | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `test_organization_release_health_data.py` (~12 failures) | MetricsAPIBaseTestCase   | API endpoints with org/project params                      | Queries go through scoped API layer. Verify all endpoints pass project params correctly. |
+| `test_api.py` (~10 failures)                              | BaseMetricsTestCase      | `run_queries()` with org/projects params                   | Already accepts `organization` and `projects` parameters.                                |
+| `test_metrics_enhanced_performance.py` (~7 failures)      | BaseMetricsLayerTestCase | `get_series()` with `build_metrics_query(project_ids=...)` | Already scoped by project.                                                               |
+| `test_release_health.py` (2 failures)                     | BaseMetricsLayerTestCase | `get_series()` with project scoping                        | Same as above.                                                                           |
 
 These 4 files account for ~31 of the ~50 failures. They use query APIs that already accept
 project/org parameters. The failures may have been caused by the query layer not enforcing filters
@@ -1055,12 +1065,12 @@ Need deeper investigation to confirm.
 
 #### Category B: Intentionally broad queries — fixable with assertion changes
 
-| File | Base Class | Query Pattern | Assessment |
-| --- | --- | --- | --- |
-| `test_common.py` (2) | BaseMetricsLayerTestCase + SnubaTestCase | `GetActiveOrgs()` — iterates ALL active orgs | Tests assert exact counts (`total_orgs == 10`). Under xdist, other workers' orgs inflate count. Fix: change to subset assertions (`assert all(id in found for id in created_ids)`). |
-| `test_tasks.py` (4) | BaseMetricsLayerTestCase + SnubaTestCase | `GetActiveOrgs()`, `sliding_window_org()` | Same pattern — scans all orgs, asserts exact counts. |
-| `test_boost_low_volume_transactions.py` (2) | BaseMetricsLayerTestCase + SnubaTestCase | `FetchProjectTransactionVolumes(org_ids=...)` | Accepts org_ids but tests may assert exact totals. |
-| `test_boost_low_volume_projects.py` (1-3) | BaseMetricsLayerTestCase + SnubaTestCase | Similar to above | Same pattern. |
+| File                                        | Base Class                               | Query Pattern                                 | Assessment                                                                                                                                                                          |
+| ------------------------------------------- | ---------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `test_common.py` (2)                        | BaseMetricsLayerTestCase + SnubaTestCase | `GetActiveOrgs()` — iterates ALL active orgs  | Tests assert exact counts (`total_orgs == 10`). Under xdist, other workers' orgs inflate count. Fix: change to subset assertions (`assert all(id in found for id in created_ids)`). |
+| `test_tasks.py` (4)                         | BaseMetricsLayerTestCase + SnubaTestCase | `GetActiveOrgs()`, `sliding_window_org()`     | Same pattern — scans all orgs, asserts exact counts.                                                                                                                                |
+| `test_boost_low_volume_transactions.py` (2) | BaseMetricsLayerTestCase + SnubaTestCase | `FetchProjectTransactionVolumes(org_ids=...)` | Accepts org_ids but tests may assert exact totals.                                                                                                                                  |
+| `test_boost_low_volume_projects.py` (1-3)   | BaseMetricsLayerTestCase + SnubaTestCase | Similar to above                              | Same pattern.                                                                                                                                                                       |
 
 These dynamic sampling tests use functions like `GetActiveOrgs()` that **intentionally** scan all
 organizations with metrics data. The production code needs this behavior. However, the test
@@ -1081,35 +1091,36 @@ variant of `GetActiveOrgs` for testing.
 
 #### Category C: Report/summary tests — likely scoped by org
 
-| File | Base Class | Assessment |
-| --- | --- | --- |
-| `test_daily_summary.py` (1-3) | SnubaTestCase | Generates reports for specific org. Likely scoped but may aggregate event counts broadly. |
-| `test_weekly_reports.py` (1-3) | OutcomesSnubaTest + SnubaTestCase | Same — report generation per org. |
-| `test_preview.py` (1-3) | SnubaTestCase | Rule preview queries — may aggregate group IDs from ClickHouse. |
+| File                           | Base Class                        | Assessment                                                                                |
+| ------------------------------ | --------------------------------- | ----------------------------------------------------------------------------------------- |
+| `test_daily_summary.py` (1-3)  | SnubaTestCase                     | Generates reports for specific org. Likely scoped but may aggregate event counts broadly. |
+| `test_weekly_reports.py` (1-3) | OutcomesSnubaTest + SnubaTestCase | Same — report generation per org.                                                         |
+| `test_preview.py` (1-3)        | SnubaTestCase                     | Rule preview queries — may aggregate group IDs from ClickHouse.                           |
 
 #### Category D: Endpoint tests — API layer typically scoped
 
-| File | Base Class | Assessment |
-| --- | --- | --- |
-| `test_organization_events_histogram.py` (1-3) | SnubaTestCase | API endpoint — should scope by project. |
-| `test_organization_events_trends.py` (1-3) | SnubaTestCase | API endpoint — should scope by project. |
-| `test_organization_root_cause_analysis.py` (1-3) | SnubaTestCase | API endpoint — should scope by project. |
-| `test_organization_replay_index.py` (1-3) | ReplaysSnubaTestCase | Replay queries — should scope by project. |
+| File                                             | Base Class           | Assessment                                |
+| ------------------------------------------------ | -------------------- | ----------------------------------------- |
+| `test_organization_events_histogram.py` (1-3)    | SnubaTestCase        | API endpoint — should scope by project.   |
+| `test_organization_events_trends.py` (1-3)       | SnubaTestCase        | API endpoint — should scope by project.   |
+| `test_organization_root_cause_analysis.py` (1-3) | SnubaTestCase        | API endpoint — should scope by project.   |
+| `test_organization_replay_index.py` (1-3)        | ReplaysSnubaTestCase | Replay queries — should scope by project. |
 
 ### Feasibility Assessment
 
-| Category | Files | Failures | Fix Approach | Difficulty |
-| --- | --- | --- | --- | --- |
-| A: Already scoped | 4 | ~31 | Verify query layer enforces filters | Needs investigation |
-| B: Broad queries | 4 | ~9 | Change assertions to subset-based | Moderate (test changes only) |
-| C: Report tests | 3 | ~5 | Likely scoped, verify | Trivial |
-| D: Endpoint tests | 4 | ~5 | API layer scopes, verify | Trivial |
+| Category          | Files | Failures | Fix Approach                        | Difficulty                   |
+| ----------------- | ----- | -------- | ----------------------------------- | ---------------------------- |
+| A: Already scoped | 4     | ~31      | Verify query layer enforces filters | Needs investigation          |
+| B: Broad queries  | 4     | ~9       | Change assertions to subset-based   | Moderate (test changes only) |
+| C: Report tests   | 3     | ~5       | Likely scoped, verify               | Trivial                      |
+| D: Endpoint tests | 4     | ~5       | API layer scopes, verify            | Trivial                      |
 
 **Bottom line:** The 50+ failures are concentrated in 15 files. ~60% of failures (Category A) may
 already be scoped and need verification. ~20% (Category B) need assertion changes from exact-count
 to subset-based. ~20% (Categories C+D) are likely already scoped via API/report layers.
 
 The "no cleanup" approach is viable if:
+
 1. Category A queries are confirmed to be properly scoped at the ClickHouse level
 2. Category B tests are refactored to use subset assertions
 3. A small `FORCE_SERIAL` escape hatch exists for any genuinely unfixable tests
@@ -1123,7 +1134,7 @@ cleanup overhead — the cleanest possible solution.
 
 ### Strategy
 
-Instead of classifying tests by whether they *trigger* `reset_snuba` (Iteration 6's approach), we
+Instead of classifying tests by whether they _trigger_ `reset_snuba` (Iteration 6's approach), we
 flip the model: **skip `reset_snuba` for all parallel tests** and rely on unique snowflake IDs for
 ClickHouse isolation. Only a small set of files with broadly-scoped queries (`FORCE_SERIAL_FILES`)
 run single-threaded with normal `reset_snuba` cleanup.
@@ -1160,13 +1171,13 @@ run single-threaded with normal `reset_snuba` cleanup.
 
 #### Test Failures (stale ClickHouse data — expected)
 
-| Failing Test | Shards | Root Cause |
-| --- | --- | --- |
-| `tests/snuba/rules/conditions/test_event_frequency.py` | 3 shards | Event frequency queries see extra events from other workers. `assert 2 == 1`, `assert False is True`. Broadly scoped time-window queries. |
-| `tests/snuba/api/endpoints/test_organization_events_trends.py` | 2 shards | Transaction count queries: `assert 0 == 1` (count_range_1). Trends endpoint aggregates without tight project filter. |
-| `tests/snuba/api/endpoints/test_organization_events_histogram.py` | 1 shard | Was in FORCE_SERIAL_FILES but under **wrong path** (`tests/sentry/...` vs `tests/snuba/...`). Path mismatch meant it wasn't routed to serial. |
-| `tests/sentry/release_health/release_monitor/test_metrics.py` | 1 shard | Metrics counts off: `assert 14 == 15`, `assert 0.03 in [0.02, 0]`. Session/release health metrics see extra data. |
-| `tests/relay_integration/test_integration.py` | 2 shards | `assert None is not None` — event not found after store. Likely a relay→Snuba pipeline timing issue under load. |
+| Failing Test                                                      | Shards   | Root Cause                                                                                                                                    |
+| ----------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/snuba/rules/conditions/test_event_frequency.py`            | 3 shards | Event frequency queries see extra events from other workers. `assert 2 == 1`, `assert False is True`. Broadly scoped time-window queries.     |
+| `tests/snuba/api/endpoints/test_organization_events_trends.py`    | 2 shards | Transaction count queries: `assert 0 == 1` (count_range_1). Trends endpoint aggregates without tight project filter.                          |
+| `tests/snuba/api/endpoints/test_organization_events_histogram.py` | 1 shard  | Was in FORCE_SERIAL_FILES but under **wrong path** (`tests/sentry/...` vs `tests/snuba/...`). Path mismatch meant it wasn't routed to serial. |
+| `tests/sentry/release_health/release_monitor/test_metrics.py`     | 1 shard  | Metrics counts off: `assert 14 == 15`, `assert 0.03 in [0.02, 0]`. Session/release health metrics see extra data.                             |
+| `tests/relay_integration/test_integration.py`                     | 2 shards | `assert None is not None` — event not found after store. Likely a relay→Snuba pipeline timing issue under load.                               |
 
 #### Worker Crashes (`[gw2] node down: Not properly terminated`)
 
@@ -1178,6 +1189,7 @@ associated `TimeoutError: timed out` in the Django test server is a **symptom**,
 3. xdist detects the dead worker and spawns a replacement
 
 **Probable cause: OOM on GitHub Actions runners (~7GB RAM)**. With `-n 3`, each shard runs:
+
 - 3 full Sentry Django processes (each is very heavy)
 - Postgres, Redis, Kafka, ClickHouse, Snuba, Symbolicator (Docker containers)
 - Without TRUNCATE, ClickHouse tables grow unbounded — data accumulates across all tests
@@ -1189,6 +1201,7 @@ within 7GB more comfortably.
 
 The original list had paths under `tests/sentry/api/endpoints/` but the actual failing tests are
 under `tests/snuba/api/endpoints/`. Both directories contain test files with the same names:
+
 - `tests/sentry/api/endpoints/test_organization_events_histogram.py` (in list, may not exist)
 - `tests/snuba/api/endpoints/test_organization_events_histogram.py` (actual failing file)
 
@@ -1197,6 +1210,7 @@ Same for `test_organization_events_trends.py`.
 #### Files to Add to FORCE_SERIAL_FILES
 
 Based on Run 1 failures:
+
 - `tests/snuba/rules/conditions/test_event_frequency.py` — broad time-window event frequency queries
 - `tests/snuba/api/endpoints/test_organization_events_trends.py` — trends aggregation
 - `tests/snuba/api/endpoints/test_organization_events_histogram.py` — histogram aggregation
@@ -1206,6 +1220,7 @@ Based on Run 1 failures:
 #### Key Insight: Accidental Passes
 
 A green test in this run **does not prove correctness**. Tests can pass accidentally because:
+
 - Their shard happened to have no overlapping writes from other workers
 - Stale data coincidentally satisfied assertions (e.g., `count >= 1` always passes with extra data)
 - The broad query returned correct results by luck of timing
@@ -1222,6 +1237,7 @@ stable. Tests that fail intermittently across runs are the most important to cat
 
 Iteration 7 (20 parallel shards @ `-n 3`) hit OOM on GitHub Actions runners (~7GB RAM). The memory
 budget is tight:
+
 - Docker containers (ClickHouse, Kafka, Zookeeper, Snuba, Postgres, Redis, Symbolicator): ~2-3GB
 - 3 xdist workers, each loading the full Sentry Django app: ~1.5-3GB
 - Total: ~5-7.5GB, right at the edge
@@ -1265,18 +1281,19 @@ The tier split and xdist-group split are orthogonal:
 The original tiered CI used a runtime classification JSON generated by the `classify-services`
 workflow, which monitors actual socket connections during test execution. This is more accurate than
 the static `_needs_snuba()` function because:
+
 - `_needs_snuba()` relies on pytest markers and class inheritance — it can miss implicit dependencies
 - Runtime classification catches tests that connect to services via indirect code paths
 - The classification has already been validated across multiple CI runs
 
 ### Shard Math (optimized after Run 1 timing data)
 
-| Group | Tests | Shards | xdist | Effective Workers | Mode | Est. Wall Clock |
-| --- | --- | --- | --- | --- | --- | --- |
-| Tier 1 | ~71% | 4 | `-n 3` | 12 | migrations | ~11.8m |
-| Tier 2 Parallel | ~28% | 16 | `-n 2` | 32 | backend-ci | ~12.1m |
-| Tier 2 Serial | ~1% | 2 | none | 2 | backend-ci | ~11.7m |
-| **Total** | **100%** | **22** | | **46** | | **~12.1m** |
+| Group           | Tests    | Shards | xdist  | Effective Workers | Mode       | Est. Wall Clock |
+| --------------- | -------- | ------ | ------ | ----------------- | ---------- | --------------- |
+| Tier 1          | ~71%     | 4      | `-n 3` | 12                | migrations | ~11.8m          |
+| Tier 2 Parallel | ~28%     | 16     | `-n 2` | 32                | backend-ci | ~12.1m          |
+| Tier 2 Serial   | ~1%      | 2      | none   | 2                 | backend-ci | ~11.7m          |
+| **Total**       | **100%** | **22** |        | **46**            |            | **~12.1m**      |
 
 Total of 22 shards (same as current backend CI) but with 46 effective workers instead of 22.
 
@@ -1291,14 +1308,14 @@ on `mchen/xdist-two-group`.
 
 #### Tier 1 Timing (all passed)
 
-| Shard | Duration |
-| --- | --- |
-| tier1 (0) | 8.8m |
-| tier1 (1) | 8.3m |
-| tier1 (2) | 8.6m |
-| tier1 (3) | 10.3m |
-| tier1 (4) | 8.6m |
-| tier1 (5) | 9.0m |
+| Shard       | Duration |
+| ----------- | -------- |
+| tier1 (0)   | 8.8m     |
+| tier1 (1)   | 8.3m     |
+| tier1 (2)   | 8.6m     |
+| tier1 (3)   | 10.3m    |
+| tier1 (4)   | 8.6m     |
+| tier1 (5)   | 9.0m     |
 | **Average** | **8.9m** |
 
 Tier 1 is over-sharded at 6 — finishes 4m before tier2-parallel. Redistributing 2 shards.
@@ -1310,6 +1327,7 @@ Average: 12.8m (range 11.7-14.1m). This is the bottleneck. Giving it 2 more shar
 #### Optimal Shard Rebalancing
 
 Analysis based on observed test execution times (excluding setup overhead):
+
 - Tier 1 setup: ~3m, Tier 2 setup: ~7m
 - Tier 1 total test work: ~35.4 min-shards, Tier 2 parallel: ~81.2 min-shards
 
@@ -1318,15 +1336,15 @@ all groups. Previous split (6/14/2) had tier1 finishing at 8.9m (wasted 4m of ca
 
 #### New Failures (not in FORCE_SERIAL_FILES)
 
-| File | Shards | Root Cause |
-| --- | --- | --- |
-| `tests/relay_integration/lang/javascript/test_plugin.py` | 4 | `assert None is not None` — relay store returns None |
-| `tests/relay_integration/test_message_filters.py` | 1 | Same relay pipeline issue |
-| `tests/relay_integration/lang/java/test_plugin.py` | 1 | Same pattern — new relay file |
-| `tests/relay_integration/lang/javascript/test_example.py` | 1 | Same pattern — new relay file |
-| `tests/sentry/api/endpoints/test_organization_sampling_project_span_counts.py` | 1 | `assert 347.0 == 21.0` — stale data |
-| `tests/sentry/release_health/test_tasks.py` | 1 | FK constraint IntegrityError |
-| `tests/sentry/issues/test_suspect_flags.py` | 1 | Wrong flag scores |
+| File                                                                           | Shards | Root Cause                                           |
+| ------------------------------------------------------------------------------ | ------ | ---------------------------------------------------- |
+| `tests/relay_integration/lang/javascript/test_plugin.py`                       | 4      | `assert None is not None` — relay store returns None |
+| `tests/relay_integration/test_message_filters.py`                              | 1      | Same relay pipeline issue                            |
+| `tests/relay_integration/lang/java/test_plugin.py`                             | 1      | Same pattern — new relay file                        |
+| `tests/relay_integration/lang/javascript/test_example.py`                      | 1      | Same pattern — new relay file                        |
+| `tests/sentry/api/endpoints/test_organization_sampling_project_span_counts.py` | 1      | `assert 347.0 == 21.0` — stale data                  |
+| `tests/sentry/release_health/test_tasks.py`                                    | 1      | FK constraint IntegrityError                         |
+| `tests/sentry/issues/test_suspect_flags.py`                                    | 1      | Wrong flag scores                                    |
 
 #### Decision: Force entire `tests/relay_integration/` to serial
 
@@ -1349,15 +1367,16 @@ in single-threaded mode by relying on implicit global state.
 #### Bug: `test_sdk.py::CheckScopeTransactionTest::test_custom_transaction_name`
 
 **Symptom**: Under xdist, the test fails with:
+
 ```
 AssertionError: assert {'request_transaction': '/dogs/{name}/',
                         'scope_transaction': 'github.webhook.issue_comment'} is None
 ```
 
 **Root cause**: The test patched the wrong Sentry SDK scope object. The production code
-`check_current_scope_transaction()` calls `sentry_sdk.get_current_scope()` (the *current*
+`check_current_scope_transaction()` calls `sentry_sdk.get_current_scope()` (the _current_
 scope), but the test used `patch_isolation_scope()` which patches `Scope.get_isolation_scope`
-(the *isolation* scope) — a completely different object in Sentry SDK v2.
+(the _isolation_ scope) — a completely different object in Sentry SDK v2.
 
 In single-threaded mode, the real current scope happens to be empty (`_transaction = None`),
 so the function short-circuits at `if scope._transaction is not None` and returns `None`.
@@ -1414,7 +1433,7 @@ or Redis). The concern would be stale cached configs leaking between tests. Howe
 
 2. **Events are keyed by project ID.** `post_and_retrieve_event` sends to
    `relay_store_url(self.project.id)` and queries `eventstore.get_event_by_id(self.project.id,
-   event_id)`. Different tests use different project IDs — no cross-test contamination.
+event_id)`. Different tests use different project IDs — no cross-test contamination.
 
 3. **Filter tests modify `ProjectOption` on new projects.** `FilterTests._set_filter_state`
    writes to `self.project` (fresh each test). Relay fetches config for the new project ID
@@ -1455,11 +1474,11 @@ tier bottleneck stands — adding more serial shards is the pragmatic fix.
 
 ### Branches
 
-| Branch | Purpose | Status |
-| --- | --- | --- |
-| `mchen/tiered-xdist-hybrid` | Main development branch with all iterations | Green (latest run 21847170456) |
-| `mchen/xdist-hybrid-clean` | Clean branch off master with only essential changes | Green (run 21845691418) |
-| `mchen/detect-snuba-reads` | One-shot workflow for HTTP-level Snuba classifier | Complete |
+| Branch                      | Purpose                                             | Status                         |
+| --------------------------- | --------------------------------------------------- | ------------------------------ |
+| `mchen/tiered-xdist-hybrid` | Main development branch with all iterations         | Green (latest run 21847170456) |
+| `mchen/xdist-hybrid-clean`  | Clean branch off master with only essential changes | Green (run 21845691418)        |
+| `mchen/detect-snuba-reads`  | One-shot workflow for HTTP-level Snuba classifier   | Complete                       |
 
 ### Latest Timing Results
 
@@ -1467,22 +1486,22 @@ tier bottleneck stands — adding more serial shards is the pragmatic fix.
 
 **Best hybrid run (`mchen/tiered-xdist-hybrid`, run 21847170456 — 4/15/3 split):**
 
-| Tier | Shards | xdist Workers | Slowest Shard | Fastest Shard |
-| --- | --- | --- | --- | --- |
-| tier1 (Postgres+Redis only) | 4 | `-n 3` | 13.4 min | 11.8 min |
-| tier2-parallel (full Snuba, no reset) | 15 | `-n 2` | 12.1 min | 10.6 min |
-| tier2-serial (full Snuba, with reset) | 3 | `-n 1` | 11.9 min | 11.4 min |
-| **Overall wall clock** | **22** | | **~13.7 min** | |
+| Tier                                  | Shards | xdist Workers | Slowest Shard | Fastest Shard |
+| ------------------------------------- | ------ | ------------- | ------------- | ------------- |
+| tier1 (Postgres+Redis only)           | 4      | `-n 3`        | 13.4 min      | 11.8 min      |
+| tier2-parallel (full Snuba, no reset) | 15     | `-n 2`        | 12.1 min      | 10.6 min      |
+| tier2-serial (full Snuba, with reset) | 3      | `-n 1`        | 11.9 min      | 11.4 min      |
+| **Overall wall clock**                | **22** |               | **~13.7 min** |               |
 
 **Speedup: ~19% (17 min → 13.7 min)**
 
 **Best clean branch run (`mchen/xdist-hybrid-clean`, run 21845153606 — 4/15/3 split):**
 
-| Tier | Shards | Slowest Shard |
-| --- | --- | --- |
-| tier1 | 4 | 12.6 min |
-| tier2-parallel | 15 | 11.8 min |
-| tier2-serial | 3 | 13.9 min |
+| Tier                   | Shards | Slowest Shard |
+| ---------------------- | ------ | ------------- |
+| tier1                  | 4      | 12.6 min      |
+| tier2-parallel         | 15     | 11.8 min      |
+| tier2-serial           | 3      | 13.9 min      |
 | **Overall wall clock** | **22** | **~14.2 min** |
 
 ### Test Distribution
@@ -1513,21 +1532,22 @@ tier bottleneck stands — adding more serial shards is the pragmatic fix.
 Deep investigation of every entry in `FORCE_SERIAL_FILES`:
 
 #### Dead Entries (should be removed)
+
 - `tests/sentry/api/endpoints/test_organization_events_histogram.py` — **file does not exist** (real file is `tests/snuba/...`)
 - `tests/sentry/api/endpoints/test_organization_events_trends.py` — **file does not exist** (real file is `tests/snuba/...`)
 - `tests/sentry/release_health/release_monitor/test_metrics.py` — **0 test functions**
 
 #### Confirmed Broad Queries — Must Stay Serial (~161 tests)
 
-| File | Tests | Reason |
-| --- | --- | --- |
-| `test_common.py` (dynamic sampling) | 15 | `cross_org_query`, scans ALL orgs without org_id/project_id filter |
-| `test_tasks.py` (dynamic sampling) | 20 | Same — `GetActiveOrgs` has no org filter parameter |
-| `test_boost_low_volume_transactions.py` | 20 | Same |
-| `test_boost_low_volume_projects.py` | 18 | Same |
-| `test_event_frequency.py` | 35 | Generic issue queries don't filter by project_id |
-| `test_daily_summary.py` | 23 | Queries Outcomes by org_id only, groups by project_id but doesn't filter |
-| `test_weekly_reports.py` | 30 | Same as daily summary |
+| File                                    | Tests | Reason                                                                   |
+| --------------------------------------- | ----- | ------------------------------------------------------------------------ |
+| `test_common.py` (dynamic sampling)     | 15    | `cross_org_query`, scans ALL orgs without org_id/project_id filter       |
+| `test_tasks.py` (dynamic sampling)      | 20    | Same — `GetActiveOrgs` has no org filter parameter                       |
+| `test_boost_low_volume_transactions.py` | 20    | Same                                                                     |
+| `test_boost_low_volume_projects.py`     | 18    | Same                                                                     |
+| `test_event_frequency.py`               | 35    | Generic issue queries don't filter by project_id                         |
+| `test_daily_summary.py`                 | 23    | Queries Outcomes by org_id only, groups by project_id but doesn't filter |
+| `test_weekly_reports.py`                | 30    | Same as daily summary                                                    |
 
 #### Empirically Failed Despite Project-Scoped Queries (~464 tests)
 
@@ -1535,24 +1555,24 @@ Code analysis shows these files have `project_id` in their WHERE clauses, but th
 failed in CI runs**. The failures may be caused by secondary queries, aggregation edge cases,
 or assertion sensitivity to accumulated data. Every entry earned its place by failing.
 
-| File | Tests | Failure Mode | CI Run |
-| --- | --- | --- | --- |
-| `test_organization_release_health_data.py` | 86 | ~12 failures in early runs | Approach 2 |
-| `test_api.py` (sentry_metrics) | 44 | ~10 failures in early runs | Approach 2 |
-| `test_metrics_enhanced_performance.py` | 35 | ~7 failures in early runs | Approach 2 |
-| `test_release_health.py` (metrics layer) | 6 | 2 failures in early runs | Approach 2 |
-| `test_organization_root_cause_analysis.py` | 7 | 1-3 failures | Approach 2 |
-| `test_organization_replay_index.py` | 59 | 1-3 failures | Approach 2 |
-| `test_preview.py` | 31 | 1-3 failures | Approach 2 |
-| `test_organization_events_histogram.py` (snuba/) | 43 | Histogram aggregation failures | Hybrid Run 1 |
-| `test_organization_events_trends.py` (snuba/) | 25 | `assert 0 == 1` (count_range_1) | Hybrid Run 1 |
-| `test_organization_sampling_project_span_counts.py` | 6 | `assert 347.0 == 21.0` — stale data | Hybrid Run 2 |
-| `test_release_health/test_tasks.py` | 14 | FK constraint IntegrityError | Hybrid Run 2 |
-| `test_suspect_flags.py` | 8 | Wrong flag scores | Hybrid Run 2 |
-| `test_organization_sessions.py` | 62 | Count mismatch | Hybrid Run 2 |
-| `test_organization_on_demand_metrics_estimation_stats.py` | 6 | Count mismatch | Hybrid Run 2 |
-| `test_organization_events_vitals.py` | 15 | Count mismatch | Hybrid Run 3 |
-| `test_issue_velocity.py` | 17 | Count mismatch | Hybrid Run 3 |
+| File                                                      | Tests | Failure Mode                        | CI Run       |
+| --------------------------------------------------------- | ----- | ----------------------------------- | ------------ |
+| `test_organization_release_health_data.py`                | 86    | ~12 failures in early runs          | Approach 2   |
+| `test_api.py` (sentry_metrics)                            | 44    | ~10 failures in early runs          | Approach 2   |
+| `test_metrics_enhanced_performance.py`                    | 35    | ~7 failures in early runs           | Approach 2   |
+| `test_release_health.py` (metrics layer)                  | 6     | 2 failures in early runs            | Approach 2   |
+| `test_organization_root_cause_analysis.py`                | 7     | 1-3 failures                        | Approach 2   |
+| `test_organization_replay_index.py`                       | 59    | 1-3 failures                        | Approach 2   |
+| `test_preview.py`                                         | 31    | 1-3 failures                        | Approach 2   |
+| `test_organization_events_histogram.py` (snuba/)          | 43    | Histogram aggregation failures      | Hybrid Run 1 |
+| `test_organization_events_trends.py` (snuba/)             | 25    | `assert 0 == 1` (count_range_1)     | Hybrid Run 1 |
+| `test_organization_sampling_project_span_counts.py`       | 6     | `assert 347.0 == 21.0` — stale data | Hybrid Run 2 |
+| `test_release_health/test_tasks.py`                       | 14    | FK constraint IntegrityError        | Hybrid Run 2 |
+| `test_suspect_flags.py`                                   | 8     | Wrong flag scores                   | Hybrid Run 2 |
+| `test_organization_sessions.py`                           | 62    | Count mismatch                      | Hybrid Run 2 |
+| `test_organization_on_demand_metrics_estimation_stats.py` | 6     | Count mismatch                      | Hybrid Run 2 |
+| `test_organization_events_vitals.py`                      | 15    | Count mismatch                      | Hybrid Run 3 |
+| `test_issue_velocity.py`                                  | 17    | Count mismatch                      | Hybrid Run 3 |
 
 #### Relay Integration — Different Problem (~75 tests)
 
@@ -1573,11 +1593,11 @@ every test's Snuba HTTP traffic as `read`, `write_only`, or `infra`.
 
 **Results (32,772 tests, 22 shards):**
 
-| Category | Tests | % |
-| --- | --- | --- |
+| Category         | Tests  | %     |
+| ---------------- | ------ | ----- |
 | No Snuba contact | 24,282 | 74.1% |
-| Reads from Snuba | 8,461 | 25.8% |
-| Writes only | 137 | 0.4% |
+| Reads from Snuba | 8,461  | 25.8% |
+| Writes only      | 137    | 0.4%  |
 
 **Comparison with socket-level classifier:** Socket-level split was 67.2% / 32.8%. HTTP-level is
 74.1% / 25.9%, moving ~5,100 tests to the "no Snuba" category. The difference comes from tests
@@ -1602,7 +1622,7 @@ the HTTP detector can't see. The validated socket-level split is conservative an
 1. **Tier2-serial** is the critical path at ~13.9 min (relay tests dominate at 12-18s each)
 2. **xdist startup overhead** (~2 min before first test runs, due to per-worker Django bootstrap)
 3. **OOM risk** with `-n 3` on full Snuba stack (tier2-parallel limited to `-n 2`)
-4. **FORCE_SERIAL list** has 3 dead entries and ~464 tests that *might* be parallelizable
+4. **FORCE_SERIAL list** has 3 dead entries and ~464 tests that _might_ be parallelizable
    with deeper investigation of their secondary query paths
 
 ### Potential Next Steps
@@ -1632,6 +1652,7 @@ No need to skip TRUNCATE. No need for FORCE_SERIAL_FILES. `reset_snuba` runs nor
 ### Architecture (Sentry-side only, no Snuba code changes)
 
 Each xdist worker gets:
+
 1. **Its own ClickHouse database** (`default_gw0`, `default_gw1`, etc.)
 2. **Its own Snuba API container** on a unique port (1230+N)
 3. **Routing** via `settings.SENTRY_SNUBA` and `_snuba_pool` patching
@@ -1663,11 +1684,13 @@ Each xdist worker gets:
 In the `Create per-worker ClickHouse databases and Snuba instances` step:
 
 1. **Create worker databases:**
+
    ```bash
    curl -s 'http://localhost:8123/' --data-binary "CREATE DATABASE IF NOT EXISTS default_gw0"
    ```
 
 2. **Bootstrap all tables using Snuba's own migration system:**
+
    ```bash
    docker run --rm \
      --network "$SNUBA_NETWORK" \
@@ -1676,6 +1699,7 @@ In the `Create per-worker ClickHouse databases and Snuba instances` step:
      ... other Snuba env vars ...
      "$SNUBA_IMAGE" bootstrap --force
    ```
+
    This is critical — it creates ALL 89 tables including materialized views. See "Table Cloning
    Debugging" below for why manual approaches fail.
 
@@ -1696,6 +1720,7 @@ In `src/sentry/testutils/pytest/sentry.py`, two mechanisms ensure all Snuba traf
 the correct per-worker instance:
 
 **1. Module-level env var (runs before Django settings load):**
+
 ```python
 _xdist_worker = os.environ.get("PYTEST_XDIST_WORKER")
 if _xdist_worker and os.environ.get("XDIST_PER_WORKER_SNUBA"):
@@ -1709,6 +1734,7 @@ is evaluated. Since `sentry.py` is loaded as a pytest plugin (via `tests/conftes
 runs before Django settings are configured.
 
 **2. Session fixture safety net (runs after Django is configured):**
+
 ```python
 @pytest.fixture(scope="session", autouse=True)
 def _xdist_per_worker_snuba():
@@ -1748,6 +1774,7 @@ CREATE TABLE IF NOT EXISTS default_gw0.table_name AS default.table_name
 ```
 
 This only works for regular MergeTree tables. It **silently fails** for:
+
 - Materialized views (different DDL syntax: `CREATE MATERIALIZED VIEW ... TO ... AS SELECT ...`)
 - Views (need `CREATE VIEW` syntax)
 - Any table type that can't be duplicated with `AS`
@@ -1773,7 +1800,7 @@ CREATE MATERIALIZED VIEW default.errors_dist_mv TO default.errors_dist
 AS SELECT ... FROM default.errors_local
 ```
 
-The `sed` command `s/\`default\`/\`default_gw0\`/g` didn't match `default.errors_local` (no
+The `sed` command `s/\`default\`/\`default_gw0\`/g`didn't match`default.errors_local` (no
 backticks). All 32 views failed again.
 
 A more comprehensive `sed` (replacing both quoted and unquoted) could work but is fragile — the
@@ -1791,6 +1818,7 @@ docker run --rm --network "$SNUBA_NETWORK" \
 Uses Snuba's own migration system to create all tables in the per-worker database. This is the
 **exact same mechanism** that creates the 89 tables in the `default` database during initial
 devservices setup. It correctly handles:
+
 - Regular MergeTree tables
 - Materialized views with correct database references
 - View dependencies (creates in correct order)
@@ -1804,6 +1832,7 @@ The diagnostic logs from CI confirmed:
 
 1. **Module-level env var works:** Before the session fixture even runs, `settings.SENTRY_SNUBA`
    and `_snuba_pool` are already pointing to the correct per-worker URL:
+
    ```
    worker=gw1
    target_url=http://127.0.0.1:1231
@@ -1816,11 +1845,13 @@ The diagnostic logs from CI confirmed:
    ```
 
 2. **Data lands in correct database:** ClickHouse data check after tests:
+
    ```
    default:     migrations_local: 298 (only migration tracking, no test data)
    default_gw0: (empty — worker 0's test didn't write events)
    default_gw1: errors_local: 1, group_attributes_local: 3, groupedmessage_local: 2
    ```
+
    Test data goes to the per-worker database, not the shared default database.
 
 3. **All Snuba HTTP paths route correctly:** Both `_snuba_pool.urlopen()` (queries/writes) and
@@ -1830,14 +1861,15 @@ The diagnostic logs from CI confirmed:
 
 **Run 21882371325: 22/22 jobs passed**
 
-| Job Group | Shards | Status |
-| --- | --- | --- |
-| split tests into tiers | 1 | passed |
-| tier1 (Postgres+Redis) | 4 | 4/4 passed |
-| tier2-parallel (per-worker Snuba) | 15 | 15/15 passed |
-| tier2-serial (relay only) | 2 | 2/2 passed |
+| Job Group                         | Shards | Status       |
+| --------------------------------- | ------ | ------------ |
+| split tests into tiers            | 1      | passed       |
+| tier1 (Postgres+Redis)            | 4      | 4/4 passed   |
+| tier2-parallel (per-worker Snuba) | 15     | 15/15 passed |
+| tier2-serial (relay only)         | 2      | 2/2 passed   |
 
 This is the first fully green run with per-worker databases. The approach eliminates:
+
 - `XDIST_SKIP_SNUBA_RESET` env var (removed)
 - `FORCE_SERIAL_FILES` list of 26 entries (removed)
 - `_force_serial()` function complexity (simplified to relay-only check)
@@ -1845,12 +1877,12 @@ This is the first fully green run with per-worker databases. The approach elimin
 
 ### What Changed (summary of per-worker database branch)
 
-| File | Change |
-| --- | --- |
-| `sentry.py` | Module-level `SNUBA` env var override + `_xdist_per_worker_snuba` session fixture for routing. Removed `FORCE_SERIAL_FILES` (26 entries). Simplified `--xdist-group` to only check `relay_integration/`. |
-| `fixtures.py` | Removed `XDIST_SKIP_SNUBA_RESET` conditional. `reset_snuba` runs normally, targeting per-worker database via `settings.SENTRY_SNUBA`. |
-| `backend-xdist-split-poc.yml` | Added `XDIST_PER_WORKER_SNUBA=1` env var. Added "Create per-worker ClickHouse databases and Snuba instances" step using `bootstrap --force`. Reduced serial shards to 2 (relay-only). |
-| `per-worker-db-smoke-test.yml` | New lightweight workflow for rapid iteration on the per-worker database approach. |
+| File                           | Change                                                                                                                                                                                                   |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sentry.py`                    | Module-level `SNUBA` env var override + `_xdist_per_worker_snuba` session fixture for routing. Removed `FORCE_SERIAL_FILES` (26 entries). Simplified `--xdist-group` to only check `relay_integration/`. |
+| `fixtures.py`                  | Removed `XDIST_SKIP_SNUBA_RESET` conditional. `reset_snuba` runs normally, targeting per-worker database via `settings.SENTRY_SNUBA`.                                                                    |
+| `backend-xdist-split-poc.yml`  | Added `XDIST_PER_WORKER_SNUBA=1` env var. Added "Create per-worker ClickHouse databases and Snuba instances" step using `bootstrap --force`. Reduced serial shards to 2 (relay-only).                    |
+| `per-worker-db-smoke-test.yml` | New lightweight workflow for rapid iteration on the per-worker database approach.                                                                                                                        |
 
 ### Key Lessons Learned
 
