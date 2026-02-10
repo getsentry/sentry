@@ -12,7 +12,7 @@ limits:
 processing:
   enabled: true
   kafka_config:
-    - {name: 'bootstrap.servers', value: '${KAFKA_HOST}:9093'}
+    - {name: 'bootstrap.servers', value: '${KAFKA_HOST}:${KAFKA_PORT}'}
   topics:
     events: ingest-events
     attachments: ingest-events

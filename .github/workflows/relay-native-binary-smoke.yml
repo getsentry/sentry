@@ -1,0 +1,64 @@
+name: '[POC] relay native binary smoke test'
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - mchen/relay-native-binary
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  RELAY_NATIVE_BIN: /tmp/relay
+
+jobs:
+  relay-native-binary-test:
+    name: relay_integration (native binary)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Download Relay binary
+        run: |
+          RELAY_VERSION="latest"
+          RELAY_URL="https://github.com/getsentry/relay/releases/latest/download/relay-Linux-x86_64"
+          echo "Downloading Relay binary from $RELAY_URL"
+          curl -L -o /tmp/relay "$RELAY_URL"
+          chmod +x /tmp/relay
+          /tmp/relay --version
+
+      - name: Setup sentry env (Full Snuba stack)
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - name: Run relay_integration tests (native binary)
+        run: |
+          echo "=== Relay Native Binary Smoke Test ==="
+          echo "RELAY_NATIVE_BIN=$RELAY_NATIVE_BIN"
+          echo "Running relay_integration tests with native binary instead of Docker container"
+          python3 -b -m pytest \
+            tests/relay_integration \
+            --reuse-db \
+            --durations=0 \
+            --json-report \
+            --json-report-file=".artifacts/pytest.json" \
+            --json-report-omit=log \
+            --junit-xml=".artifacts/pytest.junit.xml" \
+            -o junit_suite_name=pytest-relay-native-binary
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
