@@ -11,62 +11,40 @@ description: Guide for using Sentry's layout and text primitives. Use when imple
 
 Core components provide consistent styling, responsive design, and better maintainability across the codebase.
 
+## Component Implementation Reference
+
+For the complete list of supported props and their types, refer to the implementation files:
+
+- **Layout Components**: `/static/app/components/core/layout/`
+  - `container.tsx` - Base container with all layout props
+  - `flex.tsx` - Flex layout primitive
+  - `grid.tsx` - Grid layout primitive
+  - `stack.tsx` - Stack layout primitive (Flex with column direction by default)
+- **Typography Components**: `/static/app/components/core/text/`
+  - `text.tsx` - Text primitive
+  - `heading.tsx` - Heading primitive
+
 ## Layout Primitives
 
-### Flex
-
-Use `<Flex>` from `@sentry/scraps/layout` for flex layouts.
-
-```tsx
-import {Flex} from '@sentry/scraps/layout';
-
-// ❌ Don't create styled components
-const Component = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
-// ✅ Use Flex primitive
-<Flex direction="column">
-  <Child1 />
-  <Child2 />
-</Flex>;
-```
-
-**Common Props:**
-
-- `direction`: "row" | "column" | "row-reverse" | "column-reverse"
-- `align`: Alignment of items
-- `justify`: Justification of items
-- `gap`: Spacing between children (use tokens: "sm", "md", "lg", etc.)
-- `wrap`: Whether items should wrap
-- `width`, `height`: Size properties
-- `padding`, `margin`: Spacing properties
-
-### Grid
-
-Use `<Grid>` from `@sentry/scraps/layout` for grid layouts.
-
-```tsx
-import {Grid} from '@sentry/scraps/layout';
-
-// ❌ Don't create styled components
-const Component = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-`;
-
-// ✅ Use Grid primitive
-<Grid columns={3} gap="md">
-  <Item1 />
-  <Item2 />
-  <Item3 />
-</Grid>;
-```
+> **Important**: `Flex`, `Grid`, and `Stack` all extend `Container`. This means **every prop available on Container is also available on Flex, Grid, and Stack**. When you use `<Flex>`, you get all Container props (position, padding, border, overflow, etc.) PLUS the flex-specific props. The same applies to Grid and Stack.
 
 ### Container
 
-Use `<Container>` from `@sentry/scraps/layout` for elements with borders or border radius.
+Base layout component that supports all common layout properties. Flex, Grid, and Stack extend Container, inheriting all of its props.
+
+**Key Props** (see `container.tsx` for complete list):
+
+- `position`: "static" | "relative" | "absolute" | "fixed" | "sticky"
+- `padding`, `paddingTop`, `paddingBottom`, `paddingLeft`, `paddingRight`: SpaceSize tokens
+- `margin`, `marginTop`, etc.: SpaceSize tokens (deprecated, prefer gap)
+- `width`, `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight`
+- `border`, `borderTop`, `borderBottom`, `borderLeft`, `borderRight`: BorderVariant tokens
+- `radius`: RadiusSize tokens
+- `overflow`, `overflowX`, `overflowY`: "visible" | "hidden" | "scroll" | "auto"
+- `background`: SurfaceVariant tokens
+- `display`: Various display types
+- Flex item props: `flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `order`
+- Grid item props: `area`, `row`, `column`
 
 ```tsx
 import {Container} from '@sentry/scraps/layout';
@@ -83,33 +61,142 @@ const Component = styled('div')`
 </Container>;
 ```
 
-## Typography Primitives
+### Flex
 
-### Heading
+Use `<Flex>` for flex layouts. Extends `Container`, inheriting all Container props plus flex-specific props.
 
-Use `<Heading>` from `@sentry/scraps/text` for all headings.
+**Flex-Specific Props** (see `flex.tsx` for complete list):
+
+- `direction`: "row" | "row-reverse" | "column" | "column-reverse"
+- `align`: "start" | "end" | "center" | "baseline" | "stretch"
+- `justify`: "start" | "end" | "center" | "between" | "around" | "evenly" | "left" | "right"
+- `gap`: SpaceSize or `"${SpaceSize} ${SpaceSize}"` for row/column gap
+- `wrap`: "nowrap" | "wrap" | "wrap-reverse"
+- `display`: "flex" | "inline-flex" | "none"
+
+**Plus ALL Container props**: `position`, `padding`, `margin`, `width`, `height`, `border`, `radius`, `overflow`, `background`, flex/grid item props, and more (see Container section above).
 
 ```tsx
-import {Heading} from '@sentry/scraps/text';
+import {Flex} from '@sentry/scraps/layout';
 
-// ❌ Don't style heading elements
-const Title = styled('h2')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: bold;
+// ❌ Don't create styled components
+const Component = styled('div')`
+  display: flex;
+  flex-direction: column;
+  position: relative;
 `;
 
-// ❌ Don't use raw heading elements
-<h2>My Title</h2>
-
-// ✅ Use Heading primitive with semantic 'as' prop
-<Heading as="h2">My Title</Heading>
+// ✅ Use Flex primitive with props
+<Flex direction="column" position="relative" gap="md">
+  <Child1 />
+  <Child2 />
+</Flex>;
 ```
 
-**Important:** Always use `<Heading>` instead of raw `h1`, `h2`, `h3`, `h4`, `h5`, `h6` elements.
+### Grid
+
+Use `<Grid>` for grid layouts. Extends `Container`, inheriting all Container props plus grid-specific props.
+
+**Grid-Specific Props** (see `grid.tsx` for complete list):
+
+- `columns`: Grid template columns (number or CSS value)
+- `rows`: Grid template rows
+- `areas`: Named grid areas
+- `gap`: SpaceSize or `"${SpaceSize} ${SpaceSize}"` for row/column gap
+- `align`: "start" | "end" | "center" | "baseline" | "stretch" (align-items)
+- `alignContent`: "start" | "end" | "center" | "between" | "around" | "evenly" | "stretch"
+- `justify`: "start" | "end" | "center" | "between" | "around" | "evenly" | "stretch" (justify-content)
+- `justifyItems`: "start" | "end" | "center" | "stretch"
+- `flow`: "row" | "column" | "row dense" | "column dense"
+- `autoColumns`, `autoRows`: Size of auto-generated tracks
+
+**Plus ALL Container props**: `position`, `padding`, `margin`, `width`, `height`, `border`, `radius`, `overflow`, `background`, flex/grid item props, and more (see Container section above).
+
+```tsx
+import {Grid} from '@sentry/scraps/layout';
+
+// ❌ Don't create styled components
+const Component = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: ${space(2)};
+`;
+
+// ✅ Use Grid primitive
+<Grid columns="repeat(3, 1fr)" gap="md">
+  <Item1 />
+  <Item2 />
+  <Item3 />
+</Grid>;
+```
+
+### Stack
+
+Use `<Stack>` for vertical layouts. Stack is essentially `Flex` with `direction="column"` by default. It also provides `Stack.Separator` for adding separators between items.
+
+**Props** (see `stack.tsx` for complete list):
+
+- Same as Flex props (inherits all Flex and Container props)
+- `direction` defaults to "column" (but can be overridden)
+- `Stack.Separator` component for adding dividers between stack items
+
+```tsx
+import {Stack} from '@sentry/scraps/layout';
+
+// ❌ Don't create styled components for vertical layouts
+const Component = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+`;
+
+// ✅ Use Stack primitive (automatically column direction)
+<Stack gap="md">
+  <Item1 />
+  <Item2 />
+  <Item3 />
+</Stack>;
+
+// ✅ With separators between items
+<Stack gap="md">
+  <Item1 />
+  <Stack.Separator />
+  <Item2 />
+  <Stack.Separator />
+  <Item3 />
+</Stack>;
+
+// ✅ Stack supports all Flex and Container props
+<Stack gap="md" padding="lg" position="relative" border="primary">
+  <Item1 />
+  <Item2 />
+</Stack>;
+```
+
+## Typography Primitives
 
 ### Text
 
-Use `<Text>` from `@sentry/scraps/text` for all text content.
+Use `<Text>` for all text content. Never use raw `<p>`, `<span>`, or `<div>` elements with text styling.
+
+**Key Props** (see `text.tsx` for complete list):
+
+- `as`: "span" | "p" | "label" | "div" (semantic HTML element)
+- `size`: TextSize ("xs" | "sm" | "md" | "lg" | "xl")
+- `variant`: "primary" | "secondary" | "success" | "error" | "warning" | "muted"
+- `align`: "left" | "center" | "right" | "justify"
+- `bold`: boolean
+- `italic`: boolean
+- `uppercase`: boolean
+- `monospace`: boolean
+- `tabular`: boolean (fixed-width numbers)
+- `ellipsis`: boolean (truncate with ellipsis)
+- `wrap`: "nowrap" | "normal" | "pre" | "pre-line" | "pre-wrap"
+- `textWrap`: "wrap" | "nowrap" | "balance" | "pretty" | "stable"
+- `wordBreak`: "normal" | "break-all" | "keep-all" | "break-word"
+- `density`: "compressed" | "comfortable" (line-height)
+- `underline`: boolean | "dotted"
+- `strikethrough`: boolean
 
 ```tsx
 import {Text} from '@sentry/scraps/text';
@@ -133,29 +220,47 @@ const Label = styled('span')`
 </Text>
 ```
 
-**Common Props:**
+### Heading
 
-- `variant`: "default" | "muted" | "error" | "success"
-- `size`: "xs" | "sm" | "md" | "lg" | "xl"
-- `bold`: Boolean for bold text
-- `uppercase`: Boolean for uppercase text
-- `truncate`: Boolean to truncate with ellipsis
-- `align`: Text alignment
-- `as`: Semantic HTML element ("p", "span", "div", etc.)
+Use `<Heading>` for all headings. Never use raw `<h1>`, `<h2>`, etc. elements.
+
+**Key Props** (see `heading.tsx` for complete list):
+
+- `as`: "h1" | "h2" | "h3" | "h4" | "h5" | "h6" (REQUIRED)
+- `size`: HeadingSize ("xs" | "sm" | "md" | "lg" | "xl" | "2xl")
+- `variant`: Same as Text
+- `align`: Same as Text
+- `italic`, `monospace`, `tabular`: Same as Text
+- `ellipsis`, `wrap`, `textWrap`, `wordBreak`: Same as Text
+- `density`: Same as Text
+- `underline`, `strikethrough`: Same as Text
+
+Note: `bold` and `uppercase` are NOT available on Heading (headings are always bold).
+
+```tsx
+import {Heading} from '@sentry/scraps/text';
+
+// ❌ Don't style heading elements
+const Title = styled('h2')`
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: bold;
+`;
+
+// ❌ Don't use raw heading elements
+<h2>My Title</h2>
+
+// ✅ Use Heading primitive with semantic 'as' prop
+<Heading as="h2">My Title</Heading>
+
+// ✅ With custom size
+<Heading as="h3" size="xl">Large H3</Heading>
+```
 
 ## General Guidelines
 
-### 1. Favor Props Over Style Attribute
+### 1. Use Responsive Props
 
-```tsx
-// ❌ Don't use style attribute
-<Flex style={{width: "100%", padding: `${space(1)} ${space(1.5)}`}}>
-
-// ✅ Use props
-<Flex width="100%" padding="md lg">
-```
-
-### 2. Use Responsive Props
+Most props support responsive syntax using breakpoint keys.
 
 ```tsx
 // ❌ Don't use styled media queries
@@ -172,7 +277,9 @@ const Component = styled('div')`
 <Flex direction={{xs: 'column', md: 'row'}}>
 ```
 
-### 3. Prefer Gap/Padding Over Margin
+### 2. Prefer Gap/Padding Over Margin
+
+Container supports `margin` props but they are deprecated. Use `gap` on parent containers instead.
 
 ```tsx
 // ❌ Don't use margin between children
@@ -187,7 +294,7 @@ const Child = styled('div')`
 </Flex>;
 ```
 
-### 4. Split Layout from Typography
+### 3. Split Layout from Typography
 
 Don't couple layout and typography in a single styled component. Use separate primitives.
 
@@ -208,40 +315,52 @@ const Component = styled('div')`
 </Flex>;
 ```
 
+### 4. Check Implementation Files for All Props
+
+The implementation files contain the complete, up-to-date list of supported props with TypeScript types. When in doubt:
+
+- Read `/static/app/components/core/layout/container.tsx` for base layout props
+- Read `/static/app/components/core/layout/flex.tsx` for Flex-specific props
+- Read `/static/app/components/core/layout/grid.tsx` for Grid-specific props
+- Read `/static/app/components/core/layout/stack.tsx` for Stack-specific props
+- Read `/static/app/components/core/text/text.tsx` for Text props
+- Read `/static/app/components/core/text/heading.tsx` for Heading props
+
 ## Token Reference
 
-### Spacing Tokens
+### Spacing Tokens (SpaceSize)
 
-Use these for `gap`, `padding`, `margin`:
+Use these for `gap`, `padding`:
 
 - `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, `"xxl"`
 - Multiple values: `"md lg"` (vertical horizontal)
 - Responsive: `{{xs: "sm", md: "lg"}}`
 
-### Border Tokens
+### Border Tokens (BorderVariant)
 
 Use these for `border` prop:
 
 - `"primary"`, `"secondary"`, `"error"`, `"success"`
 
-## When to Use Styled Components
+### Text Size Tokens
 
-Only use Emotion styled components for:
+- **TextSize**: "xs" | "sm" | "md" | "lg" | "xl"
+- **HeadingSize**: "xs" | "sm" | "md" | "lg" | "xl" | "2xl"
 
-- Complex, custom UI patterns not covered by core components
-- One-off styling that doesn't fit primitive props
-- Integration with third-party libraries requiring specific DOM structure
+### Content Variant Tokens
 
-Even in these cases, try to compose primitives first.
+- "primary" | "secondary" | "success" | "error" | "warning" | "muted"
 
 ## Quick Reference Checklist
 
 Before creating a styled component, ask:
 
-- ✅ Can I use `<Flex>` or `<Grid>` for layout?
-- ✅ Can I use `<Container>` for borders/padding?
+- ✅ Can I use `<Flex>`, `<Grid>`, or `<Stack>` for layout?
+- ✅ Can I use `<Stack>` for vertical layouts with default column direction?
+- ✅ Can I use `<Container>` for borders/padding/positioning?
 - ✅ Can I use `<Text>` or `<Heading>` for typography?
 - ✅ Can I use responsive props instead of media queries?
 - ✅ Can I use `gap` instead of margins?
+- ✅ Does the primitive support the prop I need? (Check implementation files)
 
 If you answered yes to any of these, **use the primitive instead**.
