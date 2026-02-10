@@ -116,7 +116,7 @@
     "core-js": "3.45.0",
     "cronstrue": "^2.50.0",
     "css-loader": "^7.1.2",
-    "diff": "8.0.2",
+    "diff": "8.0.3",
     "dompurify": "3.2.5",
     "downsample": "1.4.0",
     "echarts": "6.0.0",
