@@ -8,7 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DateTime} from 'sentry/components/dateTime';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {IconReleases} from 'sentry/icons/iconReleases';

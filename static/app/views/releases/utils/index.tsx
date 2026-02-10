@@ -7,7 +7,7 @@ import type {TagProps} from '@sentry/scraps/badge';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/pageFilters/parse';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {desktop, mobile} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';

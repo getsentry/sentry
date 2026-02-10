@@ -30,7 +30,7 @@ import Count from 'sentry/components/count';
 import {
   normalizeDateTimeParams,
   parseStatsPeriod,
-} from 'sentry/components/organizations/pageFilters/parse';
+} from 'sentry/components/pageFilters/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';

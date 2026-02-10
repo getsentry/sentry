@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/datePageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environmentPageFilter';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/projectPageFilter';
 import {t} from 'sentry/locale';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {

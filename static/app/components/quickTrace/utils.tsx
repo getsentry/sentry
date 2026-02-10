@@ -4,7 +4,7 @@ import moment from 'moment-timezone';
 import {isWebVitalsEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {getTraceDateTimeRange} from 'sentry/components/events/interfaces/spans/utils';
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/pageFilters/parse';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';

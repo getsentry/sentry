@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {EventTransaction} from 'sentry/types/event';
 import getApiUrl from 'sentry/utils/api/getApiUrl';

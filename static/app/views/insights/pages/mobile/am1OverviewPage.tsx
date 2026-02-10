@@ -7,10 +7,10 @@ import {NoAccess} from 'sentry/components/noAccess';
 import {
   DatePageFilter,
   type DatePageFilterProps,
-} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+} from 'sentry/components/pageFilters/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environmentPageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import type {Project} from 'sentry/types/project';

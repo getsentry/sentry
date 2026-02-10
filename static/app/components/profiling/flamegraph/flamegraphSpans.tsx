@@ -5,7 +5,7 @@ import {vec2} from 'gl-matrix';
 import * as qs from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/pageFilters/parse';
 import {SpansContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphSpansContextMenu';
 import {t} from 'sentry/locale';
 import type {RequestState} from 'sentry/types/core';

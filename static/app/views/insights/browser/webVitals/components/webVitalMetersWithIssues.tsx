@@ -8,7 +8,7 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
+import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconIssues} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';

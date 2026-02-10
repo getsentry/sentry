@@ -1,5 +1,5 @@
 import {getInterval} from 'sentry/components/charts/utils';
-import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
+import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {IssuesMetricsApiResponse} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';

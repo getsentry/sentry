@@ -14,7 +14,7 @@ import moment from 'moment-timezone';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import type {RawFlag} from 'sentry/components/featureFlags/utils';
-import type {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import type {normalizeDateTimeParams} from 'sentry/components/pageFilters/pageFilters/parse';
 import {t, tn} from 'sentry/locale';
 import type {
   EChartMouseOutHandler,

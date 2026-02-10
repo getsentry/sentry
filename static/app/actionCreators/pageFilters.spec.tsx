@@ -14,7 +14,7 @@ import {
   updatePersistence,
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
-import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
+import * as PageFilterPersistence from 'sentry/components/pageFilters/pageFilters/persistence';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';

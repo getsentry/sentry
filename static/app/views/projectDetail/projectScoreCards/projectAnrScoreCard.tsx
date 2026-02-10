@@ -6,7 +6,7 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';

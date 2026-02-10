@@ -9,9 +9,9 @@ import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSe
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import type {HybridFilterProps} from 'sentry/components/organizations/hybridFilter';
-import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
-import {DesyncedFilterMessage} from 'sentry/components/organizations/pageFilters/desyncedFilter';
+import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
+import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
+import {DesyncedFilterMessage} from 'sentry/components/pageFilters/pageFilters/desyncedFilter';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconAdd, IconOpen, IconSettings} from 'sentry/icons';

@@ -2,7 +2,7 @@ import {ButtonBar, LinkButton} from '@sentry/scraps/button';
 
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {withoutLoggingSupport} from 'sentry/data/platformCategories';
 import {platforms} from 'sentry/data/platforms';

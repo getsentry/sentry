@@ -6,10 +6,10 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {openModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/datePageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environmentPageFilter';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/projectPageFilter';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,

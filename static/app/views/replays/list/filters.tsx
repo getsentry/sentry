@@ -1,7 +1,7 @@
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environmentPageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/projectPageFilter';
 
 export default function ReplaysFilters() {
   return (

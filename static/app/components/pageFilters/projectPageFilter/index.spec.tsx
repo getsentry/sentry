@@ -12,7 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {initializeUrlState, updateProjects} from 'sentry/actionCreators/pageFilters';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/projectPageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';

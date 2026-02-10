@@ -1,4 +1,4 @@
-import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
+import {isSelectionEqual} from 'sentry/components/pageFilters/pageFilters/utils';
 
 describe('isSelectionEqual', () => {
   const base = {

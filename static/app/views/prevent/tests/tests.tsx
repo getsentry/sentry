@@ -5,7 +5,7 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import {BranchSelector} from 'sentry/components/prevent/branchSelector/branchSelector';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {DateSelector} from 'sentry/components/prevent/dateSelector/dateSelector';

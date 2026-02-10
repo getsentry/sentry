@@ -11,7 +11,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
-import {setPageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
+import {setPageFiltersStorage} from 'sentry/components/pageFilters/pageFilters/persistence';
 import {performance as performancePlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';

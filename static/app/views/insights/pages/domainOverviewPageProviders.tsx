@@ -1,8 +1,8 @@
 import type {ReactNode} from 'react';
 
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/datePageFilter';
+import PageFiltersContainer from 'sentry/components/pageFilters/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useLocation} from 'sentry/utils/useLocation';

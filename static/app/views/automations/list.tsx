@@ -3,7 +3,7 @@ import {useCallback} from 'react';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/projectPageFilter';
 import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import ListLayout from 'sentry/components/workflowEngine/layout/list';

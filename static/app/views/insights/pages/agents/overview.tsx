@@ -10,9 +10,9 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {NoAccess} from 'sentry/components/noAccess';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/datePageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/datePageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {IconClose} from 'sentry/icons';
 import {DataCategory} from 'sentry/types/core';

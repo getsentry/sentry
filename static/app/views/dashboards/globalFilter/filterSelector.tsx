@@ -8,7 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
+import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
 import {
   modifyFilterOperatorQuery,
   modifyFilterValue,

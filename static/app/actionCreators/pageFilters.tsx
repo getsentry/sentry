@@ -8,13 +8,13 @@ import * as qs from 'query-string';
 import {
   getDatetimeFromState,
   getStateFromQuery,
-} from 'sentry/components/organizations/pageFilters/parse';
+} from 'sentry/components/pageFilters/pageFilters/parse';
 import {
   getPageFilterStorage,
   setPageFiltersStorage,
-} from 'sentry/components/organizations/pageFilters/persistence';
-import type {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
-import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
+} from 'sentry/components/pageFilters/pageFilters/persistence';
+import type {PageFiltersStringified} from 'sentry/components/pageFilters/pageFilters/types';
+import {getDefaultSelection} from 'sentry/components/pageFilters/pageFilters/utils';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {
   ALL_ACCESS_PROJECTS,

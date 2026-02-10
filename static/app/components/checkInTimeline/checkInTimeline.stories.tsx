@@ -7,8 +7,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {DatePageFilter} from 'sentry/components/pageFilters/datePageFilter';
+import PageFiltersContainer from 'sentry/components/pageFilters/pageFilters/container';
 import {TimeRangeSelectTrigger} from 'sentry/components/timeRangeSelector';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';

@@ -1,6 +1,6 @@
 import type {Query} from 'history';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/pageFilters/parse';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {
   decodeBoolean,

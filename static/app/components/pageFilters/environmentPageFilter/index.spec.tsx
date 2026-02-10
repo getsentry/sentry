@@ -5,7 +5,7 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {act, fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {initializeUrlState, updateEnvironments} from 'sentry/actionCreators/pageFilters';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environmentPageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';

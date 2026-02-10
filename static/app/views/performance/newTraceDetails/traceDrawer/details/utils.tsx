@@ -1,7 +1,7 @@
 import type {Location} from 'history';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/pageFilters/parse';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';

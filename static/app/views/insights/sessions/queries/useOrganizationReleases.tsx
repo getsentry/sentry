@@ -1,4 +1,4 @@
-import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
+import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {Release} from 'sentry/types/release';
 import getApiUrl from 'sentry/utils/api/getApiUrl';

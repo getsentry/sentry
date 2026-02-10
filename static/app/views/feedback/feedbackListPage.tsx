@@ -21,7 +21,7 @@ import useRedirectToFeedbackFromEvent from 'sentry/components/feedback/useRedire
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconSiren} from 'sentry/icons';

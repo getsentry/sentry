@@ -9,7 +9,7 @@ import type {RenderProps} from 'sentry/components/charts/eventsRequest';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/pageFilters/parse';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';

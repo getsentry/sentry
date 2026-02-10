@@ -4,7 +4,7 @@ import * as qs from 'query-string';
 import NotFound from 'sentry/components/errors/notFound';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';

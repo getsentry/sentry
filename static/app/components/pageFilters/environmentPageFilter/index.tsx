@@ -3,9 +3,9 @@ import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
 import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
-import type {HybridFilterProps} from 'sentry/components/organizations/hybridFilter';
-import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
-import {DesyncedFilterMessage} from 'sentry/components/organizations/pageFilters/desyncedFilter';
+import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
+import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
+import {DesyncedFilterMessage} from 'sentry/components/pageFilters/pageFilters/desyncedFilter';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';

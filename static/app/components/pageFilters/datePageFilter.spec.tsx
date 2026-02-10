@@ -4,7 +4,7 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {initializeUrlState} from 'sentry/actionCreators/pageFilters';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/datePageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 

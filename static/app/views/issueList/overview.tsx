@@ -12,7 +12,7 @@ import * as qs from 'query-string';
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/pageFilters/utils';
 import type {CursorHandler} from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';

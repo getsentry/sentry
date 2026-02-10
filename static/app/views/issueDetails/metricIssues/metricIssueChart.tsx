@@ -1,7 +1,7 @@
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
