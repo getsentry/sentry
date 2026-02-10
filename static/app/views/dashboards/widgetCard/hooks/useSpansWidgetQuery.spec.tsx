@@ -710,4 +710,51 @@ describe('useSpansTableQuery', () => {
       );
     });
   });
+
+  it('passes categorical bar limit as per_page', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.CATEGORICAL_BAR,
+      limit: 15,
+      queries: [
+        {
+          name: 'test',
+          fields: ['transaction', 'count()'],
+          aggregates: ['count()'],
+          columns: ['transaction'],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [{transaction: '/api/test', 'count()': 100}],
+      },
+    });
+
+    renderHook(
+      () =>
+        useSpansTableQuery({
+          widget,
+          organization,
+          pageFilters,
+          limit: 15,
+          enabled: true,
+        }),
+      {wrapper: createWrapper()}
+    );
+
+    await waitFor(() => {
+      expect(mockRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            per_page: 15,
+          }),
+        })
+      );
+    });
+  });
 });

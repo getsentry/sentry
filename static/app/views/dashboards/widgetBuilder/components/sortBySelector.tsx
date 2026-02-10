@@ -1,12 +1,13 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {NumberInput} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -14,7 +15,11 @@ import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEv
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DisplayType,
+  MAX_CATEGORICAL_BAR_LIMIT,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {SortBySelectors} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelectors';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -72,20 +77,21 @@ function WidgetBuilderSortBySelector() {
     DisplayType.AREA,
   ].includes(displayType);
 
-  const maxLimit = getResultsLimit(
-    widget.queries.length,
-    widget.queries[0]!.aggregates.length
-  );
+  const isCategoricalBarWidget = displayType === DisplayType.CATEGORICAL_BAR;
+
+  const maxLimit = isTimeseriesChart
+    ? getResultsLimit(widget.queries.length, widget.queries[0]!.aggregates.length)
+    : MAX_CATEGORICAL_BAR_LIMIT;
 
   // handles when the maxLimit changes to a value less than the current selected limit
   useEffect(() => {
     if (!state.limit) {
       return;
     }
-    if (state.limit > maxLimit) {
+    if (isTimeseriesChart && state.limit > maxLimit) {
       dispatch({type: BuilderStateAction.SET_LIMIT, payload: maxLimit});
     }
-  }, [state.limit, maxLimit, dispatch]);
+  }, [state.limit, maxLimit, dispatch, isTimeseriesChart]);
 
   function handleSortByChange(newSortBy: string, sortDirection: 'asc' | 'desc') {
     dispatch({
@@ -111,54 +117,67 @@ function WidgetBuilderSortBySelector() {
           flexibleControlStateSize
           stacked
         >
-          {isTimeseriesChart && state.limit && (
-            <ResultsLimitSelector
-              disabled={disableSortDirection && disableSort}
-              name="resultsLimit"
-              options={[...new Array(maxLimit).keys()].map(resultLimit => {
-                const value = resultLimit + 1;
-                return {
-                  label: tn('Limit to %s result', 'Limit to %s results', value),
-                  value,
-                };
-              })}
-              value={state.limit}
-              onChange={(option: SelectValue<number>) => {
-                dispatch({type: BuilderStateAction.SET_LIMIT, payload: option.value});
+          <Flex direction="column" gap="sm">
+            {isTimeseriesChart && state.limit && (
+              <ResultsLimitSelector
+                disabled={disableSortDirection && disableSort}
+                name="resultsLimit"
+                options={[...new Array(maxLimit).keys()].map(resultLimit => {
+                  const value = resultLimit + 1;
+                  return {
+                    label: tn('Limit to %s result', 'Limit to %s results', value),
+                    value,
+                  };
+                })}
+                value={state.limit}
+                onChange={(option: SelectValue<number>) => {
+                  dispatch({type: BuilderStateAction.SET_LIMIT, payload: option.value});
+                }}
+              />
+            )}
+            {isCategoricalBarWidget && state.limit && (
+              <NumberInput
+                aria-label={t('Limit results')}
+                min={1}
+                max={MAX_CATEGORICAL_BAR_LIMIT}
+                value={state.limit}
+                onChange={value => {
+                  dispatch({type: BuilderStateAction.SET_LIMIT, payload: value});
+                }}
+              />
+            )}
+            <SortBySelectors
+              displayType={displayType}
+              widgetType={state.dataset ?? WidgetType.ERRORS}
+              hasGroupBy={isTimeseriesChart && !!widget.queries[0]!.columns.length}
+              disableSortReason={disableSortReason}
+              disableSort={disableSort}
+              disableSortDirection={disableSortDirection}
+              widgetQuery={widget.queries[0]!}
+              values={{
+                sortDirection:
+                  state.sort?.[0]?.kind === 'asc'
+                    ? SortDirection.LOW_TO_HIGH
+                    : SortDirection.HIGH_TO_LOW,
+                sortBy: state.sort?.length ? state.sort.at(0)!.field : '',
               }}
+              onChange={({sortDirection, sortBy}) => {
+                const newSortDirection =
+                  sortDirection === SortDirection.HIGH_TO_LOW ? 'desc' : 'asc';
+                handleSortByChange(sortBy, newSortDirection);
+                trackAnalytics('dashboards_views.widget_builder.change', {
+                  builder_version: WidgetBuilderVersion.SLIDEOUT,
+                  field: 'sortBy.update',
+                  from: source,
+                  new_widget: !isEditing,
+                  value: '',
+                  widget_type: state.dataset ?? '',
+                  organization,
+                });
+              }}
+              tags={tags}
             />
-          )}
-          <SortBySelectors
-            displayType={displayType}
-            widgetType={state.dataset ?? WidgetType.ERRORS}
-            hasGroupBy={isTimeseriesChart && !!widget.queries[0]!.columns.length}
-            disableSortReason={disableSortReason}
-            disableSort={disableSort}
-            disableSortDirection={disableSortDirection}
-            widgetQuery={widget.queries[0]!}
-            values={{
-              sortDirection:
-                state.sort?.[0]?.kind === 'asc'
-                  ? SortDirection.LOW_TO_HIGH
-                  : SortDirection.HIGH_TO_LOW,
-              sortBy: state.sort?.length ? state.sort.at(0)!.field : '',
-            }}
-            onChange={({sortDirection, sortBy}) => {
-              const newSortDirection =
-                sortDirection === SortDirection.HIGH_TO_LOW ? 'desc' : 'asc';
-              handleSortByChange(sortBy, newSortDirection);
-              trackAnalytics('dashboards_views.widget_builder.change', {
-                builder_version: WidgetBuilderVersion.SLIDEOUT,
-                field: 'sortBy.update',
-                from: source,
-                new_widget: !isEditing,
-                value: '',
-                widget_type: state.dataset ?? '',
-                organization,
-              });
-            }}
-            tags={tags}
-          />
+          </Flex>
         </FieldGroup>
       </Tooltip>
     </Fragment>
@@ -167,6 +186,4 @@ function WidgetBuilderSortBySelector() {
 
 export default WidgetBuilderSortBySelector;
 
-const ResultsLimitSelector = styled(Select)`
-  margin-bottom: ${space(1)};
-`;
+const ResultsLimitSelector = styled(Select)``;

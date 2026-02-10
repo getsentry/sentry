@@ -325,6 +325,103 @@ describe('WidgetBuilderSortBySelector', () => {
       expect.anything()
     );
   });
+  it('renders a numeric limit input for categorical bar widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          <WidgetBuilderSortBySelector />
+        </TraceItemAttributeProvider>
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          ...defaultRouterConfig,
+          location: {
+            pathname: defaultRouterConfig.location?.pathname ?? '/mock-pathname/',
+            query: {
+              displayType: 'categorical_bar',
+              fields: ['transaction.duration', 'count()'],
+              limit: 20,
+              dataset: 'spans',
+            },
+          },
+        },
+      }
+    );
+
+    const limitInput = await screen.findByRole('textbox', {name: 'Limit results'});
+    expect(limitInput).toBeInTheDocument();
+    expect(limitInput).toHaveValue('20');
+  });
+
+  it('does not render a limit input for table widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          <WidgetBuilderSortBySelector />
+        </TraceItemAttributeProvider>
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          ...defaultRouterConfig,
+          location: {
+            pathname: defaultRouterConfig.location?.pathname ?? '/mock-pathname/',
+            query: {
+              ...defaultRouterConfig.location?.query,
+              displayType: 'table',
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByText('Sort by')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', {name: 'Limit results'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('correctly handles categorical bar limit changes', async () => {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+
+    render(
+      <WidgetBuilderProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          <WidgetBuilderSortBySelector />
+        </TraceItemAttributeProvider>
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          ...defaultRouterConfig,
+          location: {
+            pathname: defaultRouterConfig.location?.pathname ?? '/mock-pathname/',
+            query: {
+              displayType: 'categorical_bar',
+              fields: ['transaction.duration', 'count()'],
+              limit: 20,
+              dataset: 'spans',
+            },
+          },
+        },
+      }
+    );
+
+    await screen.findByRole('textbox', {name: 'Limit results'});
+
+    // Use the increment button to change the value
+    await userEvent.click(screen.getByRole('button', {name: 'Increase Limit results'}));
+
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({limit: 21}),
+      }),
+      expect.anything()
+    );
+  });
+
   it('sorts by equations table', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
