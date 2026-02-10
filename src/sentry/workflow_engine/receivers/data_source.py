@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
@@ -7,7 +9,9 @@ from sentry.workflow_engine.registry import data_source_type_registry
 
 
 @receiver(pre_save, sender=DataSource)
-def ensure_type_handler_registered(sender, instance: DataSource, **kwargs):
+def ensure_type_handler_registered(
+    sender: type[DataSource], instance: DataSource, **kwargs: Any
+) -> None:
     """
     Ensure that the type of the data source is valid and registered in the data_source_type_registry
     """

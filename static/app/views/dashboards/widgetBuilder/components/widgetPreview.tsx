@@ -131,7 +131,7 @@ function WidgetPreview({
       // dashboard state to be added
       onWidgetSplitDecision={() => {}}
       // onWidgetSplitDecision={onWidgetSplitDecision}
-
+      tableItemLimit={widget.limit}
       showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
       // ensure table columns are at least a certain width (helps with lack of truncation on large fields)
       minTableColumnWidth={MIN_TABLE_COLUMN_WIDTH_PX}

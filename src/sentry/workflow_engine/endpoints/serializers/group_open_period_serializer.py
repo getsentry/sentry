@@ -30,7 +30,7 @@ class GroupOpenPeriodResponse(TypedDict):
 @register(GroupOpenPeriodActivity)
 class GroupOpenPeriodActivitySerializer(Serializer):
     def serialize(
-        self, obj: GroupOpenPeriodActivity, attrs: Mapping[str, Any], user, **kwargs
+        self, obj: GroupOpenPeriodActivity, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> GroupOpenPeriodActivityResponse:
         return GroupOpenPeriodActivityResponse(
             id=str(obj.id),
@@ -43,7 +43,7 @@ class GroupOpenPeriodActivitySerializer(Serializer):
 
 @register(GroupOpenPeriod)
 class GroupOpenPeriodSerializer(Serializer):
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(self, item_list: Any, user: Any, **kwargs: Any) -> Any:
         query_start = kwargs.get("query_start")
         query_end = kwargs.get("query_end")
         result: defaultdict[GroupOpenPeriod, dict[str, list[GroupOpenPeriodActivityResponse]]] = (
@@ -80,7 +80,7 @@ class GroupOpenPeriodSerializer(Serializer):
         return result
 
     def serialize(
-        self, obj: GroupOpenPeriod, attrs: Mapping[str, Any], user, **kwargs
+        self, obj: GroupOpenPeriod, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> GroupOpenPeriodResponse:
         time_window = kwargs.get("time_window", 0)
         return GroupOpenPeriodResponse(

@@ -48,6 +48,7 @@ import {
   isAValidSort,
   type ValidSort,
 } from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
+import {PlatformizedFrontendOverviewPage} from 'sentry/views/insights/pages/frontend/platformizedFrontendOverviewPage';
 import {useFrontendTableData} from 'sentry/views/insights/pages/frontend/queries/useFrontendTableData';
 import type {PageSpanOps} from 'sentry/views/insights/pages/frontend/settings';
 import {
@@ -57,9 +58,12 @@ import {
   SPAN_OP_QUERY_PARAM,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {useFrontendQuery} from 'sentry/views/insights/pages/frontend/useFrontendQuery';
+import useHasPlatformizedFrontendOverview from 'sentry/views/insights/pages/frontend/utils/useHasPlatformizedFrontendOverview';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
 import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {PlatformizedNextjsFrontendOverviewPage} from 'sentry/views/insights/pages/platform/nextjs/platformizedNextjsFrontendOverviewPage';
+import useHasPlatformizedNextjsFrontendOverview from 'sentry/views/insights/pages/platform/nextjs/useHasPlatformizedNextjsFrontendOverview';
 import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
@@ -247,14 +251,21 @@ function FrontendOverviewPageWithProviders() {
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
+  const hasPlatformizedFrontendOverview = useHasPlatformizedFrontendOverview();
+  const hasPlatformizedNextjsFrontendOverview =
+    useHasPlatformizedNextjsFrontendOverview();
   const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
   const useEap = useInsightsEap();
 
   let overviewPage = (
     <Am1FrontendOverviewPage datePageFilterProps={datePageFilterProps} />
   );
-  if (isNextJsPageEnabled) {
+  if (isNextJsPageEnabled && hasPlatformizedNextjsFrontendOverview) {
+    overviewPage = <PlatformizedNextjsFrontendOverviewPage />;
+  } else if (isNextJsPageEnabled) {
     overviewPage = <NextJsOverviewPage datePageFilterProps={datePageFilterProps} />;
+  } else if (useEap && hasPlatformizedFrontendOverview) {
+    overviewPage = <PlatformizedFrontendOverviewPage />;
   } else if (useEap) {
     overviewPage = <FrontendOverviewPage datePageFilterProps={datePageFilterProps} />;
   }

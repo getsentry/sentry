@@ -328,7 +328,7 @@ const LabelsContainer = styled('div')<{labelPosition: LabelPosition}>`
         height: ${space(0.5)};
         width: 1px;
         border-radius: 1px;
-        background: ${p.theme.tokens.border.transparent.neutral.muted};
+        background: ${p.theme.tokens.background.transparent.neutral.muted};
       }
     `}
 `;
@@ -348,7 +348,7 @@ export const Gridline = styled('div')<{labelPosition: LabelPosition; left: numbe
       height: 6px;
       width: 1px;
       border-radius: 1px;
-      background: ${p.theme.tokens.border.transparent.neutral.muted};
+      background: ${p.theme.tokens.background.transparent.neutral.muted};
       top: 68px;
     `}
 `;

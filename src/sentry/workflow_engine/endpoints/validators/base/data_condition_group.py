@@ -9,7 +9,7 @@ from sentry.workflow_engine.endpoints.validators.utils import remove_items_by_ap
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 
 
-class BaseDataConditionGroupValidator(CamelSnakeSerializer):
+class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
     id = serializers.CharField(required=False)
     logic_type = serializers.ChoiceField([(t.value, t.value) for t in DataConditionGroup.Type])
     conditions = serializers.ListField(required=False)

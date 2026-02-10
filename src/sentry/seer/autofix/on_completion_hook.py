@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from sentry import features
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.autofix.autofix_agent import (
@@ -20,6 +21,7 @@ from sentry.seer.models import (
     SeerApiResponseValidationError,
     SeerAutomationHandoffConfiguration,
 )
+from sentry.seer.supergroups import trigger_supergroups_embedding
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 
@@ -70,22 +72,37 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             )
             return
 
+        current_step = cls._get_current_step(state)
+
         # Send webhook for the completed step
-        cls._send_step_webhook(organization, run_id, state)
+        cls._send_step_webhook(organization, run_id, state, current_step)
+
+        if current_step == AutofixStep.ROOT_CAUSE:
+            cls._maybe_trigger_supergroups_embedding(organization, run_id, state)
 
         # Continue the automated pipeline if stopping_point hasn't been reached
-        cls._maybe_continue_pipeline(organization, run_id, state)
+        cls._maybe_continue_pipeline(organization, run_id, state, current_step)
 
     @classmethod
-    def _send_step_webhook(cls, organization, run_id, state: SeerRunState):
+    def find_latest_artifact_for_step(cls, state: SeerRunState, key: str) -> Artifact | None:
+        for block in reversed(state.blocks):
+            if not block.artifacts:
+                continue
+            for artifact in reversed(block.artifacts):
+                if key == artifact.key:
+                    return artifact
+        return None
+
+    @classmethod
+    def _send_step_webhook(
+        cls, organization, run_id, state: SeerRunState, current_step: AutofixStep | None
+    ):
         """
         Send webhook for the completed step.
 
         Determines which step just completed based on artifacts and sends
         the appropriate webhook event.
         """
-
-        current_step = cls._get_current_step(state)
 
         # Determine which artifact was just created and send appropriate webhook
         # We check in reverse priority order (most recent step first)
@@ -96,26 +113,15 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         webhook_action_type: SeerActionType | None = None
 
         current_step = cls._get_current_step(state)
-
-        def find_latest_artifact_by_key(key: str) -> Artifact | None:
-            for block in reversed(state.blocks):
-                if not block.artifacts:
-                    continue
-                for artifact in reversed(block.artifacts):
-                    if key == artifact.key:
-                        return artifact
-            return None
+        if current_step is not None:
+            artifact = cls.find_latest_artifact_for_step(state, current_step)
+            if artifact is not None:
+                webhook_payload[current_step.value] = artifact.data
 
         if current_step == AutofixStep.ROOT_CAUSE:
             webhook_action_type = SeerActionType.ROOT_CAUSE_COMPLETED
-            artifact = find_latest_artifact_by_key(current_step.value)
-            if artifact is not None:
-                webhook_payload[current_step.value] = artifact.data
         elif current_step == AutofixStep.SOLUTION:
             webhook_action_type = SeerActionType.SOLUTION_COMPLETED
-            artifact = find_latest_artifact_by_key(current_step.value)
-            if artifact is not None:
-                webhook_payload[current_step.value] = artifact.data
         elif current_step == AutofixStep.CODE_CHANGES:
             webhook_action_type = SeerActionType.CODING_COMPLETED
             diffs_by_repo = state.get_diffs_by_repo()
@@ -133,14 +139,8 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             }
         elif current_step == AutofixStep.IMPACT_ASSESSMENT:
             webhook_action_type = SeerActionType.IMPACT_ASSESSMENT_COMPLETED
-            artifact = find_latest_artifact_by_key(current_step.value)
-            if artifact is not None:
-                webhook_payload[current_step.value] = artifact.data
         elif current_step == AutofixStep.TRIAGE:
             webhook_action_type = SeerActionType.TRIAGE_COMPLETED
-            artifact = find_latest_artifact_by_key(current_step.value)
-            if artifact is not None:
-                webhook_payload[current_step.value] = artifact.data
 
         if webhook_action_type:
             try:
@@ -159,6 +159,50 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                         "webhook_event": webhook_action_type.value,
                     },
                 )
+
+    @classmethod
+    def _maybe_trigger_supergroups_embedding(
+        cls,
+        organization: Organization,
+        run_id: int,
+        state: SeerRunState,
+    ) -> None:
+        """Trigger supergroups embedding if feature flag is enabled."""
+        group_id = state.metadata.get("group_id") if state.metadata else None
+        if group_id is None:
+            return
+
+        try:
+            group = Group.objects.get(id=group_id)
+        except Group.DoesNotExist:
+            logger.warning(
+                "autofix.supergroup_embedding.group_not_found",
+                extra={"group_id": group_id},
+            )
+            return
+
+        if not features.has("projects:supergroup-embeddings-explorer", group.project):
+            return
+
+        root_cause_artifact = cls.find_latest_artifact_for_step(state, AutofixStep.ROOT_CAUSE)
+        if not root_cause_artifact or not root_cause_artifact.data:
+            return
+
+        try:
+            trigger_supergroups_embedding(
+                organization_id=organization.id,
+                group_id=group_id,
+                artifact_data=root_cause_artifact.data,
+            )
+        except Exception:
+            logger.exception(
+                "autofix.on_completion_hook.supergroups_embedding_failed",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "group_id": group_id,
+                },
+            )
 
     @classmethod
     def _get_current_step(cls, state: SeerRunState) -> AutofixStep | None:
@@ -193,6 +237,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         organization: Organization,
         run_id: int,
         state: SeerRunState,
+        current_step: AutofixStep | None,
     ) -> None:
         """
         Continue to the next step if stopping_point hasn't been reached.
@@ -218,7 +263,6 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             )
             return
 
-        current_step = cls._get_current_step(state)
         if current_step is None:
             logger.warning(
                 "autofix.on_completion_hook.no_current_step",
