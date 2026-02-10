@@ -17,6 +17,7 @@ from sentry.api.utils import get_date_range_from_stats_period
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.explorer.client import SeerExplorerClient
+from sentry.seer.explorer.client_models import ExplorerRunWithPrs
 from sentry.seer.models import SeerPermissionError
 
 logger = logging.getLogger(__name__)
@@ -64,16 +65,13 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
             if not seer_data:
                 return {"data": []}
 
-            # Convert Pydantic models to dicts for consistent access downstream
-            runs = [run.dict() for run in seer_data]
-
             # Filter out runs without a group_id (non-autofix runs have group_id=None)
-            runs = [item for item in runs if item.get("group_id") is not None]
+            runs = [run for run in seer_data if run.group_id is not None]
 
             if not runs:
                 return {"data": []}
 
-            group_ids = [item["group_id"] for item in runs]
+            group_ids = [run.group_id for run in runs]
             qs = Group.objects.filter(id__in=group_ids, project_id__in=project_ids)
             if start is not None:
                 qs = qs.filter(last_seen__gte=start)
@@ -95,28 +93,28 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
             )
 
             # Runs are sorted newest-first; keep only the first entry per group_id
-            runs_by_group_id: dict[int, dict] = {}
-            for item in runs:
-                runs_by_group_id.setdefault(item["group_id"], item)
+            runs_by_group_id: dict[int, ExplorerRunWithPrs] = {}
+            for run in runs:
+                if run.group_id is not None:
+                    runs_by_group_id.setdefault(run.group_id, run)
 
             for serialized_group in serialized_groups:
                 group_id = int(serialized_group["id"])
-                item = runs_by_group_id.get(group_id)
-                if item:
+                matched_run = runs_by_group_id.get(group_id)
+                if matched_run:
                     serialized_group["explorerPrData"] = {
-                        "runId": item["run_id"],
-                        "userId": item["user_id"],
-                        "createdAt": item["created_at"],
+                        "runId": matched_run.run_id,
+                        "userId": matched_run.user_id,
+                        "createdAt": matched_run.created_at,
                         "repoPrStates": {
                             repo_name: {
-                                "repoName": state.get("repo_name", repo_name),
-                                "branchName": state.get("branch_name"),
-                                "prNumber": state.get("pr_number"),
-                                "prUrl": state.get("pr_url"),
-                                "prCreationStatus": state.get("pr_creation_status"),
+                                "repoName": state.repo_name,
+                                "branchName": state.branch_name,
+                                "prNumber": state.pr_number,
+                                "prUrl": state.pr_url,
+                                "prCreationStatus": state.pr_creation_status,
                             }
-                            for repo_name, state in (item.get("repo_pr_states") or {}).items()
-                            if isinstance(state, dict)
+                            for repo_name, state in (matched_run.repo_pr_states or {}).items()
                         },
                     }
 
