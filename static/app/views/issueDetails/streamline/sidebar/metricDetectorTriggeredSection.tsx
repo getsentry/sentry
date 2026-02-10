@@ -308,7 +308,7 @@ function TriggeredConditionDetails({
   const isErrorsDataset = detectorDataset === DetectorDataset.ERRORS;
   const issueSearchQuery = datasetConfig.toSnubaQueryString?.(snubaQuery) ?? '';
   const formattedEvaluatedValue = getFormattedEvaluatedValue({
-    value: typeof value === 'object' ? value.value : value,
+    value: defined(value) && typeof value === 'object' ? value.value : value,
     aggregate: snubaQuery.aggregate,
     detectionType,
   });
