@@ -109,6 +109,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         assert response.status_code == 200
 
         snapshot_metrics = PreprodSnapshotMetrics.objects.get(id=response.data["snapshotMetricsId"])
+        assert snapshot_metrics.extras is not None
         assert "manifest_key" in snapshot_metrics.extras
 
         artifact_id = response.data["artifactId"]
@@ -132,7 +133,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
 
     def test_snapshot_missing_required_field(self):
         url = self._get_create_url()
-        data = {
+        data: dict[str, str] = {
             # Missing images field
         }
 
