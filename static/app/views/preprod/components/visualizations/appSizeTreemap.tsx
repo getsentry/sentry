@@ -26,7 +26,11 @@ import {
   TreemapControlButtons,
   type TreemapControlButton,
 } from 'sentry/views/preprod/components/visualizations/treemapControlButtons';
-import {TreemapType, type TreemapElement} from 'sentry/views/preprod/types/appSizeTypes';
+import {
+  TreemapType,
+  type FlaggedInsight,
+  type TreemapElement,
+} from 'sentry/views/preprod/types/appSizeTypes';
 import {getInsightConfig} from 'sentry/views/preprod/utils/insightProcessing';
 import {filterTreemapElement} from 'sentry/views/preprod/utils/treemapFiltering';
 
@@ -179,7 +183,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       path: element.path,
       category: element.type,
       misc: element.misc,
-      flaggedInsights: element.flagged_insights,
+      flagged_insights: element.flagged_insights,
       itemStyle: {
         color: 'transparent',
         borderColor,
@@ -356,13 +360,25 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       const scaleElement = params.data?.misc?.scale
         ? `<span style="font-size: 10px; background-color: ${theme.tokens.background.secondary}; color: ${theme.tokens.content.primary}; padding: 4px; border-radius: 3px; font-weight: normal;">@${params.data.misc.scale}x</span>`
         : '';
-      const flaggedInsights: string[] = params.data?.flaggedInsights || [];
-      const insightBadgesHtml =
-        flaggedInsights.length > 0
-          ? `<div style="display: flex; flex-direction: column; gap: 4px; padding-top: 8px;">
-              ${flaggedInsights.map(insightKey => `<span style="display: inline-block; font-size: 11px; background-color: ${theme.colors.red100}; color: ${theme.colors.red400}; padding: 2px 6px; border-radius: 3px;">${getInsightConfig(insightKey).name}</span>`).join('')}
-            </div>`
-          : '';
+      const flaggedInsights: Array<string | FlaggedInsight> =
+        params.data?.flagged_insights ?? [];
+      const renderInsightBadge = (insight: string | FlaggedInsight) => {
+        const key = typeof insight === 'string' ? insight : insight.key;
+        const savings = typeof insight === 'string' ? null : insight.savings;
+        const savingsHtml =
+          savings !== null && savings > 0
+            ? `<span style="margin-left: auto; font-size: 11px; color: ${theme.colors.red400}; white-space: nowrap;">-${formatBytesBase10(savings)}</span>`
+            : '';
+
+        return `<div style="display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 11px; background-color: ${theme.colors.red100}; color: ${theme.colors.red400}; padding: 2px 6px; border-radius: 3px;">${getInsightConfig(key).name}</span>
+          ${savingsHtml}
+        </div>`;
+      };
+      const insightBadges = flaggedInsights.map(renderInsightBadge).join('');
+      const insightBadgesHtml = insightBadges
+        ? `<div style="display: flex; flex-direction: column; gap: 4px; padding-top: 8px;">${insightBadges}</div>`
+        : '';
 
       return `
             <div style="font-family: Rubik;">
