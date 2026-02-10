@@ -9,8 +9,8 @@ import {t} from 'sentry/locale';
 import type {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
 import type {Conversation} from 'sentry/views/insights/pages/conversations/hooks/useConversations';
 
-// Height for 2 rows of tags (22px per row + 8px gap)
-const TWO_ROW_HEIGHT = 52;
+// Height for 2 rows of tags (22px per row + 6px gap)
+const TWO_ROW_HEIGHT = 50;
 
 interface ToolTagsProps {
   conversation: Conversation;
