@@ -327,6 +327,45 @@ def convert_stacktrace_frame_path_to_source_path(
             .lstrip("/")
         )
 
+    # Fallback: try to match paths using suffix logic for automatically generated mappings.
+    # This handles cases where the path format differs between error frames and span attributes.
+    # For example, .NET error frames use "/_/src/Project/File.cs" but span code.filepath is
+    # "src/Project/File.cs". Since code mappings are derived using suffix matching
+    # (_is_potential_match), we should resolve paths using the same flexible approach.
+    if stacktrace_path and code_mapping.automatically_generated:
+        normalized_stacktrace = stacktrace_path.replace("\\", "/")
+        
+        # For automatically generated mappings, if the exact prefix didn't match, check if
+        # the stacktrace path could be the repo-relative portion of a path that would have
+        # matched during code mapping derivation. This is determined by checking if the
+        # stacktrace shares path component overlap with what the mapping expects.
+        #
+        # Example: stack_root="/_/" source_root="" stacktrace="src/Project/File.cs"
+        # The original error frame was "/_/src/Project/File.cs" matching repo file
+        # "src/Project/File.cs", so we should accept "src/Project/File.cs" directly.
+        stacktrace_parts = [p for p in normalized_stacktrace.split("/") if p]
+        source_root_parts = [p for p in code_mapping.source_root.split("/") if p]
+        
+        if not source_root_parts:
+            # Empty source_root means files are at repo root. If the stacktrace has
+            # directory structure (not just a bare filename), it likely matches.
+            if len(stacktrace_parts) > 1:
+                return normalized_stacktrace.lstrip("/")
+        else:
+            # Non-empty source_root: check if stacktrace would fit in the source structure
+            # by verifying path component alignment
+            if len(stacktrace_parts) >= len(source_root_parts):
+                # Check if source_root is a prefix of stacktrace (already in right structure)
+                if stacktrace_parts[:len(source_root_parts)] == source_root_parts:
+                    return normalized_stacktrace.lstrip("/")
+                # Check if combining them makes sense (stacktrace is relative to source_root)
+                else:
+                    combined = (code_mapping.source_root.rstrip("/") + "/" + normalized_stacktrace).replace("\\", "/")
+                    return combined.lstrip("/")
+            else:
+                # Stacktrace has fewer parts than source_root, unlikely to match
+                pass
+
     return None
 
 

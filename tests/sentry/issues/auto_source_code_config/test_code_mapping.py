@@ -476,6 +476,119 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
             == "src/sentry/folder/file.rs"
         )
 
+    def test_convert_stacktrace_frame_path_to_source_path_dotnet_span_without_prefix(
+        self,
+    ) -> None:
+        """
+        Test .NET span code.filepath matching when code mapping was derived from error frames.
+        
+        Error frames use "/_/src/Project/File.cs" but span code.filepath uses
+        "src/Project/File.cs" (without the /_/ prefix). The code mapping should still match
+        via suffix logic for automatically generated mappings.
+        """
+        # Create a code mapping that would be auto-generated from .NET error frames
+        dotnet_code_mapping = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="/_/",
+            source_root="",
+            automatically_generated=True,
+        )
+        
+        # Span with code.filepath that doesn't have the /_/ prefix
+        assert (
+            convert_stacktrace_frame_path_to_source_path(
+                frame=EventFrame(filename="src/NuGetTrends.Scheduler/DailyDownloadWorker.cs"),
+                code_mapping=dotnet_code_mapping,
+                platform="csharp",
+                sdk_name="sentry.dotnet",
+            )
+            == "src/NuGetTrends.Scheduler/DailyDownloadWorker.cs"
+        )
+
+    def test_convert_stacktrace_frame_path_to_source_path_dotnet_span_non_auto_no_match(
+        self,
+    ) -> None:
+        """
+        Test that suffix matching only applies to automatically generated mappings.
+        
+        User-created mappings should not use suffix matching fallback to avoid
+        unintended matches.
+        """
+        # Create a user-generated code mapping (not automatically generated)
+        dotnet_code_mapping = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="/_/",
+            source_root="",
+            automatically_generated=False,  # User-created mapping
+        )
+        
+        # Span path without the /_/ prefix should NOT match user-created mappings
+        assert (
+            convert_stacktrace_frame_path_to_source_path(
+                frame=EventFrame(filename="src/NuGetTrends.Scheduler/DailyDownloadWorker.cs"),
+                code_mapping=dotnet_code_mapping,
+                platform="csharp",
+                sdk_name="sentry.dotnet",
+            )
+            is None
+        )
+
+    def test_convert_stacktrace_frame_path_to_source_path_dotnet_with_source_root(
+        self,
+    ) -> None:
+        """
+        Test .NET span matching with non-empty source_root.
+        """
+        dotnet_code_mapping = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="/_/",
+            source_root="src/",
+            automatically_generated=True,
+        )
+        
+        # Span path that should combine with source_root
+        assert (
+            convert_stacktrace_frame_path_to_source_path(
+                frame=EventFrame(filename="NuGetTrends.Scheduler/DailyDownloadWorker.cs"),
+                code_mapping=dotnet_code_mapping,
+                platform="csharp",
+                sdk_name="sentry.dotnet",
+            )
+            == "src/NuGetTrends.Scheduler/DailyDownloadWorker.cs"
+        )
+
+    def test_convert_stacktrace_frame_path_to_source_path_bare_filename_no_match(self) -> None:
+        """
+        Test that bare filenames (single component) don't match via suffix logic.
+        
+        This prevents overly broad matches for simple filenames.
+        """
+        dotnet_code_mapping = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="/_/",
+            source_root="",
+            automatically_generated=True,
+        )
+        
+        # Bare filename should not match via suffix logic (needs directory structure)
+        assert (
+            convert_stacktrace_frame_path_to_source_path(
+                frame=EventFrame(filename="File.cs"),
+                code_mapping=dotnet_code_mapping,
+                platform="csharp",
+                sdk_name="sentry.dotnet",
+            )
+            is None
+        )
+
 
 class TestGetSortedCodeMappingConfigs(TestCase):
     def setUp(self) -> None:

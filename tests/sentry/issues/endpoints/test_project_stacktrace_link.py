@@ -390,3 +390,103 @@ class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):
             # trace of the user generated code mappings is chosen
             assert response.data["config"] == self.expected_configurations(cm)
             assert response.data["sourceUrl"] == f"https://github.com/getsentry/sentry/{src_path}"
+
+
+class ProjectStacktraceLinkTestDotnetSpans(BaseProjectStacktraceLink):
+    """Test .NET span code.filepath linking when code mappings were derived from error frames."""
+
+    def setUp(self) -> None:
+        BaseProjectStacktraceLink.setUp(self)
+        # Create an auto-generated code mapping as would be derived from .NET error frames
+        # Error frames have abs_path like "/_/src/Project/File.cs"
+        self.dotnet_code_mapping = self._create_code_mapping(
+            stack_root="/_/",
+            source_root="",
+            automatically_generated=True,
+        )
+
+    @patch.object(ExampleIntegration, "get_stacktrace_link")
+    def test_dotnet_span_without_prefix_matches(self, mock_integration: MagicMock) -> None:
+        """
+        Test that .NET span code.filepath (without /_/ prefix) matches code mapping
+        derived from error frames (with /_/ prefix).
+        """
+        # Span sends code.filepath without the /_/ prefix
+        filepath = "src/NuGetTrends.Scheduler/DailyDownloadWorker.cs"
+        mock_integration.return_value = f"{example_base_url}/{filepath}"
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={"file": filepath, "platform": "csharp"},
+        )
+
+        assert response.data["config"] == self.expected_configurations(self.dotnet_code_mapping)
+        assert response.data["sourceUrl"] == f"{example_base_url}/{filepath}"
+        assert response.data["error"] is None
+        mock_integration.assert_called_once_with(self.repo, filepath, "master", None)
+
+    @patch.object(ExampleIntegration, "get_stacktrace_link")
+    def test_dotnet_span_with_prefix_still_matches(self, mock_integration: MagicMock) -> None:
+        """
+        Test that error frames with /_/ prefix still match (backwards compatibility).
+        """
+        # Error frame sends with /_/ prefix (traditional behavior)
+        filepath = "/_/src/NuGetTrends.Scheduler/DailyDownloadWorker.cs"
+        expected_source = "src/NuGetTrends.Scheduler/DailyDownloadWorker.cs"
+        mock_integration.return_value = f"{example_base_url}/{expected_source}"
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={"file": filepath, "platform": "csharp"},
+        )
+
+        assert response.data["config"] == self.expected_configurations(self.dotnet_code_mapping)
+        assert response.data["sourceUrl"] == f"{example_base_url}/{expected_source}"
+        assert response.data["error"] is None
+        mock_integration.assert_called_once_with(self.repo, expected_source, "master", None)
+
+    def test_dotnet_user_created_mapping_requires_exact_match(self) -> None:
+        """
+        Test that user-created mappings still require exact prefix match (no suffix fallback).
+        """
+        # Create a user-created (not auto-generated) code mapping
+        user_mapping = self._create_code_mapping(
+            stack_root="/_/",
+            source_root="",
+            automatically_generated=False,
+        )
+
+        # Span without /_/ prefix should NOT match user-created mapping
+        filepath = "src/NuGetTrends.Scheduler/DailyDownloadWorker.cs"
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={"file": filepath, "platform": "csharp"},
+        )
+
+        # Should get stack_root_mismatch because user mapping requires exact prefix
+        assert response.data["config"] is None
+        assert response.data["sourceUrl"] is None
+        assert response.data["error"] == "stack_root_mismatch"
+
+    @patch.object(ExampleIntegration, "get_stacktrace_link")
+    def test_dotnet_bare_filename_no_suffix_match(self, mock_integration: MagicMock) -> None:
+        """
+        Test that bare filenames don't match via suffix logic (too broad).
+        """
+        # Bare filename without directory structure
+        filepath = "File.cs"
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={"file": filepath, "platform": "csharp"},
+        )
+
+        # Should get stack_root_mismatch because bare filename is too generic
+        assert response.data["config"] is None
+        assert response.data["sourceUrl"] is None
+        assert response.data["error"] == "stack_root_mismatch"
+        mock_integration.assert_not_called()
