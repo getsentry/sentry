@@ -5,7 +5,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.service.action.service import action_service
-from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 @all_silo_test(regions=create_test_regions("us"))
@@ -140,7 +139,6 @@ class TestActionService(TestCase):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_identifier": str(self.sentry_app.id),
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
@@ -177,7 +175,6 @@ class TestActionService(TestCase):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_identifier": str(self.sentry_app.id),
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
@@ -222,7 +219,6 @@ class TestActionService(TestCase):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_identifier": str(self.sentry_app.id),
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
             status=ObjectStatus.DISABLED,
@@ -259,7 +255,6 @@ class TestActionService(TestCase):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_identifier": str(self.sentry_app.id),
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
@@ -276,7 +271,6 @@ class TestActionService(TestCase):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_identifier": str(self.sentry_app.id),
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
@@ -305,7 +299,6 @@ class TestActionService(TestCase):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_identifier": str(self.sentry_app.id),
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
@@ -313,7 +306,6 @@ class TestActionService(TestCase):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_identifier": str(self.sentry_app_2.id),
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
