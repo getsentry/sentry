@@ -25,6 +25,10 @@ export function useFocusedToolSpan({
   const hasProcessed = useRef(false);
 
   useEffect(() => {
+    hasProcessed.current = false;
+  }, [focusedTool]);
+
+  useEffect(() => {
     if (isLoading || !focusedTool || hasProcessed.current) {
       return;
     }
