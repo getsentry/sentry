@@ -84,14 +84,14 @@ function BackendOverviewPage({datePageFilterProps}: BackendOverviewPageProps) {
   const hasPlatformizedNextJsOverview = useHasPlatformizedNextJsOverview();
   const isNewBackendExperienceEnabled = useInsightsEap();
   const hasPlatformizedBackendOverview = useHasPlatformizedBackendOverview();
+  if (isNextJsPageEnabled && hasPlatformizedNextJsOverview) {
+    return <PlatformizedNextJsOverviewPage />;
+  }
   if (hasPlatformizedBackendOverview) {
     return <PlatformizedBackendOverviewPage />;
   }
   if (isLaravelPageAvailable) {
     return <LaravelOverviewPage datePageFilterProps={datePageFilterProps} />;
-  }
-  if (isNextJsPageEnabled && hasPlatformizedNextJsOverview) {
-    return <PlatformizedNextJsOverviewPage />;
   }
   if (isNextJsPageEnabled) {
     return <NextJsOverviewPage datePageFilterProps={datePageFilterProps} />;
