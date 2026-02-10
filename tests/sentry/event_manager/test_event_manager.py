@@ -1534,10 +1534,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_culprit_after_stacktrace_processing(self) -> None:
         from sentry.grouping.enhancer import EnhancementsConfig
 
-        enhancements_str = EnhancementsConfig.from_rules_text("""
+        enhancements_str = EnhancementsConfig.from_rules_text(
+            """
             function:in_app_function +app
             function:not_in_app_function -app
-            """).base64_string
+            """
+        ).base64_string
 
         grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
 
@@ -2933,11 +2935,13 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         """
         from sentry.grouping.enhancer import EnhancementsConfig
 
-        enhancements_str = EnhancementsConfig.from_rules_text("""
+        enhancements_str = EnhancementsConfig.from_rules_text(
+            """
             function:foo category=bar
             function:foo2 category=bar
             category:bar -app
-            """).base64_string
+            """
+        ).base64_string
 
         grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
 
@@ -3007,10 +3011,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         """
         from sentry.grouping.enhancer import EnhancementsConfig
 
-        enhancements_str = EnhancementsConfig.from_rules_text("""
+        enhancements_str = EnhancementsConfig.from_rules_text(
+            """
             function:foo category=foo_like
             category:foo_like -group
-            """).base64_string
+            """
+        ).base64_string
 
         grouping_config: GroupingConfig = {
             "id": DEFAULT_GROUPING_CONFIG,
