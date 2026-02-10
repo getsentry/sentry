@@ -51,7 +51,17 @@ def produce_to_listeners(
     parsed_event, event_type_hint = deserialize_raw_event(event)
     message = serialize_event(parsed_event)
 
-    for listener in scm_event_stream.listeners[event_type_hint].keys():
+    if isinstance(parsed_event, CheckRunEvent):
+        listeners = list(scm_event_stream.check_run_listeners.keys())
+        assert event_type_hint == "check_run"
+    elif isinstance(parsed_event, CommentEvent):
+        listeners = list(scm_event_stream.comment_listeners.keys())
+        assert event_type_hint == "comment"
+    else:
+        listeners = list(scm_event_stream.pull_request_listeners.keys())
+        assert event_type_hint == "pull_request"
+
+    for listener in listeners:
         produce_to_listener(message, event_type_hint, listener, silo)
 
 
