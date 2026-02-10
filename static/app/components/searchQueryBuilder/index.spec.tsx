@@ -4868,12 +4868,7 @@ describe('SearchQueryBuilder', () => {
     it('renders ask seer button when user has given consent', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/seer/setup-check/',
-        body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: true,
-            userHasAcknowledged: true,
-          },
-        }),
+        body: AutofixSetupFixture({}),
       });
 
       render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
@@ -4896,12 +4891,10 @@ describe('SearchQueryBuilder', () => {
           url: `/organizations/org-slug/prompts-activity/`,
           method: 'PUT',
         });
-        MockApiClient.addMockResponse({
-          url: `/organizations/org-slug/seer/setup-check/`,
-          body: AutofixSetupFixture({
-            setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
-          }),
-        });
+        // MockApiClient.addMockResponse({
+        //   url: `/organizations/org-slug/seer/setup-check/`,
+        //   body: AutofixSetupFixture({}),
+        // });
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/recent-searches/',
           method: 'POST',
@@ -5034,15 +5027,11 @@ describe('SearchQueryBuilder', () => {
     describe('free text', () => {
       it('displays ask seer button when searching free text', async () => {
         const mockOnSearch = jest.fn();
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/seer/setup-check/',
-          body: AutofixSetupFixture({
-            setupAcknowledgement: {
-              orgHasAcknowledged: true,
-              userHasAcknowledged: true,
-            },
-          }),
-        });
+        // MockApiClient.addMockResponse({
+        //   url: '/organizations/org-slug/seer/setup-check/',
+        //   body: AutofixSetupFixture({
+        //   }),
+        // });
 
         render(
           <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
@@ -5065,15 +5054,11 @@ describe('SearchQueryBuilder', () => {
     describe('consent flow changes enabled', () => {
       it('renders tooltip', async () => {
         const mockOnSearch = jest.fn();
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/seer/setup-check/',
-          body: AutofixSetupFixture({
-            setupAcknowledgement: {
-              orgHasAcknowledged: true,
-              userHasAcknowledged: true,
-            },
-          }),
-        });
+        // MockApiClient.addMockResponse({
+        //   url: '/organizations/org-slug/seer/setup-check/',
+        //   body: AutofixSetupFixture({
+        //   }),
+        // });
 
         render(
           <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,

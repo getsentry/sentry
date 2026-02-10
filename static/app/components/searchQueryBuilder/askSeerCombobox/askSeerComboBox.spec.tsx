@@ -59,11 +59,11 @@ describe('AskSeerComboBox', () => {
       body: {status: 'ok', queries: [{query: 'span.duration:>30s'}]},
     });
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/seer/setup-check/',
-      method: 'GET',
-      body: {setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true}},
-    });
+    // MockApiClient.addMockResponse({
+    //   url: '/organizations/org-slug/seer/setup-check/',
+    //   method: 'GET',
+    //   body: {},
+    // });
   });
 
   it('renders the search input', async () => {

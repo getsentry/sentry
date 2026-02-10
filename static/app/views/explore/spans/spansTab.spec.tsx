@@ -111,12 +111,7 @@ describe('SpansTabContent', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/setup-check/`,
-      body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
-      }),
+      body: AutofixSetupFixture({}),
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
@@ -409,12 +404,7 @@ describe('SpansTabContent', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/seer/setup-check/',
-        body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: true,
-            userHasAcknowledged: true,
-          },
-        }),
+        body: AutofixSetupFixture({}),
       });
     });
 

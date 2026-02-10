@@ -103,10 +103,9 @@ function useTrackAnalytics({
   const chartError = timeseriesResult.error?.message ?? '';
   const query_status = tableError || chartError ? 'error' : 'success';
 
-  const {setupAcknowledgement: seerSetup, isLoading: isLoadingSeerSetup} =
-    useOrganizationSeerSetup({
-      enabled: !organization.hideAiFeatures,
-    });
+  const {isLoading: isLoadingSeerSetup} = useOrganizationSeerSetup({
+    enabled: !organization.hideAiFeatures,
+  });
 
   useEffect(() => {
     if (
@@ -123,9 +122,7 @@ function useTrackAnalytics({
     const columns = aggregatesTableResult.eventView.getColumns() as unknown as string[];
     const gaveSeerConsent = organization.hideAiFeatures
       ? 'gen_ai_features_disabled'
-      : seerSetup?.orgHasAcknowledged
-        ? 'given'
-        : 'not_given';
+      : 'given';
 
     const dataScanned = aggregatesTableResult.result.meta?.dataScanned ?? '';
     const yAxes = visualizes.map(visualize => visualize.yAxis);
@@ -198,7 +195,6 @@ function useTrackAnalytics({
     query,
     queryType,
     query_status,
-    seerSetup?.orgHasAcknowledged,
     timeseriesResult.data,
     timeseriesResult.isPending,
     title,
@@ -219,9 +215,7 @@ function useTrackAnalytics({
     const search = new MutableSearch(query);
     const gaveSeerConsent = organization.hideAiFeatures
       ? 'gen_ai_features_disabled'
-      : seerSetup?.orgHasAcknowledged
-        ? 'given'
-        : 'not_given';
+      : 'given';
 
     const dataScanned = spansTableResult.result.meta?.dataScanned ?? '';
     const yAxes = visualizes.map(visualize => visualize.yAxis);
@@ -289,7 +283,6 @@ function useTrackAnalytics({
     query,
     queryType,
     query_status,
-    seerSetup?.orgHasAcknowledged,
     spansTableResult.result.data?.length,
     spansTableResult.result.isPending,
     spansTableResult.result.meta?.dataScanned,
@@ -312,9 +305,7 @@ function useTrackAnalytics({
     const search = new MutableSearch(query);
     const gaveSeerConsent = organization.hideAiFeatures
       ? 'gen_ai_features_disabled'
-      : seerSetup?.orgHasAcknowledged
-        ? 'given'
-        : 'not_given';
+      : 'given';
 
     const yAxes = visualizes.map(visualize => visualize.yAxis);
 
@@ -380,7 +371,6 @@ function useTrackAnalytics({
     query,
     queryType,
     query_status,
-    seerSetup?.orgHasAcknowledged,
     timeseriesResult.data,
     timeseriesResult.isPending,
     title,
@@ -415,9 +405,7 @@ function useTrackAnalytics({
         .length ?? 0;
     const gaveSeerConsent = organization.hideAiFeatures
       ? 'gen_ai_features_disabled'
-      : seerSetup?.orgHasAcknowledged
-        ? 'given'
-        : 'not_given';
+      : 'given';
 
     const yAxes = visualizes.map(visualize => visualize.yAxis);
 
@@ -461,12 +449,11 @@ function useTrackAnalytics({
     query,
     queryType,
     query_status,
-    seerSetup?.orgHasAcknowledged,
     timeseriesResult.data,
     timeseriesResult.isPending,
     title,
     tracesTableResult?.result.data?.data,
-    tracesTableResult?.result.isPending,
+    tracesTableResult?.result?.isPending,
     tracesTableResultDefined,
     visualizes,
   ]);

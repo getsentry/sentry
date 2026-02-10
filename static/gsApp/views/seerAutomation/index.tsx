@@ -14,7 +14,7 @@ import AiSetupDataConsent from 'getsentry/components/ai/AiSetupDataConsent';
 
 export default function SeerAutomationRoot() {
   const organization = useOrganization();
-  const {isLoading, billing, setupAcknowledgement} = useOrganizationSeerSetup();
+  const {isLoading, billing} = useOrganizationSeerSetup();
 
   if (organization.hideAiFeatures) {
     return <NoAccess />;
@@ -33,14 +33,11 @@ export default function SeerAutomationRoot() {
   }
 
   // Check if setup is needed
-  const needsOrgAcknowledgement = !setupAcknowledgement.orgHasAcknowledged;
   const needsBilling =
     !billing.hasAutofixQuota && organization.features.includes('seer-billing');
 
-  const needsSetup = needsOrgAcknowledgement || needsBilling;
-
   // Show setup screen if needed
-  if (needsSetup) {
+  if (needsBilling) {
     return (
       <Fragment>
         <SentryDocumentTitle title={t('Seer Automation')} orgSlug={organization.slug} />

@@ -53,12 +53,7 @@ describe('MultiQueryModeContent', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/setup-check/`,
-      body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
-      }),
+      body: AutofixSetupFixture({}),
     });
 
     MockApiClient.addMockResponse({
@@ -1167,6 +1162,10 @@ describe('MultiQueryModeContent', () => {
         projects: [],
         environment: [],
       },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/setup-check/`,
+      body: AutofixSetupFixture({}),
     });
 
     MockApiClient.addMockResponse({
