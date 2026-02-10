@@ -30,39 +30,34 @@ export function DeadRageClicksWidget({visulizationOnly}: {visulizationOnly?: boo
 
   const isEmpty = !isLoading && data.length === 0;
 
-  if (!hasReplays) {
-    return (
-      <Widget
-        Title={<Widget.WidgetTitle title={t('Rage & Dead Clicks')} />}
-        Visualization={
-          <FeatureWrapper>
-            <FeatureDisabled
-              features="organizations:session-replay-ui"
-              featureName={t('Replays')}
-              hideHelpToggle
-            />
-          </FeatureWrapper>
+  let visualization = (
+    <FeatureWrapper>
+      <FeatureDisabled
+        features="organizations:session-replay-ui"
+        featureName={t('Replays')}
+        hideHelpToggle
+      />
+    </FeatureWrapper>
+  );
+
+  if (hasReplays) {
+    visualization = (
+      <WidgetVisualizationStates
+        isLoading={isLoading}
+        error={error}
+        isEmpty={isEmpty}
+        emptyMessage={
+          <GenericWidgetEmptyStateWarning
+            message={t('Rage or dead clicks may not be listed due to the filters above')}
+          />
         }
+        VisualizationType={DeadRageClickWidgetVisualization}
+        visualizationProps={{
+          items: data,
+        }}
       />
     );
   }
-
-  const visualization = (
-    <WidgetVisualizationStates
-      isLoading={isLoading}
-      error={error}
-      isEmpty={isEmpty}
-      emptyMessage={
-        <GenericWidgetEmptyStateWarning
-          message={t('Rage or dead clicks may not be listed due to the filters above')}
-        />
-      }
-      VisualizationType={DeadRageClickWidgetVisualization}
-      visualizationProps={{
-        items: data,
-      }}
-    />
-  );
 
   if (visulizationOnly) {
     return visualization;
