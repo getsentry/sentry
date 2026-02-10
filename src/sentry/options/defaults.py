@@ -3182,7 +3182,7 @@ register(
 )
 register(
     "spans.buffer.write-to-set",
-    default=False,
+    default=True,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
