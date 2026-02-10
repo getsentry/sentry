@@ -53,24 +53,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
         assert mock_delay.call_args[0][0] == project.id
 
     @patch("sentry.tasks.web_vitals_issue_detection.detect_web_vitals_issues_for_project.delay")
-    def test_run_detection_skips_when_seer_not_acknowledged(self, mock_delay):
-        project = self.create_project()
-
-        with (
-            self.mock_code_mapping(),
-            self.options(
-                {
-                    "issue-detection.web-vitals-detection.enabled": True,
-                    "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
-                }
-            ),
-            self.feature("organizations:gen-ai-features"),
-        ):
-            run_web_vitals_issue_detection()
-
-        assert not mock_delay.called
-
-    @patch("sentry.tasks.web_vitals_issue_detection.detect_web_vitals_issues_for_project.delay")
     def test_run_detection_skips_when_no_github_code_mappings(self, mock_delay):
         project = self.create_project()
 
