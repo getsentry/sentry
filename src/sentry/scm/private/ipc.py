@@ -16,6 +16,7 @@ import msgspec
 import sentry_sdk
 
 from sentry.scm.private.event_stream import scm_event_stream
+from sentry.scm.private.webhooks.github import deserialize_github_event
 from sentry.scm.types import (
     CheckRunAction,
     CheckRunEvent,
@@ -354,6 +355,9 @@ def serialize_subscription_event(event: SubscriptionEvent) -> bytes:
 
 
 def deserialize_event(event: bytes, event_type: EventTypeHint) -> EventType:
+    """
+    Given bytes return a deserialized event.
+    """
     if event_type == "check_run":
         return deserialize_check_run_event(event)
     elif event_type == "comment":
@@ -364,7 +368,28 @@ def deserialize_event(event: bytes, event_type: EventTypeHint) -> EventType:
         return deserialize_subscription_event(event)
 
 
+def deserialize_raw_event(event: SubscriptionEvent) -> tuple[EventType, EventTypeHint]:
+    """
+    Subscription events are the raw data received by Sentry. We can deserialize them into a more
+    specific type (e.g. a pull-request or check-run). This function transforms the raw payload
+    into its specific type and also returns a string identifier indicating what type of event was
+    deserialized.
+
+    The type hint string value could be derived from an isinstance check but then typed
+    dictionaries would not work.
+    """
+    if event["type"] == "github":
+        return deserialize_github_event(event)
+    else:
+        raise ValueError("Provider not implemented.")
+
+
 def serialize_event(event: EventType, event_type: EventTypeHint) -> bytes:
+    """
+    EventType serialization function. Serializes a payload based on its type hint. Again could be
+    handled by an isinstance check. Or a type protocol which enforces that EventTypes provide a
+    serialization method.
+    """
     if event_type == "check_run":
         return serialize_check_run_event(event)
     elif event_type == "comment":

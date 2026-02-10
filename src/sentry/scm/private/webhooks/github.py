@@ -51,7 +51,7 @@ class GitHubCheckRun(msgspec.Struct, gc=False):
 check_run_decoder = msgspec.json.Decoder(GitHubCheckRunEvent)
 
 
-def parse_github_check_run_event(event: SubscriptionEvent) -> CheckRunEvent:
+def deserialize_github_check_run_event(event: SubscriptionEvent) -> CheckRunEvent:
     e = check_run_decoder.decode(event["event"])
 
     return CheckRunEvent(
@@ -97,7 +97,7 @@ class GitHubIssueCommentPullRequest(msgspec.Struct, gc=False):
 issue_comment_decoder = msgspec.json.Decoder(GitHubIssueCommentEvent)
 
 
-def parse_github_comment_event(event: SubscriptionEvent) -> CommentEvent:
+def deserialize_github_comment_event(event: SubscriptionEvent) -> CommentEvent:
     e = issue_comment_decoder.decode(event["event"])
 
     return CommentEvent(
@@ -159,7 +159,7 @@ class GitHubPullRequestHeadRepo(msgspec.Struct, gc=False):
 pull_request_decoder = msgspec.json.Decoder(GitHubPullRequestEvent)
 
 
-def parse_github_pull_request_event(event: SubscriptionEvent) -> PullRequestEvent:
+def deserialize_github_pull_request_event(event: SubscriptionEvent) -> PullRequestEvent:
     e = pull_request_decoder.decode(event["event"])
 
     return PullRequestEvent(
@@ -177,7 +177,7 @@ def parse_github_pull_request_event(event: SubscriptionEvent) -> PullRequestEven
     )
 
 
-def parse_github_event_type_hint(event: SubscriptionEvent) -> EventTypeHint:
+def deserialize_github_event_type_hint(event: SubscriptionEvent) -> EventTypeHint:
     if event["event_type_hint"] == "pull_request":
         return "pull_request"
     elif event["event_type_hint"] == "comment":
@@ -188,16 +188,16 @@ def parse_github_event_type_hint(event: SubscriptionEvent) -> EventTypeHint:
         return "unknown"
 
 
-def parse_github_event(event: SubscriptionEvent) -> tuple[EventTypeHint, EventType]:
-    event_type_hint = parse_github_event_type_hint(event)
+def deserialize_github_event(event: SubscriptionEvent) -> tuple[EventType, EventTypeHint]:
+    event_type_hint = deserialize_github_event_type_hint(event)
 
     if event_type_hint == "pull_request":
-        parsed_event = parse_github_pull_request_event(event)
+        parsed_event = deserialize_github_pull_request_event(event)
     elif event_type_hint == "comment":
-        parsed_event = parse_github_comment_event(event)
+        parsed_event = deserialize_github_comment_event(event)
     elif event_type_hint == "check_run":
-        parsed_event = parse_github_check_run_event(event)
+        parsed_event = deserialize_github_check_run_event(event)
     else:
         parsed_event = event
 
-    return event_type_hint, parsed_event
+    return parsed_event, event_type_hint

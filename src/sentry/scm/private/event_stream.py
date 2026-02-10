@@ -1,12 +1,10 @@
 from collections.abc import Callable
 from typing import TypedDict, get_args
 
-from sentry.scm.private.ipc import serialize_event
-from sentry.scm.private.webhooks.github import parse_github_event
+from sentry.scm.private.ipc import deserialize_raw_event, serialize_event
 from sentry.scm.types import (
     CheckRunEvent,
     CommentEvent,
-    EventType,
     EventTypeHint,
     HybridCloudSilo,
     PullRequestEvent,
@@ -56,13 +54,6 @@ class SourceCodeManagerEventStream:
         return fn
 
 
-def serialize_provider_event(event: SubscriptionEvent) -> tuple[EventTypeHint, EventType]:
-    if event["type"] == "github":
-        return parse_github_event(event)
-    else:
-        raise ValueError("Provider not implemented.")
-
-
 def produce_to_listeners(
     event: SubscriptionEvent,
     silo: HybridCloudSilo,
@@ -76,7 +67,7 @@ def produce_to_listeners(
     :param silo: Events are processed in the hybrid-cloud silo they are received in.
     :param produce_to_listener:
     """
-    event_type_hint, parsed_event = serialize_provider_event(event)
+    parsed_event, event_type_hint = deserialize_raw_event(event)
     message = serialize_event(parsed_event, event_type_hint)
 
     for listener in scm_event_stream.listeners[event_type_hint].keys():
