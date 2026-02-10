@@ -51,6 +51,7 @@ describe('useUrlConversationDrawer', () => {
     const {result} = renderHook(() => useUrlConversationDrawer());
 
     result.current.openDrawer(() => null, {
+      ariaLabel: 'Conversation Drawer',
       conversationId: 'conversation-1',
       startTimestamp: 1,
       endTimestamp: 2,
@@ -68,6 +69,7 @@ describe('useUrlConversationDrawer', () => {
     const {result} = renderHook(() => useUrlConversationDrawer());
 
     result.current.openDrawer(() => null, {
+      ariaLabel: 'Conversation Drawer',
       conversationId: 'conversation-1',
       focusedTool: 'weather-tool',
     });
