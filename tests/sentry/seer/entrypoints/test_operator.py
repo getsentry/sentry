@@ -255,3 +255,39 @@ class SeerOperatorTest(TestCase):
         payload = call_kwargs["payload"]
         assert payload["type"] == "select_root_cause"
         assert payload["stopping_point"] == "code_changes"
+
+    def test_can_trigger_autofix_returns_false_without_seer_access(self):
+        assert SeerOperator.can_trigger_autofix(group=self.group) is False
+
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    def test_can_trigger_autofix_returns_true_when_all_conditions_met(self, mock_quota):
+        with self.feature(
+            {
+                "organizations:gen-ai-features": True,
+                "organizations:gen-ai-consent-flow-removal": True,
+            }
+        ):
+            assert SeerOperator.can_trigger_autofix(group=self.group) is True
+
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    def test_can_trigger_autofix_returns_false_for_ineligible_category(self, mock_quota):
+        from sentry.issues.grouptype import FeedbackGroup
+
+        feedback_group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
+        with self.feature(
+            {
+                "organizations:gen-ai-features": True,
+                "organizations:gen-ai-consent-flow-removal": True,
+            }
+        ):
+            assert SeerOperator.can_trigger_autofix(group=feedback_group) is False
+
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
+    def test_can_trigger_autofix_returns_false_without_quota(self, mock_quota):
+        with self.feature(
+            {
+                "organizations:gen-ai-features": True,
+                "organizations:gen-ai-consent-flow-removal": True,
+            }
+        ):
+            assert SeerOperator.can_trigger_autofix(group=self.group) is False
