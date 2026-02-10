@@ -289,7 +289,8 @@ def create_preprod_status_check_task(
                     )
                     return
 
-                _write_posted_status_claim(preprod_artifact, status.value)
+                is_terminal = _all_artifacts_terminal(all_artifacts, size_metrics_map)
+                _update_posted_status_claim(preprod_artifact, status.value, is_terminal)
         except UnableToAcquireLock:
             logger.warning(
                 "preprod.status_checks.create.lock_timeout",
@@ -315,7 +316,7 @@ def create_preprod_status_check_task(
             include_approve_action=bool(triggered_rules),
         )
     except Exception as e:
-        _clear_posted_status_claim(preprod_artifact)
+        _update_posted_status_claim(preprod_artifact)
         extra: dict[str, Any] = {
             "artifact_id": preprod_artifact.id,
             "organization_id": preprod_artifact.project.organization_id,
@@ -350,6 +351,7 @@ def create_preprod_status_check_task(
         success=True,
         check_id=check_id,
         posted_status=status.value,
+        is_terminal=_all_artifacts_terminal(all_artifacts, size_metrics_map),
     )
 
     logger.info(
@@ -371,6 +373,7 @@ def _update_posted_status_check(
     check_id: str | None = None,
     error: Exception | None = None,
     posted_status: str | None = None,
+    is_terminal: bool = False,
 ) -> None:
     """Update the posted_status_checks field in the artifact's extras."""
     with transaction.atomic(router.db_for_write(PreprodArtifact)):
@@ -384,6 +387,7 @@ def _update_posted_status_check(
             check_result["check_id"] = check_id
         if success and posted_status:
             check_result["posted_status"] = posted_status
+            check_result["is_terminal"] = is_terminal
         if not success:
             check_result["error_type"] = _get_error_type(error).value
 
@@ -525,6 +529,25 @@ def _has_no_quota_artifact(
     )
 
 
+def _all_artifacts_terminal(
+    all_artifacts: list[PreprodArtifact],
+    size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
+) -> bool:
+    for artifact in all_artifacts:
+        if artifact.state in (
+            PreprodArtifact.ArtifactState.UPLOADING,
+            PreprodArtifact.ArtifactState.UPLOADED,
+        ):
+            return False
+        for m in size_metrics_map.get(artifact.id, []):
+            if m.state in (
+                PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
+            ):
+                return False
+    return True
+
+
 def _should_skip_status_check(
     all_artifacts: list[PreprodArtifact],
     extras_by_artifact_id: dict[int, dict[str, Any] | None],
@@ -538,6 +561,7 @@ def _should_skip_status_check(
     try:
         any_posted = False
         posted_statuses: set[str] = set()
+        any_terminal_posted = False
         for artifact_id, extras in extras_by_artifact_id.items():
             if not extras:
                 continue
@@ -547,25 +571,19 @@ def _should_skip_status_check(
             if posted:
                 any_posted = True
                 posted_statuses.add(posted)
+                if size_check.get("is_terminal"):
+                    any_terminal_posted = True
 
         if not any_posted:
             return False
 
-        for artifact in all_artifacts:
-            if artifact.state in (
-                PreprodArtifact.ArtifactState.UPLOADING,
-                PreprodArtifact.ArtifactState.UPLOADED,
-            ):
-                return True
-            metrics_list = size_metrics_map.get(artifact.id, [])
-            for m in metrics_list:
-                if m.state in (
-                    PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
-                    PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
-                ):
-                    return True
+        if not _all_artifacts_terminal(all_artifacts, size_metrics_map):
+            return True
 
-        if status.value in posted_statuses:
+        # We need is_terminal to distinguish "posted NEUTRAL while still processing" from
+        # "posted NEUTRAL with final results". Without it, no-rules customers (always NEUTRAL)
+        # would have their terminal post skipped because the status string matches.
+        if any_terminal_posted and status.value in posted_statuses:
             return True
 
         return False
@@ -574,28 +592,26 @@ def _should_skip_status_check(
         return False
 
 
-def _write_posted_status_claim(preprod_artifact: PreprodArtifact, posted_status: str) -> None:
-    """Write posted_status claim into artifact extras inside the lock window."""
+def _update_posted_status_claim(
+    preprod_artifact: PreprodArtifact,
+    posted_status: str | None = None,
+    is_terminal: bool = False,
+) -> None:
+    """Write or clear the posted_status claim in artifact extras.
+
+    When posted_status is provided, writes the claim. When None, clears it.
+    """
     with transaction.atomic(router.db_for_write(PreprodArtifact)):
         artifact = PreprodArtifact.objects.select_for_update().get(id=preprod_artifact.id)
         extras = artifact.extras or {}
         posted_status_checks = extras.get("posted_status_checks", {})
         size_check = posted_status_checks.get("size", {})
-        size_check["posted_status"] = posted_status
-        posted_status_checks["size"] = size_check
-        extras["posted_status_checks"] = posted_status_checks
-        artifact.extras = extras
-        artifact.save(update_fields=["extras"])
-
-
-def _clear_posted_status_claim(preprod_artifact: PreprodArtifact) -> None:
-    """Remove posted_status claim from artifact extras so a retry can post."""
-    with transaction.atomic(router.db_for_write(PreprodArtifact)):
-        artifact = PreprodArtifact.objects.select_for_update().get(id=preprod_artifact.id)
-        extras = artifact.extras or {}
-        posted_status_checks = extras.get("posted_status_checks", {})
-        size_check = posted_status_checks.get("size", {})
-        size_check.pop("posted_status", None)
+        if posted_status is None:
+            size_check.pop("posted_status", None)
+            size_check.pop("is_terminal", None)
+        else:
+            size_check["posted_status"] = posted_status
+            size_check["is_terminal"] = is_terminal
         posted_status_checks["size"] = size_check
         extras["posted_status_checks"] = posted_status_checks
         artifact.extras = extras

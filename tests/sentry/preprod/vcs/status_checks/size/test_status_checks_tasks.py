@@ -1674,7 +1674,9 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
     def test_rerun_always_posts(self):
         """Rerun endpoint always posts even when a terminal status was already posted."""
-        terminal_extras = {"posted_status_checks": {"size": {"posted_status": "neutral"}}}
+        terminal_extras = {
+            "posted_status_checks": {"size": {"posted_status": "neutral", "is_terminal": True}}
+        }
         _, artifacts, mock_provider, client_patch, provider_patch = self._create_multi_app_commit(
             [
                 {
@@ -1703,7 +1705,9 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             '[{"id": "rule1", "metric": "install_size", "measurement": "absolute", "value": 1}]',
         )
 
-        failure_extras = {"posted_status_checks": {"size": {"posted_status": "failure"}}}
+        failure_extras = {
+            "posted_status_checks": {"size": {"posted_status": "failure", "is_terminal": True}}
+        }
         _, artifacts, mock_provider, client_patch, provider_patch = self._create_multi_app_commit(
             [
                 {
@@ -1792,6 +1796,69 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         with client_patch, provider_patch:
             with self.tasks():
                 # Second call when PROCESSED → SUCCESS (different from IN_PROGRESS)
+                create_preprod_status_check_task(artifact.id)
+
+        assert mock_provider.create_status_check.call_count == 2
+
+    def test_no_rules_still_two_posts(self):
+        """No-rules customers (always NEUTRAL) still get both in-progress and terminal posts."""
+        commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha=uuid.uuid4().hex[:40],
+            base_sha=uuid.uuid4().hex[:40],
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/no-rules",
+            base_ref="main",
+        )
+
+        artifact = Factories.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADING,
+            app_id="com.norules",
+            commit_comparison=commit_comparison,
+        )
+
+        repository = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=123,
+        )
+
+        mock_client = Mock()
+        mock_provider = Mock()
+        mock_provider.create_status_check.return_value = "check_12345"
+
+        client_patch = patch(
+            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_client",
+            return_value=(mock_client, repository),
+        )
+        provider_patch = patch(
+            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_provider",
+            return_value=mock_provider,
+        )
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                # First call while UPLOADING → NEUTRAL (no rules)
+                create_preprod_status_check_task(artifact.id)
+
+        assert mock_provider.create_status_check.call_count == 1
+        assert (
+            mock_provider.create_status_check.call_args.kwargs["status"]
+            == StatusCheckStatus.NEUTRAL
+        )
+
+        # Transition to PROCESSED with completed metrics
+        artifact.state = PreprodArtifact.ArtifactState.PROCESSED
+        artifact.save(update_fields=["state"])
+        Factories.create_preprod_artifact_size_metrics(artifact=artifact)
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                # Second call when PROCESSED → still NEUTRAL but with updated content
                 create_preprod_status_check_task(artifact.id)
 
         assert mock_provider.create_status_check.call_count == 2
