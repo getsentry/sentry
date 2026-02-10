@@ -12,7 +12,9 @@ import os
 _xdist_worker = os.environ.get("PYTEST_XDIST_WORKER")
 if _xdist_worker and os.environ.get("XDIST_PER_WORKER_SNUBA"):
     _worker_num = int(_xdist_worker.replace("gw", ""))
-    os.environ["SNUBA"] = f"http://127.0.0.1:{1230 + _worker_num}"
+    _per_worker_url = f"http://127.0.0.1:{1230 + _worker_num}"
+    os.environ["SNUBA"] = _per_worker_url
+    print(f"[xdist-snuba] {_xdist_worker}: env SNUBA={_per_worker_url}", flush=True)
 
 import collections
 import random
@@ -682,17 +684,22 @@ def _xdist_per_worker_snuba():
     """
     worker_id = os.environ.get("PYTEST_XDIST_WORKER")
     if not worker_id or not os.environ.get("XDIST_PER_WORKER_SNUBA"):
+        print(f"[xdist-snuba] session fixture: SKIPPED (worker={worker_id}, env={os.environ.get('XDIST_PER_WORKER_SNUBA')})", flush=True)
         return
 
     worker_num = int(worker_id.replace("gw", ""))
     worker_snuba_url = f"http://127.0.0.1:{1230 + worker_num}"
+
+    from sentry.utils import snuba as _snuba_mod
+
+    old_pool_url = getattr(_snuba_mod._snuba_pool, 'host', 'unknown')
+    print(f"[xdist-snuba] session fixture: {worker_id} BEFORE settings.SENTRY_SNUBA={settings.SENTRY_SNUBA}, pool_host={old_pool_url}", flush=True)
 
     # Override settings.SENTRY_SNUBA (used by reset_snuba fixture via call_snuba)
     settings.SENTRY_SNUBA = worker_snuba_url
 
     # Replace _snuba_pool (used for all Snuba queries and writes)
     from sentry.net.http import connection_from_url as _cfurl
-    from sentry.utils import snuba as _snuba_mod
 
     _snuba_mod._snuba_pool = _cfurl(
         worker_snuba_url,
@@ -700,6 +707,8 @@ def _xdist_per_worker_snuba():
         timeout=settings.SENTRY_SNUBA_TIMEOUT,
         maxsize=10,
     )
+    new_pool_url = getattr(_snuba_mod._snuba_pool, 'host', 'unknown')
+    print(f"[xdist-snuba] session fixture: {worker_id} AFTER settings.SENTRY_SNUBA={settings.SENTRY_SNUBA}, pool_host={new_pool_url}", flush=True)
 
 
 def pytest_xdist_setupnodes() -> None:
