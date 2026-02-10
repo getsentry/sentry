@@ -177,6 +177,11 @@ export function BaseServerTree({
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
 
+  let finalQuery = 'span.op:function.nextjs';
+  if (query) {
+    finalQuery += ` ${query}`;
+  }
+
   const treeRequest = useApiQuery<TreeResponse>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/insights/tree/', {
@@ -189,7 +194,7 @@ export function BaseServerTree({
           noPagination: true,
           useRpc: true,
           dataset: 'spans',
-          query: `span.op:function.nextjs ${query}`,
+          query: finalQuery,
           field: [
             'count()',
             'span.description',
