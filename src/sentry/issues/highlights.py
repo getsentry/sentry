@@ -39,8 +39,12 @@ DEFAULT_HIGHLIGHT_TAGS = ["handled", "level"]
 DEFAULT_HIGHLIGHT_CTX = {"trace": ["trace_id"]}
 
 MOBILE_HIGHLIGHTS: HighlightPreset = {
-    "tags": DEFAULT_HIGHLIGHT_TAGS + ["mobile", "main_thread"],
-    "context": {**DEFAULT_HIGHLIGHT_CTX, "profile": ["profile_id"], "app": ["name"]},
+    "tags": DEFAULT_HIGHLIGHT_TAGS + ["device.class", "release", "main_thread", "user"],
+    "context": {
+        "device": ["low_memory", "locale"],
+        "app": ["in_foreground"],
+        "user": ["geo.country_code"],
+    },
 }
 FALLBACK_HIGHLIGHTS: HighlightPreset = {
     "tags": DEFAULT_HIGHLIGHT_TAGS + ["url"],

@@ -193,6 +193,35 @@ class ProjectDetailsTest(APITestCase):
         assert resp.data["highlightContext"] == expected_preset["context"]
         assert resp.data["highlightTags"] == expected_preset["tags"]
 
+    def test_highlight_preset_mobile(self) -> None:
+        # Test mobile platform gets mobile-specific highlights
+        mobile_project = self.create_project(platform="react-native")
+        resp = self.get_success_response(mobile_project.organization.slug, mobile_project.slug)
+        expected_preset = get_highlight_preset_for_project(mobile_project)
+        
+        # Verify mobile-specific tags are included
+        assert "device.class" in expected_preset["tags"]
+        assert "release" in expected_preset["tags"]
+        assert "main_thread" in expected_preset["tags"]
+        assert "user" in expected_preset["tags"]
+        
+        # Verify mobile-specific context keys are included
+        assert "device" in expected_preset["context"]
+        assert "low_memory" in expected_preset["context"]["device"]
+        assert "locale" in expected_preset["context"]["device"]
+        assert "app" in expected_preset["context"]
+        assert "in_foreground" in expected_preset["context"]["app"]
+        assert "user" in expected_preset["context"]
+        assert "geo.country_code" in expected_preset["context"]["user"]
+        
+        # Verify removed items are not present
+        assert "trace" not in expected_preset["context"]
+        assert "profile" not in expected_preset["context"]
+        
+        assert resp.data["highlightPreset"] == expected_preset
+        assert resp.data["highlightContext"] == expected_preset["context"]
+        assert resp.data["highlightTags"] == expected_preset["tags"]
+
     def test_is_dynamically_sampled_pan_rate(self) -> None:
         # test with feature flags disabled
         with self.feature("organizations:dynamic-sampling"):
