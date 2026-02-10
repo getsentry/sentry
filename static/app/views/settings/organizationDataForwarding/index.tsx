@@ -101,7 +101,7 @@ export default function OrganizationDataForwarding() {
           <Flex direction="column" gap="sm">
             <Flex align="center" gap="lg">
               <Heading as="h1">{t('Data Forwarding')}</Heading>
-              <FeatureBadge type="new" />
+              <FeatureBadge type="beta" />
             </Flex>
             <Text variant="muted">
               {tct(

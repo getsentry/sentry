@@ -102,6 +102,7 @@ from sentry.seer.explorer.tools import (
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.issue_detection import create_issue_occurrence
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
+from sentry.seer.utils import filter_repo_by_provider
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
@@ -630,15 +631,7 @@ def validate_repo(
         {"valid": True, "integration_id": <int|None>} if valid
         {"valid": False, "reason": <str>} if invalid
     """
-    expected_name = f"{owner}/{name}"
-
-    repo = Repository.objects.filter(
-        Q(provider=provider) | Q(provider=f"integrations:{provider}"),
-        organization_id=organization_id,
-        external_id=external_id,
-        name=expected_name,
-        status=ObjectStatus.ACTIVE,
-    ).first()
+    repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
 
     if not repo:
         return {"valid": False, "reason": "repository_not_found"}

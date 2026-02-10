@@ -19,7 +19,12 @@ class DataForwardingDetailsEndpointTest(APITestCase):
         """
         Override get_response to always add the required feature flag.
         """
-        with self.feature({"organizations:data-forwarding": True}):
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": True,
+                "organizations:data-forwarding": True,
+            }
+        ):
             return super().get_response(*args, **kwargs)
 
 
@@ -27,13 +32,35 @@ class DataForwardingDetailsEndpointTest(APITestCase):
 class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
     method = "PUT"
 
+    def test_without_revamp_feature_flag_access(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "old_key"},
+            is_enabled=True,
+        )
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": False,
+                "organizations:data-forwarding": True,
+            }
+        ):
+            response = self.client.put(
+                reverse(self.endpoint, args=(self.organization.slug, data_forwarder.id))
+            )
+            assert response.status_code == 403
+
     def test_without_data_forwarding_feature_flag_access(self) -> None:
         data_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "old_key"},
             is_enabled=True,
         )
-        with self.feature({"organizations:data-forwarding": False}):
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": True,
+                "organizations:data-forwarding": False,
+            }
+        ):
             response = self.client.put(
                 reverse(self.endpoint, args=(self.organization.slug, data_forwarder.id))
             )
@@ -58,9 +85,10 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
             "project_ids": [self.project.id],
         }
 
-        response = self.get_success_response(
-            self.organization.slug, data_forwarder.id, status_code=200, **payload
-        )
+        with self.feature({"organizations:data-forwarding-revamp-access": True}):
+            response = self.get_success_response(
+                self.organization.slug, data_forwarder.id, status_code=200, **payload
+            )
 
         assert response.data["config"] == {"write_key": "new_key"}
         assert not response.data["isEnabled"]
@@ -578,6 +606,23 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
 class DataForwardingDetailsDeleteTest(DataForwardingDetailsEndpointTest):
     method = "DELETE"
 
+    def test_without_revamp_feature_flag_access(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "old_key"},
+            is_enabled=True,
+        )
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": False,
+                "organizations:data-forwarding": True,
+            }
+        ):
+            response = self.client.delete(
+                reverse(self.endpoint, args=(self.organization.slug, data_forwarder.id))
+            )
+            assert response.status_code == 403
+
     def test_without_data_forwarding_feature_flag_access(self) -> None:
         data_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
@@ -586,6 +631,7 @@ class DataForwardingDetailsDeleteTest(DataForwardingDetailsEndpointTest):
         )
         with self.feature(
             {
+                "organizations:data-forwarding-revamp-access": True,
                 "organizations:data-forwarding": False,
             }
         ):

@@ -132,8 +132,11 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           title: t('Data Forwarding'),
           description: t('Manage data forwarding across your organization'),
           id: 'data-forwarding',
-          badge: () => <FeatureBadge type="new" />,
+          badge: () => <FeatureBadge type="beta" />,
           recordAnalytics: true,
+          show: ({organization}) =>
+            !!organization &&
+            organization.features.includes('data-forwarding-revamp-access'),
         },
         {
           path: `${organizationSettingsPathPrefix}/relay/`,
