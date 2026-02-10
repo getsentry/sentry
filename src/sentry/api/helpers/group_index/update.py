@@ -347,7 +347,7 @@ def get_group_list(
 
     Returns: List of Group objects filtered to only valid groups in the org/projects
     """
-    groups = []
+    groups: list[Group] = []
     project_ids = {p.id for p in projects}
 
     # Separate integer IDs from qualified short IDs
