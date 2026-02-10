@@ -7,13 +7,7 @@ import {
   type DataUnit,
 } from 'sentry/utils/discover/fields';
 import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
-import type {Widget} from 'sentry/views/dashboards/types';
-import {DisplayType} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
-import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
-import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
-import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 /**
@@ -97,27 +91,6 @@ function createEventsStatsFromSeries(
       tips: {columns: undefined, query: undefined},
     },
   };
-}
-
-export function createPlottableFromTimeSeries(
-  timeSeries: TimeSeries,
-  widget: Widget,
-  alias?: string,
-  name?: string
-): Plottable | null {
-  const shouldStack = widget.queries[0]?.columns.length! > 0;
-
-  const {displayType, title} = widget;
-  switch (displayType) {
-    case DisplayType.LINE:
-      return new Line(timeSeries, {alias, name});
-    case DisplayType.AREA:
-      return new Area(timeSeries, {alias, name});
-    case DisplayType.BAR:
-      return new Bars(timeSeries, {stack: shouldStack ? title : undefined, alias, name});
-    default:
-      return null;
-  }
 }
 
 function mapAggregationTypeToValueTypeAndUnit(

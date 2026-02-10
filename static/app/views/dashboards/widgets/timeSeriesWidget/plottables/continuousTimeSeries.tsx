@@ -23,7 +23,8 @@ export type ContinuousTimeSeriesConfig = {
   color?: string;
   /**
    * Optional name override. If not provided, the name will be computed from the `TimeSeries` yAxis and groupBy.
-   * This is used for ECharts series identification and tooltip display.
+   * This is used for ECharts series identification (e.g. legend/tooltip lookup). Tooltips display the `timeSeries.label`
+   * (alias or computed from `formatTimeSeriesLabel`), not this name.
    */
   name?: string;
   /**
