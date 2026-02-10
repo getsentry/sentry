@@ -20,7 +20,7 @@ import type {
   TabularData,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
-import {Actions, copyToClipboard} from 'sentry/views/discover/table/cellAction';
+import {Actions} from 'sentry/views/discover/table/cellAction';
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 
@@ -389,7 +389,6 @@ export default function AttributeBreakdownViewerModal(props: Props) {
                   closeModal();
                   return;
                 case Actions.COPY_TO_CLIPBOARD:
-                  copyToClipboard(value);
                   closeModal();
                   return;
                 default:
