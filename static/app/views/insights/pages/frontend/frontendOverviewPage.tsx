@@ -62,8 +62,8 @@ import useHasPlatformizedFrontendOverview from 'sentry/views/insights/pages/fron
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
 import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
-import {PlatformizedNextjsFrontendOverviewPage} from 'sentry/views/insights/pages/platform/nextjs/platformizedNextjsFrontendOverviewPage';
-import useHasPlatformizedNextjsFrontendOverview from 'sentry/views/insights/pages/platform/nextjs/useHasPlatformizedNextjsFrontendOverview';
+import {PlatformizedNextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs/platformizedNextJsOverviewPage';
+import useHasPlatformizedNextJsOverview from 'sentry/views/insights/pages/platform/nextjs/useHasPlatformizedNextJsOverview';
 import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
@@ -252,16 +252,15 @@ function FrontendOverviewPageWithProviders() {
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   const hasPlatformizedFrontendOverview = useHasPlatformizedFrontendOverview();
-  const hasPlatformizedNextjsFrontendOverview =
-    useHasPlatformizedNextjsFrontendOverview();
+  const hasPlatformizedNextJsOverview = useHasPlatformizedNextJsOverview();
   const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
   const useEap = useInsightsEap();
 
   let overviewPage = (
     <Am1FrontendOverviewPage datePageFilterProps={datePageFilterProps} />
   );
-  if (isNextJsPageEnabled && hasPlatformizedNextjsFrontendOverview) {
-    overviewPage = <PlatformizedNextjsFrontendOverviewPage />;
+  if (isNextJsPageEnabled && hasPlatformizedNextJsOverview) {
+    overviewPage = <PlatformizedNextJsOverviewPage />;
   } else if (isNextJsPageEnabled) {
     overviewPage = <NextJsOverviewPage datePageFilterProps={datePageFilterProps} />;
   } else if (useEap && hasPlatformizedFrontendOverview) {
