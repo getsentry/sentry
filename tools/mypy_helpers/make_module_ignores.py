@@ -32,13 +32,9 @@ def main() -> int:
 
     mods = []
     for filename in sorted(filenames):
-        # TODO: removeprefix / removesuffix python 3.9+
-        if filename.endswith(".py"):
-            filename = filename[: -len(".py")]
-        if filename.startswith("src/"):
-            filename = filename[len("src/") :]
-        if filename.endswith("/__init__"):
-            filename = filename[: -len("/__init__")]
+        filename = filename.removesuffix(".py")
+        filename = filename.removeprefix("src/")
+        filename = filename.removesuffix("/__init__")
         mods.append(filename.replace("/", "."))
     mods_s = "".join(f'    "{mod}",\n' for mod in mods)
     codes_s = "".join(f'    "{code}",\n' for code in sorted(codes))
