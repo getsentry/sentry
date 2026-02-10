@@ -28,7 +28,7 @@ class DatabaseBackedActionService(ActionService):
             dataconditiongroupaction__condition_group__organization_id=organization_id,
         ).update(status=status)
 
-    def update_action_status_for_sentry_app_via_uuid(
+    def update_action_status_for_sentry_app_installation(
         self,
         *,
         organization_id: int,
@@ -42,7 +42,7 @@ class DatabaseBackedActionService(ActionService):
             dataconditiongroupaction__condition_group__organization_id=organization_id,
         ).update(status=status)
 
-    def update_action_status_for_sentry_app_via_uuid__region(
+    def update_action_status_for_sentry_app_installation__region(
         self,
         *,
         region_name: str,
