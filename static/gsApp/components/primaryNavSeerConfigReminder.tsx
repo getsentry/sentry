@@ -164,7 +164,7 @@ function useReminderCopywriting() {
         'Seer is enabled but Code Review is not configured for any repos. Configure Seer to automatically review PRs and flag potential issues.'
       ),
       pathname: hasLegacySeer
-        ? `/settings/${organization.slug}/seer/repos/`
+        ? `/settings/${organization.slug}/seer/?tab=repos`
         : `/settings/${organization.slug}/seer/onboarding/`,
     },
     [Steps.SETUP_DEFAULTS]: null,
