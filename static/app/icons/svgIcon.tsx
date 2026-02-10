@@ -66,8 +66,8 @@ SvgIcon.ICON_DIRECTION_TO_ROTATION_ANGLE = ICON_DIRECTION_TO_ROTATION_ANGLE;
 const ICON_SIZES: Record<IconSize, string> = {
   '2xs': '8px',
   xs: '12px',
-  sm: '14px',
-  md: '16px',
+  sm: '16px',
+  md: '20px',
   lg: '24px',
   xl: '32px',
   '2xl': '72px',
