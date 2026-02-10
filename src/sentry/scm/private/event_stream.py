@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from typing import TypedDict, get_args
 
 from sentry.scm.private.ipc import deserialize_raw_event, serialize_event
 from sentry.scm.types import (
@@ -14,43 +13,25 @@ from sentry.scm.types import (
 type CheckRunEventListener = Callable[[CheckRunEvent], None]
 type CommentEventListener = Callable[[CommentEvent], None]
 type PullRequestEventListener = Callable[[PullRequestEvent], None]
-type UnknownEventListener = Callable[[SubscriptionEvent], None]
-
-
-class EventListeners(TypedDict):
-    check_run: dict[str, CheckRunEventListener]
-    comment: dict[str, CommentEventListener]
-    pull_request: dict[str, PullRequestEventListener]
-    unknown: dict[str, UnknownEventListener]
 
 
 class SourceCodeManagerEventStream:
 
     def __init__(self):
-        self.listeners: EventListeners = {
-            "check_run": {},
-            "comment": {},
-            "pull_request": {},
-            "unknown": {},
-        }
-
-        for event in get_args(EventTypeHint):
-            assert event in self.listeners, f"Missing `{event}` in listeners dictionary"
+        self.check_run_listeners: dict[str, CheckRunEventListener] = {}
+        self.comment_listeners: dict[str, CommentEventListener] = {}
+        self.pull_request_listeners: dict[str, PullRequestEventListener] = {}
 
     def listen_for_check_run(self, fn: CheckRunEventListener) -> CheckRunEventListener:
-        self.listeners["check_run"][fn.__name__] = fn
+        self.check_run_listeners[fn.__name__] = fn
         return fn
 
     def listen_for_comment(self, fn: CommentEventListener) -> CommentEventListener:
-        self.listeners["comment"][fn.__name__] = fn
+        self.comment_listeners[fn.__name__] = fn
         return fn
 
     def listen_for_pull_request(self, fn: PullRequestEventListener) -> PullRequestEventListener:
-        self.listeners["pull_request"][fn.__name__] = fn
-        return fn
-
-    def listen_for_unknown(self, fn: UnknownEventListener) -> UnknownEventListener:
-        self.listeners["unknown"][fn.__name__] = fn
+        self.pull_request_listeners[fn.__name__] = fn
         return fn
 
 
