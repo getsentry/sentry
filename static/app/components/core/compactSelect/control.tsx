@@ -527,8 +527,14 @@ export function Control({
                 )}
                 {searchable && (
                   <InputGroup>
-                    <InputGroup.LeadingItems>
-                      <Flex paddingLeft="2xs" align="center" justify="center">
+                    <InputGroup.LeadingItems disablePointerEvents>
+                      <Flex
+                        paddingLeft="2xs"
+                        align="center"
+                        justify="center"
+                        // Center the icon by visual weight
+                        style={{transform: 'translateY(1px) translateX(1px)'}}
+                      >
                         <IconSearch size="xs" variant="muted" />
                       </Flex>
                     </InputGroup.LeadingItems>
@@ -642,8 +648,8 @@ const SearchInput = styled(InputGroup.Input)`
   margin: ${space(0.5)} ${space(0.5)};
 
   /* Add 1px to top margin if immediately preceded by menu header, to account for the
-  header's shadow border */
-  [data-menu-has-header='true'] > & {
+  header's shadow border. Account for InputGroup wrapper div. */
+  [data-menu-has-header='true'] > * > & {
     margin-top: calc(${space(0.5)} + 1px);
   }
 `;
