@@ -129,8 +129,8 @@ const averageTTFDLineWidget: Widget = {
   queries: [
     {
       name: 'TTFD',
-      fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
-      aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
+      fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY})`],
+      aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY})`],
       columns: [],
       fieldAliases: [],
       conditions: TRANSACTION_CONDITION,
@@ -193,7 +193,7 @@ const TTIDBarChartWidget: Widget = {
       columns: [SpanFields.DEVICE_CLASS],
       fieldAliases: ['Device Class', 'AVG TTID'],
       conditions: TRANSACTION_CONDITION,
-      orderby: `-avg(${SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY})`,
+      orderby: `${SpanFields.DEVICE_CLASS}`,
     },
   ],
   layout: {
@@ -218,13 +218,13 @@ const TTFDBarChartWidget: Widget = {
       name: '',
       fields: [
         SpanFields.DEVICE_CLASS,
-        `avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`,
+        `avg(${SpanFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY})`,
       ],
-      aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
+      aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY})`],
       columns: [SpanFields.DEVICE_CLASS],
       fieldAliases: ['Device Class', 'AVG TTFD'],
       conditions: TRANSACTION_CONDITION,
-      orderby: `-avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`,
+      orderby: `${SpanFields.DEVICE_CLASS}`,
     },
   ],
   layout: {
