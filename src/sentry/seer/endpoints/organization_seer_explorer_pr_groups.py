@@ -46,11 +46,8 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
         """
 
         # get_projects() parses ?project= from the query string, validates that
-        # each project belongs to this org, and checks user access (prevents IDOR).
-        # Raises PermissionDenied if any project is inaccessible.
+        # each project belongs to this org, and checks user access.
         projects = self.get_projects(request, organization)
-        if not projects:
-            return Response([])
         project_ids = [p.id for p in projects]
 
         start, end = get_date_range_from_stats_period(request.GET, optional=True)
