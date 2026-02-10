@@ -74,7 +74,6 @@ export default function GroupUptimeChecks() {
       }}
     >
       <UptimeChecksGrid
-        project={group.project}
         traceSampling={uptimeDetector.dataSources[0].queryObj.traceSampling}
         uptimeChecks={uptimeChecks}
       />
