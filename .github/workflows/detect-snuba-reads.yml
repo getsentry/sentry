@@ -6,6 +6,9 @@ name: '[One-shot] Detect Snuba reads'
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - mchen/detect-snuba-reads
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
