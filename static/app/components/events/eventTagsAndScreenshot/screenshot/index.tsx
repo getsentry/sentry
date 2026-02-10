@@ -3,8 +3,8 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {useRole} from 'sentry/components/acl/useRole';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -123,7 +123,7 @@ function Screenshot({
       </StyledPanelBody>
       {!onlyRenderScreenshot && (
         <StyledPanelFooter>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <Button
               size="xs"
               onClick={() =>
@@ -167,7 +167,7 @@ function Screenshot({
                 },
               ]}
             />
-          </ButtonBar>
+          </Grid>
         </StyledPanelFooter>
       )}
     </StyledPanel>

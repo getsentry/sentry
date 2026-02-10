@@ -26,7 +26,7 @@ export function TraceLinksNavigation({
 
   return (
     <div>
-      <ButtonBar merged gap="0">
+      <ButtonBar>
         <TraceLinkNavigationButton
           direction="previous"
           attributes={rootEventResults.data.attributes}
