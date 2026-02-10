@@ -18,15 +18,15 @@ import Confirm from 'sentry/components/confirm';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {DatePageFilter} from 'sentry/components/pageFilters/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environmentPageFilter';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/pageFilters/pageFilters/container';
 import {
   normalizeDateTimeParams,
   normalizeDateTimeString,
-} from 'sentry/components/pageFilters/pageFilters/parse';
-import {ProjectPageFilter} from 'sentry/components/pageFilters/projectPageFilter';
+} from 'sentry/components/pageFilters/parse';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {CursorHandler} from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';

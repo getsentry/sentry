@@ -3,7 +3,7 @@ import {useQueries} from '@tanstack/react-query';
 import chunk from 'lodash/chunk';
 
 import type {ApiResult} from 'sentry/api';
-import {normalizeDateTimeParams} from 'sentry/components/pageFilters/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {GroupSubstatus} from 'sentry/types/group';
 import type {Group} from 'sentry/types/group';

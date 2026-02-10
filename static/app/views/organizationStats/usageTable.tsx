@@ -7,7 +7,7 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import IdBadge from 'sentry/components/idBadge';
-import {updateProjects} from 'sentry/components/pageFilters/pageFilters';
+import {updateProjects} from 'sentry/components/pageFilters/actions';
 import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';

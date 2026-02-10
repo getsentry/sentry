@@ -5,7 +5,7 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/pageFilters/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';

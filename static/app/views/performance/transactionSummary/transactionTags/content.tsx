@@ -8,10 +8,10 @@ import {Radio} from '@sentry/scraps/radio';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/pageFilters/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environmentPageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
-import {normalizeDateTimeParams} from 'sentry/components/pageFilters/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';

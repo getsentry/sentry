@@ -3,14 +3,14 @@ import isEqual from 'lodash/isEqual';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {InitializeUrlStateParams} from 'sentry/components/pageFilters/pageFilters';
+import type {InitializeUrlStateParams} from 'sentry/components/pageFilters/actions';
 import {
   initializeUrlState,
   updateDateTime,
   updateEnvironments,
   updatePersistence,
   updateProjects,
-} from 'sentry/components/pageFilters/pageFilters';
+} from 'sentry/components/pageFilters/actions';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';

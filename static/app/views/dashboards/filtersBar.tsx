@@ -5,10 +5,10 @@ import {createParser, useQueryState} from 'nuqs';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 
-import {DatePageFilter} from 'sentry/components/pageFilters/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environmentPageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/pageFilters/projectPageFilter';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {
   DEFAULT_RELEASES_SORT,

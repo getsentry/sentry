@@ -8,11 +8,11 @@ import {Flex} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
-import type {DatePageFilterProps} from 'sentry/components/pageFilters/datePageFilter';
-import {DatePageFilter} from 'sentry/components/pageFilters/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environmentPageFilter';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/pageFilters/projectPageFilter';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TourElement} from 'sentry/components/tours/components';

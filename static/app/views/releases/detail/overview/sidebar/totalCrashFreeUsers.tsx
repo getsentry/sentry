@@ -7,7 +7,7 @@ import Count from 'sentry/components/count';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
-import {normalizeDateTimeParams} from 'sentry/components/pageFilters/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

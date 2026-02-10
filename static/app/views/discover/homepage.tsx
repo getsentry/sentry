@@ -2,12 +2,12 @@ import {useEffect} from 'react';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFiltersContainer from 'sentry/components/pageFilters/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
 import {
   getDatetimeFromState,
   normalizeDateTimeString,
-} from 'sentry/components/pageFilters/pageFilters/parse';
-import {getPageFilterStorage} from 'sentry/components/pageFilters/pageFilters/persistence';
+} from 'sentry/components/pageFilters/parse';
+import {getPageFilterStorage} from 'sentry/components/pageFilters/persistence';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';

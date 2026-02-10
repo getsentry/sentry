@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/pageFilters/parse';
+import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';

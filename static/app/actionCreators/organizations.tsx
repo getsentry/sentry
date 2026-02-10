@@ -2,7 +2,7 @@ import type {NavigateFunction} from 'react-router-dom';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {resetPageFilters} from 'sentry/components/pageFilters/pageFilters';
+import {resetPageFilters} from 'sentry/components/pageFilters/actions';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';

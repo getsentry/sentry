@@ -10,8 +10,8 @@ import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryPro
 import FormContext from 'sentry/components/forms/formContext';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
-import PageFiltersContainer from 'sentry/components/pageFilters/pageFilters/container';
-import {ProjectPageFilter} from 'sentry/components/pageFilters/projectPageFilter';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Placeholder from 'sentry/components/placeholder';
 import {Container as WorkflowEngineContainer} from 'sentry/components/workflowEngine/ui/container';

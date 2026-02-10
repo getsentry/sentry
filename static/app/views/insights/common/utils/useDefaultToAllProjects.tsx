@@ -1,7 +1,7 @@
 import {useEffect, useMemo} from 'react';
 
+import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import {updateProjects} from 'sentry/components/pageFilters/pageFilters';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 

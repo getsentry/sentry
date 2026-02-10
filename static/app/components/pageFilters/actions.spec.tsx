@@ -13,9 +13,9 @@ import {
   updateEnvironments,
   updatePersistence,
   updateProjects,
-} from 'sentry/components/pageFilters/pageFilters';
-import * as PageFilterPersistence from 'sentry/components/pageFilters/pageFilters/persistence';
-import PageFiltersStore from 'sentry/components/pageFilters/pageFiltersStore';
+} from 'sentry/components/pageFilters/actions';
+import * as PageFilterPersistence from 'sentry/components/pageFilters/persistence';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import localStorage from 'sentry/utils/localStorage';

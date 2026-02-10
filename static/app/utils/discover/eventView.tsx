@@ -8,7 +8,7 @@ import moment from 'moment-timezone';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
 import {ALL_ACCESS_PROJECTS, URL_PARAM} from 'sentry/components/pageFilters/constants';
-import {normalizeDateTimeParams} from 'sentry/components/pageFilters/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import {t} from 'sentry/locale';

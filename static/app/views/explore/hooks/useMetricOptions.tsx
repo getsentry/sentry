@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {normalizeDateTimeParams} from 'sentry/components/pageFilters/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';

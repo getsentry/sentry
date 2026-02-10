@@ -1,6 +1,6 @@
 import {createStore} from 'reflux';
 
-import {getDefaultSelection} from 'sentry/components/pageFilters/pageFilters/utils';
+import {getDefaultSelection} from 'sentry/components/pageFilters/utils';
 import type {StrictStoreDefinition} from 'sentry/stores/types';
 import type {PageFilters, PinnedPageFilter} from 'sentry/types/core';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';

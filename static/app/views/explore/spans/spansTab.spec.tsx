@@ -10,8 +10,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {DatePageFilterProps} from 'sentry/components/pageFilters/datePageFilter';
-import PageFiltersStore from 'sentry/components/pageFilters/pageFiltersStore';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKind} from 'sentry/utils/fields';

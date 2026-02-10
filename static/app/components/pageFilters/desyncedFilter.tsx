@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {
   revertToPinnedFilters,
   saveDesyncedFilters,
-} from 'sentry/components/pageFilters/pageFilters';
+} from 'sentry/components/pageFilters/actions';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';

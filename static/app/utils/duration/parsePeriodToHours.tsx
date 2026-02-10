@@ -1,4 +1,4 @@
-import {parseStatsPeriod} from 'sentry/components/pageFilters/pageFilters/parse';
+import {parseStatsPeriod} from 'sentry/components/pageFilters/parse';
 
 /**
  * This parses our period shorthand strings (e.g. <int><unit>)

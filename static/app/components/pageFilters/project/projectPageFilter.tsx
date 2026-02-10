@@ -8,11 +8,12 @@ import {LinkButton} from '@sentry/scraps/button';
 import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {DesyncedFilterMessage} from 'sentry/components/pageFilters/desyncedFilter';
 import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
 import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
-import {updateProjects} from 'sentry/components/pageFilters/pageFilters';
-import {DesyncedFilterMessage} from 'sentry/components/pageFilters/pageFilters/desyncedFilter';
+import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {IconAdd, IconOpen, IconSettings} from 'sentry/icons';
@@ -26,8 +27,6 @@ import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-
-import {ProjectPageFilterTrigger} from './trigger';
 
 export interface ProjectPageFilterProps extends Partial<
   Omit<

@@ -5,7 +5,7 @@ import {isWebVitalsEvent} from 'sentry/components/events/interfaces/performance/
 import {getTraceDateTimeRange} from 'sentry/components/events/interfaces/spans/utils';
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import {normalizeDateTimeParams} from 'sentry/components/pageFilters/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';

@@ -4,12 +4,12 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {act, fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environmentPageFilter';
 import {
   initializeUrlState,
   updateEnvironments,
-} from 'sentry/components/pageFilters/pageFilters';
-import PageFiltersStore from 'sentry/components/pageFilters/pageFiltersStore';
+} from 'sentry/components/pageFilters/actions';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 

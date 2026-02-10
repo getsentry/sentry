@@ -3,9 +3,9 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {DatePageFilter} from 'sentry/components/pageFilters/datePageFilter';
-import {initializeUrlState} from 'sentry/components/pageFilters/pageFilters';
-import PageFiltersStore from 'sentry/components/pageFilters/pageFiltersStore';
+import {initializeUrlState} from 'sentry/components/pageFilters/actions';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import OrganizationStore from 'sentry/stores/organizationStore';
 
 describe('DatePageFilter', () => {

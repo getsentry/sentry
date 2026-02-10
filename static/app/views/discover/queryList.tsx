@@ -10,7 +10,7 @@ import Feature from 'sentry/components/acl/feature';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import {resetPageFilters} from 'sentry/components/pageFilters/pageFilters';
+import {resetPageFilters} from 'sentry/components/pageFilters/actions';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';

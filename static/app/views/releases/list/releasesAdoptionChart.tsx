@@ -31,7 +31,7 @@ import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {
   normalizeDateTimeParams,
   parseStatsPeriod,
-} from 'sentry/components/pageFilters/pageFilters/parse';
+} from 'sentry/components/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';

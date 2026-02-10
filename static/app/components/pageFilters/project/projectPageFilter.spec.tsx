@@ -11,12 +11,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {
-  initializeUrlState,
-  updateProjects,
-} from 'sentry/components/pageFilters/pageFilters';
-import PageFiltersStore from 'sentry/components/pageFilters/pageFiltersStore';
-import {ProjectPageFilter} from 'sentry/components/pageFilters/projectPageFilter';
+import {initializeUrlState, updateProjects} from 'sentry/components/pageFilters/actions';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
