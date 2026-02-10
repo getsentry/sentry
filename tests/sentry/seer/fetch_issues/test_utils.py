@@ -29,6 +29,8 @@ class TestGetRepoAndProjects(TestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="123",
+            owner="getsentry",
+            name="sentry",
         )
 
         assert isinstance(result, RepoProjects)
@@ -56,6 +58,8 @@ class TestGetRepoAndProjects(TestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="123",
+            owner="getsentry",
+            name="sentry",
         )
 
         assert len(result.repo_configs) == 2
@@ -76,6 +80,8 @@ class TestGetRepoAndProjects(TestCase):
                 organization_id=self.organization.id,
                 provider="integrations:github",
                 external_id="123",
+                owner="getsentry",
+                name="sentry",
             )
 
     def test_get_repo_and_projects_unprefixed_provider(self):
@@ -91,10 +97,32 @@ class TestGetRepoAndProjects(TestCase):
             organization_id=self.organization.id,
             provider="github",
             external_id="123",
+            owner="getsentry",
+            name="sentry",
         )
 
         assert result.repo == repo
         assert len(result.projects) == 1
+
+    def test_get_repo_and_projects_with_wrong_owner_not_found(self):
+        from sentry.models.repository import Repository
+
+        repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="123",
+        )
+        self.create_code_mapping(project=self.project, repo=repo)
+
+        with pytest.raises(Repository.DoesNotExist):
+            get_repo_and_projects(
+                organization_id=self.organization.id,
+                provider="github",
+                external_id="123",
+                owner="wrong-owner",
+                name="sentry",
+            )
 
     def test_get_repo_and_projects_repo_not_found(self):
         from sentry.models.repository import Repository
@@ -104,6 +132,8 @@ class TestGetRepoAndProjects(TestCase):
                 organization_id=self.organization.id,
                 provider="integrations:github",
                 external_id="nonexistent",
+                owner="getsentry",
+                name="sentry",
             )
 
 

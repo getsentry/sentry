@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -88,8 +88,9 @@ const ProjectListWrapper = styled('div')`
   padding-right: 8px;
 `;
 
-const AvatarStyle = (p: any) => css`
-  border: 2px solid ${p.theme.tokens.border.primary};
+const AvatarStyle = (p: {theme: Theme}) => css`
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  border: 2px solid ${p.theme.tokens.background.primary};
   margin-right: -8px;
   cursor: default;
 

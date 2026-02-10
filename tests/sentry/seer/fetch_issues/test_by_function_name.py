@@ -305,6 +305,8 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
                     organization_id=self.organization.id,
                     provider="integrations:github",
                     external_id=self.gh_repo.external_id,
+                    owner="getsentry",
+                    name="sentry",
                     filename="test.py",
                     function_name="target_function",
                 )
@@ -338,6 +340,8 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
                     organization_id=self.organization.id,
                     provider="integrations:github",
                     external_id=self.gh_repo.external_id,
+                    owner="getsentry",
+                    name="sentry",
                     filename="test.py",
                     function_name="target_function",
                     max_num_issues_per_file=10,
@@ -367,6 +371,8 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
                     organization_id=self.organization.id,
                     provider="integrations:github",
                     external_id=self.gh_repo.external_id,
+                    owner="getsentry",
+                    name="sentry",
                     filename="test.py",
                     function_name="target_function",
                     run_id=12345,
@@ -393,6 +399,8 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id=self.gh_repo.external_id,
+            owner="getsentry",
+            name="sentry",
             filename="test.py",
             function_name="target_function",
         )
@@ -515,6 +523,8 @@ class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id=self.gh_repo.external_id,
+            owner="getsentry",
+            name="sentry",
         )
 
         # Test the internal function directly with real search behavior
@@ -539,6 +549,8 @@ class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id=self.gh_repo.external_id,
+            owner="getsentry",
+            name="sentry",
         )
 
         # Test the internal function with non-matching criteria
