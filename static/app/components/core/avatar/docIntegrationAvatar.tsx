@@ -1,4 +1,3 @@
-// import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {DocIntegration} from 'sentry/types/integrations';
 
 import {
