@@ -41,6 +41,11 @@ def make_event(**kwargs: Any) -> dict[str, Any]:
 
 
 class TestGetEventSeverity(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        # Clear cache to ensure test isolation
+        cache.delete(SEER_ERROR_COUNT_KEY)
+
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
         return_value=HTTPResponse(body=orjson.dumps({"severity": 0.1231})),
@@ -332,6 +337,11 @@ class TestGetEventSeverity(TestCase):
 @with_feature("projects:first-event-severity-calculation")
 @with_feature("organizations:seer-based-priority")
 class TestEventManagerSeverity(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        # Clear cache to ensure test isolation
+        cache.delete(SEER_ERROR_COUNT_KEY)
+
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
     def test_flag_on(self, mock_get_severity_score: MagicMock) -> None:
         manager = EventManager(
