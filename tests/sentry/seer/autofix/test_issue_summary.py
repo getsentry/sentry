@@ -776,16 +776,15 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     )
     @patch("sentry.seer.autofix.issue_summary.is_group_triggering_automation", return_value=True)
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
-    @patch("sentry.seer.autofix.issue_summary.is_seer_seat_based_tier_enabled", return_value=False)
     def test_without_seat_based_tier(
         self,
-        mock_seat_based,
         mock_state,
         mock_triggering,
         mock_rate,
         mock_trigger,
         mock_seat_based_tier,
     ):
+        mock_seat_based_tier.return_value = False
         with self.feature({"organizations:gen-ai-features": True}):
             run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
