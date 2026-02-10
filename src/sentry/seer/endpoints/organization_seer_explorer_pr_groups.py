@@ -38,6 +38,13 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationSeerExplorerPRGroupsPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
+        """
+        Get a list of issues that have a PR created from Seer Explorer
+
+        Query Parameters:
+            None
+        """
+
         # get_projects() parses ?project= from the query string, validates that
         # each project belongs to this org, and checks user access (prevents IDOR).
         # Raises PermissionDenied if any project is inaccessible.
