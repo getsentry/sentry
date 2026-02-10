@@ -240,14 +240,15 @@ def _launch_agents_for_repos(
 
     # Repos that were in the repos but not in the autofix state
     repos_not_found = repos - autofix_state_repos
-    logger.warning(
-        "coding_agent.post.repos_not_found",
-        extra={
-            "organization_id": organization.id,
-            "run_id": run_id,
-            "repos_not_found": repos_not_found,
-        },
-    )
+    if repos_not_found:
+        logger.warning(
+            "coding_agent.post.repos_not_found",
+            extra={
+                "organization_id": organization.id,
+                "run_id": run_id,
+                "repos_not_found": repos_not_found,
+            },
+        )
 
     validated_repos = repos - repos_not_found
 

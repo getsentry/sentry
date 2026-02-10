@@ -1,6 +1,7 @@
 import {useState} from 'react';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {
   addErrorMessage,
@@ -183,12 +184,12 @@ function CreateApplicationModal({
         />
       </Body>
       <Footer>
-        <ButtonBar gap="sm">
+        <Grid flow="column" align="center" gap="sm">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button priority="primary" type="submit">
             {t('Create Application')}
           </Button>
-        </ButtonBar>
+        </Grid>
       </Footer>
     </form>
   );

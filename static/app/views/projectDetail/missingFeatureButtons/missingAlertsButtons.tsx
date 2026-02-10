@@ -1,4 +1,5 @@
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import {t} from 'sentry/locale';
@@ -13,7 +14,7 @@ type Props = {
 
 function MissingAlertsButtons({organization, projectSlug}: Props) {
   return (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       <CreateAlertButton
         organization={organization}
         iconProps={{size: 'xs'}}
@@ -28,7 +29,7 @@ function MissingAlertsButtons({organization, projectSlug}: Props) {
       <LinkButton size="sm" external href={DOCS_URL}>
         {t('Learn More')}
       </LinkButton>
-    </ButtonBar>
+    </Grid>
   );
 }
 

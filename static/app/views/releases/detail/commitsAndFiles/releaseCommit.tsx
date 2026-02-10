@@ -64,7 +64,7 @@ export function ReleaseCommit({commit}: ReleaseCommitProps) {
       <CommitContent>
         <Message>{formatCommitMessage(commit.message)}</Message>
         <MetaWrapper>
-          <UserAvatar size={16} user={commit.author} />
+          {commit.author ? <UserAvatar size={16} user={commit.author} /> : null}
           <Meta>
             <Tooltip
               title={tct(

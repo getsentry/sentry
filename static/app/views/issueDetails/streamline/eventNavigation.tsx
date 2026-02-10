@@ -3,8 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
@@ -333,7 +333,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 </Fragment>
               )}
               {isListView && (
-                <ButtonBar>
+                <Grid flow="column" align="center" gap="md">
                   {issueTypeConfig.discover.enabled && currentTab === Tab.EVENTS && (
                     <LinkButton
                       to={{
@@ -362,7 +362,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   >
                     {t('Close')}
                   </LinkButton>
-                </ButtonBar>
+                </Grid>
               )}
             </NavigationWrapper>
           </div>
