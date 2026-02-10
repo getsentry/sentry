@@ -101,9 +101,9 @@ function useCanSeeReminder(organization: Organization) {
     [hasSeatBasedSeer, hasLegacySeer, hasCodeReviewBeta, initialStep]
   );
 
-  // if (!organization.features.includes('seer-config-reminder')) {
-  //   return {canSeeReminder: false, analyticsParams};
-  // }
+  if (!organization.features.includes('seer-config-reminder')) {
+    return {canSeeReminder: false, analyticsParams};
+  }
 
   if (!hasSeer) {
     return {canSeeReminder: false, analyticsParams};
