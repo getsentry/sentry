@@ -248,8 +248,10 @@ def apply_filters(
             values = token.value.value if token.is_in_filter else [token.value.value]
             q = Q(**{f"{db_field}__in": [_translate_size_state(v) for v in values]})
             if token.is_negation:
-                q = ~q
-            queryset = queryset.filter(q)
+                queryset = queryset.exclude(q)
+            else:
+                queryset = queryset.filter(q)
+            queryset = queryset.distinct()
             continue
 
         # We don't have to handle boolean operators or parens here
