@@ -185,6 +185,9 @@ def create_issue_category_data_condition(
     comparison = {
         "value": int(data["value"]),
     }
+    include = data.get("include")
+    if isinstance(include, bool):
+        comparison["include"] = include
 
     return DataConditionKwargs(
         type=Condition.ISSUE_CATEGORY,
