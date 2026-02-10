@@ -12,9 +12,10 @@ import {
   getSearchInExploreTarget,
   TraceDrawerActionKind,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import type {TraceWaterfallSource} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
 
 type Props = {
-  source: string;
+  source: TraceWaterfallSource;
   traceEventView: EventView;
   trace_id: string;
   replayId?: string;
