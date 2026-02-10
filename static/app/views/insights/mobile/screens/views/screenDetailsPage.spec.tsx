@@ -6,8 +6,8 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import ScreenDetailsPage from 'sentry/views/insights/mobile/screens/views/screenDetailsPage';
 
 jest.mock('sentry/utils/usePageFilters');

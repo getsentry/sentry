@@ -6,13 +6,13 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResult} from 'sentry/api';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {Organization} from 'sentry/types/organization';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import type {InfiniteData} from 'sentry/utils/queryClient';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   LOGS_AUTO_REFRESH_KEY,
   LOGS_REFRESH_INTERVAL_KEY,

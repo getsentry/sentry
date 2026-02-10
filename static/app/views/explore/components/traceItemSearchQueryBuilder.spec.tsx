@@ -1,6 +1,6 @@
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/pageFiltersStore';
 import {FieldKind} from 'sentry/utils/fields';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {TraceItemDataset} from 'sentry/views/explore/types';

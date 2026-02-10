@@ -14,7 +14,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/pageFiltersStore';
 import {
   DataConditionGroupLogicType,
   DataConditionType,

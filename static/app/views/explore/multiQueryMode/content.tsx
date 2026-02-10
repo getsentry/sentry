@@ -19,6 +19,7 @@ import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environmentPa
 import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/pageFilters/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/projectPageFilter';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -31,7 +32,6 @@ import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';

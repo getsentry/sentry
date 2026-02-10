@@ -1,7 +1,7 @@
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {type MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';

@@ -10,6 +10,7 @@ import type {DatePageFilterProps} from 'sentry/components/pageFilters/datePageFi
 import {DatePageFilter} from 'sentry/components/pageFilters/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/projectPageFilter';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -22,7 +23,6 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';

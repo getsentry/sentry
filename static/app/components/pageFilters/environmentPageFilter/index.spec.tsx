@@ -4,10 +4,13 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {act, fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {initializeUrlState, updateEnvironments} from 'sentry/actionCreators/pageFilters';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environmentPageFilter';
+import {
+  initializeUrlState,
+  updateEnvironments,
+} from 'sentry/components/pageFilters/pageFilters';
+import PageFiltersStore from 'sentry/components/pageFilters/pageFiltersStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 const organization = OrganizationFixture({features: ['open-membership']});

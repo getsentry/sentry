@@ -4,9 +4,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import BackendOverviewPage from 'sentry/views/insights/pages/backend/backendOverviewPage';
 
 jest.mock('sentry/utils/usePageFilters');

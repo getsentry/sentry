@@ -2,17 +2,17 @@ import {useCallback, useMemo} from 'react';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
-import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
 import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
+import {updateEnvironments} from 'sentry/components/pageFilters/pageFilters';
 import {DesyncedFilterMessage} from 'sentry/components/pageFilters/pageFilters/desyncedFilter';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 

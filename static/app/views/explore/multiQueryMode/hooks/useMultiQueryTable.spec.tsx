@@ -2,8 +2,8 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   useMultiQueryTableAggregateMode,

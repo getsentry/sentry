@@ -27,6 +27,7 @@ import {
   normalizeDateTimeString,
 } from 'sentry/components/pageFilters/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/projectPageFilter';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {CursorHandler} from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -60,7 +61,6 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
   DEFAULT_EVENT_VIEW,

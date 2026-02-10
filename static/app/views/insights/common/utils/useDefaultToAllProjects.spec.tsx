@@ -3,9 +3,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {updateProjects} from 'sentry/actionCreators/pageFilters';
+import {updateProjects} from 'sentry/components/pageFilters/pageFilters';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 
 jest.mock('sentry/utils/usePageFilters');

@@ -9,6 +9,7 @@ import {DatePageFilter} from 'sentry/components/pageFilters/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environmentPageFilter';
 import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/projectPageFilter';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {
   DEFAULT_RELEASES_SORT,
   RELEASES_SORT_OPTIONS,
@@ -23,7 +24,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';

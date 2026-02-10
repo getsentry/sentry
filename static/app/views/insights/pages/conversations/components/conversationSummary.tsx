@@ -8,11 +8,11 @@ import {Text} from '@sentry/scraps/text';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import Count from 'sentry/components/count';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChat, IconFire, IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {hasError} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';

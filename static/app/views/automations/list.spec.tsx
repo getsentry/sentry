@@ -19,7 +19,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersContainer from 'sentry/components/pageFilters/pageFilters/container';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import AutomationsList from 'sentry/views/automations/list';
 
