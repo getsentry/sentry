@@ -1430,12 +1430,21 @@ not a functional requirement. The per-test project isolation from `TransactionTe
 already prevents state leaks. Relay has no global mutable state that would carry between
 tests using different project IDs.
 
-#### Experiment: Change to Class Scope
+#### Experiment: Change to Class Scope — FAILED
 
-Changing `relay_server` to `scope="class"` starts the container once per test class instead
-of once per function. Since all relay tests are organized into classes (`SentryRemoteTest`,
-`FilterTests`, `BasicResolvingIntegrationTest`), this eliminates ~10s of Docker overhead
-per test within each class.
+Changed `relay_server` to `scope="class"` to start the container once per class. Result:
+massive failures across all relay tests with `assert None is not None` and
+`Project for ingested event does not exist: 1`.
 
-Estimated savings: ~100 relay tests × ~10s container restart = ~16 minutes of test time
-saved across the serial tier (though actual impact depends on class sizes and sharding).
+**Root cause:** Relay caches project configs **in memory** (not just Redis). When
+`TransactionTestCase` flushes the database between tests, the project from the previous
+test is deleted. But Relay still holds the old project config in its in-memory cache.
+When the next test sends an event, Relay forwards it using the stale config, and the
+ingest consumer fails because the project no longer exists in Postgres.
+
+**The function scope IS necessary.** Restarting the container is the only way to clear
+Relay's in-memory project config cache. A lighter alternative would be to add a Relay
+admin API endpoint to flush its config cache, but that doesn't exist today.
+
+**Reverted** back to `scope="function"`. The relay tests remain at 12-18s each. The serial
+tier bottleneck stands — adding more serial shards is the pragmatic fix.
