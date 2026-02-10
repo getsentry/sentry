@@ -25,7 +25,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
-import AllViewsWelcomeBanner from 'sentry/views/issueList/issueViews/issueViewsList/allViewsWelcomeBanner';
 import {IssueViewsTable} from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsTable';
 import {
   DEFAULT_ENVIRONMENTS,
@@ -436,7 +435,6 @@ export default function IssueViewsList() {
               />
               <SortDropdown />
             </FilterSortBar>
-            <AllViewsWelcomeBanner />
             <TableHeading>{t('Created by Me')}</TableHeading>
             <IssueViewSection
               createdBy={GroupSearchViewCreatedBy.ME}
