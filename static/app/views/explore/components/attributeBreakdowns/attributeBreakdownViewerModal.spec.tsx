@@ -1,6 +1,3 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
-
 import {
   render,
   screen,
@@ -26,16 +23,12 @@ const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</d
 
 const mockCloseModal = jest.mocked(closeModal);
 
-const organization = OrganizationFixture();
-const selection = PageFiltersFixture();
-
 const stubProps = {
   Header: stubEl,
   Footer: stubEl as ModalRenderProps['Footer'],
   Body: stubEl as ModalRenderProps['Body'],
   CloseButton: stubEl,
   closeModal: mockCloseModal,
-  selection,
 };
 
 describe('AttributeBreakdownViewerModal', () => {
@@ -331,8 +324,7 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {organization}
+        />
       );
 
       const cells = screen.getAllByRole('cell');
@@ -355,8 +347,7 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {organization}
+        />
       );
 
       const cells = screen.getAllByRole('cell');
@@ -373,8 +364,7 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {organization}
+        />
       );
 
       const cells = screen.getAllByRole('cell');
@@ -397,8 +387,7 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {organization}
+        />
       );
 
       const cells = screen.getAllByRole('cell');
@@ -422,8 +411,7 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {organization}
+        />
       );
 
       const cells = screen.getAllByRole('cell');
@@ -454,8 +442,7 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {organization}
+        />
       );
 
       const cells = screen.getAllByRole('cell');
@@ -496,8 +483,7 @@ describe('AttributeBreakdownViewerModal', () => {
           attribute={mockAttribute}
           cohort1Total={800}
           cohort2Total={750}
-        />,
-        {organization}
+        />
       );
 
       const cells = screen.getAllByRole('cell');
