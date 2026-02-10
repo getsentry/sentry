@@ -777,8 +777,16 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    def test_without_feature_flag(
-        self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger, mock_seat_based_tier
+    @patch("sentry.seer.autofix.issue_summary.is_seer_seat_based_tier_enabled", return_value=False)
+    def test_without_seat_based_tier(
+        self,
+        mock_seat_based,
+        mock_gen,
+        mock_budget,
+        mock_state,
+        mock_rate,
+        mock_trigger,
+        mock_seat_based_tier,
     ):
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_gen.return_value = SummarizeIssueResponse(
