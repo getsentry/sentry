@@ -19,6 +19,7 @@ DEFAULT_PROMPTS: dict[str, _PromptConfig] = {
     "issue_priority": {"required_fields": ["organization_id"]},
     "issue_replay_inline_onboarding": {"required_fields": ["organization_id", "project_id"]},
     "metric_alert_ignore_archived_issues": {"required_fields": ["organization_id", "project_id"]},
+    "releases": {"required_fields": ["organization_id", "project_id"]},
     "seer_autofix_setup_acknowledged": {"required_fields": ["organization_id"]},
     "stacktrace_link": {"required_fields": ["organization_id", "project_id"]},
     "user_snooze_deprecation": {"required_fields": ["organization_id", "project_id"]},
