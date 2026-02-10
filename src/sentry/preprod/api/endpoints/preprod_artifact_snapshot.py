@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from io import BytesIO
 from typing import Any
 
 import jsonschema
@@ -18,13 +17,9 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.models.commitcomparison import CommitComparison
-from sentry.models.files.file import File
 from sentry.models.project import Project
-from sentry.preprod.api.schemas import (
-    VCS_ERROR_MESSAGES,
-    VCS_SCHEMA_PROPERTIES,
-    VCS_SCHEMA_REQUIRED,
-)
+from sentry.objectstore import get_preprod_session
+from sentry.preprod.api.schemas import VCS_ERROR_MESSAGES, VCS_SCHEMA_PROPERTIES
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.manifest import (
     AndroidImageMetadata,
@@ -48,10 +43,14 @@ SNAPSHOT_REQUEST_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "app_id": {"type": "string", "maxLength": 255},
-        "images": {"type": "object", "additionalProperties": SNAPSHOT_IMAGE_SCHEMA},
+        "images": {
+            "type": "object",
+            "additionalProperties": SNAPSHOT_IMAGE_SCHEMA,
+            "maxProperties": 1000,
+        },
         **VCS_SCHEMA_PROPERTIES,
     },
-    "required": ["app_id", "images", *VCS_SCHEMA_REQUIRED],
+    "required": ["app_id", "images"],
     "additionalProperties": True,
 }
 
@@ -96,23 +95,23 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project: Project, snapshot_id: str) -> Response:
         """
-        Retrieves snapshot data with all shards and paginated images
+        Retrieves snapshot data
         """
 
         if not settings.IS_DEV and not features.has(
             "organizations:preprod-frontend-routes", project.organization, actor=request.user
         ):
-            return Response({"error": "Feature not enabled"}, status=403)
+            return Response({"detail": "Feature not enabled"}, status=403)
 
         try:
             offset = int(request.GET.get("offset", "0"))
             limit = int(request.GET.get("limit", "20"))
         except ValueError:
-            return Response({"error": "Invalid offset or limit parameter"}, status=400)
+            return Response({"detail": "Invalid offset or limit parameter"}, status=400)
 
         if offset < 0 or limit <= 0 or limit > 100:
             return Response(
-                {"error": "offset must be >= 0, limit must be > 0 and <= 100"}, status=400
+                {"detail": "offset must be >= 0, limit must be > 0 and <= 100"}, status=400
             )
 
         with sentry_sdk.start_span(op="preprod_artifact.get_snapshot_data"):
@@ -150,12 +149,14 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                     organization_id=project.organization_id,
                     head_sha=head_sha.lower(),
                     base_sha=base_sha.lower() if base_sha else None,
-                    provider=provider,
                     head_repo_name=head_repo_name,
-                    base_repo_name=head_repo_name,
-                    head_ref=head_ref,
-                    base_ref=None,
-                    pr_number=pr_number,
+                    defaults={
+                        "provider": provider,
+                        "base_repo_name": head_repo_name,
+                        "head_ref": head_ref,
+                        "base_ref": None,
+                        "pr_number": pr_number,
+                    },
                 )
 
             # Create new PreprodArtifact for snapshots
@@ -166,12 +167,9 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 commit_comparison=commit_comparison,
             )
 
-            # Get or create PreprodSnapshotMetrics
-            snapshot_metrics, created = PreprodSnapshotMetrics.objects.get_or_create(
+            snapshot_metrics = PreprodSnapshotMetrics.objects.create(
                 preprod_artifact=artifact,
-                defaults={
-                    "image_count": len(images),
-                },
+                image_count=len(images),
             )
 
             logger.info(
@@ -184,32 +182,18 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 },
             )
 
-            if not created:
-                # Update existing metrics with this shard's data
-                extras = snapshot_metrics.extras or {}
-
-                snapshot_metrics.image_count += len(images)
-                snapshot_metrics.extras = extras
-                snapshot_metrics.save(update_fields=["image_count", "extras"])
-
             # Serialize manifest using the Pydantic model for consistent format
             manifest = SnapshotManifest(images=images)
 
-            # TODO: need to store in object store
-            manifest_file = File.objects.create(
-                name="snapshot.json",
-                type="preprod.snapshot_manifest",
-                headers={"Content-Type": "application/json"},
-            )
-            manifest_json = manifest.json(by_alias=True)
-            manifest_file.putfile(BytesIO(manifest_json.encode()))
+            session = get_preprod_session(project.organization_id, project.id)
+            manifest_key = f"{project.organization_id}/{project.id}/{artifact.id}/manifest.json"
+
+            manifest_json = manifest.json(by_alias=True, exclude_none=True)
+            session.put(manifest_json.encode(), key=manifest_key)
 
             # Store manifest file reference in extras
             extras = snapshot_metrics.extras or {}
-            manifest_files = extras.get("manifest_file_ids", {})
-            shard_index = str(len(manifest_files))
-            manifest_files[shard_index] = manifest_file.id
-            extras["manifest_file_ids"] = manifest_files
+            extras["manifest_key"] = manifest_key
             snapshot_metrics.extras = extras
             snapshot_metrics.save(update_fields=["extras"])
 
@@ -218,17 +202,16 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 extra={
                     "preprod_artifact_id": artifact.id,
                     "snapshot_metrics_id": snapshot_metrics.id,
-                    "manifest_file_id": manifest_file.id,
+                    "manifest_key": manifest_key,
                     "image_count": len(images),
                 },
             )
 
-            # Check if all shards have been received
             return Response(
                 {
                     "artifactId": str(artifact.id),
                     "snapshotMetricsId": str(snapshot_metrics.id),
                     "imageCount": snapshot_metrics.image_count,
                 },
-                status=201,
+                status=200,
             )

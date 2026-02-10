@@ -1,6 +1,5 @@
 from django.urls import reverse
 
-from sentry.models.files.file import File
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
 from sentry.testutils.cases import APITestCase
@@ -44,7 +43,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         with self.feature("organizations:preprod-frontend-routes"):
             response = self.client.post(url, data, format="json")
 
-        assert response.status_code == 201
+        assert response.status_code == 200
         assert "artifactId" in response.data
         assert "snapshotMetricsId" in response.data
         assert response.data["imageCount"] == 1
@@ -80,7 +79,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         with self.feature("organizations:preprod-frontend-routes"):
             response = self.client.post(url, data, format="json")
 
-        assert response.status_code == 201
+        assert response.status_code == 200
 
         artifact = PreprodArtifact.objects.get(id=response.data["artifactId"])
         assert artifact.commit_comparison is not None
@@ -92,7 +91,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         assert commit_comparison.head_repo_name == "owner/repo"
         assert commit_comparison.pr_number == 123
 
-    def test_snapshot_upload_stores_manifest_file(self):
+    def test_snapshot_upload_stores_manifest_key(self):
         url = self._get_create_url()
         data = {
             "images": {
@@ -100,8 +99,6 @@ class ProjectPreprodSnapshotTest(APITestCase):
                     "fileName": "screen1.png",
                     "width": 100,
                     "height": 200,
-                    "orientation": "portrait",
-                    "device": "iPhone",
                 },
             },
         }
@@ -109,15 +106,16 @@ class ProjectPreprodSnapshotTest(APITestCase):
         with self.feature("organizations:preprod-frontend-routes"):
             response = self.client.post(url, data, format="json")
 
-        assert response.status_code == 201
+        assert response.status_code == 200
 
         snapshot_metrics = PreprodSnapshotMetrics.objects.get(id=response.data["snapshotMetricsId"])
-        assert "manifest_file_ids" in snapshot_metrics.extras
-        assert "0" in snapshot_metrics.extras["manifest_file_ids"]
+        assert "manifest_key" in snapshot_metrics.extras
 
-        manifest_file_id = snapshot_metrics.extras["manifest_file_ids"]["0"]
-        manifest_file = File.objects.get(id=manifest_file_id)
-        assert manifest_file.type == "preprod.snapshot_manifest"
+        artifact_id = response.data["artifactId"]
+        expected_key = (
+            f"{self.project.organization_id}/{self.project.id}/{artifact_id}/manifest.json"
+        )
+        assert snapshot_metrics.extras["manifest_key"] == expected_key
 
     def test_snapshot_with_empty_images(self):
         url = self._get_create_url()
@@ -128,7 +126,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         with self.feature("organizations:preprod-frontend-routes"):
             response = self.client.post(url, data, format="json")
 
-        assert response.status_code == 201
+        assert response.status_code == 200
         assert response.data["imageCount"] == 0
 
     def test_snapshot_missing_required_field(self):

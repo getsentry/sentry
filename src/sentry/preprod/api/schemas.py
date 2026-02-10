@@ -18,17 +18,6 @@ VCS_SCHEMA_PROPERTIES: dict[str, Any] = {
     "pr_number": {"type": "integer", "minimum": 1},
 }
 
-VCS_SCHEMA_REQUIRED: list[str] = [
-    "head_sha",
-    "base_sha",
-    "provider",
-    "head_repo_name",
-    "base_repo_name",
-    "head_ref",
-    "base_ref",
-    "pr_number",
-]
-
 VCS_ERROR_MESSAGES: dict[str, str] = {
     "head_sha": "The head_sha field must be a 40-character hexadecimal SHA1 string (no uppercase letters).",
     "base_sha": "The base_sha field must be a 40-character hexadecimal SHA1 string (no uppercase letters).",
