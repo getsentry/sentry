@@ -270,6 +270,7 @@ export const SpansConfig: DatasetConfig<
     DisplayType.TABLE,
     DisplayType.TOP_N,
     DisplayType.DETAILS,
+    DisplayType.SERVER_TREE,
   ],
   useSeriesQuery: useSpansSeriesQuery,
   useTableQuery: useSpansTableQuery,
