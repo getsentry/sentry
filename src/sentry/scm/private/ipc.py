@@ -106,7 +106,6 @@ class PullRequestEventParser(msgspec.Struct, gc=False, frozen=True):
 check_run_event_decoder = msgspec.msgpack.Decoder(CheckRunEventParser)
 comment_event_decoder = msgspec.msgpack.Decoder(CommentEventParser)
 pull_request_event_decoder = msgspec.msgpack.Decoder(PullRequestEventParser)
-subscription_decoder = msgspec.msgpack.Decoder(SubscriptionEventParser)
 
 
 def _map_subscription_event(parsed: SubscriptionEventParser) -> SubscriptionEvent:
