@@ -88,6 +88,19 @@ def _get_segments_org_ids() -> set[int]:
     return set(options.get("dynamic-sampling.boost_low_volume_projects.segment-metric-orgs") or [])
 
 
+def _exclude_project_mode_orgs(org_ids: list[int]) -> list[int]:
+    """
+    Filter out organizations that use project-mode sampling.
+    These orgs should not be rebalanced by the boost_low_volume_projects task.
+    """
+    if not org_ids:
+        return []
+    modes_per_org = OrganizationOption.objects.get_value_bulk_id(org_ids, "sentry:sampling_mode")
+    return [
+        org_id for org_id in org_ids if modes_per_org.get(org_id) != DynamicSamplingMode.PROJECT
+    ]
+
+
 def _partition_orgs_by_measure(
     org_ids: list[int],
 ) -> dict[SamplingMeasure, list[int]]:
@@ -143,15 +156,31 @@ def boost_low_volume_projects() -> None:
         extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
     )
 
+    segments_org_ids = _get_segments_org_ids()
+    if segments_org_ids:
+        for orgs in GetActiveOrgs(
+            max_projects=MAX_PROJECTS_PER_QUERY,
+            granularity=Granularity(60),
+            measure=SamplingMeasure.SEGMENTS,
+        ):
+            segment_orgs = _exclude_project_mode_orgs(
+                [org_id for org_id in orgs if org_id in segments_org_ids]
+            )
+            if segment_orgs:
+                _record_partitioning_metrics({SamplingMeasure.SEGMENTS: segment_orgs})
+                _process_orgs_for_boost(segment_orgs, SamplingMeasure.SEGMENTS)
+
     for orgs in GetActiveOrgs(
         max_projects=MAX_PROJECTS_PER_QUERY,
         granularity=Granularity(60),
+        measure=SamplingMeasure.TRANSACTIONS,
     ):
-        orgs_by_measure = _partition_orgs_by_measure(orgs)
-        _record_partitioning_metrics(orgs_by_measure)
-
-        for measure, org_ids in orgs_by_measure.items():
-            _process_orgs_for_boost(org_ids, measure)
+        transaction_orgs = _exclude_project_mode_orgs(
+            [org_id for org_id in orgs if org_id not in segments_org_ids]
+        )
+        if transaction_orgs:
+            _record_partitioning_metrics({SamplingMeasure.TRANSACTIONS: transaction_orgs})
+            _process_orgs_for_boost(transaction_orgs, SamplingMeasure.TRANSACTIONS)
 
 
 def _process_orgs_for_boost(

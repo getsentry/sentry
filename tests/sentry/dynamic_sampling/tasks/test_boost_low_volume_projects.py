@@ -792,25 +792,31 @@ class TestEndToEndMeasureDispatching(BaseMetricsLayerTestCase, TestCase, SnubaTe
     def test_main_task_dispatches_correct_measures(self) -> None:
         """
         The main boost_low_volume_projects task should call _process_orgs_for_boost
-        with the correct measure for each partition.
+        with the correct measure for each partition. Segment orgs must be discovered
+        via a SEGMENTS GetActiveOrgs scan (SpanMRI), not TRANSACTIONS (TransactionMRI).
         """
         org_seg = self.create_organization("org-seg")
         org_tx = self.create_organization("org-tx")
+        p_seg = self.create_project(organization=org_seg)
+        p_tx = self.create_project(organization=org_tx)
 
+        # Segment org emits SpanMRI with is_segment=true
         self.store_performance_metric(
-            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo", "decision": "keep"},
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
             minutes_before_now=30,
             value=1,
-            project_id=self.create_project(organization=org_seg).id,
+            project_id=p_seg.id,
             org_id=org_seg.id,
         )
+
+        # Transaction org emits TransactionMRI
         self.store_performance_metric(
             name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
             tags={"transaction": "foo", "decision": "keep"},
             minutes_before_now=30,
             value=1,
-            project_id=self.create_project(organization=org_tx).id,
+            project_id=p_tx.id,
             org_id=org_tx.id,
         )
 
@@ -836,6 +842,46 @@ class TestEndToEndMeasureDispatching(BaseMetricsLayerTestCase, TestCase, SnubaTe
                 assert org_seg.id in calls_by_measure.get(SamplingMeasure.SEGMENTS, [])
                 assert org_tx.id in calls_by_measure.get(SamplingMeasure.TRANSACTIONS, [])
                 assert org_seg.id not in calls_by_measure.get(SamplingMeasure.TRANSACTIONS, [])
+
+    def test_segment_only_org_is_discovered_by_main_task(self) -> None:
+        """
+        An org that ONLY emits segment metrics (SpanMRI with is_segment=true) and
+        has NO transaction metrics must still be discovered and processed by the
+        main boost_low_volume_projects task.
+        """
+        org = self.create_organization("segment-only-org")
+        project = self.create_project(organization=org)
+
+        # Only store segment metrics — no TransactionMRI at all
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
+            minutes_before_now=30,
+            value=5,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        with self.options(
+            {
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": [org.id],
+                "dynamic-sampling.check_span_feature_flag": False,
+            }
+        ):
+            with patch(
+                "sentry.dynamic_sampling.tasks.boost_low_volume_projects._process_orgs_for_boost"
+            ) as mock_process:
+                with self.tasks():
+                    boost_low_volume_projects()
+
+                calls_by_measure: dict[SamplingMeasure, list[int]] = {}
+                for call in mock_process.call_args_list:
+                    org_ids = call[0][0]
+                    measure = call[0][1]
+                    calls_by_measure.setdefault(measure, []).extend(org_ids)
+
+                assert org.id in calls_by_measure.get(SamplingMeasure.SEGMENTS, [])
+                assert org.id not in calls_by_measure.get(SamplingMeasure.TRANSACTIONS, [])
 
     @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
     def test_segments_query_uses_span_mri_with_is_segment_tag(self) -> None:
