@@ -287,7 +287,7 @@ const SERVER_TREE_WIDGET: Widget = {
   ],
   layout: {
     x: 0,
-    y: 7,
+    y: 9,
     w: 6,
     h: 2,
     minH: 2,
