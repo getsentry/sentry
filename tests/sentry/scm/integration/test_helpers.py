@@ -232,10 +232,11 @@ class TestIsRateLimitedWithAllocationPolicy(TestCase):
 
             assert result is False
 
-    def test_falls_back_to_shared_pool_when_no_allocation(self):
+    def test_falls_back_to_shared_pool_when_allocation_exhausted(self):
         with freeze_time("2000-01-01"):
             allocation_policy: dict[Referrer, int] = {"emerge": 2, "shared": 100}
 
+            # Exhaust the dedicated allocation.
             for _ in range(2):
                 is_rate_limited_with_allocation_policy(
                     organization_id=self.organization.id,
@@ -245,6 +246,7 @@ class TestIsRateLimitedWithAllocationPolicy(TestCase):
                     allocation_policy=allocation_policy,
                 )
 
+            # Falls back to the shared pool which still has quota.
             result = is_rate_limited_with_allocation_policy(
                 organization_id=self.organization.id,
                 referrer="emerge",
@@ -253,20 +255,29 @@ class TestIsRateLimitedWithAllocationPolicy(TestCase):
                 allocation_policy=allocation_policy,
             )
 
-            assert result is True
+            assert result is False
 
-    def test_returns_true_when_allocated_limit_exceeded(self):
+    def test_returns_true_when_allocation_and_shared_pool_exhausted(self):
         with freeze_time("2000-01-01"):
             allocation_policy: dict[Referrer, int] = {"emerge": 1, "shared": 1}
 
-            for _ in range(2):
-                is_rate_limited_with_allocation_policy(
-                    organization_id=self.organization.id,
-                    referrer="emerge",
-                    provider="github",
-                    window=60,
-                    allocation_policy=allocation_policy,
-                )
+            # Exhaust the dedicated allocation.
+            is_rate_limited_with_allocation_policy(
+                organization_id=self.organization.id,
+                referrer="emerge",
+                provider="github",
+                window=60,
+                allocation_policy=allocation_policy,
+            )
+
+            # Exhaust the shared pool.
+            is_rate_limited_with_allocation_policy(
+                organization_id=self.organization.id,
+                referrer="emerge",
+                provider="github",
+                window=60,
+                allocation_policy=allocation_policy,
+            )
 
             result = is_rate_limited_with_allocation_policy(
                 organization_id=self.organization.id,
