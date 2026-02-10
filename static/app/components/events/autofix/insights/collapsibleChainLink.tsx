@@ -94,7 +94,7 @@ export function CollapsibleChainLink({
                       }
                     }}
                   />
-                  <ButtonBar merged gap="0">
+                  <ButtonBar>
                     <Button
                       type="button"
                       size="sm"

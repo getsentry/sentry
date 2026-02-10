@@ -170,7 +170,7 @@ function Content({response}: TestResultsContentData) {
       <div>
         <TestAnalyticsTable response={response} sort={sorts[0]} />
         <Flex justify="right">
-          <ButtonBar merged gap="0">
+          <ButtonBar>
             <Button
               icon={<IconChevron direction="left" />}
               aria-label={t('Previous')}

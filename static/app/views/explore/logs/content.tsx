@@ -1,4 +1,5 @@
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -108,7 +109,7 @@ function LogsHeader() {
         <Layout.Title>{title ? title : t('Logs')}</Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <FeedbackButton
             size="xs"
             feedbackOptions={{
@@ -120,7 +121,7 @@ function LogsHeader() {
             }}
           />
           <SetupLogsButton />
-        </ButtonBar>
+        </Grid>
       </Layout.HeaderActions>
     </Layout.Header>
   );

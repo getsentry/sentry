@@ -2,7 +2,8 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
@@ -202,7 +203,7 @@ export default function ProjectDetail() {
               </Layout.HeaderContent>
 
               <Layout.HeaderActions>
-                <ButtonBar>
+                <Grid flow="column" align="center" gap="md">
                   <FeedbackButton />
                   <LinkButton
                     size="sm"
@@ -227,7 +228,7 @@ export default function ProjectDetail() {
                     aria-label={t('Settings')}
                     to={`/settings/${params.orgId}/projects/${params.projectId}/`}
                   />
-                </ButtonBar>
+                </Grid>
               </Layout.HeaderActions>
             </Layout.Header>
 

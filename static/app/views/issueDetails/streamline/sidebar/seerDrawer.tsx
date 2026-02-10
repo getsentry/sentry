@@ -3,8 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import Feature from 'sentry/components/acl/feature';
@@ -415,7 +415,7 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
           />
         </Flex>
         <ButtonBarWrapper data-test-id="seer-button-bar">
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <Feature features={['organizations:autofix-seer-preferences']}>
               <LinkButton
                 external
@@ -445,7 +445,7 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
                 {t('Start Over')}
               </Button>
             )}
-          </ButtonBar>
+          </Grid>
         </ButtonBarWrapper>
       </SeerDrawerNavigator>
 

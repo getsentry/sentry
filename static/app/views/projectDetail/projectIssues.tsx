@@ -5,8 +5,8 @@ import pick from 'lodash/pick';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import * as qs from 'query-string';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import type {Client} from 'sentry/api';
@@ -287,7 +287,9 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
   );
 }
 
-const OpenInButtonBar = styled(ButtonBar)`
+const OpenInButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   margin-top: ${space(1)};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {

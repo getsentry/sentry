@@ -2,7 +2,8 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {updateUptimeRule} from 'sentry/actionCreators/uptime';
@@ -150,7 +151,7 @@ export default function UptimeAlertDetails() {
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <StatusToggleButton
               uptimeDetector={detector}
               onToggleStatus={data => toggleStatus(data)}
@@ -170,7 +171,7 @@ export default function UptimeAlertDetails() {
             >
               {t('Edit Rule')}
             </LinkButton>
-          </ButtonBar>
+          </Grid>
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>

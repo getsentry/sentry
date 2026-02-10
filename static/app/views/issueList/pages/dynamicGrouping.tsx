@@ -550,7 +550,7 @@ function ClusterCard({
               </Tooltip>
             )}
             <Flex align="center" gap="md">
-              <ButtonBar merged gap="0">
+              <ButtonBar>
                 <SeerButton
                   size="sm"
                   priority="primary"

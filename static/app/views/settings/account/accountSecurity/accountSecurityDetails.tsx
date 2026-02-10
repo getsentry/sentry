@@ -7,7 +7,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
@@ -155,7 +156,7 @@ export default function AccountSecurityDetails() {
           />
         }
         action={
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             {authenticator.isEnrolled && authenticator.allowRotationInPlace && (
               <LinkButton
                 to={`/settings/account/security/mfa/${authenticator.id}/enroll/`}
@@ -179,7 +180,7 @@ export default function AccountSecurityDetails() {
                 </Button>
               </RemoveConfirm>
             )}
-          </ButtonBar>
+          </Grid>
         }
       />
 

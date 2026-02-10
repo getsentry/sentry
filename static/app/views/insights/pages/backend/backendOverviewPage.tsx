@@ -64,6 +64,8 @@ import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel'
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
 import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {PlatformizedNextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs/platformizedNextJsOverviewPage';
+import useHasPlatformizedNextJsOverview from 'sentry/views/insights/pages/platform/nextjs/useHasPlatformizedNextJsOverview';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
@@ -79,8 +81,12 @@ function BackendOverviewPage({datePageFilterProps}: BackendOverviewPageProps) {
   useOverviewPageTrackPageload();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
   const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
+  const hasPlatformizedNextJsOverview = useHasPlatformizedNextJsOverview();
   const isNewBackendExperienceEnabled = useInsightsEap();
   const hasPlatformizedBackendOverview = useHasPlatformizedBackendOverview();
+  if (isNextJsPageEnabled && hasPlatformizedNextJsOverview) {
+    return <PlatformizedNextJsOverviewPage />;
+  }
   if (hasPlatformizedBackendOverview) {
     return <PlatformizedBackendOverviewPage />;
   }

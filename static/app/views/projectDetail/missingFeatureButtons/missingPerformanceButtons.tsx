@@ -1,4 +1,5 @@
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Feature from 'sentry/components/acl/feature';
@@ -55,7 +56,7 @@ function MissingPerformanceButtons({organization}: Props) {
       features="performance-view"
       organization={organization}
     >
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         <Button
           size="sm"
           priority="primary"
@@ -84,7 +85,7 @@ function MissingPerformanceButtons({organization}: Props) {
             </Button>
           )}
         </FeatureTourModal>
-      </ButtonBar>
+      </Grid>
     </Feature>
   );
 }

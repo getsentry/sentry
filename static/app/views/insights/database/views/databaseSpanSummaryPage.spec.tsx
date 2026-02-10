@@ -368,7 +368,7 @@ describe('DatabaseSpanSummaryPage', () => {
     expect(screen.getByRole('heading', {name: 'Events'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Users'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Assignee'})).toBeInTheDocument();
-    expect(screen.getByText('327k')).toBeInTheDocument();
-    expect(screen.getByText('35k')).toBeInTheDocument();
+    expect(screen.getByText('327K')).toBeInTheDocument();
+    expect(screen.getByText('35K')).toBeInTheDocument();
   });
 });

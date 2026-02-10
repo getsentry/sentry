@@ -95,7 +95,7 @@ function SegmentedIssueViewSaveButton({
       )}
     >
       {({hasFeature}) => (
-        <ButtonBar merged gap="0">
+        <ButtonBar>
           <PrimarySaveButton
             priority={buttonPriority}
             data-test-id={hasUnsavedChanges ? 'save-button-unsaved' : 'save-button'}

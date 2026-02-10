@@ -1,9 +1,8 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
@@ -189,7 +188,9 @@ export default Storybook.story('CheckInTimeline', story => {
   });
 });
 
-const Controls = styled(ButtonBar)`
+const Controls = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   width: max-content;
   margin-bottom: ${space(1)};
 `;

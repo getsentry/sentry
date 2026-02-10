@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import NotFound from 'sentry/components/errors/notFound';
@@ -144,7 +145,9 @@ export function ProjectInstallPlatform({project, platform}: Props) {
   );
 }
 
-const StyledButtonBar = styled(ButtonBar)`
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   margin-top: ${space(3)};
   width: max-content;
 
