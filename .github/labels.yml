@@ -198,8 +198,6 @@
   color: '8D5494'
 - name: 'Product Area: Performance'
   color: '8D5494'
-- name: 'Product Area: Processing'
-  color: '8D5494'
 - name: 'Product Area: Profiling'
   color: '8D5494'
 - name: 'Product Area: Projects - Project Creation'
