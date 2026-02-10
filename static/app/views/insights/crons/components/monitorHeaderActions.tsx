@@ -1,4 +1,5 @@
-import {Button, ButtonBar, LinkButton, type ButtonProps} from '@sentry/scraps/button';
+import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
@@ -81,7 +82,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
   }
 
   return (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       <FeedbackButton />
       <Button
         size="sm"
@@ -130,7 +131,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
       >
         {t('Edit Monitor')}
       </LinkButton>
-    </ButtonBar>
+    </Grid>
   );
 }
 

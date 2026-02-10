@@ -1,4 +1,5 @@
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import ConfirmDelete from 'sentry/components/confirmDelete';
 import {IconDelete, IconStats, IconUpgrade} from 'sentry/icons';
@@ -79,11 +80,11 @@ function ActionButtons({
   ) : null;
 
   return (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       {appDashboardButton}
       {publishRequestButton}
       {deleteButton}
-    </ButtonBar>
+    </Grid>
   );
 }
 

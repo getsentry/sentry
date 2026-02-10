@@ -5,7 +5,7 @@ import loadingGif from 'sentry-images/spot/ai-loader.gif';
 import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -29,18 +29,13 @@ const MAX_SEGMENTS_TO_SUMMARIZE = 150;
 
 export default function Ai() {
   const organization = useOrganization();
-  const {
-    areAiFeaturesAllowed,
-    setupAcknowledgement,
-    isPending: isOrgSeerSetupPending,
-  } = useOrganizationSeerSetup();
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
 
   const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
   const segmentCount = replayRecord?.count_segments ?? 0;
   const project = useProjectFromId({project_id: replayRecord?.project_id});
   const analyticsArea = useAnalyticsArea();
-  const skipConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
 
   const replayTooLongMessage = t(
     'If a replay is too long, we may only summarize a small portion of it.'
@@ -82,50 +77,6 @@ export default function Ai() {
             {areAiFeaturesAllowed
               ? t('Replay summaries are not available for this organization.')
               : t('AI features are not available for this organization.')}
-          </div>
-        </EndStateContainer>
-      </Wrapper>
-    );
-  }
-
-  // check for org seer setup first before attempting to fetch summary
-  // only do this if consent flow is not skipped
-  if (!skipConsentFlow && isOrgSeerSetupPending) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <LoadingContainer>
-          <div>
-            <img src={loadingGif} style={{maxHeight: 400}} alt={t('Loading...')} />
-          </div>
-        </LoadingContainer>
-      </Wrapper>
-    );
-  }
-
-  // If our `replay-ai-summaries` ff is enabled and the org has gen AI ff enabled,
-  // but the org hasn't acknowledged the gen AI features, then show CTA.
-  // only do this if consent flow is not skipped
-  if (!skipConsentFlow && !setupAcknowledgement.orgHasAcknowledged) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EndStateContainer>
-          <img src={aiBanner} alt="" />
-          <div>
-            <strong>{t('AI-Powered Replay Summaries')}</strong>
-          </div>
-          <div>
-            {t(
-              'Seer access is required to use replay summaries. Please view the Seer settings page for more information.'
-            )}
-          </div>
-          <div>
-            <LinkButton
-              size="sm"
-              priority="primary"
-              to={`/settings/${organization.slug}/seer/`}
-            >
-              {t('View Seer Settings')}
-            </LinkButton>
           </div>
         </EndStateContainer>
       </Wrapper>

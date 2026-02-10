@@ -2,8 +2,8 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
-import {ButtonBar} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
+import {Grid} from '@sentry/scraps/layout';
 
 import {
   CrumbContainer,
@@ -70,7 +70,7 @@ export function EventFeatureFlagDrawer({
   );
 
   const actions = (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       <InputGroup>
         <SearchInput
           size="xs"
@@ -105,7 +105,7 @@ export function EventFeatureFlagDrawer({
         }}
         sortBy={sortBy}
       />
-    </ButtonBar>
+    </Grid>
   );
 
   return (

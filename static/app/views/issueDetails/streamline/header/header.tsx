@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import color from 'color';
 
 import {Tag} from '@sentry/scraps/badge';
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -134,7 +134,7 @@ export default function StreamlinedGroupHeader({
               </Tooltip>
             )}
           </Flex>
-          <ButtonBar gap="xs">
+          <Grid flow="column" align="center" gap="xs">
             {!hasOnlyOneUIOption && !hasFeedbackForm && (
               <LinkButton
                 size="xs"
@@ -167,7 +167,7 @@ export default function StreamlinedGroupHeader({
             ) : (
               <NewIssueExperienceButton />
             )}
-          </ButtonBar>
+          </Grid>
         </Flex>
         <HeaderGrid>
           <Title>

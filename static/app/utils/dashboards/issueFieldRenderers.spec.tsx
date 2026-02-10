@@ -122,9 +122,9 @@ describe('getIssueFieldRenderer', () => {
           theme,
         }) as React.ReactElement
       );
-      expect(screen.getByText('3k')).toBeInTheDocument();
-      expect(screen.getByText('6k')).toBeInTheDocument();
-      await userEvent.hover(screen.getByText('3k'));
+      expect(screen.getByText('3K')).toBeInTheDocument();
+      expect(screen.getByText('6K')).toBeInTheDocument();
+      await userEvent.hover(screen.getByText('3K'));
       expect(await screen.findByText('Total in last 7 days')).toBeInTheDocument();
       expect(screen.getByText('Matching search filters')).toBeInTheDocument();
       expect(screen.getByText('Since issue began')).toBeInTheDocument();

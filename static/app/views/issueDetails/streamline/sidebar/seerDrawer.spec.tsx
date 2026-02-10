@@ -203,7 +203,7 @@ describe('SeerDrawer', () => {
   it('renders issue summary if consent flow is removed and there is no autofix quota', async () => {
     const orgWithConsentFlowRemoved = OrganizationFixture({
       hideAiFeatures: false,
-      features: ['seer-billing', 'gen-ai-features', 'gen-ai-consent-flow-removal'],
+      features: ['seer-billing', 'gen-ai-features'],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,

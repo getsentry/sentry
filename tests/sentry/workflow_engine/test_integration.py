@@ -273,7 +273,9 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.post_process_error(event_1)
         mock_trigger.assert_called_once()
 
-        self.workflow.update(enabled=False)
+        with self.capture_on_commit_callbacks(execute=True):
+            self.workflow.update(enabled=False)
+
         mock_trigger.reset_mock()
         event_2 = self.create_error_event()
         self.post_process_error(event_2)

@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -616,7 +616,7 @@ function AutofixSolutionDisplay({
             </SubmitButton>
           </InstructionsInputWrapper>
         </AddInstructionWrapper>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <CopySolutionButton solution={solution} event={event} rootCause={rootCause} />
           <Tooltip
             isHoverable
@@ -670,7 +670,7 @@ function AutofixSolutionDisplay({
               {t('Code It Up')}
             </Button>
           </Tooltip>
-        </ButtonBar>
+        </Grid>
         {status === AutofixStatus.COMPLETED && (
           <AutofixStepFeedback stepType="solution" groupId={groupId} runId={runId} />
         )}

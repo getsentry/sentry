@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -334,7 +334,7 @@ export function AutofixChanges({
             )}
             <Flex justify="end" align="center" gap="md">
               {!prsMade && (
-                <ButtonBar>
+                <Grid flow="column" align="center" gap="md">
                   {branchesMade ? (
                     step.changes.length === 1 && step.changes[0] ? (
                       <BranchButton change={step.changes[0]} />
@@ -367,7 +367,7 @@ export function AutofixChanges({
                     isBusy={isBusy || isBranchProcessing}
                     onProcessingChange={setIsPrProcessing}
                   />
-                </ButtonBar>
+                </Grid>
               )}
               {step.status === AutofixStatus.COMPLETED && (
                 <AutofixStepFeedback stepType="changes" groupId={groupId} runId={runId} />

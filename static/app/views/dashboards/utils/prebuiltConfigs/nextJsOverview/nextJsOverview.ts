@@ -3,7 +3,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/nextjsFrontendOverview/settings';
+import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/nextJsOverview/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
@@ -143,6 +143,21 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       ],
     },
     {
+      id: 'rage-and-dead-clicks-widget',
+      title: t('Rage and Dead Clicks'),
+      displayType: DisplayType.RAGE_AND_DEAD_CLICKS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          aggregates: [],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    },
+    {
       id: 'slow-ssr-widget',
       title: t('Slow SSR'),
       displayType: DisplayType.LINE,
@@ -270,6 +285,29 @@ const SERVER_TRANSACTIONS_TABLE: Widget = {
   },
 };
 
+const SERVER_TREE_WIDGET: Widget = {
+  id: 'server-tree-widget',
+  title: t('Server Tree'),
+  displayType: DisplayType.SERVER_TREE,
+  interval: '5m',
+  queries: [
+    {
+      name: '',
+      conditions: '',
+      aggregates: [],
+      columns: [],
+      orderby: '',
+    },
+  ],
+  layout: {
+    x: 0,
+    y: 9,
+    w: 6,
+    h: 2,
+    minH: 2,
+  },
+};
+
 export const NEXTJS_FRONTEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
@@ -292,5 +330,6 @@ export const NEXTJS_FRONTEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
     ...SECOND_ROW_WIDGETS,
     CLIENT_TRANSACTIONS_TABLE,
     SERVER_TRANSACTIONS_TABLE,
+    SERVER_TREE_WIDGET,
   ],
 };

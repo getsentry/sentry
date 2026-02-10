@@ -1,4 +1,5 @@
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Access from 'sentry/components/acl/access';
@@ -52,7 +53,7 @@ function Actions({
   const actions = (
     <Access access={['project:write']}>
       {({hasAccess}) => (
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Tooltip disabled={hasRole} title={noPermissionToDownloadDebugFilesInfo}>
             <LinkButton
               size="xs"
@@ -79,7 +80,7 @@ function Actions({
               />
             </Confirm>
           </Tooltip>
-        </ButtonBar>
+        </Grid>
       )}
     </Access>
   );

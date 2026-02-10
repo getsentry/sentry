@@ -1,9 +1,9 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
@@ -450,7 +450,7 @@ export function TraceEventDataSection({
       disableCollapsePersistence
       actions={
         !stackTraceNotFound && (
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             {!displayOptions.includes('raw-stack-trace') && (
               <SegmentedControl
                 size="xs"
@@ -529,7 +529,7 @@ export function TraceEventDataSection({
                 markdown: undefined,
               })}
             />
-          </ButtonBar>
+          </Grid>
         )
       }
     >

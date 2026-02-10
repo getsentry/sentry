@@ -27,6 +27,7 @@ import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign'
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {hasGenAiConversationsFeature} from 'sentry/views/insights/pages/agents/utils/features';
 import type {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
+import {ToolTags} from 'sentry/views/insights/pages/conversations/components/toolTags';
 import {
   useConversations,
   type Conversation,
@@ -59,12 +60,13 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'conversationId', name: t('Conv. ID'), width: 0},
   {key: 'inputOutput', name: t('First Input / Last Output'), width: COL_WIDTH_UNDEFINED},
   {key: 'user', name: t('User'), width: 120},
-  {key: 'llmToolCalls', name: t('LLM/Tool Calls'), width: 140},
+  {key: 'steps', name: t('Steps'), width: 80},
+  {key: 'toolsUsed', name: t('Tools Used'), width: 200},
   {key: 'tokensAndCost', name: t('Total Tokens / Cost'), width: 170},
   {key: 'timestamp', name: t('Last Message'), width: 120},
 ];
 
-const rightAlignColumns = new Set(['llmToolCalls', 'tokensAndCost', 'timestamp']);
+const rightAlignColumns = new Set(['steps', 'tokensAndCost', 'timestamp']);
 
 function ConversationsTableInner({openConversationViewDrawer}: ConversationsTableProps) {
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
@@ -82,7 +84,13 @@ function ConversationsTableInner({openConversationViewDrawer}: ConversationsTabl
         justify={rightAlignColumns.has(column.key) ? 'end' : 'start'}
       >
         {column.key === 'user' && <IconUser size="xs" />}
-        {column.name}
+        {column.key === 'steps' ? (
+          <Tooltip title={t('LLM calls + Tool calls')}>
+            <DashedUnderline>{column.name}</DashedUnderline>
+          </Tooltip>
+        ) : (
+          column.name
+        )}
         {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
         {column.key === 'inputOutput' && <CellExpander />}
       </Flex>
@@ -202,7 +210,7 @@ const BodyCell = memo(function BodyCell({
           {dataRow.conversationId.slice(0, 8)}
         </ConversationIdButton>
       );
-    case 'user':
+    case 'user': {
       if (!dataRow.user) {
         return (
           <Tooltip title={<UserNotInstrumentedTooltip />} isHoverable>
@@ -210,23 +218,25 @@ const BodyCell = memo(function BodyCell({
           </Tooltip>
         );
       }
+      const displayName = getUserDisplayName(dataRow.user);
       return (
         <Flex align="center" gap="sm">
           <UserAvatar
             user={{
               id: dataRow.user.id ?? '',
-              name: getUserDisplayName(dataRow.user),
+              name: displayName,
               email: dataRow.user.email ?? '',
               username: dataRow.user.username ?? '',
               ip_address: dataRow.user.ip_address ?? '',
             }}
             size={20}
           />
-          <Tooltip title={getUserDisplayName(dataRow.user)} showOnlyOnOverflow>
-            <Text ellipsis>{getUserDisplayName(dataRow.user)}</Text>
+          <Tooltip title={displayName} showOnlyOnOverflow>
+            <Text ellipsis>{displayName}</Text>
           </Tooltip>
         </Flex>
       );
+    }
     case 'inputOutput': {
       return (
         <Stack width="100%">
@@ -285,11 +295,22 @@ const BodyCell = memo(function BodyCell({
         </Stack>
       );
     }
-    case 'llmToolCalls':
+    case 'steps':
       return (
         <TextAlignRight>
-          <Count value={dataRow.llmCalls} /> / <Count value={dataRow.toolCalls} />
+          <Count value={dataRow.llmCalls + dataRow.toolCalls} />
         </TextAlignRight>
+      );
+    case 'toolsUsed':
+      if (dataRow.toolNames.length === 0) {
+        return <Text variant="muted">&mdash;</Text>;
+      }
+      return (
+        <ToolTags
+          toolNames={dataRow.toolNames}
+          conversation={dataRow}
+          openConversationViewDrawer={openConversationViewDrawer}
+        />
       );
     case 'tokensAndCost':
       return (
@@ -373,4 +394,10 @@ const InputOutputRow = styled('button')`
 
 const InputOutputLabel = styled(Text)`
   width: 4em;
+`;
+
+const DashedUnderline = styled('span')`
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: pointer;
 `;

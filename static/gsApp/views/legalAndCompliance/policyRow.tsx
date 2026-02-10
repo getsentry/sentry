@@ -4,8 +4,8 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, type FlexProps} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
@@ -147,7 +147,7 @@ export function PolicyRow({
                   })}
                 </small>
 
-                <ButtonBar>
+                <Grid flow="column" align="center" gap="md">
                   <Button size="sm" onClick={closeModal}>
                     {t('Cancel')}
                   </Button>
@@ -161,7 +161,7 @@ export function PolicyRow({
                   >
                     {t('I Accept')}
                   </Button>
-                </ButtonBar>
+                </Grid>
               </Flex>
             ) : (
               <Button size="sm" onClick={closeModal}>

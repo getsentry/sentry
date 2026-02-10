@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
@@ -484,7 +484,9 @@ const ShortId = styled('div')`
   line-height: 1;
 `;
 
-const ButtonWrapper = styled(ButtonBar)`
+const ButtonWrapper = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   margin-left: auto;
 `;
 
