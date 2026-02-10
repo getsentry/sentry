@@ -26,7 +26,10 @@ from sentry.analytics.events.relocation_organization_imported import (
     RelocationOrganizationImportedEvent,
 )
 from sentry.api.helpers.slugs import validate_sentry_slug
-from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
+from sentry.api.serializers.rest_framework.base import (
+    camel_to_snake_case,
+    convert_dict_key_case,
+)
 from sentry.backup.crypto import (
     EncryptorDecryptorPair,
     GCPKMSDecryptor,
@@ -56,7 +59,9 @@ from sentry.relocation.models.relocation import (
     RelocationValidationAttempt,
     ValidationStatus,
 )
-from sentry.relocation.models.relocationtransfer import RETRY_BACKOFF as TRANSFER_RETRY_BACKOFF
+from sentry.relocation.models.relocationtransfer import (
+    RETRY_BACKOFF as TRANSFER_RETRY_BACKOFF,
+)
 from sentry.relocation.models.relocationtransfer import (
     RegionRelocationTransfer,
     RelocationTransferState,
@@ -92,7 +97,9 @@ from sentry.utils.env import gcp_project_id, log_gcp_credentials_details
 logger = logging.getLogger("sentry.relocation")
 
 # Time limits for various steps in the process.
-RETRY_BACKOFF = 60  # So the 1st retry is after ~1 min, 2nd after ~2 min, 3rd after ~4 min, etc.
+RETRY_BACKOFF = (
+    60  # So the 1st retry is after ~1 min, 2nd after ~2 min, 3rd after ~4 min, etc.
+)
 FAST_TIME_LIMIT = 60  # 1 minute
 MEDIUM_TIME_LIMIT = 60 * 5  # 5 minutes
 SLOW_TIME_LIMIT = 60 * 60  # 1 hour
@@ -120,7 +127,9 @@ RELOCATION_FILES_TO_BE_VALIDATED = [
 
 # Various error strings that we want to surface to users, grouped by step.
 ERR_UPLOADING_FAILED = "Internal error during file upload."
-ERR_UPLOADING_NO_SAAS_TO_SAAS_ORG_SLUG = "SAAS->SAAS relocations must specify an org slug."
+ERR_UPLOADING_NO_SAAS_TO_SAAS_ORG_SLUG = (
+    "SAAS->SAAS relocations must specify an org slug."
+)
 ERR_UPLOADING_CROSS_REGION_TIMEOUT = Template(
     "Cross-region relocation export request timed out after $delta."
 )
@@ -144,8 +153,12 @@ ERR_PREPROCESSING_MISSING_ORGS = Template(
     "The following organization slug imports were requested, but could not be found in your submitted JSON: $orgs."
 )
 
-ERR_VALIDATING_ATTEMPT_MISSING = "Internal error while validating - validation attempt missing."
-ERR_VALIDATING_INSTANCE_MISSING = "Internal error while validating - validation instance missing."
+ERR_VALIDATING_ATTEMPT_MISSING = (
+    "Internal error while validating - validation attempt missing."
+)
+ERR_VALIDATING_INSTANCE_MISSING = (
+    "Internal error while validating - validation instance missing."
+)
 ERR_VALIDATING_INTERNAL = "Internal error while validating."
 ERR_VALIDATING_MAX_RUNS = "All validation attempts timed out."
 
@@ -162,9 +175,13 @@ ERR_COMPLETED_INTERNAL = "Internal error during relocation wrap-up."
     name="sentry.relocation.uploading_start",
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
-    retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
+    retry=Retry(
+        times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+    ),
 )
-def uploading_start(uuid: str, replying_region_name: str | None, org_slug: str | None) -> None:
+def uploading_start(
+    uuid: str, replying_region_name: str | None, org_slug: str | None
+) -> None:
     """
     The very first action in the relocation pipeline. In the case of a `SAAS_TO_SAAS` relocation, it
     will trigger the export of the requested organization from the region it currently live in. If
@@ -333,7 +350,9 @@ def fulfill_cross_region_export_request(
     call is received with the encrypted export in tow, it will trigger the next step in the
     `SAAS_TO_SAAS` relocation's pipeline, namely `uploading_complete`.
     """
-    encrypt_with_public_key_bytes = base64.b64decode(encrypt_with_public_key.encode("utf8"))
+    encrypt_with_public_key_bytes = base64.b64decode(
+        encrypt_with_public_key.encode("utf8")
+    )
 
     logger_data = {
         "uuid": uuid_str,
@@ -378,7 +397,9 @@ def fulfill_cross_region_export_request(
         printer=LoggingPrinter(uuid_str),
         checkpointer=StorageBackedCheckpointExporter(
             crypto=EncryptorDecryptorPair(
-                encryptor=GCPKMSEncryptor.from_crypto_key_version(get_default_crypto_key_version()),
+                encryptor=GCPKMSEncryptor.from_crypto_key_version(
+                    get_default_crypto_key_version()
+                ),
                 decryptor=GCPKMSDecryptor.from_bytes(
                     json.dumps(get_default_crypto_key_version()).encode("utf-8")
                 ),
@@ -421,7 +442,9 @@ def fulfill_cross_region_export_request(
     name="sentry.relocation.cross_region_export_timeout_check",
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
-    retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
+    retry=Retry(
+        times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+    ),
     silo_mode=SiloMode.REGION,
 )
 def cross_region_export_timeout_check(uuid: str) -> None:
@@ -461,7 +484,9 @@ def cross_region_export_timeout_check(uuid: str) -> None:
         )
         return
 
-    reason = ERR_UPLOADING_CROSS_REGION_TIMEOUT.substitute(delta=CROSS_REGION_EXPORT_TIMEOUT)
+    reason = ERR_UPLOADING_CROSS_REGION_TIMEOUT.substitute(
+        delta=CROSS_REGION_EXPORT_TIMEOUT
+    )
     logger_data["reason"] = reason
     logger.error(
         "cross_region_export_timeout_check: timeout detected",
@@ -475,7 +500,9 @@ def cross_region_export_timeout_check(uuid: str) -> None:
     name="sentry.relocation.uploading_complete",
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
-    retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
+    retry=Retry(
+        times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+    ),
 )
 def uploading_complete(uuid: str) -> None:
     """
@@ -518,7 +545,9 @@ def uploading_complete(uuid: str) -> None:
     name="sentry.relocation.preprocessing_scan",
     namespace=relocation_tasks,
     processing_deadline_duration=MEDIUM_TIME_LIMIT,
-    retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
+    retry=Retry(
+        times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+    ),
     silo_mode=SiloMode.REGION,
 )
 def preprocessing_scan(uuid: str) -> None:
@@ -587,9 +616,13 @@ def preprocessing_scan(uuid: str) -> None:
                 decryptor = GCPKMSDecryptor.from_bytes(
                     json.dumps(get_default_crypto_key_version()).encode("utf-8")
                 )
-                plaintext_data_encryption_key = decryptor.decrypt_data_encryption_key(unwrapped)
+                plaintext_data_encryption_key = decryptor.decrypt_data_encryption_key(
+                    unwrapped
+                )
                 fernet = Fernet(plaintext_data_encryption_key)
-                json_data = fernet.decrypt(unwrapped.encrypted_json_blob).decode("utf-8")
+                json_data = fernet.decrypt(unwrapped.encrypted_json_blob).decode(
+                    "utf-8"
+                )
 
             # Grab usernames and org slugs from the JSON data, and record which users are members of
             # which orgs.
@@ -603,22 +636,28 @@ def preprocessing_scan(uuid: str) -> None:
                         found_org_slugs[json_model["pk"]] = json_model["fields"]["slug"]
                     if get_model(model_name) == OrganizationMember:
                         if json_model["fields"]["user_id"] is not None:
-                            found_user_org_memberships[json_model["fields"]["user_id"]].append(
-                                json_model["fields"]["organization"]
-                            )
+                            found_user_org_memberships[
+                                json_model["fields"]["user_id"]
+                            ].append(json_model["fields"]["organization"])
                     if get_model(model_name) == User:
-                        found_usernames[json_model["pk"]] = json_model["fields"]["username"]
+                        found_usernames[json_model["pk"]] = json_model["fields"][
+                            "username"
+                        ]
                         # TODO(getsentry/team-ospo#190): Validate username using regex, so that we
                         # can fail early on obviously invalid usernames. Also keeps the database
                         # `JSONField` from ballooning on bad input.
             except KeyError:
                 return fail_relocation(
-                    relocation, OrderedTask.PREPROCESSING_SCAN, ERR_PREPROCESSING_INVALID_JSON
+                    relocation,
+                    OrderedTask.PREPROCESSING_SCAN,
+                    ERR_PREPROCESSING_INVALID_JSON,
                 )
 
             # Discard `found_org_slugs` that were not explicitly requested by the user.
             want_org_slugs = set(relocation.want_org_slugs)
-            found_org_slugs = {k: v for k, v in found_org_slugs.items() if v in want_org_slugs}
+            found_org_slugs = {
+                k: v for k, v in found_org_slugs.items() if v in want_org_slugs
+            }
             found_org_ids = set(found_org_slugs.keys())
             for slug in want_org_slugs:
                 try:
@@ -658,13 +697,17 @@ def preprocessing_scan(uuid: str) -> None:
                 return fail_relocation(
                     relocation,
                     OrderedTask.PREPROCESSING_SCAN,
-                    ERR_PREPROCESSING_TOO_MANY_ORGS.substitute(count=len(found_org_slugs)),
+                    ERR_PREPROCESSING_TOO_MANY_ORGS.substitute(
+                        count=len(found_org_slugs)
+                    ),
                 )
             if len(want_usernames) > MAX_USERS_PER_RELOCATION:
                 return fail_relocation(
                     relocation,
                     OrderedTask.PREPROCESSING_SCAN,
-                    ERR_PREPROCESSING_TOO_MANY_USERS.substitute(count=len(want_usernames)),
+                    ERR_PREPROCESSING_TOO_MANY_USERS.substitute(
+                        count=len(want_usernames)
+                    ),
                 )
 
             relocation.want_usernames = sorted(want_usernames)
@@ -689,7 +732,9 @@ def preprocessing_scan(uuid: str) -> None:
     name="sentry.relocation.preprocessing_transfer",
     namespace=relocation_tasks,
     processing_deadline_duration=MEDIUM_TIME_LIMIT,
-    retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
+    retry=Retry(
+        times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+    ),
     silo_mode=SiloMode.REGION,
 )
 def preprocessing_transfer(uuid: str) -> None:
@@ -742,7 +787,9 @@ def preprocessing_transfer(uuid: str) -> None:
         # during validation.
         log_gcp_credentials_details(logger)
         kms_config_bytes = json.dumps(get_default_crypto_key_version()).encode("utf-8")
-        relocation_storage.save(f"runs/{uuid}/in/kms-config.json", BytesIO(kms_config_bytes))
+        relocation_storage.save(
+            f"runs/{uuid}/in/kms-config.json", BytesIO(kms_config_bytes)
+        )
 
         # Now, upload the relocation data proper.
         kind = RelocationFile.Kind.RAW_USER_DATA
@@ -759,7 +806,7 @@ def preprocessing_transfer(uuid: str) -> None:
             raise FileNotFoundError("User-supplied relocation data not found.")
 
         file: File = raw_relocation_file.file
-        path = f'runs/{uuid}/in/{kind.to_filename("tar")}'
+        path = f"runs/{uuid}/in/{kind.to_filename('tar')}"
 
         # Copy all of the files from Django's abstract filestore into an isolated,
         # backend-specific filestore for relocation operations only.
@@ -774,7 +821,9 @@ def preprocessing_transfer(uuid: str) -> None:
     name="sentry.relocation.preprocessing_baseline_config",
     namespace=relocation_tasks,
     processing_deadline_duration=MEDIUM_TIME_LIMIT,
-    retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
+    retry=Retry(
+        times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+    ),
     silo_mode=SiloMode.REGION,
 )
 def preprocessing_baseline_config(uuid: str) -> None:
@@ -799,7 +848,7 @@ def preprocessing_baseline_config(uuid: str) -> None:
         ERR_PREPROCESSING_INTERNAL,
     ):
         kind = RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA
-        path = f'runs/{uuid}/in/{kind.to_filename("tar")}'
+        path = f"runs/{uuid}/in/{kind.to_filename('tar')}"
         relocation_storage = get_relocation_storage()
 
         # TODO(getsentry/team-ospo#216): A very nice optimization here is to only pull this down
@@ -809,7 +858,9 @@ def preprocessing_baseline_config(uuid: str) -> None:
         log_gcp_credentials_details(logger)
         export_in_config_scope(
             fp,
-            encryptor=GCPKMSEncryptor.from_crypto_key_version(get_default_crypto_key_version()),
+            encryptor=GCPKMSEncryptor.from_crypto_key_version(
+                get_default_crypto_key_version()
+            ),
             printer=LoggingPrinter(uuid),
         )
         fp.seek(0)
@@ -822,7 +873,9 @@ def preprocessing_baseline_config(uuid: str) -> None:
     name="sentry.relocation.preprocessing_colliding_users",
     namespace=relocation_tasks,
     processing_deadline_duration=MEDIUM_TIME_LIMIT,
-    retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
+    retry=Retry(
+        times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+    ),
     silo_mode=SiloMode.REGION,
 )
 def preprocessing_colliding_users(uuid: str) -> None:
@@ -848,13 +901,15 @@ def preprocessing_colliding_users(uuid: str) -> None:
         ERR_PREPROCESSING_INTERNAL,
     ):
         kind = RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA
-        path = f'runs/{uuid}/in/{kind.to_filename("tar")}'
+        path = f"runs/{uuid}/in/{kind.to_filename('tar')}"
         relocation_storage = get_relocation_storage()
         fp = BytesIO()
         log_gcp_credentials_details(logger)
         export_in_user_scope(
             fp,
-            encryptor=GCPKMSEncryptor.from_crypto_key_version(get_default_crypto_key_version()),
+            encryptor=GCPKMSEncryptor.from_crypto_key_version(
+                get_default_crypto_key_version()
+            ),
             user_filter=set(relocation.want_usernames or ()),
             printer=LoggingPrinter(uuid),
         )
@@ -868,7 +923,9 @@ def preprocessing_colliding_users(uuid: str) -> None:
     name="sentry.relocation.preprocessing_complete",
     namespace=relocation_tasks,
     processing_deadline_duration=MEDIUM_TIME_LIMIT,
-    retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
+    retry=Retry(
+        times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+    ),
     silo_mode=SiloMode.REGION,
 )
 def preprocessing_complete(uuid: str) -> None:
@@ -897,20 +954,33 @@ def preprocessing_complete(uuid: str) -> None:
     ):
         relocation_storage = get_relocation_storage()
         if not relocation_storage.exists(f"runs/{uuid}/conf/cloudbuild.yaml"):
-            raise FileNotFoundError("Could not locate `cloudbuild.yaml` in relocation bucket.")
+            raise FileNotFoundError(
+                "Could not locate `cloudbuild.yaml` in relocation bucket."
+            )
         if not relocation_storage.exists(f"runs/{uuid}/conf/cloudbuild.zip"):
-            raise FileNotFoundError("Could not locate `cloudbuild.zip` in relocation bucket.")
+            raise FileNotFoundError(
+                "Could not locate `cloudbuild.zip` in relocation bucket."
+            )
         if not relocation_storage.exists(f"runs/{uuid}/in/filter-usernames.txt"):
-            raise FileNotFoundError("Could not locate `filter-usernames.txt` in relocation bucket.")
+            raise FileNotFoundError(
+                "Could not locate `filter-usernames.txt` in relocation bucket."
+            )
         if not relocation_storage.exists(f"runs/{uuid}/in/kms-config.json"):
-            raise FileNotFoundError("Could not locate `kms-config.json` in relocation bucket.")
+            raise FileNotFoundError(
+                "Could not locate `kms-config.json` in relocation bucket."
+            )
         for kind in RELOCATION_FILES_TO_BE_VALIDATED:
             filename = kind.to_filename("tar")
             if not relocation_storage.exists(f"runs/{uuid}/in/{filename}"):
-                raise FileNotFoundError(f"Could not locate `{filename}` in relocation bucket.")
+                raise FileNotFoundError(
+                    f"Could not locate `{filename}` in relocation bucket."
+                )
 
         with atomic_transaction(
-            using=(router.db_for_write(Relocation), router.db_for_write(RelocationValidation))
+            using=(
+                router.db_for_write(Relocation),
+                router.db_for_write(RelocationValidation),
+            )
         ):
             relocation.step = Relocation.Step.VALIDATING.value
             relocation.save()
@@ -941,7 +1011,9 @@ def _get_relocation_validation_attempt(
 ) -> RelocationValidationAttempt | None:
     try:
         return RelocationValidationAttempt.objects.get(
-            relocation=relocation, relocation_validation=relocation_validation, build_id=build_id
+            relocation=relocation,
+            relocation_validation=relocation_validation,
+            build_id=build_id,
         )
     except RelocationValidationAttempt.DoesNotExist:
         fail_relocation(
@@ -1036,7 +1108,9 @@ def _update_relocation_validation_attempt(
 
             transaction.on_commit(
                 lambda: fail_relocation(
-                    relocation, task, "Validation could not be completed. Please contact support."
+                    relocation,
+                    task,
+                    "Validation could not be completed. Please contact support.",
                 ),
                 using=router.db_for_write(Relocation),
             )
@@ -1082,7 +1156,9 @@ def _update_relocation_validation_attempt(
     name="sentry.relocation.validating_start",
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
-    retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
+    retry=Retry(
+        times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+    ),
     silo_mode=SiloMode.REGION,
 )
 def validating_start(uuid: str) -> None:
@@ -1100,11 +1176,15 @@ def validating_start(uuid: str) -> None:
     if relocation is None:
         return
 
-    relocation_validation = _get_relocation_validation(relocation, OrderedTask.VALIDATING_START)
+    relocation_validation = _get_relocation_validation(
+        relocation, OrderedTask.VALIDATING_START
+    )
     if relocation_validation is None:
         return
     if relocation_validation.attempts >= MAX_VALIDATION_RUNS:
-        fail_relocation(relocation, OrderedTask.VALIDATING_START, ERR_VALIDATING_MAX_RUNS)
+        fail_relocation(
+            relocation, OrderedTask.VALIDATING_START, ERR_VALIDATING_MAX_RUNS
+        )
         return
 
     with retry_task_or_fail_relocation(
@@ -1119,6 +1199,30 @@ def validating_start(uuid: str) -> None:
 
         cb_yaml = create_cloudbuild_yaml(relocation)
         cb_conf = yaml.safe_load(cb_yaml)
+
+        def _parse_duration(value: Any) -> timedelta | Any:
+            """Convert protobuf-style duration strings (e.g. '4800s') to timedelta."""
+            if isinstance(value, str) and value.endswith("s"):
+                try:
+                    return timedelta(seconds=int(value[:-1]))
+                except ValueError:
+                    return value
+            return value
+
+        def _convert_durations(obj: Any) -> Any:
+            """Recursively convert duration strings in nested dicts/lists."""
+            if isinstance(obj, list):
+                return [_convert_durations(item) for item in obj]
+            if isinstance(obj, dict):
+                return {
+                    k: _convert_durations(v) if k != "timeout" else _parse_duration(v)
+                    for k, v in obj.items()
+                }
+            return obj
+
+        steps = _convert_durations(
+            convert_dict_key_case(cb_conf["steps"], camel_to_snake_keep_underscores)
+        )
         build = Build(
             source={
                 "storage_source": {
@@ -1126,10 +1230,14 @@ def validating_start(uuid: str) -> None:
                     "object_": f"runs/{uuid}/conf/cloudbuild.zip",
                 }
             },
-            steps=convert_dict_key_case(cb_conf["steps"], camel_to_snake_keep_underscores),
-            artifacts=convert_dict_key_case(cb_conf["artifacts"], camel_to_snake_keep_underscores),
-            timeout=convert_dict_key_case(cb_conf["timeout"], camel_to_snake_keep_underscores),
-            options=convert_dict_key_case(cb_conf["options"], camel_to_snake_keep_underscores),
+            steps=steps,
+            artifacts=convert_dict_key_case(
+                cb_conf["artifacts"], camel_to_snake_keep_underscores
+            ),
+            timeout=_parse_duration(cb_conf["timeout"]),
+            options=convert_dict_key_case(
+                cb_conf["options"], camel_to_snake_keep_underscores
+            ),
             tags=[
                 f"relocation-into-{get_local_region().name}",
                 f"relocation-id-{uuid}",
@@ -1158,7 +1266,9 @@ def validating_start(uuid: str) -> None:
     name="sentry.relocation.validating_poll",
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
-    retry=Retry(times=MAX_VALIDATION_POLLS, on=(Exception,), times_exceeded=LastAction.Discard),
+    retry=Retry(
+        times=MAX_VALIDATION_POLLS, on=(Exception,), times_exceeded=LastAction.Discard
+    ),
     silo_mode=SiloMode.REGION,
 )
 def validating_poll(uuid: str, build_id: str) -> None:
@@ -1176,7 +1286,9 @@ def validating_poll(uuid: str, build_id: str) -> None:
     if relocation is None:
         return
 
-    relocation_validation = _get_relocation_validation(relocation, OrderedTask.VALIDATING_POLL)
+    relocation_validation = _get_relocation_validation(
+        relocation, OrderedTask.VALIDATING_POLL
+    )
     if relocation_validation is None:
         return
 
@@ -1253,7 +1365,9 @@ def validating_poll(uuid: str, build_id: str) -> None:
     name="sentry.relocation.validating_complete",
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
-    retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
+    retry=Retry(
+        times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+    ),
     silo_mode=SiloMode.REGION,
 )
 def validating_complete(uuid: str, build_id: str) -> None:
@@ -1273,7 +1387,9 @@ def validating_complete(uuid: str, build_id: str) -> None:
     if relocation is None:
         return
 
-    relocation_validation = _get_relocation_validation(relocation, OrderedTask.VALIDATING_COMPLETE)
+    relocation_validation = _get_relocation_validation(
+        relocation, OrderedTask.VALIDATING_COMPLETE
+    )
     if relocation_validation is None:
         return
 
@@ -1333,7 +1449,9 @@ def validating_complete(uuid: str, build_id: str) -> None:
     #
     # The main reason to have this at all is to guard against transient errors, especially with RPC
     # or task timeouts.
-    retry=Retry(times=MAX_SLOW_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
+    retry=Retry(
+        times=MAX_SLOW_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+    ),
     silo_mode=SiloMode.REGION,
 )
 def importing(uuid: str) -> None:
@@ -1369,7 +1487,9 @@ def importing(uuid: str) -> None:
         )
         relocation_data_fp = raw_relocation_file.file.getfile()
         log_gcp_credentials_details(logger)
-        kms_config_fp = BytesIO(json.dumps(get_default_crypto_key_version()).encode("utf-8"))
+        kms_config_fp = BytesIO(
+            json.dumps(get_default_crypto_key_version()).encode("utf-8")
+        )
 
         with relocation_data_fp, kms_config_fp:
             import_in_organization_scope(
@@ -1378,7 +1498,8 @@ def importing(uuid: str) -> None:
                 flags=ImportFlags(
                     import_uuid=str(uuid),
                     hide_organizations=True,
-                    merge_users=relocation.provenance == Relocation.Provenance.SAAS_TO_SAAS,
+                    merge_users=relocation.provenance
+                    == Relocation.Provenance.SAAS_TO_SAAS,
                     overwrite_configs=False,
                 ),
                 org_filter=set(relocation.want_org_slugs),
@@ -1392,7 +1513,9 @@ def importing(uuid: str) -> None:
     name="sentry.relocation.postprocessing",
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
-    retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
+    retry=Retry(
+        times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+    ),
     silo_mode=SiloMode.REGION,
 )
 def postprocessing(uuid: str) -> None:
@@ -1448,7 +1571,9 @@ def postprocessing(uuid: str) -> None:
         # Last, but certainly not least: trigger signals, so that interested subscribers in eg:
         # getsentry can do whatever postprocessing they need to. If even a single one fails, we fail
         # the entire task.
-        for _, result in relocated.send_robust(sender=postprocessing, relocation_uuid=uuid):
+        for _, result in relocated.send_robust(
+            sender=postprocessing, relocation_uuid=uuid
+        ):
             if isinstance(result, Exception):
                 raise result
 
@@ -1481,7 +1606,9 @@ def postprocessing(uuid: str) -> None:
     name="sentry.relocation.notifying_unhide",
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
-    retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
+    retry=Retry(
+        times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+    ),
     silo_mode=SiloMode.REGION,
 )
 def notifying_unhide(uuid: str) -> None:
@@ -1524,7 +1651,9 @@ def notifying_unhide(uuid: str) -> None:
     name="sentry.relocation.notifying_users",
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
-    retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
+    retry=Retry(
+        times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+    ),
     silo_mode=SiloMode.REGION,
 )
 def notifying_users(uuid: str) -> None:
@@ -1547,9 +1676,13 @@ def notifying_users(uuid: str) -> None:
         ERR_NOTIFYING_INTERNAL,
     ):
         imported_user_ids: set[int] = set()
-        chunks = ControlImportChunkReplica.objects.filter(import_uuid=uuid, model="sentry.user")
+        chunks = ControlImportChunkReplica.objects.filter(
+            import_uuid=uuid, model="sentry.user"
+        )
         for control_chunk in chunks:
-            imported_user_ids = imported_user_ids.union(set(control_chunk.inserted_map.values()))
+            imported_user_ids = imported_user_ids.union(
+                set(control_chunk.inserted_map.values())
+            )
 
         imported_org_slugs: set[str] = set()
         for region_chunk in RegionImportChunk.objects.filter(
@@ -1562,7 +1695,9 @@ def notifying_users(uuid: str) -> None:
         # Do a sanity check on pk-mapping before we go and reset the passwords of random users - are
         # all of these usernames plausibly ones that were included in the import, based on username
         # prefix matching?
-        imported_users = user_service.get_many(filter={"user_ids": list(imported_user_ids)})
+        imported_users = user_service.get_many(
+            filter={"user_ids": list(imported_user_ids)}
+        )
         for user in imported_users:
             matched_prefix = False
             for username_prefix in relocation.want_usernames or ():
@@ -1582,7 +1717,9 @@ def notifying_users(uuid: str) -> None:
                 continue
 
             hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
-            LostPasswordHash.send_relocate_account_email(user, hash, list(imported_org_slugs))
+            LostPasswordHash.send_relocate_account_email(
+                user, hash, list(imported_org_slugs)
+            )
 
         relocation.latest_unclaimed_emails_sent_at = datetime.now(UTC)
         relocation.save()
@@ -1594,7 +1731,9 @@ def notifying_users(uuid: str) -> None:
     name="sentry.relocation.notifying_owner",
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
-    retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
+    retry=Retry(
+        times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+    ),
     silo_mode=SiloMode.REGION,
 )
 def notifying_owner(uuid: str) -> None:
@@ -1620,7 +1759,9 @@ def notifying_owner(uuid: str) -> None:
         for chunk in RegionImportChunk.objects.filter(
             import_uuid=uuid, model="sentry.organization"
         ):
-            imported_org_slugs = imported_org_slugs.union(set(chunk.inserted_identifiers.values()))
+            imported_org_slugs = imported_org_slugs.union(
+                set(chunk.inserted_identifiers.values())
+            )
 
         send_relocation_update_email(
             relocation,
@@ -1638,7 +1779,9 @@ def notifying_owner(uuid: str) -> None:
     name="sentry.relocation.completed",
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
-    retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
+    retry=Retry(
+        times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+    ),
     silo_mode=SiloMode.REGION,
 )
 def completed(uuid: str) -> None:

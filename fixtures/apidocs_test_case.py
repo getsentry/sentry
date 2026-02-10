@@ -16,7 +16,9 @@ from sentry.testutils.skips import requires_snuba
 class APIDocsTestCase(APITestCase):
     @functools.cached_property
     def cached_schema(self):
-        path = os.path.join(os.path.dirname(__file__), "../tests/apidocs/openapi-derefed.json")
+        path = os.path.join(
+            os.path.dirname(__file__), "../tests/apidocs/openapi-derefed.json"
+        )
         with open(path, "rb") as json_file:
             data = orjson.loads(json_file.read())
             data["servers"][0]["url"] = settings.SENTRY_OPTIONS["system.url-prefix"]
@@ -32,7 +34,8 @@ class APIDocsTestCase(APITestCase):
 
         response["Content-Type"] = "application/json"
         V30ResponseDataValidator(self.cached_schema).validate(
-            DjangoOpenAPIRequest(request), DjangoOpenAPIResponse(response)
+            DjangoOpenAPIRequest(request),
+            DjangoOpenAPIResponse(response),  # type: ignore[arg-type]  # Werkzeug 3.1 Headers vs Mapping
         )
 
     def create_event(self, name, **kwargs):

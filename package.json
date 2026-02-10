@@ -116,7 +116,7 @@
     "core-js": "3.45.0",
     "cronstrue": "^2.50.0",
     "css-loader": "^7.1.2",
-    "diff": "8.0.2",
+    "diff": "8.0.3",
     "dompurify": "3.2.5",
     "downsample": "1.4.0",
     "echarts": "6.0.0",
@@ -237,7 +237,10 @@
   "pnpm": {
     "overrides": {
       "react-mentions>@babel/runtime": "7.26.10",
-      "react-is": "19.2.1"
+      "react-is": "19.2.1",
+      "@isaacs/brace-expansion": "5.0.1",
+      "diff@>=4.0.0 <4.0.4": "4.0.4",
+      "diff@>=5.0.0 <5.2.2": "5.2.2"
     },
     "onlyBuiltDependencies": [
       "@sentry-internal/node-cpu-profiler",
