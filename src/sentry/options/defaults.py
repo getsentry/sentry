@@ -2377,12 +2377,12 @@ register(
 # === Backpressure related runtime options ===
 
 # Enables monitoring of services for backpressure management.
-register("backpressure.monitoring.enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("backpressure.monitoring.enabled", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # How often the monitor will check service health.
 register("backpressure.monitoring.interval", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Enables checking consumer health for backpressure management.
-register("backpressure.checking.enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("backpressure.checking.enabled", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # How often a consumer will check for its health in a debounced fassion.
 register("backpressure.checking.interval", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
