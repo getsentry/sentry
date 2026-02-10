@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
