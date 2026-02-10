@@ -10,7 +10,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
-import {OnboardingCopyAsDropdown} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyAsDropdown';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {SelectedCodeTabProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
@@ -244,7 +244,7 @@ function Onboarding({organization, project}: OnboardingProps) {
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
       <SelectedCodeTabProvider>
-        <OnboardingCopyAsDropdown
+        <OnboardingCopyMarkdownButton
           steps={steps}
           organization={organization}
           source="metrics_onboarding"

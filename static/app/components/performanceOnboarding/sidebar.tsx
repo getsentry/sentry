@@ -11,7 +11,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {OnboardingCopyAsDropdown} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyAsDropdown';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {SelectedCodeTabProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -340,7 +340,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         <Introduction>{performanceDocs.introduction(docParams)}</Introduction>
       )}
       <SelectedCodeTabProvider>
-        <OnboardingCopyAsDropdown
+        <OnboardingCopyMarkdownButton
           steps={steps}
           organization={organization}
           source="performance_sidebar_onboarding"

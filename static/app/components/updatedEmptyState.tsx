@@ -10,7 +10,7 @@ import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
-import {OnboardingCopyAsDropdown} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyAsDropdown';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {SelectedCodeTabProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -182,7 +182,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
           <Setup>
             <SetupTitle project={project} />
             <SelectedCodeTabProvider>
-              <OnboardingCopyAsDropdown
+              <OnboardingCopyMarkdownButton
                 steps={steps}
                 organization={organization}
                 source="issues_onboarding"

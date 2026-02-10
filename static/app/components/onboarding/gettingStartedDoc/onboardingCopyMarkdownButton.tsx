@@ -12,7 +12,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
-interface OnboardingCopyAsDropdownProps {
+interface OnboardingCopyMarkdownButtonProps {
   organization: Organization;
   source: string;
   steps: OnboardingStep[];
@@ -24,11 +24,11 @@ interface OnboardingCopyAsDropdownProps {
  *
  * Must be rendered inside a `<SelectedCodeTabProvider>`.
  */
-export function OnboardingCopyAsDropdown({
+export function OnboardingCopyMarkdownButton({
   steps,
   organization,
   source,
-}: OnboardingCopyAsDropdownProps) {
+}: OnboardingCopyMarkdownButtonProps) {
   const {selectedTab} = useSelectedCodeTab();
   const authToken = useAuthToken();
 

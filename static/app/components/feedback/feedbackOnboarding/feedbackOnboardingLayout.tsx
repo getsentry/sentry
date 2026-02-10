@@ -5,7 +5,7 @@ import {Stack} from '@sentry/scraps/layout';
 
 import FeedbackConfigToggle from 'sentry/components/feedback/feedbackOnboarding/feedbackConfigToggle';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {OnboardingCopyAsDropdown} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyAsDropdown';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {SelectedCodeTabProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -113,7 +113,7 @@ export function FeedbackOnboardingLayout({
       <Wrapper>
         {introduction && <Stack marginBottom="3xl">{introduction}</Stack>}
         <SelectedCodeTabProvider>
-          <OnboardingCopyAsDropdown
+          <OnboardingCopyMarkdownButton
             steps={steps}
             organization={organization}
             source="feedback_onboarding"

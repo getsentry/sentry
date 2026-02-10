@@ -5,7 +5,7 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import OnboardingAdditionalFeatures from 'sentry/components/events/featureFlags/onboarding/onboardingAdditionalFeatures';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {OnboardingCopyAsDropdown} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyAsDropdown';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {SelectedCodeTabProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -91,7 +91,7 @@ export function FeatureFlagOnboardingLayout({
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <Wrapper>
         <SelectedCodeTabProvider>
-          <OnboardingCopyAsDropdown
+          <OnboardingCopyMarkdownButton
             steps={steps}
             organization={organization}
             source="feature_flag_onboarding"
