@@ -28,11 +28,6 @@ from sentry.notifications.platform.templates.seer import SeerAutofixError, SeerA
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.organizations.services.organization.service import organization_service
-from sentry.seer.autofix.issue_summary import (
-    STOPPING_POINT_HIERARCHY,
-    get_automation_stopping_point,
-    is_group_triggering_automation,
-)
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import entrypoint_registry
@@ -66,7 +61,6 @@ class SlackEntrypointCachePayload(TypedDict):
     integration_id: int
     group_link: str
     threads: list[SlackThreadDetails]
-    automation_stopping_point: AutofixStoppingPoint | None
 
 
 @entrypoint_registry.register(key=SeerEntrypointKey.SLACK)
@@ -179,7 +173,6 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             project_id=self.group.project_id,
             group_id=self.group.id,
             group_link=self.get_group_link(self.group),
-            automation_stopping_point=None,
         )
 
     @staticmethod
@@ -257,22 +250,9 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                 logger.info("seer.entrypoint.slack.unsupported_event_type", extra=logging_ctx)
                 return
 
-        # Determine whether an automation has progressed beyond the current stopping point
-        automation_stopping_point = cache_payload["automation_stopping_point"]
-        if automation_stopping_point:
-            data_kwargs["has_progressed"] = (
-                STOPPING_POINT_HIERARCHY[automation_stopping_point]
-                > STOPPING_POINT_HIERARCHY[data_kwargs["current_point"]]
-            )
-            logging_ctx["automation_stopping_point"] = str(automation_stopping_point)
-        logging_ctx["has_progressed"] = data_kwargs.get("has_progressed", False)
-
         # Special case for solution stopping point, we progress beyond it if coding is enabled
         # (if triggered manually, we always respect automation stopping point)
-        if (
-            data_kwargs["current_point"] == AutofixStoppingPoint.SOLUTION
-            and not automation_stopping_point
-        ):
+        if data_kwargs["current_point"] == AutofixStoppingPoint.SOLUTION:
             has_coding_enabled = organization_service.get_option(
                 organization_id=cache_payload["organization_id"],
                 key="sentry:enable_seer_coding",
@@ -542,19 +522,6 @@ def handle_prepare_autofix_update(
         stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
     )
 
-    try:
-        automation_stopping_point = (
-            get_automation_stopping_point(group) if is_group_triggering_automation(group) else None
-        )
-    except Exception:
-        logger.exception(
-            "seer.entrypoint.slack.prepare_autofix.get_stopping_point_error", extra=logging_ctx
-        )
-        automation_stopping_point = None
-
-    if automation_stopping_point:
-        logging_ctx["automation_stopping_point"] = str(automation_stopping_point)
-
     lock = locks.get(lock_key, duration=10, name="autofix_entrypoint_slack")
     try:
         with lock.blocking_acquire(initial_delay=0.1, timeout=3):
@@ -579,7 +546,6 @@ def handle_prepare_autofix_update(
                     project_id=group.project_id,
                     group_id=group.id,
                     group_link=SlackEntrypoint.get_group_link(group),
-                    automation_stopping_point=automation_stopping_point,
                 ),
             )
     except UnableToAcquireLock:
@@ -591,14 +557,10 @@ def handle_prepare_autofix_update(
             "cache_key": cache_result["key"],
             "cache_source": cache_result["source"],
             "thread_count": len(threads),
-            "has_automation": bool(automation_stopping_point),
             **logging_ctx,
         },
     )
     metrics.incr(
         "seer.entrypoint.slack.prepare_autofix.cache_populated",
-        tags={
-            "cache_source": cache_result["source"],
-            "has_automation": str(bool(automation_stopping_point)),
-        },
+        tags={"cache_source": cache_result["source"]},
     )
