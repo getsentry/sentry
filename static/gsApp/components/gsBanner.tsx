@@ -13,7 +13,7 @@ import {Flex} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
-import type {PromptData} from 'sentry/actionCreators/prompts';
+import type {PromptData, PromptFeature} from 'sentry/actionCreators/prompts';
 import {
   batchedPromptsCheck,
   promptsCheck,
@@ -627,9 +627,9 @@ class GSBanner extends Component<Props, State> {
       return;
     }
 
-    const category_overage_prompts: string[] = [];
-    const category_warning_prompts: string[] = [];
-    const category_product_trial_prompts: string[] = [];
+    const category_overage_prompts: PromptFeature[] = [];
+    const category_warning_prompts: PromptFeature[] = [];
+    const category_product_trial_prompts: PromptFeature[] = [];
 
     Object.values(BILLED_DATA_CATEGORY_INFO)
       .filter(
@@ -682,14 +682,14 @@ class GSBanner extends Component<Props, State> {
       this.setState({
         // not billing related prompt checks
         deactivatedMemberDismissed: promptIsDismissed(
-          checkResults.deactivated_member_alert!
+          checkResults.deactivated_member_alert
         ),
         // billing period related prompt checks
-        overageAlertDismissed: objectFromBilledCategories(c =>
-          promptIsDismissedForBillingPeriod(
+        overageAlertDismissed: objectFromBilledCategories(c => {
+          return promptIsDismissedForBillingPeriod(
             checkResults[`${snakeCase(c.plural)}_overage_alert`]!
-          )
-        ),
+          );
+        }),
         overageWarningDismissed: objectFromBilledCategories(c =>
           promptIsDismissedForBillingPeriod(
             checkResults[`${snakeCase(c.plural)}_warning_alert`]!

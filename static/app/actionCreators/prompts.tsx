@@ -9,11 +9,35 @@ import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
+// You can add anything to this list, it's only used for type safety: to prevent typos and for stories.
+export type PromptFeature =
+  | 'alert_stream'
+  | 'cancel_subscription'
+  | 'data_consent_banner'
+  | 'data_consent_priority'
+  | 'deactivated_member_alert'
+  | 'forced_trial_notice'
+  | 'github_missing_members'
+  | 'issue_feedback_hidden'
+  | 'issue_priority'
+  | 'issue_replay_inline_onboarding'
+  | 'issue_views_all_views_banner'
+  | 'metric_alert_ignore_archived_issues'
+  | 'partner_plan_ending_modal'
+  | 'seer_autofix_setup_acknowledged'
+  | 'stacktrace_link'
+  | 'subscription_try_business_banner'
+  | 'trial_ended_notice'
+  | 'user_snooze_deprecation'
+  | `${string}_overage_alert`
+  | `${string}_warning_alert`
+  | `${string}_product_trial_alert`;
+
 type PromptsUpdateParams = {
   /**
    * The prompt feature name
    */
-  feature: string;
+  feature: PromptFeature;
   organization: OrganizationSummary;
   status: 'snoozed' | 'dismissed' | 'visible';
   /**
@@ -44,7 +68,7 @@ type PromptCheckParams = {
   /**
    * The prompt feature name
    */
-  feature: string | string[];
+  feature: PromptFeature | PromptFeature[];
   organization: OrganizationSummary;
   /**
    * The numeric project ID as a string
@@ -53,7 +77,7 @@ type PromptCheckParams = {
 };
 
 type PromptCheckHookParams = {
-  feature: string | string[];
+  feature: PromptFeature | PromptFeature[];
   organization: OrganizationSummary | null;
   projectId?: string;
 };
@@ -153,7 +177,7 @@ export function usePrompts({
   options,
   isDismissed = promptIsDismissed,
 }: {
-  features: string[];
+  features: PromptFeature[];
   organization: Organization | null;
   daysToSnooze?: number;
   isDismissed?: (prompt: PromptData, daysToSnooze?: number) => boolean;
@@ -181,7 +205,7 @@ export function usePrompts({
   }, [prompts.isSuccess, prompts.data?.features, features, daysToSnooze, isDismissed]);
 
   const dismissPrompt = useCallback(
-    (feature: string) => {
+    (feature: PromptFeature) => {
       if (!organization) {
         return;
       }
@@ -214,7 +238,7 @@ export function usePrompts({
   );
 
   const snoozePrompt = useCallback(
-    (feature: string) => {
+    (feature: PromptFeature) => {
       if (!organization) {
         return;
       }
@@ -247,7 +271,7 @@ export function usePrompts({
   );
 
   const showPrompt = useCallback(
-    (feature: string) => {
+    (feature: PromptFeature) => {
       if (!organization) {
         return;
       }
@@ -295,7 +319,7 @@ export function usePrompt({
   daysToSnooze,
   options,
 }: {
-  feature: string;
+  feature: PromptFeature;
   organization: Organization | null;
   daysToSnooze?: number;
   options?: Partial<UseApiQueryOptions<PromptResponse>>;
@@ -419,7 +443,7 @@ export function usePrompt({
 /**
  * Get the status of many prompts
  */
-export async function batchedPromptsCheck<T extends readonly string[]>(
+export async function batchedPromptsCheck<T extends readonly PromptFeature[]>(
   api: Client,
   features: T,
   params: {
@@ -444,7 +468,7 @@ export async function batchedPromptsCheck<T extends readonly string[]>(
   for (const featureName of features) {
     const item = responseFeatures[featureName];
     if (item) {
-      (result as any)[featureName] = {
+      result[featureName as T[number]] = {
         dismissedTime: item.dismissed_ts,
         snoozedTime: item.snoozed_ts,
       };

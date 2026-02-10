@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 
-import {promptsUpdate} from 'sentry/actionCreators/prompts';
+import {promptsUpdate, type PromptFeature} from 'sentry/actionCreators/prompts';
 import {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
 import {QueryClient, type QueryObserverResult} from 'sentry/utils/queryClient';
@@ -95,7 +95,7 @@ export async function checkForPromptBasedPromotion({
   onRefetch: () => Promise<QueryObserverResult<PromotionData | any, RequestError>>;
   organization: Organization;
   promotionData: PromotionData;
-  promptFeature: string;
+  promptFeature: PromptFeature;
   subscription: Subscription;
 }) {
   // from the existing promotion data, check if the user has already claimed the prompt-based promotion

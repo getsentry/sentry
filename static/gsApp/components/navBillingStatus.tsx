@@ -7,7 +7,7 @@ import moment from 'moment-timezone';
 import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import type {PromptData} from 'sentry/actionCreators/prompts';
+import type {PromptData, PromptFeature} from 'sentry/actionCreators/prompts';
 import {usePrompts} from 'sentry/actionCreators/prompts';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -392,7 +392,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     .map(category => {
       return `${snakeCase(category)}_overage_alert`;
     })
-    .filter(Boolean);
+    .filter(Boolean) as PromptFeature[];
 
   /**
    * Check if the prompt is snoozed for the current on-demand period.
@@ -498,7 +498,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
   }) => {
     // Only snooze prompts for the specific categories passed, not all prompts
     const promptsToSnooze = categories.map(
-      category => `${snakeCase(category)}_overage_alert`
+      category => `${snakeCase(category)}_overage_alert` as PromptFeature
     );
     promptsToSnooze.forEach(prompt => {
       if (promptsToCheck.includes(prompt)) {

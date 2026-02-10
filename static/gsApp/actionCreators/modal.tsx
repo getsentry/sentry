@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {promptsUpdate} from 'sentry/actionCreators/prompts';
+import {promptsUpdate, type PromptFeature} from 'sentry/actionCreators/prompts';
 import {Client} from 'sentry/api';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t, tct} from 'sentry/locale';
@@ -48,7 +48,7 @@ function genTrialModalOnClose(
   options: TrialModalProps,
   type: 'trialEnd' | 'forcedTrial'
 ) {
-  let feature: string, subField: string;
+  let feature: PromptFeature, subField: string;
   switch (type) {
     case 'trialEnd':
       feature = 'trial_ended_notice';
