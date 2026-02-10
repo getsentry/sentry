@@ -174,7 +174,7 @@ export function useConversationViewDrawer({
   );
 
   useEffect(() => {
-    const {conversationId, startTimestamp, endTimestamp} = drawerUrlState;
+    const {conversationId, startTimestamp, endTimestamp, focusedTool} = drawerUrlState;
     if (conversationId && !isDrawerOpen) {
       openConversationViewDrawer({
         conversation: {
@@ -182,6 +182,7 @@ export function useConversationViewDrawer({
           startTimestamp: startTimestamp ?? undefined,
           endTimestamp: endTimestamp ?? undefined,
         },
+        focusedTool: focusedTool ?? undefined,
         source: 'direct_link',
       });
     }
