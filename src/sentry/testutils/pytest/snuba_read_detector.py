@@ -92,9 +92,19 @@ def _patched_urlopen(self_pool: Any, method: str, url: str, *args: Any, **kwargs
     return _original_urlopen(method, url, *args, **kwargs)
 
 
+_patch_installed = False
+
+
 def _install_patch() -> None:
-    """Monkey-patch _snuba_pool.urlopen."""
-    global _original_urlopen
+    """Monkey-patch _snuba_pool.urlopen.
+
+    Must be called AFTER Django/Sentry initialization because importing
+    sentry.utils.snuba triggers a cascade of Django app imports.
+    """
+    global _original_urlopen, _patch_installed
+    if _patch_installed:
+        return
+
     from sentry.utils.snuba import _snuba_pool
 
     _original_urlopen = _snuba_pool.urlopen
@@ -107,6 +117,7 @@ def _install_patch() -> None:
         return _original_urlopen(method, url, *args, **kwargs)
 
     _snuba_pool.urlopen = patched  # type: ignore[assignment]
+    _patch_installed = True
 
 
 def _uninstall_patch() -> None:
@@ -151,6 +162,10 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 def pytest_configure(config: pytest.Config) -> None:
     global _enabled
     _enabled = config.getoption("--detect-snuba-reads", default=False)
+
+
+def pytest_sessionstart(session: pytest.Session) -> None:
+    """Install the patch after Django/Sentry app initialization."""
     if _enabled:
         _install_patch()
 
