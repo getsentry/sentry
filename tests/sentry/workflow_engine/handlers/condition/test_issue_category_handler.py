@@ -39,6 +39,20 @@ class TestIssueCategoryCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
+    def test_dual_write_exclude(self) -> None:
+        dcg = self.create_data_condition_group()
+        dc = self.translate_to_data_condition(
+            {"id": IssueCategoryFilter.id, "value": "1", "include": False}, dcg
+        )
+
+        assert dc.type == self.condition
+        assert dc.comparison == {
+            "value": 1,
+            "include": False,
+        }
+        assert dc.condition_result is True
+        assert dc.condition_group == dcg
+
     def test_json_schema(self) -> None:
         self.dc.comparison.update({"value": 2})
         self.dc.save()

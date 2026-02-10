@@ -4221,7 +4221,6 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
 
         return data_forwarder, data_forwarder_project
 
-    @with_feature("organizations:data-forwarding-revamp-access")
     def test_process_data_forwarding_no_forwarders(self):
         event = self.create_event(
             data={"message": "test message", "level": "error"},
@@ -4234,7 +4233,6 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
             event=event,
         )
 
-    @with_feature("organizations:data-forwarding-revamp-access")
     @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
     def test_process_data_forwarding_sqs_enabled(self, mock_forward):
         mock_forward.return_value = True
@@ -4254,7 +4252,6 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
         call_args = mock_forward.call_args
         assert call_args[0][1] == data_forwarder_project
 
-    @with_feature("organizations:data-forwarding-revamp-access")
     @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
     def test_process_data_forwarding_sqs_with_s3_bucket(self, mock_forward):
         """Test SQS forwarder with S3 bucket configured for large payloads."""
@@ -4282,7 +4279,6 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
         # Verify the config includes S3 bucket
         assert call_args[0][1].get_config()["s3_bucket"] == "my-sentry-events-bucket"
 
-    @with_feature("organizations:data-forwarding-revamp-access")
     @patch("data_forwarding.splunk.forwarder.SplunkForwarder.forward_event")
     def test_process_data_forwarding_splunk_enabled(self, mock_forward):
         mock_forward.return_value = True
@@ -4300,7 +4296,6 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
 
         assert mock_forward.call_count == 1
 
-    @with_feature("organizations:data-forwarding-revamp-access")
     @patch("data_forwarding.segment.forwarder.SegmentForwarder.forward_event")
     def test_process_data_forwarding_segment_enabled(self, mock_forward):
         mock_forward.return_value = True
@@ -4318,7 +4313,6 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
 
         assert mock_forward.call_count == 1
 
-    @with_feature("organizations:data-forwarding-revamp-access")
     @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
     def test_process_data_forwarding_disabled_forwarder(self, mock_forward):
         self.setup_forwarder(DataForwarderProviderSlug.SQS, is_enabled=False)
@@ -4335,7 +4329,6 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
 
         assert mock_forward.call_count == 0
 
-    @with_feature("organizations:data-forwarding-revamp-access")
     @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
     @patch("data_forwarding.splunk.forwarder.SplunkForwarder.forward_event")
     def test_process_data_forwarding_multiple_forwarders(
@@ -4360,7 +4353,6 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
         assert mock_sqs_forward.call_count == 1
         assert mock_splunk_forward.call_count == 1
 
-    @with_feature("organizations:data-forwarding-revamp-access")
     @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
     @patch("data_forwarding.splunk.forwarder.SplunkForwarder.forward_event")
     def test_process_data_forwarding_one_forwarder_fails(
@@ -4386,24 +4378,6 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
         # Both forwarders should be called despite SQS failure
         assert mock_sqs_forward.call_count == 1
         assert mock_splunk_forward.call_count == 1
-
-    @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
-    def test_process_data_forwarding_revamp_access_flag_disabled(self, mock_forward):
-        """Test that data forwarding is skipped when the revamp-access feature flag is disabled."""
-        self.setup_forwarder(DataForwarderProviderSlug.SQS)
-        event = self.create_event(
-            data={"message": "test message", "level": "error"},
-            project_id=self.project.id,
-        )
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=False,
-            event=event,
-        )
-
-        # should not be called when feature flag is disabled
-        assert mock_forward.call_count == 0
 
 
 class PostProcessGroupInstrumentationIssueTest(

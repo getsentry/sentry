@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
@@ -29,12 +30,12 @@ function Modal({
       </Header>
       <Body>{content}</Body>
       <Footer>
-        <ButtonBar gap="lg">
+        <Grid flow="column" align="center" gap="lg">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button onClick={onSave} disabled={disabled} priority="primary">
             {t('Save Rule')}
           </Button>
-        </ButtonBar>
+        </Grid>
       </Footer>
     </Fragment>
   );

@@ -1,6 +1,6 @@
 import useOrganization from 'sentry/utils/useOrganization';
 
-export default function useHasPlatformizedNextjsFrontendOverview() {
+export default function useHasPlatformizedNextJsOverview() {
   const organization = useOrganization();
 
   return organization.features.includes(

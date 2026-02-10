@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Badge} from '@sentry/scraps/badge';
-import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import LoadingError from 'sentry/components/loadingError';
@@ -252,7 +252,7 @@ function UsageHistoryRow({history}: RowProps) {
             <Text bold>{tct('[planName] Plan', {planName: history.planName})}</Text>
           </Flex>
         </Flex>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Button
             icon={<IconDownload />}
             onClick={() => {
@@ -277,7 +277,7 @@ function UsageHistoryRow({history}: RowProps) {
           >
             {t('Download Project Breakdown')}
           </Button>
-        </ButtonBar>
+        </Grid>
       </Flex>
       {expanded && (
         <Container padding="xl 0">
