@@ -101,10 +101,7 @@ export function TabbedCodeSnippet({
   onCopy,
   onSelectAndCopy,
 }: TabbedCodeSnippetProps) {
-  const [selectedTabValue, setSelectedTabValue] = useState(() => {
-    setSelectedCodeTab(tabs[0]!.label);
-    return tabs[0]!.value;
-  });
+  const [selectedTabValue, setSelectedTabValue] = useState(tabs[0]!.value);
   const resolvedTab = tabs.find(tab => tab.value === selectedTabValue) ?? tabs[0]!;
   const {code, language, filename} = resolvedTab;
 
