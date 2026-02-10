@@ -91,6 +91,8 @@ import {seerAnalyticsEventsMap} from './analytics/seerAnalyticsEvents';
 import type {SeerAnalyticsEventsParameters} from './analytics/seerAnalyticsEvents';
 import type {SettingsEventParameters} from './analytics/settingsAnalyticsEvents';
 import {settingsEventMap} from './analytics/settingsAnalyticsEvents';
+import type {SetupGuideEventParameters} from './analytics/setupGuideAnalyticsEvents';
+import {setupGuideEventMap} from './analytics/setupGuideAnalyticsEvents';
 import type {SignupAnalyticsParameters} from './analytics/signupAnalyticsEvents';
 import {signupEventMap} from './analytics/signupAnalyticsEvents';
 import type {StackTraceEventParameters} from './analytics/stackTraceAnalyticsEvents';
@@ -126,6 +128,7 @@ interface EventParameters
     ReplayEventParameters,
     SearchEventParameters,
     SeerAnalyticsEventsParameters,
+    SetupGuideEventParameters,
     SettingsEventParameters,
     TeamInsightsEventParameters,
     DynamicSamplingEventParameters,
@@ -172,6 +175,7 @@ const allEventMap: Record<string, string | null> = {
   ...replayEventMap,
   ...searchEventMap,
   ...seerAnalyticsEventsMap,
+  ...setupGuideEventMap,
   ...settingsEventMap,
   ...workflowEventMap,
   ...dynamicSamplingEventMap,

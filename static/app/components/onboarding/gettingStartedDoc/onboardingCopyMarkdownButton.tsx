@@ -37,7 +37,7 @@ export function CopyMarkdownButton({
       <Button
         icon={<IconCopy />}
         onClick={() => {
-          trackAnalytics('onboarding.copy_instructions', {
+          trackAnalytics('setup_guide.copy_as_markdown', {
             organization,
             format: 'markdown',
             source,
