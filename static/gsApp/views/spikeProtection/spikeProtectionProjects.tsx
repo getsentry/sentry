@@ -268,10 +268,10 @@ function SpikeProtectionProjects({subscription}: Props) {
     <Fragment>
       <Flex justify="between" marginBottom="xl">
         <StyledSearch placeholder={t('Search projects')} onChange={onChange} />
-        <StyledButtonBar gap="0" merged>
+        <ButtonBar marginLeft="xl">
           {AllProjectsAction(false)}
           {AllProjectsAction(true)}
-        </StyledButtonBar>
+        </ButtonBar>
       </Flex>
       <StyledPanelTable
         disablePadding={
@@ -362,8 +362,4 @@ const StyledPanelToggle = styled(SpikeProtectionProjectToggle)`
   padding: 0;
   padding-left: ${space(1)};
   align-items: start;
-`;
-
-const StyledButtonBar = styled(ButtonBar)`
-  margin-left: ${space(2)};
 `;

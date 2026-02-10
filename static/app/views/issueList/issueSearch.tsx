@@ -1,3 +1,4 @@
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -5,7 +6,6 @@ import {
 import {t} from 'sentry/locale';
 import {SavedSearchType} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {IssueListSeerComboBox} from './issueListSeerComboBox';
 import IssueListSearchBar, {useIssueListSearchBarDataProvider} from './searchBar';

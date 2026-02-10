@@ -167,7 +167,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               maxRows={10}
               size="sm"
             />
-            <ButtonBar merged gap="0">
+            <ButtonBar>
               <Tooltip
                 title={primaryOption.tooltip}
                 skipWrapper

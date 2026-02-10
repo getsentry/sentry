@@ -1,7 +1,8 @@
 import {useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {closeModal, openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
@@ -125,7 +126,7 @@ export default function ProjectOwnership() {
       <SettingsPageHeader
         title={t('Ownership Rules')}
         action={
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             {hasCodeowners && (
               <Access access={['org:integrations']} project={project}>
                 {({hasAccess}) => (
@@ -158,7 +159,7 @@ export default function ProjectOwnership() {
             >
               {t('Edit Rules')}
             </Button>
-          </ButtonBar>
+          </Grid>
         }
       />
       <TextBlock>

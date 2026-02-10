@@ -1,4 +1,4 @@
-import usePageFilters from 'sentry/utils/usePageFilters';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
 /**

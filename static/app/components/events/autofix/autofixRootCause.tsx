@@ -387,7 +387,7 @@ function SolutionActionButton({
       };
 
   return (
-    <ButtonBar merged gap="0">
+    <ButtonBar>
       <Button
         size="sm"
         priority={primaryButtonPriority}
