@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout/container';
+import {Container} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {archiveRelease, restoreRelease} from 'sentry/actionCreators/release';

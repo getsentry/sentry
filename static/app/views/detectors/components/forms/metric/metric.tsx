@@ -3,10 +3,10 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import toNumber from 'lodash/toNumber';
 
-import {Alert} from '@sentry/scraps/alert/alert';
+import {Alert} from '@sentry/scraps/alert';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink, Link} from '@sentry/scraps/link/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
@@ -127,6 +127,20 @@ const mapMetricDetectorFormErrors = (error: unknown) => {
       ...error,
       ...error.dataSource,
     };
+  }
+  if ('dataSources' in error) {
+    if (Array.isArray(error.dataSources)) {
+      return {
+        ...error,
+        ...error.dataSources[0],
+      };
+    }
+    if (typeof error.dataSources === 'object') {
+      return {
+        ...error,
+        ...error.dataSources,
+      };
+    }
   }
   return error;
 };

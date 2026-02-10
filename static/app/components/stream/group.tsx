@@ -10,7 +10,6 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
@@ -355,9 +354,8 @@ function StreamGroup({
       }
       onAssigneeChange?.(newAssignee);
     },
-    onError: () => {
-      addErrorMessage('Failed to update assignee');
-    },
+    // Error is already handled by GroupStore.onAssignToError which shows an alert
+    onError: () => {},
   });
 
   const clickHasBeenHandled = useCallback(

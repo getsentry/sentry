@@ -1,8 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Select} from '@sentry/scraps/select';
-import {SelectOption} from '@sentry/scraps/select/option';
+import {Select, SelectOption} from '@sentry/scraps/select';
 
 import {components as SelectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FormField from 'sentry/components/forms/formField';

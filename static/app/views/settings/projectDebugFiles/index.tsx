@@ -17,6 +17,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   useMutation,
@@ -46,7 +47,12 @@ function makeDebugFilesQueryKey({
   projectSlug: string;
   query: {cursor: string | undefined; query: string | undefined};
 }): ApiQueryKey {
-  return [`/projects/${orgSlug}/${projectSlug}/files/dsyms/`, {query}];
+  return [
+    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/`, {
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+    }),
+    {query},
+  ];
 }
 
 function makeSymbolSourcesQueryKey({
@@ -56,7 +62,12 @@ function makeSymbolSourcesQueryKey({
   orgSlug: string;
   platform?: string;
 }): ApiQueryKey {
-  return [`/organizations/${orgSlug}/builtin-symbol-sources/`, {query: {platform}}];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/builtin-symbol-sources/`, {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+    {query: {platform}},
+  ];
 }
 
 export default function ProjectDebugSymbols() {

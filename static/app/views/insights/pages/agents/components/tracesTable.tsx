@@ -2,10 +2,9 @@ import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {parseAsArrayOf, parseAsString, useQueryState} from 'nuqs';
 
-import {Tag} from '@sentry/scraps/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -30,7 +29,7 @@ import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
+import type {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
@@ -86,8 +85,11 @@ const rightAlignColumns = new Set([
   'timestamp',
 ]);
 
-export function TracesTable() {
-  const {openTraceViewDrawer} = useTraceViewDrawer();
+interface TracesTableProps {
+  openTraceViewDrawer: ReturnType<typeof useTraceViewDrawer>['openTraceViewDrawer'];
+}
+
+export function TracesTable({openTraceViewDrawer}: TracesTableProps) {
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns: defaultColumnOrder,
   });

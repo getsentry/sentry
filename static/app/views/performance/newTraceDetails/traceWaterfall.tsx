@@ -698,18 +698,24 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
             Expanding a span will display sub-spans, and clicking on a span will display more details about the span.`
           )}
         >
-          <Trace
-            trace={props.tree}
-            rerender={rerender}
-            trace_id={props.traceSlug}
-            onRowClick={onRowClick}
-            onTraceSearch={onTraceSearch}
-            previouslyFocusedNodeRef={previouslyFocusedNodeRef}
-            manager={viewManager}
-            scheduler={traceScheduler}
-            forceRerender={forceRender}
-            isLoading={props.tree.type === 'loading' || onLoadScrollStatus === 'pending'}
-          />
+          {tourProps => (
+            <div {...tourProps}>
+              <Trace
+                trace={props.tree}
+                rerender={rerender}
+                trace_id={props.traceSlug}
+                onRowClick={onRowClick}
+                onTraceSearch={onTraceSearch}
+                previouslyFocusedNodeRef={previouslyFocusedNodeRef}
+                manager={viewManager}
+                scheduler={traceScheduler}
+                forceRerender={forceRender}
+                isLoading={
+                  props.tree.type === 'loading' || onLoadScrollStatus === 'pending'
+                }
+              />
+            </div>
+          )}
         </DemoTourElement>
 
         {props.tree.type === 'loading' || onLoadScrollStatus === 'pending' ? (

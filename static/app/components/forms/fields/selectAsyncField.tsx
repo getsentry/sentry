@@ -14,7 +14,8 @@ import FormField from 'sentry/components/forms/formField';
 import type {InputFieldProps} from './inputField';
 
 export interface SelectAsyncFieldProps
-  extends Omit<InputFieldProps, 'highlighted' | 'visible' | 'required' | 'value'>,
+  extends
+    Omit<InputFieldProps, 'highlighted' | 'visible' | 'required' | 'value'>,
     SelectAsyncControlProps {
   /**
    * Similar to onChange, except it provides the entire option object (including label) when a

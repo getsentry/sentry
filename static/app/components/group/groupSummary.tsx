@@ -22,6 +22,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
@@ -51,7 +52,12 @@ const makeGroupSummaryQueryKey = (
   groupId: string,
   eventId?: string
 ): ApiQueryKey => [
-  `/organizations/${organizationSlug}/issues/${groupId}/summarize/`,
+  getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/summarize/', {
+    path: {
+      organizationIdOrSlug: organizationSlug,
+      issueId: groupId,
+    },
+  }),
   {
     method: 'POST',
     data: eventId ? {event_id: eventId} : undefined,
@@ -483,6 +489,7 @@ const CardLineDecorationWrapper = styled('div')`
 const CardLineDecoration = styled('div')`
   width: 1px;
   align-self: stretch;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.border.primary};
 `;
 

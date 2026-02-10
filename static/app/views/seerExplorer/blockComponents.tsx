@@ -4,7 +4,7 @@ import {motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
 
 import {Button} from '@sentry/scraps/button';
-import {inlineCodeStyles} from '@sentry/scraps/code/inlineCode';
+import {inlineCodeStyles} from '@sentry/scraps/code';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 

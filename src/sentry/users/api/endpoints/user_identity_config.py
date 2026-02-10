@@ -1,4 +1,5 @@
 import itertools
+import logging
 from collections.abc import Iterable
 
 from django.db import router, transaction
@@ -9,9 +10,11 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import serialize
+from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
 from sentry.models.authidentity import AuthIdentity
 from sentry.users.api.bases.user import UserAndStaffPermission, UserEndpoint
 from sentry.users.api.serializers.user_identity_config import (
+    GITHUB_COPILOT_IDENTITY,
     Status,
     UserIdentityConfig,
     UserIdentityConfigSerializer,
@@ -20,6 +23,8 @@ from sentry.users.api.serializers.user_identity_config import (
 from sentry.users.models.identity import Identity
 from sentry.users.models.user import User
 from social_auth.models import UserSocialAuth
+
+logger = logging.getLogger(__name__)
 
 
 def get_identities(user: User) -> Iterable[UserIdentityConfig]:
@@ -75,7 +80,23 @@ def get_identities(user: User) -> Iterable[UserIdentityConfig]:
         for obj in AuthIdentity.objects.filter(user=user).select_related()
     )
 
-    return itertools.chain(social_identities, global_identities, org_identities)
+    github_copilot_identities: list[UserIdentityConfig] = []
+    try:
+        gh_identity = github_copilot_identity_service.get_one_or_none(filter={"user_id": user.id})
+        if gh_identity:
+            github_copilot_identities.append(
+                UserIdentityConfig.wrap_github_copilot(gh_identity, Status.CAN_DISCONNECT)
+            )
+    except Exception:
+        logger.warning(
+            "github_copilot_identity.fetch_failed",
+            extra={"user_id": user.id},
+            exc_info=True,
+        )
+
+    return itertools.chain(
+        social_identities, global_identities, org_identities, github_copilot_identities
+    )
 
 
 @control_silo_endpoint
@@ -129,6 +150,20 @@ class UserIdentityConfigDetailsEndpoint(UserEndpoint):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
     def delete(self, request: Request, user: User, category: str, identity_id: str) -> Response:
+        if category == GITHUB_COPILOT_IDENTITY:
+            identity = self._get_identity(user, category, identity_id)
+            if not identity:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            if identity.status != Status.CAN_DISCONNECT:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+
+            deleted = github_copilot_identity_service.delete(
+                identity_id=int(identity_id), user_id=user.id
+            )
+            if not deleted:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
         with transaction.atomic(using=router.db_for_write(Identity)):
             identity = self._get_identity(user, category, identity_id)
             if not identity:

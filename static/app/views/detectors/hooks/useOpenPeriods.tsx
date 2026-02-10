@@ -27,6 +27,7 @@ type UseOpenPeriodsParams =
 
 function makeOpenPeriodsQueryKey({
   orgSlug,
+  limit,
   ...params
 }: UseOpenPeriodsParams & {orgSlug: string}): ApiQueryKey {
   return [
@@ -34,7 +35,10 @@ function makeOpenPeriodsQueryKey({
       path: {organizationIdOrSlug: orgSlug},
     }),
     {
-      query: params,
+      query: {
+        ...params,
+        per_page: limit,
+      },
     },
   ];
 }

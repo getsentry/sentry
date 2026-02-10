@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from sentry.workflow_engine.models.action import ActionSnapshot
     from sentry.workflow_engine.models.data_condition import Condition
     from sentry.workflow_engine.models.data_condition_group import DataConditionGroupSnapshot
+    from sentry.workflow_engine.models.data_source import DataSource
     from sentry.workflow_engine.models.detector import DetectorSnapshot
     from sentry.workflow_engine.models.workflow import WorkflowSnapshot
 
@@ -300,7 +301,7 @@ class ActionHandler:
 class DataSourceTypeHandler(ABC, Generic[T]):
     @staticmethod
     @abstractmethod
-    def bulk_get_query_object(data_sources) -> dict[int, T | None]:
+    def bulk_get_query_object(data_sources: list[DataSource]) -> dict[int, T | None]:
         """
         Bulk fetch related data-source models returning a dict of the
         `DataSource.id -> T`.
@@ -309,7 +310,7 @@ class DataSourceTypeHandler(ABC, Generic[T]):
 
     @staticmethod
     @abstractmethod
-    def related_model(instance) -> list[ModelRelation]:
+    def related_model(instance: DataSource) -> list[ModelRelation]:
         """
         A list of deletion ModelRelations. The model relation query should map
         the source_id field within the related model to the
@@ -394,7 +395,7 @@ class SnubaQueryDataSourceType(TypedDict):
 
 @dataclass(frozen=True)
 class DetectorSettings:
-    handler: type[DetectorHandler] | None = None
+    handler: type[DetectorHandler[Any, Any]] | None = None
     validator: type[BaseDetectorTypeValidator] | None = None
     config_schema: dict[str, Any] = field(default_factory=dict)
     filter: Q | None = None

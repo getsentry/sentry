@@ -7,7 +7,7 @@ import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   updateDashboardFavorite,

@@ -49,8 +49,7 @@ import {BASE_FIELD_ALIASES, INGESTION_DELAY} from 'sentry/views/insights/setting
 import type {SpanFields} from 'sentry/views/insights/types';
 
 export interface InsightsTimeSeriesWidgetProps
-  extends WidgetTitleProps,
-    LoadableChartWidgetProps {
+  extends WidgetTitleProps, LoadableChartWidgetProps {
   error: Error | null;
   isLoading: boolean;
   visualizationType: 'line' | 'area' | 'bar';

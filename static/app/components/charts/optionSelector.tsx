@@ -115,7 +115,7 @@ function OptionSelector({
       // yet been selected. These options should be disabled to visually indicate that the
       // user has reached the max.
       option.disabled ||
-        (multiple && selected.length === 3 && !selected.includes(option.value))
+      (multiple && selected.length === 3 && !selected.includes(option.value))
     );
   }
 

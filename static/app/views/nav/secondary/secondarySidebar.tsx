@@ -1,5 +1,6 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import useResizable from 'sentry/utils/useResizable';
@@ -53,35 +54,38 @@ export function SecondarySidebar() {
       description={STACKED_NAVIGATION_TOUR_CONTENT[stepId].description}
       title={STACKED_NAVIGATION_TOUR_CONTENT[stepId].title}
     >
-      <ResizeWrapper
-        ref={resizableContainerRef}
-        {...{
-          [NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
-        }}
-      >
-        <AnimatePresence mode="popLayout" initial={false}>
-          <MotionDiv
-            key={activeNavGroup}
-            initial={{x: -6, opacity: 0}}
-            animate={{x: 0, opacity: 1}}
-            exit={{x: 6, opacity: 0}}
-            transition={{duration: 0.06}}
-          >
-            <SecondarySidebarInner>
-              <SecondaryNavContent group={activeNavGroup} />
-            </SecondarySidebarInner>
-            <ResizeHandle
-              ref={resizeHandleRef}
-              onMouseDown={handleStartResize}
-              onDoubleClick={() => {
-                setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
-              }}
-              atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
-              atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
-            />
-          </MotionDiv>
-        </AnimatePresence>
-      </ResizeWrapper>
+      {({ref, ...props}) => (
+        <ResizeWrapper
+          {...props}
+          ref={mergeRefs(resizableContainerRef, ref)}
+          {...{
+            [NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
+          }}
+        >
+          <AnimatePresence mode="popLayout" initial={false}>
+            <MotionDiv
+              key={activeNavGroup}
+              initial={{x: -6, opacity: 0}}
+              animate={{x: 0, opacity: 1}}
+              exit={{x: 6, opacity: 0}}
+              transition={{duration: 0.06}}
+            >
+              <SecondarySidebarInner>
+                <SecondaryNavContent group={activeNavGroup} />
+              </SecondarySidebarInner>
+              <ResizeHandle
+                ref={resizeHandleRef}
+                onMouseDown={handleStartResize}
+                onDoubleClick={() => {
+                  setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
+                }}
+                atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
+                atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
+              />
+            </MotionDiv>
+          </AnimatePresence>
+        </ResizeWrapper>
+      )}
     </SecondarySidebarWrapper>
   );
 }

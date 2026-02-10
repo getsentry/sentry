@@ -20,6 +20,7 @@ from rest_framework.exceptions import (
     NotFound,
     ParseError,
     PermissionDenied,
+    Throttled,
     ValidationError,
 )
 from rest_framework.request import Request
@@ -106,6 +107,7 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
 from sentry.utils.env import in_test_environment
+from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 logger = logging.getLogger(__name__)
 
@@ -246,6 +248,9 @@ class SeerRpcServiceEndpoint(Endpoint):
             # Let this fall through, this is normal.
             sentry_sdk.capture_exception()
             raise NotFound from e
+        except SnubaRPCRateLimitExceeded as e:
+            sentry_sdk.capture_exception()
+            raise Throttled(detail="Rate limit exceeded") from e
         except Exception as e:
             if in_test_environment():
                 raise

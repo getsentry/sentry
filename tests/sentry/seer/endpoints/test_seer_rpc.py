@@ -25,6 +25,7 @@ from sentry.seer.explorer.tools import get_trace_item_attributes
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 # Fernet key must be a base64 encoded string, exactly 32 bytes long
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
@@ -58,6 +59,26 @@ class TestSeerRpc(APITestCase):
             path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
         )
         assert response.status_code == 404
+
+    def test_snuba_rate_limit_returns_429(self) -> None:
+        """Test that SnubaRPCRateLimitExceeded returns 429 to Seer for retry."""
+        path = self._get_path("get_trace_waterfall")
+        data: dict[str, Any] = {
+            "args": {"trace_id": "abc123", "organization_id": 1},
+            "meta": {},
+        }
+
+        with patch(
+            "sentry.seer.endpoints.seer_rpc.SeerRpcServiceEndpoint._dispatch_to_local_method"
+        ) as mock_dispatch:
+            mock_dispatch.side_effect = SnubaRPCRateLimitExceeded("Rate limit exceeded")
+
+            response = self.client.post(
+                path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+            )
+
+        assert response.status_code == 429
+        assert "Rate limit exceeded" in response.data["detail"]
 
 
 class TestSeerRpcMethods(APITestCase):

@@ -270,7 +270,6 @@ function OTelSummaryContentInner({
             handleDropdownChange={handleTransactionsListSortChange}
             totalValues={totalValues}
             transactionName={transactionName}
-            supportsInvestigationRule
             showViewSampledEventsButton
           />
         </PerformanceAtScaleContextProvider>
@@ -620,7 +619,6 @@ function SummaryContent({
             domainViewFilters={domainViewFilters}
             forceLoading={isLoading}
             referrer="performance.transactions_summary"
-            supportsInvestigationRule
           />
         </PerformanceAtScaleContextProvider>
         <TagExplorer

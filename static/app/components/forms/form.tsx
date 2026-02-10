@@ -20,19 +20,18 @@ type RenderProps = {
 
 type RenderFunc = (props: RenderProps) => React.ReactNode;
 
-export interface FormProps
-  extends Pick<
-    FormOptions,
-    | 'allowUndo'
-    | 'resetOnError'
-    | 'saveOnBlur'
-    | 'apiEndpoint'
-    | 'apiMethod'
-    | 'onFieldChange'
-    | 'onSubmitError'
-    | 'onSubmitSuccess'
-    | 'mapFormErrors'
-  > {
+export interface FormProps extends Pick<
+  FormOptions,
+  | 'allowUndo'
+  | 'resetOnError'
+  | 'saveOnBlur'
+  | 'apiEndpoint'
+  | 'apiMethod'
+  | 'onFieldChange'
+  | 'onSubmitError'
+  | 'onSubmitSuccess'
+  | 'mapFormErrors'
+> {
   additionalFieldProps?: Record<string, any>;
   cancelLabel?: string;
   children?: React.ReactNode | RenderFunc;
@@ -82,7 +81,7 @@ export interface FormProps
   submitPriority?: ButtonProps['priority'];
 }
 
-function getSubmitButtonTitle(form: FormModel) {
+export function getSubmitButtonTitle(form: FormModel) {
   if (form.isFormIncomplete) {
     return t('Required fields must be filled out');
   }

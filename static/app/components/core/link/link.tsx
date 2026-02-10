@@ -7,7 +7,8 @@ import type {LocationDescriptor} from 'history';
 import {useLinkBehavior} from './linkBehaviorContext';
 
 export interface LinkProps
-  extends React.RefAttributes<HTMLAnchorElement>,
+  extends
+    React.RefAttributes<HTMLAnchorElement>,
     Pick<
       ReactRouterLinkProps,
       'to' | 'replace' | 'preventScrollReset' | 'state' | 'reloadDocument'

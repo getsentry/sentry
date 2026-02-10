@@ -22,6 +22,7 @@ import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -45,7 +46,9 @@ export default function TeamProjects() {
     refetch: refetchLinkedProjects,
   } = useApiQuery<Project[]>(
     [
-      `/organizations/${organization.slug}/projects/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           query: `team:${team.slug}`,
@@ -61,7 +64,9 @@ export default function TeamProjects() {
     refetch: refetchUnlinkedProjects,
   } = useApiQuery<Project[]>(
     [
-      `/organizations/${organization.slug}/projects/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {query: query ? `!team:${team.slug} ${query}` : `!team:${team.slug}`},
       },

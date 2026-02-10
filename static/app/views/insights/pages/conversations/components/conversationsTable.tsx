@@ -9,6 +9,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Count from 'sentry/components/count';
+import useDrawer from 'sentry/components/globalDrawer';
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -25,21 +26,31 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {hasGenAiConversationsFeature} from 'sentry/views/insights/pages/agents/utils/features';
-import {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
+import type {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
 import {
   useConversations,
   type Conversation,
   type ConversationUser,
 } from 'sentry/views/insights/pages/conversations/hooks/useConversations';
 
-export function ConversationsTable() {
+interface ConversationsTableProps {
+  openConversationViewDrawer: ReturnType<
+    typeof useConversationViewDrawer
+  >['openConversationViewDrawer'];
+}
+
+export function ConversationsTable({
+  openConversationViewDrawer,
+}: ConversationsTableProps) {
   const organization = useOrganization();
   const showTable = hasGenAiConversationsFeature(organization);
 
   if (!showTable) {
     return null;
   }
-  return <ConversationsTableInner />;
+  return (
+    <ConversationsTableInner openConversationViewDrawer={openConversationViewDrawer} />
+  );
 }
 
 const EMPTY_ARRAY: never[] = [];
@@ -55,7 +66,7 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
 
 const rightAlignColumns = new Set(['llmToolCalls', 'tokensAndCost', 'timestamp']);
 
-function ConversationsTableInner() {
+function ConversationsTableInner({openConversationViewDrawer}: ConversationsTableProps) {
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns: defaultColumnOrder,
   });
@@ -80,9 +91,15 @@ function ConversationsTableInner() {
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<string>, dataRow: Conversation) => {
-      return <BodyCell column={column} dataRow={dataRow} />;
+      return (
+        <BodyCell
+          column={column}
+          dataRow={dataRow}
+          openConversationViewDrawer={openConversationViewDrawer}
+        />
+      );
     },
-    []
+    [openConversationViewDrawer]
   );
 
   return (
@@ -162,19 +179,25 @@ function UserNotInstrumentedTooltip() {
 const BodyCell = memo(function BodyCell({
   column,
   dataRow,
+  openConversationViewDrawer,
 }: {
   column: GridColumnHeader<string>;
   dataRow: Conversation;
+  openConversationViewDrawer: ConversationsTableProps['openConversationViewDrawer'];
 }) {
-  const {openConversationViewDrawer, isConversationViewDrawerOpen} =
-    useConversationViewDrawer();
+  const {isDrawerOpen} = useDrawer();
 
   switch (column.key) {
     case 'conversationId':
       return (
         <ConversationIdButton
           priority="link"
-          onClick={() => openConversationViewDrawer(dataRow)}
+          onClick={() =>
+            openConversationViewDrawer({
+              conversation: dataRow,
+              source: 'table_conversation_id',
+            })
+          }
         >
           {dataRow.conversationId.slice(0, 8)}
         </ConversationIdButton>
@@ -209,7 +232,9 @@ const BodyCell = memo(function BodyCell({
         <Stack width="100%">
           <InputOutputRow
             type="button"
-            onClick={() => openConversationViewDrawer(dataRow)}
+            onClick={() =>
+              openConversationViewDrawer({conversation: dataRow, source: 'table_input'})
+            }
           >
             <InputOutputLabel variant="muted">{t('Input')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
@@ -222,7 +247,7 @@ const BodyCell = memo(function BodyCell({
                   delay={500}
                   skipWrapper
                   position="right"
-                  disabled={isConversationViewDrawerOpen}
+                  disabled={isDrawerOpen}
                 >
                   <CellContent text={dataRow.firstInput} />
                 </Tooltip>
@@ -233,7 +258,9 @@ const BodyCell = memo(function BodyCell({
           </InputOutputRow>
           <InputOutputRow
             type="button"
-            onClick={() => openConversationViewDrawer(dataRow)}
+            onClick={() =>
+              openConversationViewDrawer({conversation: dataRow, source: 'table_output'})
+            }
           >
             <InputOutputLabel variant="muted">{t('Output')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
@@ -246,7 +273,7 @@ const BodyCell = memo(function BodyCell({
                   delay={500}
                   skipWrapper
                   position="right"
-                  disabled={isConversationViewDrawerOpen}
+                  disabled={isDrawerOpen}
                 >
                   <CellContent text={dataRow.lastOutput} />
                 </Tooltip>
@@ -273,7 +300,7 @@ const BodyCell = memo(function BodyCell({
     case 'timestamp':
       return (
         <TextAlignRight>
-          <TimeSince unitStyle="extraShort" date={new Date(dataRow.timestamp)} />
+          <TimeSince unitStyle="extraShort" date={new Date(dataRow.endTimestamp)} />
         </TextAlignRight>
       );
     default:

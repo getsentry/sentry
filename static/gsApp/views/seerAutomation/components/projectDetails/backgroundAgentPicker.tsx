@@ -1,6 +1,6 @@
-import {Flex} from '@sentry/scraps/layout/flex';
-import {ExternalLink} from '@sentry/scraps/link/link';
-import {Text} from '@sentry/scraps/text/text';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';

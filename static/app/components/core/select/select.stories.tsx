@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import documentation from '!!type-loader!sentry/components/core/select';
+import documentation from '!!type-loader!@sentry/scraps/select';
 
 import {Select} from '@sentry/scraps/select';
 

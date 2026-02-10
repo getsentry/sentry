@@ -269,7 +269,7 @@ const BoldEmail = styled('strong')`
 
 const StyledLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
-  border-bottom: 1px dotted ${p => p.theme.tokens.content.primary};
+  border-bottom: 1px dotted currentColor;
 
   &:hover {
     color: ${p => p.theme.tokens.content.primary};
@@ -282,7 +282,7 @@ const EmailWarningIcon = styled('span')`
   right: -7px;
   line-height: 12px;
   border-radius: 50%;
-  border: 1px solid ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.colors.yellow200};
   padding: 1px 2px 3px 2px;
 `;

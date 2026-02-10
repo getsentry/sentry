@@ -19,6 +19,7 @@ import {CandidateDownloadStatus} from 'sentry/types/debugImage';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -219,7 +220,12 @@ export function DebugImageDetails({
     refetch,
   } = useApiQuery<DebugFile[]>(
     [
-      `/projects/${organization.slug}/${projSlug}/files/dsyms/`,
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projSlug,
+        },
+      }),
       {
         query: {
           debug_id: image?.debug_id,
@@ -269,8 +275,13 @@ export function DebugImageDetails({
   const handleDelete = async (debugId: string) => {
     try {
       await api.requestPromise(
-        `/projects/${organization.slug}/${projSlug}/files/dsyms/?id=${debugId}`,
-        {method: 'DELETE'}
+        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projSlug,
+          },
+        }),
+        {method: 'DELETE', query: {id: debugId}}
       );
       refetch();
     } catch {

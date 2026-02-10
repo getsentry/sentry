@@ -32,10 +32,14 @@ public class MainActivity : global::Xamarin.Forms.Platform.Android.FormsAppCompa
             // Tells which project in Sentry to send events to:
             options.Dsn = "${params.dsn.public}";
             // When configuring for the first time, to see what the SDK is doing:
-            options.Debug = true;
+            options.Debug = true;${
+              params.isPerformanceSelected
+                ? `
             // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
             // We recommend adjusting this value in production.
-            options.TracesSampleRate = 1.0;
+            options.TracesSampleRate = 1.0;`
+                : ''
+            }
             // If you installed Sentry.Xamarin.Forms:
             options.AddXamarinFormsIntegration();
         });`;
@@ -49,10 +53,14 @@ public partial class AppDelegate : global::Xamarin.Forms.Platform.iOS.FormsAppli
         {
             options.Dsn = "${params.dsn.public}";
             // When configuring for the first time, to see what the SDK is doing:
-            options.Debug = true;
+            options.Debug = true;${
+              params.isPerformanceSelected
+                ? `
             // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
             // We recommend adjusting this value in production.
-            options.TracesSampleRate = 1.0;
+            options.TracesSampleRate = 1.0;`
+                : ''
+            }
             options.AddXamarinFormsIntegration();
         });`;
 
@@ -65,10 +73,14 @@ sealed partial class App : Application
         {
             options.Dsn = "${params.dsn.public}";
             // When configuring for the first time, to see what the SDK is doing:
-            options.Debug = true;
+            options.Debug = true;${
+              params.isPerformanceSelected
+                ? `
             // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
             // We recommend adjusting this value in production.
-            options.TracesSampleRate = 1.0;
+            options.TracesSampleRate = 1.0;`
+                : ''
+            }
             options.AddXamarinFormsIntegration();
         });`;
 

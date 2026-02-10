@@ -96,8 +96,6 @@ export enum DataCategory {
   SEER_AUTOFIX = 'seerAutofix',
   SEER_SCANNER = 'seerScanner',
   SEER_USER = 'seerUsers',
-  PREVENT_USER = 'preventUsers',
-  PREVENT_REVIEW = 'preventReviews',
   USER_REPORT_V2 = 'feedback',
   TRACE_METRICS = 'traceMetrics',
   SIZE_ANALYSIS = 'sizeAnalyses',

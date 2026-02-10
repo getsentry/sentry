@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';

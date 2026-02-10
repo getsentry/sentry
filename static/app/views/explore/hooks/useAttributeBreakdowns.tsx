@@ -1,6 +1,7 @@
 import {useMemo, useRef} from 'react';
 
 import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -68,7 +69,12 @@ function useAttributeBreakdowns({
   }, [pageFilters, queryString, cursor, substringMatch]);
 
   const result = useApiQuery<AttributeBreakdowns>(
-    [`/organizations/${organization.slug}/trace-items/stats/`, {query: queryParams}],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/trace-items/stats/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: queryParams},
+    ],
     {
       staleTime: Infinity,
       enabled: pageFiltersReady,

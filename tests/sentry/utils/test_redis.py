@@ -12,8 +12,10 @@ from sentry.utils.redis import (
     RBClusterManager,
     RedisClusterManager,
     _shared_pool,
+    check_cluster_versions,
     get_cluster_from_options,
 )
+from sentry.utils.versioning import Version
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 
@@ -113,3 +115,28 @@ def test_get_cluster_from_options_both_options_invalid() -> None:
             {"hosts": {0: {"db": 0}}, "cluster": "foo", "foo": "bar"},
             cluster_manager=manager,
         )
+
+
+@pytest.mark.parametrize(
+    "version_value",
+    [
+        pytest.param("7.2.4", id="string_three_part"),
+        pytest.param("7.2", id="string_two_part"),
+        pytest.param(7.2, id="float_two_part"),
+    ],
+)
+def test_check_cluster_versions_parses_version_formats(version_value: str | float) -> None:
+    cluster = mock.MagicMock(spec=rb.Cluster)
+    mock_host = mock.MagicMock()
+    mock_host.host = "localhost"
+    mock_host.port = 6379
+    cluster.hosts = {0: mock_host}
+
+    mock_results = mock.MagicMock()
+    mock_results.value = {0: {"redis_version": version_value}}
+    cluster.all.return_value.__enter__ = mock.MagicMock(return_value=mock.MagicMock())
+    cluster.all.return_value.__enter__.return_value.info.return_value = mock_results
+    cluster.all.return_value.__exit__ = mock.MagicMock(return_value=False)
+
+    # Should not raise - all test versions meet requirement 5.0.0
+    check_cluster_versions(cluster, Version((5, 0, 0)))

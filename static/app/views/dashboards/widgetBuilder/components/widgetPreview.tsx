@@ -14,7 +14,7 @@ import {
   type DashboardDetails,
   type DashboardFilters,
 } from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
@@ -65,7 +65,7 @@ function WidgetPreview({
       false,
   };
 
-  const isChart = isChartDisplayType(widget.displayType);
+  const isTimeSeries = usesTimeSeriesData(widget.displayType);
 
   // the spans dataset doesn't handle timeseries for duplicate yAxes/aggregates
   // automatically, so we need to dedupe them
@@ -106,7 +106,7 @@ function WidgetPreview({
       organization={organization}
       selection={pageFilters.selection}
       widget={
-        widget.widgetType === WidgetType.SPANS && isChart
+        widget.widgetType === WidgetType.SPANS && isTimeSeries
           ? widgetWithDedupedYAxes
           : widget
       }

@@ -83,7 +83,7 @@ function DeleteInProgressAlert({
       trailingItems={
         <LinkButton
           size="xs"
-          to={`/organizations/${organization.slug}/settings/projects/${project.slug}/replays/?replaySettingsTab=bulk-delete`}
+          to={`/settings/${organization.slug}/projects/${project.slug}/replays/?replaySettingsTab=bulk-delete`}
         >
           {t('Track Progress')}
         </LinkButton>
