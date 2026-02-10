@@ -236,14 +236,3 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
             )
         )
-
-    @classmethod
-    def render_status_text(cls, group: Group) -> str:
-        """
-        Returns mrkdwn text for the Seer running context block.
-        The entire text is a link to the issue page.
-        """
-        from sentry.seer.entrypoints.integrations.slack import SlackEntrypoint
-
-        group_link = SlackEntrypoint.get_group_link(group)
-        return f"<{group_link}|:hourglass: Seer is running a root cause analysis...>"
