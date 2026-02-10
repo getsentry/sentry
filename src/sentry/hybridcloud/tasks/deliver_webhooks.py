@@ -234,7 +234,8 @@ def drain_mailbox(payload_id: int) -> None:
 @instrumented_task(
     name="sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox_parallel",
     namespace=hybridcloud_control_tasks,
-    processing_deadline_duration=180,
+    # Give more time than the threadpool delivery deadline
+    processing_deadline_duration=int(BATCH_SCHEDULE_OFFSET.total_seconds() + 10),
     silo_mode=SiloMode.CONTROL,
 )
 def drain_mailbox_parallel(payload_id: int) -> None:
