@@ -14,6 +14,7 @@ from sentry.workflow_engine.utils.metrics import metrics_incr
 CACHE_TTL = 60  # TODO - Increase TTL once we confirm everything
 METRIC_PREFIX = "workflow_engine.cache.processing_workflow"
 
+# Creating a 'default' value that's not None, because None means _all_ environments
 DEFAULT_VALUE: Literal["default"] = "default"
 WORKFLOW_CACHE_PREFIX = "workflows_by_detector_env"
 
