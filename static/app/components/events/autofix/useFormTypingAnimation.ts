@@ -12,10 +12,6 @@ interface TriggerFormTypingAnimationParams {
 
 interface UseFormTypingAnimationOptions {
   /**
-   * Whether to update the form field quietly (skip field callbacks/validation).
-   */
-  quiet?: boolean;
-  /**
    * Typing speed in characters per second.
    */
   speed?: number;
@@ -26,7 +22,6 @@ interface UseFormTypingAnimationOptions {
  */
 export function useFormTypingAnimation({
   speed: defaultSpeed = 50,
-  quiet: defaultQuiet = true,
 }: UseFormTypingAnimationOptions = {}) {
   const animationFrameRef = useRef<number | null>(null);
   const currentIndexRef = useRef(0);
@@ -49,20 +44,19 @@ export function useFormTypingAnimation({
       fieldName,
       text,
       speed = defaultSpeed,
-      quiet = defaultQuiet,
     }: TriggerFormTypingAnimationParams) => {
       cancelFormTypingAnimation();
 
       const runId = runIdRef.current;
 
       if (!text.length) {
-        formModel.setValue(fieldName, '', {quiet});
+        formModel.setValue(fieldName, '', {quiet: true});
         return;
       }
 
       currentIndexRef.current = 0;
       lastUpdateTimeRef.current = performance.now();
-      formModel.setValue(fieldName, '', {quiet});
+      formModel.setValue(fieldName, '', {quiet: true});
 
       const interval = 1000 / Math.max(1, speed);
 
@@ -77,7 +71,7 @@ export function useFormTypingAnimation({
         if (charsToAdd > 0) {
           const nextIndex = Math.min(text.length, currentIndexRef.current + charsToAdd);
           if (nextIndex > currentIndexRef.current) {
-            formModel.setValue(fieldName, text.slice(0, nextIndex), {quiet});
+            formModel.setValue(fieldName, text.slice(0, nextIndex), {quiet: true});
             currentIndexRef.current = nextIndex;
             lastUpdateTimeRef.current = timestamp;
           }
@@ -89,12 +83,13 @@ export function useFormTypingAnimation({
         }
 
         animationFrameRef.current = null;
+        // The last setValue is not quiet to trigger form validation
         formModel.setValue(fieldName, text);
       };
 
       animationFrameRef.current = window.requestAnimationFrame(animate);
     },
-    [cancelFormTypingAnimation, defaultQuiet, defaultSpeed]
+    [cancelFormTypingAnimation, defaultSpeed]
   );
 
   return {triggerFormTypingAnimation, cancelFormTypingAnimation};
