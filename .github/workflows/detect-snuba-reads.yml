@@ -1,0 +1,180 @@
+name: '[One-shot] Detect Snuba reads'
+
+# One-shot workflow to map which tests READ from ClickHouse.
+# Run once manually, examine the output, then delete this workflow.
+# See src/sentry/testutils/pytest/snuba_read_detector.py for details.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  SNUBA_NO_WORKERS: 1
+
+jobs:
+  detect-reads:
+    name: 'detect-snuba-reads (${{ matrix.instance }})'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        instance:
+          [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+
+    env:
+      MATRIX_INSTANCE_TOTAL: 22
+      TEST_GROUP_STRATEGY: roundrobin
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - name: Run tests with Snuba read detection
+        run: |
+          python3 -b -m pytest \
+            tests \
+            --reuse-db \
+            --ignore tests/acceptance \
+            --ignore tests/apidocs \
+            --ignore tests/js \
+            --ignore tests/tools \
+            --detect-snuba-reads \
+            --snuba-read-output=".artifacts/snuba-reads-shard-${{ matrix.instance }}.json" \
+            --json-report \
+            --json-report-file=".artifacts/pytest.json" \
+            --json-report-omit=log \
+            -o junit_suite_name=detect-snuba-reads
+
+      - name: Upload detection report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: snuba-reads-shard-${{ matrix.instance }}
+          path: .artifacts/snuba-reads-shard-*.json
+          retention-days: 7
+
+  merge-reports:
+    needs: detect-reads
+    if: always()
+    name: merge detection reports
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Download all shard reports
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: snuba-reads-shard-*
+          path: /tmp/shard-reports/
+          merge-multiple: true
+
+      - name: Merge shard reports
+        run: |
+          python3 - <<'SCRIPT'
+          import json
+          import glob
+          from collections import defaultdict
+
+          # Merge all shard reports into one
+          all_misclassified = {}  # file -> {file, class, test_count, tests}
+          all_reader_files = {}   # file -> {file, test_count, ...}
+          all_write_only_files = set()
+          total_reads = 0
+          total_writes_only = 0
+          total_infra_only = 0
+          total_no_snuba = 0
+          total_misclassified = 0
+          total_tests = 0
+
+          for path in sorted(glob.glob("/tmp/shard-reports/*.json")):
+              with open(path) as f:
+                  report = json.load(f)
+
+              total_tests += report["total_tests_run"]
+              s = report["summary"]
+              total_reads += s["reads_from_snuba"]
+              total_writes_only += s["writes_only"]
+              total_infra_only += s["infra_only"]
+              total_no_snuba += s["no_snuba_contact"]
+              total_misclassified += s["readers_without_snuba_test_case"]
+
+              for entry in report.get("misclassified_files", []):
+                  f = entry["file"]
+                  if f not in all_misclassified:
+                      all_misclassified[f] = {"file": f, "class": entry.get("class"), "test_count": 0, "tests": []}
+                  all_misclassified[f]["test_count"] += entry["test_count"]
+                  all_misclassified[f]["tests"].extend(entry.get("tests", []))
+
+              for entry in report.get("all_reader_files", []):
+                  f = entry["file"]
+                  if f not in all_reader_files:
+                      all_reader_files[f] = {"file": f, "test_count": 0}
+                  all_reader_files[f]["test_count"] += entry["test_count"]
+
+              for f in report.get("write_only_files", []):
+                  all_write_only_files.add(f)
+
+          # Remove write-only files that also appeared as readers in other shards
+          all_write_only_files -= set(all_reader_files.keys())
+
+          merged = {
+              "total_tests": total_tests,
+              "summary": {
+                  "reads_from_snuba": total_reads,
+                  "writes_only": total_writes_only,
+                  "infra_only": total_infra_only,
+                  "no_snuba_contact": total_no_snuba,
+                  "readers_without_snuba_test_case": total_misclassified,
+              },
+              "misclassified_files": sorted(all_misclassified.values(), key=lambda x: -x["test_count"]),
+              "all_reader_files": sorted(all_reader_files.values(), key=lambda x: -x["test_count"]),
+              "write_only_files": sorted(all_write_only_files),
+          }
+
+          with open("/tmp/snuba-read-detection-merged.json", "w") as f:
+              json.dump(merged, f, indent=2)
+
+          # Print summary
+          print("=" * 70)
+          print("MERGED SNUBA READ DETECTION REPORT")
+          print("=" * 70)
+          print(f"Total tests: {total_tests}")
+          print(f"  Reads from Snuba:  {total_reads}")
+          print(f"  Writes only:       {total_writes_only}")
+          print(f"  Infra only:        {total_infra_only}")
+          print(f"  No Snuba contact:  {total_no_snuba}")
+          print()
+          print(f"  READERS WITHOUT SnubaTestCase: {total_misclassified} tests in {len(all_misclassified)} files")
+          if all_misclassified:
+              print()
+              print("  *** POTENTIAL MISCLASSIFICATIONS ***")
+              for entry in sorted(all_misclassified.values(), key=lambda x: -x["test_count"]):
+                  print(f"    {entry['file']} ({entry['test_count']} tests, class={entry.get('class')})")
+          else:
+              print("  No misclassifications found! Option D is safe.")
+          print()
+          print(f"  Write-only files (safe to skip Snuba writes): {len(all_write_only_files)}")
+          print("=" * 70)
+          SCRIPT
+
+      - name: Upload merged report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: snuba-read-detection-merged
+          path: /tmp/snuba-read-detection-merged.json
+          retention-days: 30
