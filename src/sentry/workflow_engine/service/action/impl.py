@@ -1,6 +1,10 @@
+import logging
+
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.service.action.service import ActionService
 from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseBackedActionService(ActionService):
@@ -69,6 +73,12 @@ class DatabaseBackedActionService(ActionService):
     ) -> None:
         sentry_app_id_actions = Action.objects.none()
         installation_uuid_actions = Action.objects.none()
+
+        if not sentry_app_id and not organization_id:
+            logger.info(
+                "Expected sentry_app_id and organization_id, but they were not passed",
+                extra={"sentry_app_id": sentry_app_id, "organization_id": organization_id},
+            )
 
         if sentry_app_id and organization_id:
             sentry_app_id_actions = Action.objects.filter(
