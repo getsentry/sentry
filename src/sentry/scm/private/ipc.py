@@ -34,6 +34,7 @@ from sentry.scm.types import (
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import scm_tasks
+from sentry.utils import metrics
 
 
 class SubscriptionEventParser(msgspec.Struct, gc=False, frozen=True):
@@ -362,10 +363,8 @@ def deserialize_event(event: bytes, event_type: EventTypeHint) -> EventType:
         return deserialize_check_run_event(event)
     elif event_type == "comment":
         return deserialize_comment_event(event)
-    elif event_type == "pull_request":
-        return deserialize_pull_request_event(event)
     else:
-        return deserialize_subscription_event(event)
+        return deserialize_pull_request_event(event)
 
 
 def deserialize_raw_event(event: SubscriptionEvent) -> tuple[EventType, EventTypeHint]:
@@ -384,20 +383,18 @@ def deserialize_raw_event(event: SubscriptionEvent) -> tuple[EventType, EventTyp
         raise ValueError("Provider not implemented.")
 
 
-def serialize_event(event: EventType, event_type: EventTypeHint) -> bytes:
+def serialize_event(event: EventType) -> bytes:
     """
     EventType serialization function. Serializes a payload based on its type hint. Again could be
     handled by an isinstance check. Or a type protocol which enforces that EventTypes provide a
     serialization method.
     """
-    if event_type == "check_run":
+    if isinstance(event, CheckRunEvent):
         return serialize_check_run_event(event)
-    elif event_type == "comment":
+    elif isinstance(event, CommentEvent):
         return serialize_comment_event(event)
-    elif event_type == "pull_request":
-        return serialize_pull_request_event(event)
     else:
-        return serialize_subscription_event(event)
+        return serialize_pull_request_event(event)
 
 
 # $$$$$$$\            $$\       $$\ $$\           $$\
@@ -429,14 +426,16 @@ def produce_to_listener(
     processing_deadline_duration=10,
 )
 def run_webhook_handler_control_task(
-    listener_name: str, message: bytes, event_type_hint: EventTypeHint
+    listener: str, message: bytes, event_type_hint: EventTypeHint
 ) -> None:
-    listener = scm_event_stream.listeners[event_type_hint][listener_name]
-    run_webhook_handler(
+    run_listener(
         listener,
         message,
         event_type_hint,
+        get_current_time=time.monotonic,
         report_exception=report_exception,
+        record_count=record_count_metric,
+        record_timer=record_timer_metric,
     )
 
 
@@ -447,31 +446,91 @@ def run_webhook_handler_control_task(
     processing_deadline_duration=10,
 )
 def run_webhook_handler_region_task(
-    listener_name: str, message: bytes, event_type_hint: EventTypeHint
+    listener: str, message: bytes, event_type_hint: EventTypeHint
 ) -> None:
-    listener = scm_event_stream.listeners[event_type_hint][listener_name]
-    run_webhook_handler(
+    run_listener(
         listener,
         message,
         event_type_hint,
+        get_current_time=time.monotonic,
         report_exception=report_exception,
+        record_count=record_count_metric,
+        record_timer=record_timer_metric,
     )
 
 
-def run_webhook_handler(
+METRIC_PREFIX = "sentry.scm.run_listener"
+
+
+def run_listener(
     listener: str,
-    message: bytes,
+    event_bytes: bytes,
     event_type_hint: EventTypeHint,
     *,
+    get_current_time: Callable[[], float],
     report_exception: Callable[[Exception], None],
-    record_metric: Callable[[str, int, dict[str, str]], None],
-    get_current_time: Callable[[], float] = time.time,
-):
-    event = deserialize_subscription_event(event_bytes, report_exception=report_exception)
-    if event:
-        handler = get_handler(handler_name)
-        handler(event)
+    record_count: Callable[[str, int, dict[str, str]], None],
+    record_timer: Callable[[str, float, dict[str, str]], None],
+) -> None:
+    start = get_current_time()
+
+    try:
+        event = deserialize_event(event_bytes, event_type_hint)
+    except msgspec.MsgspecError as e:
+        report_exception(e)
+        record_count(f"{METRIC_PREFIX}.failed", 1, {"reason": "parse", "fn": listener})
+        return None
+
+    if isinstance(event, CheckRunEvent):
+        tracked_exception(scm_event_stream.check_run_listeners[listener], event, record_count)
+    elif isinstance(event, CommentEvent):
+        tracked_exception(scm_event_stream.comment_listeners[listener], event, record_count)
+    else:
+        tracked_exception(scm_event_stream.pull_request_listeners[listener], event, record_count)
+
+    end = get_current_time()
+    received = event.subscription_event["received_at"]
+
+    # Sucess and timing metrics are tracked below. These metrics enable us to validate the
+    # performance of the platform. Failure metrics are recorded elsewhere but follow the same
+    # pattern. Failed listeners should never influence timing metrics. Failures can execute
+    # abnormally quickly because they are not performing the full computation.
+    #
+    # Metrics are tagged by the listener's name so we can break down a metric by listener and
+    # identify slow listeners.
+    #
+    #   * real_time indicates the total time taken from webhook received to webhook processed.
+    #   * task_time indicates the total time taken to process the task from start to finish.
+    #   * start_time identifies the time from webhook received to task started. It measures total
+    #     system latency.
+    record_count(f"{METRIC_PREFIX}.success", 1, {"fn": listener})
+    record_timer(f"{METRIC_PREFIX}.start_time", start - received, {"fn": listener})
+    record_timer(f"{METRIC_PREFIX}.task_time", end - start, {"fn": listener})
+    record_timer(f"{METRIC_PREFIX}.real_time", received - start, {"fn": listener})
+
+
+def tracked_exception[T](
+    fn: Callable[[T], None],
+    arg: T,
+    record_count: Callable[[str, int, dict[str, str]], None],
+) -> None:
+    try:
+        return fn(arg)
+    except Exception:
+        record_count(f"{METRIC_PREFIX}.failed", 1, {"reason": "internal", "fn": fn.__name__})
+        raise
 
 
 def report_exception(e: Exception) -> None:
+    """Typing wrapper around sentry_sdk.capture_exception."""
     sentry_sdk.capture_exception(e)
+
+
+def record_count_metric(key: str, amount: int, tags: dict[str, str]) -> None:
+    """Typing wrapper around metrics.incr."""
+    metrics.incr(key, amount, tags=tags)
+
+
+def record_timer_metric(key: str, amount: float, tags: dict[str, str]) -> None:
+    """Typing wrapper around metrics.distribution."""
+    metrics.distribution(key, amount, tags=tags)
