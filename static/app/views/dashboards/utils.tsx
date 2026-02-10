@@ -637,6 +637,7 @@ export const usesTimeSeriesData = (displayType?: DisplayType) => {
     DisplayType.SERVER_TREE,
     DisplayType.TABLE,
     DisplayType.WHEEL,
+    DisplayType.RAGE_AND_DEAD_CLICKS,
   ].includes(displayType);
 };
 
