@@ -11,6 +11,7 @@ optimization and a convenient, typed deserialization library.
 
 import time
 from collections.abc import Callable
+from typing import cast
 
 import msgspec
 import sentry_sdk
@@ -359,6 +360,42 @@ def serialize_event(event: EventType) -> bytes:
 # $$ |      $$ |  $$ |$$ |  $$ |$$ |$$ | \____$$\ $$ |  $$ |$$   ____|$$ |
 # $$ |      \$$$$$$  |$$$$$$$  |$$ |$$ |$$$$$$$  |$$ |  $$ |\$$$$$$$\ $$ |
 # \__|       \______/ \_______/ \__|\__|\_______/ \__|  \__| \_______|\__|
+
+
+def produce_to_listeners(
+    event: SubscriptionEvent,
+    silo: HybridCloudSilo,
+    produce_to_listener: Callable[[bytes, EventTypeHint, str, HybridCloudSilo], None],
+) -> None:
+    """
+    Accepts a raw SubscriptionEvent and attempts to determine its type before sending it to the
+    event-type's listeners to be processed.
+
+    :param event:
+    :param silo: Events are processed in the hybrid-cloud silo they are received in.
+    :param produce_to_listener:
+    """
+    parsed_event = deserialize_raw_event(event)
+
+    # Most events are not supported. We drop them. They could be processed elsewhere but they're
+    # not processed by the unified SCM platform.
+    if parsed_event is None:
+        return None
+
+    message = serialize_event(parsed_event)
+
+    if isinstance(parsed_event, CheckRunEvent):
+        event_type_hint = "check_run"
+        listeners = list(scm_event_stream.check_run_listeners.keys())
+    elif isinstance(parsed_event, CommentEvent):
+        event_type_hint = "comment"
+        listeners = list(scm_event_stream.comment_listeners.keys())
+    else:
+        event_type_hint = "pull_request"
+        listeners = list(scm_event_stream.pull_request_listeners.keys())
+
+    for listener in listeners:
+        produce_to_listener(message, cast(EventTypeHint, event_type_hint), listener, silo)
 
 
 def produce_to_listener(
