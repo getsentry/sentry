@@ -29,7 +29,7 @@ class SentryAppActionHandler(ActionHandler):
                 "enum": [*SentryAppIdentifier],
             },
         },
-        "required": ["target_type", "target_identifier", "sentry_app_identifier"],
+        "required": ["target_type", "target_identifier"],
         "additionalProperties": False,
     }
 

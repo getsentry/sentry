@@ -74,16 +74,12 @@ function WelcomeScreen({
   group: Group;
   project: Project;
 }) {
-  const organization = useOrganization();
-  const skipConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
-
   return (
     <Stack gap="2xl">
-      {skipConsentFlow && (
-        <StyledCard>
-          <GroupSummary group={group} event={event} project={project} />
-        </StyledCard>
-      )}
+      <StyledCard>
+        <GroupSummary group={group} event={event} project={project} />
+      </StyledCard>
+
       <AiSetupDataConsent groupId={group.id} />
     </Stack>
   );
@@ -592,6 +588,7 @@ const SeerDrawerNavigator = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   z-index: 1;
   min-height: ${MIN_NAV_HEIGHT}px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: ${p => p.theme.tokens.border.transparent.neutral.muted} 0 1px;
 `;
 

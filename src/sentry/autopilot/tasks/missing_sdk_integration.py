@@ -140,7 +140,7 @@ def run_missing_sdk_integration_detector_for_project_task(
             intelligence_level="medium",
         )
     except SeerPermissionError:
-        logger.warning(
+        logger.exception(
             "missing_sdk_integration_detector.no_seer_access",
             extra={"organization_id": organization.id, "project_id": project.id},
         )

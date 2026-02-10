@@ -20,6 +20,7 @@ import {AnimatedOp} from './opCommon';
 import {AssertionOpHeader} from './opHeader';
 import {AssertionOpJsonPath} from './opJsonPath';
 import {AssertionOpStatusCode} from './opStatusCode';
+import {getGroupOpLabel} from './utils';
 
 interface AssertionOpGroupProps {
   onChange: (op: LogicalOp) => void;
@@ -92,14 +93,7 @@ export function AssertionOpGroup({
     onChange(negated ? {id: newNotId, op: 'not', operand: groupOp} : groupOp);
   };
 
-  // Generate label based on negation and group type
-  const triggerLabel = isNegated
-    ? groupOp.op === 'and'
-      ? t('Assert None')
-      : t('Assert Not Any')
-    : groupOp.op === 'and'
-      ? t('Assert All')
-      : t('Assert Any');
+  const triggerLabel = getGroupOpLabel(groupOp, isNegated);
 
   const {attributes, setNodeRef, setActivatorNodeRef, listeners, isDragging} =
     useDraggable({

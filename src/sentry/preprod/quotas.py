@@ -11,7 +11,7 @@ from sentry import features, quotas
 from sentry.constants import DataCategory
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.preprod.api.endpoints.builds import artifact_matches_query
+from sentry.preprod.artifact_search import artifact_matches_query
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.producer import PreprodFeature
 from sentry.users.models.user import User

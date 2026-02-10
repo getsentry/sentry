@@ -175,6 +175,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
     TOP_N = 7
     DETAILS = 8
     CATEGORICAL_BAR_CHART = 9
+    WHEEL = 10
     TYPES = [
         (LINE_CHART, "line"),
         (AREA_CHART, "area"),
@@ -185,6 +186,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
         (TOP_N, "top_n"),
         (DETAILS, "details"),
         (CATEGORICAL_BAR_CHART, "categorical_bar"),
+        (WHEEL, "wheel"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 

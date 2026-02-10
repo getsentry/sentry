@@ -535,6 +535,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/seerExplorer/                             @getsentry/machine-learning-ai
 /src/sentry/seer/                                           @getsentry/machine-learning-ai
 /tests/sentry/seer/                                         @getsentry/machine-learning-ai
+/src/sentry/seer/fetch_issues/                              @getsentry/machine-learning-ai @getsentry/coding-workflows
+/tests/sentry/seer/fetch_issues/                            @getsentry/machine-learning-ai @getsentry/coding-workflows
 ## End of ML & AI
 
 ## Issues
@@ -708,9 +710,13 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/core/                          @getsentry/design-engineering
 /static/app/icons/                                    @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering
+
+# LLM Agent guidelines
 /static/.cursor/BUGBOT.md                             @getsentry/design-engineering
 /static/CLAUDE.md                                     @getsentry/design-engineering
 /static/AGENTS.md                                     @getsentry/design-engineering
+/.claude/skills/design-system/                        @getsentry/design-engineering
+
 /static/eslint/                                       @getsentry/design-engineering
 /scripts/analyze-styled.ts                            @getsentry/design-engineering
 ## End of Frontend Platform
