@@ -1607,9 +1607,271 @@ the HTTP detector can't see. The validated socket-level split is conservative an
 
 ### Potential Next Steps
 
-1. **Clean up FORCE_SERIAL** — remove 3 dead entries (free)
-2. **Re-test "project-scoped" serial files** — experimentally move some back to parallel
+1. ~~Clean up FORCE_SERIAL — remove 3 dead entries~~ → Eliminated by per-worker databases (see below)
+2. ~~Re-test "project-scoped" serial files~~ → Eliminated by per-worker databases
 3. **Add more serial shards** — pragmatic fix for relay bottleneck (trade cost for speed)
 4. **Investigate xdist startup** — could shared fixtures or pre-warmed workers reduce the 2 min overhead
 5. **Relay config flush API** — if Relay adds an admin endpoint to clear in-memory cache, relay tests could use class-scoped containers (saving ~10s/test × 75 tests)
 6. **Validate HTTP-level classifier** — if the ~5,100 tests are truly safe without Snuba, tier1 could grow from 67% to 74% of tests
+
+---
+
+## Iteration 11: Per-Worker ClickHouse Databases — Eliminating FORCE_SERIAL
+
+### The Insight
+
+The entire `FORCE_SERIAL_FILES` list (26 entries, ~625 tests) and the `XDIST_SKIP_SNUBA_RESET`
+workaround existed because of one fundamental problem: `reset_snuba` calls `TRUNCATE TABLE` on
+**shared** ClickHouse tables, wiping all workers' data. Every workaround — skipping TRUNCATE,
+unique snowflake IDs, force-serializing broad-query tests — was a band-aid for shared state.
+
+**The elegant solution: give each xdist worker its own ClickHouse database.** With per-worker
+databases, `TRUNCATE TABLE` only affects the current worker's data. No cross-worker interference.
+No need to skip TRUNCATE. No need for FORCE_SERIAL_FILES. `reset_snuba` runs normally.
+
+### Architecture (Sentry-side only, no Snuba code changes)
+
+Each xdist worker gets:
+1. **Its own ClickHouse database** (`default_gw0`, `default_gw1`, etc.)
+2. **Its own Snuba API container** on a unique port (1230+N)
+3. **Routing** via `settings.SENTRY_SNUBA` and `_snuba_pool` patching
+
+```
+                  ┌──────────────┐
+                  │  ClickHouse  │
+                  │              │
+                  │ default      │ ← base (from devservices migration)
+                  │ default_gw0  │ ← worker 0's isolated database
+                  │ default_gw1  │ ← worker 1's isolated database
+                  └──────┬───────┘
+                         │
+              ┌──────────┼──────────┐
+              │          │          │
+        ┌─────┴─────┐ ┌─┴───────┐ ┌┴──────────┐
+        │ snuba:1218 │ │snuba-gw0│ │ snuba-gw1 │
+        │ (default)  │ │ :1230   │ │ :1231     │
+        └────────────┘ └─────────┘ └───────────┘
+                         ↑            ↑
+                       gw0          gw1
+                    (xdist worker 0) (xdist worker 1)
+```
+
+### Implementation Details
+
+#### CI Workflow Changes
+
+In the `Create per-worker ClickHouse databases and Snuba instances` step:
+
+1. **Create worker databases:**
+   ```bash
+   curl -s 'http://localhost:8123/' --data-binary "CREATE DATABASE IF NOT EXISTS default_gw0"
+   ```
+
+2. **Bootstrap all tables using Snuba's own migration system:**
+   ```bash
+   docker run --rm \
+     --network "$SNUBA_NETWORK" \
+     -e "CLICKHOUSE_DATABASE=default_gw0" \
+     -e "CLICKHOUSE_HOST=clickhouse" \
+     ... other Snuba env vars ...
+     "$SNUBA_IMAGE" bootstrap --force
+   ```
+   This is critical — it creates ALL 89 tables including materialized views. See "Table Cloning
+   Debugging" below for why manual approaches fail.
+
+3. **Start per-worker Snuba API containers:**
+   ```bash
+   docker run -d --name "snuba-gw0" \
+     -p "1230:1218" \
+     -e "CLICKHOUSE_DATABASE=default_gw0" \
+     ... other env vars ...
+     "$SNUBA_IMAGE" api
+   ```
+
+Bootstrap takes ~13s per worker. For 2 workers, total overhead is ~30s (acceptable).
+
+#### Sentry-Side Routing
+
+In `src/sentry/testutils/pytest/sentry.py`, two mechanisms ensure all Snuba traffic goes to
+the correct per-worker instance:
+
+**1. Module-level env var (runs before Django settings load):**
+```python
+_xdist_worker = os.environ.get("PYTEST_XDIST_WORKER")
+if _xdist_worker and os.environ.get("XDIST_PER_WORKER_SNUBA"):
+    _worker_num = int(_xdist_worker.replace("gw", ""))
+    os.environ["SNUBA"] = f"http://127.0.0.1:{1230 + _worker_num}"
+```
+
+This sets the `SNUBA` env var before Django's `settings.SENTRY_SNUBA = os.environ.get("SNUBA")`
+is evaluated. Since `sentry.py` is loaded as a pytest plugin (via `tests/conftest.py` →
+`sentry.testutils.pytest.__init__` → `sentry.testutils.pytest.sentry`), its module-level code
+runs before Django settings are configured.
+
+**2. Session fixture safety net (runs after Django is configured):**
+```python
+@pytest.fixture(scope="session", autouse=True)
+def _xdist_per_worker_snuba():
+    settings.SENTRY_SNUBA = worker_snuba_url
+    _snuba_mod._snuba_pool = connection_from_url(worker_snuba_url, ...)
+```
+
+This patches `settings.SENTRY_SNUBA` (used by `call_snuba` → `reset_snuba`) and
+`sentry.utils.snuba._snuba_pool` (used by all Snuba queries and writes via `urlopen()`).
+
+**Diagnostic:** The session fixture writes routing info to `/tmp/xdist-snuba-gw*.log` files,
+since xdist worker stdout is NOT forwarded to the controller process. These files are read in
+the CI `Inspect failure` step.
+
+#### `reset_snuba` Changes
+
+The `XDIST_SKIP_SNUBA_RESET` env var and conditional skip were **removed**. `reset_snuba` now
+runs normally for all tests, calling `TRUNCATE TABLE` via the per-worker Snuba instance. Since
+each worker's Snuba points to its own ClickHouse database, TRUNCATE only affects that worker's
+data. This is the cleanest possible state: no special cases, no env var toggles.
+
+#### FORCE_SERIAL_FILES Eliminated
+
+The entire `FORCE_SERIAL_FILES` list (26 entries) was removed. The only tests that remain serial
+are `relay_integration/` tests, which are serial for a completely different reason (Relay Docker
+container lifecycle — see Iteration 10 above).
+
+### Table Cloning Debugging — Why `bootstrap --force` is Required
+
+The initial implementation tried to clone table schemas from the `default` database into
+per-worker databases using ClickHouse DDL commands. Three approaches were tried:
+
+#### Attempt 1: `CREATE TABLE ... AS ...` (failed — 57/89 tables)
+
+```bash
+CREATE TABLE IF NOT EXISTS default_gw0.table_name AS default.table_name
+```
+
+This only works for regular MergeTree tables. It **silently fails** for:
+- Materialized views (different DDL syntax: `CREATE MATERIALIZED VIEW ... TO ... AS SELECT ...`)
+- Views (need `CREATE VIEW` syntax)
+- Any table type that can't be duplicated with `AS`
+
+Result: 57 regular tables created, 32 materialized views missing. The missing views are critical —
+Snuba writes to source tables (`errors_local`) but discover queries read from materialized views
+that aggregate the data. Writes succeeded but reads returned empty results.
+
+#### Attempt 2: `SHOW CREATE TABLE` + `sed` (failed — still 57/89 tables)
+
+```bash
+DDL=$(curl -s 'http://localhost:8123/' --data-binary "SHOW CREATE TABLE \`default\`.\`view_name\`")
+MODIFIED_DDL=$(echo "$DDL" | sed "s/\`default\`/\`default_gw0\`/g")
+curl -sf 'http://localhost:8123/' --data-binary "$MODIFIED_DDL"
+```
+
+The `sed` replacement only handled backtick-quoted database references (`` `default` ``). But
+ClickHouse's `SHOW CREATE TABLE` output uses **unquoted** database names in materialized view
+definitions:
+
+```sql
+CREATE MATERIALIZED VIEW default.errors_dist_mv TO default.errors_dist
+AS SELECT ... FROM default.errors_local
+```
+
+The `sed` command `s/\`default\`/\`default_gw0\`/g` didn't match `default.errors_local` (no
+backticks). All 32 views failed again.
+
+A more comprehensive `sed` (replacing both quoted and unquoted) could work but is fragile — the
+word "default" appears in many ClickHouse DDL contexts (column defaults, settings, etc.).
+
+#### Attempt 3: `bootstrap --force` (success — 89/89 tables)
+
+```bash
+docker run --rm --network "$SNUBA_NETWORK" \
+  -e "CLICKHOUSE_DATABASE=default_gw0" \
+  ... \
+  "$SNUBA_IMAGE" bootstrap --force
+```
+
+Uses Snuba's own migration system to create all tables in the per-worker database. This is the
+**exact same mechanism** that creates the 89 tables in the `default` database during initial
+devservices setup. It correctly handles:
+- Regular MergeTree tables
+- Materialized views with correct database references
+- View dependencies (creates in correct order)
+- Any future table types that Snuba adds
+
+Result: 89/89 tables in each per-worker database. Perfect parity with the base database.
+
+### Routing Verification — Confirming the Fix
+
+The diagnostic logs from CI confirmed:
+
+1. **Module-level env var works:** Before the session fixture even runs, `settings.SENTRY_SNUBA`
+   and `_snuba_pool` are already pointing to the correct per-worker URL:
+   ```
+   worker=gw1
+   target_url=http://127.0.0.1:1231
+   BEFORE settings.SENTRY_SNUBA=http://127.0.0.1:1231  ← already correct!
+   BEFORE _snuba_pool=127.0.0.1:1231                    ← already correct!
+   env_SNUBA=http://127.0.0.1:1231
+   AFTER settings.SENTRY_SNUBA=http://127.0.0.1:1231
+   AFTER _snuba_pool=127.0.0.1:1231
+   PATCHING COMPLETE
+   ```
+
+2. **Data lands in correct database:** ClickHouse data check after tests:
+   ```
+   default:     migrations_local: 298 (only migration tracking, no test data)
+   default_gw0: (empty — worker 0's test didn't write events)
+   default_gw1: errors_local: 1, group_attributes_local: 3, groupedmessage_local: 2
+   ```
+   Test data goes to the per-worker database, not the shared default database.
+
+3. **All Snuba HTTP paths route correctly:** Both `_snuba_pool.urlopen()` (queries/writes) and
+   `requests.post(settings.SENTRY_SNUBA + endpoint)` (reset_snuba) go to the per-worker instance.
+
+### Final Results — All Green
+
+**Run 21882371325: 22/22 jobs passed**
+
+| Job Group | Shards | Status |
+| --- | --- | --- |
+| split tests into tiers | 1 | passed |
+| tier1 (Postgres+Redis) | 4 | 4/4 passed |
+| tier2-parallel (per-worker Snuba) | 15 | 15/15 passed |
+| tier2-serial (relay only) | 2 | 2/2 passed |
+
+This is the first fully green run with per-worker databases. The approach eliminates:
+- `XDIST_SKIP_SNUBA_RESET` env var (removed)
+- `FORCE_SERIAL_FILES` list of 26 entries (removed)
+- `_force_serial()` function complexity (simplified to relay-only check)
+- Risk of accidental passes from skipped TRUNCATE
+
+### What Changed (summary of per-worker database branch)
+
+| File | Change |
+| --- | --- |
+| `sentry.py` | Module-level `SNUBA` env var override + `_xdist_per_worker_snuba` session fixture for routing. Removed `FORCE_SERIAL_FILES` (26 entries). Simplified `--xdist-group` to only check `relay_integration/`. |
+| `fixtures.py` | Removed `XDIST_SKIP_SNUBA_RESET` conditional. `reset_snuba` runs normally, targeting per-worker database via `settings.SENTRY_SNUBA`. |
+| `backend-xdist-split-poc.yml` | Added `XDIST_PER_WORKER_SNUBA=1` env var. Added "Create per-worker ClickHouse databases and Snuba instances" step using `bootstrap --force`. Reduced serial shards to 2 (relay-only). |
+| `per-worker-db-smoke-test.yml` | New lightweight workflow for rapid iteration on the per-worker database approach. |
+
+### Key Lessons Learned
+
+1. **`SHOW CREATE TABLE` in ClickHouse uses unquoted database names** in materialized view
+   definitions. Never try to `sed`-replace database references in DDL output — use the native
+   migration system instead.
+
+2. **xdist worker stdout is NOT forwarded to the controller.** The `-s` flag disables capture
+   on the controller but workers run in separate processes. Write diagnostics to files instead
+   of stdout for CI debugging.
+
+3. **Module-level code in pytest plugins runs before Django settings load.** This is the ideal
+   place to set environment variables that influence `settings.py` evaluation. The session fixture
+   is a safety net but the env var alone is sufficient.
+
+4. **Snuba's `bootstrap --force`** correctly handles `CLICKHOUSE_DATABASE` — all tables (including
+   materialized views) are created in the specified database, not hardcoded to `default`. This
+   was not guaranteed and was confirmed empirically.
+
+5. **Per-worker isolation is architecturally superior to "no cleanup".** The "no cleanup" approach
+   (skip TRUNCATE, rely on unique IDs) required maintaining a growing `FORCE_SERIAL_FILES` list
+   for any test with broadly-scoped queries. Per-worker databases eliminate this entire class of
+   problems — every test gets a clean database via TRUNCATE, and TRUNCATE is safe because it
+   only touches the worker's own data.
