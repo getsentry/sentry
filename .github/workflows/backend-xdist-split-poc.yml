@@ -1,0 +1,400 @@
+name: '[POC] backend tiered xdist hybrid'
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - mchen/tiered-xdist-hybrid
+      - mchen/per-worker-snuba-db
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  SNUBA_NO_WORKERS: 1
+
+jobs:
+  # ─── Step 1: Download runtime classification and split into tiers ────
+  split-tiers:
+    name: split tests into tiers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
+    outputs:
+      tier1-test-count: ${{ steps.split.outputs.tier1-test-count }}
+      tier2-test-count: ${{ steps.split.outputs.tier2-test-count }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Download latest classification report
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Download from most recent successful classify-services run
+          RUN_ID=$(gh run list --workflow=classify-services.yml --status=success --limit=1 --json databaseId --jq '.[0].databaseId')
+          if [ -z "$RUN_ID" ]; then
+            echo "ERROR: No successful classify-services run found"
+            exit 1
+          fi
+          echo "Downloading classification from run $RUN_ID"
+          gh run download "$RUN_ID" --name test-service-classification --dir /tmp/classification
+          ls -la /tmp/classification/
+
+      - name: Split tests by tier
+        id: split
+        run: |
+          python3 .github/workflows/scripts/split-tests-by-tier.py \
+            --classification /tmp/classification/test-service-classification.json \
+            --summary
+
+          python3 .github/workflows/scripts/split-tests-by-tier.py \
+            --classification /tmp/classification/test-service-classification.json \
+            --tier tier1 --output /tmp/tier1-tests.txt
+
+          python3 .github/workflows/scripts/split-tests-by-tier.py \
+            --classification /tmp/classification/test-service-classification.json \
+            --tier tier2 --output /tmp/tier2-tests.txt
+
+          echo "tier1-test-count=$(wc -l < /tmp/tier1-tests.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
+          echo "tier2-test-count=$(wc -l < /tmp/tier2-tests.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
+
+      - name: Upload tier file lists
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: tier-file-lists
+          path: |
+            /tmp/tier1-tests.txt
+            /tmp/tier2-tests.txt
+          retention-days: 1
+
+  # ─── Tier 1: Postgres + Redis only (no Snuba stack) ─────────────────
+  # ~71% of tests. Lighter containers = more RAM headroom = can run -n 3.
+  # Setup is ~4-5 min faster than backend-ci mode.
+  tier1-test:
+    needs: split-tiers
+    name: 'tier1 (${{ matrix.instance }})'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+
+    # Services not available via devservices migrations mode, started via services block.
+    # Redis-cluster: temporary; long-term add to a new devservices backend-ci-light mode.
+    # Kafka + Zookeeper: Kafka is bundled with Snuba in devservices and can't be started
+    # separately. Using services block avoids starting the full Snuba stack (~4-5 min).
+    # Kafka is needed because application code (e.g., invalidate_project_config via
+    # on_commit hooks) produces to Kafka as a side effect of normal model operations.
+    services:
+      redis-cluster:
+        image: ghcr.io/getsentry/docker-redis-cluster:7.0.10
+        ports:
+          - 7000:7000
+          - 7001:7001
+          - 7002:7002
+          - 7003:7003
+          - 7004:7004
+          - 7005:7005
+        env:
+          IP: 0.0.0.0
+      zookeeper:
+        image: ghcr.io/getsentry/image-mirror-confluentinc-cp-zookeeper:6.2.0
+        env:
+          ZOOKEEPER_CLIENT_PORT: 2181
+      kafka:
+        image: ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:6.2.0
+        env:
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:9092
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS: 1
+        ports:
+          - 9092:9092
+
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: [0, 1, 2, 3]
+
+    env:
+      MATRIX_INSTANCE_TOTAL: 4
+      TEST_GROUP_STRATEGY: roundrobin
+      # Fixed hash seed ensures deterministic collection across xdist workers
+      PYTHONHASHSEED: '0'
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Download tier file lists
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: tier-file-lists
+          path: /tmp/
+
+      - name: Setup sentry env (Postgres + Redis only)
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: migrations
+
+      - name: Run tier 1 tests (xdist -n 3)
+        env:
+          SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
+        run: |
+          echo "=== Tier 1: Postgres + Redis only (no Snuba stack) ==="
+          echo "Shard ${{ matrix.instance }} of 4, xdist workers: 3"
+          echo "Test files: $(wc -l < /tmp/tier1-tests.txt)"
+          python3 -b -m pytest \
+            tests \
+            --reuse-db \
+            --ignore tests/acceptance \
+            --ignore tests/apidocs \
+            --ignore tests/js \
+            --ignore tests/tools \
+            -n 3 \
+            --dist=loadfile \
+            --json-report \
+            --json-report-file=".artifacts/pytest.json" \
+            --json-report-omit=log \
+            --junit-xml=".artifacts/pytest.junit.xml" \
+            -o junit_suite_name=pytest-tier1
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
+
+  # ─── Tier 2 Parallel: Full Snuba stack, per-worker ClickHouse databases ─
+  # ~28% of tests (Snuba-dependent), excluding relay_integration.
+  # Each xdist worker gets its own Snuba instance + ClickHouse database,
+  # so reset_snuba (TRUNCATE TABLE) is safe and per-worker isolated.
+  tier2-parallel-test:
+    needs: split-tiers
+    name: 'tier2-parallel (${{ matrix.instance }})'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+
+    env:
+      MATRIX_INSTANCE_TOTAL: 15
+      TEST_GROUP_STRATEGY: roundrobin
+      PYTHONHASHSEED: '0'
+      # Enable per-worker Snuba database routing
+      XDIST_PER_WORKER_SNUBA: '1'
+      # Number of xdist workers (must match -n below)
+      XDIST_WORKERS: '2'
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Download tier file lists
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: tier-file-lists
+          path: /tmp/
+
+      - name: Setup sentry env (Full Snuba stack)
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - name: Create per-worker ClickHouse databases and Snuba instances
+        run: |
+          XDIST_N=${XDIST_WORKERS:-2}
+          echo "Setting up $XDIST_N per-worker ClickHouse databases + Snuba instances"
+
+          # Get the Snuba container image and network
+          SNUBA_IMAGE=$(docker inspect snuba-snuba-1 --format '{{.Config.Image}}')
+          SNUBA_NETWORK=$(docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
+          echo "Snuba image: $SNUBA_IMAGE"
+          echo "Snuba network: $SNUBA_NETWORK"
+
+          # Get the base database name (what the default Snuba uses)
+          # Default Snuba has no CLICKHOUSE_DATABASE set, so it uses "default"
+          BASE_DB="default"
+
+          BASE_COUNT=$(curl -s 'http://localhost:8123/' --data-binary \
+            "SELECT count() FROM system.tables WHERE database = '${BASE_DB}'" | tr -d '\n')
+          echo "Base database '$BASE_DB' has $BASE_COUNT tables"
+
+          for i in $(seq 0 $((XDIST_N - 1))); do
+            WORKER_DB="default_gw${i}"
+            WORKER_PORT=$((1230 + i))
+            echo ""
+            echo "=== Setting up worker gw${i}: database=$WORKER_DB, port=$WORKER_PORT ==="
+
+            # Create the worker database
+            curl -s 'http://localhost:8123/' --data-binary "CREATE DATABASE IF NOT EXISTS ${WORKER_DB}"
+
+            # Use Snuba bootstrap to create all tables (including materialized views)
+            echo "  Running Snuba bootstrap for $WORKER_DB..."
+            docker run --rm \
+              --network "$SNUBA_NETWORK" \
+              -e "CLICKHOUSE_DATABASE=${WORKER_DB}" \
+              -e "CLICKHOUSE_HOST=clickhouse" \
+              -e "CLICKHOUSE_PORT=9000" \
+              -e "CLICKHOUSE_HTTP_PORT=8123" \
+              -e "DEFAULT_BROKERS=kafka:9093" \
+              -e "REDIS_HOST=redis" \
+              -e "REDIS_PORT=6379" \
+              -e "REDIS_DB=1" \
+              -e "SNUBA_SETTINGS=docker" \
+              "$SNUBA_IMAGE" bootstrap --force 2>&1 | tail -5
+            echo "  Bootstrap complete"
+
+            W_COUNT=$(curl -s 'http://localhost:8123/' --data-binary \
+              "SELECT count() FROM system.tables WHERE database = '${WORKER_DB}'" | tr -d '\n')
+            echo "  $WORKER_DB: $W_COUNT tables (base has $BASE_COUNT)"
+
+            # Start a per-worker Snuba container
+            docker run -d \
+              --name "snuba-gw${i}" \
+              --network "$SNUBA_NETWORK" \
+              -p "${WORKER_PORT}:1218" \
+              -e "CLICKHOUSE_DATABASE=${WORKER_DB}" \
+              -e "CLICKHOUSE_HOST=clickhouse" \
+              -e "CLICKHOUSE_PORT=9000" \
+              -e "CLICKHOUSE_HTTP_PORT=8123" \
+              -e "DEFAULT_BROKERS=kafka:9093" \
+              -e "REDIS_HOST=redis" \
+              -e "REDIS_PORT=6379" \
+              -e "REDIS_DB=1" \
+              -e "SNUBA_SETTINGS=docker" \
+              -e "DEBUG=1" \
+              "$SNUBA_IMAGE" api
+            echo "Started Snuba container snuba-gw${i} on port $WORKER_PORT"
+          done
+
+          # Wait for all per-worker Snuba instances to be ready
+          echo ""
+          echo "Waiting for per-worker Snuba instances to be ready..."
+          for i in $(seq 0 $((XDIST_N - 1))); do
+            WORKER_PORT=$((1230 + i))
+            for attempt in $(seq 1 30); do
+              if curl -sf "http://localhost:${WORKER_PORT}/health" > /dev/null 2>&1; then
+                echo "  snuba-gw${i} (port $WORKER_PORT) is ready"
+                break
+              fi
+              if [ "$attempt" -eq 30 ]; then
+                echo "  ERROR: snuba-gw${i} failed to start"
+                docker logs "snuba-gw${i}" 2>&1 | tail -20
+                exit 1
+              fi
+              sleep 1
+            done
+          done
+          echo ""
+          echo "All per-worker Snuba instances ready!"
+
+      - name: Run tier 2 parallel tests (xdist -n 2, per-worker databases)
+        env:
+          SELECTED_TESTS_FILE: /tmp/tier2-tests.txt
+        run: |
+          echo "=== Tier 2 Parallel: Per-worker ClickHouse databases ==="
+          echo "Shard ${{ matrix.instance }} of 15, xdist workers: 2"
+          echo "Test files: $(wc -l < /tmp/tier2-tests.txt) (tier2 total, filtered by --xdist-group)"
+          python3 -b -m pytest \
+            tests \
+            --reuse-db \
+            --ignore tests/acceptance \
+            --ignore tests/apidocs \
+            --ignore tests/js \
+            --ignore tests/tools \
+            --xdist-group=parallel \
+            -n 2 \
+            --dist=loadfile \
+            --json-report \
+            --json-report-file=".artifacts/pytest.json" \
+            --json-report-omit=log \
+            --junit-xml=".artifacts/pytest.junit.xml" \
+            -o junit_suite_name=pytest-tier2-parallel
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          echo "=== Per-worker Snuba container logs ==="
+          for name in $(docker ps -a --filter "name=snuba-gw" --format '{{.Names}}'); do
+            echo "--- $name ---"
+            docker logs "$name" 2>&1 | tail -30
+          done
+          echo ""
+          if command -v devservices; then
+            devservices logs
+          fi
+
+  # ─── Tier 2 Serial: Relay integration tests only ────────────────────
+  # relay_integration tests (~75 tests) use the Relay→Kafka→Consumer pipeline
+  # which writes to the default (shared) ClickHouse database, not per-worker.
+  # Plus each test restarts a Relay Docker container (~12-18s per test).
+  tier2-serial-test:
+    needs: split-tiers
+    name: 'tier2-serial (${{ matrix.instance }})'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: [0, 1]
+
+    env:
+      MATRIX_INSTANCE_TOTAL: 2
+      TEST_GROUP_STRATEGY: roundrobin
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Download tier file lists
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: tier-file-lists
+          path: /tmp/
+
+      - name: Setup sentry env (Full Snuba stack)
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - name: Run tier 2 serial tests (relay_integration only)
+        env:
+          SELECTED_TESTS_FILE: /tmp/tier2-tests.txt
+        run: |
+          echo "=== Tier 2 Serial: relay_integration tests, normal reset_snuba ==="
+          echo "Shard ${{ matrix.instance }} of 2, single-threaded"
+          python3 -b -m pytest \
+            tests \
+            --reuse-db \
+            --ignore tests/acceptance \
+            --ignore tests/apidocs \
+            --ignore tests/js \
+            --ignore tests/tools \
+            --xdist-group=serial \
+            --json-report \
+            --json-report-file=".artifacts/pytest.json" \
+            --json-report-omit=log \
+            --junit-xml=".artifacts/pytest.junit.xml" \
+            -o junit_suite_name=pytest-tier2-serial
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi

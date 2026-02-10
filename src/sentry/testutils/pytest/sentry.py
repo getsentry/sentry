@@ -1,7 +1,22 @@
 from __future__ import annotations
 
-import collections
 import os
+
+# Per-worker Snuba routing for xdist with per-worker ClickHouse databases.
+# Each xdist worker gets its own Snuba instance on a unique port (1230+N),
+# pointing to its own ClickHouse database (default_gwN).
+# Set the env var early (before Django settings load) so that
+# settings.SENTRY_SNUBA picks up the right URL. We also monkey-patch
+# _snuba_pool later in pytest_configure (see below) as a safety net,
+# since the pool may be created before this env var takes effect.
+_xdist_worker = os.environ.get("PYTEST_XDIST_WORKER")
+if _xdist_worker and os.environ.get("XDIST_PER_WORKER_SNUBA"):
+    _worker_num = int(_xdist_worker.replace("gw", ""))
+    _per_worker_url = f"http://127.0.0.1:{1230 + _worker_num}"
+    os.environ["SNUBA"] = _per_worker_url
+    print(f"[xdist-snuba] {_xdist_worker}: env SNUBA={_per_worker_url}", flush=True)
+
+import collections
 import random
 import shutil
 import string
@@ -33,6 +48,17 @@ TEST_ROOT = os.path.normpath(
 )
 
 TEST_REDIS_DB = 9
+
+
+def _get_xdist_redis_db() -> int:
+    """Under xdist, each worker uses a unique Redis DB to prevent cross-contamination
+    from flushdb() calls in pytest_runtest_teardown. Without this, one worker's
+    teardown wipes another worker's snowflake ID counters, rate limiter state, and caches."""
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER")
+    if worker_id:
+        worker_num = int(worker_id.replace("gw", ""))
+        return TEST_REDIS_DB + worker_num
+    return TEST_REDIS_DB
 
 
 def _use_monolith_dbs() -> bool:
@@ -69,10 +95,27 @@ def _configure_test_env_regions() -> None:
     # Assign a random name on every test run, as a reminder that test setup and
     # assertions should not depend on this value. If you need to test behavior that
     # depends on region attributes, use `override_regions` in your test case.
-    region_name = "testregion" + "".join(random.choices(string.digits, k=6))
+    # Under xdist, all workers must generate the same region name for consistent
+    # test collection. PYTEST_XDIST_TESTRUNUID is shared across all workers per
+    # session but unique per run, so it works as a deterministic seed.
+    xdist_uid = os.environ.get("PYTEST_XDIST_TESTRUNUID")
+    r = random.Random(xdist_uid) if xdist_uid else random
+    region_name = "testregion" + "".join(r.choices(string.digits, k=6))
+
+    # Under xdist, each worker gets a unique region snowflake_id so that
+    # snowflake-based model IDs (Project, Organization, Team) are globally
+    # unique across workers. The REGION_ID segment is 12 bits (0-4095) in the
+    # snowflake schema, so there's plenty of room for xdist workers.
+    # The region *name* stays the same (for deterministic test collection);
+    # only snowflake_id differs (used solely during ID generation).
+    xdist_worker = os.environ.get("PYTEST_XDIST_WORKER")
+    region_snowflake_id = int(xdist_worker.replace("gw", "")) + 1 if xdist_worker else 0
 
     default_region = Region(
-        region_name, 0, settings.SENTRY_OPTIONS["system.url-prefix"], RegionCategory.MULTI_TENANT
+        region_name,
+        region_snowflake_id,
+        settings.SENTRY_OPTIONS["system.url-prefix"],
+        RegionCategory.MULTI_TENANT,
     )
 
     settings.SENTRY_REGION = region_name
@@ -94,6 +137,30 @@ def _configure_test_env_regions() -> None:
     settings.APIGATEWAY_PROXY_SKIP_RELAY = True
 
     monkey_patch_single_process_silo_mode_state()
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--xdist-snuba-phase",
+        choices=("only", "exclude"),
+        default=None,
+        help=(
+            "Split test execution for xdist compatibility. "
+            "'only' runs only ClickHouse-dependent tests (single-threaded phase). "
+            "'exclude' runs only non-ClickHouse tests (safe for xdist parallelism)."
+        ),
+    )
+    parser.addoption(
+        "--xdist-group",
+        choices=("parallel", "serial"),
+        default=None,
+        help=(
+            "Split tests into xdist-compatible groups. "
+            "'parallel' selects tests that do NOT trigger reset_snuba (TRUNCATE TABLE) — "
+            "safe for xdist parallelism. "
+            "'serial' selects tests that DO trigger reset_snuba — must run single-threaded."
+        ),
+    )
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -203,7 +270,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.SENTRY_OPTIONS.update(
         {
-            "redis.clusters": {"default": {"hosts": {0: {"db": TEST_REDIS_DB}}}},
+            "redis.clusters": {"default": {"hosts": {0: {"db": _get_xdist_redis_db()}}}},
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "system.base-hostname": "testserver",
@@ -336,26 +403,6 @@ def register_extensions() -> None:
     )
 
 
-def pytest_sessionstart(session: pytest.Session) -> None:
-    from sentry.taskworker.registry import TaskNamespace
-
-    # Store original send_task so tests that need it can restore it
-    TaskNamespace._original_send_task = TaskNamespace.send_task  # type: ignore[attr-defined]
-
-    # Prevent tests from producing real Kafka messages via the taskworker pipeline.
-    # Tests use TaskRunner (TASKWORKER_ALWAYS_EAGER=True) or BurstTaskRunner
-    # (_signal_send hook) which both operate before send_task in the call chain.
-    TaskNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[method-assign]
-
-
-def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
-    from sentry.taskworker.registry import TaskNamespace
-
-    if hasattr(TaskNamespace, "_original_send_task"):
-        TaskNamespace.send_task = TaskNamespace._original_send_task  # type: ignore[method-assign]
-        del TaskNamespace._original_send_task
-
-
 def pytest_runtest_setup(item: pytest.Item) -> None:
     if item.config.getvalue("nomigrations") and any(
         mark for mark in item.iter_markers(name="migrations")
@@ -415,6 +462,92 @@ def _shuffle(items: list[pytest.Item], r: random.Random) -> None:
 
     assert len(new_items) == len(items)
     items[:] = new_items
+
+
+def _needs_snuba(item: pytest.Item) -> bool:
+    """Check if a test item requires Snuba (ClickHouse) or the full backend-ci stack.
+
+    Tests can declare Snuba dependency via:
+    - @pytest.mark.snuba (on SnubaTestCase and subclasses)
+    - @requires_snuba = @pytest.mark.usefixtures("_requires_snuba")
+    - @requires_kafka = @pytest.mark.usefixtures("_requires_kafka")
+      (Kafka consumers write to ClickHouse; these tests then read it back)
+    - pytestmark = [requires_snuba] or [requires_kafka] (module-level)
+    - Inheriting from RelayStoreHelper (reads from ClickHouse via eventstore)
+    - @pytest.mark.tier2 (escape hatch for tests that need the full stack
+      for non-Snuba reasons, e.g. environment-sensitive initialization)
+    """
+    if any(mark.name in ("snuba", "tier2") for mark in item.iter_markers()):
+        return True
+    for mark in item.iter_markers("usefixtures"):
+        if "_requires_snuba" in mark.args or "_requires_kafka" in mark.args:
+            return True
+    # RelayStoreHelper.post_and_retrieve_event() reads from ClickHouse via
+    # eventstore.backend.get_event_by_id(). These tests need to be on the
+    # snuba worker to avoid TRUNCATE TABLE wiping their data mid-test.
+    if item.cls is not None:
+        for base in item.cls.__mro__:
+            if base.__name__ == "RelayStoreHelper":
+                return True
+    return False
+
+
+def _triggers_snuba_reset(item: pytest.Item) -> bool:
+    """Check if a test triggers reset_snuba (TRUNCATE TABLE on ClickHouse).
+
+    These tests MUST run single-threaded because TRUNCATE is table-wide — under
+    xdist, one worker's reset wipes another worker's ClickHouse data mid-test.
+
+    Tests trigger reset_snuba via:
+    - SnubaTestCase's autouse `initialize` fixture (requests reset_snuba)
+      → detected by @pytest.mark.snuba on SnubaTestCase and all subclasses
+    - Explicit @pytest.mark.usefixtures("reset_snuba") on other test classes
+      (ProfilesSnubaTestCase, UptimeCheckSnubaTestCase, MetricsAPIBaseTestCase, etc.)
+    - OutcomesSnubaTest and ReplaysSnubaTestCase do their own TRUNCATE in setUp
+      → detected by @pytest.mark.snuba on these classes
+    - RelayStoreHelper reads from ClickHouse and needs clean state
+
+    Tests with only requires_snuba / requires_kafka do NOT trigger reset_snuba.
+    They write to ClickHouse via store_event() but never read from it, so they
+    are safe for xdist parallelism.
+    """
+    # @pytest.mark.snuba = SnubaTestCase and all its subclasses (OutcomesSnubaTest,
+    # ReplaysSnubaTestCase, BaseMetricsLayerTestCase, etc.)
+    if any(mark.name == "snuba" for mark in item.iter_markers()):
+        return True
+    # Explicit @pytest.mark.usefixtures("reset_snuba") on non-SnubaTestCase classes
+    for mark in item.iter_markers("usefixtures"):
+        if "reset_snuba" in mark.args:
+            return True
+    # RelayStoreHelper reads from ClickHouse via eventstore
+    if item.cls is not None:
+        for base in item.cls.__mro__:
+            if base.__name__ == "RelayStoreHelper":
+                return True
+    return False
+
+
+# With per-worker ClickHouse databases, each xdist worker has its own isolated
+# database and can safely TRUNCATE without affecting other workers. This eliminates
+# the need for FORCE_SERIAL_FILES (broad-query tests are no longer a problem).
+#
+# Only relay_integration tests still need serial execution: they use the
+# Relay→Kafka→Consumer pipeline which writes to the default (shared) database,
+# not the per-worker database. Plus the per-test Docker container restart.
+FORCE_SERIAL_DIRS: tuple[str, ...] = (
+    "tests/relay_integration/",
+)
+
+
+def _force_serial(item: pytest.Item) -> bool:
+    """Check if a test is under a FORCE_SERIAL_DIRS prefix.
+
+    Relay integration tests use the Relay→Kafka→Consumer pipeline that bypasses
+    per-worker Snuba routing, so they must run single-threaded with the default
+    shared Snuba instance.
+    """
+    test_file = item.nodeid.split("::")[0]
+    return any(test_file.startswith(d) for d in FORCE_SERIAL_DIRS)
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
@@ -483,6 +616,114 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     # This only needs to be done if there are items to be de-selected
     if len(discard) > 0:
         config.hook.pytest_deselected(items=discard)
+
+    # Phase-based split for xdist compatibility. ClickHouse (Snuba) state is
+    # global and cannot be isolated between xdist workers (reset_snuba uses
+    # TRUNCATE TABLE). Instead of fighting shared state, we split execution:
+    #   Phase 1 (--xdist-snuba-phase=exclude): non-ClickHouse tests, safe for -n N
+    #   Phase 2 (--xdist-snuba-phase=only): ClickHouse tests, single-threaded
+    snuba_phase = config.getoption("--xdist-snuba-phase", default=None)
+    if snuba_phase is not None:
+        snuba_items = []
+        non_snuba_items = []
+        for item in items:
+            if _needs_snuba(item):
+                snuba_items.append(item)
+            else:
+                non_snuba_items.append(item)
+
+        if snuba_phase == "exclude":
+            items[:] = non_snuba_items
+            deselected = snuba_items
+        else:  # "only"
+            items[:] = snuba_items
+            deselected = non_snuba_items
+
+        if deselected:
+            config.hook.pytest_deselected(items=deselected)
+
+    # Two-group split for xdist with per-worker ClickHouse databases.
+    # Most tests can run parallel — each xdist worker has its own Snuba instance
+    # pointing to its own ClickHouse database, so TRUNCATE TABLE is safe.
+    # Only relay_integration tests need serial execution (Kafka consumer path
+    # bypasses per-worker Snuba routing).
+    #   --xdist-group=parallel: all tests EXCEPT relay_integration (safe for -n N)
+    #   --xdist-group=serial:   only relay_integration tests (single-threaded)
+    xdist_group = config.getoption("--xdist-group", default=None)
+    if xdist_group is not None:
+        parallel_items = []
+        serial_items = []
+        for item in items:
+            if _force_serial(item):
+                serial_items.append(item)
+            else:
+                parallel_items.append(item)
+
+        if xdist_group == "parallel":
+            items[:] = parallel_items
+            deselected = serial_items
+        else:  # "serial"
+            items[:] = serial_items
+            deselected = parallel_items
+
+        if deselected:
+            config.hook.pytest_deselected(items=deselected)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _xdist_per_worker_snuba():
+    """Patch Snuba connection to use per-worker Snuba instance.
+
+    Each xdist worker gets its own Snuba container on port 1230+N, pointing to
+    its own ClickHouse database (default_gwN). This fixture patches both
+    settings.SENTRY_SNUBA (used by reset_snuba) and _snuba_pool (used by all
+    Snuba queries/writes) to route traffic to the per-worker instance.
+
+    Runs as a session fixture (after Django is configured) rather than in
+    pytest_configure (where Django settings aren't available yet).
+    """
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER")
+    if not worker_id or not os.environ.get("XDIST_PER_WORKER_SNUBA"):
+        return
+
+    worker_num = int(worker_id.replace("gw", ""))
+    worker_snuba_url = f"http://127.0.0.1:{1230 + worker_num}"
+
+    # Write diagnostics to a file (xdist worker stdout isn't forwarded to controller)
+    _diag_file = f"/tmp/xdist-snuba-{worker_id}.log"
+
+    from sentry.utils import snuba as _snuba_mod
+
+    old_settings = settings.SENTRY_SNUBA
+    old_pool_host = getattr(_snuba_mod._snuba_pool, 'host', 'unknown')
+    old_pool_port = getattr(_snuba_mod._snuba_pool, 'port', 'unknown')
+
+    with open(_diag_file, "w") as f:
+        f.write(f"worker={worker_id}\n")
+        f.write(f"target_url={worker_snuba_url}\n")
+        f.write(f"BEFORE settings.SENTRY_SNUBA={old_settings}\n")
+        f.write(f"BEFORE _snuba_pool={old_pool_host}:{old_pool_port}\n")
+        f.write(f"env_SNUBA={os.environ.get('SNUBA', 'NOT SET')}\n")
+
+    # Override settings.SENTRY_SNUBA (used by reset_snuba fixture via call_snuba)
+    settings.SENTRY_SNUBA = worker_snuba_url
+
+    # Replace _snuba_pool (used for all Snuba queries and writes)
+    from sentry.net.http import connection_from_url as _cfurl
+
+    _snuba_mod._snuba_pool = _cfurl(
+        worker_snuba_url,
+        retries=False,
+        timeout=settings.SENTRY_SNUBA_TIMEOUT,
+        maxsize=10,
+    )
+    new_pool_host = getattr(_snuba_mod._snuba_pool, 'host', 'unknown')
+    new_pool_port = getattr(_snuba_mod._snuba_pool, 'port', 'unknown')
+
+    with open(_diag_file, "a") as f:
+        f.write(f"AFTER settings.SENTRY_SNUBA={settings.SENTRY_SNUBA}\n")
+        f.write(f"AFTER _snuba_pool={new_pool_host}:{new_pool_port}\n")
+        f.write("PATCHING COMPLETE\n")
 
 
 def pytest_xdist_setupnodes() -> None:

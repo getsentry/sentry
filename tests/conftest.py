@@ -3,6 +3,14 @@ import signal
 import sys
 from collections.abc import Generator, MutableMapping
 
+# Disable pytest-rerunfailures socket-based crash recovery when using xdist.
+# The socket server/client causes TimeoutError on recv() due to localhost resolution
+# issues and socket interference. Normal --reruns still work without it - each
+# xdist worker handles retries locally. Only crash recovery (segfault reruns) is lost.
+import pytest_rerunfailures
+
+pytest_rerunfailures.HAS_PYTEST_HANDLECRASHITEM = False
+
 import psutil
 import pytest
 import responses

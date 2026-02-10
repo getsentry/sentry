@@ -13,7 +13,7 @@ import pytest
 import requests
 
 from sentry.runner.commands.devservices import get_docker_client
-from sentry.testutils.pytest.sentry import TEST_REDIS_DB
+from sentry.testutils.pytest.sentry import _get_xdist_redis_db
 
 _log = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ def relay_server_setup(live_server, tmpdir_factory):
 
     relay_port = ephemeral_port_reserve.reserve(ip="127.0.0.1", port=33331)
 
-    redis_db = TEST_REDIS_DB
+    redis_db = _get_xdist_redis_db()
 
     from sentry.relay import projectconfig_cache
     from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache

@@ -335,6 +335,9 @@ def call_snuba(settings):
 
 @pytest.fixture
 def reset_snuba(call_snuba):
+    # With per-worker ClickHouse databases, each xdist worker has its own Snuba
+    # instance pointing to its own database. TRUNCATE TABLE is safe because it
+    # only affects the current worker's data — no cross-worker interference.
     init_endpoints = [
         "/tests/events_analytics_platform/drop",
         "/tests/spans/drop",
