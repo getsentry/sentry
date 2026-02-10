@@ -71,6 +71,7 @@ import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/
 import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useSimilarIssuesDrawer';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
+import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
@@ -731,6 +732,14 @@ function GroupDetailsContent({
     tab: currentTab,
     organization,
     hasAutofixQuota,
+  });
+
+  // Track engaged view after 10 seconds on the issue details page
+  useEngagedViewTracking({
+    groupId: group.id,
+    projectId: project.id,
+    organization,
+    issueType: group.issueType,
   });
 
   const isDisplayingEventDetails = [

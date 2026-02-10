@@ -102,6 +102,11 @@ export type IssueEventParameters = {
     provider: string;
   };
   'issue-details.replay-cta-dismiss': {type: string};
+  'issue.engaged_view': {
+    group_id: number;
+    issue_type: string;
+    project_id: number;
+  };
   'issue.list.ai_query_applied': {
     query: string;
   };
@@ -466,6 +471,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.event_navigation_selected': 'Issue Details: Event Navigation Selected',
   'issue_details.issue_content_selected': 'Issue Details: Issue Content Selected',
   'issue_details.issue_tags_click': 'Issue Details: Issue Tags Clicked',
+  'issue.engaged_view': 'Issue: Engaged View',
   'issue_details.publish_issue_modal_opened': 'Issue Details: Publish Issue Modal Opened',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
