@@ -5,8 +5,6 @@ from sentry.models.organization import Organization
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
-feature_name = "seer_autofix_setup_acknowledged"
-
 
 def has_seer_access(
     organization: Organization, actor: User | AnonymousUser | RpcUser | None = None
