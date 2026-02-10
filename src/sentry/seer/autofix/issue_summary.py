@@ -349,7 +349,7 @@ def run_automation(
     if source == SeerAutomationSource.ISSUE_DETAILS:
         return
 
-    # Check event count for ALERT source with triage-signals-v0-org
+    # Check event count for ALERT source with seat-based tier
     if is_seer_seat_based_tier_enabled(group.organization):
         if source == SeerAutomationSource.ALERT:
             # Use times_seen_with_pending if available (set by post_process), otherwise fall back
@@ -366,7 +366,7 @@ def run_automation(
         except (AssertionError, AttributeError):
             times_seen = group.times_seen
         logger.info(
-            "Triage signals V0: %s: run_automation called: project_slug=%s, source=%s, times_seen=%s",
+            "Seat-based tier: %s: run_automation called: project_slug=%s, source=%s, times_seen=%s",
             group.id,
             group.project.slug,
             source.value,

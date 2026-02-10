@@ -708,13 +708,21 @@ class TestGetStoppingPointFromFixability:
         assert _get_stopping_point_from_fixability(score) == expected
 
 
-@with_feature({"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True})
+@with_feature({"organizations:gen-ai-features": True})
 class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
+        self.seat_based_tier_patcher = patch(
+            "sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True
+        )
+        self.seat_based_tier_patcher.start()
         self.group = self.create_group()
         event_data = load_data("python")
         self.event = self.store_event(data=event_data, project_id=self.project.id)
+
+    def tearDown(self) -> None:
+        self.seat_based_tier_patcher.stop()
+        super().tearDown()
 
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch(
@@ -787,9 +795,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
             scores=SummarizeIssueScores(fixability_score=0.80),
         )
 
-        with self.feature(
-            {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": False}
-        ):
+        with self.feature({"organizations:gen-ai-features": True}):
             run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
         mock_trigger.assert_called_once()
@@ -922,13 +928,21 @@ class TestApplyUserPreferenceUpperBound:
         assert result == expected
 
 
-@with_feature({"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True})
+@with_feature({"organizations:gen-ai-features": True})
 class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
+        self.seat_based_tier_patcher = patch(
+            "sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True
+        )
+        self.seat_based_tier_patcher.start()
         self.group = self.create_group()
         event_data = load_data("python")
         self.event = self.store_event(data=event_data, project_id=self.project.id)
+
+    def tearDown(self) -> None:
+        self.seat_based_tier_patcher.stop()
+        super().tearDown()
 
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch("sentry.seer.autofix.issue_summary._fetch_user_preference")
@@ -1028,14 +1042,21 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
 
 
 @with_feature("organizations:gen-ai-features")
-@with_feature("organizations:triage-signals-v0-org")
 class TestRunAutomationAlertEventCount(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
+        self.seat_based_tier_patcher = patch(
+            "sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True
+        )
+        self.seat_based_tier_patcher.start()
         self.group = self.create_group()
         event_data = load_data("python")
         self.event = self.store_event(data=event_data, project_id=self.project.id)
         self.user = self.create_user()
+
+    def tearDown(self) -> None:
+        self.seat_based_tier_patcher.stop()
+        super().tearDown()
 
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task")
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
@@ -1044,7 +1065,7 @@ class TestRunAutomationAlertEventCount(APITestCase, SnubaTestCase):
     def test_alert_skips_automation_below_threshold(
         self, mock_budget, mock_state, mock_fixability, mock_trigger
     ):
-        """Alert automation should skip when event count < 10 with triage-signals-v0-org"""
+        """Alert automation should skip when event count < 10"""
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_budget.return_value = True
         mock_state.return_value = None
@@ -1074,7 +1095,7 @@ class TestRunAutomationAlertEventCount(APITestCase, SnubaTestCase):
     def test_alert_runs_automation_above_threshold(
         self, mock_budget, mock_state, mock_fixability, mock_trigger, mock_rate_limit
     ):
-        """Alert automation should run when event count >= 10 with triage-signals-v0"""
+        """Alert automation should run when event count >= 10"""
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_budget.return_value = True
         mock_state.return_value = None

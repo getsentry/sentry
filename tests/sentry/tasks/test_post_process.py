@@ -2977,12 +2977,21 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
 
 class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
-    """Tests for the triage signals V0 flow behind the organizations:triage-signals-v0-org feature flag."""
+    """Tests for the triage signals V0 flow."""
+
+    def setUp(self):
+        super().setUp()
+        self.seat_based_tier_patcher = patch(
+            "sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True
+        )
+        self.seat_based_tier_patcher.start()
+
+    def tearDown(self):
+        self.seat_based_tier_patcher.stop()
+        super().tearDown()
 
     @patch("sentry.tasks.autofix.generate_issue_summary_only.delay")
-    @with_feature(
-        {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True}
-    )
+    @with_feature({"organizations:gen-ai-features": True})
     def test_triage_signals_event_count_less_than_10_no_cache(self, mock_generate_summary_only):
         """Test that with event count < 10 and no cached summary, we generate summary only (no automation)."""
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -3008,9 +3017,7 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_only.assert_called_once_with(group.id)
 
     @patch("sentry.tasks.autofix.generate_issue_summary_only.delay")
-    @with_feature(
-        {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True}
-    )
+    @with_feature({"organizations:gen-ai-features": True})
     def test_triage_signals_event_count_less_than_10_with_cache(self, mock_generate_summary_only):
         """Test that with event count < 10 and cached summary exists, we do nothing."""
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -3041,9 +3048,7 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         return_value=True,
     )
     @patch("sentry.tasks.autofix.run_automation_only_task.delay")
-    @with_feature(
-        {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True}
-    )
+    @with_feature({"organizations:gen-ai-features": True})
     def test_triage_signals_event_count_gte_10_with_cache(
         self, mock_run_automation, mock_has_repos
     ):
@@ -3090,9 +3095,7 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         return_value=True,
     )
     @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
-    @with_feature(
-        {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True}
-    )
+    @with_feature({"organizations:gen-ai-features": True})
     def test_triage_signals_event_count_gte_10_no_cache(
         self,
         mock_generate_summary_and_run_automation,
@@ -3137,9 +3140,7 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         return_value=False,
     )
     @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
-    @with_feature(
-        {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True}
-    )
+    @with_feature({"organizations:gen-ai-features": True})
     def test_triage_signals_event_count_gte_10_skips_without_connected_repos(
         self,
         mock_generate_summary_and_run_automation,
@@ -3177,9 +3178,7 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_and_run_automation.assert_not_called()
 
     @patch("sentry.tasks.autofix.run_automation_only_task.delay")
-    @with_feature(
-        {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True}
-    )
+    @with_feature({"organizations:gen-ai-features": True})
     def test_triage_signals_event_count_gte_10_skips_with_seer_last_triggered(
         self, mock_run_automation
     ):
@@ -3223,9 +3222,7 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         mock_run_automation.assert_not_called()
 
     @patch("sentry.tasks.autofix.run_automation_only_task.delay")
-    @with_feature(
-        {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True}
-    )
+    @with_feature({"organizations:gen-ai-features": True})
     def test_triage_signals_event_count_gte_10_skips_with_existing_fixability_score(
         self, mock_run_automation
     ):
@@ -3271,9 +3268,7 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
 
     @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
     @patch("sentry.tasks.autofix.run_automation_only_task.delay")
-    @with_feature(
-        {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True}
-    )
+    @with_feature({"organizations:gen-ai-features": True})
     def test_triage_signals_skips_automation_for_old_issues(
         self,
         mock_run_automation,
