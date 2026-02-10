@@ -22,6 +22,7 @@ import type {
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
+import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 
 import type {AttributeDistribution} from './attributeDistributionContent';
@@ -247,6 +248,7 @@ function PopulationIndicatorComponent({
 export default function AttributeBreakdownViewerModal(props: Props) {
   const {Header, Body, mode} = props;
   const {selection} = usePageFilters();
+  const query = useQueryParamsQuery();
 
   const theme = useTheme();
   const navigate = useNavigate();
@@ -351,39 +353,39 @@ export default function AttributeBreakdownViewerModal(props: Props) {
             tableData={computedData.tableData}
             columns={computedData.tableColumns}
             onTriggerCellAction={(action, value) => {
-              const query = new MutableSearch('');
+              const search = new MutableSearch(query ?? '');
               switch (action) {
                 case Actions.OPEN_ROW_IN_EXPLORE:
-                  query.addFilterValue(computedData.attributeName, `${value}`);
+                  search.addFilterValue(computedData.attributeName, `${value}`);
                   navigate(
                     getExploreUrl({
                       organization,
                       selection,
-                      query: query.formatString(),
+                      query: search.formatString(),
                     })
                   );
                   closeModal();
                   return;
                 case Actions.ADD:
-                  query.addFilterValue(computedData.attributeName, `${value}`);
+                  search.addFilterValue(computedData.attributeName, `${value}`);
                   navigate(
                     getExploreUrl({
                       organization,
                       selection,
                       table: 'attribute_breakdowns',
-                      query: query.formatString(),
+                      query: search.formatString(),
                     })
                   );
                   closeModal();
                   return;
                 case Actions.EXCLUDE:
-                  query.addFilterValue(`!${computedData.attributeName}`, `${value}`);
+                  search.addFilterValue(`!${computedData.attributeName}`, `${value}`);
                   navigate(
                     getExploreUrl({
                       organization,
                       selection,
                       table: 'attribute_breakdowns',
-                      query: query.formatString(),
+                      query: search.formatString(),
                     })
                   );
                   closeModal();
