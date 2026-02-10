@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import NoProjects, OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializerSnuba
@@ -50,7 +50,7 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
         # Raises PermissionDenied if any project is inaccessible.
         projects = self.get_projects(request, organization)
         if not projects:
-            raise NoProjects("No projects available")
+            return Response([])
         project_ids = [p.id for p in projects]
 
         start, end = get_date_range_from_stats_period(request.GET, optional=True)
