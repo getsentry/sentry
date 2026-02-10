@@ -496,10 +496,20 @@ def bind_cache_to_option_store() -> None:
     # loaded at this point, so we can plug in the cache backend before
     # continuing to initialize the remainder of the application.
     from django.core.cache import cache as default_cache
+    from django.core.cache import caches
+    from django.utils.connection import ConnectionProxy
 
     from sentry.options import default_store
 
-    default_store.set_cache_impl(default_cache)
+    # Prefer the 'options' cache profile if defined.
+    # Use a ConnectionProxy as caches['options'] performs
+    # poorly in threaded contexts.
+    # We type ignore because django's types are lies and default_cache
+    # is ConnectionProxy.
+    backend = default_cache
+    if "options" in settings.CACHES:
+        backend = ConnectionProxy(caches, "options")  # type: ignore[assignment]
+    default_store.set_cache_impl(backend)
 
 
 def apply_legacy_settings(settings: Any) -> None:
