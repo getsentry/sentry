@@ -196,7 +196,7 @@ function StepButton({
         }
       )}
     >
-      <ButtonBar merged gap="0">
+      <ButtonBar>
         <Button
           onClick={onStepClick}
           disabled={isLoading || (step === 'code_changes' && !enableSeerCoding)}

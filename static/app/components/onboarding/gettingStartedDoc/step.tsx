@@ -2,8 +2,8 @@ import type React from 'react';
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
@@ -39,7 +39,9 @@ export function Step({
 
   const stepTitle = <StepTitle>{title ?? StepTitles[type]}</StepTitle>;
   const trailingItemsContent = trailingItems ? (
-    <ButtonBar onClick={e => e.stopPropagation()}>{trailingItems}</ButtonBar>
+    <Grid flow="column" align="center" gap="md" onClick={e => e.stopPropagation()}>
+      {trailingItems}
+    </Grid>
   ) : null;
 
   return collapsible ? (

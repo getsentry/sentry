@@ -2,8 +2,9 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 
 import {
@@ -162,7 +163,9 @@ const StarredWrapper = styled('div')`
   }
 `;
 
-const StyledButtonBar = styled(ButtonBar)`
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   @media (max-width: ${props => props.theme.breakpoints.sm}) {
     grid-template-rows: repeat(2, 1fr);
     gap: ${space(1.5)};

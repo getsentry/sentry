@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -75,7 +76,7 @@ function GDPREditModal({
           <TextField key="email" name={`${prefix}Email`} label={t('Email')} inline />
         </FormWrapper>
         <Footer>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <Button
               type="button"
               onClick={() => {
@@ -87,7 +88,7 @@ function GDPREditModal({
             <Button type="submit" priority="primary">
               {t('Save Changes')}
             </Button>
-          </ButtonBar>
+          </Grid>
         </Footer>
       </Form>
     </Fragment>

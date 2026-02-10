@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import PageOverlay from 'sentry/components/pageOverlay';
 import {t, tct} from 'sentry/locale';
@@ -104,7 +105,9 @@ function PageUpsellOverlay({
   );
 }
 
-const StyledButtonBar = styled(ButtonBar)`
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   width: fit-content;
 `;
 

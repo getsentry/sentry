@@ -265,7 +265,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
               <ThreadHeading>{t('Threads')}</ThreadHeading>
               {activeThread && (
                 <Flex justify="start" align="center" wrap="wrap" flexGrow={1} gap="md">
-                  <ButtonBar merged gap="0">
+                  <ButtonBar>
                     <Button
                       title={t('Previous Thread')}
                       tooltipProps={{delay: 1000}}
