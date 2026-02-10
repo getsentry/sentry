@@ -49,7 +49,7 @@ def produce_to_listeners(
     :param produce_to_listener:
     """
     parsed_event, event_type_hint = deserialize_raw_event(event)
-    message = serialize_event(parsed_event, event_type_hint)
+    message = serialize_event(parsed_event)
 
     for listener in scm_event_stream.listeners[event_type_hint].keys():
         produce_to_listener(message, event_type_hint, listener, silo)
