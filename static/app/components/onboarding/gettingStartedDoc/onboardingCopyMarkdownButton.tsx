@@ -12,6 +12,45 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
+interface CopyMarkdownButtonProps {
+  getMarkdown: () => string;
+  organization: Organization;
+  source: string;
+}
+
+/**
+ * A standalone "Copy as Markdown" button with tooltip and analytics tracking.
+ * Accepts a `getMarkdown` callback to produce the clipboard content.
+ *
+ * Use this directly when you already have a markdown-producing function
+ * (e.g. innerHTML-based conversion in crons guides). For onboarding-step
+ * surfaces that need tab-selection and auth-token context, use
+ * `OnboardingCopyMarkdownButton` instead.
+ */
+export function CopyMarkdownButton({
+  getMarkdown,
+  organization,
+  source,
+}: CopyMarkdownButtonProps) {
+  return (
+    <Tooltip title={t('Let an LLM do all the work instead')} position="right">
+      <Button
+        icon={<IconCopy />}
+        onClick={() => {
+          trackAnalytics('onboarding.copy_instructions', {
+            organization,
+            format: 'markdown',
+            source,
+          });
+          copyToClipboard(getMarkdown());
+        }}
+      >
+        {t('Copy as Markdown')}
+      </Button>
+    </Tooltip>
+  );
+}
+
 interface OnboardingCopyMarkdownButtonProps {
   organization: Organization;
   source: string;
@@ -32,28 +71,19 @@ export function OnboardingCopyMarkdownButton({
   const {selectedTab} = useSelectedCodeTab();
   const authToken = useAuthToken();
 
+  const getMarkdown = () =>
+    stepsToMarkdown(steps, {
+      selectedTabLabel: selectedTab ?? undefined,
+      authToken,
+    });
+
   return (
-    <Flex justify="end" marginBottom="xs">
-      <Tooltip title={t('Let an LLM do all the work instead')}>
-        <Button
-          size="xs"
-          icon={<IconCopy />}
-          onClick={() => {
-            trackAnalytics('onboarding.copy_instructions', {
-              organization,
-              format: 'markdown',
-              source,
-            });
-            const markdown = stepsToMarkdown(steps, {
-              selectedTabLabel: selectedTab ?? undefined,
-              authToken,
-            });
-            copyToClipboard(markdown);
-          }}
-        >
-          {t('Copy as Markdown')}
-        </Button>
-      </Tooltip>
+    <Flex justify="start" paddingBottom="md">
+      <CopyMarkdownButton
+        getMarkdown={getMarkdown}
+        organization={organization}
+        source={source}
+      />
     </Flex>
   );
 }

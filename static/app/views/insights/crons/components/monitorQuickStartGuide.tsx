@@ -2,22 +2,19 @@ import {useRef, useState} from 'react';
 import partition from 'lodash/partition';
 import {PlatformIcon} from 'platformicons';
 
-import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {CopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/gettingStartedDoc/utils/stepsToMarkdown';
-import {IconCopy, IconGlobe, IconTerminal} from 'sentry/icons';
+import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {QuickStartProps} from 'sentry/views/insights/crons/components/manualCheckInGuides';
 import {
@@ -285,22 +282,11 @@ export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
           onChange={({value}) => setSelectedGuide(value)}
           size="sm"
         />
-        <Tooltip title={t('Let an LLM do all the work instead')}>
-          <Button
-            size="xs"
-            icon={<IconCopy />}
-            onClick={() => {
-              trackAnalytics('onboarding.copy_instructions', {
-                organization: org,
-                format: 'markdown',
-                source: 'crons_onboarding',
-              });
-              copyToClipboard(getGuideMarkdown());
-            }}
-          >
-            {t('Copy as Markdown')}
-          </Button>
-        </Tooltip>
+        <CopyMarkdownButton
+          getMarkdown={getGuideMarkdown}
+          organization={org}
+          source="crons_onboarding"
+        />
       </Flex>
       <div ref={guideContainerRef}>
         <Guide {...guideProps} />
