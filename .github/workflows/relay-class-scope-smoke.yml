@@ -1,0 +1,57 @@
+name: '[POC] relay class-scope smoke test'
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - mchen/relay-class-scope
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  SNUBA_NO_WORKERS: 1
+
+jobs:
+  relay-class-scope-smoke:
+    name: relay_integration smoke test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env (Full Snuba stack)
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - name: Run relay_integration tests (class-scoped Relay)
+        run: |
+          echo "=== Relay class-scope smoke test ==="
+          echo "Running all relay_integration tests with class-scoped Relay fixture"
+          python3 -b -m pytest \
+            tests/relay_integration/ \
+            --reuse-db \
+            -v \
+            --durations=0 \
+            --json-report \
+            --json-report-file=".artifacts/pytest.json" \
+            --junit-xml=".artifacts/pytest.junit.xml" \
+            -o junit_suite_name=pytest-relay-class-scope
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          echo "=== Relay container logs ==="
+          docker logs sentry_test_relay_server 2>&1 | tail -50
+          echo ""
+          if command -v devservices; then
+            devservices logs
+          fi

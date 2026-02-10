@@ -127,7 +127,7 @@ def relay_server_setup(live_server, tmpdir_factory):
             _remove_container_if_exists(docker_client, container_name)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="class")
 def relay_server(relay_server_setup, settings):
     adjust_settings_for_relay_tests(settings)
     options = relay_server_setup["options"]
@@ -155,6 +155,26 @@ def relay_server(relay_server_setup, settings):
         raise ValueError("relay did not start in time")
 
     yield {"url": relay_server_setup["url"]}
+
+
+@pytest.fixture(scope="function", autouse=True)
+def _clear_relay_project_cache():
+    """Clear Redis project config cache between tests for clean Relay state."""
+    yield
+    # After each test, clear relayconfig:* keys from Redis
+    try:
+        from sentry.relay import projectconfig_cache
+        from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
+
+        backend = projectconfig_cache.backend.test_only__downcast_to(RedisProjectConfigCache)
+        cluster = backend.cluster
+        # Use pipeline to clear all relayconfig keys
+        pipeline = cluster.pipeline()
+        for key in cluster.scan_iter(match="relayconfig:*"):
+            pipeline.delete(key)
+        pipeline.execute()
+    except Exception:
+        pass  # Best effort
 
 
 def adjust_settings_for_relay_tests(settings):
