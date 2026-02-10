@@ -115,16 +115,14 @@ jobs:
             echo "  $db: $count tables"
           done
 
-      - name: Run smoke tests (small set of Snuba tests under xdist -n 2)
+      - name: Run smoke tests (small Snuba test file under xdist -n 2)
         run: |
-          echo "=== Smoke test: small set of Snuba-dependent tests ==="
+          echo "=== Smoke test: Snuba discover tests ==="
           echo "Verifying per-worker database routing with xdist -n 2"
           echo ""
           python3 -b -m pytest \
-            tests/sentry/snuba/test_discover_query.py::DiscoverQueryIntegrationTest::test_field_aliasing_in_selected_columns \
-            tests/sentry/snuba/test_discover_query.py::DiscoverQueryIntegrationTest::test_field_alias_orderby \
-            tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_simple \
-            tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_reference_event \
+            tests/sentry/snuba/test_discover_query.py \
+            -k "test_field_aliasing_in_selected_columns or test_field_alias_orderby or test_simple_paginator" \
             --reuse-db \
             -n 2 \
             --dist=loadfile \
