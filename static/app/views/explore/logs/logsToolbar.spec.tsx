@@ -240,16 +240,20 @@ describe('LogsToolbar', () => {
     });
 
     it('can clear the last selected group by', async () => {
-      const {router} = render(<LogsToolbar />, {
-        organization,
-        additionalWrapper: Wrapper,
-      });
+      let mode: Mode | undefined = undefined;
+
+      function Component() {
+        mode = useQueryParamsMode();
+        return <LogsToolbar />;
+      }
+      const {router} = render(<Component />, {organization, additionalWrapper: Wrapper});
 
       const section = screen.getByTestId('section-group-by');
       const editorColumn = screen.getAllByTestId('editor-column')[0]!;
       await userEvent.click(within(editorColumn).getByRole('button', {name: '—'}));
       await userEvent.click(screen.getByRole('option', {name: 'message'}));
 
+      expect(mode).toEqual(Mode.AGGREGATE);
       expect(within(section).queryByLabelText('Remove Column')).not.toBeInTheDocument();
 
       await userEvent.click(within(section).getByLabelText('Clear Group By'));
@@ -259,6 +263,7 @@ describe('LogsToolbar', () => {
         )
       );
 
+      expect(mode).toEqual(Mode.SAMPLES);
       expect(within(section).queryByLabelText('Clear Group By')).not.toBeInTheDocument();
     });
   });
