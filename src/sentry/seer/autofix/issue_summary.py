@@ -361,18 +361,6 @@ def run_automation(
             if times_seen < 10:
                 return
 
-        try:
-            times_seen = group.times_seen_with_pending
-        except (AssertionError, AttributeError):
-            times_seen = group.times_seen
-        logger.info(
-            "Seat-based tier: %s: run_automation called: project_slug=%s, source=%s, times_seen=%s",
-            group.id,
-            group.project.slug,
-            source.value,
-            times_seen,
-        )
-
     user_id = user.id if user else None
     auto_run_source = auto_run_source_map.get(source, "unknown_source")
 

@@ -529,7 +529,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:trace-view-v1", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to show link to previous/next traces
     manager.add("organizations:trace-view-linked-traces", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-
     # Enable feature to load new tracing onboarding ui
     manager.add("organizations:tracing-onboarding-new-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to expose export csv button in trace explorer
@@ -732,7 +731,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:span-v2-attachment-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables experimental trace attachment processing in Relay.
     manager.add("projects:trace-attachment-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-
     # Enable the new Replay pipeline in Relay.
     manager.add("organizations:new-replay-processing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
