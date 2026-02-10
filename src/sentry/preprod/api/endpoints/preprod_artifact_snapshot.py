@@ -21,23 +21,12 @@ from sentry.models.project import Project
 from sentry.objectstore import get_preprod_session
 from sentry.preprod.api.schemas import VCS_ERROR_MESSAGES, VCS_SCHEMA_PROPERTIES
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.snapshots.manifest import (
-    AndroidImageMetadata,
-    BYOImageMetadata,
-    SnapshotManifest,
-)
+from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
 from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
-
-SNAPSHOT_IMAGE_SCHEMA: dict[str, Any] = {
-    "anyOf": [
-        BYOImageMetadata.schema(),
-        AndroidImageMetadata.schema(),
-    ]
-}
 
 SNAPSHOT_REQUEST_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -45,7 +34,7 @@ SNAPSHOT_REQUEST_SCHEMA: dict[str, Any] = {
         "app_id": {"type": "string", "maxLength": 255},
         "images": {
             "type": "object",
-            "additionalProperties": SNAPSHOT_IMAGE_SCHEMA,
+            "additionalProperties": ImageMetadata.schema(),
             "maxProperties": 1000,
         },
         **VCS_SCHEMA_PROPERTIES,
@@ -184,7 +173,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             manifest_key = f"{project.organization_id}/{project.id}/{artifact.id}/manifest.json"
 
             manifest = SnapshotManifest(images=images)
-            manifest_json = manifest.json(by_alias=True, exclude_none=True)
+            manifest_json = manifest.json(exclude_none=True)
             session.put(manifest_json.encode(), key=manifest_key)
 
             extras = snapshot_metrics.extras or {}

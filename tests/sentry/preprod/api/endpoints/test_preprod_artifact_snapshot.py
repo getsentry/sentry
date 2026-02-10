@@ -31,10 +31,10 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "app_id": "com.example.app",
             "images": {
                 "abc123def456": {
-                    "fileName": "test.png",
+                    "file_name": "test.png",
                     "width": 375,
                     "height": 812,
-                    "darkMode": True,
+                    "dark_mode": True,
                 },
             },
         }
@@ -96,7 +96,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "app_id": "com.example.app",
             "images": {
                 "hash1": {
-                    "fileName": "screen1.png",
+                    "file_name": "screen1.png",
                     "width": 100,
                     "height": 200,
                 },
