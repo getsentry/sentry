@@ -638,3 +638,9 @@ export const usesTimeSeriesData = (displayType?: DisplayType) => {
     DisplayType.WHEEL,
   ].includes(displayType);
 };
+
+// Custom widgets that fetch their own data (and don't use genericWidgetQueries)
+// handle error state and loading state on their own
+export const widgetFetchesOwnData = (widgetType: DisplayType) => {
+  return widgetType === DisplayType.SERVER_TREE;
+};

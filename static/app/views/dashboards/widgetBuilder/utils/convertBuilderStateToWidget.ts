@@ -65,7 +65,6 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   const fields =
     state.displayType === DisplayType.TABLE ||
     state.displayType === DisplayType.DETAILS ||
-    state.displayType === DisplayType.SERVER_TREE ||
     state.displayType === DisplayType.BIG_NUMBER
       ? state.dataset === WidgetType.TRACEMETRICS
         ? state.fields?.map(field => {

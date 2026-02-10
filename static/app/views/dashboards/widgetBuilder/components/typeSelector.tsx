@@ -56,9 +56,6 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
   };
 
   const hasDetailsWidget = organization.features.includes('dashboards-details-widget');
-  const hasServerTreeWidget = organization.features.includes(
-    'dashboards-server-tree-widget'
-  );
 
   // Use an array to define display type order explicitly.
   // Object key ordering in JS is technically specified but easy to break accidentally.
@@ -69,9 +66,6 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
     {type: DisplayType.TABLE, label: t('Table')},
     {type: DisplayType.BIG_NUMBER, label: t('Big Number')},
     ...(hasDetailsWidget ? [{type: DisplayType.DETAILS, label: t('Details')}] : []),
-    ...(hasServerTreeWidget
-      ? [{type: DisplayType.SERVER_TREE, label: t('Server Tree')}]
-      : []),
   ];
 
   // Issue series widgets query a different data source from table widgets.
