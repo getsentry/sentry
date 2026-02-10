@@ -152,7 +152,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     },
     {
         "prebuilt_id": PrebuiltDashboardId.NEXTJS_FRONTEND_OVERVIEW,
-        "title": "Next.js Frontend Overview",
+        "title": "Next.js Overview",
     },
 ]
 
