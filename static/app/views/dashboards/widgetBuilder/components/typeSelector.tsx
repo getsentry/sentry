@@ -6,7 +6,7 @@ import {Select} from '@sentry/scraps/select';
 
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import {IconGraph, IconList, IconNumber, IconSettings, IconTable} from 'sentry/icons';
+import {IconGraph, IconNumber, IconSettings, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -28,7 +28,6 @@ const typeIcons: Partial<Record<DisplayType, React.ReactNode>> = {
   [DisplayType.TABLE]: <IconTable key="table" />,
   [DisplayType.BIG_NUMBER]: <IconNumber key="number" />,
   [DisplayType.DETAILS]: <IconSettings key="details" />,
-  [DisplayType.SERVER_TREE]: <IconList key="server_tree" />,
 };
 
 interface WidgetBuilderTypeSelectorProps {
