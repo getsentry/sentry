@@ -1,0 +1,147 @@
+name: '[POC] per-worker DB smoke test'
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - mchen/per-worker-snuba-db
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  SNUBA_NO_WORKERS: 1
+
+jobs:
+  smoke-test:
+    name: 'per-worker-db smoke test'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+
+    env:
+      PYTHONHASHSEED: '0'
+      XDIST_PER_WORKER_SNUBA: '1'
+      XDIST_WORKERS: '2'
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env (Full Snuba stack)
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - name: Create per-worker ClickHouse databases and Snuba instances
+        run: |
+          XDIST_N=${XDIST_WORKERS:-2}
+          echo "Setting up $XDIST_N per-worker ClickHouse databases + Snuba instances"
+
+          SNUBA_IMAGE=$(docker inspect snuba-snuba-1 --format '{{.Config.Image}}')
+          SNUBA_NETWORK=$(docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
+          echo "Snuba image: $SNUBA_IMAGE"
+          echo "Snuba network: $SNUBA_NETWORK"
+
+          BASE_DB="default"
+          TABLES=$(curl -s 'http://localhost:8123/' --data-binary "SHOW TABLES FROM $BASE_DB" | grep -v '^$')
+          TABLE_COUNT=$(echo "$TABLES" | wc -l)
+          echo "Found $TABLE_COUNT tables"
+
+          for i in $(seq 0 $((XDIST_N - 1))); do
+            WORKER_DB="default_gw${i}"
+            WORKER_PORT=$((1230 + i))
+            echo "=== Worker gw${i}: database=$WORKER_DB, port=$WORKER_PORT ==="
+
+            curl -s 'http://localhost:8123/' --data-binary "CREATE DATABASE IF NOT EXISTS ${WORKER_DB}"
+
+            for TABLE in $TABLES; do
+              curl -sf 'http://localhost:8123/' --data-binary "CREATE TABLE IF NOT EXISTS ${WORKER_DB}.${TABLE} AS ${BASE_DB}.${TABLE}" 2>/dev/null || true
+            done
+
+            docker run -d \
+              --name "snuba-gw${i}" \
+              --network "$SNUBA_NETWORK" \
+              -p "${WORKER_PORT}:1218" \
+              -e "CLICKHOUSE_DATABASE=${WORKER_DB}" \
+              -e "CLICKHOUSE_HOST=clickhouse" \
+              -e "CLICKHOUSE_PORT=9000" \
+              -e "CLICKHOUSE_HTTP_PORT=8123" \
+              -e "DEFAULT_BROKERS=kafka:9093" \
+              -e "REDIS_HOST=redis" \
+              -e "REDIS_PORT=6379" \
+              -e "REDIS_DB=1" \
+              -e "SNUBA_SETTINGS=docker" \
+              -e "DEBUG=1" \
+              "$SNUBA_IMAGE" api
+          done
+
+          echo "Waiting for per-worker Snuba instances..."
+          for i in $(seq 0 $((XDIST_N - 1))); do
+            WORKER_PORT=$((1230 + i))
+            for attempt in $(seq 1 30); do
+              if curl -sf "http://localhost:${WORKER_PORT}/health" > /dev/null 2>&1; then
+                echo "  snuba-gw${i} ready"
+                break
+              fi
+              [ "$attempt" -eq 30 ] && { echo "FAIL: snuba-gw${i}"; docker logs "snuba-gw${i}" 2>&1 | tail -20; exit 1; }
+              sleep 1
+            done
+          done
+          echo "All per-worker Snuba instances ready!"
+
+      - name: Debug - verify routing
+        run: |
+          echo "=== Verifying per-worker Snuba routing ==="
+          echo "Default Snuba (port 1218):"
+          curl -s 'http://localhost:1218/health' && echo " OK" || echo " FAIL"
+          echo "Per-worker Snuba gw0 (port 1230):"
+          curl -s 'http://localhost:1230/health' && echo " OK" || echo " FAIL"
+          echo "Per-worker Snuba gw1 (port 1231):"
+          curl -s 'http://localhost:1231/health' && echo " OK" || echo " FAIL"
+
+          echo ""
+          echo "=== ClickHouse databases ==="
+          curl -s 'http://localhost:8123/' --data-binary "SHOW DATABASES" | grep -E "default|gw"
+
+          echo ""
+          echo "=== Table count per database ==="
+          for db in default default_gw0 default_gw1; do
+            count=$(curl -s 'http://localhost:8123/' --data-binary "SELECT count() FROM system.tables WHERE database = '$db'" | tr -d '\n')
+            echo "  $db: $count tables"
+          done
+
+      - name: Run smoke tests (previously-serial broad-query tests, xdist -n 2)
+        run: |
+          echo "=== Smoke test: broad-query tests that previously required serial execution ==="
+          echo "These tests have cross-org/cross-project ClickHouse queries."
+          echo "If per-worker databases work, they should pass under xdist -n 2."
+          echo ""
+          python3 -b -m pytest \
+            tests/sentry/dynamic_sampling/tasks/test_common.py \
+            tests/sentry/dynamic_sampling/tasks/test_tasks.py \
+            tests/sentry/dynamic_sampling/tasks/test_boost_low_volume_transactions.py \
+            tests/sentry/dynamic_sampling/tasks/test_boost_low_volume_projects.py \
+            tests/sentry/tasks/test_daily_summary.py \
+            tests/sentry/tasks/test_weekly_reports.py \
+            tests/snuba/rules/conditions/test_event_frequency.py \
+            tests/snuba/api/endpoints/test_organization_sessions.py \
+            --reuse-db \
+            -n 2 \
+            --dist=loadfile \
+            -v \
+            --tb=short \
+            2>&1 | tail -80
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          echo "=== Per-worker Snuba container logs ==="
+          for name in $(docker ps -a --filter "name=snuba-gw" --format '{{.Names}}'); do
+            echo "--- $name ---"
+            docker logs "$name" 2>&1 | tail -30
+          done

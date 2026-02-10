@@ -5,8 +5,10 @@ import os
 # Per-worker Snuba routing for xdist with per-worker ClickHouse databases.
 # Each xdist worker gets its own Snuba instance on a unique port (1230+N),
 # pointing to its own ClickHouse database (default_gwN).
-# This MUST run before Django settings load (server.py reads os.environ["SNUBA"]
-# to set SENTRY_SNUBA, which _snuba_pool uses at module import time).
+# Set the env var early (before Django settings load) so that
+# settings.SENTRY_SNUBA picks up the right URL. We also monkey-patch
+# _snuba_pool later in pytest_configure (see below) as a safety net,
+# since the pool may be created before this env var takes effect.
 _xdist_worker = os.environ.get("PYTEST_XDIST_WORKER")
 if _xdist_worker and os.environ.get("XDIST_PER_WORKER_SNUBA"):
     _worker_num = int(_xdist_worker.replace("gw", ""))
@@ -170,6 +172,28 @@ def pytest_configure(config: pytest.Config) -> None:
     )
 
     config.addinivalue_line("markers", "migrations: requires --migrations")
+
+    # Per-worker Snuba pool monkey-patch. The env var set at the top of this file
+    # may not take effect if _snuba_pool was already created before our plugin loaded.
+    # This is the safety net: replace the pool with one pointing to the per-worker port.
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER")
+    if worker_id and os.environ.get("XDIST_PER_WORKER_SNUBA"):
+        worker_num = int(worker_id.replace("gw", ""))
+        worker_snuba_url = f"http://127.0.0.1:{1230 + worker_num}"
+
+        # Override settings.SENTRY_SNUBA (used by reset_snuba fixture via call_snuba)
+        settings.SENTRY_SNUBA = worker_snuba_url
+
+        # Replace _snuba_pool (used for all Snuba queries and writes)
+        from sentry.net.http import connection_from_url as _cfurl
+        from sentry.utils import snuba as _snuba_mod
+
+        _snuba_mod._snuba_pool = _cfurl(
+            worker_snuba_url,
+            retries=False,
+            timeout=settings.SENTRY_SNUBA_TIMEOUT,
+            maxsize=10,
+        )
 
     if sys.platform == "darwin" and shutil.which("colima"):
         # This is the only way other than pytest --basetemp to change
