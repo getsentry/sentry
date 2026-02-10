@@ -82,6 +82,7 @@ class CommentEventParser(msgspec.Struct, gc=False, frozen=True):
 
 
 class PullRequestBranchParser(msgspec.Struct, gc=False, frozen=True):
+    ref: str
     sha: str
 
 
@@ -167,8 +168,8 @@ def deserialize_pull_request_event(event_bytes: bytes) -> PullRequestEvent:
             "id": parsed.pull_request.id,
             "title": parsed.pull_request.title,
             "description": parsed.pull_request.description,
-            "head": {"sha": parsed.pull_request.head.sha},
-            "base": {"sha": parsed.pull_request.base.sha},
+            "head": {"ref": parsed.pull_request.head.ref, "sha": parsed.pull_request.head.sha},
+            "base": {"ref": parsed.pull_request.base.ref, "sha": parsed.pull_request.base.sha},
             "is_private_repo": parsed.pull_request.is_private_repo,
             "author": (
                 {
@@ -263,8 +264,14 @@ def serialize_pull_request_event(event: PullRequestEvent) -> bytes:
         id=event.pull_request["id"],
         title=event.pull_request["title"],
         description=event.pull_request["description"],
-        head=PullRequestBranchParser(sha=event.pull_request["head"]["sha"]),
-        base=PullRequestBranchParser(sha=event.pull_request["base"]["sha"]),
+        head=PullRequestBranchParser(
+            ref=event.pull_request["head"]["ref"],
+            sha=event.pull_request["head"]["sha"],
+        ),
+        base=PullRequestBranchParser(
+            ref=event.pull_request["base"]["ref"],
+            sha=event.pull_request["base"]["sha"],
+        ),
         is_private_repo=event.pull_request["is_private_repo"],
         author=(
             AuthorParser(
