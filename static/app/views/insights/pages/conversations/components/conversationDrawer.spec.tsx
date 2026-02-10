@@ -8,9 +8,12 @@ import {useConversationViewDrawer} from './conversationDrawer';
 
 jest.mock('sentry/utils/analytics');
 jest.mock('sentry/utils/useOrganization', () => jest.fn());
-jest.mock('sentry/views/insights/pages/conversations/hooks/useUrlConversationDrawer', () => ({
-  useUrlConversationDrawer: jest.fn(),
-}));
+jest.mock(
+  'sentry/views/insights/pages/conversations/hooks/useUrlConversationDrawer',
+  () => ({
+    useUrlConversationDrawer: jest.fn(),
+  })
+);
 
 const mockedTrackAnalytics = trackAnalytics as jest.Mock;
 const mockedUseOrganization = useOrganization as unknown as jest.Mock;
