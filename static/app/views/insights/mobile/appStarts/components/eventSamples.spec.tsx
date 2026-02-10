@@ -11,7 +11,7 @@ import {
   MobileSortKeys,
 } from 'sentry/views/insights/mobile/screenload/constants';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 jest.mock('sentry/views/insights/common/queries/useReleases');
 
 describe('ScreenLoadEventSamples', () => {

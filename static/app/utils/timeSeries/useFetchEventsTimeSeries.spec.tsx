@@ -9,7 +9,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {useFetchEventsTimeSeries} from './useFetchEventsTimeSeries';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('useFetchEventsTimeSeries', () => {
   const organization = OrganizationFixture();

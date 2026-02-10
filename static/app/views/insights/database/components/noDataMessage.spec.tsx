@@ -9,7 +9,7 @@ import importedUsePageFilters from 'sentry/components/pageFilters/usePageFilters
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 const usePageFilters = jest.mocked(importedUsePageFilters);
 

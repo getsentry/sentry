@@ -14,7 +14,7 @@ import {DatabaseSpanSummaryPage} from 'sentry/views/insights/database/views/data
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useParams');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 jest.mock('sentry/utils/useReleaseStats');
 

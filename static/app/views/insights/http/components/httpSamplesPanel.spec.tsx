@@ -17,7 +17,7 @@ import {HTTPSamplesPanel} from 'sentry/views/insights/http/components/httpSample
 import {SpanFields} from 'sentry/views/insights/types';
 
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('HTTPSamplesPanel', () => {
   const organization = OrganizationFixture();

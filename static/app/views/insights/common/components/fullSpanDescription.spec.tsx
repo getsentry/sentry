@@ -8,7 +8,7 @@ import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {FullSpanDescription} from 'sentry/views/insights/common/components/fullSpanDescription';
 import {ModuleName} from 'sentry/views/insights/types';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('FullSpanDescription', () => {
   beforeEach(() => {

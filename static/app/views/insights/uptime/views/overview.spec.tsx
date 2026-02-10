@@ -11,7 +11,7 @@ import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import UptimeOverview from 'sentry/views/insights/uptime/views/overview';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('Uptime Overview', () => {
   const project = ProjectFixture();

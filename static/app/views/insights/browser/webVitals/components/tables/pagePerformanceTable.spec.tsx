@@ -16,7 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {PagePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pagePerformanceTable';
 
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('PagePerformanceTable', () => {
   const organization = OrganizationFixture();

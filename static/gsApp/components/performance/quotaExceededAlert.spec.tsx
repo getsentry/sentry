@@ -11,7 +11,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {QuotaExceededAlert} from './quotaExceededAlert';
 
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('Renders QuotaExceededAlert correctly for spans', () => {
   const {organization} = initializeOrg();

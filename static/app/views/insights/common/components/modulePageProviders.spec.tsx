@@ -8,7 +8,7 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {ModuleName} from 'sentry/views/insights/types';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 jest.mock('sentry/views/insights/common/queries/useHasFirstSpan');
 jest.mock('sentry/views/insights/common/utils/useHasDataTrackAnalytics');
 

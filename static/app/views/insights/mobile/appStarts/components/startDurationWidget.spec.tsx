@@ -11,7 +11,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 import StartDurationWidget from './startDurationWidget';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 
 describe('StartDurationWidget', () => {

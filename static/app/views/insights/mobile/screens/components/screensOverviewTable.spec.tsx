@@ -14,7 +14,7 @@ import ScreensOverviewTable, {
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/views/insights/common/utils/useModuleURL');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('ScreensOverviewTable', () => {
   const organization = OrganizationFixture({

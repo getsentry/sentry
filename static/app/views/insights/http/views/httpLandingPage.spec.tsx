@@ -14,7 +14,7 @@ import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParam
 import {HTTPLandingPage} from 'sentry/views/insights/http/views/httpLandingPage';
 
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 jest.mock('sentry/utils/useReleaseStats');
 
 describe('HTTPLandingPage', () => {

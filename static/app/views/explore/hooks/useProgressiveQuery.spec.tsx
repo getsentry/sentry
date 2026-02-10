@@ -12,7 +12,7 @@ import {
   type SamplingMode,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 function useMockHookImpl({
   enabled,

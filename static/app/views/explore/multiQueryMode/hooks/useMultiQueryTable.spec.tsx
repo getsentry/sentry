@@ -13,7 +13,7 @@ import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/lo
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 jest.mock('sentry/views/explore/multiQueryMode/locationUtils', () => {
   const actual = jest.requireActual('sentry/views/explore/multiQueryMode/locationUtils');
   return {

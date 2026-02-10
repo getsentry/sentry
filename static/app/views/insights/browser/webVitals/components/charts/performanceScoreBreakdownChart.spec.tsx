@@ -10,7 +10,7 @@ import {formatTimeSeriesResultsToChartData} from 'sentry/views/insights/browser/
 import PerformanceScoreBreakdownChartWidget from 'sentry/views/insights/common/components/widgets/performanceScoreBreakdownChartWidget';
 
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('PerformanceScoreBreakdownChartWidget', () => {
   const organization = OrganizationFixture();

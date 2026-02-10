@@ -8,8 +8,8 @@ import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/actionCreators/pageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
+jest.mock('sentry/components/pageFilters/actions');
 
 const pageFilterSelection = PageFiltersFixture({
   projects: [],

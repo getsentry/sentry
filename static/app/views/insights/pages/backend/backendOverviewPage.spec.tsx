@@ -9,7 +9,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import BackendOverviewPage from 'sentry/views/insights/pages/backend/backendOverviewPage';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 
 let useLocationMock: jest.Mock;

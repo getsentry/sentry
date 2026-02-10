@@ -10,7 +10,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {MessageSpanSamplesPanel} from 'sentry/views/insights/queues/components/messageSpanSamplesPanel';
 
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('messageSpanSamplesPanel', () => {
   const organization = OrganizationFixture();

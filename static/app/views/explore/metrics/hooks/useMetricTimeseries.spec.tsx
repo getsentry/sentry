@@ -15,7 +15,7 @@ import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/mult
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 function MockMetricQueryParamsContextWithMultiVisualize({
   children,

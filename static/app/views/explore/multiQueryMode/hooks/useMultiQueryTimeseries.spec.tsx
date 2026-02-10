@@ -9,7 +9,7 @@ import {useMultiQueryTimeseries} from 'sentry/views/explore/multiQueryMode/hooks
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 jest.mock('sentry/views/explore/multiQueryMode/locationUtils');
 
 describe('useMultiQueryTimeseries', () => {

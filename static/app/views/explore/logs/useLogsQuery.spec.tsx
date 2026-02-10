@@ -34,7 +34,7 @@ import {
 jest.mock('sentry/utils/useLocation');
 const mockUseLocation = jest.mocked(useLocation);
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 const mockUsePageFilters = jest.mocked(usePageFilters);
 
 jest.mock('sentry/utils/useNavigate');

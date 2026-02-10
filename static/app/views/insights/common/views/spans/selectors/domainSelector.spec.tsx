@@ -8,7 +8,7 @@ import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import {ModuleName} from 'sentry/views/insights/types';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('DomainSelector', () => {
   const organization = OrganizationFixture();

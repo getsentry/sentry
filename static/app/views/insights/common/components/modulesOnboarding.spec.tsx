@@ -9,7 +9,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 
 import {ModulesOnboarding} from './modulesOnboarding';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('ModulesOnboarding', () => {
   afterEach(() => {

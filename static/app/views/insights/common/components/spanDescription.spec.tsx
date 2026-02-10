@@ -8,7 +8,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('DatabaseSpanDescription', () => {
   beforeEach(() => {
