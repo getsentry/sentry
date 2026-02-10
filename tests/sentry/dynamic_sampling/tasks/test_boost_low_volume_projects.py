@@ -961,3 +961,82 @@ class TestEndToEndMeasureDispatching(BaseMetricsLayerTestCase, TestCase, SnubaTe
         # SPANS measure should count ALL spans (both with and without is_segment)
         # Total = 3 + 7 = 10, all keeps
         assert results[org.id] == [(project.id, 10.0, 10, 0)]
+
+    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
+    def test_with_query_task_skips_project_mode_orgs(self) -> None:
+        """
+        boost_low_volume_projects_of_org_with_query should early-return for
+        project-mode orgs without storing any rebalanced rates.
+        """
+        org = self.create_organization("test-org")
+        p1 = self.create_project(organization=org)
+        org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
+
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep"},
+            minutes_before_now=30,
+            value=5,
+            project_id=p1.id,
+            org_id=org.id,
+        )
+
+        redis_client = get_redis_client_for_ds()
+        cache_key = generate_sliding_window_org_cache_key(org.id)
+        redis_client.set(cache_key, 0.5)
+
+        with self.tasks():
+            boost_low_volume_projects_of_org_with_query.delay(org.id)
+
+        sample_rate, got_value = get_boost_low_volume_projects_sample_rate(
+            org.id, p1.id, error_sample_rate_fallback=None
+        )
+        assert not got_value
+        assert sample_rate is None
+
+    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
+    def test_with_query_task_uses_spans_measure_for_span_orgs(self) -> None:
+        """
+        boost_low_volume_projects_of_org_with_query should use SPANS measure
+        for orgs listed in the span-metric option when the span flag is enabled.
+        """
+        org = self.create_organization("test-org")
+        p1 = self.create_project(organization=org)
+
+        # Store span metrics (with and without is_segment)
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
+            minutes_before_now=30,
+            value=3,
+            project_id=p1.id,
+            org_id=org.id,
+        )
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "bar", "decision": "keep"},
+            minutes_before_now=30,
+            value=7,
+            project_id=p1.id,
+            org_id=org.id,
+        )
+
+        redis_client = get_redis_client_for_ds()
+        cache_key = generate_sliding_window_org_cache_key(org.id)
+        redis_client.set(cache_key, 0.5)
+
+        with self.options(
+            {
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": [],
+                "dynamic-sampling.check_span_feature_flag": True,
+                "dynamic-sampling.measure.spans": [org.id],
+            }
+        ):
+            with self.tasks():
+                boost_low_volume_projects_of_org_with_query.delay(org.id)
+
+        sample_rate, got_value = get_boost_low_volume_projects_sample_rate(
+            org.id, p1.id, error_sample_rate_fallback=None
+        )
+        assert got_value
+        assert sample_rate is not None

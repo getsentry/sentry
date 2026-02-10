@@ -213,11 +213,14 @@ def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
 
     org = Organization.objects.get_from_cache(id=org_id)
     if is_project_mode_sampling(org):
-        measure = SamplingMeasure.SPANS
-    elif org_id in _get_segments_org_ids():
-        measure = SamplingMeasure.SEGMENTS
-    else:
-        measure = SamplingMeasure.TRANSACTIONS
+        return
+
+    orgs_by_measure = _partition_orgs_by_measure([org_id])
+    measures: dict[int, SamplingMeasure] = {}
+    for m, org_ids in orgs_by_measure.items():
+        for oid in org_ids:
+            measures[oid] = m
+    measure = measures.get(org_id, SamplingMeasure.TRANSACTIONS)
 
     projects_with_tx_count_and_rates = fetch_projects_with_total_root_transaction_count_and_rates(
         org_ids=[org_id],
