@@ -183,35 +183,6 @@ def deserialize_pull_request_event(event_bytes: bytes) -> PullRequestEvent:
     )
 
 
-def deserialize_subscription_event(
-    event: bytes, report_exception: Callable[[Exception], None]
-) -> SubscriptionEvent | None:
-    try:
-        result = subscription_decoder.decode(event)
-        return {
-            "event": result.event,
-            "event_type_hint": result.event_type_hint,
-            "extra": result.extra,
-            "received_at": result.received_at,
-            "sentry_meta": (
-                [
-                    {
-                        "id": item.id,
-                        "integration_id": item.integration_id,
-                        "organization_id": item.organization_id,
-                    }
-                    for item in result.sentry_meta
-                ]
-                if result.sentry_meta
-                else None
-            ),
-            "type": result.type,
-        }
-    except msgspec.DecodeError as e:
-        report_exception(e)
-        return None
-
-
 encoder = msgspec.msgpack.Encoder()
 
 
@@ -331,30 +302,6 @@ def serialize_pull_request_event(event: PullRequestEvent) -> bytes:
     return encoder.encode(structured_event)
 
 
-def serialize_subscription_event(event: SubscriptionEvent) -> bytes:
-    structured_event = SubscriptionEventParser(
-        event=event["event"],
-        event_type_hint=event["event_type_hint"],
-        extra=event["extra"],
-        received_at=event["received_at"],
-        sentry_meta=(
-            [
-                SubscriptionEventSentryMetaParser(
-                    id=item["id"],
-                    integration_id=item["integration_id"],
-                    organization_id=item["organization_id"],
-                )
-                for item in event["sentry_meta"]
-            ]
-            if event["sentry_meta"]
-            else None
-        ),
-        type=event["type"],
-    )
-
-    return encoder.encode(structured_event)
-
-
 def deserialize_event(event: bytes, event_type: EventTypeHint) -> EventType:
     """
     Given bytes return a deserialized event.
@@ -433,7 +380,7 @@ def run_webhook_handler_control_task(
         message,
         event_type_hint,
         get_current_time=time.monotonic,
-        report_exception=report_exception,
+        report_error=report_error_to_sentry,
         record_count=record_count_metric,
         record_timer=record_timer_metric,
     )
@@ -453,7 +400,7 @@ def run_webhook_handler_region_task(
         message,
         event_type_hint,
         get_current_time=time.monotonic,
-        report_exception=report_exception,
+        report_error=report_error_to_sentry,
         record_count=record_count_metric,
         record_timer=record_timer_metric,
     )
@@ -468,16 +415,17 @@ def run_listener(
     event_type_hint: EventTypeHint,
     *,
     get_current_time: Callable[[], float],
-    report_exception: Callable[[Exception], None],
+    report_error: Callable[[Exception], None],
     record_count: Callable[[str, int, dict[str, str]], None],
     record_timer: Callable[[str, float, dict[str, str]], None],
 ) -> None:
+    """Execute an SCM platform listener."""
     start = get_current_time()
 
     try:
         event = deserialize_event(event_bytes, event_type_hint)
     except msgspec.MsgspecError as e:
-        report_exception(e)
+        report_error(e)
         record_count(f"{METRIC_PREFIX}.failed", 1, {"reason": "parse", "fn": listener})
         return None
 
@@ -514,6 +462,7 @@ def tracked_exception[T](
     arg: T,
     record_count: Callable[[str, int, dict[str, str]], None],
 ) -> None:
+    """Record error metrics before raising."""
     try:
         return fn(arg)
     except Exception:
@@ -521,7 +470,7 @@ def tracked_exception[T](
         raise
 
 
-def report_exception(e: Exception) -> None:
+def report_error_to_sentry(e: Exception) -> None:
     """Typing wrapper around sentry_sdk.capture_exception."""
     sentry_sdk.capture_exception(e)
 
