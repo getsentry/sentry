@@ -96,15 +96,11 @@ def _partition_orgs_by_measure(
     Returns (segments_orgs, span_orgs, transactions_orgs).
     """
     modes_per_org = OrganizationOption.objects.get_value_bulk_id(org_ids, "sentry:sampling_mode")
-    # Exclude orgs with project-mode sampling from the start. We know the
-    # default is DynamicSamplingMode.ORGANIZATION.
     filtered_org_ids = {
         org_id for org_id, mode in modes_per_org.items() if mode != DynamicSamplingMode.PROJECT
     }
     segments_org_ids: set[int] = _get_segments_org_ids()
-    # Rebalance on segments when segments feature flag is enabled
     filtered_segments_org_ids: set[int] = filtered_org_ids & segments_org_ids
-    # Rebalance on transactions when segments feature flag is not enabled
     transactions_org_ids: set[int] = filtered_org_ids - segments_org_ids
 
     if not options.get("dynamic-sampling.check_span_feature_flag"):
@@ -112,8 +108,6 @@ def _partition_orgs_by_measure(
             SamplingMeasure.TRANSACTIONS: sorted(transactions_org_ids),
             SamplingMeasure.SEGMENTS: sorted(filtered_segments_org_ids),
         }
-
-    # Rebalance on spans when feature flag is active and not in project mode
     span_org_ids: set[int] = set(options.get("dynamic-sampling.measure.spans") or [])
     filtered_span_org_ids: set[int] = span_org_ids & filtered_org_ids
     filtered_segments_org_ids = filtered_segments_org_ids - filtered_span_org_ids
@@ -138,11 +132,6 @@ def boost_low_volume_projects() -> None:
     """
     Task to adjusts the sample rates of all projects in all active organizations.
     """
-    logger.info(
-        "boost_low_volume_projects",
-        extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
-    )
-
     segments_org_ids = _get_segments_org_ids()
     if segments_org_ids:
         for orgs in GetActiveOrgs(
