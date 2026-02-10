@@ -1,6 +1,6 @@
 import {createStore} from 'reflux';
 
-import {getDefaultSelection} from 'sentry/components/pageFilters/utils';
+import {getDefaultPageFilterSelection} from 'sentry/components/pageFilters/actions';
 import type {StrictStoreDefinition} from 'sentry/stores/types';
 import type {PageFilters, PinnedPageFilter} from 'sentry/types/core';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
@@ -46,7 +46,7 @@ interface PageFiltersStoreDefinition extends StrictStoreDefinition<PageFiltersSt
 const storeConfig: PageFiltersStoreDefinition = {
   state: {
     isReady: false,
-    selection: getDefaultSelection(),
+    selection: getDefaultPageFilterSelection(),
     pinnedFilters: new Set(),
     desyncedFilters: new Set(),
     shouldPersist: true,
@@ -63,7 +63,7 @@ const storeConfig: PageFiltersStoreDefinition = {
     this.state = {
       ...this.state,
       isReady: false,
-      selection: selection || getDefaultSelection(),
+      selection: selection || getDefaultPageFilterSelection(),
       pinnedFilters: new Set(),
     };
   },

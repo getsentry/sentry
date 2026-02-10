@@ -19,9 +19,8 @@ import {
   setPageFiltersStorage,
 } from 'sentry/components/pageFilters/persistence';
 import PageFiltersStore from 'sentry/components/pageFilters/store';
-import type {PageFiltersStringified} from 'sentry/components/pageFilters/types';
-import {getDefaultSelection} from 'sentry/components/pageFilters/utils';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
@@ -33,6 +32,22 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
 type EnvironmentId = Environment['id'];
+
+/**
+ * Make a default page filters selection object
+ */
+export function getDefaultPageFilterSelection(): PageFilters {
+  return {
+    projects: [],
+    environments: [],
+    datetime: {
+      start: null,
+      end: null,
+      period: DEFAULT_STATS_PERIOD,
+      utc: null,
+    },
+  };
+}
 
 type Options = {
   /**
@@ -74,11 +89,6 @@ type PageFiltersUpdate = {
  * Represents the input for updating the date time of page filters
  */
 type DateTimeUpdate = Pick<PageFiltersUpdate, 'start' | 'end' | 'period' | 'utc'>;
-
-/**
- * Output object used for updating query parameters
- */
-type PageFilterQuery = PageFiltersStringified & Record<string, Location['query'][string]>;
 
 /**
  * This can be null which will not perform any router side effects, and instead updates store.
@@ -184,7 +194,7 @@ export function initializeUrlState({
     allowEmptyPeriod: true,
   });
 
-  const {datetime: defaultDatetime, ...defaultFilters} = getDefaultSelection();
+  const {datetime: defaultDatetime, ...defaultFilters} = getDefaultPageFilterSelection();
   const {datetime: customDatetime, ...customDefaultFilters} = defaultSelection ?? {};
 
   const pageFilters: PageFilters = {
@@ -660,7 +670,7 @@ function getNewQueryParams(
   // Only set a stats period if we don't have an absolute date
   const statsPeriod = !start && !end ? obj.period || currentQueryState.period : null;
 
-  const newQuery: PageFilterQuery = {
+  const newQuery = {
     project: project?.map(String),
     environment,
     start: statsPeriod ? null : start instanceof Date ? getUtcDateString(start) : start,
@@ -671,8 +681,7 @@ function getNewQueryParams(
   };
 
   const paramEntries = Object.entries(newQuery).filter(([_, value]) => defined(value));
-
-  return Object.fromEntries(paramEntries) as PageFilterQuery;
+  return Object.fromEntries(paramEntries);
 }
 
 export function revertToPinnedFilters(orgSlug: string, router: InjectedRouter) {
