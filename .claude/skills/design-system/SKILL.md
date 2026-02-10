@@ -256,6 +256,45 @@ const Title = styled('h2')`
 <Heading as="h3" size="xl">Large H3</Heading>
 ```
 
+## Creating Thin Abstractions
+
+> **⚠️ CRITICAL: ALWAYS prompt the user for confirmation before creating abstractions over layout primitives (`Container`, `Flex`, `Grid`, `Stack`, `Text`, `Heading`) when the intent is to DRY (Don't Repeat Yourself) repeated props.**
+
+You can create thin abstractions over primitives with the purpose of improving the semantic structure by using meaningful names (e.g., `TableCell` vs generic `Flex`) and with the purpose of providing some default props. It is very important that you do this sparingly, and only when it is a net gain for readability. For example, if there are only two instances of the duplicated props, and they are placed next to each other, the price of the abstraction outweights the terseness.
+
+**Before creating an abstraction, you MUST:**
+
+1. Ask the user for confirmation
+2. Explain what abstraction you plan to create
+3. Justify why the abstraction is worth the added complexity
+4. Wait for explicit approval before proceeding
+
+```tsx
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
+// ❌ Don't repeat the same props everywhere
+<Flex align="center" gap="xs" flex="1" padding="sm">Content 1</Flex>
+<Flex align="center" gap="xs" flex="1" padding="sm">Content 2</Flex>
+<Flex align="center" gap="xs" flex="1" padding="sm">Content 3</Flex>
+<Flex align="center" gap="xs" flex="1" padding="sm">Content 4</Flex>
+
+// ✅ Create a thin wrapper with default props (AFTER USER CONFIRMATION)
+function TableCell(props: FlexProps) {
+  return <Flex align="center" gap="md" {...props} />;
+}
+
+<TableCell>Content 1</TableCell>
+<TableCell>Content 2</TableCell>
+<TableCell align="start">Content 3</TableCell>{/* Can override defaults */}
+```
+
+**Key points:**
+
+- **ALWAYS prompt for user confirmation BEFORE creating the abstraction**
+- Extend the primitive's props type (`extends FlexProps`)
+- Set defaults on JSX component and spread `{...props}` to allow overrides
+- Don't use styled components - compose primitives instead
+
 ## General Guidelines
 
 ### 1. Use Responsive Props

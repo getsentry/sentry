@@ -63,7 +63,11 @@ import useProjects from 'sentry/utils/useProjects';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {useTrackAnalyticsOnSpanMigrationError} from 'sentry/views/dashboards/hooks/useTrackAnalyticsOnSpanMigrationError';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DashboardFilterKeys,
+  DisplayType,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
@@ -79,6 +83,7 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
+import {ServerTreeWidgetVisualization} from 'sentry/views/dashboards/widgets/serverTreeWidget/serverTreeWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {
   convertTableDataToTabularData,
@@ -154,6 +159,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     onLegendSelectChanged,
     widgetLegendState,
     selection,
+    dashboardFilters,
     timeseriesResultsUnits,
   } = props;
 
@@ -218,6 +224,10 @@ function WidgetCardChart(props: WidgetCardChartProps) {
         <DetailsComponent tableResults={tableResults} {...props} />
       </TransitionChart>
     );
+  }
+
+  if (widget.displayType === DisplayType.SERVER_TREE) {
+    return <ServerTreeComponent dashboardFilters={dashboardFilters} />;
   }
 
   if (widget.displayType === DisplayType.WHEEL) {
@@ -779,6 +789,25 @@ function DetailsComponent(props: TableComponentProps): React.ReactNode {
   }
 
   return <DetailsWidgetVisualization span={singleSpan} />;
+}
+
+function ServerTreeComponent({
+  dashboardFilters,
+}: {
+  dashboardFilters?: DashboardFilters;
+}): React.ReactNode {
+  const globalFilters = dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER] || [];
+
+  const transactionFilter = globalFilters.find(
+    filter => filter.tag.key === 'transaction' && filter.dataset === WidgetType.SPANS
+  );
+
+  return (
+    <ServerTreeWidgetVisualization
+      noVisualizationPadding
+      query={transactionFilter?.value}
+    />
+  );
 }
 
 function WheelComponent(props: TableComponentProps): React.ReactNode {

@@ -133,12 +133,15 @@ def create_assigned_to_filter(
 def create_issue_category_filter(
     data_condition: DataCondition, is_filter: bool = False
 ) -> ConditionAndFilters:
-    return {}, [
-        {
-            "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
-            "value": data_condition.comparison["value"],
-        }
-    ]
+    payload = {
+        "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
+        "value": data_condition.comparison["value"],
+    }
+    include = data_condition.comparison.get("include")
+    if isinstance(include, bool):
+        payload["include"] = include
+
+    return {}, [payload]
 
 
 def create_issue_occurrences_filter(

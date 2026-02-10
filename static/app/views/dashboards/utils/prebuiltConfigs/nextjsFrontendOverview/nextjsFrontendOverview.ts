@@ -270,6 +270,29 @@ const SERVER_TRANSACTIONS_TABLE: Widget = {
   },
 };
 
+const SERVER_TREE_WIDGET: Widget = {
+  id: 'server-tree-widget',
+  title: t('Server Tree'),
+  displayType: DisplayType.SERVER_TREE,
+  interval: '5m',
+  queries: [
+    {
+      name: '',
+      conditions: '',
+      aggregates: [],
+      columns: [],
+      orderby: '',
+    },
+  ],
+  layout: {
+    x: 0,
+    y: 9,
+    w: 6,
+    h: 2,
+    minH: 2,
+  },
+};
+
 export const NEXTJS_FRONTEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
@@ -292,5 +315,6 @@ export const NEXTJS_FRONTEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
     ...SECOND_ROW_WIDGETS,
     CLIENT_TRANSACTIONS_TABLE,
     SERVER_TRANSACTIONS_TABLE,
+    SERVER_TREE_WIDGET,
   ],
 };

@@ -108,7 +108,9 @@ export default function SeerProjectTableRow({
           <Flex align="center" gap="sm">
             {'n/a'}
             <QuestionTooltip
-              title={t('This setting does not apply to background agents.')}
+              title={t(
+                'This setting does not apply when using an external coding agent.'
+              )}
               size="xs"
             />
           </Flex>
