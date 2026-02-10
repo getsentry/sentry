@@ -221,8 +221,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     # Cap hits to actual count (all results fit on one page)
                     if cursor_result.hits > post_filter_count:
                         cursor_result.hits = post_filter_count
-                # Or if we got fewer results than requested even though we asked for count_hits
-                # This indicates the search backend didn't have enough results to fill the page
+                # Or if we got fewer results than requested even though we asked for
+                # count_hits. This indicates the search backend didn't have enough
+                # results to fill the page
                 elif post_filter_count < query_kwargs.get("limit", 100):
                     # We likely have all results, so cap to actual count
                     cursor_result.hits = post_filter_count
