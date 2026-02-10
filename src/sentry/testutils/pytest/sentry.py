@@ -684,16 +684,26 @@ def _xdist_per_worker_snuba():
     """
     worker_id = os.environ.get("PYTEST_XDIST_WORKER")
     if not worker_id or not os.environ.get("XDIST_PER_WORKER_SNUBA"):
-        print(f"[xdist-snuba] session fixture: SKIPPED (worker={worker_id}, env={os.environ.get('XDIST_PER_WORKER_SNUBA')})", flush=True)
         return
 
     worker_num = int(worker_id.replace("gw", ""))
     worker_snuba_url = f"http://127.0.0.1:{1230 + worker_num}"
 
+    # Write diagnostics to a file (xdist worker stdout isn't forwarded to controller)
+    _diag_file = f"/tmp/xdist-snuba-{worker_id}.log"
+
     from sentry.utils import snuba as _snuba_mod
 
-    old_pool_url = getattr(_snuba_mod._snuba_pool, 'host', 'unknown')
-    print(f"[xdist-snuba] session fixture: {worker_id} BEFORE settings.SENTRY_SNUBA={settings.SENTRY_SNUBA}, pool_host={old_pool_url}", flush=True)
+    old_settings = settings.SENTRY_SNUBA
+    old_pool_host = getattr(_snuba_mod._snuba_pool, 'host', 'unknown')
+    old_pool_port = getattr(_snuba_mod._snuba_pool, 'port', 'unknown')
+
+    with open(_diag_file, "w") as f:
+        f.write(f"worker={worker_id}\n")
+        f.write(f"target_url={worker_snuba_url}\n")
+        f.write(f"BEFORE settings.SENTRY_SNUBA={old_settings}\n")
+        f.write(f"BEFORE _snuba_pool={old_pool_host}:{old_pool_port}\n")
+        f.write(f"env_SNUBA={os.environ.get('SNUBA', 'NOT SET')}\n")
 
     # Override settings.SENTRY_SNUBA (used by reset_snuba fixture via call_snuba)
     settings.SENTRY_SNUBA = worker_snuba_url
@@ -707,8 +717,13 @@ def _xdist_per_worker_snuba():
         timeout=settings.SENTRY_SNUBA_TIMEOUT,
         maxsize=10,
     )
-    new_pool_url = getattr(_snuba_mod._snuba_pool, 'host', 'unknown')
-    print(f"[xdist-snuba] session fixture: {worker_id} AFTER settings.SENTRY_SNUBA={settings.SENTRY_SNUBA}, pool_host={new_pool_url}", flush=True)
+    new_pool_host = getattr(_snuba_mod._snuba_pool, 'host', 'unknown')
+    new_pool_port = getattr(_snuba_mod._snuba_pool, 'port', 'unknown')
+
+    with open(_diag_file, "a") as f:
+        f.write(f"AFTER settings.SENTRY_SNUBA={settings.SENTRY_SNUBA}\n")
+        f.write(f"AFTER _snuba_pool={new_pool_host}:{new_pool_port}\n")
+        f.write("PATCHING COMPLETE\n")
 
 
 def pytest_xdist_setupnodes() -> None:
