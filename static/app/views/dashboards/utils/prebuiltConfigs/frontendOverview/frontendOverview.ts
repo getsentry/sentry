@@ -232,7 +232,7 @@ const TRANSACTIONS_TABLE: Widget = {
       name: '',
       conditions: TABLE_QUERY.formatString(),
       aggregates: [
-        'equation|tpm()',
+        'tpm()',
         `p50_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
         `p75_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
         `p95_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
