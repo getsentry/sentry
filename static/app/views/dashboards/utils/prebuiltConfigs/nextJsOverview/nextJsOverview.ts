@@ -3,7 +3,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/nextjsFrontendOverview/settings';
+import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/nextJsOverview/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
