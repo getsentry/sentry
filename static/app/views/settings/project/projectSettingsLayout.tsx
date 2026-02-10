@@ -60,7 +60,7 @@ export default function ProjectSettingsLayout() {
 
   if (params.projectId === ':projectId') {
     return (
-      <AnalyticsArea name="project-settings">
+      <AnalyticsArea name="project">
         <Flex justify="center" align="center" flex="1">
           <EmptyMessage
             icon={<IconProject size="xl" />}
@@ -82,7 +82,7 @@ export default function ProjectSettingsLayout() {
   }
 
   return (
-    <AnalyticsArea name="project-settings">
+    <AnalyticsArea name="project">
       <ProjectContext projectSlug={params.projectId}>
         {({project}) => <InnerProjectSettingsLayout project={project} />}
       </ProjectContext>

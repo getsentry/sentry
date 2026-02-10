@@ -5,7 +5,7 @@ import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
 export default function OrganizationSettingsLayout() {
   return (
-    <AnalyticsArea name="organization-settings">
+    <AnalyticsArea name="organization">
       <SettingsLayout>
         <Outlet />
       </SettingsLayout>
