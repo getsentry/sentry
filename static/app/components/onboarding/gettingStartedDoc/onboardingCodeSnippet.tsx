@@ -104,13 +104,19 @@ export function TabbedCodeSnippet({
   onCopy,
   onSelectAndCopy,
 }: TabbedCodeSnippetProps) {
-  const contextTab = getSelectedCodeTab();
+  const [selectedTabValue, setSelectedTabValue] = useState(() => {
+    const contextTab = getSelectedCodeTab();
+    const matched = contextTab ? tabs.find(tab => tab.label === contextTab) : undefined;
 
-  // Use stored tab if it matches one of this block's tabs, otherwise fall back to first tab
-  const initialTab =
-    (contextTab && tabs.find(tab => tab.label === contextTab)?.value) || tabs[0]!.value;
+    if (matched) {
+      return matched.value;
+    }
 
-  const [selectedTabValue, setSelectedTabValue] = useState(initialTab);
+    // No match — sync the store to what we're actually showing (first tab)
+    const fallback = tabs[0]!;
+    setSelectedCodeTab(fallback.label);
+    return fallback.value;
+  });
   const resolvedTab = tabs.find(tab => tab.value === selectedTabValue) ?? tabs[0]!;
   const {code, language, filename} = resolvedTab;
 
