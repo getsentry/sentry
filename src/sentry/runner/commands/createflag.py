@@ -204,7 +204,7 @@ def createissueflag(
         click.echo("")
         click.echo("=== GENERATED YAML ===\n")
         for feature_name in [
-            group_type.build_visible_feature_name(),
+            *group_type.build_visible_feature_name(),
             group_type.build_ingest_feature_name(),
             group_type.build_post_process_group_feature_name(),
         ]:
