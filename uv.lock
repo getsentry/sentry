@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.13"
 resolution-markers = [
     "sys_platform == 'darwin' or sys_platform == 'linux'",
@@ -2210,7 +2210,7 @@ requires-dist = [
     { name = "sentry-ophio", specifier = ">=1.1.3" },
     { name = "sentry-protos", specifier = ">=0.4.14" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
-    { name = "sentry-relay", specifier = ">=0.9.22" },
+    { name = "sentry-relay", specifier = ">=0.9.23" },
     { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.47.0" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "setuptools", specifier = ">=70.0.0" },
@@ -2438,15 +2438,15 @@ wheels = [
 
 [[package]]
 name = "sentry-relay"
-version = "0.9.22"
+version = "0.9.23"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "milksnake", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.22-py2.py3-none-macosx_14_0_arm64.whl", hash = "sha256:f6bdc7ce0bac7478efb0a5adf87933db89d93d278c535771921c9470e90026b5" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.22-py2.py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:9be4ae0835c4877aa9a9d3183041132335539d18a185e9213b99f212147901b2" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.22-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:e94742aa5aefa484dc7584ca5dd2084951bc3866e50d557e8554a37170573fc3" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.23-py2.py3-none-macosx_14_0_arm64.whl", hash = "sha256:f4ae642fa433bd0e211edad0c09567be41ee7a32e98f5d4bff953c1d90898552" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.23-py2.py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:abbd239ef3ac4651898bfa889b5815133ad3af995a05ba8fcaf070ce5eea410e" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.23-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:ecd10614d334223d115310e93e42848daf8a4d1302ae4a59b18393ca0995ec50" },
 ]
 
 [[package]]
