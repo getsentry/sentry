@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import cast
 
 from sentry.scm.private.ipc import deserialize_raw_event, serialize_event
 from sentry.scm.types import (
@@ -68,7 +69,7 @@ def produce_to_listeners(
         listeners = list(scm_event_stream.pull_request_listeners.keys())
 
     for listener in listeners:
-        produce_to_listener(message, event_type_hint, listener, silo)
+        produce_to_listener(message, cast(EventTypeHint, event_type_hint), listener, silo)
 
 
 scm_event_stream = SourceCodeManagerEventStream()

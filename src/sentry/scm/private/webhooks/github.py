@@ -166,10 +166,10 @@ def deserialize_github_pull_request_event(event: SubscriptionEvent) -> PullReque
     return PullRequestEvent(
         action=e.action,
         pull_request={
-            "author": {"id": e.pull_request.user.id, "username": e.pull_request.user.login},
-            "base": {"name": e.pull_request.base.ref, "sha": e.pull_request.base.sha},
+            "author": {"id": str(e.pull_request.user.id), "username": e.pull_request.user.login},
+            "base": {"ref": e.pull_request.base.ref, "sha": e.pull_request.base.sha},
             "description": e.pull_request.body,
-            "head": {"name": e.pull_request.head.ref, "sha": e.pull_request.head.sha},
+            "head": {"ref": e.pull_request.head.ref, "sha": e.pull_request.head.sha},
             "id": str(e.number),
             "is_private_repo": e.pull_request.head.repo.private,
             "title": e.pull_request.title,
