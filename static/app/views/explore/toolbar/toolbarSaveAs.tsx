@@ -2,6 +2,9 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -9,9 +12,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
@@ -35,6 +35,7 @@ import {useSpansSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   useQueryParamsAggregateSortBys,
+  useQueryParamsCrossEvents,
   useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsId,
@@ -273,6 +274,9 @@ export function ToolbarSaveAs() {
     pageFilters.selection.environments,
   ]);
 
+  const crossEvents = useQueryParamsCrossEvents();
+  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
+
   if (items.length === 0) {
     return null;
   }
@@ -280,49 +284,61 @@ export function ToolbarSaveAs() {
   return (
     <StyledToolbarSection data-test-id="section-save-as">
       <ButtonBar>
-        <DropdownMenu
-          items={items}
-          trigger={triggerProps => (
-            <SaveAsButton
-              {...triggerProps}
-              priority={shouldHighlightSaveButton ? 'primary' : 'default'}
-              aria-label={t('Save as')}
-              onClick={e => {
-                e.stopPropagation();
-                e.preventDefault();
-
-                triggerProps.onClick?.(e);
-              }}
-            >
-              {shouldHighlightSaveButton ? `${t('Save')}` : `${t('Save as')}\u2026`}
-            </SaveAsButton>
-          )}
-        />
-        <LinkButton
-          aria-label={t('Compare')}
-          onClick={() =>
-            trackAnalytics('trace_explorer.compare', {
-              organization,
-            })
-          }
-          to={generateExploreCompareRoute({
-            organization,
-            mode,
-            location,
-            queries: [
-              {
-                query,
-                groupBys,
-                sortBys,
-                yAxes: [visualizeYAxes[0]!],
-                chartType: visualizes[0]!.chartType,
-                caseInsensitive: caseInsensitive ? '1' : undefined,
-              },
-            ],
-          })}
+        <Tooltip
+          disabled={!hasCrossEvents}
+          title={t('Saving cross event queries is not supported during early access.')}
         >
-          {`${t('Compare Queries')}`}
-        </LinkButton>
+          <DropdownMenu
+            isDisabled={hasCrossEvents}
+            items={items}
+            trigger={triggerProps => (
+              <SaveAsButton
+                {...triggerProps}
+                priority={shouldHighlightSaveButton ? 'primary' : 'default'}
+                aria-label={t('Save as')}
+                onClick={e => {
+                  e.stopPropagation();
+                  e.preventDefault();
+
+                  triggerProps.onClick?.(e);
+                }}
+              >
+                {shouldHighlightSaveButton ? `${t('Save')}` : `${t('Save as')}\u2026`}
+              </SaveAsButton>
+            )}
+          />
+        </Tooltip>
+        <Tooltip
+          disabled={!hasCrossEvents}
+          title={t('Comparing cross event queries is not supported during early access.')}
+        >
+          <LinkButton
+            aria-label={t('Compare')}
+            disabled={hasCrossEvents}
+            onClick={() =>
+              trackAnalytics('trace_explorer.compare', {
+                organization,
+              })
+            }
+            to={generateExploreCompareRoute({
+              organization,
+              mode,
+              location,
+              queries: [
+                {
+                  query,
+                  groupBys,
+                  sortBys,
+                  yAxes: [visualizeYAxes[0]!],
+                  chartType: visualizes[0]!.chartType,
+                  caseInsensitive: caseInsensitive ? '1' : undefined,
+                },
+              ],
+            })}
+          >
+            {`${t('Compare Queries')}`}
+          </LinkButton>
+        </Tooltip>
       </ButtonBar>
     </StyledToolbarSection>
   );

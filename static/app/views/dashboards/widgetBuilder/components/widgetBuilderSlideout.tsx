@@ -10,14 +10,14 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
@@ -36,7 +36,7 @@ import {
   type DashboardFilters,
   type Widget,
 } from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
@@ -131,18 +131,25 @@ function WidgetBuilderSlideout({
     : isEditing
       ? t('Edit Widget')
       : t('Custom Widget Builder');
-  const isChartWidget = isChartDisplayType(state.displayType);
+  const isTimeSeriesWidget = usesTimeSeriesData(state.displayType);
 
   const showVisualizeSection = state.displayType !== DisplayType.DETAILS;
   const showQueryFilterBuilder = !(
-    state.dataset === WidgetType.ISSUE && isChartDisplayType(state.displayType)
+    state.dataset === WidgetType.ISSUE && usesTimeSeriesData(state.displayType)
   );
-  const showGroupBySelector = isChartWidget && !(state.dataset === WidgetType.ISSUE);
+
+  // Group By is used by time-series chart widgets to break down data by a field.
+  // - Time-series widgets: show Group By to allow breaking down by fields
+  // - Issue widgets: don't support Group By (issues have their own grouping)
+  const showGroupBySelector = isTimeSeriesWidget && !(state.dataset === WidgetType.ISSUE);
 
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
+  // Sort By step is shown for:
+  // - Time-series widgets with group by fields (Top N queries)
+  // - Table widgets (to control row ordering)
   const showSortByStep =
-    (isChartWidget && state.fields && state.fields.length > 0) ||
+    (isTimeSeriesWidget && state.fields && state.fields.length > 0) ||
     state.displayType === DisplayType.TABLE;
 
   const observer = useMemo(

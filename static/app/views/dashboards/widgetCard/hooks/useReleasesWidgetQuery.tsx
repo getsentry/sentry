@@ -1,6 +1,5 @@
 import {useCallback, useMemo, useRef} from 'react';
 import {useQueries} from '@tanstack/react-query';
-import cloneDeep from 'lodash/cloneDeep';
 
 import {doReleaseHealthRequest} from 'sentry/actionCreators/metrics';
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
@@ -13,43 +12,14 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {dashboardFiltersToString, getWidgetInterval} from 'sentry/views/dashboards/utils';
+import {getWidgetInterval} from 'sentry/views/dashboards/utils';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {cleanWidgetForRequest} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {applyDashboardFiltersToWidget} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {requiresCustomReleaseSorting} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 import {getReleasesRequestData} from './utils/releases';
-
-function applyDashboardFilters(
-  widget: Widget,
-  dashboardFilters?: DashboardFilters,
-  skipParens?: boolean
-): Widget {
-  let processedWidget = widget;
-
-  if (dashboardFilters) {
-    const filtered = cloneDeep(widget);
-    const dashboardFilterConditions = dashboardFiltersToString(
-      dashboardFilters,
-      filtered.widgetType
-    );
-
-    filtered.queries.forEach(query => {
-      if (dashboardFilterConditions) {
-        if (query.conditions && !skipParens) {
-          query.conditions = `(${query.conditions})`;
-        }
-        query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
-      }
-    });
-
-    processedWidget = filtered;
-  }
-
-  return cleanWidgetForRequest(processedWidget);
-}
 
 const EMPTY_ARRAY: any[] = [];
 
@@ -68,7 +38,11 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
   const prevRawDataRef = useRef<SessionApiResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(() => {
-    return applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens);
+    return applyDashboardFiltersToWidget(
+      widget,
+      dashboardFilters,
+      skipDashboardFilterParens
+    );
   }, [widget, dashboardFilters, skipDashboardFilterParens]);
 
   const hasQueueFeature = organization.features.includes(
@@ -167,6 +141,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
             }
             return false;
           },
+      retryDelay: getRetryDelay,
       placeholderData: (previousData: unknown) => previousData,
     })),
   });
@@ -268,7 +243,11 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
   const prevRawDataRef = useRef<SessionApiResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(() => {
-    return applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens);
+    return applyDashboardFiltersToWidget(
+      widget,
+      dashboardFilters,
+      skipDashboardFilterParens
+    );
   }, [widget, dashboardFilters, skipDashboardFilterParens]);
 
   const hasQueueFeature = organization.features.includes(
@@ -355,6 +334,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
             }
             return false;
           },
+      retryDelay: getRetryDelay,
       placeholderData: (previousData: unknown) => previousData,
     })),
   });

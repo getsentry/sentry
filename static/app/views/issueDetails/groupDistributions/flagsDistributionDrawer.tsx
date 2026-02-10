@@ -1,7 +1,8 @@
 import {Fragment, useState} from 'react';
 
+import {ButtonBar} from '@sentry/scraps/button';
+
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {
   EventDrawerBody,
   EventNavigator,

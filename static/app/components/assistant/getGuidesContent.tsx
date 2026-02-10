@@ -1,13 +1,11 @@
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {GuidesContent} from 'sentry/components/assistant/types';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDemoModeGuides} from 'sentry/utils/demoMode/guides';
 
-export default function getGuidesContent(
-  organization: Organization | null
-): GuidesContent {
+export default function getGuidesContent(): GuidesContent {
   if (isDemoModeActive()) {
     return getDemoModeGuides();
   }
@@ -89,27 +87,6 @@ export default function getGuidesContent(
               ),
             }
           ),
-        },
-      ],
-    },
-    {
-      guide: 'alerts_write_owner',
-      requiredTargets: ['alerts_write_owner'],
-      steps: [
-        {
-          target: 'alerts_write_owner',
-          description: tct(
-            `Today only admins in your organization can create alert rules but we recommend [link:allowing members to create alerts], too.`,
-            {
-              link: (
-                <Link
-                  to={organization?.slug ? `/settings/${organization.slug}` : `/settings`}
-                />
-              ),
-            }
-          ),
-          nextText: t('Allow'),
-          hasNextGuide: true,
         },
       ],
     },

@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {CodeBlock} from 'sentry/components/core/code';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import {space} from 'sentry/styles/space';
 
 type Props = {

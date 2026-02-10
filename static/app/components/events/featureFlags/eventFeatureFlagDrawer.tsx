@@ -1,9 +1,10 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {ButtonBar} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input';
+
 import {
   CrumbContainer,
   EventDrawerBody,

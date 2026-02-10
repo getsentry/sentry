@@ -36,6 +36,7 @@ interface Props {
   className?: string;
   expandPaths?: string[];
   extraction?: Extraction;
+  index?: number;
   ref?: React.Ref<HTMLDivElement>;
   style?: CSSProperties;
   updateDimensions?: () => void;
@@ -56,6 +57,7 @@ export default function BreadcrumbItem({
   onShowSnippet,
   updateDimensions,
   allowShowSnippet,
+  index,
 }: Props) {
   const theme = useTheme();
   const {colorGraphicsToken, description, title, icon} = getFrameDetails(frame);
@@ -90,6 +92,7 @@ export default function BreadcrumbItem({
   return (
     <StyledTimelineItem
       ref={ref}
+      data-index={index}
       icon={icon}
       title={title}
       colorConfig={{title: colorHex, icon: colorHex, iconBorder: colorHex}}
@@ -169,6 +172,7 @@ const StyledTimelineItem = styled(Timeline.Item)`
     width: 1px;
     top: -2px;
     bottom: -9px;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.primary};
     z-index: 0;
   }

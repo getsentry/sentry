@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+
 import ArchiveActions from 'sentry/components/actions/archive';
 import {makeGroupPriorityDropdownOptions} from 'sentry/components/badge/groupPriority';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';

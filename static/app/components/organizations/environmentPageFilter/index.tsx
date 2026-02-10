@@ -21,26 +21,25 @@ import {
   type EnvironmentPageFilterTriggerProps,
 } from './trigger';
 
-export interface EnvironmentPageFilterProps
-  extends Partial<
-    Omit<
-      HybridFilterProps<string>,
-      | 'searchable'
-      | 'multiple'
-      | 'options'
-      | 'value'
-      | 'defaultValue'
-      | 'onReplace'
-      | 'onToggle'
-      | 'menuTitle'
-      | 'menuBody'
-      | 'menuFooter'
-      | 'menuFooterMessage'
-      | 'checkboxWrapper'
-      | 'shouldCloseOnInteractOutside'
-      | 'triggerProps'
-    >
-  > {
+export interface EnvironmentPageFilterProps extends Partial<
+  Omit<
+    HybridFilterProps<string>,
+    | 'searchable'
+    | 'multiple'
+    | 'options'
+    | 'value'
+    | 'defaultValue'
+    | 'onReplace'
+    | 'onToggle'
+    | 'menuTitle'
+    | 'menuBody'
+    | 'menuFooter'
+    | 'menuFooterMessage'
+    | 'checkboxWrapper'
+    | 'shouldCloseOnInteractOutside'
+    | 'triggerProps'
+  >
+> {
   /**
    * Message to show in the menu footer
    */

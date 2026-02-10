@@ -5,10 +5,11 @@ import {mergeRefs} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Text} from '@sentry/scraps/text';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
-import {Text} from 'sentry/components/core/text';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerProgressBlocks} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerProgressBlocks';
 import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
@@ -83,8 +84,10 @@ function useUpdateOverlayPositionOnContentChange({
   }, [contentRef, isOpen, updateOverlayPosition]);
 }
 
-interface AskSeerPollingComboBoxProps<T extends QueryTokensProps>
-  extends Omit<AriaComboBoxProps<unknown>, 'children'> {
+interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> extends Omit<
+  AriaComboBoxProps<unknown>,
+  'children'
+> {
   /**
    * The source of the analytics event, must be a dot-separated identifier like "trace.
    * explorer" or "issue.list"

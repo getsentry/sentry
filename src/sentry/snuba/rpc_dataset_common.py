@@ -900,6 +900,7 @@ class RPCBase:
             referrer=f"{referrer}.topn",
             sampling_mode=sampling_mode,
             extra_conditions=top_conditions,
+            additional_queries=additional_queries,
         )
         requests = [rpc_request]
         if include_other:
@@ -912,6 +913,7 @@ class RPCBase:
                 referrer=f"{referrer}.query-other",
                 sampling_mode=sampling_mode,
                 extra_conditions=other_conditions,
+                additional_queries=additional_queries,
             )
             requests.append(other_request)
 

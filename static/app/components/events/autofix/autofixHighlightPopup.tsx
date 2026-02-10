@@ -13,12 +13,12 @@ import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {TextArea} from 'sentry/components/core/textarea';
 import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
 import {
   makeAutofixQueryKey,
@@ -713,7 +713,7 @@ const Container = styled(motion.div, {
       transparent,
       color-mix(
         in srgb,
-        ${p => p.theme.tokens.interactive.link.accent.active} 12.5%,
+        ${p => p.theme.tokens.background.accent.vibrant} 12.5%,
         transparent
       ),
       transparent

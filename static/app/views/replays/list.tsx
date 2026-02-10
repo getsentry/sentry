@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
+import {Flex, Grid} from '@sentry/scraps/layout';
+
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import {Grid} from 'sentry/components/core/layout';
-import {Flex} from 'sentry/components/core/layout/flex';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';

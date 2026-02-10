@@ -143,6 +143,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.response import is_drf_response
 from sentry.testutils.helpers.slack import install_slack
+from sentry.testutils.helpers.uptime import MOCK_ASSERTION_FAILURE_DATA
 from sentry.testutils.pytest.selenium import Browser
 from sentry.uptime.types import IncidentStatus
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
@@ -1283,6 +1284,7 @@ class BaseSpansTestCase(SnubaTestCase):
         parent_span_id: str | None = None,
         profile_id: str | None = None,
         transaction: str | None = None,
+        name: str | None = None,
         duration: int = 10,
         exclusive_time: int = 5,
         tags: dict[str, str] | None = None,
@@ -1310,6 +1312,8 @@ class BaseSpansTestCase(SnubaTestCase):
             sentry_tags["status"] = status
         if environment is not None:
             sentry_tags["environment"] = environment
+        if name is not None:
+            sentry_tags["name"] = name
 
         payload = {
             "project_id": project_id,
@@ -3188,20 +3192,7 @@ class UptimeTestCaseMixin:
             "actual_check_time_ms": int(datetime.now().replace(microsecond=0).timestamp() * 1000),
             "duration_ms": 100,
             "request_info": {"request_type": REQUESTTYPE_HEAD, "http_status_code": 500},
-            "assertion_failure_data": {
-                "root": {
-                    "op": "and",
-                    "children": [
-                        {
-                            "op": "not",
-                            "operand": {
-                                "op": "json_path",
-                                "value": '$.components[?@.status == "operational"]',
-                            },
-                        }
-                    ],
-                }
-            },
+            "assertion_failure_data": MOCK_ASSERTION_FAILURE_DATA,
             **optional_fields,
         }
 

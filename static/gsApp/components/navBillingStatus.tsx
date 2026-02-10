@@ -4,12 +4,11 @@ import styled from '@emotion/styled';
 import snakeCase from 'lodash/snakeCase';
 import moment from 'moment-timezone';
 
+import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {usePrompts} from 'sentry/actionCreators/prompts';
-import {Button, type ButtonProps} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';

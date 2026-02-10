@@ -4,11 +4,11 @@ import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
 
+import {Checkbox} from '@sentry/scraps/checkbox';
+import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
+import {getItemsWithKeys} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Checkbox} from 'sentry/components/core/checkbox';
-import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
-import {getItemsWithKeys} from 'sentry/components/core/compactSelect/utils';
 import {DeviceName} from 'sentry/components/deviceName';
 import {
   ItemType,
@@ -45,6 +45,7 @@ import {
 import {getDefaultFilterValue} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {
   isDateToken,
+  isNumericFilterToken,
   recentSearchTypeToLabel,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
@@ -539,6 +540,9 @@ export function getInitialInputValue(
   }
   if (canSelectMultipleValues) {
     return getMultiSelectInputValue(token);
+  }
+  if (isNumericFilterToken(token)) {
+    return token.value.text;
   }
   return '';
 }

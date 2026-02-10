@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any
@@ -52,6 +53,8 @@ SENTRY_BACKEND_REFERRERS = [
     Referrer.API_FUNCTION_REGRESSION_ALERT_CHARTCUTERIE.value,
     Referrer.DISCOVER_SLACK_UNFURL.value,
 ]
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -112,6 +115,15 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         query_source = self.get_request_source(request)
+        logger.info(
+            "An events-stats request was made",
+            extra={
+                "referrer": request.GET.get("referrer"),
+                "organization.id": organization.id,
+                "dataset_label": request.GET.get("dataset"),
+                "external_call": bool(request.auth),
+            },
+        )
 
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)
@@ -154,7 +166,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 referrer = Referrer.API_ORGANIZATION_EVENTS.value
             elif not is_valid_referrer(referrer):
                 referrer = Referrer.API_ORGANIZATION_EVENTS.value
-
             if referrer in SENTRY_BACKEND_REFERRERS:
                 query_source = QuerySource.SENTRY_BACKEND
 

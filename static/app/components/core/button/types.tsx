@@ -1,6 +1,6 @@
 import type {LocationDescriptor} from 'history';
 
-import type {TooltipProps} from 'sentry/components/core/tooltip';
+import type {TooltipProps} from '@sentry/scraps/tooltip';
 
 // We do not want people using this type as it should only be used
 // internally by the different button implementations
@@ -20,11 +20,6 @@ export interface DO_NOT_USE_CommonButtonProps {
    * Adds extra parameters to the analytics tracking
    */
   analyticsParams?: Record<string, any>;
-  /**
-   * Removes borders from the button.
-   * @deprecated Use `priority="transparent"` instead.
-   */
-  borderless?: boolean;
   /**
    * Indicates that the button is "doing" something.
    */

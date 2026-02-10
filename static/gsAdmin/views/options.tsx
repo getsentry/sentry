@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import {IconEdit, IconStack} from 'sentry/icons';
 
 import EditAdminOptionModal from 'admin/components/editAdminOptionModal';

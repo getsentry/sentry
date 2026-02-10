@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import {IconStats} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 

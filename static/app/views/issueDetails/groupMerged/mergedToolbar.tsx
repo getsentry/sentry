@@ -1,7 +1,7 @@
+import {Button, ButtonBar} from '@sentry/scraps/button';
+
 import {openDiffModal} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';

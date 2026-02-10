@@ -30,7 +30,8 @@ import {
 export const SelectFilterContext = createContext(new Set<SelectKey>());
 
 interface BaseListProps<Value extends SelectKey>
-  extends Omit<ListProps<any>, 'disallowEmptySelection'>,
+  extends
+    Omit<ListProps<any>, 'disallowEmptySelection'>,
     Omit<
       AriaListBoxOptions<any>,
       | 'disallowEmptySelection'
@@ -124,8 +125,9 @@ export type SingleListProps<Value extends SelectKey> =
   | SingleClearableListProps<Value>
   | SingleUnclearableListProps<Value>;
 
-interface SingleUnclearableListProps<Value extends SelectKey>
-  extends BaseListProps<Value> {
+interface SingleUnclearableListProps<
+  Value extends SelectKey,
+> extends BaseListProps<Value> {
   onChange: (selectedOption: SelectOption<Value>) => void;
   value: Value | undefined;
   clearable?: false;

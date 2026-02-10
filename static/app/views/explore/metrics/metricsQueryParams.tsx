@@ -133,6 +133,11 @@ export function useMetricVisualizes(): readonly VisualizeFunction[] {
   throw new Error('Only visualize functions are allowed');
 }
 
+export function useMetricName(): string {
+  const {metric} = useTraceMetricContext();
+  return metric.name;
+}
+
 export function useMetricLabel(): string {
   const visualize = useMetricVisualize();
   const {metric} = useTraceMetricContext();
@@ -142,6 +147,11 @@ export function useMetricLabel(): string {
   }
 
   return `${visualize.parsedFunction.name}(${metric.name})`;
+}
+
+export function useTraceMetric(): TraceMetric {
+  const {metric} = useTraceMetricContext();
+  return metric;
 }
 
 export function useSetTraceMetric() {

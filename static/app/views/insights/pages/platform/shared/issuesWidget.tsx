@@ -1,9 +1,10 @@
 import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
+
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import GroupListHeader from 'sentry/components/issues/groupListHeader';

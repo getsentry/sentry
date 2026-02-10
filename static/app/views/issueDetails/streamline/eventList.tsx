@@ -1,7 +1,8 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from '@sentry/scraps/button';
+
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {IssueType, type Group} from 'sentry/types/group';

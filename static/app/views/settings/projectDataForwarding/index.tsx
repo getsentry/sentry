@@ -1,11 +1,12 @@
 import {Fragment, useState} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -20,6 +21,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -46,7 +48,12 @@ function DataForwardingStats({organization, project}: DataForwardingStatsProps) 
   };
 
   const {data: stats = [], isPending} = useApiQuery<TimeseriesValue[]>(
-    [`/projects/${organization.slug}/${project.slug}/stats/`, options],
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/stats/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
+      options,
+    ],
     {staleTime: 0, retry: false}
   );
 
@@ -92,9 +99,16 @@ export default function ProjectDataForwarding() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<Plugin[]>([`/projects/${organization.slug}/${project.slug}/plugins/`], {
-    staleTime: 0,
-  });
+  } = useApiQuery<Plugin[]>(
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   if (isPending) {
     return <LoadingIndicator />;

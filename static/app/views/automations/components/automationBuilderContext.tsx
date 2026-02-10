@@ -474,7 +474,10 @@ function updateIfCondition(
 
 function getActionTargetType(actionType: ActionType): ActionTarget | null {
   switch (actionType) {
+    // These action types expect a null target type.
+    // See PluginActionTranslator and WebhookActionTranslator in src/sentry/workflow_engine/typings/notification_action.py
     case ActionType.PLUGIN:
+    case ActionType.WEBHOOK:
       return null;
     case ActionType.EMAIL:
       return ActionTarget.ISSUE_OWNERS;

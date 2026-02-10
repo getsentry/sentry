@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';

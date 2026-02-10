@@ -2,9 +2,9 @@ import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import {HighlightComponent} from 'sentry/components/highlight';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Panel from 'sentry/components/panels/panel';
@@ -407,7 +407,7 @@ export const LogsSidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
       margin-left: -13px;
 
       &::after {
-        border-left-color: ${p.theme.tokens.background.primary};
+        border-left-color: ${p.theme.tokens.border.primary};
         border-top-left-radius: 0px;
         border-bottom-left-radius: 0px;
       }

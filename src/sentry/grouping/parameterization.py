@@ -1,7 +1,7 @@
 import dataclasses
 import re
 from collections import defaultdict
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 
 __all__ = [
     "ParameterizationCallable",
@@ -167,8 +167,9 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # the prefix pretty much guarantees it's hex).
             (\b0[xX][0-9a-fA-F]+\b) |
 
-            # Hex value without `0x/0X` prefix (including a number, and either 8 or 16 digits -
-            # we're more conservative here on both scores in order to reduce false positives).
+            # Hex value without `0x/0X` prefix (including a number, either 8 or 16-64 digits, and
+            # either all uppercase or all lowercase - we're more conservative here on all three
+            # scores in order to reduce false positives).
             #
             # Note: We use a lookahead for `0-9` but don't need one for `a-f/A-F` since if
             #   a) the value consists of nothing but potential hex digits, but
@@ -177,10 +178,12 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # so the only thing we need the lookahead to guard against is it being all letters.
             #
             # Each regex consists of two parts:
-            # (?=.*[0-9])           The aforementioned lookahead - at least one `0-9` is present
-            # [0-9a-f]{8/16}        8 or 16 hex characters
+            # (?=.*[0-9])             The aforementioned lookahead - at least one `0-9` is present
+            # [0-9a-f/A-F]{8/16,64}   8 or 16-64 hex characters
             (\b(?=.*[0-9])[0-9a-f]{8}\b) |
-            (\b(?=.*[0-9])[0-9a-f]{16}\b)
+            (\b(?=.*[0-9])[0-9a-f]{16,64}\b) |
+            (\b(?=.*[0-9])[0-9A-F]{8}\b) |
+            (\b(?=.*[0-9])[0-9A-F]{16,64}\b)
         """,
     ),
     ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),
@@ -228,14 +231,16 @@ class ParameterizationCallable:
 class Parameterizer:
     def __init__(
         self,
-        regex_pattern_keys: Sequence[str],
+        regex_pattern_keys: Sequence[str] | None = None,
         experimental: bool = False,
     ):
         self._experimental = experimental
-        self._parameterization_regex = self._make_regex_from_patterns(regex_pattern_keys)
+        self._parameterization_regex = self._make_regex_from_patterns(
+            regex_pattern_keys or DEFAULT_PARAMETERIZATION_REGEXES_MAP.keys()
+        )
         self.matches_counter: defaultdict[str, int] = defaultdict(int)
 
-    def _make_regex_from_patterns(self, pattern_keys: Sequence[str]) -> re.Pattern[str]:
+    def _make_regex_from_patterns(self, pattern_keys: Iterable[str]) -> re.Pattern[str]:
         """
         Takes list of pattern keys and returns a compiled regex pattern that matches any of them.
 

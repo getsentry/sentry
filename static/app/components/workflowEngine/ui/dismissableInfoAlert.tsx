@@ -1,7 +1,8 @@
 import {useState} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+
 import {IconClose} from 'sentry/icons';
 
 export function DismissableInfoAlert({children}: {children: React.ReactNode}) {

@@ -798,3 +798,8 @@ class PreprodComparisonApproval(DefaultFieldsModel):
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodcomparisonapproval"
+
+
+from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+
+__all__ = ["PreprodSnapshotComparison", "PreprodSnapshotMetrics"]

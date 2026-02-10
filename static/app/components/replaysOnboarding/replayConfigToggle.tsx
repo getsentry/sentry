@@ -1,6 +1,6 @@
 import {Flex} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
 
-import {Switch} from 'sentry/components/core/switch';
 import {t} from 'sentry/locale';
 
 function ReplayConfigToggle({

@@ -2,8 +2,9 @@ import {useEffect, useRef, type RefObject} from 'react';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
-import {Alert} from 'sentry/components/core/alert';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Alert} from '@sentry/scraps/alert';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import type {ReplayTableColumn} from 'sentry/components/replays/table/replayTableColumns';

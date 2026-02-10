@@ -1,4 +1,5 @@
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GroupList from 'sentry/components/issues/groupList';
 import Section from 'sentry/components/workflowEngine/ui/section';
@@ -25,7 +26,7 @@ export function DetectorDetailsOngoingIssues({
       ? getUtcDateString(selection.datetime.start)
       : undefined,
     end: selection.datetime.end ? getUtcDateString(selection.datetime.end) : undefined,
-    statsPeriod: selection.datetime.period,
+    statsPeriod: selection.datetime.period ?? undefined,
   };
 
   return (

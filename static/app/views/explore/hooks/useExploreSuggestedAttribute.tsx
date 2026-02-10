@@ -3,6 +3,7 @@ import {useCallback} from 'react';
 import type {TagCollection} from 'sentry/types/group';
 
 interface UseExploreSuggestedAttributeOptions {
+  booleanAttributes: TagCollection;
   numberAttributes: TagCollection;
   stringAttributes: TagCollection;
 }
@@ -10,6 +11,7 @@ interface UseExploreSuggestedAttributeOptions {
 export function useExploreSuggestedAttribute({
   numberAttributes,
   stringAttributes,
+  booleanAttributes,
 }: UseExploreSuggestedAttributeOptions) {
   return useCallback(
     (key: string): string | null => {
@@ -18,6 +20,10 @@ export function useExploreSuggestedAttribute({
       }
 
       if (key in numberAttributes) {
+        return key;
+      }
+
+      if (key in booleanAttributes) {
         return key;
       }
 
@@ -31,8 +37,13 @@ export function useExploreSuggestedAttribute({
         return explicitNumberAttribute;
       }
 
+      const explicitBooleanAttribute = `tags[${key},boolean]`;
+      if (explicitBooleanAttribute in booleanAttributes) {
+        return explicitBooleanAttribute;
+      }
+
       return null;
     },
-    [numberAttributes, stringAttributes]
+    [booleanAttributes, numberAttributes, stringAttributes]
   );
 }

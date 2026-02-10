@@ -1,8 +1,9 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Select} from 'sentry/components/core/select';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Select} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -44,12 +45,14 @@ function WidgetBuilderSortBySelector() {
   }
   const {tags: numericSpanTags} = useTraceItemTags('number', hiddenKeys);
   const {tags: stringSpanTags} = useTraceItemTags('string', hiddenKeys);
+  const {tags: booleanSpanTags} = useTraceItemTags('boolean', hiddenKeys);
+
   if (
     state.dataset === WidgetType.SPANS ||
     state.dataset === WidgetType.LOGS ||
     state.dataset === WidgetType.TRACEMETRICS
   ) {
-    tags = {...numericSpanTags, ...stringSpanTags};
+    tags = {...numericSpanTags, ...stringSpanTags, ...booleanSpanTags};
   }
 
   let disableSort = false;

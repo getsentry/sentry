@@ -2,13 +2,11 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {BarSeriesOption} from 'echarts';
 
-import {Button} from '@sentry/scraps/button/button';
-import {ButtonBar} from '@sentry/scraps/button/buttonBar';
-import {Grid} from '@sentry/scraps/layout';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
-import {Text} from 'sentry/components/core/text';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {IconSearch, IconTimer, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';

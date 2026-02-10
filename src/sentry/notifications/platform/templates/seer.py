@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import TypedDict
 
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.types import NotificationTemplateSource
 from sentry.notifications.platform.types import (
@@ -11,45 +14,20 @@ from sentry.notifications.platform.types import (
     ParagraphBlock,
     PlainTextBlock,
 )
+from sentry.organizations.services.organization.service import organization_service
+from sentry.seer.autofix.issue_summary import STOPPING_POINT_HIERARCHY
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 
-
-@dataclass(frozen=True)
-class SeerAutofixTrigger(NotificationData):
-    organization_id: int
-    project_id: int
-    group_id: int
-    run_id: int | None = None
-    source: NotificationTemplateSource = NotificationTemplateSource.SEER_AUTOFIX_TRIGGER
-    stopping_point: AutofixStoppingPoint = AutofixStoppingPoint.ROOT_CAUSE
-
-    @property
-    def label(self) -> str:
-        if self.stopping_point == AutofixStoppingPoint.ROOT_CAUSE:
-            return "Fix with Seer"
-        elif self.stopping_point == AutofixStoppingPoint.SOLUTION:
-            return "Plan a Solution"
-        elif self.stopping_point == AutofixStoppingPoint.CODE_CHANGES:
-            return "Write Code Changes"
-        elif self.stopping_point == AutofixStoppingPoint.OPEN_PR:
-            return "Draft a PR"
-        raise ValueError(f"Invalid stopping point, {self.stopping_point}")
+# Inverted hierarchy for looking up stopping point by rank
+_RANK_TO_STOPPING_POINT = {rank: point for point, rank in STOPPING_POINT_HIERARCHY.items()}
 
 
-@template_registry.register(SeerAutofixTrigger.source)
-class SeerAutofixTriggerTemplate(NotificationTemplate[SeerAutofixTrigger]):
-    category = NotificationCategory.SEER
-    example_data = SeerAutofixTrigger(
-        source=NotificationTemplateSource.SEER_AUTOFIX_TRIGGER,
-        group_id=456,
-        project_id=123,
-        organization_id=1,
-        stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
-    )
-    hide_from_debugger = True
-
-    def render(self, data: SeerAutofixTrigger) -> NotificationRenderedTemplate:
-        return NotificationRenderedTemplate(subject="Seer Autofix Trigger", body=[])
+def _get_next_stopping_point(current: AutofixStoppingPoint) -> AutofixStoppingPoint | None:
+    """Get the next stopping point in the autofix progression sequence."""
+    current_rank = STOPPING_POINT_HIERARCHY.get(current)
+    if current_rank is None:
+        return None
+    return _RANK_TO_STOPPING_POINT.get(current_rank + 1)
 
 
 @dataclass(frozen=True)
@@ -72,29 +50,6 @@ class SeerAutofixErrorTemplate(NotificationTemplate[SeerAutofixError]):
             subject=data.error_title,
             body=[ParagraphBlock(blocks=[PlainTextBlock(text=data.error_message)])],
         )
-
-
-@dataclass(frozen=True)
-class SeerAutofixSuccess(NotificationData):
-    run_id: int
-    organization_id: int
-    stopping_point: AutofixStoppingPoint
-    source: NotificationTemplateSource = NotificationTemplateSource.SEER_AUTOFIX_SUCCESS
-
-
-@template_registry.register(SeerAutofixSuccess.source)
-class SeerAutofixSuccessTemplate(NotificationTemplate[SeerAutofixSuccess]):
-    category = NotificationCategory.SEER
-    example_data = SeerAutofixSuccess(
-        source=NotificationTemplateSource.SEER_AUTOFIX_SUCCESS,
-        run_id=12152025,
-        organization_id=1,
-        stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
-    )
-    hide_from_debugger = True
-
-    def render(self, data: SeerAutofixSuccess) -> NotificationRenderedTemplate:
-        return NotificationRenderedTemplate(subject="Seer Autofix Success", body=[])
 
 
 class SeerAutofixCodeChange(TypedDict):
@@ -121,7 +76,29 @@ class SeerAutofixUpdate(NotificationData):
     changes: list[SeerAutofixCodeChange] = field(default_factory=list)
     pull_requests: list[SeerAutofixPullRequest] = field(default_factory=list)
     summary: str | None = None
+    has_progressed: bool = False
+    automation_stopping_point: AutofixStoppingPoint | None = None
     source: NotificationTemplateSource = NotificationTemplateSource.SEER_AUTOFIX_UPDATE
+
+    @property
+    def next_point(self) -> AutofixStoppingPoint | None:
+        return _get_next_stopping_point(self.current_point)
+
+    @property
+    def has_next_trigger(self) -> bool:
+        match self.current_point:
+            case AutofixStoppingPoint.ROOT_CAUSE:
+                return True
+            case AutofixStoppingPoint.SOLUTION | AutofixStoppingPoint.CODE_CHANGES:
+                has_coding_enabled = organization_service.get_option(
+                    organization_id=self.organization_id,
+                    key="sentry:enable_seer_coding",
+                )
+                if has_coding_enabled is None:
+                    has_coding_enabled = ENABLE_SEER_CODING_DEFAULT
+                return has_coding_enabled
+            case AutofixStoppingPoint.OPEN_PR:
+                return False
 
 
 @template_registry.register(SeerAutofixUpdate.source)
@@ -161,3 +138,32 @@ class SeerAutofixUpdateTemplate(NotificationTemplate[SeerAutofixUpdate]):
 
     def render(self, data: SeerAutofixUpdate) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(subject="Seer Autofix Update", body=[])
+
+
+@dataclass(frozen=True)
+class SeerAutofixTrigger(NotificationData):
+    """
+    Note: This data is only used to render the trigger itself for an autofix run,
+    not the entire message it may be attached to. This was done for compatibility with existing
+    alert rendering, prior to being migrated to the Notification Platform.
+    """
+
+    organization_id: int
+    project_id: int
+    group_id: int
+    run_id: int | None = None
+    source: NotificationTemplateSource = NotificationTemplateSource.SEER_AUTOFIX_TRIGGER
+    stopping_point: AutofixStoppingPoint = AutofixStoppingPoint.ROOT_CAUSE
+
+    @staticmethod
+    def from_update(update: SeerAutofixUpdate) -> SeerAutofixTrigger:
+        """Get the next trigger after a given update."""
+        stopping_point = _get_next_stopping_point(update.current_point)
+        if stopping_point is None:
+            raise ValueError(f"No next stopping point for {update.current_point}")
+        return SeerAutofixTrigger(
+            group_id=update.group_id,
+            project_id=update.project_id,
+            organization_id=update.organization_id,
+            stopping_point=stopping_point,
+        )

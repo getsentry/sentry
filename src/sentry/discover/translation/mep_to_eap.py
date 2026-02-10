@@ -10,7 +10,7 @@ from sentry.search.events import fields
 from sentry.snuba.metrics import parse_mri
 from sentry.utils.snuba import get_measurement_name
 
-APDEX_USER_MISERY_PATTERN = r"(apdex|user_misery)\((\d+)\)"
+APDEX_USER_MISERY_PATTERN = r"(apdex|user_misery)\((\d*\.?\d+)\)"
 
 INDEXED_EQUATIONS_PATTERN = r"^equation\[(\d+)\]$"
 
@@ -145,6 +145,7 @@ def column_switcheroo(term):
         "timestamp.to_day": "timestamp",
         "timestamp.to_hour": "timestamp",
         "platform.name": "platform",
+        "span.module": "span.category",
         # parsed MRI column names that need to be swapped
         "duration": "span.duration",
         "exclusive_time": "span.self_time",
@@ -160,6 +161,8 @@ def function_switcheroo(term):
     swapped_term = term
     if term == "count()":
         swapped_term = "count(span.duration)"
+    elif term == "spm()":
+        swapped_term = "epm()"
     elif term.startswith("percentile("):
         swapped_term = format_percentile_term(term)
     elif term == "apdex()":
@@ -169,7 +172,9 @@ def function_switcheroo(term):
 
     match = re.match(APDEX_USER_MISERY_PATTERN, term)
     if match:
-        swapped_term = f"{match.group(1)}(span.duration,{match.group(2)})"
+        # making sure numeric parameter is properly formatted with 0 before decimal point and no trailing zeros
+        numeric_parameter = float(match.group(2))
+        swapped_term = f"{match.group(1)}(span.duration,{numeric_parameter:g})"
 
     return swapped_term, swapped_term != term
 

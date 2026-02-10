@@ -1339,21 +1339,26 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self, mock_render: MagicMock, mock_record: MagicMock
     ) -> None:
         self._setup_with_existing_installations()
+        self.create_integration(organization=self.organization, external_id="1", provider="github")
+        self.create_integration(organization=self.organization, external_id="2", provider="github")
         installations = [
             {
                 "installation_id": "1",
                 "github_account": "santry",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+                "count": 1,
             },
             {
                 "installation_id": "2",
                 "github_account": "bufo-bot",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+                "count": 1,
             },
             {
                 "installation_id": "-1",
                 "github_account": "Integrate with a new GitHub organization",
                 "avatar_url": "",
+                "count": 0,
             },
         ]
 
@@ -1494,21 +1499,26 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self, mock_render: MagicMock, mock_record: MagicMock
     ) -> None:
         self._setup_with_existing_installations()
+        self.create_integration(organization=self.organization, external_id="1", provider="github")
+        self.create_integration(organization=self.organization, external_id="2", provider="github")
         installations = [
             {
                 "installation_id": "1",
                 "github_account": "santry",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+                "count": 1,
             },
             {
                 "installation_id": "2",
                 "github_account": "bufo-bot",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+                "count": 1,
             },
             {
                 "installation_id": "-1",
                 "github_account": "Integrate with a new GitHub organization",
                 "avatar_url": "",
+                "count": 0,
             },
         ]
 
@@ -1539,21 +1549,26 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self, mock_render: MagicMock, mock_record: MagicMock
     ) -> None:
         self._setup_with_existing_installations()
+        self.create_integration(organization=self.organization, external_id="1", provider="github")
+        self.create_integration(organization=self.organization, external_id="2", provider="github")
         installations = [
             {
                 "installation_id": "1",
                 "github_account": "santry",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+                "count": 1,
             },
             {
                 "installation_id": "2",
                 "github_account": "bufo-bot",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+                "count": 1,
             },
             {
                 "installation_id": "-1",
                 "github_account": "Integrate with a new GitHub organization",
                 "avatar_url": "",
+                "count": 0,
             },
         ]
 
@@ -1574,7 +1589,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         # We rendered the GithubOrganizationSelection UI and the user chose to skip
-        resp = self._setup_choose_installation("12345")
+        resp = self._setup_choose_installation("1")
 
         self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
         assert (
@@ -1583,6 +1598,41 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
         assert b'window.opener.postMessage({"success":false' in resp.content
         assert_failure_metric(mock_record, GitHubInstallationError.FEATURE_NOT_AVAILABLE)
+
+    @with_feature({"organizations:integrations-scm-multi-org": False})
+    @responses.activate
+    def test_allows_installing_orphaned_integration(self) -> None:
+        self._setup_with_existing_installations()
+        self.create_integration(organization=self.organization, external_id="1", provider="github")
+        self.create_integration(organization=self.organization, external_id="2", provider="github")
+        OrganizationIntegration.objects.all().delete()
+
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/app/installations/1",
+            json={
+                "id": "1",
+                "app_id": self.app_id,
+                "account": {
+                    "id": "1",
+                    "login": "poggers-org",
+                    "avatar_url": "http://example.com/bufo-pog.png",
+                    "html_url": "https://github.com/pog-organization",
+                    "type": "Organization",
+                },
+            },
+        )
+
+        self._setup_select_github_organization()
+        resp = self._setup_choose_installation("1")
+
+        self.assertDialogSuccess(resp)
+
+        integration = Integration.objects.get(external_id="1")
+        assert integration.provider == "github"
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id, integration=integration
+        ).exists()
 
     @with_feature("organizations:integrations-scm-multi-org")
     @responses.activate
@@ -1645,6 +1695,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self, mock_record: MagicMock
     ) -> None:
         self._setup_with_existing_installations()
+        self.create_integration(organization=self.organization, external_id="1", provider="github")
+        self.create_integration(organization=self.organization, external_id="2", provider="github")
         chosen_installation_id = "1"
 
         self._setup_select_github_organization()

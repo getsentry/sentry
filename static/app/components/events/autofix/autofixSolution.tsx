@@ -2,15 +2,14 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Input} from 'sentry/components/core/input';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {SolutionEventItem} from 'sentry/components/events/autofix/autofixSolutionEventItem';
 import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
@@ -391,8 +390,7 @@ function AutofixSolutionDisplay({
 
   const hasNoRepos = repos.length === 0;
   const cantReadRepos = repos.every(repo => repo.is_readable === false);
-  const codingDisabled =
-    organization.enableSeerCoding === undefined ? false : !organization.enableSeerCoding;
+  const enableSeerCoding = organization.enableSeerCoding !== false;
 
   const handleAddInstruction = () => {
     if (instructions.trim()) {
@@ -623,11 +621,8 @@ function AutofixSolutionDisplay({
           <Tooltip
             isHoverable
             title={
-              codingDisabled
-                ? t(
-                    'Your organization has disabled code generation with Seer. This can be re-enabled in organization settings by an admin.'
-                  )
-                : hasNoRepos
+              enableSeerCoding
+                ? hasNoRepos
                   ? tct(
                       'Seer needs to be able to access your repos to write code for you. [link:Manage your integration and working repos here.]',
                       {
@@ -643,6 +638,16 @@ function AutofixSolutionDisplay({
                         "Seer can't access any of your selected repos. Check your GitHub integration and make sure Seer has read access."
                       )
                     : undefined
+                : tct(
+                    '[settings:"Enable Code Generation"] must be enabled by an admin in settings.',
+                    {
+                      settings: (
+                        <Link
+                          to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
+                        />
+                      ),
+                    }
+                  )
             }
           >
             <Button
@@ -653,7 +658,7 @@ function AutofixSolutionDisplay({
                   : 'default'
               }
               busy={isPending}
-              disabled={hasNoRepos || cantReadRepos || codingDisabled}
+              disabled={hasNoRepos || cantReadRepos || !enableSeerCoding}
               onClick={handleCodeItUp}
               analyticsEventName="Autofix: Code It Up"
               analyticsEventKey="autofix.solution.code"

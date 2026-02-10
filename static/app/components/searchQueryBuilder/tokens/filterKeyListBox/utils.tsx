@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
+import {getEscapedKey} from '@sentry/scraps/compactSelect';
+
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';

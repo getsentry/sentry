@@ -75,6 +75,8 @@ class PrebuiltDashboardId(IntEnum):
     MOBILE_VITALS_SCREEN_RENDERING = 11
     BACKEND_OVERVIEW = 12
     MOBILE_SESSION_HEALTH = 13
+    FRONTEND_OVERVIEW = 14
+    NEXTJS_FRONTEND_OVERVIEW = 15
 
 
 class PrebuiltDashboard(TypedDict):
@@ -143,6 +145,14 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_SESSION_HEALTH,
         "title": "Mobile Session Health",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_OVERVIEW,
+        "title": "Frontend Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.NEXTJS_FRONTEND_OVERVIEW,
+        "title": "Next.js Frontend Overview",
     },
 ]
 

@@ -8,12 +8,11 @@ import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 import onboardingCompass from 'sentry-images/spot/onboarding-compass.svg';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack, type FlexProps, type StackProps} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
@@ -482,7 +481,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                                 'Set up the [integrationLink:Cursor Integration] to enable automatic handoff. [docsLink:Read the docs] to learn more.',
                                 {
                                   integrationLink: (
-                                    <Link to="/settings/integrations/cursor/" />
+                                    <Link
+                                      to={`/settings/${organization.slug}/integrations/cursor/`}
+                                    />
                                   ),
                                   docsLink: (
                                     <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
@@ -517,7 +518,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                       </Button>
                     ) : (
                       <LinkButton
-                        href="/settings/integrations/cursor/"
+                        href={`/settings/${organization.slug}/integrations/cursor/`}
                         size="sm"
                         priority="primary"
                       >

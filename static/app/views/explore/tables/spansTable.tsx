@@ -1,6 +1,7 @@
 import {Fragment, useMemo, useRef} from 'react';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -62,6 +63,7 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
 
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: booleanTags} = useTraceItemTags('boolean');
 
   const paginationAnalyticsEvent = usePaginationAnalytics(
     'samples',
@@ -81,7 +83,8 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
 
               const fieldType = meta.fields?.[field];
               const align = fieldAlignment(field, fieldType);
-              const tag = stringTags[field] ?? numberTags[field] ?? null;
+              const tag =
+                stringTags[field] ?? numberTags[field] ?? booleanTags[field] ?? null;
 
               const direction = sortBys.find(s => s.field === field)?.kind;
 

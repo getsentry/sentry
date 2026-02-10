@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import issueDetailsPreview from 'sentry-images/issue_details/issue-details-preview.png';
 
+import {Button} from '@sentry/scraps/button';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {TourAction, TourGuide} from 'sentry/components/tours/components';
@@ -250,20 +251,24 @@ export function NewIssueExperienceButton() {
       }
       isOpen={isReminderVisible}
     >
-      <DropdownMenu
-        trigger={triggerProps => (
-          <StyledDropdownButton
-            {...triggerProps}
-            size={hasStreamlinedUI ? 'xs' : 'sm'}
-            aria-label={t('Manage issue experience')}
-          >
-            {/* Passing icon as child to avoid extra icon margin */}
-            <IconLab isSolid={hasStreamlinedUI} />
-          </StyledDropdownButton>
-        )}
-        items={items}
-        position="bottom-end"
-      />
+      {tourProps => (
+        <div {...tourProps}>
+          <DropdownMenu
+            trigger={triggerProps => (
+              <StyledDropdownButton
+                {...triggerProps}
+                size={hasStreamlinedUI ? 'xs' : 'sm'}
+                aria-label={t('Manage issue experience')}
+              >
+                {/* Passing icon as child to avoid extra icon margin */}
+                <IconLab isSolid={hasStreamlinedUI} />
+              </StyledDropdownButton>
+            )}
+            items={items}
+            position="bottom-end"
+          />
+        </div>
+      )}
     </TourGuide>
   );
 }

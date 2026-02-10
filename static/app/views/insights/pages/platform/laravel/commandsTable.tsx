@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,

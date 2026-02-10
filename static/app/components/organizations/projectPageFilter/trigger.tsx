@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Badge} from '@sentry/scraps/badge';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
-import {Badge} from 'sentry/components/core/badge';
 import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import {PlatformList} from 'sentry/components/platformList';
 import {t} from 'sentry/locale';
