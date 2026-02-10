@@ -393,7 +393,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
 
         # Adjust X-Hits to account for post-filtering
         # If post-filtering removed items, we need to adjust the hit count proportionally
-        if cursor_result.hits is not None and pre_filter_count > 0 and post_filter_count < pre_filter_count:
+        if (
+            cursor_result.hits is not None
+            and pre_filter_count > 0
+            and post_filter_count < pre_filter_count
+        ):
             # Calculate the filter ratio and apply it to the total hits
             filter_ratio = post_filter_count / pre_filter_count
             adjusted_hits = int(cursor_result.hits * filter_ratio)
