@@ -173,28 +173,6 @@ def pytest_configure(config: pytest.Config) -> None:
 
     config.addinivalue_line("markers", "migrations: requires --migrations")
 
-    # Per-worker Snuba pool monkey-patch. The env var set at the top of this file
-    # may not take effect if _snuba_pool was already created before our plugin loaded.
-    # This is the safety net: replace the pool with one pointing to the per-worker port.
-    worker_id = os.environ.get("PYTEST_XDIST_WORKER")
-    if worker_id and os.environ.get("XDIST_PER_WORKER_SNUBA"):
-        worker_num = int(worker_id.replace("gw", ""))
-        worker_snuba_url = f"http://127.0.0.1:{1230 + worker_num}"
-
-        # Override settings.SENTRY_SNUBA (used by reset_snuba fixture via call_snuba)
-        settings.SENTRY_SNUBA = worker_snuba_url
-
-        # Replace _snuba_pool (used for all Snuba queries and writes)
-        from sentry.net.http import connection_from_url as _cfurl
-        from sentry.utils import snuba as _snuba_mod
-
-        _snuba_mod._snuba_pool = _cfurl(
-            worker_snuba_url,
-            retries=False,
-            timeout=settings.SENTRY_SNUBA_TIMEOUT,
-            maxsize=10,
-        )
-
     if sys.platform == "darwin" and shutil.which("colima"):
         # This is the only way other than pytest --basetemp to change
         # the temproot. We'd like to keep invocations to just "pytest".
@@ -688,6 +666,40 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
         if deselected:
             config.hook.pytest_deselected(items=deselected)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _xdist_per_worker_snuba():
+    """Patch Snuba connection to use per-worker Snuba instance.
+
+    Each xdist worker gets its own Snuba container on port 1230+N, pointing to
+    its own ClickHouse database (default_gwN). This fixture patches both
+    settings.SENTRY_SNUBA (used by reset_snuba) and _snuba_pool (used by all
+    Snuba queries/writes) to route traffic to the per-worker instance.
+
+    Runs as a session fixture (after Django is configured) rather than in
+    pytest_configure (where Django settings aren't available yet).
+    """
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER")
+    if not worker_id or not os.environ.get("XDIST_PER_WORKER_SNUBA"):
+        return
+
+    worker_num = int(worker_id.replace("gw", ""))
+    worker_snuba_url = f"http://127.0.0.1:{1230 + worker_num}"
+
+    # Override settings.SENTRY_SNUBA (used by reset_snuba fixture via call_snuba)
+    settings.SENTRY_SNUBA = worker_snuba_url
+
+    # Replace _snuba_pool (used for all Snuba queries and writes)
+    from sentry.net.http import connection_from_url as _cfurl
+    from sentry.utils import snuba as _snuba_mod
+
+    _snuba_mod._snuba_pool = _cfurl(
+        worker_snuba_url,
+        retries=False,
+        timeout=settings.SENTRY_SNUBA_TIMEOUT,
+        maxsize=10,
+    )
 
 
 def pytest_xdist_setupnodes() -> None:
