@@ -5,10 +5,7 @@ import beautify from 'js-beautify';
 import {CodeBlock} from '@sentry/scraps/code';
 
 import {AuthTokenGenerator} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {
-  getSelectedCodeTab,
-  setSelectedCodeTab,
-} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
+import {setSelectedCodeTab} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {PACKAGE_LOADING_PLACEHOLDER} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 interface OnboardingCodeSnippetProps extends Omit<
@@ -105,17 +102,8 @@ export function TabbedCodeSnippet({
   onSelectAndCopy,
 }: TabbedCodeSnippetProps) {
   const [selectedTabValue, setSelectedTabValue] = useState(() => {
-    const contextTab = getSelectedCodeTab();
-    const matched = contextTab ? tabs.find(tab => tab.label === contextTab) : undefined;
-
-    if (matched) {
-      return matched.value;
-    }
-
-    // No match — sync the store to what we're actually showing (first tab)
-    const fallback = tabs[0]!;
-    setSelectedCodeTab(fallback.label);
-    return fallback.value;
+    setSelectedCodeTab(tabs[0]!.label);
+    return tabs[0]!.value;
   });
   const resolvedTab = tabs.find(tab => tab.value === selectedTabValue) ?? tabs[0]!;
   const {code, language, filename} = resolvedTab;
