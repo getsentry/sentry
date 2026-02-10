@@ -105,6 +105,17 @@ class SlugifyInstanceTest(TestCase):
         assert org.slug == "f-o-o"
 
     def test_removes_underscores(self) -> None:
+        # Note: slugify_instance does NOT replace underscores - that's done by callers
+        # who need it (like Organization). This test verifies Django's slugify behavior.
         org = Organization(name="_foo_")
         slugify_instance(org, org.name)
+        # Django's slugify converts underscores to hyphens and strips them
         assert org.slug == "foo"
+
+    def test_strips_leading_hyphens_before_truncation(self) -> None:
+        # Test that leading hyphens are stripped after truncation
+        org = Organization(name="---Long-Name-That-Exceeds-Length")
+        slugify_instance(org, org.name, max_length=30)
+        # Should strip trailing hyphen after truncation
+        assert org.slug == "long-name-that-exceeds-length"
+        assert not org.slug.endswith("-")

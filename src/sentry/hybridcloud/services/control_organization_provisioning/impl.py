@@ -98,7 +98,9 @@ class DatabaseBackedControlOrganizationProvisioningService(
     @staticmethod
     def _generate_org_slug(region_name: str, slug: str) -> str:
         surrogate_org_slug = OrganizationSlugReservation()
-        slugify_instance(surrogate_org_slug, slug, reserved=RESERVED_ORGANIZATION_SLUGS)
+        # Django's slugify() doesn't replace underscores with hyphens, so we need to do it manually
+        # to ensure the slug matches ORG_SLUG_PATTERN which doesn't allow underscores
+        slugify_instance(surrogate_org_slug, slug.replace("_", "-"), reserved=RESERVED_ORGANIZATION_SLUGS)
 
         return surrogate_org_slug.slug
 

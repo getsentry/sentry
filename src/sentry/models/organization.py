@@ -247,6 +247,9 @@ class Organization(ReplicatedRegionModel):
         elif not self.id:
             slugify_target = self.slug
         if slugify_target is not None:
+            # Django's slugify() doesn't replace underscores with hyphens, so we need to do it manually
+            # to ensure the slug matches ORG_SLUG_PATTERN which doesn't allow underscores
+            slugify_target = slugify_target.replace("_", "-")
             lock = locks.get("slug:organization", duration=5, name="organization_slug")
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
