@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import Literal, overload
 
 from sentry.scm.types import CheckRunEvent, CommentEvent, PullRequestEvent
 
@@ -26,6 +27,50 @@ class SourceCodeManagerEventStream:
         self.pull_request_listeners[fn.__name__] = fn
         return fn
 
+    @overload
+    def listen_for(
+        self, event_type: Literal["check_run"]
+    ) -> Callable[[CheckRunEventListener], CheckRunEventListener]: ...
+
+    @overload
+    def listen_for(
+        self, event_type: Literal["comment"]
+    ) -> Callable[[CommentEventListener], CommentEventListener]: ...
+
+    @overload
+    def listen_for(
+        self, event_type: Literal["pull_request"]
+    ) -> Callable[[PullRequestEventListener], PullRequestEventListener]: ...
+
+    def listen_for(self, event_type: str):
+        """
+        Decorator to register a callback for a specific event type.
+
+        Usage:
+            @scm_event_stream.listen_for(event_type="check_run")
+            def handle_check_run(event: CheckRunEvent) -> None:
+                ...
+
+            @scm_event_stream.listen_for(event_type="comment")
+            def handle_comment(event: CommentEvent) -> None:
+                ...
+
+            @scm_event_stream.listen_for(event_type="pull_request")
+            def handle_pr(event: PullRequestEvent) -> None:
+                ...
+        """
+        if event_type == "check_run":
+            return self.listen_for_check_run
+        elif event_type == "comment":
+            return self.listen_for_comment
+        elif event_type == "pull_request":
+            return self.listen_for_pull_request
+        else:
+            raise ValueError(
+                f"Invalid event_type: {event_type}. "
+                f"Must be 'check_run', 'comment', or 'pull_request'"
+            )
+
 
 scm_event_stream = SourceCodeManagerEventStream()
 """
@@ -33,18 +78,19 @@ The source code manager (SCM) event-stream singleton allows developers to listen
 providers such as GitHub and GitLab. Events are mapped into a standard type before being passed to
 registered listeners.
 
-Listeners can be registered by using the `listen_for_*` methods on the `scm_event_stream`]
-singleton.
+Listeners can be registered by using the `listen_for` method on the `scm_event_stream` singleton.
 
 ```
-@scm_event_stream.listen_for_pull_request
-def process_pr_event(event: PullRequestEvent) -> None:
-    # Your custom processing logic goes here.
+@scm_event_stream.listen_for(event_type="check_run")
+def handle_check_run(event: CheckRunEvent) -> None:
     ...
 
-@scm_event_stream.listen_for_comment
-def process_comment_event(event: CommentEvent) -> None:
-    # Your custom processing logic goes here.
+@scm_event_stream.listen_for(event_type="comment")
+def handle_comment(event: CommentEvent) -> None:
+    ...
+
+@scm_event_stream.listen_for(event_type="pull_request")
+def handle_pr(event: PullRequestEvent) -> None:
     ...
 ```
 
