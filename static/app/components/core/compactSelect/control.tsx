@@ -19,12 +19,13 @@ import type {OverlayTriggerState} from '@react-stately/overlays';
 import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Button} from '@sentry/scraps/button';
-import {Input} from '@sentry/scraps/input';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {InputGroup} from '@sentry/scraps/input';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
+import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
@@ -525,16 +526,23 @@ export function Control({
                   </MenuHeader>
                 )}
                 {searchable && (
-                  <SearchInput
-                    ref={searchRef}
-                    placeholder={searchPlaceholder}
-                    value={searchInputValue}
-                    onFocus={onSearchFocus}
-                    onBlur={onSearchBlur}
-                    onChange={e => updateSearch(e.target.value)}
-                    size="xs"
-                    {...searchKeyboardProps}
-                  />
+                  <InputGroup>
+                    <InputGroup.LeadingItems>
+                      <Flex paddingLeft="2xs" align="center" justify="center">
+                        <IconSearch size="xs" variant="muted" />
+                      </Flex>
+                    </InputGroup.LeadingItems>
+                    <SearchInput
+                      ref={searchRef}
+                      placeholder={searchPlaceholder}
+                      value={searchInputValue}
+                      onFocus={onSearchFocus}
+                      onBlur={onSearchBlur}
+                      onChange={e => updateSearch(e.target.value)}
+                      size="xs"
+                      {...searchKeyboardProps}
+                    />
+                  </InputGroup>
                 )}
                 {typeof menuBody === 'function'
                   ? menuBody({closeOverlay: overlayState.close})
@@ -628,7 +636,7 @@ const ClearButton = styled(Button)`
   margin: -${space(0.25)} -${space(0.5)};
 `;
 
-const SearchInput = styled(Input)`
+const SearchInput = styled(InputGroup.Input)`
   appearance: none;
   width: calc(100% - ${space(0.5)} * 2);
   margin: ${space(0.5)} ${space(0.5)};
