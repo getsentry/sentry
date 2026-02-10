@@ -8,6 +8,7 @@ from sentry.dynamic_sampling.rules.base import get_guarded_project_sample_rate
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     _get_segments_org_ids,
+    _partition_orgs_by_measure,
     boost_low_volume_projects,
     boost_low_volume_projects_of_org_with_query,
     fetch_projects_with_total_root_transaction_count_and_rates,
@@ -401,22 +402,27 @@ class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase,
                     ],
                 }
             ):
-                segments_org_ids = _get_segments_org_ids()
-                assert org1.id in segments_org_ids
-                assert org2.id in segments_org_ids
-
                 batches = [[org1.id], [org2.id]]
 
                 for batch in batches:
+                    orgs_by_measure = _partition_orgs_by_measure(batch)
+                    assert orgs_by_measure.get(SamplingMeasure.TRANSACTIONS, []) == []
+                    assert orgs_by_measure.get(SamplingMeasure.SPANS, []) == []
+
                     # Each batch should result in one query for SEGMENTS
                     fetch_projects_with_total_root_transaction_count_and_rates(
-                        org_ids=batch, measure=SamplingMeasure.SEGMENTS
+                        org_ids=orgs_by_measure.get(SamplingMeasure.SEGMENTS, []),
+                        measure=SamplingMeasure.SEGMENTS,
                     )
-                    # TRANSACTIONS should be filtered out (no query needed)
-                    filtered_for_transactions = [
-                        org_id for org_id in batch if org_id not in segments_org_ids
-                    ]
-                    assert filtered_for_transactions == []
+                    # SPANS and TRANSACTIONS partitions are empty, no query needed
+                    fetch_projects_with_total_root_transaction_count_and_rates(
+                        org_ids=orgs_by_measure.get(SamplingMeasure.SPANS, []),
+                        measure=SamplingMeasure.SPANS,
+                    )
+                    fetch_projects_with_total_root_transaction_count_and_rates(
+                        org_ids=orgs_by_measure.get(SamplingMeasure.TRANSACTIONS, []),
+                        measure=SamplingMeasure.TRANSACTIONS,
+                    )
 
             assert mock_query.call_count == 2
 
