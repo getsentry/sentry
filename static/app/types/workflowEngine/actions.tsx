@@ -23,7 +23,6 @@ export interface ActionConfig {
   targetDisplay: string | null;
   targetIdentifier: string | null;
   targetType: ActionTarget | null;
-  sentryAppIdentifier?: SentryAppIdentifier;
 }
 
 export enum ActionTarget {
@@ -55,11 +54,6 @@ export enum ActionGroup {
   NOTIFICATION = 'notification',
   TICKET_CREATION = 'ticket_creation',
   OTHER = 'other',
-}
-
-export enum SentryAppIdentifier {
-  SENTRY_APP_INSTALLATION_UUID = 'sentry_app_installation_uuid',
-  SENTRY_APP_ID = 'sentry_app_id',
 }
 
 export interface ActionHandler {

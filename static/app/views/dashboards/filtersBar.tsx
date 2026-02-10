@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -286,7 +287,7 @@ export default function FiltersBar({
         !isEditingDashboard &&
         !isPreview &&
         !isPrebuiltDashboard && (
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <Button
               title={
                 !hasEditAccess && t('You do not have permission to edit this dashboard')
@@ -311,7 +312,7 @@ export default function FiltersBar({
             >
               {t('Cancel')}
             </Button>
-          </ButtonBar>
+          </Grid>
         )}
       <ToggleOnDemand />
     </Wrapper>

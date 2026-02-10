@@ -203,7 +203,7 @@ export function OwnershipRulesTable({
         })}
       </StyledPanelTable>
       <Flex justify="end">
-        <ButtonBar merged gap="0">
+        <ButtonBar>
           <Button
             icon={<IconChevron direction="left" size="sm" />}
             onClick={() => {

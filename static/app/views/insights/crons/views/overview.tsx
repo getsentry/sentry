@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
@@ -90,7 +91,7 @@ function CronsOverview() {
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <FeedbackButton />
             <Button
               icon={<IconList />}
@@ -110,7 +111,7 @@ function CronsOverview() {
                 {t('Add Cron Monitor')}
               </NewMonitorButton>
             )}
-          </ButtonBar>
+          </Grid>
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>

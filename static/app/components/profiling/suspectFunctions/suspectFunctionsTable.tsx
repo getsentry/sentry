@@ -226,7 +226,7 @@ export function SuspectFunctionsTable({
     <Fragment>
       <Flex justify="between" marginBottom="md">
         <SectionHeading>{t('Suspect Functions')}</SectionHeading>
-        <ButtonBar merged gap="0">
+        <ButtonBar>
           <Button
             icon={<IconChevron direction="left" />}
             aria-label={t('Previous')}
