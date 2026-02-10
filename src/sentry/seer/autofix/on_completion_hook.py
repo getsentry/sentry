@@ -172,7 +172,15 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         if group_id is None:
             return
 
-        group = Group.objects.get(id=group_id)
+        try:
+            group = Group.objects.get(id=group_id)
+        except Group.DoesNotExist:
+            logger.warning(
+                "autofix.supergroup_embedding.group_not_found",
+                extra={"group_id": group_id},
+            )
+            return
+
         if not features.has("projects:supergroup-embeddings-explorer", group.project):
             return
 
