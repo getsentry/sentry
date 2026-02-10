@@ -850,14 +850,14 @@ class QuerysetForQueryTest(APITestCase):
     """Tests for the queryset_for_query, artifact_in_queryset, and artifact_matches_query functions."""
 
     def test_queryset_for_query_empty_query(self) -> None:
-        from sentry.preprod.api.endpoints.builds import queryset_for_query
+        from sentry.preprod.artifact_search import queryset_for_query
 
         artifact = self.create_preprod_artifact(app_id="com.example.app")
         queryset = queryset_for_query("", self.organization)
         assert artifact in queryset
 
     def test_queryset_for_query_with_filter(self) -> None:
-        from sentry.preprod.api.endpoints.builds import queryset_for_query
+        from sentry.preprod.artifact_search import queryset_for_query
 
         artifact1 = self.create_preprod_artifact(app_id="com.example.one")
         self.create_preprod_artifact(app_id="com.example.two")
@@ -868,7 +868,7 @@ class QuerysetForQueryTest(APITestCase):
         assert results[0].id == artifact1.id
 
     def test_queryset_for_query_platform_filter(self) -> None:
-        from sentry.preprod.api.endpoints.builds import queryset_for_query
+        from sentry.preprod.artifact_search import queryset_for_query
         from sentry.preprod.models import PreprodArtifact
 
         ios_artifact = self.create_preprod_artifact(
@@ -885,27 +885,27 @@ class QuerysetForQueryTest(APITestCase):
 
     def test_queryset_for_query_invalid_query(self) -> None:
         from sentry.exceptions import InvalidSearchQuery
-        from sentry.preprod.api.endpoints.builds import queryset_for_query
+        from sentry.preprod.artifact_search import queryset_for_query
 
         with pytest.raises(InvalidSearchQuery):
             queryset_for_query("invalid_key:value", self.organization)
 
     def test_artifact_in_queryset_returns_true(self) -> None:
-        from sentry.preprod.api.endpoints.builds import artifact_in_queryset, queryset_for_query
+        from sentry.preprod.artifact_search import artifact_in_queryset, queryset_for_query
 
         artifact = self.create_preprod_artifact(app_id="com.example.app")
         queryset = queryset_for_query("", self.organization)
         assert artifact_in_queryset(artifact, queryset) is True
 
     def test_artifact_in_queryset_returns_false(self) -> None:
-        from sentry.preprod.api.endpoints.builds import artifact_in_queryset, queryset_for_query
+        from sentry.preprod.artifact_search import artifact_in_queryset, queryset_for_query
 
         artifact = self.create_preprod_artifact(app_id="com.example.one")
         queryset = queryset_for_query("app_id:com.example.two", self.organization)
         assert artifact_in_queryset(artifact, queryset) is False
 
     def test_artifact_in_queryset_with_filtered_queryset(self) -> None:
-        from sentry.preprod.api.endpoints.builds import artifact_in_queryset, queryset_for_query
+        from sentry.preprod.artifact_search import artifact_in_queryset, queryset_for_query
 
         artifact1 = self.create_preprod_artifact(app_id="foo")
         artifact2 = self.create_preprod_artifact(app_id="bar")
@@ -915,13 +915,13 @@ class QuerysetForQueryTest(APITestCase):
         assert artifact_in_queryset(artifact2, queryset) is False
 
     def test_artifact_matches_query_returns_true(self) -> None:
-        from sentry.preprod.api.endpoints.builds import artifact_matches_query
+        from sentry.preprod.artifact_search import artifact_matches_query
 
         artifact = self.create_preprod_artifact(app_id="com.example.app")
         assert artifact_matches_query(artifact, "app_id:com.example.app", self.organization) is True
 
     def test_artifact_matches_query_returns_false(self) -> None:
-        from sentry.preprod.api.endpoints.builds import artifact_matches_query
+        from sentry.preprod.artifact_search import artifact_matches_query
 
         artifact = self.create_preprod_artifact(app_id="com.example.one")
         assert (
@@ -929,13 +929,13 @@ class QuerysetForQueryTest(APITestCase):
         )
 
     def test_artifact_matches_query_empty_query(self) -> None:
-        from sentry.preprod.api.endpoints.builds import artifact_matches_query
+        from sentry.preprod.artifact_search import artifact_matches_query
 
         artifact = self.create_preprod_artifact(app_id="com.example.app")
         assert artifact_matches_query(artifact, "", self.organization) is True
 
     def test_artifact_matches_query_complex_filter(self) -> None:
-        from sentry.preprod.api.endpoints.builds import artifact_matches_query
+        from sentry.preprod.artifact_search import artifact_matches_query
         from sentry.preprod.models import PreprodArtifact
 
         cc = self.create_commit_comparison(
@@ -962,7 +962,7 @@ class QuerysetForQueryTest(APITestCase):
         )
 
     def test_artifact_matches_query_with_numeric_filter(self) -> None:
-        from sentry.preprod.api.endpoints.builds import artifact_matches_query
+        from sentry.preprod.artifact_search import artifact_matches_query
 
         artifact = self.create_preprod_artifact(build_number=100)
 
@@ -971,14 +971,14 @@ class QuerysetForQueryTest(APITestCase):
 
     def test_artifact_matches_query_invalid_query(self) -> None:
         from sentry.exceptions import InvalidSearchQuery
-        from sentry.preprod.api.endpoints.builds import artifact_matches_query
+        from sentry.preprod.artifact_search import artifact_matches_query
 
         artifact = self.create_preprod_artifact()
         with pytest.raises(InvalidSearchQuery):
             artifact_matches_query(artifact, "invalid_key:value", self.organization)
 
     def test_artifact_matches_query_free_text_search(self) -> None:
-        from sentry.preprod.api.endpoints.builds import artifact_matches_query
+        from sentry.preprod.artifact_search import artifact_matches_query
 
         artifact = self.create_preprod_artifact(app_id="com.example.myapp")
 
@@ -986,7 +986,7 @@ class QuerysetForQueryTest(APITestCase):
         assert artifact_matches_query(artifact, "nonexistent", self.organization) is False
 
     def test_artifact_matches_query_installable_filter(self) -> None:
-        from sentry.preprod.api.endpoints.builds import artifact_matches_query
+        from sentry.preprod.artifact_search import artifact_matches_query
 
         non_installable = self.create_preprod_artifact(app_id="not_installable")
         installable = self.create_preprod_artifact(
