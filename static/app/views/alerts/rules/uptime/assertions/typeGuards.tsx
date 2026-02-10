@@ -1,5 +1,6 @@
 import type {
   AndOp,
+  GroupOp,
   HeaderCheckOp,
   JsonPathOp,
   NotOp,
@@ -14,6 +15,10 @@ export function isAndOp(value: Op): value is AndOp {
 
 export function isOrOp(value: Op): value is OrOp {
   return value.op === 'or';
+}
+
+export function isGroupOp(value: Op): value is GroupOp {
+  return isAndOp(value) || isOrOp(value);
 }
 
 export function isNotOp(value: Op): value is NotOp {
