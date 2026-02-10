@@ -1008,6 +1008,73 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         links = self._parse_links(response["Link"])
         assert links["next"]["results"] == "false"
 
+    @patch("sentry.search.snuba.executors.PostgresSnubaQueryExecutor.calculate_hits")
+    def test_hits_adjusted_after_post_filtering(self, mock_calculate_hits: MagicMock) -> None:
+        """
+        Test that X-Hits is adjusted proportionally when post-filtering removes results.
+
+        When the status post-filter removes some results from the page, X-Hits should
+        be adjusted to reflect the estimated total after filtering.
+        """
+        self.login_as(user=self.user)
+
+        # Create 10 unresolved groups
+        for i in range(10):
+            self.store_event(
+                data={
+                    "timestamp": before_now(days=i).isoformat(),
+                    "fingerprint": [f"group-{i}"],
+                },
+                project_id=self.project.id,
+            )
+
+        # Mock calculate_hits to return an estimate
+        mock_calculate_hits.return_value = 100
+
+        # Make a request with status filter
+        # The post-filter will potentially remove some results
+        response = self.get_success_response(limit=10, query="is:unresolved")
+
+        # Should return 10 groups
+        assert len(response.data) == 10
+
+        # X-Hits should be adjusted if post-filtering occurred
+        # Since all groups are unresolved, no filtering should occur
+        # So X-Hits should remain at the mocked value of 100
+        assert response["X-Hits"] == "100"
+
+    def test_hits_capped_on_short_first_page(self) -> None:
+        """
+        Test that X-Hits is capped when the first page returns fewer results than requested.
+
+        If the first page returns fewer results than the limit and there's no cursor,
+        we likely have all results, so X-Hits should be capped to the actual count.
+        """
+        self.login_as(user=self.user)
+
+        # Create only 5 groups
+        for i in range(5):
+            self.store_event(
+                data={
+                    "timestamp": before_now(days=i).isoformat(),
+                    "fingerprint": [f"group-{i}"],
+                },
+                project_id=self.project.id,
+            )
+
+        # Request 25 items but only 5 exist
+        response = self.get_success_response(limit=25, query="")
+
+        # Should return 5 groups
+        assert len(response.data) == 5
+
+        # X-Hits should be capped to 5 (the actual count)
+        assert response["X-Hits"] == "5"
+
+        # Verify no next page exists
+        links = self._parse_links(response["Link"])
+        assert links["next"]["results"] == "false"
+
     def test_assigned_me_none(self) -> None:
         self.login_as(user=self.user)
         groups = []

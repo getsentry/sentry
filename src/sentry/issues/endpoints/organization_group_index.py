@@ -385,21 +385,36 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             for search_filter in query_kwargs.get("search_filters", [])
             if search_filter.key.name == "status" and search_filter.operator in EQUALITY_OPERATORS
         ]
+        pre_filter_count = len(context)
         if status and (GroupStatus.UNRESOLVED in status[0].value.raw_value):
             status_labels = {QUERY_STATUS_LOOKUP[s] for s in status[0].value.raw_value}
             context = [r for r in context if "status" not in r or r["status"] in status_labels]
+        post_filter_count = len(context)
 
-        # Sanity check: if we're on the first and last page with no more results,
-        # the estimated hits from sampling may be too high due to Snuba/Postgres
-        # data inconsistency. Cap hits to match the actual number of results.
-        if (
-            cursor_result.hits is not None
-            and cursor_result.next.has_results is False
-            and not request.GET.get("cursor")
-        ):
-            actual_count = len(context)
-            if cursor_result.hits > actual_count:
-                cursor_result.hits = actual_count
+        # Adjust X-Hits to account for post-filtering
+        # If post-filtering removed items, we need to adjust the hit count proportionally
+        if cursor_result.hits is not None and pre_filter_count > 0 and post_filter_count < pre_filter_count:
+            # Calculate the filter ratio and apply it to the total hits
+            filter_ratio = post_filter_count / pre_filter_count
+            adjusted_hits = int(cursor_result.hits * filter_ratio)
+            # Don't increase hits, only decrease if filtering occurred
+            cursor_result.hits = min(cursor_result.hits, adjusted_hits)
+
+        # Sanity check: Cap X-Hits to actual results count when appropriate
+        # This handles cases where sampling overestimated or post-filtering reduced results
+        if cursor_result.hits is not None:
+            # If we're on the first page with no cursor
+            if not request.GET.get("cursor"):
+                # And there are no more results after this page
+                if cursor_result.next.has_results is False:
+                    # Cap hits to actual count (all results fit on one page)
+                    if cursor_result.hits > post_filter_count:
+                        cursor_result.hits = post_filter_count
+                # Or if we got fewer results than requested even though we asked for count_hits
+                # This indicates the search backend didn't have enough results to fill the page
+                elif post_filter_count < query_kwargs.get("limit", 100):
+                    # We likely have all results, so cap to actual count
+                    cursor_result.hits = post_filter_count
 
         response = Response(context)
 
