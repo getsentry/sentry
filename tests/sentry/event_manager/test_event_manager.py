@@ -3485,7 +3485,7 @@ class ReleaseIssueTest(TestCase):
         release = Release.objects.get(
             organization=event.project.organization.id, version=event.get_tag("sentry:release")
         )
-        
+
         # Process the buffer to flush new_issues_count to the database
         # This is necessary because new_issues_count is incremented via buffer_incr
         # in event_manager.py and may not be flushed to the database yet
@@ -3498,7 +3498,7 @@ class ReleaseIssueTest(TestCase):
                 "environment_id": event.get_environment().id,
             },
         )
-        
+
         release_project_envs = ReleaseProjectEnvironment.objects.filter(
             release=release, project=event.project, environment=event.get_environment()
         )
