@@ -17,7 +17,9 @@ def bulk_fetch_enabled_detectors(source_id: str, query_type: str) -> list[Detect
     """
 
     try:
-        data_source = DataSource.objects.select_related("organization").get(source_id=source_id)
+        data_source = DataSource.objects.select_related("organization").get(
+            source_id=source_id, type=query_type
+        )
         organization = data_source.organization
     except DataSource.DoesNotExist:
         logger.warning(

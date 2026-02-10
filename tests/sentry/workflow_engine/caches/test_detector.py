@@ -47,6 +47,15 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         result = bulk_fetch_enabled_detectors("nonexistent", "test")
         assert result == []
 
+    def test_get_detectors_by_data_source__wrong_type(self) -> None:
+        detector = self.create_detector(project=self.project, name="Test Detector")
+        data_source = self.create_data_source(source_id="12345", type="test")
+        data_source.detectors.set([detector])
+
+        # Query with wrong type should not find the data source
+        result = bulk_fetch_enabled_detectors("12345", "wrong_type")
+        assert result == []
+
     @with_feature("organizations:cache-detectors-by-data-source")
     def test_get_detectors_by_data_source__filters_disabled(self) -> None:
         detector1 = self.create_detector(
