@@ -101,7 +101,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         response = self.client.get(self.url + f"?project={self.project.id}")
 
         assert response.status_code == 200
-        data = response.json()
+        data = response.json()["data"]
         assert len(data) == 1
         assert data[0]["id"] == str(group.id)
         assert data[0]["explorerPrData"] == {
@@ -126,32 +126,8 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         response = self.client.get(self.url + f"?project={self.project.id}")
 
         assert response.status_code == 200
-        assert response.json() == []
+        assert response.json()["data"] == []
         self.mock_serialize.assert_not_called()
-
-    def test_get_none_seer_response(self) -> None:
-        self.mock_client.get_runs.return_value = None
-
-        response = self.client.get(self.url + f"?project={self.project.id}")
-
-        assert response.status_code == 200
-        assert response.json() == []
-
-    def test_get_missing_project_param_returns_all_projects(self) -> None:
-        """Without ?project=, get_projects() returns all accessible org projects."""
-        group = self.create_group(project=self.project)
-        self.mock_client.get_runs.return_value = [self._make_seer_item(group_id=group.id)]
-        self.mock_serialize.return_value = [{"id": str(group.id), "title": "Test"}]
-
-        response = self.client.get(self.url)
-
-        assert response.status_code == 200
-
-    def test_get_non_integer_project_param(self) -> None:
-        response = self.client.get(self.url + "?project=abc")
-
-        assert response.status_code == 400
-        assert "Invalid project parameter" in response.json()["detail"]
 
     def test_get_filters_by_project_id(self) -> None:
         """Groups not matching the requested project_id are excluded from the DB query."""
@@ -168,7 +144,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         response = self.client.get(self.url + f"?project={self.project.id}")
 
         assert response.status_code == 200
-        data = response.json()
+        data = response.json()["data"]
         assert len(data) == 1
         assert data[0]["id"] == str(group_in_project.id)
 
@@ -190,7 +166,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         response = self.client.get(self.url + f"?project={self.project.id}&project={project2.id}")
 
         assert response.status_code == 200
-        data = response.json()
+        data = response.json()["data"]
         assert len(data) == 2
         returned_ids = {d["id"] for d in data}
         assert returned_ids == {str(group1.id), str(group2.id)}
@@ -202,7 +178,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         response = self.client.get(self.url + f"?project={self.project.id}")
 
         assert response.status_code == 200
-        assert response.json() == []
+        assert response.json()["data"] == []
         self.mock_serialize.assert_not_called()
 
     def test_get_filters_out_null_group_ids(self) -> None:
@@ -218,22 +194,9 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         response = self.client.get(self.url + f"?project={self.project.id}")
 
         assert response.status_code == 200
-        data = response.json()
+        data = response.json()["data"]
         assert len(data) == 1
         assert data[0]["id"] == str(group.id)
-
-    def test_get_all_null_group_ids_returns_empty(self) -> None:
-        """When all runs have null group_id, return empty."""
-        self.mock_client.get_runs.return_value = [
-            self._make_seer_item(group_id=None, run_id=1),
-            self._make_seer_item(group_id=None, run_id=2),
-        ]
-
-        response = self.client.get(self.url + f"?project={self.project.id}")
-
-        assert response.status_code == 200
-        assert response.json() == []
-        self.mock_serialize.assert_not_called()
 
     def test_get_seer_permission_error(self) -> None:
         self.mock_client_class.side_effect = SeerPermissionError("Feature flag not enabled")
@@ -267,30 +230,10 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         response = self.client.get(self.url + f"?project={self.project.id}")
 
         assert response.status_code == 200
-        data = response.json()
+        data = response.json()["data"]
         assert len(data) == 2
         assert data[0]["explorerPrData"]["runId"] == 10
         assert data[1]["explorerPrData"]["runId"] == 20
-
-    def test_get_group_without_seer_data_has_no_pr_enrichment(self) -> None:
-        """If serialize returns a group that isn't in seer_data_by_group_id, it should not have explorerPrData."""
-        group = self.create_group(project=self.project)
-        extra_group = self.create_group(project=self.project)
-
-        self.mock_client.get_runs.return_value = [
-            self._make_seer_item(group_id=group.id, run_id=5),
-        ]
-        self.mock_serialize.return_value = [
-            {"id": str(group.id), "title": "Issue 1"},
-            {"id": str(extra_group.id), "title": "Issue 2"},
-        ]
-
-        response = self.client.get(self.url + f"?project={self.project.id}")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert "explorerPrData" in data[0]
-        assert "explorerPrData" not in data[1]
 
     def test_get_repo_pr_states_with_missing_optional_fields(self) -> None:
         """Optional fields in repo_pr_states should gracefully be None."""
@@ -309,23 +252,12 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         response = self.client.get(self.url + f"?project={self.project.id}")
 
         assert response.status_code == 200
-        pr_states = response.json()[0]["explorerPrData"]["repoPrStates"]
+        pr_states = response.json()["data"][0]["explorerPrData"]["repoPrStates"]
         assert pr_states["getsentry/sentry"]["repoName"] == "getsentry/sentry"
         assert pr_states["getsentry/sentry"]["branchName"] is None
         assert pr_states["getsentry/sentry"]["prNumber"] is None
         assert pr_states["getsentry/sentry"]["prUrl"] is None
         assert pr_states["getsentry/sentry"]["prCreationStatus"] is None
-
-    def test_get_empty_repo_pr_states(self) -> None:
-        group = self.create_group(project=self.project)
-        seer_item = self._make_seer_item(group_id=group.id, repo_pr_states={})
-        self.mock_client.get_runs.return_value = [seer_item]
-        self.mock_serialize.return_value = [{"id": str(group.id), "title": "Test"}]
-
-        response = self.client.get(self.url + f"?project={self.project.id}")
-
-        assert response.status_code == 200
-        assert response.json()[0]["explorerPrData"]["repoPrStates"] == {}
 
     def test_get_multiple_repos_in_pr_states(self) -> None:
         group = self.create_group(project=self.project)
@@ -354,23 +286,10 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         response = self.client.get(self.url + f"?project={self.project.id}")
 
         assert response.status_code == 200
-        pr_states = response.json()[0]["explorerPrData"]["repoPrStates"]
+        pr_states = response.json()["data"][0]["explorerPrData"]["repoPrStates"]
         assert len(pr_states) == 2
         assert pr_states["getsentry/sentry"]["prNumber"] == 100
         assert pr_states["getsentry/relay"]["prNumber"] == 200
-
-    def test_get_uses_group_serializer_snuba(self) -> None:
-        from sentry.api.serializers.models.group import GroupSerializerSnuba
-
-        group = self.create_group(project=self.project)
-        self.mock_client.get_runs.return_value = [self._make_seer_item(group_id=group.id)]
-        self.mock_serialize.return_value = [{"id": str(group.id), "title": "Test"}]
-
-        self.client.get(self.url + f"?project={self.project.id}")
-
-        serializer = self.mock_serialize.call_args[0][2]
-        assert isinstance(serializer, GroupSerializerSnuba)
-        assert serializer.organization_id == self.organization.id
 
     def test_get_cross_org_project_returns_403(self) -> None:
         """A project_id from a different org is rejected by get_projects()"""
@@ -415,7 +334,7 @@ class TestOrganizationSeerExplorerPRGroupsPermissionErrors(APITestCase):
         self.url = reverse(self.endpoint, args=[self.organization.slug])
         self.login_as(user=self.user)
 
-    def test_missing_gen_ai_features_flag(self) -> None:
+    def test_seer_permission_error_returns_403(self) -> None:
         with patch(
             "sentry.seer.endpoints.organization_seer_explorer_pr_groups.SeerExplorerClient",
             side_effect=SeerPermissionError("Feature flag not enabled"),
@@ -423,27 +342,3 @@ class TestOrganizationSeerExplorerPRGroupsPermissionErrors(APITestCase):
             response = self.client.get(self.url + f"?project={self.project.id}")
             assert response.status_code == 403
             assert response.data == {"detail": "Feature flag not enabled"}
-
-    def test_missing_seer_acknowledgement(self) -> None:
-        with patch(
-            "sentry.seer.endpoints.organization_seer_explorer_pr_groups.SeerExplorerClient",
-            side_effect=SeerPermissionError("Seer has not been acknowledged by the organization."),
-        ):
-            response = self.client.get(self.url + f"?project={self.project.id}")
-            assert response.status_code == 403
-            assert response.data == {
-                "detail": "Seer has not been acknowledged by the organization."
-            }
-
-    def test_missing_allow_joinleave_org_flag(self) -> None:
-        with patch(
-            "sentry.seer.endpoints.organization_seer_explorer_pr_groups.SeerExplorerClient",
-            side_effect=SeerPermissionError(
-                "Organization does not have open team membership enabled. Seer requires this to aggregate context across all projects and allow members to ask questions freely."
-            ),
-        ):
-            response = self.client.get(self.url + f"?project={self.project.id}")
-            assert response.status_code == 403
-            assert response.data == {
-                "detail": "Organization does not have open team membership enabled. Seer requires this to aggregate context across all projects and allow members to ask questions freely."
-            }

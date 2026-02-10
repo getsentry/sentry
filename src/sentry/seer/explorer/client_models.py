@@ -270,23 +270,8 @@ class ExplorerRun(BaseModel):
         extra = "allow"
 
 
-class ExplorerRepoPRState(BaseModel):
-    """Tracks PR state for a single repository."""
-
-    repo_name: str
-    branch_name: str | None = None
-    pr_number: int | None = None
-    pr_url: str | None = None
-    pr_id: int | None = None
-    commit_sha: str | None = None  # The commit SHA on the PR branch
-    pr_creation_status: Literal["creating", "completed", "error"] | None = None
-    pr_creation_error: str | None = None  # Error message if pr_creation_status == "error"
-    title: str | None = None
-    description: str | None = None
-
-
 class ExplorerRunWithPrs(ExplorerRun):
     """A single Explorer run record with PR metadata."""
 
     group_id: int | None = None
-    repo_pr_states: dict[str, ExplorerRepoPRState] | None = None
+    repo_pr_states: dict[str, RepoPRState] | None = None

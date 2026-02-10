@@ -48,7 +48,7 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
 
         start, end = get_date_range_from_stats_period(request.GET, optional=True)
 
-        def _make_seer_runs_request(offset: int, limit: int) -> list[dict]:
+        def _make_seer_runs_request(offset: int, limit: int) -> dict[str, list[dict]]:
             try:
                 client = SeerExplorerClient(organization, request.user)
                 seer_data = client.get_runs(
@@ -58,7 +58,7 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
                 raise PermissionDenied(e.message) from e
 
             if not seer_data:
-                return []
+                return {"data": []}
 
             # Convert Pydantic models to dicts for consistent access downstream
             runs = [run.dict() for run in seer_data]
@@ -67,7 +67,7 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
             runs = [item for item in runs if item.get("group_id") is not None]
 
             if not runs:
-                return []
+                return {"data": []}
 
             group_ids = [item["group_id"] for item in runs]
             qs = Group.objects.filter(id__in=group_ids, project_id__in=project_ids)
@@ -78,7 +78,7 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
             groups = list(qs)
 
             if not groups:
-                return []
+                return {"data": []}
 
             serialized_groups = serialize(
                 groups,
@@ -113,7 +113,7 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
                         },
                     }
 
-            return serialized_groups
+            return {"data": serialized_groups}
 
         return self.paginate(
             request=request,

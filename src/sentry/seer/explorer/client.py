@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Literal
+from typing import Any, Literal, overload
 
 import orjson
 import requests
@@ -422,6 +422,28 @@ class SeerExplorerClient:
 
         return state
 
+    @overload
+    def get_runs(
+        self,
+        category_key: str | None = ...,
+        category_value: str | None = ...,
+        offset: int | None = ...,
+        limit: int | None = ...,
+        expand: Literal["prs"] = ...,
+        only_current_user: bool = ...,
+    ) -> list[ExplorerRunWithPrs]: ...
+
+    @overload
+    def get_runs(
+        self,
+        category_key: str | None = ...,
+        category_value: str | None = ...,
+        offset: int | None = ...,
+        limit: int | None = ...,
+        expand: None = ...,
+        only_current_user: bool = ...,
+    ) -> list[ExplorerRun]: ...
+
     def get_runs(
         self,
         category_key: str | None = None,
@@ -434,9 +456,6 @@ class SeerExplorerClient:
         """
         Get a list of Seer Explorer runs for the organization with optional filters.
 
-        This function supports flexible filtering by user_id (from client), category_key,
-        or category_value. At least one filter should be provided to avoid returning all runs.
-
         Args:
             category_key: Optional category key to filter by (e.g., "bug-fixer")
             category_value: Optional category value to filter by (e.g., "issue-123")
@@ -446,7 +465,8 @@ class SeerExplorerClient:
             only_current_user: Optional to filter runs by current user
 
         Returns:
-            list[ExplorerRun]: List of runs matching the filters, sorted by most recent first and expand is None or list[ExplorerRunWithPrs] with expand="prs"
+            List of runs matching the filters, sorted by most recent first.
+            Returns ExplorerRunWithPrs when expand="prs", ExplorerRun otherwise.
 
         Raises:
             requests.HTTPError: If the Seer API request fails
