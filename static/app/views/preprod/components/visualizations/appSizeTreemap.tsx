@@ -179,7 +179,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       path: element.path,
       category: element.type,
       misc: element.misc,
-      flaggedInsights: element.flagged_insights,
+      flagged_insights: element.flagged_insights,
       itemStyle: {
         color: 'transparent',
         borderColor,
@@ -357,7 +357,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         ? `<span style="font-size: 10px; background-color: ${theme.tokens.background.secondary}; color: ${theme.tokens.content.primary}; padding: 4px; border-radius: 3px; font-weight: normal;">@${params.data.misc.scale}x</span>`
         : '';
       const flaggedInsights: Array<string | {key: string; savings: number}> =
-        params.data?.flaggedInsights || [];
+        params.data?.flagged_insights ?? [];
       const insightBadgesHtml =
         flaggedInsights.length > 0
           ? `<div style="display: flex; flex-direction: column; gap: 4px; padding-top: 8px;">
