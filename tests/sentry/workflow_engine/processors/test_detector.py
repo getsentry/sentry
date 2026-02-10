@@ -1099,6 +1099,21 @@ class TestAssociateNewGroupWithDetector(TestCase):
         assert detector_group.detector_id is None
         assert detector_group.group_id == group.id
 
+    @patch("sentry.workflow_engine.processors.detector.metrics")
+    def test_error_group_with_missing_error_detector(self, mock_metrics: MagicMock) -> None:
+        group = self.create_group(project=self.project, type=ErrorGroupType.type_id)
+        self.error_detector.delete()
+
+        with self.options({"workflow_engine.associate_error_detectors": True}):
+            # Should return False and not raise an exception
+            assert not associate_new_group_with_detector(group)
+            assert not DetectorGroup.objects.filter(group_id=group.id).exists()
+
+        mock_metrics.incr.assert_called_once_with(
+            "workflow_engine.associate_new_group_with_detector",
+            tags={"group_type": group.type, "result": "error_detector_not_found"},
+        )
+
 
 class TestEnsureAssociationWithDetector(TestCase):
     def setUp(self) -> None:

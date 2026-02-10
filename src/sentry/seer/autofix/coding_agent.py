@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import secrets
 import string
+from typing import Any
 
 import orjson
 from django.conf import settings
@@ -465,15 +466,17 @@ def launch_coding_agents_for_run(
 
 
 def poll_github_copilot_agents(
-    autofix_state: AutofixState,
-    user_id: int,
+    autofix_state: AutofixState | None = None,
+    user_id: int = 0,
+    coding_agents: dict[str, Any] | None = None,
 ) -> None:
-    if not autofix_state.coding_agents:
+    agents = coding_agents or (autofix_state.coding_agents if autofix_state else None)
+    if not agents:
         return
 
     user_access_token: str | None = None
 
-    for agent_id, agent_state in autofix_state.coding_agents.items():
+    for agent_id, agent_state in agents.items():
         if agent_state.provider != CodingAgentProviderType.GITHUB_COPILOT_AGENT:
             continue
 

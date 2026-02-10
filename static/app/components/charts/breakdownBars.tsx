@@ -88,8 +88,8 @@ const Bar = styled('div')<{active?: boolean}>`
   border-radius: 2px;
   background-color: ${p =>
     p.active
-      ? p.theme.tokens.background.transparent.accent.muted
-      : p.theme.tokens.border.primary};
+      ? p.theme.tokens.dataviz.semantic.accent
+      : p.theme.tokens.dataviz.semantic.neutral};
   position: absolute;
   top: 0;
   left: 0;

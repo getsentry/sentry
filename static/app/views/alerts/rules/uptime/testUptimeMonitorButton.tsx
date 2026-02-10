@@ -32,6 +32,12 @@ interface TestUptimeMonitorButtonProps {
    */
   label?: string;
   /**
+   * Called when the preview check returns a validation error (e.g. assertion
+   * compilation errors). Receives the parsed response JSON so callers can
+   * surface the errors on form fields.
+   */
+  onValidationError?: (responseJson: any) => void;
+  /**
    * Button size
    */
   size?: ButtonProps['size'];
@@ -40,6 +46,7 @@ interface TestUptimeMonitorButtonProps {
 export function TestUptimeMonitorButton({
   getFormData,
   label,
+  onValidationError,
   size,
 }: TestUptimeMonitorButtonProps) {
   const organization = useOrganization();
@@ -62,8 +69,12 @@ export function TestUptimeMonitorButton({
         addErrorMessage(t('Uptime check failed'));
       }
     },
-    onError: () => {
-      addErrorMessage(t('Uptime check failed'));
+    onError: (error: RequestError) => {
+      if (onValidationError && error.status === 400 && error.responseJSON) {
+        onValidationError(error.responseJSON);
+      } else {
+        addErrorMessage(t('Uptime check failed'));
+      }
     },
   });
 

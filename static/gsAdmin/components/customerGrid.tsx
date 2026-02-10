@@ -81,7 +81,7 @@ function CustomerGrid(props: Props) {
   return (
     <ResultGrid
       inPanel
-      isRegional
+      isCellScoped
       path="/_admin/customers/"
       method="GET"
       columns={[

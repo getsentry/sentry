@@ -190,6 +190,7 @@ export const LogsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
+  defaultCategoryField: 'severity',
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
@@ -208,6 +209,7 @@ export const LogsConfig: DatasetConfig<
     DisplayType.AREA,
     DisplayType.BAR,
     DisplayType.BIG_NUMBER,
+    DisplayType.CATEGORICAL_BAR,
     DisplayType.LINE,
     DisplayType.TABLE,
     DisplayType.TOP_N,
