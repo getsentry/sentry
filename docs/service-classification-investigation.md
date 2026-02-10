@@ -1378,3 +1378,64 @@ change to what's being tested.
 **Takeaway**: xdist doesn't just speed up tests — it exposes hidden shared-state assumptions.
 Tests that "work" single-threaded may be relying on a clean global environment rather than
 properly isolating their inputs. This is a valuable side-effect of parallelization.
+
+### Iteration 10: Relay Test Performance — Container Restart Per Test
+
+#### Problem
+
+Timing analysis of the hybrid CI run showed tier2-serial as the bottleneck (14m wall clock).
+The slowest tests are all `relay_integration/` tests at 12-18s each. With ~100 relay tests
+forced to serial, they dominate the serial tier's runtime.
+
+#### Root Cause: `relay_server` Fixture is Function-Scoped
+
+The `relay_server` fixture (`src/sentry/testutils/pytest/relay.py:130`) is `scope="function"`,
+meaning **every single relay test** pays the full Docker container lifecycle cost:
+
+1. Stop + kill + remove existing container (`_remove_container_if_exists`)
+2. Start a new Relay Docker container (`docker_client.containers.run`)
+3. Wait for health check (exponential backoff up to ~25s: `0.1 * 2^i` for i=0..7)
+4. Run the actual test (send event → Kafka pipeline → poll ClickHouse)
+5. Leave container running (cleanup deferred to module-scoped `relay_server_setup`)
+
+Steps 1-3 account for ~10s of the 12-18s per test.
+
+The `relay_server_setup` fixture (module-scoped) only generates config files and reserves a
+port. The actual container start/stop happens in `relay_server` (function-scoped).
+
+#### Analysis: Is the Function Scope Necessary?
+
+Relay is configured in `managed` mode and caches project configs (fetched from Sentry's API
+or Redis). The concern would be stale cached configs leaking between tests. However:
+
+1. **`TransactionTestCase` creates fresh projects each test.** Each test gets a new
+   `self.project` with a unique `project_id`. Relay has never seen this project ID before,
+   so it fetches a fresh config — no stale cache issue.
+
+2. **Events are keyed by project ID.** `post_and_retrieve_event` sends to
+   `relay_store_url(self.project.id)` and queries `eventstore.get_event_by_id(self.project.id,
+   event_id)`. Different tests use different project IDs — no cross-test contamination.
+
+3. **Filter tests modify `ProjectOption` on new projects.** `FilterTests._set_filter_state`
+   writes to `self.project` (fresh each test). Relay fetches config for the new project ID
+   on first request — it doesn't carry over the previous test's filter settings.
+
+4. **Trusted relay tests call `invalidate_project_config`** explicitly. The config is
+   pushed to Redis and Relay picks it up for the specific project.
+
+5. **Rate limiters are per-project-key**, not global. A new project = new rate limit state.
+
+**Conclusion:** The function-scoped container restart appears to be defensive programming,
+not a functional requirement. The per-test project isolation from `TransactionTestCase`
+already prevents state leaks. Relay has no global mutable state that would carry between
+tests using different project IDs.
+
+#### Experiment: Change to Class Scope
+
+Changing `relay_server` to `scope="class"` starts the container once per test class instead
+of once per function. Since all relay tests are organized into classes (`SentryRemoteTest`,
+`FilterTests`, `BasicResolvingIntegrationTest`), this eliminates ~10s of Docker overhead
+per test within each class.
+
+Estimated savings: ~100 relay tests × ~10s container restart = ~16 minutes of test time
+saved across the serial tier (though actual impact depends on class sizes and sharding).

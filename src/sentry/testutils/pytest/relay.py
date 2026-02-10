@@ -127,9 +127,16 @@ def relay_server_setup(live_server, tmpdir_factory):
             _remove_container_if_exists(docker_client, container_name)
 
 
-@pytest.fixture(scope="function")
-def relay_server(relay_server_setup, settings):
-    adjust_settings_for_relay_tests(settings)
+@pytest.fixture(scope="class")
+def relay_server(relay_server_setup):
+    # Class-scoped: start the Relay Docker container once per test class instead of
+    # per function. This saves ~10s of container lifecycle overhead per test.
+    # Safe because TransactionTestCase creates fresh projects (unique project_id) per
+    # test, so Relay has no stale cached config — it fetches fresh config on first
+    # request for each new project ID.
+    #
+    # Note: settings adjustment moved to _relay_settings (function-scoped) so that
+    # Django settings are properly restored per test by pytest-django.
     options = relay_server_setup["options"]
     with get_docker_client() as docker_client:
         container_name = _relay_server_container_name()
@@ -185,7 +192,17 @@ def adjust_settings_for_relay_tests(settings):
 
 
 @pytest.fixture
-def get_relay_store_url(relay_server):
+def _relay_adjust_settings(relay_server, settings):
+    """Function-scoped fixture that adjusts Django settings for relay tests.
+
+    Separated from relay_server (class-scoped) so that pytest-django properly
+    restores settings after each test while the Relay container stays running.
+    """
+    adjust_settings_for_relay_tests(settings)
+
+
+@pytest.fixture
+def get_relay_store_url(relay_server, _relay_adjust_settings):
     def inner(project_id):
         return "{}/api/{}/store/".format(relay_server["url"], project_id)
 
@@ -193,7 +210,7 @@ def get_relay_store_url(relay_server):
 
 
 @pytest.fixture
-def get_relay_security_url(relay_server):
+def get_relay_security_url(relay_server, _relay_adjust_settings):
     def inner(project_id, key):
         return "{}/api/{}/security/?sentry_key={}".format(relay_server["url"], project_id, key)
 
@@ -201,7 +218,7 @@ def get_relay_security_url(relay_server):
 
 
 @pytest.fixture
-def get_relay_minidump_url(relay_server):
+def get_relay_minidump_url(relay_server, _relay_adjust_settings):
     def inner(project_id, key):
         return "{}/api/{}/minidump/?sentry_key={}".format(relay_server["url"], project_id, key)
 
@@ -209,7 +226,7 @@ def get_relay_minidump_url(relay_server):
 
 
 @pytest.fixture
-def get_relay_unreal_url(relay_server):
+def get_relay_unreal_url(relay_server, _relay_adjust_settings):
     def inner(project_id, key):
         return "{}/api/{}/unreal/{}/".format(relay_server["url"], project_id, key)
 
@@ -217,7 +234,7 @@ def get_relay_unreal_url(relay_server):
 
 
 @pytest.fixture
-def get_relay_attachments_url(relay_server):
+def get_relay_attachments_url(relay_server, _relay_adjust_settings):
     def inner(project_id, event_id):
         return "{}/api/{}/events/{}/attachments/".format(relay_server["url"], project_id, event_id)
 
