@@ -3,8 +3,8 @@ import moment from 'moment-timezone';
 
 import {defined} from 'sentry/utils';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
@@ -99,6 +99,9 @@ function useMetricsQueryKey({
     if (traceMetric) {
       newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_NAME, traceMetric.name);
       newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_TYPE, traceMetric.type);
+      if (traceMetric.unit) {
+        newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_UNIT, traceMetric.unit);
+      }
     }
 
     return newSearch.formatString();

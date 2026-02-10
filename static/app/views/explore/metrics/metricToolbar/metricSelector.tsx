@@ -1,6 +1,7 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import debounce from 'lodash/debounce';
 
+import {Tag} from '@sentry/scraps/badge';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -37,12 +38,16 @@ export function MetricSelector({
       label: `${traceMetric.name}`,
       value: metricSelectValue,
       metricType: traceMetric.type as TraceMetricTypeValue,
+      metricUnit: traceMetric.unit,
       metricName: traceMetric.name,
-      trailingItems: (
-        <MetricTypeBadge metricType={traceMetric.type as TraceMetricTypeValue} />
+      trailingItems: () => (
+        <Fragment>
+          <MetricTypeBadge metricType={traceMetric.type as TraceMetricTypeValue} />
+          {traceMetric.unit && <Tag variant="muted">{traceMetric.unit}</Tag>}
+        </Fragment>
       ),
     }),
-    [metricSelectValue, traceMetric.name, traceMetric.type]
+    [metricSelectValue, traceMetric.name, traceMetric.type, traceMetric.unit]
   );
 
   const metricOptions = useMemo((): MetricSelectOption[] => {
@@ -58,11 +63,18 @@ export function MetricSelector({
         value: makeMetricSelectValue({
           name: option[TraceMetricKnownFieldKey.METRIC_NAME],
           type: option[TraceMetricKnownFieldKey.METRIC_TYPE] as TraceMetricTypeValue,
+          unit: option[TraceMetricKnownFieldKey.METRIC_UNIT],
         }),
         metricType: option[TraceMetricKnownFieldKey.METRIC_TYPE],
         metricName: option[TraceMetricKnownFieldKey.METRIC_NAME],
-        trailingItems: (
-          <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />
+        metricUnit: option[TraceMetricKnownFieldKey.METRIC_UNIT],
+        trailingItems: () => (
+          <Fragment>
+            <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />
+            {option[TraceMetricKnownFieldKey.METRIC_UNIT] && (
+              <Tag variant="muted">{option[TraceMetricKnownFieldKey.METRIC_UNIT]}</Tag>
+            )}
+          </Fragment>
         ),
       })) ?? []),
     ];
@@ -73,6 +85,7 @@ export function MetricSelector({
       onChange({
         name: metricOptions[0].metricName,
         type: metricOptions[0].metricType,
+        unit: metricOptions[0].metricUnit,
       });
     }
   }, [metricOptions, onChange, traceMetric.name]);
@@ -90,6 +103,7 @@ export function MetricSelector({
 
   return (
     <CompactSelect
+      virtualizeThreshold={100}
       searchable
       options={isFetching ? previousOptions : (metricOptions ?? [])}
       value={traceMetricSelectValue}
@@ -102,6 +116,7 @@ export function MetricSelector({
           onChange({
             name: typedOption.metricName,
             type: typedOption.metricType,
+            unit: typedOption.metricUnit,
           });
         }
       }}
@@ -117,5 +132,5 @@ export function MetricSelector({
 }
 
 function makeMetricSelectValue(metric: TraceMetric): string {
-  return `${metric.name}||${metric.type}`;
+  return `${metric.name}||${metric.type}||${metric.unit ?? ''}`;
 }
