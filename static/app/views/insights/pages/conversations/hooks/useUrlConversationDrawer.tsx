@@ -50,7 +50,7 @@ export function useUrlConversationDrawer() {
         conversationId,
         startTimestamp,
         endTimestamp,
-        focusedTool,
+        focusedTool: focusedTool ?? null,
       });
 
       return baseOpenDrawer(renderer, {
