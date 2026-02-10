@@ -68,10 +68,7 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {
-  eventViewFromWidget,
-  getDashboardFiltersFromURL,
-} from 'sentry/views/dashboards/utils';
+import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
@@ -162,6 +159,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     onLegendSelectChanged,
     widgetLegendState,
     selection,
+    dashboardFilters,
     timeseriesResultsUnits,
   } = props;
 
@@ -229,7 +227,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   }
 
   if (widget.displayType === DisplayType.SERVER_TREE) {
-    return <ServerTreeComponent />;
+    return <ServerTreeComponent dashboardFilters={dashboardFilters} />;
   }
 
   if (widget.displayType === DisplayType.WHEEL) {
@@ -793,10 +791,12 @@ function DetailsComponent(props: TableComponentProps): React.ReactNode {
   return <DetailsWidgetVisualization span={singleSpan} />;
 }
 
-function ServerTreeComponent(): React.ReactNode {
-  const location = useLocation();
-  const globalFilters =
-    getDashboardFiltersFromURL(location)?.[DashboardFilterKeys.GLOBAL_FILTER] || [];
+function ServerTreeComponent({
+  dashboardFilters,
+}: {
+  dashboardFilters?: DashboardFilters;
+}): React.ReactNode {
+  const globalFilters = dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER] || [];
 
   const transactionFilter = globalFilters.find(
     filter => filter.tag.key === 'transaction' && filter.dataset === WidgetType.SPANS
