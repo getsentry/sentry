@@ -142,7 +142,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         pr_number = data.get("pr_number")
 
         with transaction.atomic(router.db_for_write(PreprodArtifact)):
-            # Create CommitComparison if VCS info is provided
             commit_comparison = None
             if head_sha and provider and head_repo_name and head_ref:
                 commit_comparison, _ = CommitComparison.objects.get_or_create(
@@ -159,7 +158,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                     },
                 )
 
-            # Create new PreprodArtifact for snapshots
             artifact = PreprodArtifact.objects.create(
                 project=project,
                 state=PreprodArtifact.ArtifactState.UPLOADED,
@@ -182,16 +180,13 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 },
             )
 
-            # Serialize manifest using the Pydantic model for consistent format
-            manifest = SnapshotManifest(images=images)
-
             session = get_preprod_session(project.organization_id, project.id)
             manifest_key = f"{project.organization_id}/{project.id}/{artifact.id}/manifest.json"
 
+            manifest = SnapshotManifest(images=images)
             manifest_json = manifest.json(by_alias=True, exclude_none=True)
             session.put(manifest_json.encode(), key=manifest_key)
 
-            # Store manifest file reference in extras
             extras = snapshot_metrics.extras or {}
             extras["manifest_key"] = manifest_key
             snapshot_metrics.extras = extras
