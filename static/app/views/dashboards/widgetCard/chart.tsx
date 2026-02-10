@@ -62,8 +62,15 @@ import useProjects from 'sentry/utils/useProjects';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {useTrackAnalyticsOnSpanMigrationError} from 'sentry/views/dashboards/hooks/useTrackAnalyticsOnSpanMigrationError';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {
+  DashboardFilterKeys,
+  DisplayType,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
+import {
+  eventViewFromWidget,
+  getDashboardFiltersFromURL,
+} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
@@ -746,7 +753,20 @@ function DetailsComponent(props: TableComponentProps): React.ReactNode {
 }
 
 function ServerTreeComponent(): React.ReactNode {
-  return <ServerTreeWidgetVisualization noVisualizationPadding />;
+  const location = useLocation();
+  const globalFilters =
+    getDashboardFiltersFromURL(location)?.[DashboardFilterKeys.GLOBAL_FILTER] || [];
+
+  const transactionFilter = globalFilters.find(
+    filter => filter.tag.key === 'transaction' && filter.dataset === WidgetType.SPANS
+  );
+
+  return (
+    <ServerTreeWidgetVisualization
+      noVisualizationPadding
+      query={transactionFilter?.value}
+    />
+  );
 }
 
 function WheelComponent(props: TableComponentProps): React.ReactNode {

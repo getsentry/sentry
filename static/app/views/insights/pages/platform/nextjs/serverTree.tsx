@@ -162,9 +162,19 @@ export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
   return root;
 }
 
-export function ServerTree({noVisualizationPadding}: {noVisualizationPadding?: boolean}) {
-  const organization = useOrganization();
+export function ServerTree() {
   const {query} = useTransactionNameQuery();
+  return <BaseServerTree query={query} />;
+}
+
+export function BaseServerTree({
+  noVisualizationPadding,
+  query,
+}: {
+  noVisualizationPadding?: boolean;
+  query?: string;
+}) {
+  const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
 
   const treeRequest = useApiQuery<TreeResponse>(
