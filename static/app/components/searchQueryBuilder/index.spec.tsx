@@ -5149,7 +5149,7 @@ describe('SearchQueryBuilder', () => {
           <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
           {
             organization: {
-              features: ['gen-ai-features', 'gen-ai-consent-flow-removal'],
+              features: ['gen-ai-features'],
             },
           }
         );
