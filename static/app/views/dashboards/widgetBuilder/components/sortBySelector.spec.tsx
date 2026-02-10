@@ -325,7 +325,7 @@ describe('WidgetBuilderSortBySelector', () => {
       expect.anything()
     );
   });
-  it('renders a numeric limit input for categorical bar widgets', async () => {
+  it('renders a limit selector for categorical bar widgets', async () => {
     render(
       <WidgetBuilderProvider>
         <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
@@ -349,12 +349,10 @@ describe('WidgetBuilderSortBySelector', () => {
       }
     );
 
-    const limitInput = await screen.findByRole('textbox', {name: 'Limit results'});
-    expect(limitInput).toBeInTheDocument();
-    expect(limitInput).toHaveValue('20');
+    expect(await screen.findByText('Limit to 20 results')).toBeInTheDocument();
   });
 
-  it('does not render a limit input for table widgets', async () => {
+  it('does not render a limit selector for table widgets', async () => {
     render(
       <WidgetBuilderProvider>
         <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
@@ -377,9 +375,7 @@ describe('WidgetBuilderSortBySelector', () => {
     );
 
     expect(await screen.findByText('Sort by')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('textbox', {name: 'Limit results'})
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Limit to 5 results')).not.toBeInTheDocument();
   });
 
   it('correctly handles categorical bar limit changes', async () => {
@@ -409,14 +405,13 @@ describe('WidgetBuilderSortBySelector', () => {
       }
     );
 
-    await screen.findByRole('textbox', {name: 'Limit results'});
-
-    // Use the increment button to change the value
-    await userEvent.click(screen.getByRole('button', {name: 'Increase Limit results'}));
+    const limitSelector = await screen.findByText('Limit to 20 results');
+    await userEvent.click(limitSelector);
+    await userEvent.click(await screen.findByText('Limit to 15 results'));
 
     expect(mockNavigate).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        query: expect.objectContaining({limit: 21}),
+        query: expect.objectContaining({limit: 15}),
       }),
       expect.anything()
     );

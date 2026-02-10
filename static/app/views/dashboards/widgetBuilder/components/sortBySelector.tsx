@@ -1,6 +1,5 @@
 import {Fragment, useEffect} from 'react';
 
-import {NumberInput} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -89,10 +88,10 @@ function WidgetBuilderSortBySelector() {
     if (!state.limit) {
       return;
     }
-    if (isTimeseriesChart && state.limit > maxLimit) {
+    if ((isTimeseriesChart || isCategoricalBarWidget) && state.limit > maxLimit) {
       dispatch({type: BuilderStateAction.SET_LIMIT, payload: maxLimit});
     }
-  }, [state.limit, maxLimit, dispatch, isTimeseriesChart]);
+  }, [state.limit, maxLimit, dispatch, isTimeseriesChart, isCategoricalBarWidget]);
 
   function handleSortByChange(newSortBy: string, sortDirection: 'asc' | 'desc') {
     dispatch({
@@ -119,7 +118,7 @@ function WidgetBuilderSortBySelector() {
           stacked
         >
           <Flex direction="column" gap="sm">
-            {isTimeseriesChart && state.limit && (
+            {(isTimeseriesChart || isCategoricalBarWidget) && state.limit && (
               <Select
                 disabled={disableSortDirection && disableSort}
                 name="resultsLimit"
@@ -133,18 +132,6 @@ function WidgetBuilderSortBySelector() {
                 value={state.limit}
                 onChange={(option: SelectValue<number>) => {
                   dispatch({type: BuilderStateAction.SET_LIMIT, payload: option.value});
-                }}
-              />
-            )}
-            {isCategoricalBarWidget && state.limit && (
-              <NumberInput
-                aria-label={t('Limit results')}
-                disabled={disableSortDirection && disableSort}
-                min={1}
-                max={MAX_CATEGORICAL_BAR_LIMIT}
-                value={state.limit}
-                onChange={value => {
-                  dispatch({type: BuilderStateAction.SET_LIMIT, payload: value});
                 }}
               />
             )}
