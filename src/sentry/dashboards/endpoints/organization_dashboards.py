@@ -132,7 +132,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_LOADS,
-        "title": "Screen Loads",
+        "title": "Mobile Vitals Screen Loads",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_RENDERING,
