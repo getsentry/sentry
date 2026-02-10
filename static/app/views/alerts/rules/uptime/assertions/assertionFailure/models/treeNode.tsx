@@ -13,6 +13,7 @@ export abstract class TreeNode<T extends Op = Op> {
   value: T;
   parent: TreeNode | null;
   children: TreeNode[];
+  isNegated = false;
 
   constructor(value: T, parent: TreeNode | null = null) {
     this.value = value;
@@ -22,6 +23,10 @@ export abstract class TreeNode<T extends Op = Op> {
     if (this.parent) {
       this.parent.children.push(this);
     }
+  }
+
+  get id(): string {
+    return this.value.id;
   }
 
   get nextOps(): Op[] {
@@ -69,6 +74,8 @@ export abstract class TreeNode<T extends Op = Op> {
 
     return connectors;
   }
+
+  abstract printNode(): string;
 
   abstract renderRow(): ReactNode;
 }
