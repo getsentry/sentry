@@ -715,6 +715,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert len(activity_updates) == 1
         assert activity_updates[0].type == OpenPeriodActivityType.OPENED
         assert activity_updates[0].value == PriorityLevel.MEDIUM
+        assert activity_updates[0].event_id == event.event_id
 
     def test_update_group_priority_open_period_activity_entry(self) -> None:
         fingerprint = ["some-fingerprint"]
@@ -748,9 +749,11 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert len(activity_updates) == 2
         assert activity_updates[0].type == OpenPeriodActivityType.OPENED
         assert activity_updates[0].value == PriorityLevel.MEDIUM
+        assert activity_updates[0].event_id == event.event_id
 
         assert activity_updates[1].type == OpenPeriodActivityType.STATUS_CHANGE
         assert activity_updates[1].value == PriorityLevel.HIGH
+        assert activity_updates[1].event_id == new_occurrence.event_id
 
     @mock.patch("sentry.issues.ingest._process_existing_aggregate")
     def test_update_group_priority_and_unresolve(self, mock_is_regression: mock.MagicMock) -> None:

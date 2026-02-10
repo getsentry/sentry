@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {AlertLink} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject} from 'sentry/components/forms/types';
@@ -17,6 +18,7 @@ import {IconMail, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import type {NotificationSettingsType} from 'sentry/views/settings/account/notifications/constants';
@@ -86,9 +88,12 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
     isError,
     isSuccess,
     refetch,
-  } = useApiQuery<Record<string, string>>(['/users/me/notifications/'], {
-    staleTime: 0,
-  });
+  } = useApiQuery<Record<string, string>>(
+    [getApiUrl('/users/$userId/notifications/', {path: {userId: 'me'}})],
+    {
+      staleTime: 0,
+    }
+  );
 
   return (
     <Fragment>

@@ -5,7 +5,8 @@ import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils
 import {t} from 'sentry/locale';
 
 interface WebMViewerProps
-  extends Pick<ViewerProps, 'attachment' | 'eventId' | 'orgSlug' | 'projectSlug'>,
+  extends
+    Pick<ViewerProps, 'attachment' | 'eventId' | 'orgSlug' | 'projectSlug'>,
     Partial<Pick<HTMLVideoElement, 'controls'>> {
   onCanPlay?: React.ReactEventHandler<HTMLVideoElement>;
 }
@@ -26,7 +27,7 @@ export function VideoViewer({
       `}
     >
       <source
-        src={getAttachmentUrl({attachment, ...props}, true)}
+        src={`/api/0${getAttachmentUrl({attachment, ...props})}?download`}
         type={attachment.mimetype}
       />
       {t('Your browser does not support the video tag.')}

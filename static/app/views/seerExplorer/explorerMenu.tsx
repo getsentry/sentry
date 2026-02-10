@@ -267,10 +267,10 @@ export function useExplorerMenu({
         left: `${relativeLeft}px`,
       });
     } else if (menuMode === 'pr-widget') {
-      // Position below anchor, centered
+      // Position above anchor (since button is at bottom of panel)
       setMenuPosition({
-        top: `${relativeTop + rect.height + spacing}px`,
-        left: `${relativeLeft - rect.width - spacing}px`,
+        bottom: `${panelRect.height - relativeTop + spacing}px`,
+        right: `${panelRect.width - relativeLeft - rect.width}px`,
       });
     } else {
       setMenuPosition({

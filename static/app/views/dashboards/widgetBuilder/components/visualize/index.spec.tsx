@@ -36,44 +36,57 @@ describe('Visualize', () => {
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
-    jest.mocked(useTraceItemTags).mockImplementation((type?: 'number' | 'string') => {
-      if (type === 'number') {
+    jest
+      .mocked(useTraceItemTags)
+      .mockImplementation((type?: 'number' | 'string' | 'boolean') => {
+        if (type === 'number') {
+          const tags: TagCollection = {
+            'span.duration': {
+              key: 'span.duration',
+              name: 'span.duration',
+              kind: FieldKind.MEASUREMENT,
+              secondaryAliases: [],
+            },
+            'span.self_time': {
+              key: 'span.self_time',
+              name: 'span.self_time',
+              kind: FieldKind.MEASUREMENT,
+              secondaryAliases: [],
+            },
+          };
+          return {tags, isLoading: false, secondaryAliases: {}};
+        }
+
+        if (type === 'boolean') {
+          const tags: TagCollection = {
+            'span.status': {
+              key: 'span.status',
+              name: 'span.status',
+              kind: FieldKind.BOOLEAN,
+            },
+          };
+          return {tags, isLoading: false, secondaryAliases: {}};
+        }
+
         const tags: TagCollection = {
-          'span.duration': {
-            key: 'span.duration',
-            name: 'span.duration',
-            kind: FieldKind.MEASUREMENT,
-            secondaryAliases: [],
+          'span.op': {
+            key: 'span.op',
+            name: 'span.op',
+            kind: FieldKind.TAG,
           },
-          'span.self_time': {
-            key: 'span.self_time',
-            name: 'span.self_time',
-            kind: FieldKind.MEASUREMENT,
-            secondaryAliases: [],
+          'span.description': {
+            key: 'span.description',
+            name: 'span.description',
+            kind: FieldKind.TAG,
           },
         };
-        return {tags, isLoading: false, secondaryAliases: {}};
-      }
 
-      const tags: TagCollection = {
-        'span.op': {
-          key: 'span.op',
-          name: 'span.op',
-          kind: FieldKind.TAG,
-        },
-        'span.description': {
-          key: 'span.description',
-          name: 'span.description',
-          kind: FieldKind.TAG,
-        },
-      };
-
-      return {
-        tags,
-        secondaryAliases: {},
-        isLoading: false,
-      };
-    });
+        return {
+          tags,
+          secondaryAliases: {},
+          isLoading: false,
+        };
+      });
 
     mockNavigate = jest.fn();
     jest.mocked(useNavigate).mockReturnValue(mockNavigate);
@@ -1246,38 +1259,44 @@ describe('Visualize', () => {
 
   describe('spans', () => {
     beforeEach(() => {
-      jest.mocked(useTraceItemTags).mockImplementation((type?: 'string' | 'number') => {
-        if (type === 'number') {
+      jest
+        .mocked(useTraceItemTags)
+        .mockImplementation((type?: 'string' | 'number' | 'boolean') => {
+          if (type === 'number') {
+            return {
+              tags: {
+                'span.duration': {
+                  key: 'span.duration',
+                  name: 'span.duration',
+                  kind: 'measurement',
+                },
+                'tags[anotherNumericTag,number]': {
+                  key: 'anotherNumericTag',
+                  name: 'anotherNumericTag',
+                  kind: 'measurement',
+                },
+              } as TagCollection,
+              secondaryAliases: {},
+              isLoading: false,
+            };
+          }
+
+          if (type === 'boolean') {
+            return {tags: {}, isLoading: false, secondaryAliases: {}};
+          }
+
           return {
             tags: {
-              'span.duration': {
-                key: 'span.duration',
-                name: 'span.duration',
-                kind: 'measurement',
-              },
-              'tags[anotherNumericTag,number]': {
-                key: 'anotherNumericTag',
-                name: 'anotherNumericTag',
-                kind: 'measurement',
+              'span.description': {
+                key: 'span.description',
+                name: 'span.description',
+                kind: 'tag',
               },
             } as TagCollection,
             secondaryAliases: {},
             isLoading: false,
           };
-        }
-
-        return {
-          tags: {
-            'span.description': {
-              key: 'span.description',
-              name: 'span.description',
-              kind: 'tag',
-            },
-          } as TagCollection,
-          secondaryAliases: {},
-          isLoading: false,
-        };
-      });
+        });
     });
 
     it('shows numeric tags as primary options for chart widgets', async () => {
@@ -1413,23 +1432,29 @@ describe('Visualize', () => {
     });
 
     it('differentiates between function and column values in selection', async () => {
-      jest.mocked(useTraceItemTags).mockImplementation((type?: 'string' | 'number') => {
-        if (type === 'number') {
+      jest
+        .mocked(useTraceItemTags)
+        .mockImplementation((type?: 'string' | 'number' | 'boolean') => {
+          if (type === 'number') {
+            return {
+              tags: {
+                'tags[count,number]': {key: 'count', name: 'count', kind: 'measurement'},
+              } as TagCollection,
+              secondaryAliases: {},
+              isLoading: false,
+            };
+          }
+
+          if (type === 'boolean') {
+            return {tags: {}, secondaryAliases: {}, isLoading: false};
+          }
+
           return {
-            tags: {
-              'tags[count,number]': {key: 'count', name: 'count', kind: 'measurement'},
-            } as TagCollection,
+            tags: {count: {key: 'count', name: 'count', kind: 'tag'}} as TagCollection,
             secondaryAliases: {},
             isLoading: false,
           };
-        }
-
-        return {
-          tags: {count: {key: 'count', name: 'count', kind: 'tag'}} as TagCollection,
-          secondaryAliases: {},
-          isLoading: false,
-        };
-      });
+        });
       render(
         <WidgetBuilderProvider>
           <Visualize />

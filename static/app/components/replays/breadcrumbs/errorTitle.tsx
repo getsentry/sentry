@@ -1,7 +1,8 @@
 import {Fragment, useCallback, type MouseEvent} from 'react';
 import capitalize from 'lodash/capitalize';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
 import {getShortEventId} from 'sentry/utils/events';
 import type {ErrorFrame} from 'sentry/utils/replays/types';

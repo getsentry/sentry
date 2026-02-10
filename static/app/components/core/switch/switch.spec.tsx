@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Switch} from 'sentry/components/core/switch';
+import {Switch} from '@sentry/scraps/switch';
 
 describe('Switch', () => {
   it('disabled', () => {

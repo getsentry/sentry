@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {FieldObject} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

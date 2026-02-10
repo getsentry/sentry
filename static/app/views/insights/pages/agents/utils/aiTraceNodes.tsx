@@ -90,3 +90,18 @@ export const getIsAiNode = createGetIsAiNode(genAiOpType => Boolean(genAiOpType)
 export const getIsAiAgentNode = createGetIsAiNode(getIsAiAgentSpan);
 export const getIsAiGenerationNode = createGetIsAiNode(getIsAiGenerationSpan);
 export const getIsExecuteToolNode = createGetIsAiNode(getIsExecuteToolSpan);
+
+export function hasError(node: AITraceSpanNode): boolean {
+  if (node.errors.size > 0) {
+    return true;
+  }
+  const spanStatus = node.attributes?.[SpanFields.SPAN_STATUS] as string | undefined;
+  if (spanStatus && typeof spanStatus === 'string') {
+    return spanStatus.includes('error');
+  }
+  const status = node.attributes?.status;
+  if (status && typeof status === 'string') {
+    return status.includes('error');
+  }
+  return false;
+}

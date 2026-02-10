@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {
   DisabledProducts,

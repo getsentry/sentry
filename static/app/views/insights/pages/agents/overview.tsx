@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import Feature from 'sentry/components/acl/feature';
 import {useDismissable} from 'sentry/components/banner';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Flex, Stack} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {NoAccess} from 'sentry/components/noAccess';
@@ -23,6 +24,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
@@ -31,6 +33,7 @@ import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/comp
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
+import {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
 import {IssuesWidget} from 'sentry/views/insights/pages/agents/components/issuesWidget';
 import LLMGenerationsWidget from 'sentry/views/insights/pages/agents/components/llmCallsWidget';
 import {WidgetGrid} from 'sentry/views/insights/pages/agents/components/styles';
@@ -39,11 +42,15 @@ import ToolUsageWidget from 'sentry/views/insights/pages/agents/components/toolC
 import {TracesTable} from 'sentry/views/insights/pages/agents/components/tracesTable';
 import {useAgentMonitoringTrackPageView} from 'sentry/views/insights/pages/agents/hooks/useAgentMonitoringTrackPageView';
 import {useAgentSpanSearchProps} from 'sentry/views/insights/pages/agents/hooks/useAgentSpanSearchProps';
+import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {useShowAgentOnboarding} from 'sentry/views/insights/pages/agents/hooks/useShowAgentOnboarding';
 import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
 import {getAgentRunsFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
-import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
+import {
+  TableUrlParams,
+  useTraceDrawerQueryState,
+} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 
@@ -53,8 +60,27 @@ interface AgentsOverviewPageProps {
 
 function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
   const organization = useOrganization();
+
+  return (
+    <Feature
+      features="performance-view"
+      organization={organization}
+      renderDisabled={NoAccess}
+    >
+      <AgentsContent datePageFilterProps={datePageFilterProps} />
+    </Feature>
+  );
+}
+
+function AgentsContent({datePageFilterProps}: AgentsOverviewPageProps) {
   const showOnboarding = useShowAgentOnboarding();
   useDefaultToAllProjects();
+
+  const [urlState] = useTraceDrawerQueryState();
+  // Start fetching data and open drawer without
+  // waiting for table to finish loading
+  useAITrace(urlState.traceId ?? '', urlState.timestamp ?? undefined);
+  const {openTraceViewDrawer} = useTraceViewDrawer();
 
   const agentSpanSearchProps = useAgentSpanSearchProps();
   const isSentryEmployee = useIsSentryEmployee();
@@ -85,102 +111,96 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
 
   return (
     <SearchQueryBuilderProvider {...agentSpanSearchProps.provider}>
-      <Feature
-        features="performance-view"
-        organization={organization}
-        renderDisabled={NoAccess}
-      >
-        <Layout.Body>
-          <Layout.Main width="full">
-            <ModuleLayout.Layout>
-              <ModuleLayout.Full>
-                <ToolRibbon>
-                  <PageFilterBar condensed>
-                    <InsightsProjectSelector
-                      resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    />
-                    <InsightsEnvironmentSelector
-                      resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    />
-                    <DatePageFilter
-                      {...datePageFilterProps}
-                      resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    />
-                  </PageFilterBar>
-                  {!showOnboarding && (
-                    <Flex flex={2}>
-                      <TraceItemSearchQueryBuilder
-                        {...agentSpanSearchProps.queryBuilder}
-                      />
-                    </Flex>
-                  )}
-                </ToolRibbon>
-              </ModuleLayout.Full>
-
-              {showSeerDataBanner && (
-                <ModuleLayout.Full>
-                  <Alert
-                    variant="warning"
-                    trailingItems={
-                      <Button
-                        aria-label="Dismiss"
-                        icon={<IconClose />}
-                        size="xs"
-                        onClick={dismiss}
-                      />
-                    }
-                  >
-                    SENTRY EMPLOYEES: Transaction size limits make seer instrumentation
-                    incomplete. Data shown here does not reflect actual state.
-                  </Alert>
-                </ModuleLayout.Full>
-              )}
-
-              <ModuleLayout.Full>
-                {showOnboarding ? (
-                  <Onboarding />
-                ) : (
-                  <Stack gap="xl">
-                    <WidgetGrid rowHeight={210} paddingBottom={0}>
-                      <WidgetGrid.Position1>
-                        {hasAgentRuns === undefined ? (
-                          <LoadingPanel />
-                        ) : (
-                          <OverviewAgentsRunsChartWidget hasAgentRuns={hasAgentRuns} />
-                        )}
-                      </WidgetGrid.Position1>
-                      <WidgetGrid.Position2>
-                        {hasAgentRuns === undefined ? (
-                          <LoadingPanel />
-                        ) : (
-                          <OverviewAgentsDurationChartWidget
-                            hasAgentRuns={hasAgentRuns}
-                          />
-                        )}
-                      </WidgetGrid.Position2>
-                      <WidgetGrid.Position3>
-                        <IssuesWidget />
-                      </WidgetGrid.Position3>
-                    </WidgetGrid>
-                    <WidgetGrid rowHeight={260} paddingBottom={0}>
-                      <WidgetGrid.Position1>
-                        <LLMGenerationsWidget />
-                      </WidgetGrid.Position1>
-                      <WidgetGrid.Position2>
-                        <TokenUsageWidget />
-                      </WidgetGrid.Position2>
-                      <WidgetGrid.Position3>
-                        <ToolUsageWidget />
-                      </WidgetGrid.Position3>
-                    </WidgetGrid>
-                    <TracesTable />
-                  </Stack>
+      <Layout.Body>
+        <Layout.Main width="full">
+          <ModuleLayout.Layout>
+            <ModuleLayout.Full>
+              <ToolRibbon>
+                <PageFilterBar condensed>
+                  <InsightsProjectSelector
+                    resetParamsOnChange={[TableUrlParams.CURSOR]}
+                  />
+                  <InsightsEnvironmentSelector
+                    resetParamsOnChange={[TableUrlParams.CURSOR]}
+                  />
+                  <DatePageFilter
+                    {...datePageFilterProps}
+                    resetParamsOnChange={[TableUrlParams.CURSOR]}
+                  />
+                </PageFilterBar>
+                <AgentSelector
+                  storageKeyPrefix="agents:agent-filter"
+                  referrer={Referrer.AGENT_SELECTOR}
+                />
+                {!showOnboarding && (
+                  <Flex flex={2}>
+                    <TraceItemSearchQueryBuilder {...agentSpanSearchProps.queryBuilder} />
+                  </Flex>
                 )}
+              </ToolRibbon>
+            </ModuleLayout.Full>
+
+            {showSeerDataBanner && (
+              <ModuleLayout.Full>
+                <Alert
+                  variant="warning"
+                  trailingItems={
+                    <Button
+                      aria-label="Dismiss"
+                      icon={<IconClose />}
+                      size="xs"
+                      onClick={dismiss}
+                    />
+                  }
+                >
+                  SENTRY EMPLOYEES: Transaction size limits make seer instrumentation
+                  incomplete. Data shown here does not reflect actual state.
+                </Alert>
               </ModuleLayout.Full>
-            </ModuleLayout.Layout>
-          </Layout.Main>
-        </Layout.Body>
-      </Feature>
+            )}
+
+            <ModuleLayout.Full>
+              {showOnboarding ? (
+                <Onboarding />
+              ) : (
+                <Stack gap="xl">
+                  <WidgetGrid rowHeight={210} paddingBottom={0}>
+                    <WidgetGrid.Position1>
+                      {hasAgentRuns === undefined ? (
+                        <LoadingPanel />
+                      ) : (
+                        <OverviewAgentsRunsChartWidget hasAgentRuns={hasAgentRuns} />
+                      )}
+                    </WidgetGrid.Position1>
+                    <WidgetGrid.Position2>
+                      {hasAgentRuns === undefined ? (
+                        <LoadingPanel />
+                      ) : (
+                        <OverviewAgentsDurationChartWidget hasAgentRuns={hasAgentRuns} />
+                      )}
+                    </WidgetGrid.Position2>
+                    <WidgetGrid.Position3>
+                      <IssuesWidget />
+                    </WidgetGrid.Position3>
+                  </WidgetGrid>
+                  <WidgetGrid rowHeight={260} paddingBottom={0}>
+                    <WidgetGrid.Position1>
+                      <LLMGenerationsWidget />
+                    </WidgetGrid.Position1>
+                    <WidgetGrid.Position2>
+                      <TokenUsageWidget />
+                    </WidgetGrid.Position2>
+                    <WidgetGrid.Position3>
+                      <ToolUsageWidget />
+                    </WidgetGrid.Position3>
+                  </WidgetGrid>
+                  <TracesTable openTraceViewDrawer={openTraceViewDrawer} />
+                </Stack>
+              )}
+            </ModuleLayout.Full>
+          </ModuleLayout.Layout>
+        </Layout.Main>
+      </Layout.Body>
     </SearchQueryBuilderProvider>
   );
 }

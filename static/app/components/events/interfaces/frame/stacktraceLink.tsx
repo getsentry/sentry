@@ -2,12 +2,12 @@ import {useEffect, useMemo, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
 import Placeholder from 'sentry/components/placeholder';
@@ -278,7 +278,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
       scmProviders.includes(integration.provider?.key)
     );
     return (
-      <StacktraceLinkWrapper>
+      <StacktraceLinkWrapper data-has-setup="true">
         <CopyFrameLink event={event} frame={frame} />
         <Button
           size={DEFAULT_BUTTON_SIZE}
@@ -457,9 +457,14 @@ const FadeInStacktraceLinkWrapper = styled(Flex)`
   }
 `;
 
-function StacktraceLinkWrapper({children}: {children: React.ReactNode}) {
+function StacktraceLinkWrapper({
+  children,
+  ...props
+}: {children: React.ReactNode} & React.ComponentPropsWithoutRef<typeof Flex>) {
   return (
-    <FadeInStacktraceLinkWrapper align="center">{children}</FadeInStacktraceLinkWrapper>
+    <FadeInStacktraceLinkWrapper align="center" {...props}>
+      {children}
+    </FadeInStacktraceLinkWrapper>
   );
 }
 

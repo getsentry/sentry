@@ -1,8 +1,8 @@
 import {Outlet} from 'react-router-dom';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import NotFound from 'sentry/components/errors/notFound';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';

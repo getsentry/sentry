@@ -80,9 +80,8 @@ function genTrialModalOnClose(
 }
 
 export async function openTrialEndingModal(options: TrialModalProps) {
-  const {default: Modal, modalCss} = await import(
-    'getsentry/components/trialEndingModal'
-  );
+  const {default: Modal, modalCss} =
+    await import('getsentry/components/trialEndingModal');
 
   const onClose = genTrialModalOnClose(options, 'trialEnd');
 
@@ -90,9 +89,8 @@ export async function openTrialEndingModal(options: TrialModalProps) {
 }
 
 export async function openForcedTrialModal(options: TrialModalProps) {
-  const {default: Modal, modalCss} = await import(
-    'getsentry/components/forcedTrialModal'
-  );
+  const {default: Modal, modalCss} =
+    await import('getsentry/components/forcedTrialModal');
 
   const onClose = genTrialModalOnClose(options, 'forcedTrial');
 
@@ -103,9 +101,8 @@ export async function openForcedTrialModal(options: TrialModalProps) {
 }
 
 export async function openPartnerPlanEndingModal(options: PartnerPlanModalProps) {
-  const {default: Modal, modalCss} = await import(
-    'getsentry/components/partnerPlanEndingModal'
-  );
+  const {default: Modal, modalCss} =
+    await import('getsentry/components/partnerPlanEndingModal');
   const api = new Client();
   const promptParams = {
     organization: options.organization,
@@ -178,9 +175,8 @@ type UpsellModalProps = {
 };
 
 export async function openAM2UpsellModal(options: UpsellModalProps) {
-  const {default: Modal, modalCss} = await import(
-    'getsentry/components/upgradeNowModal/index'
-  );
+  const {default: Modal, modalCss} =
+    await import('getsentry/components/upgradeNowModal/index');
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
@@ -196,9 +192,8 @@ export type UpsellModalSamePriceProps = {
 };
 
 export async function openAM2UpsellModalSamePrice(options: UpsellModalSamePriceProps) {
-  const {default: Modal, modalCss} = await import(
-    'getsentry/components/upgradeNowModal/modalSamePrice'
-  );
+  const {default: Modal, modalCss} =
+    await import('getsentry/components/upgradeNowModal/modalSamePrice');
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
@@ -211,9 +206,8 @@ type ProfilingUpsellModalProps = {
 };
 
 export async function openAM2ProfilingUpsellModal(options: ProfilingUpsellModalProps) {
-  const {default: Modal, modalCss} = await import(
-    'getsentry/components/profiling/profilingUpgradeModal'
-  );
+  const {default: Modal, modalCss} =
+    await import('getsentry/components/profiling/profilingUpgradeModal');
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }

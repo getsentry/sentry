@@ -1,5 +1,6 @@
+import {Alert} from '@sentry/scraps/alert';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
@@ -15,7 +16,8 @@ import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 interface CreateIssueViewModalProps
-  extends ModalRenderProps,
+  extends
+    ModalRenderProps,
     Partial<
       Pick<
         GroupSearchView,

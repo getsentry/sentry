@@ -2,12 +2,15 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
 import beautify from 'js-beautify';
 
-import {CodeBlock} from 'sentry/components/core/code';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import {AuthTokenGenerator} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {PACKAGE_LOADING_PLACEHOLDER} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
-interface OnboardingCodeSnippetProps
-  extends Omit<React.ComponentProps<typeof CodeBlock>, 'onAfterHighlight'> {}
+interface OnboardingCodeSnippetProps extends Omit<
+  React.ComponentProps<typeof CodeBlock>,
+  'onAfterHighlight'
+> {}
 
 /**
  * Replaces tokens in a DOM element with a span element.

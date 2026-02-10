@@ -2,6 +2,10 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData} from '@tanstack/react-query';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -11,10 +15,6 @@ import {
 } from 'sentry/actionCreators/modal';
 import {joinTeamPromise, leaveTeamPromise} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -25,6 +25,7 @@ import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -56,7 +57,9 @@ function getTeamMembersQueryKey({
   teamId: string;
 }): ApiQueryKey {
   return [
-    `/teams/${organization.slug}/${teamId}/members/`,
+    getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/members/`, {
+      path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamId},
+    }),
     {
       query: {
         cursor: location.query.cursor,
@@ -85,7 +88,9 @@ function AddMemberDropdown({
   const debouncedMemberQuery = useDebouncedValue(memberQuery, 50);
   const {data: orgMembers = [], isFetching: isOrgMembersFetching} = useApiQuery<Member[]>(
     [
-      `/organizations/${organization.slug}/members/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/members/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: debouncedMemberQuery ? {query: debouncedMemberQuery} : undefined,
       },

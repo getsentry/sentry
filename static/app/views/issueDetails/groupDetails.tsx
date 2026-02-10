@@ -6,8 +6,8 @@ import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
 import {Container} from '@sentry/scraps/layout';
+import {TabPanels, Tabs} from '@sentry/scraps/tabs';
 
-import {TabPanels, Tabs} from 'sentry/components/core/tabs';
 import FloatingFeedbackButton from 'sentry/components/feedbackButton/floatingFeedbackButton';
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingError from 'sentry/components/loadingError';

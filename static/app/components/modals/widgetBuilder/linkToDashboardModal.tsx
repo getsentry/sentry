@@ -2,11 +2,11 @@ import {Fragment, useCallback, useEffect, useState, type ReactNode} from 'react'
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Select} from '@sentry/scraps/select';
+
 import {fetchDashboard, fetchDashboards} from 'sentry/actionCreators/dashboards';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Select} from 'sentry/components/core/select';
 import Spinner from 'sentry/components/forms/spinner';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

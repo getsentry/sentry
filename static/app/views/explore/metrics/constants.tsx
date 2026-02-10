@@ -1,6 +1,6 @@
+import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
 import {Text} from '@sentry/scraps/text';
 
-import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {

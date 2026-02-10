@@ -2,7 +2,7 @@ import React, {createRef} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Surface} from 'sentry/components/core/layout/surface';
+import {Surface} from '@sentry/scraps/layout';
 
 describe('Surface', () => {
   it('renders children', () => {

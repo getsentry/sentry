@@ -52,6 +52,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert not resp.data["options"]["clock24Hours"]
         assert not resp.data["options"]["prefersIssueDetailsStreamlinedUI"]
 
+    @override_options({"staff.ga-rollout": False})
     def test_superuser_simple(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
 
@@ -71,6 +72,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert "identities" in resp.data
         assert len(resp.data["identities"]) == 0
 
+    @override_options({"staff.ga-rollout": False})
     def test_superuser_includes_roles_and_permissions(self) -> None:
         self.add_user_permission(self.superuser, "users.admin")
         self.login_as(user=self.superuser, superuser=True)
@@ -87,6 +89,7 @@ class UserDetailsGetTest(UserDetailsTest):
         resp = self.get_success_response(self.superuser.id)
         assert resp.data["permissions"] == ["broadcasts.admin", "users.admin"]
 
+    @override_options({"staff.ga-rollout": True})
     def test_staff_includes_roles_and_permissions(self) -> None:
         self.add_user_permission(self.staff_user, "users.admin")
         self.login_as(user=self.staff_user, staff=True)
@@ -210,6 +213,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
 
 
 @control_silo_test
+@override_options({"staff.ga-rollout": False})
 class UserDetailsSuperuserUpdateTest(UserDetailsTest):
     method = "put"
 
@@ -544,6 +548,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
 
 
 @control_silo_test
+@override_options({"staff.ga-rollout": True})
 class UserDetailsStaffUpdateTest(UserDetailsTest):
     method = "put"
 
@@ -761,6 +766,7 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
 class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
     method = "delete"
 
+    @override_options({"staff.ga-rollout": True})
     def test_close_account(self) -> None:
         org_single_owner = self.create_organization(name="A", owner=self.user)
         user2 = self.create_user(email="user2@example.com")
@@ -812,6 +818,7 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         user = User.objects.get(id=self.user.id)
         assert not user.is_active
 
+    @override_options({"staff.ga-rollout": True})
     def test_close_account_no_orgs(self) -> None:
         org_single_owner = self.create_organization(name="A", owner=self.user)
         user2 = self.create_user(email="user2@example.com")
@@ -858,10 +865,12 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         user = User.objects.get(id=self.user.id)
         assert not user.is_active
 
+    @override_options({"staff.ga-rollout": True})
     def test_cannot_hard_delete_self(self) -> None:
         # Cannot hard delete your own account
         self.get_error_response(self.user.id, hardDelete=True, organizations=[], status_code=403)
 
+    @override_options({"staff.ga-rollout": False})
     def test_superuser_hard_delete_account_without_permission(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         user2 = self.create_user(email="user2@example.com")
@@ -887,6 +896,7 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         assert response.data["detail"] == "Missing required permission to hard delete account."
         assert User.objects.filter(id=user2.id).exists()
 
+    @override_options({"staff.ga-rollout": False})
     def test_superuser_hard_delete_account_with_permission(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         user2 = self.create_user(email="user2@example.com")
@@ -909,8 +919,8 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         assert not User.objects.filter(id=user2.id).exists()
 
     @override_options({"staff.ga-rollout": True})
-    def test_superuser_cannot_hard_delete_with_active_option(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+    def test_staff_cannot_hard_delete_with_active_option(self) -> None:
+        self.login_as(user=self.staff_user, staff=True)
         user2 = self.create_user(email="user2@example.com")
 
         # Add users.admin permission to superuser

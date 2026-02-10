@@ -1,11 +1,11 @@
 import {cloneElement, Fragment, isValidElement, useRef, useState} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {t} from 'sentry/locale';
 
 export type ConfirmMessageRenderProps = {

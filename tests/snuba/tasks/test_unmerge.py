@@ -15,6 +15,7 @@ from sentry import eventstream, tsdb
 from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.models.environment import Environment
 from sentry.models.group import Group
+from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
@@ -345,6 +346,25 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         ) == {
             ("production", time_from_now(0), time_from_now(9)),
             ("staging", time_from_now(16), time_from_now(16)),
+        }
+
+        staging_environment = Environment.objects.get(
+            organization_id=project.organization_id, name="staging"
+        )
+
+        assert set(
+            GroupEnvironment.objects.filter(group_id=source.id).values_list(
+                "environment_id", "first_seen"
+            )
+        ) == {(production_environment.id, time_from_now(10))}
+
+        assert set(
+            GroupEnvironment.objects.filter(group_id=destination.id).values_list(
+                "environment_id", "first_seen"
+            )
+        ) == {
+            (production_environment.id, time_from_now(0)),
+            (staging_environment.id, time_from_now(16)),
         }
 
         rollup_duration = 3600

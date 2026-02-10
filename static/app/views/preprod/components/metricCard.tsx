@@ -1,6 +1,6 @@
 import type {CSSProperties, ReactNode} from 'react';
 
-import {Button} from '@sentry/scraps/button/button';
+import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';

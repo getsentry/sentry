@@ -3,12 +3,11 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {TooltipContext} from '@sentry/scraps/tooltip';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
-import {TooltipContext} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';

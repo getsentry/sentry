@@ -1,7 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';

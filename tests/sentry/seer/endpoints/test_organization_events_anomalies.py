@@ -46,7 +46,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
 
     def get_test_data(self, project_id: int) -> dict:
         return {
-            "project_id": project_id,
+            "project_id": str(project_id),  # UI provides project_id as str
             "config": self.config,
             "historical_data": [
                 [self.historical_timestamp_1, {"count": 5}],

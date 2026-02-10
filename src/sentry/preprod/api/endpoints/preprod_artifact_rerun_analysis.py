@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, internal_region_silo_endpoint, region_silo_endpoint
 from sentry.api.permissions import StaffPermission
 from sentry.models.files.file import File
 from sentry.models.project import Project
@@ -119,7 +119,7 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
         )
 
 
-@region_silo_endpoint
+@internal_region_silo_endpoint
 class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
     owner = ApiOwner.EMERGE_TOOLS
     permission_classes = (StaffPermission,)

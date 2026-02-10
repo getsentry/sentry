@@ -1,7 +1,6 @@
-import type {DO_NOT_USE_ButtonProps as ButtonProps} from 'sentry/components/core/button/types';
-// eslint-disable-next-line boundaries/element-types
+import type {ButtonProps} from '@sentry/scraps/button';
+
 import {type SVGIconProps} from 'sentry/icons/svgIcon';
-// eslint-disable-next-line boundaries/element-types
 import type {StrictCSSObject, Theme} from 'sentry/utils/theme';
 
 import type {DO_NOT_USE_CommonButtonProps as CommonButtonProps} from './types';
@@ -46,7 +45,7 @@ const elevation = {
 const hoverElevation = '1px';
 
 export function DO_NOT_USE_getButtonStyles(
-  p: Pick<ButtonProps, 'priority' | 'busy' | 'disabled' | 'borderless'> & {
+  p: Pick<ButtonProps, 'priority' | 'busy' | 'disabled'> & {
     size: NonNullable<ButtonProps['size']>;
     theme: Theme;
   }
@@ -205,7 +204,7 @@ export function DO_NOT_USE_getButtonStyles(
     }),
 
     // Borderless buttons are not chonky
-    ...((p.borderless || type === 'transparent' || type === 'link') && {
+    ...((type === 'transparent' || type === 'link') && {
       border: 'none',
       transform: 'translateY(0px)',
 

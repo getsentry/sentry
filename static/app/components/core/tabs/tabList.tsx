@@ -9,11 +9,11 @@ import type {TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -22,7 +22,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import type {TabListItemProps} from './item';
 import {TabListItem} from './item';
 import {Tab} from './tab';
-import type {BaseTabProps} from './tab';
+import type {TabProps} from './tab';
 import {TabsContext} from './tabs';
 import {tabsShouldForwardProp} from './utils';
 
@@ -30,7 +30,7 @@ const StyledTabListWrap = styled('ul', {
   shouldForwardProp: tabsShouldForwardProp,
 })<{
   orientation: Orientation;
-  variant: BaseTabProps['variant'];
+  variant: TabProps['variant'];
 }>`
   position: relative;
   display: grid;
@@ -165,12 +165,12 @@ function OverflowMenu({state, overflowMenuItems, disabled}: any) {
 export interface TabListProps {
   children: TabListStateOptions<TabListItemProps>['children'];
   outerWrapStyles?: React.CSSProperties;
-  variant?: BaseTabProps['variant'];
+  variant?: TabProps['variant'];
 }
 
 interface BaseTabListProps extends AriaTabListOptions<TabListItemProps>, TabListProps {
   items: TabListItemProps[];
-  variant?: BaseTabProps['variant'];
+  variant?: TabProps['variant'];
 }
 
 function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListProps) {

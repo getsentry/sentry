@@ -1,12 +1,12 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
 import FormField from 'sentry/components/forms/formField';
 import type {TableType} from 'sentry/components/forms/types';
 import {IconAdd, IconDelete} from 'sentry/icons';
@@ -24,44 +24,41 @@ interface DefaultProps {
    * Text used for the 'add' button. An empty string can be used
    * to just render the "+" icon.
    */
-  addButtonText: string;
+  addButtonText?: string;
   /**
    * Automatically save even if fields are empty
    */
-  allowEmpty: boolean;
+  allowEmpty?: boolean;
 }
 
 export interface TableFieldProps extends Omit<InputFieldProps, 'type'> {}
 
 interface RenderProps extends TableFieldProps, DefaultProps, Omit<TableType, 'type'> {}
 
-const DEFAULT_PROPS: DefaultProps = {
-  addButtonText: t('Add Item'),
-  allowEmpty: false,
-};
+function hasValue(value: any) {
+  return defined(value) && !isEmptyObject(value);
+}
 
-export default class TableField extends Component<InputFieldProps> {
-  static defaultProps = DEFAULT_PROPS;
-
-  hasValue = (value: any) => defined(value) && !isEmptyObject(value);
-
-  renderField = (props: RenderProps) => {
+export default function TableField({
+  addButtonText = t('Add Item'),
+  allowEmpty = false,
+  ...props
+}: InputFieldProps & DefaultProps) {
+  const renderField = (fieldProps: RenderProps) => {
     const {
       onChange,
       onBlur,
-      addButtonText,
       columnLabels,
       columnKeys,
       disabled: rawDisabled,
-      allowEmpty,
       confirmDeleteMessage,
-    } = props;
+    } = fieldProps;
 
     const mappedKeys = columnKeys || [];
     const emptyValue = mappedKeys.reduce((a, v) => ({...a, [v]: null}), {id: ''});
 
-    const valueIsEmpty = this.hasValue(props.value);
-    const value = valueIsEmpty ? (props.value as any[]) : [];
+    const valueIsEmpty = hasValue(fieldProps.value);
+    const value = valueIsEmpty ? (fieldProps.value as any[]) : [];
 
     const saveChanges = (nextValue: Array<Record<PropertyKey, unknown>>) => {
       onChange?.(nextValue, []);
@@ -182,21 +179,19 @@ export default class TableField extends Component<InputFieldProps> {
     );
   };
 
-  render() {
-    // We need formatMessageValue=false since we're saving an object
-    // and there isn't a great way to render the
-    // change within the toast. Just turn off displaying the from/to portion of
-    // the message
-    return (
-      <FormField
-        {...this.props}
-        formatMessageValue={false}
-        inline={({model}: any) => !this.hasValue(model.getValue(this.props.name))}
-      >
-        {this.renderField}
-      </FormField>
-    );
-  }
+  // We need formatMessageValue=false since we're saving an object
+  // and there isn't a great way to render the
+  // change within the toast. Just turn off displaying the from/to portion of
+  // the message
+  return (
+    <FormField
+      {...props}
+      formatMessageValue={false}
+      inline={({model}: any) => !hasValue(model.getValue(props.name))}
+    >
+      {renderField}
+    </FormField>
+  );
 }
 
 const HeaderLabel = styled('div')`

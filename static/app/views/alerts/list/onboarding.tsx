@@ -2,7 +2,8 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/alerts-empty-state.svg';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from '@sentry/scraps/button';
+
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
 

@@ -3,6 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   fetchDataQuery,
   fetchMutation,
@@ -31,7 +32,10 @@ export function useSyncRepos({searchValue}: {searchValue?: string}) {
   const {integratedOrgId} = usePreventContext();
   const queryClient = useQueryClient();
 
-  const syncReposUrl = `/organizations/${orgSlug}/prevent/owner/${integratedOrgId}/repositories/sync/`;
+  const syncReposUrl = getApiUrl(
+    '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repositories/sync/',
+    {path: {organizationIdOrSlug: orgSlug, owner: integratedOrgId!}}
+  );
 
   const isSyncingInCache = Boolean(queryClient.getQueryData([syncReposUrl]));
 

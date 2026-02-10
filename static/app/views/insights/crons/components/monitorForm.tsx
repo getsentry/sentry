@@ -3,10 +3,10 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react-lite';
 
-import {Alert} from 'sentry/components/core/alert';
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
+import {Alert, AlertLink} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -16,6 +16,7 @@ import TextField from 'sentry/components/forms/fields/textField';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
+import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
@@ -183,6 +184,8 @@ function MonitorForm({
       transformData: transformMonitorFormData,
     })
   );
+  const {onFieldChange} = useFormEagerValidation(form.current);
+
   const {projects} = useProjects();
   const {selection} = usePageFilters();
 
@@ -237,6 +240,7 @@ function MonitorForm({
       apiEndpoint={apiEndpoint}
       apiMethod={apiMethod}
       model={form.current}
+      onFieldChange={onFieldChange}
       initialData={
         monitor
           ? {

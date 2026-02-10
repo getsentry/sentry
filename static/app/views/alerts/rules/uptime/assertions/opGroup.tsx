@@ -4,12 +4,11 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {CompositeSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {type SelectOption} from 'sentry/components/core/compactSelect';
-import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
 import {IconAdd, IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
@@ -21,6 +20,7 @@ import {AnimatedOp} from './opCommon';
 import {AssertionOpHeader} from './opHeader';
 import {AssertionOpJsonPath} from './opJsonPath';
 import {AssertionOpStatusCode} from './opStatusCode';
+import {getGroupOpLabel} from './utils';
 
 interface AssertionOpGroupProps {
   onChange: (op: LogicalOp) => void;
@@ -93,14 +93,7 @@ export function AssertionOpGroup({
     onChange(negated ? {id: newNotId, op: 'not', operand: groupOp} : groupOp);
   };
 
-  // Generate label based on negation and group type
-  const triggerLabel = isNegated
-    ? groupOp.op === 'and'
-      ? t('Assert None')
-      : t('Assert Not Any')
-    : groupOp.op === 'and'
-      ? t('Assert All')
-      : t('Assert Any');
+  const triggerLabel = getGroupOpLabel(groupOp, isNegated);
 
   const {attributes, setNodeRef, setActivatorNodeRef, listeners, isDragging} =
     useDraggable({

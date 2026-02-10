@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import type {FormProps} from 'sentry/components/forms/form';
@@ -112,9 +112,9 @@ export function GDPRPanel({subscription}: GDPRPanelProps) {
     const hasInformation = subscription.gdprDetails
       ? Boolean(
           subscription.gdprDetails[`${prefix}Email`] ||
-            subscription.gdprDetails[`${prefix}Name`] ||
-            subscription.gdprDetails[`${prefix}Address`] ||
-            subscription.gdprDetails[`${prefix}Email`]
+          subscription.gdprDetails[`${prefix}Name`] ||
+          subscription.gdprDetails[`${prefix}Address`] ||
+          subscription.gdprDetails[`${prefix}Email`]
         )
       : false;
     const contactDetails = subscription.gdprDetails ? (

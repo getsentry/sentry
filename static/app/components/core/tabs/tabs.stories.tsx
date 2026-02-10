@@ -3,8 +3,8 @@ import range from 'lodash/range';
 
 import * as Storybook from 'sentry/stories';
 
-import type {TabListProps, TabsProps} from './tabs';
-import {TabList, TabPanels, Tabs} from './tabs';
+import type {TabListProps, TabsProps} from './';
+import {TabList, TabPanels, Tabs} from './';
 
 export default Storybook.story('Tabs', story => {
   const TABS = [
@@ -199,7 +199,7 @@ export default Storybook.story('Tabs', story => {
         </Storybook.SizingWindow>
         <br />
         <Storybook.PropMatrix<TabsProps<string> & TabListProps>
-          render={props => (
+          render={(props: TabsProps<string> & TabListProps) => (
             <Tabs orientation={props.orientation}>
               <TabList variant={props.variant}>
                 {TABS.map(tab => (

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import re
 import threading
 from collections.abc import MutableSequence, Sequence
 from typing import NoReturn
@@ -215,27 +214,16 @@ def devserver(
 
         from sentry.services.http import SentryHTTPServer
 
-        uwsgi_overrides: dict[str, int | bool | str | None] = {
-            "protocol": "http",
-            "uwsgi-socket": None,
-            "http-keepalive": True,
+        server_overrides: dict[str, int | bool | str | None] = {
             # Make sure we reload really quickly for local dev in case it
             # doesn't want to shut down nicely on it's own, NO MERCY
-            "worker-reload-mercy": 2,
-            # We need stdin to support pdb in devserver
-            "honour-stdin": True,
-            # accept ridiculously large files
-            "limit-post": 1 << 30,
-            # do something with chunked
-            "http-chunked-input": True,
-            "thunder-lock": False,
-            "timeout": 600,
-            "harakiri": 600,
+            "workers-kill-timeout": 3,
             "workers": 1 if debug_server else 2,
         }
 
         if reload:
-            uwsgi_overrides["py-autoreload"] = 1
+            server_overrides["reload"] = True
+            server_overrides["reload-ignore-worker-failure"] = True
 
         daemons: MutableSequence[tuple[str, Sequence[str]]] = []
         kafka_consumers: set[str] = set()
@@ -416,21 +404,9 @@ def devserver(
         # A better log-format for local dev when running through honcho,
         # but if there aren't any other daemons, we don't want to override.
         if daemons:
-            uwsgi_overrides["log-format"] = "%(method) %(status) %(uri) %(proto) %(size)"
+            server_overrides["log-format"] = "%(method)s %(status)d %(path)s %(proto)s"
         else:
-            uwsgi_overrides["log-format"] = "[%(ltime)] %(method) %(status) %(uri) %(proto) %(size)"
-
-        # Prevent logging of requests to specified endpoints.
-        #
-        # TODO: According to the docs, the final `log-drain` value is evaluated as a regex (and indeed,
-        # joining the options with `|` works), but no amount of escaping, not escaping, escaping the
-        # escaping, using raw strings, or any combo thereof seems to actually work if you include a
-        # regex pattern string in the list. Docs are here:
-        # https://uwsgi-docs.readthedocs.io/en/latest/Options.html?highlight=log-format#log-drain
-        if settings.DEVSERVER_REQUEST_LOG_EXCLUDES:
-            filters = settings.DEVSERVER_REQUEST_LOG_EXCLUDES
-            filter_pattern = "|".join(map(lambda s: re.escape(s), filters))
-            uwsgi_overrides["log-drain"] = filter_pattern
+            server_overrides["log-format"] = "[%(time)s] %(method)s %(status)d %(path)s %(proto)s"
 
         server_port = os.environ["SENTRY_BACKEND_PORT"]
 
@@ -441,18 +417,17 @@ def devserver(
             os.environ["SENTRY_REGION_SILO_PORT"] = str(server_port)
             os.environ["SENTRY_CONTROL_SILO_PORT"] = str(ports["server"] + 1)
             os.environ["SENTRY_DEVSERVER_BIND"] = f"127.0.0.1:{server_port}"
-            os.environ["UWSGI_HTTP_SOCKET"] = f"127.0.0.1:{ports['region.server']}"
-            os.environ["UWSGI_WORKERS"] = "8"
-            os.environ["UWSGI_THREADS"] = "2"
+            os.environ["SENTRY_GRANIAN_WORKERS"] = "2"
+            server_port = str(ports["region.server"])
 
         server = SentryHTTPServer(
             host=host,
             port=int(server_port),
-            extra_options=uwsgi_overrides,
+            extra_options=server_overrides,
             debug=debug_server,
         )
 
-        # If we don't need any other daemons, just launch a normal uwsgi webserver
+        # If we don't need any other daemons, just launch a normal webserver
         # and avoid dealing with subprocesses
         if not daemons and not silo:
             server.run()
@@ -468,8 +443,11 @@ def devserver(
             threading.Thread(target=server.run).start()
         else:
             # Make sure that the environment is prepared before honcho takes over
-            # This sets all the appropriate uwsgi env vars, etc
+            # This sets all the appropriate env vars, etc
             server.prepare_environment()
+            os.environ["SENTRY_GRANIAN_PORT"] = str(server_port)
+            if reload:
+                os.environ["SENTRY_GRANIAN_RELOAD"] = "1"
 
             if silo != "control":
                 daemons += [_get_daemon("server")]
@@ -496,9 +474,8 @@ def devserver(
                 "SENTRY_CONTROL_SILO_PORT": server_port,
                 "SENTRY_REGION_SILO_PORT": str(ports["region.server"]),
                 "SENTRY_DEVSERVER_BIND": f"127.0.0.1:{server_port}",
-                "UWSGI_HTTP_SOCKET": f"127.0.0.1:{ports['server']}",
-                "UWSGI_WORKERS": "8",
-                "UWSGI_THREADS": "2",
+                "SENTRY_GRANIAN_PORT": str(ports["server"]),
+                "SENTRY_GRANIAN_WORKERS": "2",
             }
             merged_env = os.environ.copy()
             merged_env.update(control_environ)

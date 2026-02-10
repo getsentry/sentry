@@ -2,12 +2,14 @@ import {Component, Fragment, useState, type Dispatch, type SetStateAction} from 
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import type {StylesConfig} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
+import {Heading} from '@sentry/scraps/text';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Link} from 'sentry/components/core/link';
-import type {StylesConfig} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
-import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
@@ -54,8 +56,6 @@ type SharedProps = ModalRenderProps & {
 type Props = SharedProps & {
   integrationConfigs: Integration[];
 
-  loading: boolean;
-
   /**
    * Callback for when organization is selected
    */
@@ -72,6 +72,11 @@ type Props = SharedProps & {
   organizations: Organization[];
 
   projects: Project[];
+
+  /**
+   * Whether projects are still loading
+   */
+  projectsLoading?: boolean;
 };
 
 function autoFocusReactSelect(reactSelectRef: any) {
@@ -229,25 +234,6 @@ class ContextPickerModal extends Component<Props> {
     return [memberProjects, nonMemberProjects];
   };
 
-  // TODO(TS): Fix typings
-  customOptionProject = ({label, ...props}: any) => {
-    const project = this.props.projects.find(({slug}) => props.value === slug);
-    if (!project) {
-      return null;
-    }
-    return (
-      <components.Option label={label} {...props}>
-        <ProjectBadgeOption
-          project={project}
-          avatarSize={20}
-          displayName={label}
-          avatarProps={{consistentWidth: true}}
-          disableLink
-        />
-      </components.Option>
-    );
-  };
-
   get headerText() {
     const {needOrg, needProject, integrationConfigs} = this.props;
     if (needOrg && needProject) {
@@ -267,7 +253,16 @@ class ContextPickerModal extends Component<Props> {
   }
 
   renderProjectSelectOrMessage() {
-    const {projects, allowAllProjectsSelection} = this.props;
+    const {projects, allowAllProjectsSelection, projectsLoading} = this.props;
+
+    if (projectsLoading) {
+      return (
+        <Flex justify="center" align="center" minHeight="345px">
+          <LoadingIndicator />
+        </Flex>
+      );
+    }
+
     const [memberProjects, nonMemberProjects] = this.getMemberProjects();
     const {isSuperuser} = ConfigStore.get('user') || {};
 
@@ -280,6 +275,7 @@ class ContextPickerModal extends Component<Props> {
           value: p.slug,
           label: p.slug,
           disabled: false,
+          leadingItems: <ProjectAvatar project={p} size={20} />,
         })),
       },
       {
@@ -288,6 +284,7 @@ class ContextPickerModal extends Component<Props> {
           value: p.slug,
           label: p.slug,
           disabled: allowAllProjectsSelection ? false : !isSuperuser,
+          leadingItems: <ProjectAvatar project={p} size={20} />,
         })),
       },
     ];
@@ -313,7 +310,7 @@ class ContextPickerModal extends Component<Props> {
         name="project"
         options={projectOptions}
         onChange={this.handleSelectProject}
-        components={{Option: this.customOptionProject, DropdownIndicator: null}}
+        components={{DropdownIndicator: null}}
         styles={selectStyles}
         menuIsOpen
       />
@@ -332,10 +329,10 @@ class ContextPickerModal extends Component<Props> {
         options: integrationConfigs.map(config => ({
           value: config.id,
           label: (
-            <StyledIntegrationItem>
+            <Grid columns="32px auto" rows="1fr">
               <IntegrationIcon size={22} integration={config} />
               <span>{config.domainName}</span>
-            </StyledIntegrationItem>
+            </Grid>
           ),
           disabled: isSuperuser ? false : true,
         })),
@@ -361,14 +358,13 @@ class ContextPickerModal extends Component<Props> {
       needProject,
       organization,
       organizations,
-      loading,
       Header,
       Body,
       integrationConfigs,
     } = this.props;
     const {isSuperuser} = ConfigStore.get('user') || {};
 
-    const shouldShowProjectSelector = organization && needProject && !loading;
+    const shouldShowProjectSelector = organization && needProject;
 
     const shouldShowConfigSelector = integrationConfigs.length > 0 && isSuperuser;
 
@@ -385,10 +381,9 @@ class ContextPickerModal extends Component<Props> {
     return (
       <Fragment>
         <Header closeButton>
-          <h5>{this.headerText}</h5>
+          <Heading as="h5">{this.headerText}</Heading>
         </Header>
         <Body>
-          {loading && <StyledLoadingIndicator overlay />}
           {needOrg && (
             <StyledSelectControl
               ref={shouldShowProjectSelector ? undefined : autoFocusReactSelect}
@@ -449,7 +444,7 @@ export default function ContextPickerModalContainer(props: ContainerProps) {
           <ContextPickerModal
             {...sharedProps}
             projects={projects as Project[]}
-            loading={!initiallyLoaded}
+            projectsLoading={!initiallyLoaded}
             organizations={organizations}
             organization={selectedOrgSlug}
             onSelectOrganization={setSelectedOrgSlug}
@@ -464,7 +459,6 @@ export default function ContextPickerModalContainer(props: ContainerProps) {
     <ContextPickerModal
       {...sharedProps}
       projects={[]}
-      loading
       organizations={organizations}
       organization={selectedOrgSlug}
       onSelectOrganization={setSelectedOrgSlug}
@@ -501,7 +495,6 @@ function ConfigUrlContainer(
     <ContextPickerModal
       {...sharedProps}
       projects={[]}
-      loading={isPending}
       organizations={organizations}
       organization={selectedOrgSlug}
       onSelectOrganization={setSelectedOrgSlug}
@@ -512,18 +505,4 @@ function ConfigUrlContainer(
 
 const StyledSelectControl = styled(Select)`
   margin-top: ${space(1)};
-`;
-
-const ProjectBadgeOption = styled(IdBadge)`
-  margin: ${space(1)};
-`;
-
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  z-index: 1;
-`;
-
-const StyledIntegrationItem = styled('div')`
-  display: grid;
-  grid-template-columns: ${space(4)} auto;
-  grid-template-rows: 1fr;
 `;

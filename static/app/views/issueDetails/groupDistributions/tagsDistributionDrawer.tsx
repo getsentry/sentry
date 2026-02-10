@@ -1,8 +1,8 @@
 import {Fragment, useState} from 'react';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {
   EventDrawerBody,
   EventNavigator,

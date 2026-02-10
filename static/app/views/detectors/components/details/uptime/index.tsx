@@ -1,8 +1,9 @@
 import {useCallback, useState} from 'react';
 
-import {CodeBlock} from 'sentry/components/core/code';
-import {Grid} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import Placeholder from 'sentry/components/placeholder';
@@ -71,7 +72,7 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
             <div>
               <UptimeChecksTable
                 detectorId={detector.id}
-                projectSlug={project.slug}
+                project={project}
                 traceSampling={detector.dataSources[0].queryObj.traceSampling}
               />
             </div>

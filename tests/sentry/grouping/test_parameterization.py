@@ -1,17 +1,16 @@
 import pytest
 
 from sentry.grouping.parameterization import Parameterizer
-from sentry.grouping.strategies.message import REGEX_PATTERN_KEYS
 
 
 @pytest.fixture
 def parameterizer() -> Parameterizer:
-    return Parameterizer(regex_pattern_keys=REGEX_PATTERN_KEYS, experimental=False)
+    return Parameterizer(experimental=False)
 
 
 @pytest.fixture
 def experimental_parameterizer() -> Parameterizer:
-    return Parameterizer(regex_pattern_keys=REGEX_PATTERN_KEYS, experimental=True)
+    return Parameterizer(experimental=True)
 
 
 standard_cases = [
@@ -30,7 +29,7 @@ standard_cases = [
     (
         "traceparent - aws, but not word boundary",
         "abc1-67891233-abcdef012345678912345678",
-        "abc1<int>-abcdef012345678912345678",
+        "abc1<int>-<hex>",
     ),
     ("uuid", "7c1811ed-e98f-4c9c-a9f9-58c757ff494f", "<uuid>"),
     (
@@ -90,21 +89,13 @@ standard_cases = [
     ("hex without prefix - lowercase, 4 digits", "9af8", "9af8"),
     ("hex without prefix - uppercase, 4 digits", "9AF8", "9AF8"),
     ("hex without prefix - lowercase, 8 digits", "9af8c3be", "<hex>"),
-    ("hex without prefix - uppercase, 8 digits", "9AF8C3BE", "9AF8C3BE"),
+    ("hex without prefix - uppercase, 8 digits", "9AF8C3BE", "<hex>"),
     ("hex without prefix - lowercase, 10 digits", "9af8c3be3a", "9af8c3be3a"),
     ("hex without prefix - uppercase, 10 digits", "9AF8C3BE3A", "9AF8C3BE3A"),
     ("hex without prefix - lowercase, 16 digits", "9af8c3be3a1231fe", "<hex>"),
-    ("hex without prefix - uppercase, 16 digits", "9AF8C3BE3A1231FE", "9AF8C3BE3A1231FE"),
-    (
-        "hex without prefix - lowercase, 24 digits",
-        "9af8c3be3a1231fe1121acb1",
-        "9af8c3be3a1231fe1121acb1",
-    ),
-    (
-        "hex without prefix - uppercase, 24 digits",
-        "9AF8C3BE3A1231FE1121ACB1",
-        "9AF8C3BE3A1231FE1121ACB1",
-    ),
+    ("hex without prefix - uppercase, 16 digits", "9AF8C3BE3A1231FE", "<hex>"),
+    ("hex without prefix - lowercase, 24 digits", "9af8c3be3a1231fe1121acb1", "<hex>"),
+    ("hex without prefix - uppercase, 24 digits", "9AF8C3BE3A1231FE1121ACB1", "<hex>"),
     ("hex without prefix - lowercase, no numbers", "deadbeef", "deadbeef"),
     ("hex without prefix - uppercase, no numbers", "DEADBEEF", "DEADBEEF"),
     ("float", "0.23", "<float>"),

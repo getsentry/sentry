@@ -98,8 +98,8 @@ export function getExploreUrl({
     project: projects?.length === 0 ? '' : projects,
     environment: environments,
     statsPeriod,
-    start,
-    end,
+    start: normalizeDateTimeString(start),
+    end: normalizeDateTimeString(end),
     interval,
     mode,
     query,
@@ -219,8 +219,8 @@ export function getExploreMultiQueryUrl({
     project: projects.length === 0 ? '' : projects,
     environment: environments,
     statsPeriod,
-    start,
-    end,
+    start: normalizeDateTimeString(start),
+    end: normalizeDateTimeString(end),
     interval,
     queries: queries.map(
       ({chartType, fields, groupBys, query, sortBys, yAxes, caseInsensitive}) =>
@@ -478,6 +478,7 @@ export function findSuggestedColumns(
   newSearch: MutableSearch,
   oldSearch: MutableSearch,
   attributes: {
+    booleanAttributes: TagCollection;
     numberAttributes: TagCollection;
     stringAttributes: TagCollection;
   }
@@ -499,9 +500,12 @@ export function findSuggestedColumns(
     const isNumberAttribute = key.startsWith('!')
       ? key.slice(1) in attributes.numberAttributes
       : key in attributes.numberAttributes;
+    const isBooleanAttribute = key.startsWith('!')
+      ? key.slice(1) in attributes.booleanAttributes
+      : key in attributes.booleanAttributes;
 
     // guard against unknown keys and aggregate keys
-    if (!isStringAttribute && !isNumberAttribute) {
+    if (!isStringAttribute && !isNumberAttribute && !isBooleanAttribute) {
       continue;
     }
 
@@ -546,6 +550,7 @@ function isSimpleFilter(
   key: string,
   value: string[],
   attributes: {
+    booleanAttributes: TagCollection;
     numberAttributes: TagCollection;
     stringAttributes: TagCollection;
   }
@@ -560,6 +565,12 @@ function isSimpleFilter(
   // almost always match on a range of values
   if (key in attributes.numberAttributes) {
     return false;
+  }
+
+  // boolean attributes are always considered trivial because they almost match on a
+  // single value, so there's no value in adding a column
+  if (key in attributes.booleanAttributes) {
+    return true;
   }
 
   if (value.length === 1) {

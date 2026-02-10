@@ -1,4 +1,3 @@
-from django.db.models import F
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -7,8 +6,8 @@ from sentry_sdk.api import capture_exception
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsMixin, region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.bases.project_key import ProjectKeyEndpoint
+from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.snuba.outcomes import (
@@ -22,7 +21,7 @@ from sentry.utils.outcomes import Outcome
 
 
 @region_silo_endpoint
-class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
+class ProjectKeyStatsEndpoint(ProjectKeyEndpoint, StatsMixin):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -38,13 +37,7 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
         }
     )
 
-    def get(self, request: Request, project, key_id) -> Response:
-        try:
-            key = ProjectKey.objects.for_request(request).get(
-                project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
-            )
-        except ProjectKey.DoesNotExist:
-            raise ResourceDoesNotExist
+    def get(self, request: Request, project: Project, project_key: ProjectKey) -> Response:
 
         try:
             stats_params = self._parse_args(request)
@@ -64,7 +57,7 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
                 ],
                 group_by=["outcome"],
                 category=["error"],
-                key_id=key.id,
+                key_id=project_key.id,
                 interval=request.GET.get("resolution", "1d"),
             )
             results = massage_outcomes_result(
@@ -94,23 +87,23 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
 
         # We rely on groups and intervals being index aligned
         for group_result in results["groups"]:
-            key = None
+            outcome_key = None
             grouping = group_result["by"]["outcome"]
             if grouping == Outcome.RATE_LIMITED.api_name():
-                key = "dropped"
+                outcome_key = "dropped"
             elif grouping == Outcome.FILTERED.api_name():
-                key = "filtered"
+                outcome_key = "filtered"
             elif grouping == Outcome.ACCEPTED.api_name():
-                key = "accepted"
+                outcome_key = "accepted"
             else:
                 capture_exception(
                     ValueError(f"Unexpected outcome result in project key stats {grouping}")
                 )
 
-            if key:
+            if outcome_key:
                 # We rely on series being index aligned with intervals.
                 for i, value in enumerate(group_result["series"]["sum(quantity)"]):
-                    response[i][key] += value
+                    response[i][outcome_key] += value
                     response[i]["total"] += value
 
         return Response(response)

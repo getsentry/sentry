@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {ActorAvatar} from '@sentry/scraps/avatar';
+
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';

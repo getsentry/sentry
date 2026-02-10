@@ -38,6 +38,7 @@ export function useGroupEvent({
   const eventId = eventIdProp ?? defaultIssueEvent;
 
   const isReservedEventId = RESERVED_EVENT_IDS.has(eventId);
+  const isSpecificEventId = eventId && !isReservedEventId;
   const isLatestOrRecommendedEvent = eventId === 'latest' || eventId === 'recommended';
 
   const query =
@@ -47,9 +48,10 @@ export function useGroupEvent({
 
   const {selection: pageFilters} = usePageFilters();
 
-  // Only use stats period if it is set in the URL
   const hasSetStatsPeriod =
-    location.query.statsPeriod || location.query.start || location.query.end;
+    // If we are on a specific event, the endpoint will return it regardless of the time range
+    !isSpecificEventId &&
+    (location.query.statsPeriod || location.query.start || location.query.end);
   const periodQuery =
     hasStreamlinedUI && hasSetStatsPeriod ? getPeriod(pageFilters.datetime) : {};
 

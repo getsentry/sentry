@@ -2,11 +2,11 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -24,6 +24,7 @@ import type {
   RepositoryProjectPathConfig,
 } from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {
   useApiQuery,
@@ -74,7 +75,12 @@ function makePathConfigQueryKey({
   orgSlug: string;
   cursor?: string | string[] | null;
 }): ApiQueryKey {
-  return [`/organizations/${orgSlug}/code-mappings/`, {query: {integrationId, cursor}}];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/`, {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+    {query: {integrationId, cursor}},
+  ];
 }
 
 function useDeletePathConfig() {
@@ -162,7 +168,12 @@ export default function IntegrationCodeMappings({
     isPending: isPendingRepos,
     isError: isErrorRepos,
   } = useApiQuery<Repository[]>(
-    [`/organizations/${organization.slug}/repos/`, {query: {status: 'active'}}],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/repos/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {status: 'active'}},
+    ],
     {staleTime: 10_000}
   );
 

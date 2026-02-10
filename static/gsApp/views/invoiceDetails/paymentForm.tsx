@@ -1,10 +1,12 @@
 import {Fragment} from 'react';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -27,7 +29,10 @@ function InvoiceDetailsPaymentForm({
   reloadInvoice,
 }: Props) {
   const location = useLocation();
-  const endpoint = `/organizations/${invoice.customer.slug}/payments/${invoice.id}/new/`;
+  const endpoint = getApiUrl(
+    '/organizations/$organizationIdOrSlug/payments/$paymentId/new/',
+    {path: {organizationIdOrSlug: invoice.customer.slug, paymentId: invoice.id}}
+  );
 
   return (
     <Fragment>

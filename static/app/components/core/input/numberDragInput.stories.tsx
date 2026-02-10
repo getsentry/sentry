@@ -1,8 +1,9 @@
 import {Fragment, useState} from 'react';
-import documentation from '!!type-loader!sentry/components/core/input/numberDragInput';
+import documentation from '!!type-loader!@sentry/scraps/input';
 import styled from '@emotion/styled';
 
-import {NumberDragInput} from 'sentry/components/core/input';
+import {NumberDragInput} from '@sentry/scraps/input';
+
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('NumberDragInput', (story, APIReference) => {
