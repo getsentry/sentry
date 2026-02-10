@@ -8,6 +8,7 @@ import {MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG} from 'sentry/views/dashboards/
 import {MOBILE_VITALS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/mobileVitals';
 import {MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/screenLoads';
 import {MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/screenRendering';
+import {NEXTJS_FRONTEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/nextjsFrontendOverview/nextjsFrontendOverview';
 import {QUERIES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/queries';
 import {QUERIES_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/querySummary';
 import {SESSION_HEALTH_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/sessionHealth';
@@ -29,6 +30,7 @@ export enum PrebuiltDashboardId {
   BACKEND_OVERVIEW = 12,
   MOBILE_SESSION_HEALTH = 13,
   FRONTEND_OVERVIEW = 14,
+  NEXTJS_FRONTEND_OVERVIEW = 15,
 }
 
 export type PrebuiltDashboard = Omit<DashboardDetails, 'id'>;
@@ -53,4 +55,6 @@ export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard>
     MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG,
   [PrebuiltDashboardId.MOBILE_SESSION_HEALTH]: MOBILE_SESSION_HEALTH_PREBUILT_CONFIG,
   [PrebuiltDashboardId.FRONTEND_OVERVIEW]: FRONTEND_OVERVIEW_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.NEXTJS_FRONTEND_OVERVIEW]:
+    NEXTJS_FRONTEND_OVERVIEW_PREBUILT_CONFIG,
 };

@@ -13,7 +13,7 @@ app:
         value* (stripped event-specific values)
           "FailedToFetchError: Charlie didn't bring <int> balls back!"
 --------------------------------------------------------------------------
-custom_fingerprint:
-  hash: "69d81763f9ec386fc0c0607ef62cabfa"
+custom_client_fingerprint:
+  hash: "b31e899e08ed071ee0534f28745910d0"
   fingerprint_info: {"client_fingerprint":["{{ message }}","dogs are great"]}
-  values: ["FailedToFetchError: Charlie didn't bring 2 balls back!","dogs are great"]
+  values: ["FailedToFetchError: Charlie didn't bring <int> balls back!","dogs are great"]

@@ -15,7 +15,7 @@ export function UptimeCheckFixture(params: Partial<UptimeCheck> = {}): UptimeChe
     traceId: '97f0e440317c5bb5b5e0024ca202a61d',
     uptimeCheckId: '97f0e440-317c-5bb5-b5e0-024ca202a61d',
     assertionFailureData: null,
-    traceItemId: '97f0e440-317c-5bb5-b5e0-024ca202a62d',
+    traceItemId: '3c9c2a1b-8d47-4e63-a8df-9b2c6d1f7e55',
     ...params,
   };
 }

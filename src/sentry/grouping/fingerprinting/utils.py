@@ -5,6 +5,8 @@ import re
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
 
+from sentry.grouping.fingerprinting.types import FingerprintInfo
+from sentry.grouping.utils import normalize_message_for_grouping
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.stacktraces.processing import get_crash_frame_from_event_data
@@ -204,6 +206,16 @@ def get_fingerprint_type(
     )
 
 
+def get_custom_fingerprint_type(
+    fingerprint_info: FingerprintInfo,
+) -> Literal["built-in", "custom client", "custom server"]:
+    matched_server_rule = fingerprint_info.get("matched_rule")
+    if matched_server_rule:
+        return "built-in" if matched_server_rule.get("is_builtin") else "custom server"
+    else:
+        return "custom client"
+
+
 def resolve_fingerprint_variable(
     variable_key: str,
     event: Event,
@@ -218,7 +230,12 @@ def resolve_fingerprint_variable(
             or get_path(event.data, "logentry", "message")
             or get_path(event.data, "exception", "values", -1, "value")
         )
-        return message or "<no-message>"
+        normalized_message = (
+            normalize_message_for_grouping(message, event, source="fingerprint", trim_message=False)
+            if message
+            else None
+        )
+        return normalized_message or "<no-message>"
 
     elif variable_key in ("type", "error.type"):
         exception_type = get_path(event.data, "exception", "values", -1, "type")
