@@ -149,7 +149,7 @@ Note: The trailing items should be sized to match the disclosure size - this is 
 
 The disclosure component provides a `onExpandedChange` prop that can be used to listen for changes to the expanded state - this allows you to store the state in a storage of your choice.
 
-We recommend storing it inside URL State or localStorage for persistent storage.
+Consider storing it inside URL State or localStorage for persistent storage.
 
 export function LocalStorageDisclosure() {
     const [expanded, setExpanded] = useLocalStorageState('my-disclosure-key', false);

@@ -9,11 +9,11 @@ from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.iterators import chunked
-from sentry.utils.query import RangeQuerySetWrapper
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 logger = logging.getLogger(__name__)
 
-BATCH_SIZE = 100
+BATCH_SIZE = 1000
 
 # OpenPeriodActivityType.OPENED
 OPENED = 1
@@ -22,16 +22,15 @@ OPENED = 1
 def _flush_batch(cursor: Any, batch: list[tuple[int, str]]) -> None:
     values_clause = ", ".join(["(%s, %s)"] * len(batch))
     params: list[int | str] = []
-    for open_period_id, event_id in batch:
-        params.extend([open_period_id, event_id])
+    for activity_id, event_id in batch:
+        params.extend([activity_id, event_id])
 
     cursor.execute(
         f"""
         UPDATE sentry_groupopenperiodactivity
         SET event_id = data.event_id
-        FROM (VALUES {values_clause}) AS data (group_open_period_id, event_id)
-        WHERE sentry_groupopenperiodactivity.group_open_period_id = data.group_open_period_id
-            AND sentry_groupopenperiodactivity.type = {OPENED}
+        FROM (VALUES {values_clause}) AS data (id, event_id)
+        WHERE sentry_groupopenperiodactivity.id = data.id
             AND sentry_groupopenperiodactivity.event_id IS NULL
         """,
         params,
@@ -40,19 +39,41 @@ def _flush_batch(cursor: Any, batch: list[tuple[int, str]]) -> None:
 
 def backfill_event_id_to_activity(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     GroupOpenPeriod = apps.get_model("sentry", "GroupOpenPeriod")
+    GroupOpenPeriodActivity = apps.get_model("sentry", "GroupOpenPeriodActivity")
 
     cursor = connection.cursor()
 
     for chunk in chunked(
-        RangeQuerySetWrapper(
-            GroupOpenPeriod.objects.all().values_list("id", "event_id"),
+        RangeQuerySetWrapperWithProgressBarApprox(
+            GroupOpenPeriodActivity.objects.all().values_list(
+                "id", "group_open_period_id", "type", "event_id"
+            ),
             result_value_getter=lambda item: item[0],
         ),
         BATCH_SIZE,
     ):
-        batch = [
-            (open_period_id, event_id) for open_period_id, event_id in chunk if event_id is not None
+        chunk = [
+            (activity_id, open_period_id)
+            for activity_id, open_period_id, type_, event_id in chunk
+            if type_ == OPENED and event_id is None
         ]
+        if not chunk:
+            continue
+
+        open_period_ids = [open_period_id for _, open_period_id in chunk]
+        event_ids_by_open_period = dict(
+            GroupOpenPeriod.objects.filter(
+                id__in=open_period_ids,
+                event_id__isnull=False,
+            ).values_list("id", "event_id")
+        )
+
+        batch = []
+        for activity_id, open_period_id in chunk:
+            event_id = event_ids_by_open_period.get(open_period_id)
+            if event_id is not None:
+                batch.append((activity_id, event_id))
+
         if batch:
             _flush_batch(cursor, batch)
 

@@ -21,7 +21,7 @@ function QuickContextCommitRow({commit}: CommitRowProps) {
 
   return (
     <StyledPanelItem key={commit.id} data-test-id="quick-context-commit-row">
-      <UserAvatar size={24} user={commit.author} />
+      {commit.author ? <UserAvatar size={24} user={commit.author} /> : null}
       <CommitLinks>
         {hasPullRequestURL && commit.message && (
           <Tooltip containerDisplayMode="inline" showOnlyOnOverflow title={commitMessage}>
