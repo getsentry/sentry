@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from contextlib import contextmanager
 from typing import Any
 
@@ -26,7 +27,7 @@ def fetch_repository(oid, rid) -> Repository:
     }
 
 
-ALL_ACTIONS = (
+ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
     # Issue comments
     ("get_issue_comments", {"issue_id": "1"}),
     ("create_issue_comment", {"issue_id": "1", "body": "test"}),
@@ -378,7 +379,7 @@ def _check_update_check_run(result: Any) -> None:
     assert result["provider"] == "test"
 
 
-ACTION_TESTS = (
+ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]], ...] = (
     (SourceCodeManager.get_issue_comments, {"issue_id": "1"}, _check_issue_comments),
     (SourceCodeManager.create_issue_comment, {"issue_id": "1", "body": "test"}, _check_none),
     (SourceCodeManager.delete_issue_comment, {"comment_id": "1"}, _check_none),
