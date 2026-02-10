@@ -61,7 +61,7 @@ interface TreemapElementMisc {
   scale?: number;
 }
 
-interface FlaggedInsight {
+export interface FlaggedInsight {
   key: string;
   savings: number;
 }
