@@ -206,7 +206,6 @@ class ArithmeticVisitor(NodeVisitor):
         "p99_if",
         "sum_if",
         "avg_if",
-        "count_if",
         "division_if",
         "failure_rate_if",
     }
