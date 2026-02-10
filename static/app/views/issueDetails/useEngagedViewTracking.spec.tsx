@@ -21,14 +21,14 @@ describe('useEngagedViewTracking', () => {
   });
 
   it('records engaged view event after 10 seconds', () => {
-    renderHook(() =>
-      useEngagedViewTracking({
+    renderHook(useEngagedViewTracking, {
+      initialProps: {
         groupId: '123',
         projectId: '456',
         organization,
         issueType: 'error',
-      })
-    );
+      },
+    });
 
     // Verify event not yet tracked
     expect(trackAnalytics).not.toHaveBeenCalled();
@@ -46,14 +46,14 @@ describe('useEngagedViewTracking', () => {
   });
 
   it('does not record event if unmounted before 10 seconds', () => {
-    const {unmount} = renderHook(() =>
-      useEngagedViewTracking({
+    const {unmount} = renderHook(useEngagedViewTracking, {
+      initialProps: {
         groupId: '123',
         projectId: '456',
         organization,
         issueType: 'error',
-      })
-    );
+      },
+    });
 
     // Advance timer by 5 seconds (not enough)
     jest.advanceTimersByTime(5000);
@@ -69,14 +69,14 @@ describe('useEngagedViewTracking', () => {
   });
 
   it('does not record event twice for the same group', () => {
-    renderHook(() =>
-      useEngagedViewTracking({
+    renderHook(useEngagedViewTracking, {
+      initialProps: {
         groupId: '123',
         projectId: '456',
         organization,
         issueType: 'error',
-      })
-    );
+      },
+    });
 
     // Advance timer by 10 seconds to trigger first event
     jest.advanceTimersByTime(10000);
@@ -91,18 +91,14 @@ describe('useEngagedViewTracking', () => {
   });
 
   it('resets timer when group changes', () => {
-    const {rerender} = renderHook(
-      ({groupId}) =>
-        useEngagedViewTracking({
-          groupId,
-          projectId: '456',
-          organization,
-          issueType: 'error',
-        }),
-      {
-        initialProps: {groupId: '123'},
-      }
-    );
+    const {rerender} = renderHook(useEngagedViewTracking, {
+      initialProps: {
+        groupId: '123',
+        projectId: '456',
+        organization,
+        issueType: 'error',
+      },
+    });
 
     // Advance timer by 5 seconds
     jest.advanceTimersByTime(5000);
@@ -111,7 +107,12 @@ describe('useEngagedViewTracking', () => {
     expect(trackAnalytics).not.toHaveBeenCalled();
 
     // Change to a different group
-    rerender({groupId: '789'});
+    rerender({
+      groupId: '789',
+      projectId: '456',
+      organization,
+      issueType: 'error',
+    });
 
     // Advance timer by another 5 seconds (total 10 from start, but only 5 on new group)
     jest.advanceTimersByTime(5000);
@@ -132,18 +133,14 @@ describe('useEngagedViewTracking', () => {
   });
 
   it('tracks event for new group after tracking previous group', () => {
-    const {rerender} = renderHook(
-      ({groupId}) =>
-        useEngagedViewTracking({
-          groupId,
-          projectId: '456',
-          organization,
-          issueType: 'error',
-        }),
-      {
-        initialProps: {groupId: '123'},
-      }
-    );
+    const {rerender} = renderHook(useEngagedViewTracking, {
+      initialProps: {
+        groupId: '123',
+        projectId: '456',
+        organization,
+        issueType: 'error',
+      },
+    });
 
     // Advance timer by 10 seconds to trigger event for first group
     jest.advanceTimersByTime(10000);
@@ -155,7 +152,12 @@ describe('useEngagedViewTracking', () => {
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
 
     // Change to a different group
-    rerender({groupId: '789'});
+    rerender({
+      groupId: '789',
+      projectId: '456',
+      organization,
+      issueType: 'error',
+    });
 
     // Advance timer by 10 seconds
     jest.advanceTimersByTime(10000);
