@@ -618,6 +618,28 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         """
         Delete a team with a SCIM Group DELETE Request.
         """
+        # Revoke privileges from all team members before deletion
+        if self._should_manage_privileges(team):
+            members = OrganizationMemberTeam.objects.filter(team=team).select_related(
+                "organizationmember"
+            )
+            for omt in members:
+                try:
+                    self._revoke_privileges(omt.organizationmember, team)
+                except Exception:
+                    logger.exception(
+                        "scim.privilege_revocation_on_team_delete_failed",
+                        extra={
+                            "organization_id": team.organization.id,
+                            "team_id": team.id,
+                            "member_id": omt.organizationmember.id,
+                        },
+                    )
+                    return Response(
+                        {"detail": "Failed to revoke user privileges"},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    )
+
         metrics.incr("sentry.scim.team.delete")
         return super().delete(request, team)
 

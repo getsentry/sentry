@@ -692,3 +692,130 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 )
 
                 assert response.data["detail"] == "Failed to revoke user privileges"
+
+
+class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
+    endpoint = "sentry-api-0-organization-scim-team-details"
+    method = "delete"
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.user_one = self.create_user(email="staff_user@example.com")
+        self.member_one = self.create_member(user=self.user_one, organization=self.organization)
+
+        self.user_two = self.create_user(email="superuser_user@example.com")
+        self.member_two = self.create_member(user=self.user_two, organization=self.organization)
+
+    def test_deleting_staff_team_revokes_privileges(self) -> None:
+        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+            staff_team = self.create_team(
+                organization=self.organization, slug="snty-staff", idp_provisioned=True
+            )
+
+            # Add two members to the team and grant them is_staff
+            user_service.update_user(
+                user_id=self.user_one.id, attrs={"is_staff": True, "is_superuser": True}
+            )
+            user_service.update_user(user_id=self.user_two.id, attrs={"is_staff": True})
+            OrganizationMemberTeam.objects.create(
+                team=staff_team, organizationmember=self.member_one
+            )
+            OrganizationMemberTeam.objects.create(
+                team=staff_team, organizationmember=self.member_two
+            )
+
+            # Verify users have is_staff
+            user_one = user_service.get_user(user_id=self.user_one.id)
+            assert user_one is not None
+            assert user_one.is_staff
+            user_two = user_service.get_user(user_id=self.user_two.id)
+            assert user_two is not None
+            assert user_two.is_staff
+
+            # Delete the team
+            self.get_success_response(self.organization.slug, staff_team.id, status_code=204)
+
+            # Verify is_staff was revoked from both users, but is_superuser retained
+            user_one = user_service.get_user(user_id=self.user_one.id)
+            assert user_one is not None
+            assert not user_one.is_staff
+            assert user_one.is_superuser  # Should still have superuser
+            user_two = user_service.get_user(user_id=self.user_two.id)
+            assert user_two is not None
+            assert not user_two.is_staff
+
+    def test_deleting_superuser_team_revokes_privileges(self) -> None:
+        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+            superuser_team = self.create_team(
+                organization=self.organization, slug="snty-superuser", idp_provisioned=True
+            )
+
+            # Add member to the team and grant is_superuser
+            user_service.update_user(
+                user_id=self.user_one.id, attrs={"is_staff": True, "is_superuser": True}
+            )
+            OrganizationMemberTeam.objects.create(
+                team=superuser_team, organizationmember=self.member_one
+            )
+
+            # Verify user has is_superuser
+            user = user_service.get_user(user_id=self.user_one.id)
+            assert user is not None
+            assert user.is_superuser
+
+            # Delete the team
+            self.get_success_response(self.organization.slug, superuser_team.id, status_code=204)
+
+            # Verify is_superuser was revoked but is_staff retained
+            user = user_service.get_user(user_id=self.user_one.id)
+            assert user is not None
+            assert user.is_staff  # Should still have staff
+            assert not user.is_superuser
+
+    def test_deleting_regular_team_does_not_affect_privileges(self) -> None:
+        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+            regular_team = self.create_team(
+                organization=self.organization, slug="engineering", idp_provisioned=True
+            )
+
+            # Add member with privileges
+            user_service.update_user(
+                user_id=self.user_one.id, attrs={"is_staff": True, "is_superuser": True}
+            )
+            OrganizationMemberTeam.objects.create(
+                team=regular_team, organizationmember=self.member_one
+            )
+
+            # Delete the team
+            self.get_success_response(self.organization.slug, regular_team.id, status_code=204)
+
+            # Verify privileges were not affected
+            user = user_service.get_user(user_id=self.user_one.id)
+            assert user is not None
+            assert user.is_staff
+            assert user.is_superuser
+
+    def test_deleting_team_with_privilege_revocation_failure_returns_500(self) -> None:
+        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+            staff_team = self.create_team(
+                organization=self.organization, slug="snty-staff", idp_provisioned=True
+            )
+
+            # Add member to the team
+            user_service.update_user(user_id=self.user_one.id, attrs={"is_staff": True})
+            OrganizationMemberTeam.objects.create(
+                team=staff_team, organizationmember=self.member_one
+            )
+
+            # Mock user_service.update_user to raise an exception
+            with patch("sentry.core.endpoints.scim.teams.user_service.update_user") as mock_update:
+                mock_update.side_effect = Exception("RPC failure")
+
+                response = self.get_error_response(
+                    self.organization.slug,
+                    staff_team.id,
+                    status_code=500,
+                )
+
+                assert response.data["detail"] == "Failed to revoke user privileges"
