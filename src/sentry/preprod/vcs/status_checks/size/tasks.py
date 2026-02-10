@@ -316,7 +316,8 @@ def create_preprod_status_check_task(
             include_approve_action=bool(triggered_rules),
         )
     except Exception as e:
-        _update_posted_status_claim(preprod_artifact)
+        if post_policy == StatusCheckPostPolicy.TRY_TO_DEDUPLICATE:
+            _update_posted_status_claim(preprod_artifact)
         extra: dict[str, Any] = {
             "artifact_id": preprod_artifact.id,
             "organization_id": preprod_artifact.project.organization_id,
