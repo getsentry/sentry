@@ -333,7 +333,7 @@ export default Storybook.story('Uptime Assertions', story => {
     );
   });
 
-  story('Group Op - Assert None (Not And)', () => {
+  story('Group Op - Assert Not All (Not And)', () => {
     const [groupOp, setGroupOp] = useState<LogicalOp>({
       id: 'story-not-1',
       op: 'not',
@@ -360,8 +360,8 @@ export default Storybook.story('Uptime Assertions', story => {
     return (
       <Fragment>
         <p>
-          "Assert None" fails if all child assertions pass (negated AND). This is useful
-          for asserting that none of a set of conditions are met.
+          "Assert Not All" fails if all child assertions pass (negated AND). This is
+          useful for asserting that none of a set of conditions are met.
         </p>
         <AssertionOpGroup value={groupOp} onChange={setGroupOp} />
         <CodeBlock language="javascript">{JSON.stringify(groupOp, null, 2)}</CodeBlock>
@@ -369,7 +369,7 @@ export default Storybook.story('Uptime Assertions', story => {
     );
   });
 
-  story('Group Op - Assert Not Any (Not Or)', () => {
+  story('Group Op - Assert None (Not Or)', () => {
     const [groupOp, setGroupOp] = useState<LogicalOp>({
       id: 'story-not-2',
       op: 'not',
@@ -396,8 +396,8 @@ export default Storybook.story('Uptime Assertions', story => {
     return (
       <Fragment>
         <p>
-          "Assert Not Any" fails if any child assertion passes (negated OR). This is
-          useful for ensuring that none of several error conditions occur.
+          "Assert None" fails if any child assertion passes (negated OR). This is useful
+          for ensuring that none of several error conditions occur.
         </p>
         <AssertionOpGroup value={groupOp} onChange={setGroupOp} />
         <CodeBlock language="javascript">{JSON.stringify(groupOp, null, 2)}</CodeBlock>

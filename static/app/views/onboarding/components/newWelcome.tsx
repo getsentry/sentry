@@ -67,25 +67,25 @@ const STAGGER_CHILDREN = {
 const PRODUCT_OPTIONS: ProductOption[] = [
   {
     id: OnboardingWelcomeProductId.ERROR_MONITORING,
-    icon: <IconWarning legacySize="16px" variant="secondary" />,
+    icon: <IconWarning size="md" variant="secondary" />,
     title: t('Error monitoring'),
     description: t('Automatically capture exceptions and stack traces'),
   },
   {
     id: OnboardingWelcomeProductId.LOGGING,
-    icon: <IconTerminal legacySize="16px" variant="secondary" />,
+    icon: <IconTerminal size="md" variant="secondary" />,
     title: t('Logging'),
     description: t('See logs in context with errors and performance issues'),
   },
   {
     id: OnboardingWelcomeProductId.SESSION_REPLAY,
-    icon: <IconTimer legacySize="16px" variant="secondary" />,
+    icon: <IconTimer size="md" variant="secondary" />,
     title: t('Session replay'),
     description: t('Watch real user sessions to see what went wrong'),
   },
   {
     id: OnboardingWelcomeProductId.TRACING,
-    icon: <IconSpan legacySize="16px" variant="secondary" />,
+    icon: <IconSpan size="md" variant="secondary" />,
     title: t('Tracing'),
     description: t(
       'Find bottlenecks, broken requests, and understand application flow end-to-end.'
@@ -93,7 +93,7 @@ const PRODUCT_OPTIONS: ProductOption[] = [
   },
   {
     id: OnboardingWelcomeProductId.METRICS,
-    icon: <IconGraph legacySize="16px" variant="secondary" />,
+    icon: <IconGraph size="md" variant="secondary" />,
     title: t('Metrics'),
     description: t(
       'Track application performance and usage over time with custom metrics.'
@@ -101,7 +101,7 @@ const PRODUCT_OPTIONS: ProductOption[] = [
   },
   {
     id: OnboardingWelcomeProductId.PROFILING,
-    icon: <IconProfiling legacySize="16px" variant="secondary" />,
+    icon: <IconProfiling size="md" variant="secondary" />,
     title: t('Profiling'),
     description: t(
       'Pinpoint the functions and lines of code responsible for performance issues.'
@@ -109,7 +109,7 @@ const PRODUCT_OPTIONS: ProductOption[] = [
   },
   {
     id: OnboardingWelcomeProductId.AGENT_MONITORING,
-    icon: <IconBot legacySize="16px" variant="secondary" />,
+    icon: <IconBot size="md" variant="secondary" />,
     title: t('Agent monitoring'),
     description: t(
       'Track all agent runs, error rates, LLM calls, tokens used, and tool executions.'
@@ -117,7 +117,7 @@ const PRODUCT_OPTIONS: ProductOption[] = [
   },
   {
     id: OnboardingWelcomeProductId.SEER,
-    icon: <IconSeer legacySize="16px" variant="secondary" />,
+    icon: <IconSeer size="md" variant="secondary" />,
     title: t('Seer: AI Debugging Agent'),
     description: t(
       'Catch breaking changes, automatically root cause issues in production, and fix what you missed.'
@@ -163,7 +163,7 @@ export function NewWelcomeUI(props: StepProps) {
             <Stack gap="2xs">
               <Flex align="center" gap="md">
                 <Container>
-                  <IconBusiness legacySize="16px" variant="accent" />
+                  <IconBusiness size="md" variant="accent" />
                 </Container>
                 <Container>
                   <Text size="lg" bold density="comfortable">

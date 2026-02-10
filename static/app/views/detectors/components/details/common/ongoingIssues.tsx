@@ -26,7 +26,7 @@ export function DetectorDetailsOngoingIssues({
       ? getUtcDateString(selection.datetime.start)
       : undefined,
     end: selection.datetime.end ? getUtcDateString(selection.datetime.end) : undefined,
-    statsPeriod: selection.datetime.period,
+    statsPeriod: selection.datetime.period ?? undefined,
   };
 
   return (
