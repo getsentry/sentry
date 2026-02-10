@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
@@ -25,7 +26,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
-import AllViewsWelcomeBanner from 'sentry/views/issueList/issueViews/issueViewsList/allViewsWelcomeBanner';
 import {IssueViewsTable} from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsTable';
 import {
   DEFAULT_ENVIRONMENTS,
@@ -365,7 +365,7 @@ export default function IssueViewsList() {
             <Layout.Title>{t('All Views')}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <ButtonBar>
+            <Grid flow="column" align="center" gap="md">
               <FeedbackButton
                 size="sm"
                 feedbackOptions={{
@@ -414,7 +414,7 @@ export default function IssueViewsList() {
                   </Button>
                 )}
               </Feature>
-            </ButtonBar>
+            </Grid>
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
@@ -436,7 +436,6 @@ export default function IssueViewsList() {
               />
               <SortDropdown />
             </FilterSortBar>
-            <AllViewsWelcomeBanner />
             <TableHeading>{t('Created by Me')}</TableHeading>
             <IssueViewSection
               createdBy={GroupSearchViewCreatedBy.ME}

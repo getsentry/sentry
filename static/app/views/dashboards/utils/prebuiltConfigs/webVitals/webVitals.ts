@@ -54,6 +54,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   widgets: [
     {
       id: 'score-breakdown-wheel',
+      description: t('The overall performance rating of this page.'),
       title: t('Performance Score'),
       displayType: DisplayType.WHEEL,
       widgetType: WidgetType.SPANS,
@@ -105,6 +106,9 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
     {
       id: 'score-breakdown-chart',
       title: t('Score Breakdown'),
+      description: t(
+        'Each Web Vital score contributes a different amount to the total score. Refer to the Performance Score wheel for total contribution.'
+      ),
       displayType: DisplayType.AREA,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -141,6 +145,9 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
     {
       id: 'lcp-p75-meter',
       title: t('P75 Largest Contentful Paint'),
+      description: t(
+        'Time to render the largest item in the viewport. Bad LCP frustrates users because the website feels slow to load.'
+      ),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -173,6 +180,9 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
     {
       id: 'inp-p75-meter',
       title: t('P75 Interaction to Next Paint'),
+      description: t(
+        'Latency between user input and visual response. Bad INP makes users feel like the site is laggy, outdated, and unresponsive.'
+      ),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -205,6 +215,9 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
     {
       id: 'cls-p75-meter',
       title: t('P75 Cumulative Layout Shift'),
+      description: t(
+        "Measures content 'shifting' during load. Bad CLS indicates a janky website, degrading UX and trust."
+      ),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',
@@ -237,6 +250,9 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
     {
       id: 'ttfb-p75-meter',
       title: t('P75 Time To First Byte'),
+      description: t(
+        'Time until first byte is delivered to the client. Bad TTFB makes the server feel unresponsive.'
+      ),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.SPANS,
       interval: '5m',

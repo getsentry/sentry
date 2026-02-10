@@ -567,7 +567,7 @@ function DifferentialFlamegraphChangedFunctionsTitle(props: {
           {props.subtitle}
         </DifferentialFlamegraphChangedFunctionsSubtitleText>
       </DifferentialFlamegraphChangedFunctionsTitleText>
-      <ButtonBar merged gap="0">
+      <ButtonBar>
         <DifferentialFlamegraphPaginationButton
           size="xs"
           disabled={!props.onPreviousPageClick}

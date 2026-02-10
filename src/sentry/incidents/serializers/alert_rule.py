@@ -107,6 +107,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             "sensitivity",
             "seasonality",
             "detection_type",
+            "extrapolation_mode",
         ]
         extra_kwargs = {
             "name": {"min_length": 1, "max_length": 256},
