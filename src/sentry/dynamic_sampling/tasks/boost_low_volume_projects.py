@@ -116,11 +116,13 @@ def _partition_orgs_by_measure(
     # Rebalance on spans when feature flag is active and not in project mode
     span_org_ids: set[int] = set(options.get("dynamic-sampling.measure.spans") or [])
     filtered_span_org_ids: set[int] = span_org_ids & filtered_org_ids
+    filtered_segments_org_ids = filtered_segments_org_ids - filtered_span_org_ids
+    filtered_transactions_org_ids = transactions_org_ids - filtered_span_org_ids
 
     return {
         SamplingMeasure.SEGMENTS: sorted(filtered_segments_org_ids),
         SamplingMeasure.SPANS: sorted(filtered_span_org_ids),
-        SamplingMeasure.TRANSACTIONS: sorted(transactions_org_ids),
+        SamplingMeasure.TRANSACTIONS: sorted(filtered_transactions_org_ids),
     }
 
 

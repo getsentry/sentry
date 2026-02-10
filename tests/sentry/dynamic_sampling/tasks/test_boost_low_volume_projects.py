@@ -286,6 +286,213 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         assert (p2_2.id, 15, 7, 8) in org_2_results
 
 
+class TestPartitionOrgsByMeasure(TestCase):
+    def test_segments_orgs_go_to_segments_measure(self) -> None:
+        """Orgs listed in the segments option should be partitioned to SEGMENTS."""
+        org = self.create_organization("test-org")
+        with self.options(
+            {
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": [org.id],
+                "dynamic-sampling.check_span_feature_flag": False,
+            }
+        ):
+            result = _partition_orgs_by_measure([org.id])
+            assert org.id in result[SamplingMeasure.SEGMENTS]
+            assert org.id not in result.get(SamplingMeasure.TRANSACTIONS, [])
+
+    def test_non_segments_orgs_go_to_transactions_measure(self) -> None:
+        """Orgs NOT in the segments option should be partitioned to TRANSACTIONS."""
+        org = self.create_organization("test-org")
+        with self.options(
+            {
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": [],
+                "dynamic-sampling.check_span_feature_flag": False,
+            }
+        ):
+            result = _partition_orgs_by_measure([org.id])
+            assert org.id in result[SamplingMeasure.TRANSACTIONS]
+            assert org.id not in result.get(SamplingMeasure.SEGMENTS, [])
+
+    def test_project_mode_orgs_are_excluded(self) -> None:
+        """Orgs with PROJECT sampling mode should be excluded from all partitions."""
+        org = self.create_organization("test-org")
+        org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
+
+        with self.options(
+            {
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": [org.id],
+                "dynamic-sampling.check_span_feature_flag": False,
+            }
+        ):
+            result = _partition_orgs_by_measure([org.id])
+            assert org.id not in result.get(SamplingMeasure.SEGMENTS, [])
+            assert org.id not in result.get(SamplingMeasure.TRANSACTIONS, [])
+
+    def test_mixed_orgs_segments_and_transactions(self) -> None:
+        """Mix of segment and non-segment orgs should partition correctly."""
+        org_seg = self.create_organization("org-segments")
+        org_tx = self.create_organization("org-transactions")
+
+        with self.options(
+            {
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": [org_seg.id],
+                "dynamic-sampling.check_span_feature_flag": False,
+            }
+        ):
+            result = _partition_orgs_by_measure([org_seg.id, org_tx.id])
+            assert result[SamplingMeasure.SEGMENTS] == sorted([org_seg.id])
+            assert result[SamplingMeasure.TRANSACTIONS] == sorted([org_tx.id])
+
+    def test_span_orgs_partitioned_when_check_span_flag_enabled(self) -> None:
+        """When check_span_feature_flag is on, orgs in span option go to SPANS."""
+        org_span = self.create_organization("org-span")
+        org_tx = self.create_organization("org-tx")
+
+        with self.options(
+            {
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": [],
+                "dynamic-sampling.check_span_feature_flag": True,
+                "dynamic-sampling.measure.spans": [org_span.id],
+            }
+        ):
+            result = _partition_orgs_by_measure([org_span.id, org_tx.id])
+            assert org_span.id in result[SamplingMeasure.SPANS]
+            assert org_tx.id in result[SamplingMeasure.TRANSACTIONS]
+
+    def test_all_three_measures_partitioned(self) -> None:
+        """When all options are set, orgs should be split across SEGMENTS, SPANS, and TRANSACTIONS."""
+        org_seg = self.create_organization("org-seg")
+        org_span = self.create_organization("org-span")
+        org_tx = self.create_organization("org-tx")
+
+        with self.options(
+            {
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": [org_seg.id],
+                "dynamic-sampling.check_span_feature_flag": True,
+                "dynamic-sampling.measure.spans": [org_span.id],
+            }
+        ):
+            result = _partition_orgs_by_measure([org_seg.id, org_span.id, org_tx.id])
+            assert result[SamplingMeasure.SEGMENTS] == [org_seg.id]
+            assert org_span.id in result[SamplingMeasure.SPANS]
+            assert org_tx.id in result[SamplingMeasure.TRANSACTIONS]
+            # Segments org should NOT be in transactions
+            assert org_seg.id not in result[SamplingMeasure.TRANSACTIONS]
+
+    def test_span_flag_disabled_means_no_span_partition(self) -> None:
+        """When check_span_feature_flag is off, SPANS key should not be in result."""
+        org = self.create_organization("test-org")
+        with self.options(
+            {
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": [],
+                "dynamic-sampling.check_span_feature_flag": False,
+                "dynamic-sampling.measure.spans": [org.id],
+            }
+        ):
+            result = _partition_orgs_by_measure([org.id])
+            assert SamplingMeasure.SPANS not in result
+            assert org.id in result[SamplingMeasure.TRANSACTIONS]
+
+    def test_project_mode_excluded_from_segments_and_spans(self) -> None:
+        """Project-mode orgs should be excluded even if listed in segments and spans options."""
+        org = self.create_organization("test-org")
+        org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
+
+        with self.options(
+            {
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": [org.id],
+                "dynamic-sampling.check_span_feature_flag": True,
+                "dynamic-sampling.measure.spans": [org.id],
+            }
+        ):
+            result = _partition_orgs_by_measure([org.id])
+            assert org.id not in result.get(SamplingMeasure.SEGMENTS, [])
+            assert org.id not in result.get(SamplingMeasure.SPANS, [])
+            assert org.id not in result.get(SamplingMeasure.TRANSACTIONS, [])
+
+    def test_results_are_sorted(self) -> None:
+        """Org IDs in each partition should be sorted."""
+        orgs = [self.create_organization(f"test-org{i}") for i in range(5)]
+        org_ids = [org.id for org in orgs]
+
+        with self.options(
+            {
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": [],
+                "dynamic-sampling.check_span_feature_flag": False,
+            }
+        ):
+            # Pass in reverse order
+            result = _partition_orgs_by_measure(list(reversed(org_ids)))
+            assert result[SamplingMeasure.TRANSACTIONS] == sorted(org_ids)
+
+    def test_no_org_appears_in_multiple_measures(self) -> None:
+        """
+        Regardless of flag combinations, no org should ever appear in more than
+        one measure partition. An org being processed by multiple measures would
+        cause duplicate rebalancing work and unpredictable sample rates.
+        """
+        orgs = [self.create_organization(f"test-org{i}") for i in range(6)]
+        org_ids = [org.id for org in orgs]
+
+        # Org 0: segments only
+        # Org 1: spans only
+        # Org 2: both segments and spans
+        # Org 3: project mode + segments
+        # Org 4: project mode + spans
+        # Org 5: no flags (plain transactions)
+        orgs[3].update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
+        orgs[4].update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
+
+        segment_org_ids = [orgs[0].id, orgs[2].id, orgs[3].id]
+        span_org_ids = [orgs[1].id, orgs[2].id, orgs[4].id]
+
+        flag_combinations = [
+            # span flag off
+            {
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": segment_org_ids,
+                "dynamic-sampling.check_span_feature_flag": False,
+                "dynamic-sampling.measure.spans": span_org_ids,
+            },
+            # span flag on
+            {
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": segment_org_ids,
+                "dynamic-sampling.check_span_feature_flag": True,
+                "dynamic-sampling.measure.spans": span_org_ids,
+            },
+            # no segments, span flag on
+            {
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": [],
+                "dynamic-sampling.check_span_feature_flag": True,
+                "dynamic-sampling.measure.spans": span_org_ids,
+            },
+            # no segments, span flag off
+            {
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": [],
+                "dynamic-sampling.check_span_feature_flag": False,
+                "dynamic-sampling.measure.spans": [],
+            },
+            # all orgs in all lists
+            {
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": org_ids,
+                "dynamic-sampling.check_span_feature_flag": True,
+                "dynamic-sampling.measure.spans": org_ids,
+            },
+        ]
+
+        for opts in flag_combinations:
+            with self.options(opts):
+                result = _partition_orgs_by_measure(org_ids)
+
+                seen: set[int] = set()
+                for measure, measure_org_ids in result.items():
+                    overlap = seen & set(measure_org_ids)
+                    assert not overlap, (
+                        f"Org(s) {overlap} appear in {measure} but were already "
+                        f"in another measure. Options: {opts}"
+                    )
+                    seen.update(measure_org_ids)
+
+
 class TestGetSegmentsOrgIds(TestCase):
     def test_get_segments_org_ids_returns_set(self) -> None:
         org = self.create_organization("test-org1")
@@ -561,3 +768,278 @@ class TestSpanMetricQuery(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
         )
 
         assert results[org.id] == [(project.id, 15.0, 5, 10)]
+
+
+@freeze_time(MOCK_DATETIME)
+class TestEndToEndMeasureDispatching(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+    """
+    End-to-end tests verifying that the boost_low_volume_projects task correctly
+    dispatches orgs to the right measure and that segment, transaction, and span
+    processing are all executed correctly.
+    """
+
+    @property
+    def now(self) -> datetime:
+        return MOCK_DATETIME
+
+    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
+    def test_segments_org_uses_segments_measure_in_with_query_task(self) -> None:
+        """
+        boost_low_volume_projects_of_org_with_query should use SEGMENTS measure
+        for orgs listed in the segment-metric-orgs option.
+        """
+        org = self.create_organization("test-org")
+        p1 = self.create_project(organization=org)
+
+        # Store span metrics with is_segment=true (used by SEGMENTS measure)
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
+            minutes_before_now=30,
+            value=5,
+            project_id=p1.id,
+            org_id=org.id,
+        )
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "drop", "is_segment": "true"},
+            minutes_before_now=30,
+            value=10,
+            project_id=p1.id,
+            org_id=org.id,
+        )
+
+        redis_client = get_redis_client_for_ds()
+        cache_key = generate_sliding_window_org_cache_key(org.id)
+        redis_client.set(cache_key, 0.5)
+
+        with self.options(
+            {
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": [org.id],
+            }
+        ):
+            with self.tasks():
+                boost_low_volume_projects_of_org_with_query.delay(org.id)
+
+        sample_rate, got_value = get_boost_low_volume_projects_sample_rate(
+            org.id, p1.id, error_sample_rate_fallback=None
+        )
+        assert got_value
+        assert sample_rate is not None
+
+    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
+    def test_transaction_org_uses_transaction_measure_in_with_query_task(self) -> None:
+        """
+        boost_low_volume_projects_of_org_with_query should use TRANSACTIONS measure
+        for orgs NOT listed in segment-metric-orgs option.
+        """
+        org = self.create_organization("test-org")
+        p1 = self.create_project(organization=org)
+
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep"},
+            minutes_before_now=30,
+            value=5,
+            project_id=p1.id,
+            org_id=org.id,
+        )
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "drop"},
+            minutes_before_now=30,
+            value=10,
+            project_id=p1.id,
+            org_id=org.id,
+        )
+
+        redis_client = get_redis_client_for_ds()
+        cache_key = generate_sliding_window_org_cache_key(org.id)
+        redis_client.set(cache_key, 0.5)
+
+        with self.options(
+            {
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": [],
+            }
+        ):
+            with self.tasks():
+                boost_low_volume_projects_of_org_with_query.delay(org.id)
+
+        sample_rate, got_value = get_boost_low_volume_projects_sample_rate(
+            org.id, p1.id, error_sample_rate_fallback=None
+        )
+        assert got_value
+        assert sample_rate is not None
+
+    def test_main_task_dispatches_correct_measures(self) -> None:
+        """
+        The main boost_low_volume_projects task should call _process_orgs_for_boost
+        with the correct measure for each partition.
+        """
+        org_seg = self.create_organization("org-seg")
+        org_tx = self.create_organization("org-tx")
+
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep"},
+            minutes_before_now=30,
+            value=1,
+            project_id=self.create_project(organization=org_seg).id,
+            org_id=org_seg.id,
+        )
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep"},
+            minutes_before_now=30,
+            value=1,
+            project_id=self.create_project(organization=org_tx).id,
+            org_id=org_tx.id,
+        )
+
+        with self.options(
+            {
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": [org_seg.id],
+                "dynamic-sampling.check_span_feature_flag": False,
+            }
+        ):
+            with patch(
+                "sentry.dynamic_sampling.tasks.boost_low_volume_projects._process_orgs_for_boost"
+            ) as mock_process:
+                with self.tasks():
+                    boost_low_volume_projects()
+
+                # Collect all calls: (org_ids, measure) pairs
+                calls_by_measure: dict[SamplingMeasure, list[int]] = {}
+                for call in mock_process.call_args_list:
+                    org_ids = call[0][0]
+                    measure = call[0][1]
+                    calls_by_measure.setdefault(measure, []).extend(org_ids)
+
+                assert org_seg.id in calls_by_measure.get(SamplingMeasure.SEGMENTS, [])
+                assert org_tx.id in calls_by_measure.get(SamplingMeasure.TRANSACTIONS, [])
+                assert org_seg.id not in calls_by_measure.get(SamplingMeasure.TRANSACTIONS, [])
+
+    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
+    def test_segments_query_uses_span_mri_with_is_segment_tag(self) -> None:
+        """
+        When processing an org with SEGMENTS measure, the Snuba query should use
+        SpanMRI and filter by is_segment=true, not TransactionMRI.
+        """
+        org = self.create_organization("test-org")
+        project = self.create_project(organization=org)
+
+        # Store ONLY span metrics with is_segment=true
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
+            minutes_before_now=30,
+            value=3,
+            project_id=project.id,
+            org_id=org.id,
+        )
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "drop", "is_segment": "true"},
+            minutes_before_now=30,
+            value=7,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        # Also store transaction metrics (should NOT be picked up for SEGMENTS)
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep"},
+            minutes_before_now=30,
+            value=100,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        results = fetch_projects_with_total_root_transaction_count_and_rates(
+            org_ids=[org.id], measure=SamplingMeasure.SEGMENTS
+        )
+
+        # Should only see the span/segment metrics (3 + 7 = 10), not the transaction metrics (100)
+        assert results[org.id] == [(project.id, 10.0, 3, 7)]
+
+    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
+    def test_transactions_query_uses_transaction_mri(self) -> None:
+        """
+        When processing an org with TRANSACTIONS measure, the Snuba query should use
+        TransactionMRI, not SpanMRI.
+        """
+        org = self.create_organization("test-org")
+        project = self.create_project(organization=org)
+
+        # Store transaction metrics
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep"},
+            minutes_before_now=30,
+            value=20,
+            project_id=project.id,
+            org_id=org.id,
+        )
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "drop"},
+            minutes_before_now=30,
+            value=30,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        # Also store span metrics (should NOT be picked up for TRANSACTIONS)
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
+            minutes_before_now=30,
+            value=999,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        results = fetch_projects_with_total_root_transaction_count_and_rates(
+            org_ids=[org.id], measure=SamplingMeasure.TRANSACTIONS
+        )
+
+        # Should only see transaction metrics (20 + 30 = 50), not span metrics (999)
+        assert results[org.id] == [(project.id, 50.0, 20, 30)]
+
+    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
+    def test_spans_query_uses_span_mri_without_is_segment(self) -> None:
+        """
+        When processing an org with SPANS measure, the Snuba query should use
+        SpanMRI but NOT filter by is_segment (counts all spans).
+        """
+        org = self.create_organization("test-org")
+        project = self.create_project(organization=org)
+
+        # Store span metrics WITH is_segment=true
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
+            minutes_before_now=30,
+            value=3,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        # Store span metrics WITHOUT is_segment tag
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "bar", "decision": "keep"},
+            minutes_before_now=30,
+            value=7,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        results = fetch_projects_with_total_root_transaction_count_and_rates(
+            org_ids=[org.id], measure=SamplingMeasure.SPANS
+        )
+
+        # SPANS measure should count ALL spans (both with and without is_segment)
+        # Total = 3 + 7 = 10, all keeps
+        assert results[org.id] == [(project.id, 10.0, 10, 0)]
