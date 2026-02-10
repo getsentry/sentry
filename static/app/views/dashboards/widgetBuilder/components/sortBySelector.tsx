@@ -1,5 +1,4 @@
 import {Fragment, useEffect} from 'react';
-import styled from '@emotion/styled';
 
 import {NumberInput} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
@@ -81,7 +80,9 @@ function WidgetBuilderSortBySelector() {
 
   const maxLimit = isTimeseriesChart
     ? getResultsLimit(widget.queries.length, widget.queries[0]!.aggregates.length)
-    : MAX_CATEGORICAL_BAR_LIMIT;
+    : isCategoricalBarWidget
+      ? MAX_CATEGORICAL_BAR_LIMIT
+      : 0;
 
   // handles when the maxLimit changes to a value less than the current selected limit
   useEffect(() => {
@@ -119,7 +120,7 @@ function WidgetBuilderSortBySelector() {
         >
           <Flex direction="column" gap="sm">
             {isTimeseriesChart && state.limit && (
-              <ResultsLimitSelector
+              <Select
                 disabled={disableSortDirection && disableSort}
                 name="resultsLimit"
                 options={[...new Array(maxLimit).keys()].map(resultLimit => {
@@ -138,6 +139,7 @@ function WidgetBuilderSortBySelector() {
             {isCategoricalBarWidget && state.limit && (
               <NumberInput
                 aria-label={t('Limit results')}
+                disabled={disableSortDirection && disableSort}
                 min={1}
                 max={MAX_CATEGORICAL_BAR_LIMIT}
                 value={state.limit}
@@ -185,5 +187,3 @@ function WidgetBuilderSortBySelector() {
 }
 
 export default WidgetBuilderSortBySelector;
-
-const ResultsLimitSelector = styled(Select)``;
