@@ -195,7 +195,7 @@ jobs:
       # Enable per-worker Snuba database routing
       XDIST_PER_WORKER_SNUBA: '1'
       # Number of xdist workers (must match -n below)
-      XDIST_WORKERS: '2'
+      XDIST_WORKERS: '3'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -300,7 +300,7 @@ jobs:
           echo ""
           echo "All per-worker Snuba instances ready!"
 
-      - name: Run tier 2 parallel tests (xdist -n 2, per-worker databases)
+      - name: Run tier 2 parallel tests (xdist -n 3, per-worker databases)
         env:
           SELECTED_TESTS_FILE: /tmp/tier2-tests.txt
         run: |
@@ -315,7 +315,7 @@ jobs:
             --ignore tests/js \
             --ignore tests/tools \
             --xdist-group=parallel \
-            -n 2 \
+            -n 3 \
             --dist=loadfile \
             --json-report \
             --json-report-file=".artifacts/pytest.json" \
