@@ -12,7 +12,7 @@ import {
 import {closeModal} from 'sentry/actionCreators/modal';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 
-import {AttributeBreakdownViewerModal} from './attributeBreakdownViewerModal';
+import AttributeBreakdownViewerModal from './attributeBreakdownViewerModal';
 
 jest.mock('sentry/actionCreators/modal');
 

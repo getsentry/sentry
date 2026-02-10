@@ -246,12 +246,11 @@ function PopulationIndicatorComponent({
 
 export default function AttributeBreakdownViewerModal(props: Props) {
   const {Header, Body, mode} = props;
+  const {selection} = usePageFilters();
 
   const theme = useTheme();
   const navigate = useNavigate();
   const organization = useOrganization();
-  const {selection} = usePageFilters();
-
   const primaryColor = theme.chart.getColorPalette(0)?.[0];
   const secondaryColor = COHORT_2_COLOR;
 
