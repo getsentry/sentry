@@ -227,16 +227,9 @@ jobs:
           # Default Snuba has no CLICKHOUSE_DATABASE set, so it uses "default"
           BASE_DB="default"
 
-          # Get regular tables (non-views) and views separately
-          echo "Discovering tables in '$BASE_DB' database..."
-          REGULAR_TABLES=$(curl -s 'http://localhost:8123/' --data-binary \
-            "SELECT name FROM system.tables WHERE database = '${BASE_DB}' AND engine NOT IN ('MaterializedView', 'View') FORMAT TabSeparated" | grep -v '^$')
-          REGULAR_COUNT=$(echo "$REGULAR_TABLES" | wc -l)
-
-          VIEWS=$(curl -s 'http://localhost:8123/' --data-binary \
-            "SELECT name FROM system.tables WHERE database = '${BASE_DB}' AND engine IN ('MaterializedView', 'View') FORMAT TabSeparated" | grep -v '^$')
-          VIEW_COUNT=$(echo "$VIEWS" | wc -l)
-          echo "Found $REGULAR_COUNT regular tables + $VIEW_COUNT views"
+          BASE_COUNT=$(curl -s 'http://localhost:8123/' --data-binary \
+            "SELECT count() FROM system.tables WHERE database = '${BASE_DB}'" | tr -d '\n')
+          echo "Base database '$BASE_DB' has $BASE_COUNT tables"
 
           for i in $(seq 0 $((XDIST_N - 1))); do
             WORKER_DB="default_gw${i}"
@@ -246,32 +239,26 @@ jobs:
 
             # Create the worker database
             curl -s 'http://localhost:8123/' --data-binary "CREATE DATABASE IF NOT EXISTS ${WORKER_DB}"
-            echo "Created database $WORKER_DB"
 
-            # Step 1: Clone regular tables using CREATE TABLE AS
-            TABLE_OK=0
-            for TABLE in $REGULAR_TABLES; do
-              if curl -sf 'http://localhost:8123/' --data-binary \
-                "CREATE TABLE IF NOT EXISTS \`${WORKER_DB}\`.\`${TABLE}\` AS \`${BASE_DB}\`.\`${TABLE}\`" 2>/dev/null; then
-                TABLE_OK=$((TABLE_OK + 1))
-              else
-                echo "  WARNING: Failed to copy table $TABLE"
-              fi
-            done
-            echo "Cloned $TABLE_OK/$REGULAR_COUNT regular tables"
+            # Use Snuba bootstrap to create all tables (including materialized views)
+            echo "  Running Snuba bootstrap for $WORKER_DB..."
+            docker run --rm \
+              --network "$SNUBA_NETWORK" \
+              -e "CLICKHOUSE_DATABASE=${WORKER_DB}" \
+              -e "CLICKHOUSE_HOST=clickhouse" \
+              -e "CLICKHOUSE_PORT=9000" \
+              -e "CLICKHOUSE_HTTP_PORT=8123" \
+              -e "DEFAULT_BROKERS=kafka:9093" \
+              -e "REDIS_HOST=redis" \
+              -e "REDIS_PORT=6379" \
+              -e "REDIS_DB=1" \
+              -e "SNUBA_SETTINGS=docker" \
+              "$SNUBA_IMAGE" bootstrap --force 2>&1 | tail -5
+            echo "  Bootstrap complete"
 
-            # Step 2: Clone views using SHOW CREATE TABLE (handles materialized views)
-            VIEW_OK=0
-            for VIEW in $VIEWS; do
-              DDL=$(curl -s 'http://localhost:8123/' --data-binary "SHOW CREATE TABLE \`${BASE_DB}\`.\`${VIEW}\`")
-              MODIFIED_DDL=$(echo "$DDL" | sed "s/\`${BASE_DB}\`/\`${WORKER_DB}\`/g")
-              if curl -sf 'http://localhost:8123/' --data-binary "$MODIFIED_DDL" 2>/dev/null; then
-                VIEW_OK=$((VIEW_OK + 1))
-              else
-                echo "  WARNING: Failed to copy view $VIEW"
-              fi
-            done
-            echo "Cloned $VIEW_OK/$VIEW_COUNT views"
+            W_COUNT=$(curl -s 'http://localhost:8123/' --data-binary \
+              "SELECT count() FROM system.tables WHERE database = '${WORKER_DB}'" | tr -d '\n')
+            echo "  $WORKER_DB: $W_COUNT tables (base has $BASE_COUNT)"
 
             # Start a per-worker Snuba container
             docker run -d \

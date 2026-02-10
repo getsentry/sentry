@@ -48,57 +48,41 @@ jobs:
           echo "Snuba network: $SNUBA_NETWORK"
 
           BASE_DB="default"
-
-          # Get regular tables (non-views) — these can be cloned with CREATE TABLE AS
-          REGULAR_TABLES=$(curl -s 'http://localhost:8123/' --data-binary \
-            "SELECT name FROM system.tables WHERE database = '${BASE_DB}' AND engine NOT IN ('MaterializedView', 'View') FORMAT TabSeparated" | grep -v '^$')
-          REGULAR_COUNT=$(echo "$REGULAR_TABLES" | wc -l)
-
-          # Get materialized views and views — need SHOW CREATE TABLE to clone properly
-          VIEWS=$(curl -s 'http://localhost:8123/' --data-binary \
-            "SELECT name FROM system.tables WHERE database = '${BASE_DB}' AND engine IN ('MaterializedView', 'View') FORMAT TabSeparated" | grep -v '^$')
-          VIEW_COUNT=$(echo "$VIEWS" | wc -l)
-
-          echo "Found $REGULAR_COUNT regular tables + $VIEW_COUNT views = $((REGULAR_COUNT + VIEW_COUNT)) total"
+          BASE_COUNT=$(curl -s 'http://localhost:8123/' --data-binary \
+            "SELECT count() FROM system.tables WHERE database = '${BASE_DB}'" | tr -d '\n')
+          echo "Base database has $BASE_COUNT tables"
 
           for i in $(seq 0 $((XDIST_N - 1))); do
             WORKER_DB="default_gw${i}"
             WORKER_PORT=$((1230 + i))
+            echo ""
             echo "=== Worker gw${i}: database=$WORKER_DB, port=$WORKER_PORT ==="
 
             # Create worker database
             curl -s 'http://localhost:8123/' --data-binary "CREATE DATABASE IF NOT EXISTS ${WORKER_DB}"
 
-            # Step 1: Clone regular tables using CREATE TABLE AS (fast, works for MergeTree etc.)
-            TABLE_OK=0
-            TABLE_FAIL=0
-            for TABLE in $REGULAR_TABLES; do
-              if curl -sf 'http://localhost:8123/' --data-binary \
-                "CREATE TABLE IF NOT EXISTS \`${WORKER_DB}\`.\`${TABLE}\` AS \`${BASE_DB}\`.\`${TABLE}\`" 2>/dev/null; then
-                TABLE_OK=$((TABLE_OK + 1))
-              else
-                TABLE_FAIL=$((TABLE_FAIL + 1))
-                echo "    WARN: Failed to clone table: ${TABLE}"
-              fi
-            done
-            echo "  Tables: ${TABLE_OK} ok, ${TABLE_FAIL} failed"
+            # Use Snuba's bootstrap to create all tables (including materialized views)
+            # in the per-worker database. This is the same mechanism that creates the
+            # initial tables in the default database during devservices setup.
+            echo "  Running Snuba bootstrap for $WORKER_DB..."
+            docker run --rm \
+              --network "$SNUBA_NETWORK" \
+              -e "CLICKHOUSE_DATABASE=${WORKER_DB}" \
+              -e "CLICKHOUSE_HOST=clickhouse" \
+              -e "CLICKHOUSE_PORT=9000" \
+              -e "CLICKHOUSE_HTTP_PORT=8123" \
+              -e "DEFAULT_BROKERS=kafka:9093" \
+              -e "REDIS_HOST=redis" \
+              -e "REDIS_PORT=6379" \
+              -e "REDIS_DB=1" \
+              -e "SNUBA_SETTINGS=docker" \
+              "$SNUBA_IMAGE" bootstrap --force 2>&1 | tail -5
+            echo "  Bootstrap complete"
 
-            # Step 2: Clone views using SHOW CREATE TABLE (gets full DDL including SELECT)
-            # Replace database references so views point to worker DB tables
-            VIEW_OK=0
-            VIEW_FAIL=0
-            for VIEW in $VIEWS; do
-              DDL=$(curl -s 'http://localhost:8123/' --data-binary "SHOW CREATE TABLE \`${BASE_DB}\`.\`${VIEW}\`")
-              # Replace backtick-quoted database references: `default` → `default_gwN`
-              MODIFIED_DDL=$(echo "$DDL" | sed "s/\`${BASE_DB}\`/\`${WORKER_DB}\`/g")
-              if curl -sf 'http://localhost:8123/' --data-binary "$MODIFIED_DDL" 2>/dev/null; then
-                VIEW_OK=$((VIEW_OK + 1))
-              else
-                VIEW_FAIL=$((VIEW_FAIL + 1))
-                echo "    WARN: Failed to clone view: ${VIEW}"
-              fi
-            done
-            echo "  Views: ${VIEW_OK} ok, ${VIEW_FAIL} failed"
+            # Verify table count
+            W_COUNT=$(curl -s 'http://localhost:8123/' --data-binary \
+              "SELECT count() FROM system.tables WHERE database = '${WORKER_DB}'" | tr -d '\n')
+            echo "  $WORKER_DB: $W_COUNT tables (base has $BASE_COUNT)"
 
             # Start Snuba API container for this worker
             docker run -d \
@@ -116,25 +100,7 @@ jobs:
               -e "SNUBA_SETTINGS=docker" \
               -e "DEBUG=1" \
               "$SNUBA_IMAGE" api
-          done
-
-          # Verify table counts match
-          echo ""
-          echo "=== Table count verification ==="
-          BASE_COUNT=$(curl -s 'http://localhost:8123/' --data-binary \
-            "SELECT count() FROM system.tables WHERE database = '${BASE_DB}'" | tr -d '\n')
-          echo "  ${BASE_DB}: ${BASE_COUNT} tables"
-          for i in $(seq 0 $((XDIST_N - 1))); do
-            WORKER_DB="default_gw${i}"
-            W_COUNT=$(curl -s 'http://localhost:8123/' --data-binary \
-              "SELECT count() FROM system.tables WHERE database = '${WORKER_DB}'" | tr -d '\n')
-            echo "  ${WORKER_DB}: ${W_COUNT} tables"
-            if [ "$W_COUNT" != "$BASE_COUNT" ]; then
-              echo "    WARNING: Missing $((BASE_COUNT - W_COUNT)) tables!"
-              echo "    Missing:"
-              curl -s 'http://localhost:8123/' --data-binary \
-                "SELECT name, engine FROM system.tables WHERE database = '${BASE_DB}' AND name NOT IN (SELECT name FROM system.tables WHERE database = '${WORKER_DB}') ORDER BY engine, name FORMAT TabSeparatedWithNames"
-            fi
+            echo "  Started snuba-gw${i} on port $WORKER_PORT"
           done
 
           echo ""
