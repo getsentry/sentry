@@ -48,11 +48,11 @@ def fetch_issues(
     provider: str,
     external_id: str,
     query: str,
+    owner: str,
+    name: str,
     sort_by: str = SORT_BY_DEFAULT,
     limit: int = utils.MAX_NUM_ISSUES_DEFAULT,
     max_num_days_ago: int = utils.MAX_NUM_DAYS_AGO_DEFAULT,
-    owner: str | None = None,
-    name: str | None = None,
     run_id: int | None = None,
 ) -> utils.SeerResponse | utils.SeerResponseError:
     """
