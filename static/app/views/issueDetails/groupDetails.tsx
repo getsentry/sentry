@@ -738,7 +738,6 @@ function GroupDetailsContent({
   useEngagedViewTracking({
     groupId: group.id,
     projectId: project.id,
-    organization,
     issueType: group.issueType,
   });
 

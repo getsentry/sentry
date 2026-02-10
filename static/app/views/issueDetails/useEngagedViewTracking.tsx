@@ -1,14 +1,13 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useEffectEvent, useRef} from 'react';
 
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const ENGAGED_VIEW_THRESHOLD_MS = 10000;
 
 interface UseEngagedViewTrackingParams {
   groupId: string;
   issueType: string;
-  organization: Organization;
   projectId: string;
 }
 
@@ -22,10 +21,18 @@ interface UseEngagedViewTrackingParams {
 export function useEngagedViewTracking({
   groupId,
   projectId,
-  organization,
   issueType,
 }: UseEngagedViewTrackingParams) {
+  const organization = useOrganization();
   const trackedGroupId = useRef<string | null>(null);
+  const trackEngagedView = useEffectEvent(() => {
+    trackAnalytics('issue.engaged_view', {
+      organization,
+      group_id: parseInt(groupId, 10),
+      project_id: parseInt(projectId, 10),
+      issue_type: issueType,
+    });
+  });
 
   useEffect(() => {
     // Only track once per group
@@ -36,17 +43,12 @@ export function useEngagedViewTracking({
     const timeoutId = window.setTimeout(() => {
       if (trackedGroupId.current !== groupId) {
         trackedGroupId.current = groupId;
-        trackAnalytics('issue.engaged_view', {
-          organization,
-          group_id: parseInt(groupId, 10),
-          project_id: parseInt(projectId, 10),
-          issue_type: issueType,
-        });
+        trackEngagedView();
       }
     }, ENGAGED_VIEW_THRESHOLD_MS);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [groupId, issueType, organization, projectId]);
+  }, [groupId]);
 }

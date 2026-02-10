@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 
@@ -21,11 +21,11 @@ describe('useEngagedViewTracking', () => {
   });
 
   it('records engaged view event after 10 seconds', () => {
-    renderHook(useEngagedViewTracking, {
+    renderHookWithProviders(useEngagedViewTracking, {
+      organization,
       initialProps: {
         groupId: '123',
         projectId: '456',
-        organization,
         issueType: 'error',
       },
     });
@@ -46,11 +46,11 @@ describe('useEngagedViewTracking', () => {
   });
 
   it('does not record event if unmounted before 10 seconds', () => {
-    const {unmount} = renderHook(useEngagedViewTracking, {
+    const {unmount} = renderHookWithProviders(useEngagedViewTracking, {
+      organization,
       initialProps: {
         groupId: '123',
         projectId: '456',
-        organization,
         issueType: 'error',
       },
     });
@@ -69,11 +69,11 @@ describe('useEngagedViewTracking', () => {
   });
 
   it('does not record event twice for the same group', () => {
-    renderHook(useEngagedViewTracking, {
+    renderHookWithProviders(useEngagedViewTracking, {
+      organization,
       initialProps: {
         groupId: '123',
         projectId: '456',
-        organization,
         issueType: 'error',
       },
     });
@@ -91,11 +91,11 @@ describe('useEngagedViewTracking', () => {
   });
 
   it('resets timer when group changes', () => {
-    const {rerender} = renderHook(useEngagedViewTracking, {
+    const {rerender} = renderHookWithProviders(useEngagedViewTracking, {
+      organization,
       initialProps: {
         groupId: '123',
         projectId: '456',
-        organization,
         issueType: 'error',
       },
     });
@@ -110,7 +110,6 @@ describe('useEngagedViewTracking', () => {
     rerender({
       groupId: '789',
       projectId: '456',
-      organization,
       issueType: 'error',
     });
 
@@ -133,11 +132,11 @@ describe('useEngagedViewTracking', () => {
   });
 
   it('tracks event for new group after tracking previous group', () => {
-    const {rerender} = renderHook(useEngagedViewTracking, {
+    const {rerender} = renderHookWithProviders(useEngagedViewTracking, {
+      organization,
       initialProps: {
         groupId: '123',
         projectId: '456',
-        organization,
         issueType: 'error',
       },
     });
@@ -155,7 +154,6 @@ describe('useEngagedViewTracking', () => {
     rerender({
       groupId: '789',
       projectId: '456',
-      organization,
       issueType: 'error',
     });
 
