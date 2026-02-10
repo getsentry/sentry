@@ -101,50 +101,26 @@ def _partition_orgs_by_measure(
     filtered_org_ids = {
         org_id for org_id, mode in modes_per_org.items() if mode != DynamicSamplingMode.PROJECT
     }
-    segments_org_ids = _get_segments_org_ids()
+    segments_org_ids: set[int] = _get_segments_org_ids()
     # Rebalance on segments when segments feature flag is enabled
-    segments_orgs = list(filtered_org_ids & segments_org_ids)
+    filtered_segments_org_ids: set[int] = filtered_org_ids & segments_org_ids
     # Rebalance on transactions when segments feature flag is not enabled
-    transactions_orgs = list(filtered_org_ids - segments_org_ids)
+    transactions_org_ids: set[int] = filtered_org_ids - segments_org_ids
 
     if not options.get("dynamic-sampling.check_span_feature_flag"):
-        metrics.incr(
-            "dynamic_sampling.partition_by_measure.measure",
-            amount=len(filtered_org_ids),
-            tags={"measure": SamplingMeasure.TRANSACTIONS.value},
-        )
         return {
-            SamplingMeasure.TRANSACTIONS: sorted(transactions_orgs),
-            SamplingMeasure.SEGMENTS: sorted(segments_orgs),
+            SamplingMeasure.TRANSACTIONS: sorted(transactions_org_ids),
+            SamplingMeasure.SEGMENTS: sorted(filtered_segments_org_ids),
         }
 
-    segments_orgs = []
-    span_orgs = []
-    transactions_orgs = []
     # Rebalance on spans when feature flag is active and not in project mode
-    span_org_ids = set(options.get("dynamic-sampling.measure.spans") or [])
-    span_orgs = span_org_ids & filtered_org_ids
-
-    metrics.incr(
-        "dynamic_sampling.partition_by_measure.measure",
-        amount=len(span_org_ids),
-        tags={"measure": SamplingMeasure.SEGMENTS.value},
-    )
-    metrics.incr(
-        "dynamic_sampling.partition_by_measure.measure",
-        amount=len(span_org_ids),
-        tags={"measure": SamplingMeasure.SPANS.value},
-    )
-    metrics.incr(
-        "dynamic_sampling.partition_by_measure.measure",
-        amount=len(segments_org_ids),
-        tags={"measure": SamplingMeasure.TRANSACTIONS.value},
-    )
+    span_org_ids: set[int] = set(options.get("dynamic-sampling.measure.spans") or [])
+    filtered_span_org_ids: set[int] = span_org_ids & filtered_org_ids
 
     return {
-        SamplingMeasure.SEGMENTS: sorted(segments_orgs),
-        SamplingMeasure.SPANS: sorted(span_orgs),
-        SamplingMeasure.TRANSACTIONS: sorted(transactions_orgs),
+        SamplingMeasure.SEGMENTS: sorted(filtered_segments_org_ids),
+        SamplingMeasure.SPANS: sorted(filtered_span_org_ids),
+        SamplingMeasure.TRANSACTIONS: sorted(transactions_org_ids),
     }
 
 
@@ -170,6 +146,7 @@ def boost_low_volume_projects() -> None:
         granularity=Granularity(60),
     ):
         orgs_by_measure = _partition_orgs_by_measure(orgs)
+        _record_partitioning_metrics(orgs_by_measure)
 
         for measure, org_ids in orgs_by_measure.items():
             _process_orgs_for_boost(org_ids, measure)
@@ -202,6 +179,15 @@ def _process_orgs_for_boost(
                 "projects_with_tx_count_and_rates": projects,
             },
             headers={"sentry-propagate-traces": False},
+        )
+
+
+def _record_partitioning_metrics(orgs_by_measure: dict[SamplingMeasure, list[int]]) -> None:
+    for measure, org_ids in orgs_by_measure.items():
+        metrics.incr(
+            "dynamic_sampling.partition_by_measure.measure",
+            amount=len(org_ids),
+            tags={"measure": measure.value},
         )
 
 
