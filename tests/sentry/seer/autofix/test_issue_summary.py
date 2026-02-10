@@ -770,34 +770,17 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.ROOT_CAUSE
 
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
-    @patch(
-        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited_and_increment",
-        return_value=False,
-    )
+    @patch("sentry.seer.autofix.issue_summary.is_group_triggering_automation", return_value=True)
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
-    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     @patch("sentry.seer.autofix.issue_summary.is_seer_seat_based_tier_enabled", return_value=False)
     def test_without_seat_based_tier(
         self,
         mock_seat_based,
-        mock_gen,
-        mock_budget,
         mock_state,
-        mock_rate,
+        mock_triggering,
         mock_trigger,
         mock_seat_based_tier,
     ):
-        self.project.update_option("sentry:autofix_automation_tuning", "always")
-        mock_gen.return_value = SummarizeIssueResponse(
-            group_id=str(self.group.id),
-            headline="h",
-            whats_wrong="w",
-            trace="t",
-            possible_cause="c",
-            scores=SummarizeIssueScores(fixability_score=0.80),
-        )
-
         with self.feature({"organizations:gen-ai-features": True}):
             run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
