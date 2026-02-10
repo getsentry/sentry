@@ -27,9 +27,18 @@ class GroupTombstoneEndpoint(ProjectEndpoint):
 
         :pparam string organization_id: the ID of the organization.
         :pparam string project_id: the ID of the project to get the tombstones for
+        :qparam int issue_group_id: optional group ID to filter tombstones by their previous group ID
         :auth: required
         """
         queryset = GroupTombstone.objects.filter(project=project)
+
+        # Filter by issue_group_id if provided
+        issue_group_id = request.GET.get("issue_group_id")
+        if issue_group_id:
+            try:
+                queryset = queryset.filter(previous_group_id=int(issue_group_id))
+            except (ValueError, TypeError):
+                return Response({"detail": "Invalid issue_group_id parameter"}, status=400)
 
         return self.paginate(
             request=request,
