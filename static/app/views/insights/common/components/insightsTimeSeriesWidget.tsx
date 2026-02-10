@@ -4,12 +4,12 @@ import {useTheme} from '@emotion/react';
 import {Button} from '@sentry/scraps/button';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import type {

@@ -7,27 +7,26 @@ import sortBy from 'lodash/sortBy';
 import {LinkButton} from '@sentry/scraps/button';
 import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
 
-import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import type {HybridFilterProps} from 'sentry/components/organizations/hybridFilter';
-import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
-import {DesyncedFilterMessage} from 'sentry/components/organizations/pageFilters/desyncedFilter';
+import {updateProjects} from 'sentry/components/pageFilters/actions';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {DesyncedFilterMessage} from 'sentry/components/pageFilters/desyncedFilter';
+import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
+import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
+import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconAdd, IconOpen, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-
-import {ProjectPageFilterTrigger} from './trigger';
 
 export interface ProjectPageFilterProps extends Partial<
   Omit<

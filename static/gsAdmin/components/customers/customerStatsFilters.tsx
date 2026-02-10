@@ -8,7 +8,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {DateTime} from 'sentry/components/dateTime';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {
   TimeRangeSelector,
   TimeRangeSelectTrigger,

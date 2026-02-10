@@ -5,7 +5,8 @@ import {ActorAvatar} from '@sentry/scraps/avatar';
 
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -18,7 +19,6 @@ import type {Group} from 'sentry/types/group';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {IssueSummary} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issueSummary';
 
 const TABLE_WIDTH_BREAKPOINTS = {

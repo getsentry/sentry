@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Badge} from '@sentry/scraps/badge';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
-import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
+import {DesyncedFilterIndicator} from 'sentry/components/pageFilters/desyncedFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trimSlug} from 'sentry/utils/string/trimSlug';

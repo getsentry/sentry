@@ -16,7 +16,7 @@ import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/utils';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import TimeSince from 'sentry/components/timeSince';

@@ -4,13 +4,13 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {Link} from '@sentry/scraps/link';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import {usePerformanceUsageStats} from 'getsentry/hooks/performance/usePerformanceUsageStats';

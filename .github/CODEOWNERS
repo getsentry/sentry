@@ -708,6 +708,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## Frontend Platform (keep last as we want highest specificity)
 /static/app/utils/theme/                              @getsentry/design-engineering
 /static/app/components/core/                          @getsentry/design-engineering
+/static/app/components/pageFilters/                   @getsentry/design-engineering
 /static/app/icons/                                    @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering
 

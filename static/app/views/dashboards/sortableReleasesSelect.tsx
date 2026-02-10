@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import type {ReleasesSortOption} from 'sentry/constants/releases';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';

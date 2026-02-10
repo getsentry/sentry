@@ -6,7 +6,7 @@ import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
-import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';

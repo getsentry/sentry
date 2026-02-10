@@ -13,11 +13,11 @@ import {
   updateEnvironments,
   updatePersistence,
   updateProjects,
-} from 'sentry/actionCreators/pageFilters';
-import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
+} from 'sentry/components/pageFilters/actions';
+import * as PageFilterPersistence from 'sentry/components/pageFilters/persistence';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import localStorage from 'sentry/utils/localStorage';
 
 jest.mock('sentry/utils/localStorage');

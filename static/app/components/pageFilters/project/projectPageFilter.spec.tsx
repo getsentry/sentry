@@ -11,10 +11,10 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {initializeUrlState, updateProjects} from 'sentry/actionCreators/pageFilters';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {initializeUrlState, updateProjects} from 'sentry/components/pageFilters/actions';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 const organization = OrganizationFixture({features: ['open-membership']});

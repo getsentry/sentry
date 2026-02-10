@@ -3,10 +3,10 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {initializeUrlState} from 'sentry/actionCreators/pageFilters';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {initializeUrlState} from 'sentry/components/pageFilters/actions';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 
 describe('DatePageFilter', () => {
   const organization = OrganizationFixture();

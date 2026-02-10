@@ -2,24 +2,23 @@ import {useCallback, useMemo} from 'react';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
-import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
-import type {HybridFilterProps} from 'sentry/components/organizations/hybridFilter';
-import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
-import {DesyncedFilterMessage} from 'sentry/components/organizations/pageFilters/desyncedFilter';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {updateEnvironments} from 'sentry/components/pageFilters/actions';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {DesyncedFilterMessage} from 'sentry/components/pageFilters/desyncedFilter';
+import {
+  EnvironmentPageFilterTrigger,
+  type EnvironmentPageFilterTriggerProps,
+} from 'sentry/components/pageFilters/environment/environmentPageFilterTrigger';
+import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
+import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-
-import {
-  EnvironmentPageFilterTrigger,
-  type EnvironmentPageFilterTriggerProps,
-} from './trigger';
 
 export interface EnvironmentPageFilterProps extends Partial<
   Omit<

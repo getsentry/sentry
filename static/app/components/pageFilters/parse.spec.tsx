@@ -1,7 +1,7 @@
 import {
   normalizeDateTimeParams,
   parseStatsPeriod,
-} from 'sentry/components/organizations/pageFilters/parse';
+} from 'sentry/components/pageFilters/parse';
 
 describe('normalizeDateTimeParams', () => {
   it('should return default statsPeriod if it is not provided or is invalid', () => {

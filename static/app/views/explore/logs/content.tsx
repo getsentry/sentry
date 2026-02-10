@@ -3,7 +3,8 @@ import {Grid} from '@sentry/scraps/layout';
 
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {withoutLoggingSupport} from 'sentry/data/platformCategories';
 import {platforms} from 'sentry/data/platforms';
@@ -16,7 +17,6 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';

@@ -5,7 +5,7 @@ import {Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import Placeholder from 'sentry/components/placeholder';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import Section from 'sentry/components/workflowEngine/ui/section';

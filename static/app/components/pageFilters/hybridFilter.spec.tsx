@@ -8,7 +8,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
+import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
 
 const props = {
   searchable: true,

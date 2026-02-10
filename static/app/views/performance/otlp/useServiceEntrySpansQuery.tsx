@@ -1,8 +1,8 @@
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanFields, type SpanProperty} from 'sentry/views/insights/types';
 import {SERVICE_ENTRY_SPANS_CURSOR_NAME} from 'sentry/views/performance/transactionSummary/transactionOverview/content';

@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 import * as echarts from 'echarts/core';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {
   aggregateFunctionOutputType,
   parseFunction,
@@ -12,7 +13,6 @@ import {
   formatRate,
 } from 'sentry/utils/formatters';
 import {formatMetricUsingUnit} from 'sentry/utils/number/formatMetricUsingUnit';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {prettifyAggregation} from 'sentry/views/explore/utils';
 

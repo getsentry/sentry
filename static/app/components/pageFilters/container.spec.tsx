@@ -5,11 +5,11 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as globalActions from 'sentry/actionCreators/pageFilters';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import * as globalActions from 'sentry/components/pageFilters/actions';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import localStorage from 'sentry/utils/localStorage';
 

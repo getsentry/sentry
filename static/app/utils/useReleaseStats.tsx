@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';

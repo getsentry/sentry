@@ -7,6 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconClock} from 'sentry/icons/iconClock';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {IconGraph} from 'sentry/icons/iconGraph';
@@ -15,7 +16,6 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
