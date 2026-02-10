@@ -1,10 +1,6 @@
-import logging
-
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.service.action.service import ActionService
 from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
-
-logger = logging.getLogger(__name__)
 
 
 class DatabaseBackedActionService(ActionService):
@@ -41,7 +37,6 @@ class DatabaseBackedActionService(ActionService):
         sentry_app_id: int,
     ) -> None:
         Action.objects.filter(
-            config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_ID,
             config__target_identifier=str(sentry_app_id),
             type=Action.Type.SENTRY_APP,
             dataconditiongroupaction__condition_group__organization_id=organization_id,
@@ -55,7 +50,6 @@ class DatabaseBackedActionService(ActionService):
         sentry_app_id: int,
     ) -> None:
         Action.objects.filter(
-            config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_ID,
             config__target_identifier=str(sentry_app_id),
             type=Action.Type.SENTRY_APP,
         ).update(status=status)
