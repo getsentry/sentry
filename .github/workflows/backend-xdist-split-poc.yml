@@ -142,7 +142,7 @@ jobs:
         with:
           mode: migrations
 
-      - name: Run tier 1 tests (xdist -n 3)
+      - name: Run tier 1 tests (xdist -n 4)
         env:
           SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
         run: |
@@ -156,7 +156,7 @@ jobs:
             --ignore tests/apidocs \
             --ignore tests/js \
             --ignore tests/tools \
-            -n 3 \
+            -n 4 \
             --dist=loadfile \
             --json-report \
             --json-report-file=".artifacts/pytest.json" \
