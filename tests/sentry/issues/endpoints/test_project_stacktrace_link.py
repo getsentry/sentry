@@ -450,9 +450,22 @@ class ProjectStacktraceLinkTestDotnetSpans(BaseProjectStacktraceLink):
     def test_dotnet_user_created_mapping_requires_exact_match(self) -> None:
         """
         Test that user-created mappings still require exact prefix match (no suffix fallback).
+
+        This test creates a fresh project without the auto-generated mapping from setUp,
+        ensuring we only test user-created mapping behavior.
         """
+        # Create a new project without any existing code mappings
+        test_project = self.create_project(
+            name="user-mapping-test",
+            organization=self.organization,
+            teams=[self.create_team(organization=self.organization)],
+        )
+
         # Create a user-created (not auto-generated) code mapping
-        user_mapping = self._create_code_mapping(
+        self.create_code_mapping(
+            organization_integration=self.oi,
+            project=test_project,
+            repo=self.repo,
             stack_root="/_/",
             source_root="",
             automatically_generated=False,
@@ -462,7 +475,7 @@ class ProjectStacktraceLinkTestDotnetSpans(BaseProjectStacktraceLink):
         filepath = "src/NuGetTrends.Scheduler/DailyDownloadWorker.cs"
         response = self.get_success_response(
             self.organization.slug,
-            self.project.slug,
+            test_project.slug,
             qs_params={"file": filepath, "platform": "csharp"},
         )
 
