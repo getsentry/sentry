@@ -230,7 +230,7 @@ def create_preprod_artifact(
         with transaction.atomic(router.db_for_write(PreprodArtifact)):
             # Create CommitComparison if git information is provided
             commit_comparison = None
-            if head_sha and head_repo_name and provider and head_ref:
+            if head_sha and head_repo_name and provider:
                 commit_comparison, _ = CommitComparison.objects.get_or_create(
                     organization_id=org_id,
                     head_repo_name=head_repo_name,
