@@ -428,6 +428,8 @@ class SeerExplorerClient:
         category_value: str | None = None,
         offset: int | None = None,
         limit: int | None = None,
+        expand: str | None = None,
+        only_current_user: bool = True,
     ) -> list[ExplorerRun]:
         """
         Get a list of Seer Explorer runs for the organization with optional filters.
@@ -440,6 +442,7 @@ class SeerExplorerClient:
             category_value: Optional category value to filter by (e.g., "issue-123")
             offset: Optional offset for pagination
             limit: Optional limit for pagination
+            only_current_user: Optional to filter runs by current user
 
         Returns:
             list[ExplorerRun]: List of runs matching the filters, sorted by most recent first
@@ -454,7 +457,7 @@ class SeerExplorerClient:
         }
 
         # Add optional filters
-        if self.user and hasattr(self.user, "id"):
+        if only_current_user and self.user and hasattr(self.user, "id"):
             payload["user_id"] = self.user.id
         if category_key is not None:
             payload["category_key"] = category_key
@@ -464,6 +467,8 @@ class SeerExplorerClient:
             payload["offset"] = offset
         if limit is not None:
             payload["limit"] = limit
+        if expand is not None:
+            payload["expand"] = expand
 
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 

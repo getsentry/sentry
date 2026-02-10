@@ -62,7 +62,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
             for repo_name, state in pr_states.items()
             if state.get("pr_url") and state.get("pr_number") is not None
         ]
-        return {
+        data = {
             "run_id": run_id,
             "group_id": group_id,
             "user_id": user_id,
@@ -72,6 +72,12 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
             "created_at": created_at,
             "last_triggered_at": created_at,
         }
+        # Mimic a Pydantic model with a .dict() method
+        mock_run = MagicMock()
+        mock_run.dict.return_value = data
+        # Make bool(mock_run) truthy and support iteration-safe identity
+        mock_run.__bool__ = lambda self: True
+        return mock_run
 
     def test_get_returns_issues_with_pr_data(self) -> None:
         group = self.create_group(project=self.project)
@@ -89,7 +95,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
                 }
             },
         )
-        self.mock_client.get_pr_summaries.return_value = [seer_item]
+        self.mock_client.get_runs.return_value = [seer_item]
         self.mock_serialize.return_value = [{"id": str(group.id), "title": "Test Issue"}]
 
         response = self.client.get(self.url + f"?project={self.project.id}")
@@ -115,7 +121,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         self.mock_client_class.assert_called_once()
 
     def test_get_empty_seer_response(self) -> None:
-        self.mock_client.get_pr_summaries.return_value = []
+        self.mock_client.get_runs.return_value = []
 
         response = self.client.get(self.url + f"?project={self.project.id}")
 
@@ -124,7 +130,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         self.mock_serialize.assert_not_called()
 
     def test_get_none_seer_response(self) -> None:
-        self.mock_client.get_pr_summaries.return_value = None
+        self.mock_client.get_runs.return_value = None
 
         response = self.client.get(self.url + f"?project={self.project.id}")
 
@@ -134,7 +140,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
     def test_get_missing_project_param_returns_all_projects(self) -> None:
         """Without ?project=, get_projects() returns all accessible org projects."""
         group = self.create_group(project=self.project)
-        self.mock_client.get_pr_summaries.return_value = [self._make_seer_item(group_id=group.id)]
+        self.mock_client.get_runs.return_value = [self._make_seer_item(group_id=group.id)]
         self.mock_serialize.return_value = [{"id": str(group.id), "title": "Test"}]
 
         response = self.client.get(self.url)
@@ -153,7 +159,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         other_project = self.create_project(organization=self.organization)
         group_in_other_project = self.create_group(project=other_project)
 
-        self.mock_client.get_pr_summaries.return_value = [
+        self.mock_client.get_runs.return_value = [
             self._make_seer_item(group_id=group_in_project.id, run_id=1),
             self._make_seer_item(group_id=group_in_other_project.id, run_id=2),
         ]
@@ -172,7 +178,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         group1 = self.create_group(project=self.project)
         group2 = self.create_group(project=project2)
 
-        self.mock_client.get_pr_summaries.return_value = [
+        self.mock_client.get_runs.return_value = [
             self._make_seer_item(group_id=group1.id, run_id=1),
             self._make_seer_item(group_id=group2.id, run_id=2),
         ]
@@ -191,7 +197,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
 
     def test_get_no_matching_groups_returns_empty(self) -> None:
         """When Seer returns group IDs that don't exist in the requested project, return empty."""
-        self.mock_client.get_pr_summaries.return_value = [self._make_seer_item(group_id=999999)]
+        self.mock_client.get_runs.return_value = [self._make_seer_item(group_id=999999)]
 
         response = self.client.get(self.url + f"?project={self.project.id}")
 
@@ -203,7 +209,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         """Runs without a group_id (non-autofix) are filtered out before querying groups."""
         group = self.create_group(project=self.project)
 
-        self.mock_client.get_pr_summaries.return_value = [
+        self.mock_client.get_runs.return_value = [
             self._make_seer_item(group_id=group.id, run_id=1),
             self._make_seer_item(group_id=None, run_id=2),
         ]
@@ -218,7 +224,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
 
     def test_get_all_null_group_ids_returns_empty(self) -> None:
         """When all runs have null group_id, return empty."""
-        self.mock_client.get_pr_summaries.return_value = [
+        self.mock_client.get_runs.return_value = [
             self._make_seer_item(group_id=None, run_id=1),
             self._make_seer_item(group_id=None, run_id=2),
         ]
@@ -238,19 +244,18 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         assert response.data == {"detail": "Feature flag not enabled"}
 
     def test_get_seer_api_http_error(self) -> None:
-        """An HTTPError from the Seer API returns 502."""
-        self.mock_client.get_pr_summaries.side_effect = requests.HTTPError("Seer API Error")
+        """An HTTPError from the Seer API bubbles up to the global handler (500)."""
+        self.mock_client.get_runs.side_effect = requests.HTTPError("Seer API Error")
 
         response = self.client.get(self.url + f"?project={self.project.id}")
 
-        assert response.status_code == 502
-        assert response.json() == {"detail": "Unexpected error calling Seer"}
+        assert response.status_code == 500
 
     def test_get_multiple_groups_with_pr_data(self) -> None:
         group1 = self.create_group(project=self.project)
         group2 = self.create_group(project=self.project)
 
-        self.mock_client.get_pr_summaries.return_value = [
+        self.mock_client.get_runs.return_value = [
             self._make_seer_item(group_id=group1.id, run_id=10),
             self._make_seer_item(group_id=group2.id, run_id=20),
         ]
@@ -272,7 +277,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         group = self.create_group(project=self.project)
         extra_group = self.create_group(project=self.project)
 
-        self.mock_client.get_pr_summaries.return_value = [
+        self.mock_client.get_runs.return_value = [
             self._make_seer_item(group_id=group.id, run_id=5),
         ]
         self.mock_serialize.return_value = [
@@ -298,7 +303,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
                 }
             },
         )
-        self.mock_client.get_pr_summaries.return_value = [seer_item]
+        self.mock_client.get_runs.return_value = [seer_item]
         self.mock_serialize.return_value = [{"id": str(group.id), "title": "Test"}]
 
         response = self.client.get(self.url + f"?project={self.project.id}")
@@ -314,7 +319,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
     def test_get_empty_repo_pr_states(self) -> None:
         group = self.create_group(project=self.project)
         seer_item = self._make_seer_item(group_id=group.id, repo_pr_states={})
-        self.mock_client.get_pr_summaries.return_value = [seer_item]
+        self.mock_client.get_runs.return_value = [seer_item]
         self.mock_serialize.return_value = [{"id": str(group.id), "title": "Test"}]
 
         response = self.client.get(self.url + f"?project={self.project.id}")
@@ -343,7 +348,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
                 },
             },
         )
-        self.mock_client.get_pr_summaries.return_value = [seer_item]
+        self.mock_client.get_runs.return_value = [seer_item]
         self.mock_serialize.return_value = [{"id": str(group.id), "title": "Test"}]
 
         response = self.client.get(self.url + f"?project={self.project.id}")
@@ -358,7 +363,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         from sentry.api.serializers.models.group import GroupSerializerSnuba
 
         group = self.create_group(project=self.project)
-        self.mock_client.get_pr_summaries.return_value = [self._make_seer_item(group_id=group.id)]
+        self.mock_client.get_runs.return_value = [self._make_seer_item(group_id=group.id)]
         self.mock_serialize.return_value = [{"id": str(group.id), "title": "Test"}]
 
         self.client.get(self.url + f"?project={self.project.id}")

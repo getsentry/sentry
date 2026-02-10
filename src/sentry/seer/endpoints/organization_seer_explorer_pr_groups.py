@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 
-import sentry_sdk
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -49,26 +48,28 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
 
         start, end = get_date_range_from_stats_period(request.GET, optional=True)
 
-        try:
-            client = SeerExplorerClient(organization, request.user)
-            seer_data = client.get_pr_summaries()
-        except SeerPermissionError as e:
-            raise PermissionDenied(e.message) from e
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            return Response({"detail": "Unexpected error calling Seer"}, status=502)
+        def _make_seer_runs_request(offset: int, limit: int) -> list[dict]:
+            try:
+                client = SeerExplorerClient(organization, request.user)
+                seer_data = client.get_runs(
+                    offset=offset, limit=limit, only_current_user=False, expand="prs"
+                )
+            except SeerPermissionError as e:
+                raise PermissionDenied(e.message) from e
 
-        if not seer_data:
-            seer_data = []
-
-        # Filter out runs without a group_id (non-autofix runs have group_id=None)
-        seer_data = [item for item in seer_data if item.get("group_id") is not None]
-
-        def data_fn(offset: int, limit: int) -> list[dict]:
             if not seer_data:
                 return []
 
-            group_ids = [item["group_id"] for item in seer_data]
+            # Convert Pydantic models to dicts for consistent access downstream
+            runs = [run.dict() for run in seer_data]
+
+            # Filter out runs without a group_id (non-autofix runs have group_id=None)
+            runs = [item for item in runs if item.get("group_id") is not None]
+
+            if not runs:
+                return []
+
+            group_ids = [item["group_id"] for item in runs]
             qs = Group.objects.filter(id__in=group_ids, project_id__in=project_ids)
             if start is not None:
                 qs = qs.filter(last_seen__gte=start)
@@ -79,25 +80,21 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
             if not groups:
                 return []
 
-            try:
-                serialized_groups = serialize(
-                    groups,
-                    request.user,
-                    GroupSerializerSnuba(
-                        organization_id=organization.id,
-                        project_ids=project_ids,
-                    ),
-                    request=request,
-                )
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
-                return []
+            serialized_groups = serialize(
+                groups,
+                request.user,
+                GroupSerializerSnuba(
+                    organization_id=organization.id,
+                    project_ids=project_ids,
+                ),
+                request=request,
+            )
 
-            seer_data_by_group_id = {item["group_id"]: item for item in seer_data}
+            runs_by_group_id = {item["group_id"]: item for item in runs}
 
             for serialized_group in serialized_groups:
                 group_id = int(serialized_group["id"])
-                item = seer_data_by_group_id.get(group_id)
+                item = runs_by_group_id.get(group_id)
                 if item:
                     serialized_group["explorerPrData"] = {
                         "runId": item["run_id"],
@@ -116,10 +113,10 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
                         },
                     }
 
-            return serialized_groups[offset : offset + limit]
+            return serialized_groups
 
         return self.paginate(
             request=request,
-            paginator=GenericOffsetPaginator(data_fn=data_fn),
+            paginator=GenericOffsetPaginator(data_fn=_make_seer_runs_request),
             default_per_page=25,
         )
