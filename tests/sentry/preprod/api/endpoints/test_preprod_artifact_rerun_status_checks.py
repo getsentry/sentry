@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from sentry.preprod.vcs.status_checks.size.tasks import StatusCheckPostPolicy
 from sentry.testutils.cases import APITestCase
 
 
@@ -42,7 +43,9 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
             assert response.data["success"] is True
             assert response.data["check_types"] == ["size"]
             mock_task.delay.assert_called_once_with(
-                preprod_artifact_id=artifact.id, caller="rerun_endpoint"
+                preprod_artifact_id=artifact.id,
+                caller="rerun_endpoint",
+                post_policy=StatusCheckPostPolicy.ALWAYS_POST,
             )
 
     def test_invalid_check_types(self):
