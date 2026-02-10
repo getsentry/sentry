@@ -181,13 +181,8 @@ export function DO_NOT_USE_getButtonStyles(
       },
     },
 
-    // Link buttons do not have interaction state layer
     ...(p.priority === 'link' && {
       transform: 'translateY(0px)',
-
-      '> span:first-child': {
-        transform: 'translateY(0px)',
-      },
 
       '&::before': {
         display: 'none',
