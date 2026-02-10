@@ -13,7 +13,7 @@ from rest_framework.request import Request
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.explorer.client_models import ExplorerRun, SeerRunState
+from sentry.seer.explorer.client_models import ExplorerRun, ExplorerRunWithPrs, SeerRunState
 from sentry.seer.explorer.client_utils import (
     collect_user_org_context,
     fetch_run_status,
@@ -428,9 +428,9 @@ class SeerExplorerClient:
         category_value: str | None = None,
         offset: int | None = None,
         limit: int | None = None,
-        expand: str | None = None,
+        expand: Literal["prs"] | None = None,
         only_current_user: bool = True,
-    ) -> list[ExplorerRun]:
+    ) -> list[ExplorerRunWithPrs] | list[ExplorerRun]:
         """
         Get a list of Seer Explorer runs for the organization with optional filters.
 
@@ -442,10 +442,11 @@ class SeerExplorerClient:
             category_value: Optional category value to filter by (e.g., "issue-123")
             offset: Optional offset for pagination
             limit: Optional limit for pagination
+            expand: Optional string to include additional fields
             only_current_user: Optional to filter runs by current user
 
         Returns:
-            list[ExplorerRun]: List of runs matching the filters, sorted by most recent first
+            list[ExplorerRun]: List of runs matching the filters, sorted by most recent first and expand is None or list[ExplorerRunWithPrs] with expand="prs"
 
         Raises:
             requests.HTTPError: If the Seer API request fails
@@ -484,7 +485,8 @@ class SeerExplorerClient:
         response.raise_for_status()
         result = response.json()
 
-        runs = [ExplorerRun(**run) for run in result.get("data", [])]
+        Model = ExplorerRunWithPrs if expand == "prs" else ExplorerRun
+        runs = [Model(**run) for run in result.get("data", [])]
         return runs
 
     def push_changes(
