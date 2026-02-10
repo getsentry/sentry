@@ -1,6 +1,5 @@
 import type {ComponentProps} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
-import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 
 import {
   act,
@@ -4866,11 +4865,6 @@ describe('SearchQueryBuilder', () => {
 
   describe('ask seer', () => {
     it('renders ask seer button when user has given consent', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/seer/setup-check/',
-        body: AutofixSetupFixture({}),
-      });
-
       render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
         organization: {
           features: ['gen-ai-features'],
@@ -4891,10 +4885,6 @@ describe('SearchQueryBuilder', () => {
           url: `/organizations/org-slug/prompts-activity/`,
           method: 'PUT',
         });
-        // MockApiClient.addMockResponse({
-        //   url: `/organizations/org-slug/seer/setup-check/`,
-        //   body: AutofixSetupFixture({}),
-        // });
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/recent-searches/',
           method: 'POST',
@@ -5027,12 +5017,6 @@ describe('SearchQueryBuilder', () => {
     describe('free text', () => {
       it('displays ask seer button when searching free text', async () => {
         const mockOnSearch = jest.fn();
-        // MockApiClient.addMockResponse({
-        //   url: '/organizations/org-slug/seer/setup-check/',
-        //   body: AutofixSetupFixture({
-        //   }),
-        // });
-
         render(
           <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
           {
@@ -5054,11 +5038,6 @@ describe('SearchQueryBuilder', () => {
     describe('consent flow changes enabled', () => {
       it('renders tooltip', async () => {
         const mockOnSearch = jest.fn();
-        // MockApiClient.addMockResponse({
-        //   url: '/organizations/org-slug/seer/setup-check/',
-        //   body: AutofixSetupFixture({
-        //   }),
-        // });
 
         render(
           <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,

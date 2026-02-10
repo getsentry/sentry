@@ -401,13 +401,6 @@ describe('SpansTabContent', () => {
   });
 
   describe('Ask Seer', () => {
-    beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/seer/setup-check/',
-        body: AutofixSetupFixture({}),
-      });
-    });
-
     describe('when the AI features are disabled', () => {
       it('does not display the Ask Seer combobox', async () => {
         render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
