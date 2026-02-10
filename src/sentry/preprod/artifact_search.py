@@ -109,6 +109,16 @@ SIZE_STATE_VALUES: dict[str, int] = {
 }
 
 
+def _translate_size_state(value: object) -> int:
+    raw = str(value).lower()
+    if raw not in SIZE_STATE_VALUES:
+        raise InvalidSearchQuery(
+            f"Invalid size_state value: {value}. "
+            f"Valid values: {', '.join(sorted(SIZE_STATE_VALUES))}"
+        )
+    return SIZE_STATE_VALUES[raw]
+
+
 def queryset_for_query(
     query: str,
     organization: Organization,
@@ -235,17 +245,11 @@ def apply_filters(
         db_field = FIELD_MAPPINGS.get(name, name)
 
         if name == "size_state":
-            if token.is_in_filter:
-                translated = [SIZE_STATE_VALUES.get(str(v).lower(), v) for v in token.value.value]
-                q = Q(**{f"{db_field}__in": translated})
-            else:
-                raw = str(token.value.value).lower()
-                if raw not in SIZE_STATE_VALUES:
-                    raise InvalidSearchQuery(
-                        f"Invalid size_state value: {token.value.value}. "
-                        f"Valid values: {', '.join(sorted(SIZE_STATE_VALUES))}"
-                    )
-                q = Q(**{f"{db_field}__exact": SIZE_STATE_VALUES[raw]})
+            values = token.value.value if token.is_in_filter else [token.value.value]
+            translated = [_translate_size_state(v) for v in values]
+            lookup = "__in" if token.is_in_filter else "__exact"
+            val = translated if token.is_in_filter else translated[0]
+            q = Q(**{f"{db_field}{lookup}": val})
             if token.is_negation:
                 q = ~q
             queryset = queryset.filter(q)

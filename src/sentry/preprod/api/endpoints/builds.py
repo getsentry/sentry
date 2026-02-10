@@ -18,7 +18,6 @@ from sentry.preprod.models import PreprodArtifact
 ERR_FEATURE_REQUIRED = "Feature {} is not enabled for the organization."
 
 
-
 @region_silo_endpoint
 class BuildsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS

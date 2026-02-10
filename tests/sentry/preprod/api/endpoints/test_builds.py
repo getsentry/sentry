@@ -907,6 +907,12 @@ class BuildsEndpointTest(APITestCase):
         response = self._request({"query": "size_state:bogus"})
         assert response.status_code == 400
 
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_size_state_invalid_in_filter_value(self) -> None:
+        self.create_preprod_artifact(app_id="test.app")
+        response = self._request({"query": "size_state:[bogus, completed]"})
+        assert response.status_code == 400
+
 
 class QuerysetForQueryTest(APITestCase):
     """Tests for the queryset_for_query, artifact_in_queryset, and artifact_matches_query functions."""
