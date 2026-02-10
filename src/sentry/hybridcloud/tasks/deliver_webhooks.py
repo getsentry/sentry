@@ -580,6 +580,32 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
             )
             return
 
+        # Skip forwarding for configured GitHub owners (payload is still deleted by caller)
+        skip_github_owners = options.get("codecov.forward-webhooks.skip-github-owners") or ()
+        skip_set = (
+            frozenset(str(x) for x in skip_github_owners if x)
+            if skip_github_owners
+            else frozenset()
+        )
+        if skip_set:
+            try:
+                body = orjson.loads(payload.request_body)
+            except orjson.JSONDecodeError:
+                pass
+            else:
+                repository = (
+                    body.get("repository") if isinstance(body.get("repository"), dict) else None
+                )
+                owner = (
+                    repository.get("owner")
+                    if repository and isinstance(repository.get("owner"), dict)
+                    else None
+                )
+                login = owner.get("login") if owner else None
+                if isinstance(login, str) and login in skip_set:
+                    metrics.incr("hybridcloud.deliver_webhooks.send_request_to_codecov.filtered")
+                    return
+
         # hard coding this because the endpoint path is different from the original request
         endpoint = "/webhooks/sentry"
 

@@ -418,6 +418,84 @@ class DrainMailboxTest(TestCase):
         assert len(responses.calls) == 3
 
     @responses.activate
+    @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
+    @override_options(
+        {
+            "codecov.api-bridge-signing-secret": "test",
+        }
+    )
+    @override_regions(region_config)
+    def test_drain_codecov_filtered_getsentry_owner(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://api.codecov.io/webhooks/sentry",
+            status=200,
+            body="",
+        )
+        records = create_payloads_with_destination_type(
+            3, "github:codecov:123", DestinationType.CODECOV
+        )
+        for record in records:
+            record.request_body = '{"repository":{"owner":{"login":"getsentry"}}}'
+            record.save(update_fields=["request_body"])
+        drain_mailbox(records[0].id)
+
+        assert len(responses.calls) == 0
+        assert not WebhookPayload.objects.filter().exists()
+
+    @responses.activate
+    @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
+    @override_options(
+        {
+            "codecov.api-bridge-signing-secret": "test",
+        }
+    )
+    @override_regions(region_config)
+    def test_drain_codecov_not_filtered_other_owner(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://api.codecov.io/webhooks/sentry",
+            status=200,
+            body="",
+        )
+        records = create_payloads_with_destination_type(
+            3, "github:codecov:123", DestinationType.CODECOV
+        )
+        for record in records:
+            record.request_body = '{"repository":{"owner":{"login":"other-org"}}}'
+            record.save(update_fields=["request_body"])
+        drain_mailbox(records[0].id)
+
+        assert len(responses.calls) == 3
+        assert not WebhookPayload.objects.filter().exists()
+
+    @responses.activate
+    @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
+    @override_options(
+        {
+            "codecov.api-bridge-signing-secret": "test",
+        }
+    )
+    @override_regions(region_config)
+    def test_drain_codecov_not_filtered_malformed_body(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://api.codecov.io/webhooks/sentry",
+            status=200,
+            body="",
+        )
+        records = create_payloads_with_destination_type(
+            3, "github:codecov:123", DestinationType.CODECOV
+        )
+        for record in records:
+            record.request_body = "{}"
+            record.save(update_fields=["request_body"])
+        drain_mailbox(records[0].id)
+
+        assert len(responses.calls) == 3
+        assert not WebhookPayload.objects.filter().exists()
+
+    @responses.activate
     @override_regions(region_config)
     def test_drain_time_limit(self) -> None:
         responses.add(
