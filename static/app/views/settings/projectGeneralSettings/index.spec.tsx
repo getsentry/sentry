@@ -20,7 +20,7 @@ import ProjectContextProvider from 'sentry/views/projects/projectContext';
 import {ProjectGeneralSettings} from 'sentry/views/settings/projectGeneralSettings';
 
 jest.mock('sentry/actionCreators/indicator');
-jest.mock('sentry/components/organizations/pageFilters/persistence');
+jest.mock('sentry/components/pageFilters/pageFilters/persistence');
 
 function getField(role: string, name: string) {
   return screen.getByRole(role, {name});
