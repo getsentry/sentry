@@ -691,7 +691,7 @@ default_manager.add(
         event_id=1159,
         name="REPO_SETTINGS_EDIT",
         api_name="repo-settings.edit",
-        template="updated repository settings for {repository_count} repositories",
+        template="updated repository settings for {repository_names}{code_review_change}",
     )
 )
 default_manager.add(
