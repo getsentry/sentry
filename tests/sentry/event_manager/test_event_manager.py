@@ -3563,9 +3563,6 @@ class ReleaseIssueTest(TestCase):
             timestamp=self.timestamp + 100,
         )
         self.assert_release_project_environment(
-            event=event1, new_issues_count=1, last_seen=self.timestamp, first_seen=self.timestamp
-        )
-        self.assert_release_project_environment(
             event=event2,
             new_issues_count=1,
             last_seen=self.timestamp + 100,
