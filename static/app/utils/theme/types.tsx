@@ -78,7 +78,7 @@ export type BorderVariant = Exclude<SemanticVariant, 'neutral'> | 'primary' | 'm
 /**
  * Icon size constraint.
  */
-export type IconSize = SizeRange<'xs', '2xl'>;
+export type IconSize = SizeRange<'2xs', '2xl'>;
 
 /**
  * Form element size constraint.

@@ -64,6 +64,7 @@ SvgIcon.ICON_DIRECTION_TO_ROTATION_ANGLE = ICON_DIRECTION_TO_ROTATION_ANGLE;
  * could be achieved via a small wrapper around the Container component.
  */
 const ICON_SIZES: Record<IconSize, string> = {
+  '2xs': '8px',
   xs: '12px',
   sm: '14px',
   md: '16px',
