@@ -1,3 +1,3 @@
 import {t} from 'sentry/locale';
 
-export const DASHBOARD_TITLE = t('Next.js Frontend Overview');
+export const DASHBOARD_TITLE = t('Next.js Overview');
