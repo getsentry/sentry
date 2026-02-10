@@ -97,7 +97,10 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
                 request=request,
             )
 
-            runs_by_group_id = {item["group_id"]: item for item in runs}
+            # Runs are sorted newest-first; keep only the first entry per group_id
+            runs_by_group_id: dict[int, dict] = {}
+            for item in runs:
+                runs_by_group_id.setdefault(item["group_id"], item)
 
             for serialized_group in serialized_groups:
                 group_id = int(serialized_group["id"])
@@ -115,7 +118,7 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
                                 "prUrl": state.get("pr_url"),
                                 "prCreationStatus": state.get("pr_creation_status"),
                             }
-                            for repo_name, state in item.get("repo_pr_states", {}).items()
+                            for repo_name, state in (item.get("repo_pr_states") or {}).items()
                             if isinstance(state, dict)
                         },
                     }
