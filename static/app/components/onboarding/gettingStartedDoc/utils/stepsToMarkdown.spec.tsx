@@ -9,7 +9,6 @@ import {
   reactNodeToText,
   simpleHtmlToMarkdown,
   stepsToMarkdown,
-  stepsToText,
 } from './stepsToMarkdown';
 
 describe('simpleHtmlToMarkdown', () => {
@@ -532,77 +531,5 @@ describe('stepsToMarkdown', () => {
 
     const result = stepsToMarkdown(steps);
     expect(result).toContain('___ORG_AUTH_TOKEN___');
-  });
-});
-
-describe('stepsToText', () => {
-  it('strips markdown formatting but preserves code blocks', () => {
-    const steps: OnboardingStep[] = [
-      {
-        type: StepType.INSTALL,
-        content: [
-          {type: 'text', text: 'Install the SDK.'},
-          {type: 'code', code: 'npm install @sentry/node', language: 'bash'},
-        ],
-      },
-    ];
-
-    const result = stepsToText(steps);
-
-    // Heading markers should be stripped
-    expect(result).not.toMatch(/^##\s/m);
-    expect(result).toContain('Install');
-
-    // Code blocks should be preserved
-    expect(result).toContain('```bash\nnpm install @sentry/node\n```');
-  });
-
-  it('strips bold, italic, and link formatting', () => {
-    const steps: OnboardingStep[] = [
-      {
-        title: 'Setup',
-        content: [
-          {
-            type: 'text',
-            text: React.createElement(
-              'p',
-              null,
-              'Read the ',
-              React.createElement('a', {href: 'https://docs.sentry.io'}, 'documentation'),
-              ' for ',
-              React.createElement('strong', null, 'detailed'),
-              ' instructions.'
-            ),
-          },
-        ],
-      },
-    ];
-
-    const result = stepsToText(steps);
-    // Links should be converted to just text
-    expect(result).toContain('documentation');
-    expect(result).not.toContain('[documentation]');
-    expect(result).not.toContain('https://docs.sentry.io');
-
-    // Bold should be stripped
-    expect(result).toContain('detailed');
-    expect(result).not.toContain('**detailed**');
-  });
-
-  it('strips blockquote markers from alerts', () => {
-    const steps: OnboardingStep[] = [
-      {
-        title: 'Note',
-        content: [{type: 'alert', alertType: 'info', text: 'Important info'}],
-      },
-    ];
-
-    const result = stepsToText(steps);
-    expect(result).toContain('Important info');
-    expect(result).not.toMatch(/^>\s/m);
-  });
-
-  it('handles empty steps array', () => {
-    expect(stepsToText([])).toBe('');
   });
 });
