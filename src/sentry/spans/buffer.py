@@ -288,7 +288,8 @@ class SpansBuffer:
                                 iter(prepared.keys())
                             )  # Compressed payloads only have one key
                             if payload_cutoff_size > 0 and len(compressed) > payload_cutoff_size:
-                                p.set(payload_key, compressed)
+                                # Payloads can be chunked, but they share an ID. Make the payload key a set to store all the chunks.
+                                p.sadd(payload_key, compressed)
                                 p.sadd(payload_set_key, payload_key)
                             else:
                                 p.sadd(payload_set_key, compressed)
@@ -727,10 +728,17 @@ class SpansBuffer:
                         decompressed_spans.extend(self._decompress_batch(span_data))
 
                 if payload_keys:
-                    fetched_payloads = self.client.mget(*payload_keys)
-                    for payload in fetched_payloads or []:
-                        if payload is not None:
-                            decompressed_spans.extend(self._decompress_batch(payload))
+                    with self.client.pipeline(transaction=False) as p:
+                        for payload_key in payload_keys:
+                            p.smembers(payload_key)
+
+                        fetched_payloads = p.execute()
+
+                    # fetched_payloads is a list of sets of payloads
+                    for fetched_payloads in fetched_payloads:
+                        for payload in fetched_payloads:
+                            if payload is not None:
+                                decompressed_spans.extend(self._decompress_batch(payload))
 
                 sizes[key] += sum(len(span) for span in decompressed_spans)
                 if sizes[key] > max_segment_bytes:

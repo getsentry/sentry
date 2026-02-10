@@ -1085,10 +1085,12 @@ def test_dual_write() -> None:
 
 
 def test_dual_write_payload_set() -> None:
-    """Test writing to both ZSET and SET (dual write mode)."""
+    """Test writing to both SET and PAYLOAD SET (dual write mode)."""
     opts = {
         **DEFAULT_OPTIONS,
+        "spans.buffer.write-to-zset": False,
         "spans.buffer.write-to-set": True,
+        "spans.buffer.read-from-set": True,
         "spans.buffer.write-to-payload-set": True,
         "spans.buffer.payload-cutoff-size": 0,
     }
@@ -1130,7 +1132,7 @@ def test_dual_write_payload_set() -> None:
         rv = buffer.flush_segments(now=11)
         _normalize_output(rv)
         assert rv == {
-            _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
+            _set_segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
                 queue_key=mock.ANY,
                 spans=[
                     _output_segment(b"a" * 16, b"b" * 16, False),
@@ -1211,7 +1213,9 @@ def test_dual_write_payload_set_content_matches() -> None:
     """Test that SET and ZSET contain the same span payloads in dual write mode."""
     opts = {
         **DEFAULT_OPTIONS,
+        "spans.buffer.write-to-zset": False,
         "spans.buffer.write-to-set": True,
+        "spans.buffer.read-from-set": True,
         "spans.buffer.write-to-payload-set": True,
         "spans.buffer.payload-cutoff-size": 1,
         # "spans.buffer.compression.level": compression_level,
@@ -1281,11 +1285,12 @@ def test_dual_write_payload_set_content_matches() -> None:
             buffer._get_payload_key(project_and_trace, key2),
         }
 
-        span_payload = buffer.client.get(buffer._get_payload_key(project_and_trace, key2))
+        payload_members = buffer.client.smembers(buffer._get_payload_key(project_and_trace, key2))
         span_payloads = set()
-        for decompressed in buffer._decompress_batch(span_payload):
-            span_data = orjson.loads(decompressed)
-            span_payloads.add(span_data["span_id"])
+        for payload in payload_members:
+            for decompressed in buffer._decompress_batch(payload):
+                span_data = orjson.loads(decompressed)
+                span_payloads.add(span_data["span_id"])
 
         assert span_payloads == {"a" * 16, "b" * 16, "c" * 16}
 
@@ -1357,7 +1362,9 @@ def test_dual_write_separate_redirect_tables_payload_set() -> None:
     """Test that SET and payload SET use separate redirect tables that contain equivalent mappings."""
     opts = {
         **DEFAULT_OPTIONS,
+        "spans.buffer.write-to-zset": False,
         "spans.buffer.write-to-set": True,
+        "spans.buffer.read-from-set": True,
         "spans.buffer.write-to-payload-set": True,
         "spans.buffer.payload-cutoff-size": 1,
     }
@@ -1405,19 +1412,6 @@ def test_dual_write_separate_redirect_tables_payload_set() -> None:
         assert (
             set_redirects == payload_set_redirects
         ), "SET and payload SET redirect tables should have equivalent mappings"
-
-        # Verify payload set keys and payload content
-        payload_set_keys = [k for k in buffer.client.keys("*") if k.startswith(b"span-buf:p:")]
-        assert len(payload_set_keys) > 0
-        project_and_trace = f"1:{'a' * 32}"
-        payload_key = buffer._get_payload_key(project_and_trace, "b" * 16)
-        span_payload = buffer.client.get(payload_key)
-        assert span_payload is not None
-        span_payloads = set()
-        for decompressed in buffer._decompress_batch(span_payload):
-            span_data = orjson.loads(decompressed)
-            span_payloads.add(span_data["span_id"])
-        assert span_payloads == {"a" * 16, "b" * 16}
 
         # Flush and verify cleanup
         rv = buffer.flush_segments(now=11)
@@ -1494,7 +1488,9 @@ def test_dual_write_emits_set_metrics_payload_set(
     """Test that payload SET-specific metrics are emitted when writing to payload set."""
     opts = {
         **DEFAULT_OPTIONS,
-        "spans.buffer.write-to-zset": True,
+        "spans.buffer.write-to-zset": False,
+        "spans.buffer.write-to-set": True,
+        "spans.buffer.read-from-set": True,
         "spans.buffer.write-to-payload-set": True,
         "spans.buffer.payload-cutoff-size": 1,
     }
@@ -1528,10 +1524,10 @@ def test_dual_write_emits_set_metrics_payload_set(
 
         assert emit_observability_metrics.call_count == 2
 
-        zset_call = emit_observability_metrics.call_args_list[0]
-        zset_latency_metrics = zset_call.args[0]
-        assert len(zset_latency_metrics) > 0
-        for metric_list in zset_latency_metrics:
+        set_call = emit_observability_metrics.call_args_list[0]
+        set_latency_metrics = set_call.args[0]
+        assert len(set_latency_metrics) > 0
+        for metric_list in set_latency_metrics:
             for metric_name, _ in metric_list:
                 assert not metric_name.decode().startswith("payload_set_")
 
@@ -1541,19 +1537,6 @@ def test_dual_write_emits_set_metrics_payload_set(
         for metric_list in payload_set_latency_metrics:
             for metric_name, _ in metric_list:
                 assert metric_name.decode().startswith("payload_set_")
-
-        # Verify payload set keys and content
-        payload_set_keys = [k for k in buffer.client.keys("*") if k.startswith(b"span-buf:p:")]
-        assert len(payload_set_keys) > 0
-        project_and_trace = f"1:{'a' * 32}"
-        payload_key = buffer._get_payload_key(project_and_trace, "b" * 16)
-        span_payload = buffer.client.get(payload_key)
-        assert span_payload is not None
-        span_payloads = set()
-        for decompressed in buffer._decompress_batch(span_payload):
-            span_data = orjson.loads(decompressed)
-            span_payloads.add(span_data["span_id"])
-        assert span_payloads == {"a" * 16, "b" * 16}
 
 
 def test_read_from_set() -> None:
@@ -1631,7 +1614,8 @@ def test_read_from_payload_set() -> None:
     """Test reading from payload SET instead of ZSET when read-from-payload-set is enabled."""
     opts = {
         **DEFAULT_OPTIONS,
-        "spans.buffer.write-to-zset": True,
+        "spans.buffer.write-to-zset": False,
+        "spans.buffer.write-to-set": True,
         "spans.buffer.write-to-payload-set": True,
         "spans.buffer.payload-cutoff-size": 1,
         "spans.buffer.read-from-payload-set": True,
@@ -1667,11 +1651,11 @@ def test_read_from_payload_set() -> None:
         # Skip assert_ttls: payload storage keys (span-buf:p:ld:) do not have TTL set
         # Verify both payload SET and ZSET keys exist
         payload_set_keys = [k for k in buffer.client.keys("*") if k.startswith(b"span-buf:p:")]
-        zset_keys = [k for k in buffer.client.keys("*") if k.startswith(b"span-buf:z:")]
+        set_keys = [k for k in buffer.client.keys("*") if k.startswith(b"span-buf:s:")]
         assert len(payload_set_keys) > 0
-        assert len(zset_keys) > 0
+        assert len(set_keys) > 0
 
-        # Verify the queue contains payload SET keys, not ZSET keys
+        # Verify the queue contains payload SET keys, not SET keys
         queue_keys = [k for k in buffer.client.keys("*") if k.startswith(b"span-buf:q:")]
         for queue_key in queue_keys:
             queue_members = buffer.client.zrange(queue_key, 0, -1)
@@ -1679,17 +1663,6 @@ def test_read_from_payload_set() -> None:
                 assert member.startswith(
                     b"span-buf:p:"
                 ), f"Expected payload SET key in queue, got: {member.decode()}"
-
-        # Verify payload set content
-        project_and_trace = f"1:{'a' * 32}"
-        payload_key = buffer._get_payload_key(project_and_trace, "b" * 16)
-        span_payload = buffer.client.get(payload_key)
-        assert span_payload is not None
-        span_payloads = set()
-        for decompressed in buffer._decompress_batch(span_payload):
-            span_data = orjson.loads(decompressed)
-            span_payloads.add(span_data["span_id"])
-        assert span_payloads == {"a" * 16, "b" * 16}
 
         # Verify flush works and returns payload SET keys
         rv = buffer.flush_segments(now=11)
@@ -1806,22 +1779,21 @@ def test_read_from_payload_set_only_writes_to_payload_set() -> None:
         # Skip assert_ttls: payload storage keys (span-buf:p:ld:) do not have TTL set
         # Verify only payload SET keys exist (no ZSET, no regular SET)
         payload_set_keys = [k for k in buffer.client.keys("*") if k.startswith(b"span-buf:p:")]
-        zset_keys = [k for k in buffer.client.keys("*") if k.startswith(b"span-buf:z:")]
         set_keys = [k for k in buffer.client.keys("*") if k.startswith(b"span-buf:s:")]
         assert len(payload_set_keys) > 0
-        assert len(zset_keys) == 0
         assert len(set_keys) == 0
 
         # Verify payload set content
         project_and_trace = f"1:{'a' * 32}"
         payload_key = buffer._get_payload_key(project_and_trace, "b" * 16)
-        span_payload = buffer.client.get(payload_key)
-        assert span_payload is not None
-        span_payloads = set()
-        for decompressed in buffer._decompress_batch(span_payload):
-            span_data = orjson.loads(decompressed)
-            span_payloads.add(span_data["span_id"])
-        assert span_payloads == {"a" * 16, "b" * 16}
+        payload_span_members = buffer.client.smembers(payload_key)
+        assert len(payload_span_members) > 0
+        payload_span_ids = set()
+        for payload in payload_span_members:
+            for decompressed in buffer._decompress_batch(payload):
+                span_data = orjson.loads(decompressed)
+                payload_span_ids.add(span_data["span_id"])
+        assert payload_span_ids == {"a" * 16, "b" * 16}
 
         # Verify flush works
         rv = buffer.flush_segments(now=11)
