@@ -3971,3 +3971,11 @@ register(
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Global flag to enable caching detectors by data source
+register(
+    "workflow_engine.cache-detectors-by-data-source",
+    default=0.0,
+    type=Float,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)

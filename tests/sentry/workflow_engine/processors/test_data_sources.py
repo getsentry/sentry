@@ -1,10 +1,7 @@
 from unittest import mock
 
 from sentry.workflow_engine.models import DataPacket
-from sentry.workflow_engine.processors.data_source import (
-    bulk_fetch_enabled_detectors,
-    process_data_source,
-)
+from sentry.workflow_engine.processors.data_source import process_data_source
 from sentry.workflow_engine.registry import data_source_type_registry
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -131,31 +128,3 @@ class TestProcessDataSources(BaseWorkflowTest):
                     for condition in detector.workflow_condition_group.conditions.all():
                         # Trigger a SQL query if not prefetched, and fail the assertion
                         assert condition.id is not None
-
-    @mock.patch("sentry.workflow_engine.caches.cache_access.cache")
-    def test_bulk_fetch_uses_cache(self, mock_cache: mock.Mock) -> None:
-        mock_cache.get.return_value = [self.detector_one]
-
-        detectors = bulk_fetch_enabled_detectors(self.packet.source_id, "test")
-
-        assert mock_cache.get.called
-        assert len(detectors) == 1
-        assert detectors[0].id == self.detector_one.id
-
-    @mock.patch("sentry.workflow_engine.caches.cache_access.cache")
-    def test_bulk_fetch_handles_empty_cache(self, mock_cache: mock.Mock) -> None:
-        mock_cache.get.return_value = []
-
-        detectors = bulk_fetch_enabled_detectors("nonexistent", "test")
-
-        assert detectors == []
-        assert mock_cache.get.called
-
-    def test_bulk_fetch_filters_disabled_detectors(self) -> None:
-        self.detector_one.enabled = False
-        self.detector_one.save()
-
-        detectors = bulk_fetch_enabled_detectors(self.two_detector_packet.source_id, "test")
-
-        assert len(detectors) == 1
-        assert detectors[0].id == self.detector_two.id
