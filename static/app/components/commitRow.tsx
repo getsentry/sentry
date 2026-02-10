@@ -93,7 +93,11 @@ function CommitRow({
         <Message>{formatCommitMessage(commit.message)}</Message>
       )}
       <MetaWrapper>
-        {customAvatar ? customAvatar : <UserAvatar size={16} user={commit.author} />}
+        {customAvatar ? (
+          customAvatar
+        ) : commit.author ? (
+          <UserAvatar size={16} user={commit.author} />
+        ) : null}
         <Meta hasStreamlinedUI>
           <Tooltip
             title={tct(
@@ -193,16 +197,14 @@ function CommitRow({
               </EmailWarning>
             }
           >
-            <UserAvatar size={36} user={commit.author} />
+            {commit.author ? <UserAvatar size={36} user={commit.author} /> : null}
             <EmailWarningIcon data-test-id="email-warning">
               <IconWarning size="xs" />
             </EmailWarningIcon>
           </Hovercard>
         </AvatarWrapper>
       ) : (
-        <div>
-          <UserAvatar size={36} user={commit.author} />
-        </div>
+        <div>{commit.author ? <UserAvatar size={36} user={commit.author} /> : null}</div>
       )}
 
       <CommitMessage>
