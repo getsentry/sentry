@@ -481,7 +481,7 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
     ) -> None:
         """
         Test .NET span code.filepath matching when code mapping was derived from error frames.
-        
+
         Error frames use "/_/src/Project/File.cs" but span code.filepath uses
         "src/Project/File.cs" (without the /_/ prefix). The code mapping should still match
         via suffix logic for automatically generated mappings.
@@ -495,7 +495,7 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
             source_root="",
             automatically_generated=True,
         )
-        
+
         # Span with code.filepath that doesn't have the /_/ prefix
         assert (
             convert_stacktrace_frame_path_to_source_path(
@@ -512,7 +512,7 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
     ) -> None:
         """
         Test that suffix matching only applies to automatically generated mappings.
-        
+
         User-created mappings should not use suffix matching fallback to avoid
         unintended matches.
         """
@@ -525,7 +525,7 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
             source_root="",
             automatically_generated=False,  # User-created mapping
         )
-        
+
         # Span path without the /_/ prefix should NOT match user-created mappings
         assert (
             convert_stacktrace_frame_path_to_source_path(
@@ -551,7 +551,7 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
             source_root="src/",
             automatically_generated=True,
         )
-        
+
         # Span path that should combine with source_root
         assert (
             convert_stacktrace_frame_path_to_source_path(
@@ -566,7 +566,7 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
     def test_convert_stacktrace_frame_path_to_source_path_bare_filename_no_match(self) -> None:
         """
         Test that bare filenames (single component) don't match via suffix logic.
-        
+
         This prevents overly broad matches for simple filenames.
         """
         dotnet_code_mapping = self.create_code_mapping(
@@ -577,7 +577,7 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
             source_root="",
             automatically_generated=True,
         )
-        
+
         # Bare filename should not match via suffix logic (needs directory structure)
         assert (
             convert_stacktrace_frame_path_to_source_path(
