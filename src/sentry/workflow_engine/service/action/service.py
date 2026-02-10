@@ -36,7 +36,7 @@ class ActionService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abc.abstractmethod
-    def update_action_status_for_sentry_app_via_uuid(
+    def update_action_status_for_sentry_app_installation(
         self,
         *,
         organization_id: int,
@@ -47,7 +47,7 @@ class ActionService(RpcService):
 
     @regional_rpc_method(resolve=ByRegionName())
     @abc.abstractmethod
-    def update_action_status_for_sentry_app_via_uuid__region(
+    def update_action_status_for_sentry_app_installation__region(
         self,
         *,
         region_name: str,

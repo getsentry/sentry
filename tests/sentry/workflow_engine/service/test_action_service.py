@@ -283,7 +283,7 @@ class TestActionService(TestCase):
         dcg = self.create_data_condition_group(organization=org2)
         self.create_data_condition_group_action(action=sentry_app_id_action2, condition_group=dcg)
 
-        action_service.update_action_status_for_sentry_app_via_uuid(
+        action_service.update_action_status_for_sentry_app_installation(
             organization_id=self.organization.id,
             sentry_app_id=sentry_app_installation.sentry_app.id,
             status=ObjectStatus.DISABLED,
