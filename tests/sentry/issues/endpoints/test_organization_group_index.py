@@ -1038,10 +1038,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # Should return 10 groups
         assert len(response.data) == 10
 
-        # X-Hits should be adjusted if post-filtering occurred
-        # Since all groups are unresolved, no filtering should occur
-        # So X-Hits should remain at the mocked value of 100
-        assert response["X-Hits"] == "100"
+        # X-Hits should be capped to 10 because:
+        # 1. We're on the first page (no cursor)
+        # 2. There are no more results (next.has_results = False)
+        # 3. The mocked estimate (100) is greater than actual results (10)
+        # This is correct behavior - we cap overestimates when we have all results
+        assert response["X-Hits"] == "10"
 
     def test_hits_capped_on_short_first_page(self) -> None:
         """
