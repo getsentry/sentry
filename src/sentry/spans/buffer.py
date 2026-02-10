@@ -186,6 +186,7 @@ class SpansBuffer:
         self.assigned_shards = list(assigned_shards)
         self.slice_id = slice_id
         self.add_buffer_sha: str | None = None
+        self.add_buffer_payload_sha: str | None = None
         self.any_shard_at_limit = False
         self._current_compression_level = None
         self._zstd_compressor: zstandard.ZstdCompressor | None = None
@@ -283,7 +284,9 @@ class SpansBuffer:
                                 project_and_trace, parent_span_id
                             )
                             payload_key = self._get_payload_key(project_and_trace, parent_span_id)
-                            compressed = prepared.keys()[0]  # Compressed payloads only have one key
+                            compressed = next(
+                                iter(prepared.keys())
+                            )  # Compressed payloads only have one key
                             if payload_cutoff_size > 0 and len(compressed) > payload_cutoff_size:
                                 p.set(payload_key, compressed)
                                 p.sadd(payload_set_key, payload_key)
@@ -718,14 +721,16 @@ class SpansBuffer:
                 for scan_value in scan_values:
                     span_data = scan_value[0] if isinstance(scan_value, tuple) else scan_value
                     # Payload keys are prefixed with span-buf:p:ld: and have to be fetched separately
-                    if span_data.starswith("span-buf:p:ld:"):
+                    if span_data.startswith(b"span-buf:p:ld:"):
                         payload_keys.append(span_data)
                     else:
                         decompressed_spans.extend(self._decompress_batch(span_data))
 
                 if payload_keys:
-                    payloads = self.client.mget(*payload_keys)
-                    decompressed_spans.extend(map(self._decompressed_batch, payloads))
+                    fetched_payloads = self.client.mget(*payload_keys)
+                    for payload in fetched_payloads or []:
+                        if payload is not None:
+                            decompressed_spans.extend(self._decompress_batch(payload))
 
                 sizes[key] += sum(len(span) for span in decompressed_spans)
                 if sizes[key] > max_segment_bytes:
@@ -830,6 +835,7 @@ class SpansBuffer:
                     p.zrem(flushed_segment.queue_key, set_key, payload_set_key)
 
                     project_id, trace_id, _ = parse_segment_key(segment_key)
+                    project_and_trace = f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}"
                     set_redirect_map_key = b"span-buf:ssr:{%s:%s}" % (project_id, trace_id)
                     payload_set_redirect_map_key = b"span-buf:psr:{%s:%s}" % (project_id, trace_id)
 
@@ -840,7 +846,7 @@ class SpansBuffer:
                         if write_to_payload_set:
                             p.hdel(payload_set_redirect_map_key, *span_ids)
                             p.unlink(
-                                *(self._get_payload_key(project_id, trace_id, s) for s in span_ids)
+                                *(self._get_payload_key(project_and_trace, s) for s in span_ids)
                             )
 
                 p.execute()
