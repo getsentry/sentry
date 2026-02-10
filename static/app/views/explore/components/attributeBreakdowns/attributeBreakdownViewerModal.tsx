@@ -7,10 +7,11 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
+import {transformTableToCategoricalSeries} from 'sentry/utils/categoricalTimeSeries/transformTableToCategoricalSeries';
+import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
 import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
 import type {
-  CategoricalSeries,
   TabularColumn,
   TabularData,
 } from 'sentry/views/dashboards/widgets/common/types';
@@ -18,18 +19,8 @@ import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWid
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 
 import type {AttributeDistribution} from './attributeDistributionContent';
-import {
-  CHART_BASELINE_SERIES_NAME,
-  CHART_SELECTED_SERIES_NAME,
-  COHORT_2_COLOR,
-  MODAL_CHART_HEIGHT,
-} from './constants';
-import {
-  calculateAttributePopulationPercentage,
-  cohortsToSeriesData,
-  distributionToSeriesData,
-  percentageFormatter,
-} from './utils';
+import {CHART_MAX_SERIES_LENGTH, COHORT_2_COLOR, MODAL_CHART_HEIGHT} from './constants';
+import {calculateAttributePopulationPercentage, percentageFormatter} from './utils';
 
 type RankedAttribute = AttributeBreakdownsComparison['rankedAttributes'][number];
 type CohortData = RankedAttribute['cohort1'];
@@ -59,7 +50,6 @@ type SingleModeData = {
   attributeName: string;
   mode: 'single';
   populationPercentages: {primary: number};
-  seriesData: {single: Array<{label: string; value: number}>};
   tableColumns: TabularColumn[];
   tableData: TabularData;
 };
@@ -68,12 +58,24 @@ type ComparisonModeData = {
   attributeName: string;
   mode: 'comparison';
   populationPercentages: {primary: number; secondary: number};
-  seriesData: {
-    [CHART_BASELINE_SERIES_NAME]: Array<{label: string; value: number}>;
-    [CHART_SELECTED_SERIES_NAME]: Array<{label: string; value: number}>;
-  };
   tableColumns: TabularColumn[];
   tableData: TabularData;
+};
+
+const SINGLE_MODE_CHART_QUERY: WidgetQuery = {
+  columns: [t('Value')],
+  aggregates: [t('Percentage')],
+  conditions: '',
+  name: '',
+  orderby: '',
+};
+
+const COMPARISON_MODE_CHART_QUERY: WidgetQuery = {
+  columns: [t('Value')],
+  aggregates: [t('Selected %'), t('Baseline %')],
+  conditions: '',
+  name: '',
+  orderby: '',
 };
 
 function distributionToTableData(
@@ -158,11 +160,6 @@ function computeSingleModeData(
   attributeDistribution: AttributeDistribution[number],
   cohortCount: number
 ): SingleModeData {
-  const singleSeriesData = distributionToSeriesData(
-    attributeDistribution.values,
-    cohortCount
-  );
-
   const singlePopulation = calculateAttributePopulationPercentage(
     attributeDistribution.values,
     cohortCount
@@ -182,7 +179,6 @@ function computeSingleModeData(
     mode: 'single',
     attributeName: attributeDistribution.attributeName,
     populationPercentages: {primary: singlePopulation},
-    seriesData: {single: singleSeriesData},
     tableColumns: singleTableColumns,
     tableData: singleTableData,
   };
@@ -194,15 +190,6 @@ function computeComparisonModeData(
   cohort1Total: number,
   cohort2Total: number
 ): ComparisonModeData {
-  const seriesTotals = {
-    [CHART_SELECTED_SERIES_NAME]: cohort1Total,
-    [CHART_BASELINE_SERIES_NAME]: cohort2Total,
-  };
-  const comparisonSeriesData = cohortsToSeriesData(
-    attribute.cohort1,
-    attribute.cohort2,
-    seriesTotals
-  );
   const comparisonPopulation = {
     primary: calculateAttributePopulationPercentage(attribute.cohort1, cohort1Total),
     secondary: calculateAttributePopulationPercentage(attribute.cohort2, cohort2Total),
@@ -225,7 +212,6 @@ function computeComparisonModeData(
     mode: 'comparison',
     attributeName: attribute.attributeName,
     populationPercentages: comparisonPopulation,
-    seriesData: comparisonSeriesData,
     tableColumns: comparisonTableColumns,
     tableData: comparisonTableData,
   };
@@ -252,18 +238,6 @@ function PopulationIndicatorComponent({
   );
 }
 
-function toCategoricalSeries(
-  data: Array<{label: string; value: number}>,
-  alias?: string
-): CategoricalSeries {
-  return {
-    valueAxis: alias ?? 'percentage',
-    meta: {valueType: 'percentage', valueUnit: null},
-    // Data comes in as 0-100 range, but percentage valueType expects 0-1 range
-    values: data.map(d => ({category: d.label, value: d.value / 100})),
-  };
-}
-
 export default function AttributeBreakdownViewerModal(props: Props) {
   const {Header, Body, mode} = props;
   const theme = useTheme();
@@ -283,6 +257,25 @@ export default function AttributeBreakdownViewerModal(props: Props) {
 
     return computeSingleModeData(props.attributeDistribution, props.cohortCount);
   }, [mode, props]);
+
+  const chartSeries = useMemo(() => {
+    const slicedTableData: TabularData = {
+      ...computedData.tableData,
+      data: computedData.tableData.data.slice(0, CHART_MAX_SERIES_LENGTH),
+    };
+    const query =
+      computedData.mode === 'comparison'
+        ? COMPARISON_MODE_CHART_QUERY
+        : SINGLE_MODE_CHART_QUERY;
+    return transformTableToCategoricalSeries(query, slicedTableData);
+  }, [computedData.tableData, computedData.mode]);
+
+  const hasPlottableValues = useMemo(() => {
+    return chartSeries.some(series => series.values.some(value => value.value !== null));
+  }, [chartSeries]);
+  const singleSeries = chartSeries[0];
+  const selectedSeries = chartSeries[0];
+  const baselineSeries = chartSeries[1];
 
   return (
     <Fragment>
@@ -324,34 +317,19 @@ export default function AttributeBreakdownViewerModal(props: Props) {
         <Flex direction="column" gap="2xl" height="600px">
           <Container height={`${MODAL_CHART_HEIGHT}px`}>
             <Container height={`${MODAL_CHART_HEIGHT}px`} position="relative">
-              {computedData.mode === 'single' &&
-              computedData.seriesData.single.length > 0 ? (
+              {computedData.mode === 'single' && singleSeries && hasPlottableValues ? (
                 <CategoricalSeriesWidgetVisualization
-                  plottables={[
-                    new Bars(toCategoricalSeries(computedData.seriesData.single), {
-                      color: primaryColor,
-                    }),
-                  ]}
+                  plottables={[new Bars(singleSeries, {color: primaryColor})]}
                   showLegend="never"
                 />
               ) : computedData.mode === 'comparison' &&
-                computedData.seriesData[CHART_SELECTED_SERIES_NAME].length > 0 ? (
+                selectedSeries &&
+                baselineSeries &&
+                hasPlottableValues ? (
                 <CategoricalSeriesWidgetVisualization
                   plottables={[
-                    new Bars(
-                      toCategoricalSeries(
-                        computedData.seriesData[CHART_SELECTED_SERIES_NAME],
-                        CHART_SELECTED_SERIES_NAME
-                      ),
-                      {color: primaryColor, alias: 'selected'}
-                    ),
-                    new Bars(
-                      toCategoricalSeries(
-                        computedData.seriesData[CHART_BASELINE_SERIES_NAME],
-                        CHART_BASELINE_SERIES_NAME
-                      ),
-                      {color: secondaryColor, alias: 'baseline'}
-                    ),
+                    new Bars(selectedSeries, {color: primaryColor, alias: 'selected'}),
+                    new Bars(baselineSeries, {color: secondaryColor, alias: 'baseline'}),
                   ]}
                   showLegend="always"
                 />
