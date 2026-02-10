@@ -29,6 +29,7 @@ export enum DisplayType {
   BIG_NUMBER = 'big_number',
   DETAILS = 'details',
   SERVER_TREE = 'server_tree',
+  RAGE_AND_DEAD_CLICKS = 'rage_and_dead_clicks',
   TOP_N = 'top_n',
   WHEEL = 'wheel',
   CATEGORICAL_BAR = 'categorical_bar',
