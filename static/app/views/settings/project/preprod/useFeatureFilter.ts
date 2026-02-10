@@ -9,22 +9,46 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 
-export function useFeatureFilter(
-  project: Project,
-  readKey: string,
-  writeKey: string,
-  successMessage: string
-) {
+export type PreprodEnabledWriteKey =
+  | 'preprodSizeEnabledByCustomer'
+  | 'preprodDistributionEnabledByCustomer';
+
+interface UseFeatureFilterOptions {
+  enabledReadKey: string;
+  enabledWriteKey: PreprodEnabledWriteKey;
+  project: Project;
+  queryReadKey: string;
+  queryWriteKey: string;
+  successMessage: string;
+}
+
+interface UseFeatureFilterResult {
+  enabled: boolean;
+  filterQuery: string;
+  setEnabled: (enabled: boolean) => void;
+  setFilterQuery: (query: string) => void;
+}
+
+export function useFeatureFilter({
+  project,
+  queryReadKey,
+  queryWriteKey,
+  enabledReadKey,
+  enabledWriteKey,
+  successMessage,
+}: UseFeatureFilterOptions): UseFeatureFilterResult {
   const updateProject = useUpdateProject(project);
 
-  const filterQuery = String(project.options?.[readKey] ?? '');
+  const filterQuery = String(project.options?.[queryReadKey] ?? '');
+  const enabled: boolean =
+    (project[enabledWriteKey] ?? project.options?.[enabledReadKey]) !== false;
 
   const setFilterQuery = useCallback(
     (query: string) => {
       addLoadingMessage(t('Saving...'));
       updateProject.mutate(
         {
-          [writeKey]: query === '' ? null : query,
+          [queryWriteKey]: query === '' ? null : query,
         },
         {
           onSuccess: () => {
@@ -36,8 +60,28 @@ export function useFeatureFilter(
         }
       );
     },
-    [updateProject, writeKey, successMessage]
+    [updateProject, queryWriteKey, successMessage]
   );
 
-  return [filterQuery, setFilterQuery] as const;
+  const setEnabled = useCallback(
+    (newEnabled: boolean) => {
+      addLoadingMessage(t('Saving...'));
+      updateProject.mutate(
+        {
+          [enabledWriteKey]: newEnabled,
+        },
+        {
+          onSuccess: () => {
+            addSuccessMessage(successMessage);
+          },
+          onError: () => {
+            addErrorMessage(t('Failed to save changes. Please try again.'));
+          },
+        }
+      );
+    },
+    [updateProject, enabledWriteKey, successMessage]
+  );
+
+  return {filterQuery, setFilterQuery, enabled, setEnabled};
 }

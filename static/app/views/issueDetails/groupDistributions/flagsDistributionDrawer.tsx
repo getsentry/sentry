@@ -1,6 +1,6 @@
 import {Fragment, useState} from 'react';
 
-import {ButtonBar} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {
@@ -106,7 +106,7 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
           <EventStickyControls>
             <TagFlagPicker setTab={setTab} tab={DrawerTab.FEATURE_FLAGS} />
 
-            <ButtonBar>
+            <Grid flow="column" align="center" gap="md">
               <GroupDistributionsSearchInput
                 includeFeatureFlagsTab
                 search={search}
@@ -139,7 +139,7 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
                 orderByOptions={orderByOptions}
                 sortByOptions={sortByOptions}
               />
-            </ButtonBar>
+            </Grid>
           </EventStickyControls>
         )}
 

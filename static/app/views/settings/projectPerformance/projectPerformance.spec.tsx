@@ -68,9 +68,9 @@ describe('projectPerformance', () => {
   let deleteMock: jest.Mock;
 
   const initialRouterConfig = {
-    routes: ['/organizations/:orgId/settings/projects/:projectId/performance/'],
+    routes: ['/settings/:orgId/projects/:projectId/performance/'],
     location: {
-      pathname: `/organizations/${org.slug}/settings/projects/${project.slug}/performance/`,
+      pathname: `/settings/${org.slug}/projects/${project.slug}/performance/`,
       query: {},
     },
     params: {

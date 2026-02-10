@@ -163,21 +163,6 @@ class BasePostProcessGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
     ):
         pass
 
-    @pytest.fixture(autouse=True)
-    def with_feature_flags(self):
-        with override_options(
-            {
-                "workflow_engine.issue_alert.group.type_id.ga": [
-                    1,
-                    1006,
-                    2001,
-                    1018,
-                    6001,
-                ],  # for postprocess tests -- error, 2 perf issue types, generic, feedback
-            }
-        ):
-            yield
-
 
 class CorePostProcessGroupTestMixin(BasePostProcessGroupMixin):
     @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
@@ -4236,7 +4221,6 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
 
         return data_forwarder, data_forwarder_project
 
-    @with_feature("organizations:data-forwarding-revamp-access")
     def test_process_data_forwarding_no_forwarders(self):
         event = self.create_event(
             data={"message": "test message", "level": "error"},
@@ -4249,7 +4233,6 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
             event=event,
         )
 
-    @with_feature("organizations:data-forwarding-revamp-access")
     @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
     def test_process_data_forwarding_sqs_enabled(self, mock_forward):
         mock_forward.return_value = True
@@ -4269,7 +4252,6 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
         call_args = mock_forward.call_args
         assert call_args[0][1] == data_forwarder_project
 
-    @with_feature("organizations:data-forwarding-revamp-access")
     @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
     def test_process_data_forwarding_sqs_with_s3_bucket(self, mock_forward):
         """Test SQS forwarder with S3 bucket configured for large payloads."""
@@ -4297,7 +4279,6 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
         # Verify the config includes S3 bucket
         assert call_args[0][1].get_config()["s3_bucket"] == "my-sentry-events-bucket"
 
-    @with_feature("organizations:data-forwarding-revamp-access")
     @patch("data_forwarding.splunk.forwarder.SplunkForwarder.forward_event")
     def test_process_data_forwarding_splunk_enabled(self, mock_forward):
         mock_forward.return_value = True
@@ -4315,7 +4296,6 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
 
         assert mock_forward.call_count == 1
 
-    @with_feature("organizations:data-forwarding-revamp-access")
     @patch("data_forwarding.segment.forwarder.SegmentForwarder.forward_event")
     def test_process_data_forwarding_segment_enabled(self, mock_forward):
         mock_forward.return_value = True
@@ -4333,7 +4313,6 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
 
         assert mock_forward.call_count == 1
 
-    @with_feature("organizations:data-forwarding-revamp-access")
     @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
     def test_process_data_forwarding_disabled_forwarder(self, mock_forward):
         self.setup_forwarder(DataForwarderProviderSlug.SQS, is_enabled=False)
@@ -4350,7 +4329,6 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
 
         assert mock_forward.call_count == 0
 
-    @with_feature("organizations:data-forwarding-revamp-access")
     @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
     @patch("data_forwarding.splunk.forwarder.SplunkForwarder.forward_event")
     def test_process_data_forwarding_multiple_forwarders(
@@ -4375,7 +4353,6 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
         assert mock_sqs_forward.call_count == 1
         assert mock_splunk_forward.call_count == 1
 
-    @with_feature("organizations:data-forwarding-revamp-access")
     @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
     @patch("data_forwarding.splunk.forwarder.SplunkForwarder.forward_event")
     def test_process_data_forwarding_one_forwarder_fails(
@@ -4401,24 +4378,6 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
         # Both forwarders should be called despite SQS failure
         assert mock_sqs_forward.call_count == 1
         assert mock_splunk_forward.call_count == 1
-
-    @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
-    def test_process_data_forwarding_revamp_access_flag_disabled(self, mock_forward):
-        """Test that data forwarding is skipped when the revamp-access feature flag is disabled."""
-        self.setup_forwarder(DataForwarderProviderSlug.SQS)
-        event = self.create_event(
-            data={"message": "test message", "level": "error"},
-            project_id=self.project.id,
-        )
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=False,
-            event=event,
-        )
-
-        # should not be called when feature flag is disabled
-        assert mock_forward.call_count == 0
 
 
 class PostProcessGroupInstrumentationIssueTest(
@@ -4479,12 +4438,10 @@ class PostProcessGroupInstrumentationIssueTest(
                 eventstream_type=EventStreamEventType.Generic.value,
             )
 
-    @patch("sentry.tasks.post_process.process_rules")
     @patch("sentry.tasks.post_process.process_workflow_engine_issue_alerts")
     def test_instrumentation_issues_do_not_trigger_alerts(
         self,
         mock_process_workflow_engine_issue_alerts,
-        mock_process_rules,
     ):
         """Instrumentation issues should not trigger process_rules or process_workflow_engine_issue_alerts."""
         event = self.create_event(
@@ -4499,5 +4456,4 @@ class PostProcessGroupInstrumentationIssueTest(
             event=event,
         )
 
-        mock_process_rules.assert_not_called()
         mock_process_workflow_engine_issue_alerts.assert_not_called()

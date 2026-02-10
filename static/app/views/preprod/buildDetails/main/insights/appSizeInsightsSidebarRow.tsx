@@ -196,7 +196,7 @@ export function AppSizeInsightsSidebarRow({
                   <Text size="sm" variant="muted">
                     {t('Page %s of %s', currentPage + 1, totalPages)}
                   </Text>
-                  <ButtonBar merged gap="0">
+                  <ButtonBar>
                     <Button
                       icon={<IconChevron direction="left" />}
                       aria-label={t('Previous')}

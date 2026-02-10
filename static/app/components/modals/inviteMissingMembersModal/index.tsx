@@ -2,9 +2,9 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -290,7 +290,7 @@ export function InviteMissingMembersModal({
       </StyledPanelTable>
       <Flex justify="between">
         <div>{renderStatusMessage()}</div>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Button
             size="sm"
             onClick={() => {
@@ -314,7 +314,7 @@ export function InviteMissingMembersModal({
           >
             {inviteButtonLabel()}
           </Button>
-        </ButtonBar>
+        </Grid>
       </Flex>
     </Fragment>
   );

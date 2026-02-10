@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -46,7 +46,7 @@ function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Props) {
         <FileSize bytes={size} />
       </SizeColumn>
       <ActionsColumn>
-        <ButtonBar gap="xs">
+        <Grid flow="column" align="center" gap="xs">
           <Tooltip
             title={tct(
               'Mappings can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
@@ -91,7 +91,7 @@ function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Props) {
               </Tooltip>
             )}
           </Access>
-        </ButtonBar>
+        </Grid>
       </ActionsColumn>
     </Fragment>
   );

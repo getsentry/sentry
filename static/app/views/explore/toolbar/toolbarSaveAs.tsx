@@ -2,7 +2,8 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
@@ -283,7 +284,7 @@ export function ToolbarSaveAs() {
 
   return (
     <StyledToolbarSection data-test-id="section-save-as">
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         <Tooltip
           disabled={!hasCrossEvents}
           title={t('Saving cross event queries is not supported during early access.')}
@@ -339,7 +340,7 @@ export function ToolbarSaveAs() {
             {`${t('Compare Queries')}`}
           </LinkButton>
         </Tooltip>
-      </ButtonBar>
+      </Grid>
     </StyledToolbarSection>
   );
 }

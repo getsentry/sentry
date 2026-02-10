@@ -332,6 +332,12 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.status_code == 400
         assert resp.data == {"raw": ["Invalid rule owners: #faketeam"]}
 
+    def test_team_not_on_project(self) -> None:
+        self.create_team(organization=self.organization, slug="other-team", members=[self.user])
+        resp = self.client.put(self.path, {"raw": "*.js #other-team"})
+        assert resp.status_code == 400
+        assert resp.data == {"raw": ["Invalid rule owners: #other-team"]}
+
     def test_invalid_mixed(self) -> None:
         resp = self.client.put(
             self.path, {"raw": "*.js idont@exist.com admin@localhost #faketeam #tiger-team"}

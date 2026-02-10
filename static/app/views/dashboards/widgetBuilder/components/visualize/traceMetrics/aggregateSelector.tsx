@@ -17,6 +17,7 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
@@ -34,11 +35,19 @@ export function AggregateSelector({
   const {state, dispatch} = useWidgetBuilderContext();
 
   // For time-series displays, use yAxis. For other types, use fields array.
+  // Categorical bars filter to only FUNCTION fields so index matches parent.
   const isTimeSeries = usesTimeSeriesData(state.displayType);
-  const aggregateSource = isTimeSeries ? state.yAxis : state.fields;
+  const isCategoricalBarWidget = state.displayType === DisplayType.CATEGORICAL_BAR;
+  const aggregateSource = isTimeSeries
+    ? state.yAxis
+    : isCategoricalBarWidget
+      ? state.fields?.filter(f => f.kind === FieldValueKind.FUNCTION)
+      : state.fields;
   const actionType = isTimeSeries
     ? BuilderStateAction.SET_Y_AXIS
-    : BuilderStateAction.SET_FIELDS;
+    : isCategoricalBarWidget
+      ? BuilderStateAction.SET_CATEGORICAL_AGGREGATE
+      : BuilderStateAction.SET_FIELDS;
 
   const aggregateOptions = useMemo(
     () => OPTIONS_BY_TYPE[traceMetric?.type ?? ''] ?? [],

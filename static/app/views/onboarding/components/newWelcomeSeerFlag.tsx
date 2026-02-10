@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 export function NewWelcomeSeerFlag() {
   return (
     <Flex gap="md" align="center">
-      <IconInfo legacySize="16px" variant="secondary" />
+      <IconInfo size="md" variant="secondary" />
       <Container>
         <Text variant="muted" size="sm" density="comfortable" bold>
           {t('Requires additional setup')}

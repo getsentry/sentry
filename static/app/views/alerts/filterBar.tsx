@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
@@ -52,14 +53,14 @@ function FilterBar({
               </OverlayTrigger.Button>
             )}
             menuFooter={
-              <ButtonBar>
+              <Grid flow="column" align="center" gap="md">
                 <LinkButton size="xs" icon={<IconOpen />} to="/insights/crons/">
                   {t('Crons Overview')}
                 </LinkButton>
                 <LinkButton size="xs" icon={<IconOpen />} to="/insights/uptime/">
                   {t('Uptime Overview')}
                 </LinkButton>
-              </ButtonBar>
+              </Grid>
             }
             options={[
               {
@@ -128,7 +129,9 @@ const Wrapper = styled('div')`
   }
 `;
 
-const FilterButtons = styled(ButtonBar)`
+const FilterButtons = styled((props: GridProps) => (
+  <Grid flow="column" align="center" {...props} />
+))`
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     display: flex;
     align-items: flex-start;

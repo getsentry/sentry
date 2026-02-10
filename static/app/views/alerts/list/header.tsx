@@ -1,4 +1,5 @@
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {TabList} from '@sentry/scraps/tabs';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -57,14 +58,13 @@ function AlertHeader({activeTab}: Props) {
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <CreateAlertButton
             organization={organization}
             iconProps={{size: 'sm'}}
             size="sm"
             priority="primary"
             referrer="alert_stream"
-            showPermissionGuide
             projectSlug={
               selection.projects.length === 1
                 ? ProjectsStore.getById(`${selection.projects[0]}`)?.slug
@@ -81,7 +81,7 @@ function AlertHeader({activeTab}: Props) {
             icon={<IconSettings size="sm" />}
             aria-label={t('Settings')}
           />
-        </ButtonBar>
+        </Grid>
       </Layout.HeaderActions>
       <Layout.HeaderTabs value={activeTab}>
         <TabList>
