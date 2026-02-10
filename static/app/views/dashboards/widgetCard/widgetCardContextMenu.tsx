@@ -189,6 +189,15 @@ export function getMenuOptions(
 ) {
   const menuOptions: MenuItemProps[] = [];
 
+  /**
+   * Many custom widets for prebuilt dashboards can not be configured, edited, or duplicated.
+   * Often they are not representable in explore too. To avoid any bad states in the UI, we hide the context menu entierely for widgets like this
+   * until we go through each custom each and confirm what works.
+   */
+  if (!isWidgetEditable(widget)) {
+    return menuOptions;
+  }
+
   const disableTransactionEdit =
     organization.features.includes('discover-saved-queries-deprecation') &&
     widget.widgetType === WidgetType.TRANSACTIONS;
@@ -292,11 +301,7 @@ export function getMenuOptions(
       to: issuesLocation,
     });
   }
-
-  if (
-    organization.features.includes('dashboards-edit') &&
-    isWidgetEditable(widget.displayType)
-  ) {
+  if (organization.features.includes('dashboards-edit')) {
     menuOptions.push({
       key: 'add-to-dashboard',
       label: t('Add to Dashboard'),

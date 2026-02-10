@@ -143,6 +143,10 @@ export type Widget = {
   dashboardId?: string;
   datasetSource?: DatasetSource;
   description?: string;
+  /**
+   * Whether the widget is editable. If true, the context menu will not show edit options.
+   */
+  disableEdit?: boolean;
   exploreUrls?: null | string[];
   id?: string;
   layout?: WidgetLayout | null;

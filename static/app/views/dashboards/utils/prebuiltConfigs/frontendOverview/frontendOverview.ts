@@ -227,6 +227,7 @@ const TRANSACTIONS_TABLE: Widget = {
   interval: '5m',
   limit: 50,
   tableWidths: TABLE_FIELDS.map(() => -1),
+  disableEdit: true,
   queries: [
     {
       name: '',
