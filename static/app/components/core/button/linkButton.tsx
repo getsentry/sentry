@@ -2,6 +2,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -11,10 +12,7 @@ import {
   DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
   DO_NOT_USE_getButtonStyles as getButtonStyles,
 } from './styles';
-import type {
-  DO_NOT_USE_CommonButtonProps as CommonButtonProps,
-  DO_NOT_USE_LinkButtonProps as LinkButtonProps,
-} from './types';
+import type {DO_NOT_USE_LinkButtonProps as LinkButtonProps} from './types';
 import {useButtonFunctionality} from './useButtonFunctionality';
 
 export type {LinkButtonProps};
@@ -51,16 +49,30 @@ export function LinkButton({
             }
           />
         )}
-        <ButtonLabel size={size}>
+        <Flex
+          as="span"
+          align="center"
+          justify="center"
+          minWidth="0"
+          height="100%"
+          whiteSpace="nowrap"
+        >
           {props.icon && (
-            <Icon size={size} hasChildren={hasChildren}>
+            <Flex
+              as="span"
+              align="center"
+              flexShrink={0}
+              marginRight={
+                hasChildren ? (size === 'xs' || size === 'zero' ? 'sm' : 'md') : undefined
+              }
+            >
               <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
                 {props.icon}
               </IconDefaultsProvider>
-            </Icon>
+            </Flex>
           )}
           {props.children}
-        </ButtonLabel>
+        </Flex>
       </StyledLinkButton>
     </Tooltip>
   );
@@ -96,6 +108,7 @@ const StyledLinkButton = styled(
   }
 )<LinkButtonProps>`
   ${p => getLinkButtonStyles(p)}
+
   &:focus-visible {
     box-shadow: none;
   }
@@ -110,32 +123,3 @@ const getLinkButtonStyles = (p: LinkButtonProps) => {
     ...buttonStyles,
   };
 };
-
-const ButtonLabel = styled('span', {
-  shouldForwardProp: prop =>
-    typeof prop === 'string' &&
-    isPropValid(prop) &&
-    !['size', 'borderless'].includes(prop),
-})<Pick<CommonButtonProps, 'size'>>`
-  height: 100%;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
-`;
-
-const Icon = styled('span')<{
-  hasChildren?: boolean;
-  size?: CommonButtonProps['size'];
-}>`
-  display: flex;
-  align-items: center;
-  margin-right: ${p =>
-    p.hasChildren
-      ? p.size === 'xs' || p.size === 'zero'
-        ? p.theme.space.sm
-        : p.theme.space.md
-      : '0'};
-  flex-shrink: 0;
-`;

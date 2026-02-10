@@ -64,6 +64,7 @@ class SentryAppDetailsTest(APITestCase):
 class GetSentryAppDetailsTest(SentryAppDetailsTest):
     method = "GET"
 
+    @override_options({"staff.ga-rollout": False})
     def test_superuser_sees_all_apps(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
 
@@ -73,6 +74,7 @@ class GetSentryAppDetailsTest(SentryAppDetailsTest):
         response = self.get_success_response(self.unpublished_app.slug, status_code=200)
         assert response.data["uuid"] == self.unpublished_app.uuid
 
+    @override_options({"staff.ga-rollout": True})
     def test_staff_sees_all_apps(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
 
@@ -82,16 +84,20 @@ class GetSentryAppDetailsTest(SentryAppDetailsTest):
         response = self.get_success_response(self.unpublished_app.slug, status_code=200)
         assert response.data["uuid"] == self.unpublished_app.uuid
 
+    @override_options({"staff.ga-rollout": True})
     def test_users_see_published_app(self) -> None:
         response = self.get_success_response(self.published_app.slug, status_code=200)
         assert response.data["uuid"] == self.published_app.uuid
 
+    @override_options({"staff.ga-rollout": True})
     def test_users_see_unpublished_apps_owned_by_their_org(self) -> None:
         self.get_success_response(self.unpublished_app.slug, status_code=200)
 
+    @override_options({"staff.ga-rollout": True})
     def test_retrieving_internal_integrations_as_org_member(self) -> None:
         self.get_success_response(self.internal_integration.slug, status_code=200)
 
+    @override_options({"staff.ga-rollout": True})
     def test_internal_integrations_are_not_public(self) -> None:
         # User not in Org who owns the Integration
         self.login_as(self.create_user())
@@ -104,6 +110,7 @@ class GetSentryAppDetailsTest(SentryAppDetailsTest):
             "user_organizations": [],
         }
 
+    @override_options({"staff.ga-rollout": True})
     def test_users_do_not_see_unowned_unpublished_apps(self) -> None:
         response = self.get_error_response(self.unowned_unpublished_app.slug, status_code=403)
         assert (
@@ -158,6 +165,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             "metadata": {},
         }
 
+    @override_options({"staff.ga-rollout": False})
     def test_superuser_update_published_app(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(
@@ -189,6 +197,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
         self._validate_updated_published_app(response)
 
+    @override_options({"staff.ga-rollout": True})
     def test_update_unpublished_app(self) -> None:
         response = self.get_success_response(
             self.unpublished_app.slug,
@@ -224,6 +233,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
                 application_id=self.unpublished_app.application_id
             ).exists()
 
+    @override_options({"staff.ga-rollout": True})
     def test_update_internal_app(self) -> None:
         self.get_success_response(
             self.internal_integration.slug,
@@ -265,6 +275,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         hook.refresh_from_db()
         assert hook.url == "https://updatedurl.com"
 
+    @override_options({"staff.ga-rollout": True})
     def test_can_update_name_with_non_unique_name(self) -> None:
         sentry_app = self.create_sentry_app(name="Foo Bar", organization=self.organization)
         deletions.exec_sync(sentry_app)
@@ -274,6 +285,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             status_code=200,
         )
 
+    @override_options({"staff.ga-rollout": True})
     def test_cannot_update_events_without_permissions(self) -> None:
         response = self.get_error_response(
             self.unpublished_app.slug,
@@ -285,6 +297,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert response.data == {"events": ["issue webhooks require the event:read permission."]}
 
+    @override_options({"staff.ga-rollout": True})
     def test_cannot_update_scopes_published_app(self) -> None:
         response = self.get_error_response(
             self.published_app.slug,
@@ -295,6 +308,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert response.data["detail"] == "Cannot update permissions on a published integration."
 
+    @override_options({"staff.ga-rollout": True})
     def test_add_service_hooks_and_update_scope(self) -> None:
         # first install the app on two organizations
         org1 = self.create_organization(name="Org1")
@@ -368,6 +382,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             }
             assert hook.project_id is None
 
+    @override_options({"staff.ga-rollout": True})
     def test_update_existing_published_integration_with_webhooks(self) -> None:
         org1 = self.create_organization()
         org2 = self.create_organization()
@@ -454,6 +469,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             }
             assert hook.project_id is None
 
+    @override_options({"staff.ga-rollout": True})
     def test_cannot_update_features_published_app_permissions(self) -> None:
         response = self.get_error_response(
             self.published_app.slug,
@@ -462,6 +478,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert response.data["detail"] == "Cannot update features on a published integration."
 
+    @override_options({"staff.ga-rollout": True})
     def test_cannot_update_non_owned_apps(self) -> None:
         app = self.create_sentry_app(name="SampleApp", organization=self.create_organization())
         response = self.get_error_response(
@@ -479,6 +496,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             "user_organizations": [self.organization.slug],
         }
 
+    @override_options({"staff.ga-rollout": False})
     def test_superuser_can_update_popularity(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         app = self.create_sentry_app(name="SampleApp", organization=self.organization)
@@ -506,6 +524,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert SentryApp.objects.get(id=app.id).popularity == popularity
 
+    @override_options({"staff.ga-rollout": True})
     def test_nonsuperuser_nonstaff_cannot_update_popularity(self) -> None:
         app = self.create_sentry_app(
             name="SampleApp", organization=self.organization, popularity=self.popularity
@@ -517,6 +536,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert SentryApp.objects.get(id=app.id).popularity == self.popularity
 
+    @override_options({"staff.ga-rollout": False})
     def test_superuser_can_publish_apps(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         app = self.create_sentry_app(name="SampleApp", organization=self.organization)
@@ -548,6 +568,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert app.status == SentryAppStatus.PUBLISHED
         assert app.date_published
 
+    @override_options({"staff.ga-rollout": True})
     def test_nonsuperuser_nonstaff_cannot_publish_apps(self) -> None:
         app = self.create_sentry_app(name="SampleApp", organization=self.organization)
         self.get_success_response(
@@ -559,6 +580,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert SentryApp.objects.get(id=app.id).status == SentryAppStatus.UNPUBLISHED
 
     @with_feature({"organizations:integrations-event-hooks": False})
+    @override_options({"staff.ga-rollout": True})
     def test_cannot_add_error_created_hook_without_flag(self) -> None:
         app = self.create_sentry_app(name="SampleApp", organization=self.organization)
         self.get_error_response(
@@ -568,6 +590,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
 
     @with_feature("organizations:integrations-event-hooks")
+    @override_options({"staff.ga-rollout": True})
     def test_can_add_error_created_hook_with_flag(self) -> None:
         app = self.create_sentry_app(name="SampleApp", organization=self.organization)
         self.get_success_response(
@@ -577,6 +600,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             status_code=200,
         )
 
+    @override_options({"staff.ga-rollout": True})
     def test_staff_can_mutate_scopes(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
         app = self.create_sentry_app(
@@ -600,6 +624,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert SentryApp.objects.get(id=app.id).get_scopes() == ["event:read", "event:write"]
 
+    @override_options({"staff.ga-rollout": True})
     def test_remove_scopes(self) -> None:
         app = self.create_sentry_app(
             name="SampleApp", organization=self.organization, scopes=("event:read",)
@@ -614,6 +639,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert SentryApp.objects.get(id=app.id).get_scopes() == []
 
+    @override_options({"staff.ga-rollout": True})
     def test_keep_scope_unchanged(self) -> None:
         app = self.create_sentry_app(
             name="SampleApp", organization=self.organization, scopes=("event:read",)
@@ -626,6 +652,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert SentryApp.objects.get(id=app.id).get_scopes() == ["event:read"]
 
+    @override_options({"staff.ga-rollout": True})
     def test_updating_scopes_maintains_scope_hierarchy(self) -> None:
         app = self.create_sentry_app(
             name="SampleApp", organization=self.organization, scopes=["event:read", "event:write"]
@@ -639,6 +666,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert SentryApp.objects.get(id=app.id).get_scopes() == ["event:read", "event:write"]
 
     @patch("sentry.analytics.record")
+    @override_options({"staff.ga-rollout": True})
     def test_bad_schema(self, record: MagicMock) -> None:
         app = self.create_sentry_app(name="SampleApp", organization=self.organization)
         schema = {"bad_key": "bad_value"}
@@ -662,6 +690,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             ),
         )
 
+    @override_options({"staff.ga-rollout": True})
     def test_no_webhook_public_integration(self) -> None:
         response = self.get_error_response(
             self.published_app.slug,
@@ -670,6 +699,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert response.data == {"webhookUrl": ["webhookUrl required for public integrations"]}
 
+    @override_options({"staff.ga-rollout": True})
     def test_no_webhook_has_events(self) -> None:
         response = self.get_error_response(
             self.internal_integration.slug, webhookUrl="", events=("issue",), status_code=400
@@ -678,6 +708,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             "webhookUrl": ["webhookUrl required if webhook events are enabled"]
         }
 
+    @override_options({"staff.ga-rollout": True})
     def test_no_webhook_has_alerts(self) -> None:
         # make sure we test at least one time with the webhookUrl set to none before the put request
         self.internal_integration.webhook_url = None
@@ -690,6 +721,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             "webhookUrl": ["webhookUrl required if alert rule action is enabled"]
         }
 
+    @override_options({"staff.ga-rollout": True})
     def test_set_allowed_origins(self) -> None:
         self.get_success_response(
             self.published_app.slug,
@@ -698,6 +730,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert self.published_app.application.get_allowed_origins() == ["google.com", "sentry.io"]
 
+    @override_options({"staff.ga-rollout": True})
     def test_allowed_origins_with_star(self) -> None:
         response = self.get_error_response(
             self.published_app.slug,
@@ -706,6 +739,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert response.data == {"allowedOrigins": ["'*' not allowed in origin"]}
 
+    @override_options({"staff.ga-rollout": True})
     def test_members_cant_update(self) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             # create extra owner because we are demoting one
@@ -725,6 +759,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             status_code=403,
         )
 
+    @override_options({"staff.ga-rollout": True})
     def test_create_integration_exceeding_scopes(self) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             # create extra owner because we are demoting one
@@ -750,6 +785,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             ]
         }
 
+    @override_options({"staff.ga-rollout": True})
     def test_cannot_update_partner_apps(self) -> None:
         self.published_app.update(metadata={"partnership_restricted": True})
         self.get_error_response(
@@ -761,6 +797,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             status_code=403,
         )
 
+    @override_options({"staff.ga-rollout": True})
     def test_manager_cannot_set_publish_request_inprogress_status(self) -> None:
         """
         Regression test for authorization bypass vulnerability.
@@ -791,9 +828,10 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         self.unpublished_app.refresh_from_db()
         assert self.unpublished_app.status == SentryAppStatus.UNPUBLISHED
 
-    def test_superuser_can_set_publish_request_inprogress_status(self) -> None:
-        """Verify superusers CAN set status to publish_request_inprogress via PUT."""
-        self.login_as(user=self.superuser, superuser=True)
+    @override_options({"staff.ga-rollout": True})
+    def test_staff_can_set_publish_request_inprogress_status(self) -> None:
+        """Verify staff CAN set status to publish_request_inprogress via PUT."""
+        self.login_as(user=self.staff_user, staff=True)
 
         assert self.unpublished_app.status == SentryAppStatus.UNPUBLISHED
 
@@ -813,8 +851,11 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
 
     def setUp(self) -> None:
         super().setUp()
-        self.login_as(user=self.superuser, superuser=True)
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.create_member(user=self.staff_user, organization=self.organization, role="owner")
+        self.login_as(user=self.staff_user, staff=True)
 
+    @override_options({"staff.ga-rollout": True})
     def test_staff_cannot_delete_unpublished_app(self) -> None:
         staff_user = self.create_user(is_staff=True)
         self.login_as(staff_user, staff=False)
@@ -834,8 +875,9 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
             event=audit_log.get_event_id("SENTRY_APP_REMOVE")
         ).exists()
 
+    @override_options({"staff.ga-rollout": True})
     @patch("sentry.analytics.record")
-    def test_superuser_delete_unpublished_app(self, record: MagicMock) -> None:
+    def test_staff_delete_unpublished_app(self, record: MagicMock) -> None:
         self.get_success_response(
             self.unpublished_app.slug,
             status_code=204,
@@ -849,13 +891,14 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
         assert_last_analytics_event(
             record,
             SentryAppDeletedEvent(
-                user_id=self.superuser.id,
+                user_id=self.staff_user.id,
                 organization_id=self.organization.id,
                 sentry_app=self.unpublished_app.slug,
             ),
         )
 
-    def test_superuser_delete_unpublished_app_with_installs(self) -> None:
+    @override_options({"staff.ga-rollout": True})
+    def test_staff_delete_unpublished_app_with_installs(self) -> None:
         installation = self.create_sentry_app_installation(
             organization=self.organization,
             slug=self.unpublished_app.slug,
@@ -874,11 +917,13 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
         ).exists()
         assert not SentryAppInstallation.objects.filter(id=installation.id).exists()
 
-    def test_superuser_cannot_delete_published_app(self) -> None:
+    @override_options({"staff.ga-rollout": True})
+    def test_staff_cannot_delete_published_app(self) -> None:
         response = self.get_error_response(self.published_app.slug, status_code=403)
         assert response.data == {"detail": ["Published apps cannot be removed."]}
 
-    def test_superuser_cannot_delete_partner_apps(self) -> None:
+    @override_options({"staff.ga-rollout": True})
+    def test_staff_cannot_delete_partner_apps(self) -> None:
         self.published_app.update(metadata={"partnership_restricted": True})
         response = self.get_error_response(
             self.published_app.slug,
@@ -886,6 +931,7 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert response.data["detail"] == PARTNERSHIP_RESTRICTED_ERROR_MESSAGE
 
+    @override_options({"staff.ga-rollout": True})
     def test_cannot_delete_by_manager(self) -> None:
         self.user_manager = self.create_user("manager@example.com", is_superuser=False)
         self.create_member(
@@ -895,6 +941,7 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
 
         self.get_error_response(self.internal_integration.slug, status_code=403)
 
+    @override_options({"staff.ga-rollout": True})
     def test_disables_actions(self) -> None:
         action = self.create_action(
             type=Action.Type.SENTRY_APP,

@@ -74,16 +74,12 @@ function WelcomeScreen({
   group: Group;
   project: Project;
 }) {
-  const organization = useOrganization();
-  const skipConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
-
   return (
     <Stack gap="2xl">
-      {skipConsentFlow && (
-        <StyledCard>
-          <GroupSummary group={group} event={event} project={project} />
-        </StyledCard>
-      )}
+      <StyledCard>
+        <GroupSummary group={group} event={event} project={project} />
+      </StyledCard>
+
       <AiSetupDataConsent groupId={group.id} />
     </Stack>
   );

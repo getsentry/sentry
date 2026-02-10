@@ -58,7 +58,10 @@ interface MetricDetectorEvidenceData {
   /**
    * The evaluated value when the occurrence was created
    */
-  value: number;
+  value:
+    | number
+    // XXX: Anomaly detectors will store an object here with other data necessary for processing
+    | {value: number};
 }
 
 interface MetricDetectorTriggeredSectionProps {
@@ -305,7 +308,7 @@ function TriggeredConditionDetails({
   const isErrorsDataset = detectorDataset === DetectorDataset.ERRORS;
   const issueSearchQuery = datasetConfig.toSnubaQueryString?.(snubaQuery) ?? '';
   const formattedEvaluatedValue = getFormattedEvaluatedValue({
-    value,
+    value: defined(value) && typeof value === 'object' ? value.value : value,
     aggregate: snubaQuery.aggregate,
     detectionType,
   });

@@ -252,6 +252,12 @@ def test_field_values(a, op, b) -> None:
             "performance_score(measurements.score.fcp)",
         ),
         (100, "*", "performance_score(measurements.score.cls)"),
+        (
+            "opportunity_score(measurements.score.lcp)",
+            "+",
+            "opportunity_score(measurements.score.fcp)",
+        ),
+        (100, "*", "opportunity_score(measurements.score.cls)"),
     ],
 )
 def test_function_values(lhs, op, rhs) -> None:

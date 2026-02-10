@@ -632,8 +632,21 @@ export const usesTimeSeriesData = (displayType?: DisplayType) => {
   }
   return ![
     DisplayType.BIG_NUMBER,
+    DisplayType.CATEGORICAL_BAR,
     DisplayType.DETAILS,
+    DisplayType.SERVER_TREE,
     DisplayType.TABLE,
     DisplayType.WHEEL,
   ].includes(displayType);
+};
+
+// Custom widgets that fetch their own data (and don't use genericWidgetQueries)
+// handle error state and loading state on their own
+export const widgetFetchesOwnData = (widgetType: DisplayType) => {
+  return widgetType === DisplayType.SERVER_TREE;
+};
+
+// Custom widgets for prebuilt dashboards are not editable at this time
+export const isWidgetEditable = (widgetType: DisplayType) => {
+  return widgetType !== DisplayType.SERVER_TREE;
 };
