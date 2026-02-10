@@ -534,9 +534,7 @@ def _triggers_snuba_reset(item: pytest.Item) -> bool:
 # Only relay_integration tests still need serial execution: they use the
 # Relay→Kafka→Consumer pipeline which writes to the default (shared) database,
 # not the per-worker database. Plus the per-test Docker container restart.
-FORCE_SERIAL_DIRS: tuple[str, ...] = (
-    "tests/relay_integration/",
-)
+FORCE_SERIAL_DIRS: tuple[str, ...] = ("tests/relay_integration/",)
 
 
 def _force_serial(item: pytest.Item) -> bool:
@@ -695,8 +693,8 @@ def _xdist_per_worker_snuba():
     from sentry.utils import snuba as _snuba_mod
 
     old_settings = settings.SENTRY_SNUBA
-    old_pool_host = getattr(_snuba_mod._snuba_pool, 'host', 'unknown')
-    old_pool_port = getattr(_snuba_mod._snuba_pool, 'port', 'unknown')
+    old_pool_host = getattr(_snuba_mod._snuba_pool, "host", "unknown")
+    old_pool_port = getattr(_snuba_mod._snuba_pool, "port", "unknown")
 
     with open(_diag_file, "w") as f:
         f.write(f"worker={worker_id}\n")
@@ -717,8 +715,8 @@ def _xdist_per_worker_snuba():
         timeout=settings.SENTRY_SNUBA_TIMEOUT,
         maxsize=10,
     )
-    new_pool_host = getattr(_snuba_mod._snuba_pool, 'host', 'unknown')
-    new_pool_port = getattr(_snuba_mod._snuba_pool, 'port', 'unknown')
+    new_pool_host = getattr(_snuba_mod._snuba_pool, "host", "unknown")
+    new_pool_port = getattr(_snuba_mod._snuba_pool, "port", "unknown")
 
     with open(_diag_file, "a") as f:
         f.write(f"AFTER settings.SENTRY_SNUBA={settings.SENTRY_SNUBA}\n")
