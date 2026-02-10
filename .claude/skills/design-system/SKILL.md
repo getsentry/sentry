@@ -41,7 +41,7 @@ Base layout component that supports all common layout properties. Flex, Grid, an
 - `border`, `borderTop`, `borderBottom`, `borderLeft`, `borderRight`: BorderVariant tokens
 - `radius`: RadiusSize tokens
 - `overflow`, `overflowX`, `overflowY`: "visible" | "hidden" | "scroll" | "auto"
-- `background`: SurfaceVariant tokens
+- `background`: SurfaceVariant ("primary" | "secondary" | "tertiary")
 - `display`: Various display types
 - Flex item props: `flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `order`
 - Grid item props: `area`, `row`, `column`
@@ -182,8 +182,8 @@ Use `<Text>` for all text content. Never use raw `<p>`, `<span>`, or `<div>` ele
 **Key Props** (see `text.tsx` for complete list):
 
 - `as`: "span" | "p" | "label" | "div" (semantic HTML element)
-- `size`: TextSize ("xs" | "sm" | "md" | "lg" | "xl")
-- `variant`: "primary" | "secondary" | "success" | "error" | "warning" | "muted"
+- `size`: TextSize ("xs" | "sm" | "md" | "lg" | "xl" | "2xl")
+- `variant`: ContentVariant | "muted" (see Content Variant Tokens below)
 - `align`: "left" | "center" | "right" | "justify"
 - `bold`: boolean
 - `italic`: boolean
@@ -227,7 +227,7 @@ Use `<Heading>` for all headings. Never use raw `<h1>`, `<h2>`, etc. elements.
 **Key Props** (see `heading.tsx` for complete list):
 
 - `as`: "h1" | "h2" | "h3" | "h4" | "h5" | "h6" (REQUIRED)
-- `size`: HeadingSize ("xs" | "sm" | "md" | "lg" | "xl" | "2xl")
+- `size`: HeadingSize ("xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl")
 - `variant`: Same as Text
 - `align`: Same as Text
 - `italic`, `monospace`, `tabular`: Same as Text
@@ -332,7 +332,7 @@ The implementation files contain the complete, up-to-date list of supported prop
 
 Use these for `gap`, `padding`:
 
-- `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, `"xxl"`
+- `"0"`, `"2xs"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, `"2xl"`, `"3xl"`
 - Multiple values: `"md lg"` (vertical horizontal)
 - Responsive: `{{xs: "sm", md: "lg"}}`
 
@@ -340,16 +340,31 @@ Use these for `gap`, `padding`:
 
 Use these for `border` prop:
 
-- `"primary"`, `"secondary"`, `"error"`, `"success"`
+- `"primary"`, `"muted"`, `"accent"`, `"danger"`, `"promotion"`, `"success"`, `"warning"`
+
+### Radius Tokens (RadiusSize)
+
+Use these for `radius` prop:
+
+- `"0"`, `"2xs"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, `"2xl"`, `"full"`
 
 ### Text Size Tokens
 
-- **TextSize**: "xs" | "sm" | "md" | "lg" | "xl"
-- **HeadingSize**: "xs" | "sm" | "md" | "lg" | "xl" | "2xl"
+- **TextSize**: "xs" | "sm" | "md" | "lg" | "xl" | "2xl"
+- **HeadingSize**: "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl"
 
-### Content Variant Tokens
+### Surface Variant Tokens (SurfaceVariant)
 
-- "primary" | "secondary" | "success" | "error" | "warning" | "muted"
+Use these for `background` prop on layout components:
+
+- `"primary"`, `"secondary"`, `"tertiary"`
+
+### Content Variant Tokens (ContentVariant)
+
+Use these for `variant` prop on Text and Heading:
+
+- **ContentVariant**: "primary" | "secondary" | "accent" | "danger" | "promotion" | "success" | "warning"
+- **Plus "muted"**: Text and Heading also accept "muted" in addition to ContentVariant values
 
 ## Quick Reference Checklist
 
