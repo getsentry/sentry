@@ -60,6 +60,7 @@ def deserialize_github_check_run_event(event: SubscriptionEvent) -> CheckRunEven
             "external_id": e.check_run.external_id,
             "html_url": e.check_run.html_url,
         },
+        subscription_event=event,
     )
 
 
@@ -81,8 +82,8 @@ class GitHubIssueCommentEvent(msgspec.Struct, gc=False):
 
 class GitHubIssueComment(msgspec.Struct, gc=False):
     id: int
-    body: str | None = None
     user: GitHubUser | None
+    body: str | None = None
 
 
 class GitHubIssue(msgspec.Struct, gc=False):
@@ -141,9 +142,9 @@ class GitHubPullRequest(msgspec.Struct, gc=False):
     head: "GitHubPullRequestHead"
     base: "GitHubPullRequestHead"
     merge_commit_sha: str | None
-    merged: bool | None = None
     title: str
     user: GitHubUser
+    merged: bool | None = None
 
 
 class GitHubPullRequestHead(msgspec.Struct, gc=False):
@@ -177,7 +178,7 @@ def deserialize_github_pull_request_event(event: SubscriptionEvent) -> PullReque
     )
 
 
-def deserialize_github_event_type_hint(event: SubscriptionEvent) -> EventTypeHint:
+def deserialize_github_event_type_hint(event: SubscriptionEvent) -> EventTypeHint | None:
     if event["event_type_hint"] == "pull_request":
         return "pull_request"
     elif event["event_type_hint"] == "comment":
@@ -185,19 +186,17 @@ def deserialize_github_event_type_hint(event: SubscriptionEvent) -> EventTypeHin
     elif event["event_type_hint"] == "check_run":
         return "check_run"
     else:
-        return "unknown"
+        return None
 
 
-def deserialize_github_event(event: SubscriptionEvent) -> tuple[EventType, EventTypeHint]:
+def deserialize_github_event(event: SubscriptionEvent) -> EventType | None:
     event_type_hint = deserialize_github_event_type_hint(event)
+    if not event_type_hint:
+        return None
 
-    if event_type_hint == "pull_request":
-        parsed_event = deserialize_github_pull_request_event(event)
+    if event_type_hint == "check_run":
+        return deserialize_github_check_run_event(event)
     elif event_type_hint == "comment":
-        parsed_event = deserialize_github_comment_event(event)
-    elif event_type_hint == "check_run":
-        parsed_event = deserialize_github_check_run_event(event)
+        return deserialize_github_comment_event(event)
     else:
-        parsed_event = event
-
-    return parsed_event, event_type_hint
+        return deserialize_github_pull_request_event(event)

@@ -314,7 +314,7 @@ def deserialize_event(event: bytes, event_type: EventTypeHint) -> EventType:
         return deserialize_pull_request_event(event)
 
 
-def deserialize_raw_event(event: SubscriptionEvent) -> tuple[EventType, EventTypeHint]:
+def deserialize_raw_event(event: SubscriptionEvent) -> EventType | None:
     """
     Subscription events are the raw data received by Sentry. We can deserialize them into a more
     specific type (e.g. a pull-request or check-run). This function transforms the raw payload
