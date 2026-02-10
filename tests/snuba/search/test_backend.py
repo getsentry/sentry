@@ -3130,11 +3130,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
         self.error_group_2 = error_event_2.group
 
     def test_performance_query(self) -> None:
-        with self.feature(
-            [
-                self.perf_group_1.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
             results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
             assert list(results) == [self.perf_group_1, self.perf_group_2]
 
@@ -3147,11 +3143,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
         # Regression test to catch an issue we had with performance issues showing duplicated in the
         # issue stream. This was  caused by us dual writing perf issues to transactions and to the
         # issue platform. We'd end up reading the same issue twice and duplicate it in the response.
-        with self.feature(
-            [
-                self.perf_group_1.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
             results = self.make_query(search_filter_query="!issue.category:error my_tag:1")
             assert list(results) == [self.perf_group_1, self.perf_group_2]
 
@@ -3159,20 +3151,12 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
         with Feature({"organizations:performance-issues-search": False}):
             results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
             assert list(results) == []
-        with self.feature(
-            [
-                self.perf_group_1.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
             results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
             assert list(results) == [self.perf_group_1, self.perf_group_2]
 
     def test_error_performance_query(self) -> None:
-        with self.feature(
-            [
-                self.perf_group_1.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
             results = self.make_query(search_filter_query="my_tag:1")
             assert list(results) == [
                 self.perf_group_1,
@@ -3201,11 +3185,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
             ]
 
     def test_cursor_performance_issues(self) -> None:
-        with self.feature(
-            [
-                self.perf_group_1.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
             results = self.make_query(
                 projects=[self.project],
                 search_filter_query="issue.category:performance my_tag:1",
@@ -3281,11 +3261,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
         ).first()
 
         assert created_group == find_group
-        with self.feature(
-            [
-                created_group.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(created_group.issue_type.build_visible_feature_name()):
             result = snuba.raw_query(
                 dataset=Dataset.IssuePlatform,
                 start=self.base_datetime - timedelta(hours=1),
@@ -3357,11 +3333,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
 
         assert error_issue != perf_issue
 
-        with self.feature(
-            [
-                perf_issue.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(perf_issue.issue_type.build_visible_feature_name()):
             assert set(self.make_query(search_filter_query="is:unresolved /api/0/events")) == {
                 perf_issue,
                 error_issue,
@@ -3555,7 +3527,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
 
             with self.feature(
                 [
-                    group_type.build_visible_feature_name(),
+                    *group_type.build_visible_feature_name(),
                     "organizations:performance-issues-search",
                 ]
             ):
@@ -3688,7 +3660,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         )
 
     def test_feedback_category_hidden_default(self) -> None:
-        with self.feature([FeedbackGroup.build_visible_feature_name()]):
+        with self.feature(FeedbackGroup.build_visible_feature_name()):
             event_id_1 = uuid.uuid4().hex
             self.process_occurrence(
                 **{
@@ -3717,7 +3689,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
     def test_feedback_category_show_when_filtered_on(self) -> None:
         with self.feature(
             [
-                FeedbackGroup.build_visible_feature_name(),
+                *FeedbackGroup.build_visible_feature_name(),
                 FeedbackGroup.build_ingest_feature_name(),
             ]
         ):
