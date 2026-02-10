@@ -380,7 +380,7 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
     def test_adding_to_superuser_group_grants_is_superuser(self) -> None:
         with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
             superuser_team = self.create_team(
-                organization=self.organization, slug="snty-superuser", idp_provisioned=True
+                organization=self.organization, slug="snty-superuser-read", idp_provisioned=True
             )
 
             user = user_service.get_user(user_id=self.user_two.id)
@@ -446,7 +446,7 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
     def test_removing_from_superuser_group_revokes_only_is_superuser(self) -> None:
         with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
             superuser_team = self.create_team(
-                organization=self.organization, slug="snty-superuser", idp_provisioned=True
+                organization=self.organization, slug="snty-superuser-read", idp_provisioned=True
             )
 
             user_service.update_user(
@@ -693,6 +693,204 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
 
                 assert response.data["detail"] == "Failed to revoke user privileges"
 
+    def test_superuser_write_grant_failure_rolls_back_permission(self) -> None:
+        """Test that if update_user fails, add_permission is rolled back for snty-superuser-write."""
+        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+            from sentry.users.models.userpermission import UserPermission
+
+            superuser_write_team = self.create_team(
+                organization=self.organization, slug="snty-superuser-write", idp_provisioned=True
+            )
+
+            # Verify user doesn't have permission initially
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                assert not UserPermission.objects.filter(
+                    user_id=self.user_one.id, permission="superuser.write"
+                ).exists()
+
+            self.base_data["Operations"] = [
+                {
+                    "op": "add",
+                    "path": "members",
+                    "value": [
+                        {
+                            "value": self.member_one.id,
+                            "display": self.member_one.email,
+                        }
+                    ],
+                }
+            ]
+
+            # Mock update_user to fail AFTER add_permission succeeds
+            with patch("sentry.core.endpoints.scim.teams.user_service.update_user") as mock_update:
+                mock_update.side_effect = Exception("RPC failure")
+
+                response = self.get_error_response(
+                    self.organization.slug,
+                    superuser_write_team.id,
+                    **self.base_data,
+                    status_code=500,
+                )
+
+                assert response.data["detail"] == "Failed to grant user privileges"
+
+            # Verify permission was rolled back - should not exist
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                assert not UserPermission.objects.filter(
+                    user_id=self.user_one.id, permission="superuser.write"
+                ).exists()
+
+    def test_adding_to_superuser_write_group_grants_is_superuser_and_permission(self) -> None:
+        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+            from sentry.users.models.userpermission import UserPermission
+
+            superuser_write_team = self.create_team(
+                organization=self.organization, slug="snty-superuser-write", idp_provisioned=True
+            )
+
+            user = user_service.get_user(user_id=self.user_one.id)
+            assert user is not None
+            assert not user.is_superuser
+
+            # Verify user doesn't have superuser.write permission
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                assert not UserPermission.objects.filter(
+                    user_id=self.user_one.id, permission="superuser.write"
+                ).exists()
+
+            self.base_data["Operations"] = [
+                {
+                    "op": "add",
+                    "path": "members",
+                    "value": [
+                        {
+                            "value": self.member_one.id,
+                            "display": self.member_one.email,
+                        }
+                    ],
+                }
+            ]
+
+            self.get_success_response(
+                self.organization.slug, superuser_write_team.id, **self.base_data, status_code=204
+            )
+
+            # Verify is_superuser was granted
+            user = user_service.get_user(user_id=self.user_one.id)
+            assert user is not None
+            assert user.is_superuser
+
+            # Verify superuser.write permission was granted
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                assert UserPermission.objects.filter(
+                    user_id=self.user_one.id, permission="superuser.write"
+                ).exists()
+
+    def test_removing_from_superuser_write_group_revokes_is_superuser_and_permission(self) -> None:
+        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+            from sentry.users.models.userpermission import UserPermission
+
+            superuser_write_team = self.create_team(
+                organization=self.organization, slug="snty-superuser-write", idp_provisioned=True
+            )
+
+            # Grant user is_superuser and is_staff and add permission
+            user_service.update_user(
+                user_id=self.user_one.id, attrs={"is_staff": True, "is_superuser": True}
+            )
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                UserPermission.objects.create(
+                    user_id=self.user_one.id, permission="superuser.write"
+                )
+            OrganizationMemberTeam.objects.create(
+                team=superuser_write_team, organizationmember=self.member_one
+            )
+
+            user = user_service.get_user(user_id=self.user_one.id)
+            assert user is not None
+            assert user.is_staff
+            assert user.is_superuser
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                assert UserPermission.objects.filter(
+                    user_id=self.user_one.id, permission="superuser.write"
+                ).exists()
+
+            self.base_data["Operations"] = [
+                {
+                    "op": "remove",
+                    "path": f'members[value eq "{self.member_one.id}"]',
+                }
+            ]
+
+            self.get_success_response(
+                self.organization.slug, superuser_write_team.id, **self.base_data, status_code=204
+            )
+
+            # Verify is_superuser was revoked but is_staff retained
+            user = user_service.get_user(user_id=self.user_one.id)
+            assert user is not None
+            assert user.is_staff  # Should still have staff
+            assert not user.is_superuser
+
+            # Verify superuser.write permission was revoked
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                assert not UserPermission.objects.filter(
+                    user_id=self.user_one.id, permission="superuser.write"
+                ).exists()
+
+    def test_superuser_write_revoke_failure_keeps_permission_removed(self) -> None:
+        """Test that if update_user fails, permission stays removed (fail-secure) for snty-superuser-write."""
+        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+            from sentry.users.models.userpermission import UserPermission
+
+            superuser_write_team = self.create_team(
+                organization=self.organization, slug="snty-superuser-write", idp_provisioned=True
+            )
+
+            # Set up user with privileges and permission
+            user_service.update_user(
+                user_id=self.user_one.id, attrs={"is_staff": True, "is_superuser": True}
+            )
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                UserPermission.objects.create(
+                    user_id=self.user_one.id, permission="superuser.write"
+                )
+            OrganizationMemberTeam.objects.create(
+                team=superuser_write_team, organizationmember=self.member_one
+            )
+
+            # Verify permission exists initially
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                assert UserPermission.objects.filter(
+                    user_id=self.user_one.id, permission="superuser.write"
+                ).exists()
+
+            self.base_data["Operations"] = [
+                {
+                    "op": "remove",
+                    "path": f'members[value eq "{self.member_one.id}"]',
+                }
+            ]
+
+            # Mock update_user to fail AFTER remove_permission succeeds
+            with patch("sentry.core.endpoints.scim.teams.user_service.update_user") as mock_update:
+                mock_update.side_effect = Exception("RPC failure")
+
+                response = self.get_error_response(
+                    self.organization.slug,
+                    superuser_write_team.id,
+                    **self.base_data,
+                    status_code=500,
+                )
+
+                assert response.data["detail"] == "Failed to revoke user privileges"
+
+            # Verify permission was NOT rolled back - safer to keep it removed
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                assert not UserPermission.objects.filter(
+                    user_id=self.user_one.id, permission="superuser.write"
+                ).exists()
+
 
 class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-team-details"
@@ -748,7 +946,7 @@ class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
     def test_deleting_superuser_team_revokes_privileges(self) -> None:
         with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
             superuser_team = self.create_team(
-                organization=self.organization, slug="snty-superuser", idp_provisioned=True
+                organization=self.organization, slug="snty-superuser-read", idp_provisioned=True
             )
 
             # Add member to the team and grant is_superuser

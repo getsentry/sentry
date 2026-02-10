@@ -358,7 +358,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return (
             settings.SENTRY_MODE == SentryMode.SAAS
             and team.organization.id == settings.SUPERUSER_ORG_ID
-            and team.slug in ("snty-staff", "snty-superuser")
+            and team.slug in ("snty-staff", "snty-superuser-read", "snty-superuser-write")
         )
 
     def _grant_privilege(self, member: OrganizationMember, team: Team) -> None:
@@ -366,30 +366,51 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             return
 
         attrs = {}
+        permission_added = False
+
         if team.slug == "snty-staff":
             attrs["is_staff"] = True
-        elif team.slug == "snty-superuser":
+        elif team.slug == "snty-superuser-read":
             attrs["is_superuser"] = True
+        elif team.slug == "snty-superuser-write":
+            attrs["is_superuser"] = True
+            # Add permission first, track if successful
+            permission_added = user_service.add_permission(
+                user_id=member.user_id, permission="superuser.write"
+            )
 
         if attrs:
-            user_service.update_user(user_id=member.user_id, attrs=attrs)
-            metrics.incr(
-                "sentry.scim.team.grant_privilege",
-                tags={
-                    "organization": team.organization.slug,
-                    "team": team.slug,
-                },
-            )
+            try:
+                user_service.update_user(user_id=member.user_id, attrs=attrs)
+                metrics.incr(
+                    "sentry.scim.team.grant_privilege",
+                    tags={
+                        "organization": team.organization.slug,
+                        "team": team.slug,
+                    },
+                )
+            except Exception:
+                # Rollback: remove permission if we added it
+                if permission_added:
+                    user_service.remove_permission(
+                        user_id=member.user_id, permission="superuser.write"
+                    )
+                raise
 
     def _revoke_privileges(self, member: OrganizationMember, team: Team) -> None:
         if not self._should_manage_privileges(team) or not member.user_id:
             return
 
         attrs = {}
+
         if team.slug == "snty-staff":
             attrs["is_staff"] = False
-        elif team.slug == "snty-superuser":
+        elif team.slug == "snty-superuser-read":
             attrs["is_superuser"] = False
+        elif team.slug == "snty-superuser-write":
+            attrs["is_superuser"] = False
+            # Remove permission - if update_user fails later, we keep permission removed
+            user_service.remove_permission(user_id=member.user_id, permission="superuser.write")
 
         if attrs:
             user_service.update_user(user_id=member.user_id, attrs=attrs)
