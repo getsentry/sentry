@@ -49,9 +49,8 @@ function useGeneratedIssueViewName({
     enabled,
   });
   const userEditedNameRef = useRef(false);
-  const {triggerFormTypingAnimation, cancelFormTypingAnimation} = useFormTypingAnimation({
-    speed: 70,
-  });
+  const {triggerFormTypingAnimation, cancelFormTypingAnimation} =
+    useFormTypingAnimation();
 
   useEffect(() => {
     if (!formModel || !data?.title) {

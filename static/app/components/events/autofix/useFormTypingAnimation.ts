@@ -21,7 +21,7 @@ interface UseFormTypingAnimationOptions {
  * Animates text directly into a form field value.
  */
 export function useFormTypingAnimation({
-  speed: defaultSpeed = 50,
+  speed: defaultSpeed = 70,
 }: UseFormTypingAnimationOptions = {}) {
   const animationFrameRef = useRef<number | null>(null);
   const currentIndexRef = useRef(0);
