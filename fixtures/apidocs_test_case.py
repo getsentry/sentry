@@ -16,9 +16,7 @@ from sentry.testutils.skips import requires_snuba
 class APIDocsTestCase(APITestCase):
     @functools.cached_property
     def cached_schema(self):
-        path = os.path.join(
-            os.path.dirname(__file__), "../tests/apidocs/openapi-derefed.json"
-        )
+        path = os.path.join(os.path.dirname(__file__), "../tests/apidocs/openapi-derefed.json")
         with open(path, "rb") as json_file:
             data = orjson.loads(json_file.read())
             data["servers"][0]["url"] = settings.SENTRY_OPTIONS["system.url-prefix"]
