@@ -564,7 +564,8 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'data-forwarding/',
-      redirectTo: '/settings/:orgId/data-forwarding/',
+      name: t('Data Forwarding'),
+      component: make(() => import('sentry/views/settings/projectDataForwarding')),
     },
     {
       path: 'seer/',
@@ -2896,7 +2897,7 @@ function buildRoutes(): RouteObject[] {
           },
           {
             path: 'data-forwarding/',
-            redirectTo: '/settings/:orgId/data-forwarding/',
+            redirectTo: '/settings/:orgId/projects/:projectId/data-forwarding/',
           },
           {
             path: 'debug-symbols/',

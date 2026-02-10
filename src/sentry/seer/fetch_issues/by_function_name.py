@@ -267,6 +267,8 @@ def fetch_issues(
     external_id: str,
     filename: str,
     function_name: str,
+    owner: str,
+    name: str,
     max_num_issues_per_file: int = MAX_NUM_ISSUES_PER_FILE_DEFAULT,
     run_id: int | None = None,
 ) -> utils.SeerResponse | utils.SeerResponseError:
@@ -274,7 +276,12 @@ def fetch_issues(
     Fetch issues containing an event w/ a stacktrace frame that matches the `filename` and `function_name`.
     """
     repo_projects = utils.get_repo_and_projects(
-        organization_id, provider, external_id, run_id=run_id
+        organization_id,
+        provider,
+        external_id,
+        owner=owner,
+        name=name,
+        run_id=run_id,
     )
     groups = _fetch_issues_from_repo_projects(
         repo_projects,

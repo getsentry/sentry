@@ -517,6 +517,7 @@ def _assemble_preprod_artifact_size_analysis(
                 for size_metric in size_metrics_updated:
                     produce_preprod_size_metric_to_eap(
                         size_metric=size_metric,
+                        organization=organization,
                         organization_id=org_id,
                         project_id=project.id,
                     )
@@ -745,6 +746,7 @@ def _assemble_preprod_artifact_installable_app(
         if features.has("organizations:preprod-build-distribution-eap-write", organization):
             produce_preprod_build_distribution_to_eap(
                 artifact=preprod_artifact,
+                organization=organization,
                 organization_id=org_id,
                 project_id=project.id,
             )
