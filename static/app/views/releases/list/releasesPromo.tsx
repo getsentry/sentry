@@ -12,13 +12,14 @@ import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
-import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import {TourImage, TourText} from 'sentry/components/modals/featureTourModal';
 import Panel from 'sentry/components/panels/panel';
+import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -28,6 +29,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 const releasesSetupUrl = 'https://docs.sentry.io/product/releases/';
 
@@ -203,28 +205,22 @@ sentry-cli releases finalize "$VERSION"`;
         <Flex align="center" justify="between">
           <Heading as="h2">{t('Set up Releases')}</Heading>
           <Flex gap="sm" align="center">
-            <CopyAsDropdown
-              size="xs"
-              items={CopyAsDropdown.makeDefaultCopyAsOptions({
-                markdown: () => {
+            <Tooltip title={t('Let an LLM do all the work instead')}>
+              <Button
+                size="xs"
+                icon={<IconCopy />}
+                onClick={() => {
                   trackAnalytics('onboarding.copy_instructions', {
                     organization,
                     format: 'markdown',
                     source: 'releases_onboarding',
                   });
-                  return `\`\`\`bash\n${setupExample}\n\`\`\``;
-                },
-                text: () => {
-                  trackAnalytics('onboarding.copy_instructions', {
-                    organization,
-                    format: 'text',
-                    source: 'releases_onboarding',
-                  });
-                  return `${setupExample}`;
-                },
-                json: undefined,
-              })}
-            />
+                  copyToClipboard(`\`\`\`bash\n${setupExample}\n\`\`\``);
+                }}
+              >
+                {t('Copy as Markdown')}
+              </Button>
+            </Tooltip>
             <LinkButton size="sm" href={releasesSetupUrl} external>
               {t('Full Documentation')}
             </LinkButton>
