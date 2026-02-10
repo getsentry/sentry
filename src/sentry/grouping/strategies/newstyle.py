@@ -952,6 +952,28 @@ def react_error_with_cause(exceptions: list[SingleException]) -> int | None:
     return main_exception_id
 
 
+def nodejs_error_with_cause(exceptions: list[SingleException]) -> int | None:
+    """
+    Handle generic Node.js error cause chains.
+
+    When a Node.js error is thrown with a cause (e.g., throw new CustomError(message, { cause: originalError })),
+    the inner cause is often the most actionable part of the failure. This function identifies such chains
+    and returns the cause as the primary exception to display in issue titles and alerts.
+
+    This applies to all JavaScript/Node.js errors with causes, not just React-specific errors.
+    """
+    if len(exceptions) < 2:
+        return None
+
+    # Find the innermost exception marked with source="cause"
+    # The SDK marks chained errors with mechanism.source to indicate the relationship
+    for exception in reversed(exceptions):
+        if exception.mechanism and exception.mechanism.source == "cause":
+            return exception.mechanism.exception_id
+
+    return None
+
+
 JAVA_RXJAVA_FRAMEWORK_EXCEPTION_TYPES = [
     "OnErrorNotImplementedException",
     "CompositeException",
@@ -1022,7 +1044,8 @@ def kotlin_coroutine_framework_exceptions(exceptions: list[SingleException]) -> 
 
 
 MAIN_EXCEPTION_ID_FUNCS = [
-    react_error_with_cause,
+    react_error_with_cause,  # More specific, check first
+    nodejs_error_with_cause,  # Generic Node.js/JavaScript cause chains
     java_rxjava_framework_exceptions,
     kotlin_coroutine_framework_exceptions,
 ]

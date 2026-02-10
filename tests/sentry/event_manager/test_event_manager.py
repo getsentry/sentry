@@ -480,6 +480,205 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.data["metadata"]["value"] == "actual error"
         assert event.group is not None
 
+    def test_nodejs_error_with_cause_prioritizes_cause(self) -> None:
+        """Test that Node.js errors with causes prioritize the cause as the main exception."""
+        cause_error_value = "ENOENT: no such file or directory"
+        manager = EventManager(
+            make_event(
+                platform="node",
+                exception={
+                    "values": [
+                        {
+                            "type": "Error",
+                            "value": cause_error_value,
+                            "mechanism": {
+                                "type": "generic",
+                                "handled": False,
+                                "source": "cause",
+                                "exception_id": 1,
+                                "parent_id": 0,
+                            },
+                        },
+                        {
+                            "type": "CustomError",
+                            "value": "Failed to read configuration file",
+                            "mechanism": {
+                                "type": "generic",
+                                "handled": False,
+                                "exception_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["value"] == cause_error_value
+        assert event.data["metadata"]["type"] == "Error"
+        assert event.group is not None
+        assert event.group.title == f"Error: {cause_error_value}"
+
+    def test_nodejs_error_with_cause_browser_javascript(self) -> None:
+        """Test that browser JavaScript errors with causes also prioritize the cause."""
+        cause_error_value = "Network request failed"
+        manager = EventManager(
+            make_event(
+                platform="javascript",
+                exception={
+                    "values": [
+                        {
+                            "type": "TypeError",
+                            "value": cause_error_value,
+                            "mechanism": {
+                                "type": "onerror",
+                                "handled": False,
+                                "source": "cause",
+                                "exception_id": 1,
+                                "parent_id": 0,
+                            },
+                        },
+                        {
+                            "type": "ApplicationError",
+                            "value": "Failed to fetch user data",
+                            "mechanism": {
+                                "type": "generic",
+                                "handled": True,
+                                "exception_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["value"] == cause_error_value
+        assert event.data["metadata"]["type"] == "TypeError"
+        assert event.group is not None
+        assert event.group.title == f"TypeError: {cause_error_value}"
+
+    def test_nodejs_error_with_multiple_causes_uses_innermost(self) -> None:
+        """Test that with multiple chained causes, the innermost is prioritized."""
+        innermost_error_value = "Connection timeout"
+        manager = EventManager(
+            make_event(
+                platform="node",
+                exception={
+                    "values": [
+                        {
+                            "type": "TimeoutError",
+                            "value": innermost_error_value,
+                            "mechanism": {
+                                "type": "generic",
+                                "handled": False,
+                                "source": "cause",
+                                "exception_id": 2,
+                                "parent_id": 1,
+                            },
+                        },
+                        {
+                            "type": "NetworkError",
+                            "value": "Failed to connect to database",
+                            "mechanism": {
+                                "type": "generic",
+                                "handled": False,
+                                "source": "cause",
+                                "exception_id": 1,
+                                "parent_id": 0,
+                            },
+                        },
+                        {
+                            "type": "ApplicationError",
+                            "value": "Could not initialize application",
+                            "mechanism": {
+                                "type": "generic",
+                                "handled": False,
+                                "exception_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["value"] == innermost_error_value
+        assert event.data["metadata"]["type"] == "TimeoutError"
+        assert event.group is not None
+        assert event.group.title == f"TimeoutError: {innermost_error_value}"
+
+    def test_nodejs_error_without_cause_uses_default_behavior(self) -> None:
+        """Test that errors without causes use the default last-exception behavior."""
+        last_error_value = "Unhandled rejection"
+        manager = EventManager(
+            make_event(
+                platform="node",
+                exception={
+                    "values": [
+                        {
+                            "type": "Error",
+                            "value": "First error",
+                            "mechanism": {
+                                "type": "generic",
+                                "exception_id": 0,
+                            },
+                        },
+                        {
+                            "type": "UnhandledRejection",
+                            "value": last_error_value,
+                            "mechanism": {
+                                "type": "generic",
+                                "exception_id": 1,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        # Without source="cause", should use the last exception (default behavior)
+        assert event.data["metadata"]["value"] == last_error_value
+        assert event.data["metadata"]["type"] == "UnhandledRejection"
+        assert event.group is not None
+        assert event.group.title == f"UnhandledRejection: {last_error_value}"
+
+    def test_nodejs_error_cause_does_not_override_react_specific_handling(self) -> None:
+        """Test that React-specific error handling takes precedence over generic Node.js handling."""
+        cause_error_value = "Cannot read property 'x' of undefined"
+        manager = EventManager(
+            make_event(
+                platform="javascript",
+                exception={
+                    "values": [
+                        {
+                            "type": "TypeError",
+                            "value": cause_error_value,
+                            "mechanism": {
+                                "type": "onerror",
+                                "handled": False,
+                                "source": "cause",
+                                "exception_id": 1,
+                                "parent_id": 0,
+                            },
+                        },
+                        {
+                            "type": "Error",
+                            "value": "There was an error during concurrent rendering but React was able to recover by instead synchronously rendering the entire root.",
+                            "mechanism": {
+                                "type": "generic",
+                                "handled": True,
+                                "exception_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        # Should still prioritize the cause, as both React and Node.js handling agree
+        assert event.data["metadata"]["value"] == cause_error_value
+        assert event.data["metadata"]["type"] == "TypeError"
+        assert event.group is not None
+        assert event.group.title == f"TypeError: {cause_error_value}"
+
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolve_auto_resolved_group(self, send_robust: mock.MagicMock) -> None:
         ts = before_now(minutes=5).isoformat()
