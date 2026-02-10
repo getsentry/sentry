@@ -132,6 +132,8 @@ def boost_low_volume_projects() -> None:
     """
     Task to adjusts the sample rates of all projects in all active organizations.
     """
+    processed_org_ids: set[int] = set()
+
     segments_org_ids = _get_segments_org_ids()
     if segments_org_ids:
         for orgs in GetActiveOrgs(
@@ -141,8 +143,13 @@ def boost_low_volume_projects() -> None:
         ):
             orgs_by_measure = _partition_orgs_by_measure(orgs)
             _record_partitioning_metrics(orgs_by_measure)
+            # Process SEGMENTS and SPANS from this scan. TRANSACTIONS orgs
+            # will be discovered by the TRANSACTIONS scan below.
             for measure, org_ids in orgs_by_measure.items():
+                if measure == SamplingMeasure.TRANSACTIONS:
+                    continue
                 _process_orgs_for_boost(org_ids, measure)
+                processed_org_ids.update(org_ids)
 
     for orgs in GetActiveOrgs(
         max_projects=MAX_PROJECTS_PER_QUERY,
@@ -153,9 +160,10 @@ def boost_low_volume_projects() -> None:
         _record_partitioning_metrics(orgs_by_measure)
 
         for measure, org_ids in orgs_by_measure.items():
-            if segments_org_ids and measure == SamplingMeasure.SEGMENTS:
+            if measure == SamplingMeasure.SEGMENTS:
                 continue
-            _process_orgs_for_boost(org_ids, measure)
+            remaining = [oid for oid in org_ids if oid not in processed_org_ids]
+            _process_orgs_for_boost(remaining, measure)
 
 
 def _process_orgs_for_boost(
