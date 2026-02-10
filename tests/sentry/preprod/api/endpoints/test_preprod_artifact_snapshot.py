@@ -28,14 +28,13 @@ class ProjectPreprodSnapshotTest(APITestCase):
     def test_successful_snapshot_upload(self):
         url = self._get_create_url()
         data = {
+            "app_id": "com.example.app",
             "images": {
                 "abc123def456": {
                     "fileName": "test.png",
                     "width": 375,
                     "height": 812,
                     "darkMode": True,
-                    "orientation": "landscape",
-                    "device": "iPhone 11",
                 },
             },
         }
@@ -60,6 +59,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
     def test_snapshot_upload_creates_commit_comparison(self):
         url = self._get_create_url()
         data = {
+            "app_id": "com.example.app",
             "head_sha": "a" * 40,
             "base_sha": "b" * 40,
             "provider": "github",
@@ -70,7 +70,6 @@ class ProjectPreprodSnapshotTest(APITestCase):
                 "img1": {
                     "width": 100,
                     "height": 200,
-                    "orientation": "portrait",
                     "device": "iPhone 14",
                 },
             },
@@ -94,6 +93,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
     def test_snapshot_upload_stores_manifest_key(self):
         url = self._get_create_url()
         data = {
+            "app_id": "com.example.app",
             "images": {
                 "hash1": {
                     "fileName": "screen1.png",
@@ -120,6 +120,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
     def test_snapshot_with_empty_images(self):
         url = self._get_create_url()
         data = {
+            "app_id": "com.example.app",
             "images": {},
         }
 
@@ -144,10 +145,11 @@ class ProjectPreprodSnapshotTest(APITestCase):
     def test_snapshot_invalid_image_schema(self):
         url = self._get_create_url()
         data = {
+            "app_id": "com.example.app",
             "images": {
                 "hash1": {
                     "width": 375,
-                    # Missing height, orientation, device
+                    # Missing height (required)
                 },
             },
         }
@@ -161,12 +163,11 @@ class ProjectPreprodSnapshotTest(APITestCase):
     def test_snapshot_negative_dimensions(self):
         url = self._get_create_url()
         data = {
+            "app_id": "com.example.app",
             "images": {
                 "hash1": {
                     "width": -100,
                     "height": 812,
-                    "orientation": "portrait",
-                    "device": "iPhone 11",
                 },
             },
         }
@@ -180,6 +181,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
     def test_snapshot_without_feature_flag(self):
         url = self._get_create_url()
         data = {
+            "app_id": "com.example.app",
             "images": {},
         }
 
@@ -203,6 +205,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         unauthenticated_client = APIClient()
         url = self._get_create_url()
         data = {
+            "app_id": "com.example.app",
             "images": {},
         }
 
@@ -217,6 +220,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
 
         url = self._get_create_url()
         data = {
+            "app_id": "com.example.app",
             "images": {},
         }
 
@@ -228,6 +232,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
     def test_snapshot_invalid_sha_format(self):
         url = self._get_create_url()
         data = {
+            "app_id": "com.example.app",
             "head_sha": "not-a-valid-sha",
             "images": {},
         }
