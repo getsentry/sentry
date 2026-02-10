@@ -246,10 +246,7 @@ def apply_filters(
 
         if name == "size_state":
             values = token.value.value if token.is_in_filter else [token.value.value]
-            translated = [_translate_size_state(v) for v in values]
-            lookup = "__in" if token.is_in_filter else "__exact"
-            val = translated if token.is_in_filter else translated[0]
-            q = Q(**{f"{db_field}{lookup}": val})
+            q = Q(**{f"{db_field}__in": [_translate_size_state(v) for v in values]})
             if token.is_negation:
                 q = ~q
             queryset = queryset.filter(q)
