@@ -115,27 +115,32 @@ jobs:
             echo "  $db: $count tables"
           done
 
-      - name: Run smoke tests (previously-serial broad-query tests, xdist -n 2)
+      - name: Run smoke tests (1/4 of tier-2 parallel tests under xdist -n 2)
+        env:
+          TOTAL_TEST_GROUPS: 4
+          TEST_GROUP: 0
+          TEST_GROUP_STRATEGY: roundrobin
         run: |
-          echo "=== Smoke test: broad-query tests that previously required serial execution ==="
-          echo "These tests have cross-org/cross-project ClickHouse queries."
-          echo "If per-worker databases work, they should pass under xdist -n 2."
+          echo "=== Smoke test: 1/4 of tier-2 (Snuba-dependent) tests ==="
+          echo "Running shard 0 of 4 with per-worker Snuba databases + xdist -n 2"
           echo ""
           python3 -b -m pytest \
-            tests/sentry/dynamic_sampling/tasks/test_common.py \
-            tests/sentry/dynamic_sampling/tasks/test_tasks.py \
-            tests/sentry/dynamic_sampling/tasks/test_boost_low_volume_transactions.py \
-            tests/sentry/dynamic_sampling/tasks/test_boost_low_volume_projects.py \
-            tests/sentry/tasks/test_daily_summary.py \
-            tests/sentry/tasks/test_weekly_reports.py \
-            tests/snuba/rules/conditions/test_event_frequency.py \
-            tests/snuba/api/endpoints/test_organization_sessions.py \
+            tests \
             --reuse-db \
+            --ignore tests/acceptance \
+            --ignore tests/apidocs \
+            --ignore tests/js \
+            --ignore tests/tools \
+            --xdist-group=parallel \
             -n 2 \
             --dist=loadfile \
             -v \
             --tb=short \
-            2>&1 | tail -80
+            --json-report \
+            --json-report-file=".artifacts/pytest.json" \
+            --json-report-omit=log \
+            --junit-xml=".artifacts/pytest.junit.xml" \
+            -o junit_suite_name=pytest-smoke
 
       - name: Inspect failure
         if: failure()
