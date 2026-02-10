@@ -16,7 +16,7 @@ import {SelectorLink} from 'sentry/views/replays/selectors/selectorLink';
 import {transformSelectorQuery} from 'sentry/views/replays/selectors/utils';
 import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
-export function DeadRageClicksWidget() {
+export function DeadRageClicksWidget({visulizationOnly}: {visulizationOnly?: boolean}) {
   const organization = useOrganization();
   const hasReplays = organization.features.includes('session-replay-ui');
   const {isLoading, error, data} = useDeadRageSelectors({
@@ -63,6 +63,10 @@ export function DeadRageClicksWidget() {
       }}
     />
   );
+
+  if (visulizationOnly) {
+    return visualization;
+  }
 
   return (
     <Widget

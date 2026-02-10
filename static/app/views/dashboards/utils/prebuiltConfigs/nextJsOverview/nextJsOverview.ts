@@ -143,6 +143,21 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       ],
     },
     {
+      id: 'rage-and-dead-clicks-widget',
+      title: t('Rage and Dead Clicks'),
+      displayType: DisplayType.RAGE_AND_DEAD_CLICKS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          aggregates: [],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    },
+    {
       id: 'slow-ssr-widget',
       title: t('Slow SSR'),
       displayType: DisplayType.LINE,
