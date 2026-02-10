@@ -12,30 +12,19 @@ from sentry.scm.types import (
     SubscriptionEvent,
 )
 
-# Existing.
-# class GithubWebhookType(StrEnum):
-#     INSTALLATION = "installation"
-#     INSTALLATION_REPOSITORIES = "installation_repositories"
-#     ISSUE = "issues"
-#     PULL_REQUEST_REVIEW = "pull_request_review"
-#     PULL_REQUEST_REVIEW_COMMENT = "pull_request_review_comment"
-#     PUSH = "push"
+# Remaining types in use:
+#   * "installation"
+#   * "installation_repositories"
+#   * "issues"
+#   * "pull_request_review"
+#   * "pull_request_review_comment"
+#   * "push"
 
 
 class GitHubUser(msgspec.Struct):
     id: int
     login: str  # Username
     type: str | None = None
-
-
-#  $$$$$$\  $$\   $$\ $$$$$$$$\  $$$$$$\  $$\   $$\       $$$$$$$\  $$\   $$\ $$\   $$\
-# $$  __$$\ $$ |  $$ |$$  _____|$$  __$$\ $$ | $$  |      $$  __$$\ $$ |  $$ |$$$\  $$ |
-# $$ /  \__|$$ |  $$ |$$ |      $$ /  \__|$$ |$$  /       $$ |  $$ |$$ |  $$ |$$$$\ $$ |
-# $$ |      $$$$$$$$ |$$$$$\    $$ |      $$$$$  /        $$$$$$$  |$$ |  $$ |$$ $$\$$ |
-# $$ |      $$  __$$ |$$  __|   $$ |      $$  $$<         $$  __$$< $$ |  $$ |$$ \$$$$ |
-# $$ |  $$\ $$ |  $$ |$$ |      $$ |  $$\ $$ |\$$\        $$ |  $$ |$$ |  $$ |$$ |\$$$ |
-# \$$$$$$  |$$ |  $$ |$$$$$$$$\ \$$$$$$  |$$ | \$$\       $$ |  $$ |\$$$$$$  |$$ | \$$ |
-#  \______/ \__|  \__|\________| \______/ \__|  \__|      \__|  \__| \______/ \__|  \__|
 
 
 class GitHubCheckRunEvent(msgspec.Struct, gc=False):
@@ -46,32 +35,6 @@ class GitHubCheckRunEvent(msgspec.Struct, gc=False):
 class GitHubCheckRun(msgspec.Struct, gc=False):
     external_id: str
     html_url: str
-
-
-check_run_decoder = msgspec.json.Decoder(GitHubCheckRunEvent)
-
-
-def deserialize_github_check_run_event(event: SubscriptionEvent) -> CheckRunEvent:
-    e = check_run_decoder.decode(event["event"])
-
-    return CheckRunEvent(
-        action=e.action,
-        check_run={
-            "external_id": e.check_run.external_id,
-            "html_url": e.check_run.html_url,
-        },
-        subscription_event=event,
-    )
-
-
-#  $$$$$$\   $$$$$$\  $$\      $$\ $$\      $$\ $$$$$$$$\ $$\   $$\ $$$$$$$$\
-# $$  __$$\ $$  __$$\ $$$\    $$$ |$$$\    $$$ |$$  _____|$$$\  $$ |\__$$  __|
-# $$ /  \__|$$ /  $$ |$$$$\  $$$$ |$$$$\  $$$$ |$$ |      $$$$\ $$ |   $$ |
-# $$ |      $$ |  $$ |$$\$$\$$ $$ |$$\$$\$$ $$ |$$$$$\    $$ $$\$$ |   $$ |
-# $$ |      $$ |  $$ |$$ \$$$  $$ |$$ \$$$  $$ |$$  __|   $$ \$$$$ |   $$ |
-# $$ |  $$\ $$ |  $$ |$$ |\$  /$$ |$$ |\$  /$$ |$$ |      $$ |\$$$ |   $$ |
-# \$$$$$$  | $$$$$$  |$$ | \_/ $$ |$$ | \_/ $$ |$$$$$$$$\ $$ | \$$ |   $$ |
-#  \______/  \______/ \__|     \__|\__|     \__|\________|\__|  \__|   \__|
 
 
 class GitHubIssueCommentEvent(msgspec.Struct, gc=False):
@@ -93,42 +56,6 @@ class GitHubIssue(msgspec.Struct, gc=False):
 
 class GitHubIssueCommentPullRequest(msgspec.Struct, gc=False):
     pass
-
-
-issue_comment_decoder = msgspec.json.Decoder(GitHubIssueCommentEvent)
-
-
-def deserialize_github_comment_event(event: SubscriptionEvent) -> CommentEvent:
-    e = issue_comment_decoder.decode(event["event"])
-
-    return CommentEvent(
-        action=e.action,
-        comment_type="pull_request" if e.issue.pull_request is not None else "issue",
-        comment={
-            "author": (
-                {
-                    "id": str(e.comment.user.id),
-                    "username": e.comment.user.login,
-                }
-                if e.comment.user
-                else None
-            ),
-            "body": e.comment.body,
-            "id": str(e.comment.id),
-        },
-        subscription_event=event,
-    )
-
-
-# $$$$$$$\  $$\   $$\ $$\       $$\             $$$$$$$\  $$$$$$$$\  $$$$$$\  $$\   $$\ $$$$$$$$\  $$$$$$\ $$$$$$$$\
-# $$  __$$\ $$ |  $$ |$$ |      $$ |            $$  __$$\ $$  _____|$$  __$$\ $$ |  $$ |$$  _____|$$  __$$\\__$$  __|
-# $$ |  $$ |$$ |  $$ |$$ |      $$ |            $$ |  $$ |$$ |      $$ /  $$ |$$ |  $$ |$$ |      $$ /  \__|  $$ |
-# $$$$$$$  |$$ |  $$ |$$ |      $$ |            $$$$$$$  |$$$$$\    $$ |  $$ |$$ |  $$ |$$$$$\    \$$$$$$\    $$ |
-# $$  ____/ $$ |  $$ |$$ |      $$ |            $$  __$$< $$  __|   $$ |  $$ |$$ |  $$ |$$  __|    \____$$\   $$ |
-# $$ |      $$ |  $$ |$$ |      $$ |            $$ |  $$ |$$ |      $$ $$\$$ |$$ |  $$ |$$ |      $$\   $$ |  $$ |
-# $$ |      \$$$$$$  |$$$$$$$$\ $$$$$$$$\       $$ |  $$ |$$$$$$$$\ \$$$$$$ / \$$$$$$  |$$$$$$$$\ \$$$$$$  |  $$ |
-# \__|       \______/ \________|\________|      \__|  \__|\________| \___$$$\  \______/ \________| \______/   \__|
-#                                                                        \___|
 
 
 class GitHubPullRequestEvent(msgspec.Struct, gc=False):
@@ -157,7 +84,44 @@ class GitHubPullRequestHeadRepo(msgspec.Struct, gc=False):
     private: bool
 
 
+check_run_decoder = msgspec.json.Decoder(GitHubCheckRunEvent)
+issue_comment_decoder = msgspec.json.Decoder(GitHubIssueCommentEvent)
 pull_request_decoder = msgspec.json.Decoder(GitHubPullRequestEvent)
+
+
+def deserialize_github_check_run_event(event: SubscriptionEvent) -> CheckRunEvent:
+    e = check_run_decoder.decode(event["event"])
+
+    return CheckRunEvent(
+        action=e.action,
+        check_run={
+            "external_id": e.check_run.external_id,
+            "html_url": e.check_run.html_url,
+        },
+        subscription_event=event,
+    )
+
+
+def deserialize_github_comment_event(event: SubscriptionEvent) -> CommentEvent:
+    e = issue_comment_decoder.decode(event["event"])
+
+    return CommentEvent(
+        action=e.action,
+        comment_type="pull_request" if e.issue.pull_request is not None else "issue",
+        comment={
+            "author": (
+                {
+                    "id": str(e.comment.user.id),
+                    "username": e.comment.user.login,
+                }
+                if e.comment.user
+                else None
+            ),
+            "body": e.comment.body,
+            "id": str(e.comment.id),
+        },
+        subscription_event=event,
+    )
 
 
 def deserialize_github_pull_request_event(event: SubscriptionEvent) -> PullRequestEvent:
