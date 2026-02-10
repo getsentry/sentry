@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - mchen/tiered-xdist-hybrid
+      - mchen/per-worker-snuba-db
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -170,9 +171,10 @@ jobs:
             devservices logs
           fi
 
-  # ─── Tier 2 Parallel: Full Snuba stack, xdist -n 2 ──────────────────
-  # ~28% of tests (Snuba-dependent), excluding FORCE_SERIAL_FILES.
-  # reset_snuba is skipped — tests rely on unique snowflake IDs for isolation.
+  # ─── Tier 2 Parallel: Full Snuba stack, per-worker ClickHouse databases ─
+  # ~28% of tests (Snuba-dependent), excluding relay_integration.
+  # Each xdist worker gets its own Snuba instance + ClickHouse database,
+  # so reset_snuba (TRUNCATE TABLE) is safe and per-worker isolated.
   tier2-parallel-test:
     needs: split-tiers
     name: 'tier2-parallel (${{ matrix.instance }})'
@@ -190,8 +192,10 @@ jobs:
       MATRIX_INSTANCE_TOTAL: 15
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
-      # Skip reset_snuba (TRUNCATE TABLE) — rely on unique snowflake IDs instead.
-      XDIST_SKIP_SNUBA_RESET: '1'
+      # Enable per-worker Snuba database routing
+      XDIST_PER_WORKER_SNUBA: '1'
+      # Number of xdist workers (must match -n below)
+      XDIST_WORKERS: '2'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -208,11 +212,90 @@ jobs:
         with:
           mode: backend-ci
 
-      - name: Run tier 2 parallel tests (xdist -n 2)
+      - name: Create per-worker ClickHouse databases and Snuba instances
+        run: |
+          XDIST_N=${XDIST_WORKERS:-2}
+          echo "Setting up $XDIST_N per-worker ClickHouse databases + Snuba instances"
+
+          # Get the Snuba container image and network
+          SNUBA_IMAGE=$(docker inspect snuba-snuba-1 --format '{{.Config.Image}}')
+          SNUBA_NETWORK=$(docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
+          echo "Snuba image: $SNUBA_IMAGE"
+          echo "Snuba network: $SNUBA_NETWORK"
+
+          # Get the base database name (what the default Snuba uses)
+          # Default Snuba has no CLICKHOUSE_DATABASE set, so it uses "default"
+          BASE_DB="default"
+
+          # Get all tables in the base database
+          echo "Discovering tables in '$BASE_DB' database..."
+          TABLES=$(curl -s 'http://localhost:8123/' --data-binary "SHOW TABLES FROM $BASE_DB" | grep -v '^$')
+          TABLE_COUNT=$(echo "$TABLES" | wc -l)
+          echo "Found $TABLE_COUNT tables"
+
+          for i in $(seq 0 $((XDIST_N - 1))); do
+            WORKER_DB="default_gw${i}"
+            WORKER_PORT=$((1230 + i))
+            echo ""
+            echo "=== Setting up worker gw${i}: database=$WORKER_DB, port=$WORKER_PORT ==="
+
+            # Create the worker database
+            curl -s 'http://localhost:8123/' --data-binary "CREATE DATABASE IF NOT EXISTS ${WORKER_DB}"
+            echo "Created database $WORKER_DB"
+
+            # Copy table schemas from base database
+            for TABLE in $TABLES; do
+              curl -sf 'http://localhost:8123/' --data-binary "CREATE TABLE IF NOT EXISTS ${WORKER_DB}.${TABLE} AS ${BASE_DB}.${TABLE}" || {
+                echo "  WARNING: Failed to copy schema for $TABLE (may be a view or special table, skipping)"
+              }
+            done
+            echo "Copied $TABLE_COUNT table schemas"
+
+            # Start a per-worker Snuba container
+            docker run -d \
+              --name "snuba-gw${i}" \
+              --network "$SNUBA_NETWORK" \
+              -p "${WORKER_PORT}:1218" \
+              -e "CLICKHOUSE_DATABASE=${WORKER_DB}" \
+              -e "CLICKHOUSE_HOST=clickhouse" \
+              -e "CLICKHOUSE_PORT=9000" \
+              -e "CLICKHOUSE_HTTP_PORT=8123" \
+              -e "DEFAULT_BROKERS=kafka:9093" \
+              -e "REDIS_HOST=redis" \
+              -e "REDIS_PORT=6379" \
+              -e "REDIS_DB=1" \
+              -e "SNUBA_SETTINGS=docker" \
+              -e "DEBUG=1" \
+              "$SNUBA_IMAGE" api
+            echo "Started Snuba container snuba-gw${i} on port $WORKER_PORT"
+          done
+
+          # Wait for all per-worker Snuba instances to be ready
+          echo ""
+          echo "Waiting for per-worker Snuba instances to be ready..."
+          for i in $(seq 0 $((XDIST_N - 1))); do
+            WORKER_PORT=$((1230 + i))
+            for attempt in $(seq 1 30); do
+              if curl -sf "http://localhost:${WORKER_PORT}/health" > /dev/null 2>&1; then
+                echo "  snuba-gw${i} (port $WORKER_PORT) is ready"
+                break
+              fi
+              if [ "$attempt" -eq 30 ]; then
+                echo "  ERROR: snuba-gw${i} failed to start"
+                docker logs "snuba-gw${i}" 2>&1 | tail -20
+                exit 1
+              fi
+              sleep 1
+            done
+          done
+          echo ""
+          echo "All per-worker Snuba instances ready!"
+
+      - name: Run tier 2 parallel tests (xdist -n 2, per-worker databases)
         env:
           SELECTED_TESTS_FILE: /tmp/tier2-tests.txt
         run: |
-          echo "=== Tier 2 Parallel: Full Snuba stack, reset_snuba skipped ==="
+          echo "=== Tier 2 Parallel: Per-worker ClickHouse databases ==="
           echo "Shard ${{ matrix.instance }} of 15, xdist workers: 2"
           echo "Test files: $(wc -l < /tmp/tier2-tests.txt) (tier2 total, filtered by --xdist-group)"
           python3 -b -m pytest \
@@ -234,13 +317,20 @@ jobs:
       - name: Inspect failure
         if: failure()
         run: |
+          echo "=== Per-worker Snuba container logs ==="
+          for name in $(docker ps -a --filter "name=snuba-gw" --format '{{.Names}}'); do
+            echo "--- $name ---"
+            docker logs "$name" 2>&1 | tail -30
+          done
+          echo ""
           if command -v devservices; then
             devservices logs
           fi
 
-  # ─── Tier 2 Serial: Full Snuba stack, single-threaded ───────────────
-  # FORCE_SERIAL_FILES only (~21 files). These have broadly-scoped ClickHouse
-  # queries that fail when reset_snuba is skipped. Normal cleanup here.
+  # ─── Tier 2 Serial: Relay integration tests only ────────────────────
+  # relay_integration tests (~75 tests) use the Relay→Kafka→Consumer pipeline
+  # which writes to the default (shared) ClickHouse database, not per-worker.
+  # Plus each test restarts a Relay Docker container (~12-18s per test).
   tier2-serial-test:
     needs: split-tiers
     name: 'tier2-serial (${{ matrix.instance }})'
@@ -252,10 +342,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2]
+        instance: [0, 1]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 3
+      MATRIX_INSTANCE_TOTAL: 2
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
@@ -273,11 +363,11 @@ jobs:
         with:
           mode: backend-ci
 
-      - name: Run tier 2 serial tests (single-threaded)
+      - name: Run tier 2 serial tests (relay_integration only)
         env:
           SELECTED_TESTS_FILE: /tmp/tier2-tests.txt
         run: |
-          echo "=== Tier 2 Serial: FORCE_SERIAL_FILES, normal reset_snuba ==="
+          echo "=== Tier 2 Serial: relay_integration tests, normal reset_snuba ==="
           echo "Shard ${{ matrix.instance }} of 2, single-threaded"
           python3 -b -m pytest \
             tests \

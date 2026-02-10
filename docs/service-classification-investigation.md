@@ -1448,3 +1448,168 @@ admin API endpoint to flush its config cache, but that doesn't exist today.
 
 **Reverted** back to `scope="function"`. The relay tests remain at 12-18s each. The serial
 tier bottleneck stands — adding more serial shards is the pragmatic fix.
+
+---
+
+## Current State of the Experiment (Feb 10, 2026)
+
+### Branches
+
+| Branch | Purpose | Status |
+| --- | --- | --- |
+| `mchen/tiered-xdist-hybrid` | Main development branch with all iterations | Green (latest run 21847170456) |
+| `mchen/xdist-hybrid-clean` | Clean branch off master with only essential changes | Green (run 21845691418) |
+| `mchen/detect-snuba-reads` | One-shot workflow for HTTP-level Snuba classifier | Complete |
+
+### Latest Timing Results
+
+**Baseline (current CI, single-threaded, 22 shards):** ~17 min wall clock
+
+**Best hybrid run (`mchen/tiered-xdist-hybrid`, run 21847170456 — 4/15/3 split):**
+
+| Tier | Shards | xdist Workers | Slowest Shard | Fastest Shard |
+| --- | --- | --- | --- | --- |
+| tier1 (Postgres+Redis only) | 4 | `-n 3` | 13.4 min | 11.8 min |
+| tier2-parallel (full Snuba, no reset) | 15 | `-n 2` | 12.1 min | 10.6 min |
+| tier2-serial (full Snuba, with reset) | 3 | `-n 1` | 11.9 min | 11.4 min |
+| **Overall wall clock** | **22** | | **~13.7 min** | |
+
+**Speedup: ~19% (17 min → 13.7 min)**
+
+**Best clean branch run (`mchen/xdist-hybrid-clean`, run 21845153606 — 4/15/3 split):**
+
+| Tier | Shards | Slowest Shard |
+| --- | --- | --- |
+| tier1 | 4 | 12.6 min |
+| tier2-parallel | 15 | 11.8 min |
+| tier2-serial | 3 | 13.9 min |
+| **Overall wall clock** | **22** | **~14.2 min** |
+
+### Test Distribution
+
+- **Total tests:** ~32,772
+- **Tier 1 (Postgres+Redis only):** ~22,000 (67.2%) — 4 shards, `-n 3`
+- **Tier 2 parallel (Snuba, no reset):** ~10,072 (30.7%) — 15 shards, `-n 2`
+- **Tier 2 serial (Snuba, with reset):** ~700 (2.1%) — 3 shards, single-threaded
+  - `FORCE_SERIAL_FILES`: 26 entries, ~625 tests
+  - `FORCE_SERIAL_DIRS` (`relay_integration/`): 7 files, ~75 tests
+
+### Key Changes (files modified from master)
+
+1. **`src/sentry/testutils/pytest/sentry.py`** — Core changes:
+   - `_get_xdist_redis_db()`: Per-worker Redis DBs prevent cross-contamination
+   - `_configure_test_env_regions()`: Deterministic region name + unique snowflake IDs per worker
+   - `FORCE_SERIAL_FILES` / `FORCE_SERIAL_DIRS`: Tests that must run single-threaded
+   - `pytest_collection_modifyitems`: `--xdist-group` option to filter parallel vs serial
+2. **`src/sentry/testutils/pytest/fixtures.py`** — `reset_snuba` becomes no-op under `XDIST_SKIP_SNUBA_RESET`
+3. **`.github/workflows/backend-xdist-split-poc.yml`** — Hybrid 3-tier workflow
+4. **`.github/workflows/scripts/split-tests-by-tier.py`** — Runtime service classification tier splitter
+5. **`.github/workflows/classify-services.yml`** — Socket-level service classifier workflow
+6. **`src/sentry/testutils/pytest/service_classifier.py`** — Runtime classification plugin
+7. **`tests/sentry/utils/test_sdk.py`** — Bug fix: `test_custom_transaction_name` was patching wrong scope
+
+### FORCE_SERIAL Audit
+
+Deep investigation of every entry in `FORCE_SERIAL_FILES`:
+
+#### Dead Entries (should be removed)
+- `tests/sentry/api/endpoints/test_organization_events_histogram.py` — **file does not exist** (real file is `tests/snuba/...`)
+- `tests/sentry/api/endpoints/test_organization_events_trends.py` — **file does not exist** (real file is `tests/snuba/...`)
+- `tests/sentry/release_health/release_monitor/test_metrics.py` — **0 test functions**
+
+#### Confirmed Broad Queries — Must Stay Serial (~161 tests)
+
+| File | Tests | Reason |
+| --- | --- | --- |
+| `test_common.py` (dynamic sampling) | 15 | `cross_org_query`, scans ALL orgs without org_id/project_id filter |
+| `test_tasks.py` (dynamic sampling) | 20 | Same — `GetActiveOrgs` has no org filter parameter |
+| `test_boost_low_volume_transactions.py` | 20 | Same |
+| `test_boost_low_volume_projects.py` | 18 | Same |
+| `test_event_frequency.py` | 35 | Generic issue queries don't filter by project_id |
+| `test_daily_summary.py` | 23 | Queries Outcomes by org_id only, groups by project_id but doesn't filter |
+| `test_weekly_reports.py` | 30 | Same as daily summary |
+
+#### Empirically Failed Despite Project-Scoped Queries (~464 tests)
+
+Code analysis shows these files have `project_id` in their WHERE clauses, but they **actually
+failed in CI runs**. The failures may be caused by secondary queries, aggregation edge cases,
+or assertion sensitivity to accumulated data. Every entry earned its place by failing.
+
+| File | Tests | Failure Mode | CI Run |
+| --- | --- | --- | --- |
+| `test_organization_release_health_data.py` | 86 | ~12 failures in early runs | Approach 2 |
+| `test_api.py` (sentry_metrics) | 44 | ~10 failures in early runs | Approach 2 |
+| `test_metrics_enhanced_performance.py` | 35 | ~7 failures in early runs | Approach 2 |
+| `test_release_health.py` (metrics layer) | 6 | 2 failures in early runs | Approach 2 |
+| `test_organization_root_cause_analysis.py` | 7 | 1-3 failures | Approach 2 |
+| `test_organization_replay_index.py` | 59 | 1-3 failures | Approach 2 |
+| `test_preview.py` | 31 | 1-3 failures | Approach 2 |
+| `test_organization_events_histogram.py` (snuba/) | 43 | Histogram aggregation failures | Hybrid Run 1 |
+| `test_organization_events_trends.py` (snuba/) | 25 | `assert 0 == 1` (count_range_1) | Hybrid Run 1 |
+| `test_organization_sampling_project_span_counts.py` | 6 | `assert 347.0 == 21.0` — stale data | Hybrid Run 2 |
+| `test_release_health/test_tasks.py` | 14 | FK constraint IntegrityError | Hybrid Run 2 |
+| `test_suspect_flags.py` | 8 | Wrong flag scores | Hybrid Run 2 |
+| `test_organization_sessions.py` | 62 | Count mismatch | Hybrid Run 2 |
+| `test_organization_on_demand_metrics_estimation_stats.py` | 6 | Count mismatch | Hybrid Run 2 |
+| `test_organization_events_vitals.py` | 15 | Count mismatch | Hybrid Run 3 |
+| `test_issue_velocity.py` | 17 | Count mismatch | Hybrid Run 3 |
+
+#### Relay Integration — Different Problem (~75 tests)
+
+`FORCE_SERIAL_DIRS = ("tests/relay_integration/",)` — 7 test files, 75 tests.
+
+These are **NOT** serial due to broad queries. Their ClickHouse reads all filter by project_id.
+They're serial because of the Relay→Kafka→Snuba **pipeline timing**. Each test restarts a Relay
+Docker container (~10s overhead), and without `TRUNCATE TABLE`, the eventual consistency of the
+async pipeline causes `None` returns before wait timeouts expire under parallel load.
+
+The function-scoped Relay container is mandatory (see "Experiment: Change to Class Scope" above).
+The only way to speed these up would be a Relay admin API to flush in-memory config cache.
+
+### HTTP-Level Snuba Classifier (detect-snuba-reads)
+
+A new `snuba_read_detector.py` plugin was built to monkey-patch `_snuba_pool.urlopen` and classify
+every test's Snuba HTTP traffic as `read`, `write_only`, or `infra`.
+
+**Results (32,772 tests, 22 shards):**
+
+| Category | Tests | % |
+| --- | --- | --- |
+| No Snuba contact | 24,282 | 74.1% |
+| Reads from Snuba | 8,461 | 25.8% |
+| Writes only | 137 | 0.4% |
+
+**Comparison with socket-level classifier:** Socket-level split was 67.2% / 32.8%. HTTP-level is
+74.1% / 25.9%, moving ~5,100 tests to the "no Snuba" category. The difference comes from tests
+whose only Snuba "contact" at the socket level is `reset_snuba` (which uses `requests.post`, not
+`_snuba_pool`). The HTTP-level detector doesn't see this because it only patches the internal pool.
+
+**Assessment:** The ~5,100 "newly safe" tests are likely `SnubaTestCase` subclasses whose sole
+Snuba interaction is the `reset_snuba` fixture cleanup. Since our strategy already skips
+`reset_snuba` under xdist, these tests don't actually need Snuba. However, moving them to Tier 1
+carries risk — some may have indirect dependencies on Kafka consumers or event pipelines that
+the HTTP detector can't see. The validated socket-level split is conservative and working.
+
+### What's Working
+
+- **19% wall-clock speedup** (17 min → 13.7 min) with same shard count (22)
+- **All tiers green** — zero failures in latest runs
+- **Uncovered and fixed** a latent test bug (`test_sdk.py` patching wrong scope)
+- **Snowflake ID isolation** is robust — unique project/org IDs per xdist worker
+
+### Remaining Bottlenecks
+
+1. **Tier2-serial** is the critical path at ~13.9 min (relay tests dominate at 12-18s each)
+2. **xdist startup overhead** (~2 min before first test runs, due to per-worker Django bootstrap)
+3. **OOM risk** with `-n 3` on full Snuba stack (tier2-parallel limited to `-n 2`)
+4. **FORCE_SERIAL list** has 3 dead entries and ~464 tests that *might* be parallelizable
+   with deeper investigation of their secondary query paths
+
+### Potential Next Steps
+
+1. **Clean up FORCE_SERIAL** — remove 3 dead entries (free)
+2. **Re-test "project-scoped" serial files** — experimentally move some back to parallel
+3. **Add more serial shards** — pragmatic fix for relay bottleneck (trade cost for speed)
+4. **Investigate xdist startup** — could shared fixtures or pre-warmed workers reduce the 2 min overhead
+5. **Relay config flush API** — if Relay adds an admin endpoint to clear in-memory cache, relay tests could use class-scoped containers (saving ~10s/test × 75 tests)
+6. **Validate HTTP-level classifier** — if the ~5,100 tests are truly safe without Snuba, tier1 could grow from 67% to 74% of tests

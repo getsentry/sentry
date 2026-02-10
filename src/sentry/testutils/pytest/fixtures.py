@@ -335,14 +335,9 @@ def call_snuba(settings):
 
 @pytest.fixture
 def reset_snuba(call_snuba):
-    # Under xdist, reset_snuba is skipped. Tests rely on unique snowflake IDs
-    # for ClickHouse isolation instead of TRUNCATE TABLE. This enables parallel
-    # execution of SnubaTestCase tests. Tests with broadly-scoped queries that
-    # can't handle this are listed in FORCE_SERIAL_FILES and run single-threaded
-    # without this env var set.
-    if os.environ.get("XDIST_SKIP_SNUBA_RESET"):
-        return
-
+    # With per-worker ClickHouse databases, each xdist worker has its own Snuba
+    # instance pointing to its own database. TRUNCATE TABLE is safe because it
+    # only affects the current worker's data — no cross-worker interference.
     init_endpoints = [
         "/tests/events_analytics_platform/drop",
         "/tests/spans/drop",

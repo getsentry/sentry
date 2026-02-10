@@ -1,7 +1,18 @@
 from __future__ import annotations
 
-import collections
 import os
+
+# Per-worker Snuba routing for xdist with per-worker ClickHouse databases.
+# Each xdist worker gets its own Snuba instance on a unique port (1230+N),
+# pointing to its own ClickHouse database (default_gwN).
+# This MUST run before Django settings load (server.py reads os.environ["SNUBA"]
+# to set SENTRY_SNUBA, which _snuba_pool uses at module import time).
+_xdist_worker = os.environ.get("PYTEST_XDIST_WORKER")
+if _xdist_worker and os.environ.get("XDIST_PER_WORKER_SNUBA"):
+    _worker_num = int(_xdist_worker.replace("gw", ""))
+    os.environ["SNUBA"] = f"http://127.0.0.1:{1230 + _worker_num}"
+
+import collections
 import random
 import shutil
 import string
@@ -512,71 +523,26 @@ def _triggers_snuba_reset(item: pytest.Item) -> bool:
     return False
 
 
-# Files with ClickHouse queries that are not properly scoped by project_id/org_id.
-# These tests fail under xdist when reset_snuba (TRUNCATE TABLE) is skipped because
-# they see stale data from other xdist workers. They must run single-threaded with
-# normal reset_snuba cleanup.
+# With per-worker ClickHouse databases, each xdist worker has its own isolated
+# database and can safely TRUNCATE without affecting other workers. This eliminates
+# the need for FORCE_SERIAL_FILES (broad-query tests are no longer a problem).
 #
-# This list should shrink over time as tests are fixed to scope their queries.
-# See docs/service-classification-investigation.md "The No Cleanup Approach" for details.
-FORCE_SERIAL_FILES: set[str] = {
-    # Category A: Metrics queries that aggregate broadly
-    "tests/sentry/releases/endpoints/test_organization_release_health_data.py",
-    "tests/sentry/sentry_metrics/querying/data/test_api.py",
-    "tests/sentry/snuba/metrics/test_metrics_layer/test_metrics_enhanced_performance.py",
-    "tests/sentry/snuba/metrics/test_metrics_layer/test_release_health.py",
-    "tests/sentry/release_health/release_monitor/test_metrics.py",
-    # Category B: Dynamic sampling — intentionally broad org scanning
-    "tests/sentry/dynamic_sampling/tasks/test_common.py",
-    "tests/sentry/dynamic_sampling/tasks/test_tasks.py",
-    "tests/sentry/dynamic_sampling/tasks/test_boost_low_volume_transactions.py",
-    "tests/sentry/dynamic_sampling/tasks/test_boost_low_volume_projects.py",
-    # Category C: Report/summary tests
-    "tests/sentry/tasks/test_daily_summary.py",
-    "tests/sentry/tasks/test_weekly_reports.py",
-    "tests/sentry/rules/history/test_preview.py",
-    # Category D: Endpoint tests with broad queries (both sentry/ and snuba/ paths)
-    "tests/sentry/api/endpoints/test_organization_events_histogram.py",
-    "tests/sentry/api/endpoints/test_organization_events_trends.py",
-    "tests/sentry/api/endpoints/test_organization_root_cause_analysis.py",
-    "tests/sentry/replays/endpoints/test_organization_replay_index.py",
-    "tests/snuba/api/endpoints/test_organization_events_histogram.py",
-    "tests/snuba/api/endpoints/test_organization_events_trends.py",
-    # Category E: Event frequency rules — broad time-window queries
-    "tests/snuba/rules/conditions/test_event_frequency.py",
-    # Category F: Span counts — broad aggregation
-    "tests/sentry/api/endpoints/test_organization_sampling_project_span_counts.py",
-    # Category G: Release health tasks — FK issues under xdist
-    "tests/sentry/release_health/test_tasks.py",
-    # Category H: Suspect flags — broad ClickHouse aggregation
-    "tests/sentry/issues/test_suspect_flags.py",
-    # Category I: Sessions/metrics — broad aggregation across projects
-    "tests/snuba/api/endpoints/test_organization_sessions.py",
-    "tests/sentry/api/endpoints/test_organization_on_demand_metrics_estimation_stats.py",
-    # Category J: Vitals/velocity — broad event aggregation
-    "tests/snuba/api/endpoints/test_organization_events_vitals.py",
-    "tests/sentry/issues/escalating/test_issue_velocity.py",
-}
-
-# Entire directories forced to serial. Tests under relay_integration/ use
-# RelayStoreHelper to store events through the full Relay→Snuba pipeline and
-# read them back from ClickHouse. Without TRUNCATE, the read-back frequently
-# returns None or stale data. Multiple files failed across 3 runs — not worth
-# playing whack-a-mole, just force the whole directory.
+# Only relay_integration tests still need serial execution: they use the
+# Relay→Kafka→Consumer pipeline which writes to the default (shared) database,
+# not the per-worker database. Plus the per-test Docker container restart.
 FORCE_SERIAL_DIRS: tuple[str, ...] = (
     "tests/relay_integration/",
 )
 
 
 def _force_serial(item: pytest.Item) -> bool:
-    """Check if a test is in FORCE_SERIAL_FILES or under a FORCE_SERIAL_DIRS prefix.
+    """Check if a test is under a FORCE_SERIAL_DIRS prefix.
 
-    These tests have broadly-scoped ClickHouse queries or relay pipeline issues
-    that cause failures when reset_snuba is skipped under xdist.
+    Relay integration tests use the Relay→Kafka→Consumer pipeline that bypasses
+    per-worker Snuba routing, so they must run single-threaded with the default
+    shared Snuba instance.
     """
     test_file = item.nodeid.split("::")[0]
-    if test_file in FORCE_SERIAL_FILES:
-        return True
     return any(test_file.startswith(d) for d in FORCE_SERIAL_DIRS)
 
 
@@ -672,12 +638,13 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         if deselected:
             config.hook.pytest_deselected(items=deselected)
 
-    # Two-group split for xdist. Under xdist, reset_snuba is skipped (no-op)
-    # so tests rely on unique snowflake IDs for ClickHouse isolation instead of
-    # TRUNCATE TABLE. A small set of tests (FORCE_SERIAL_FILES) have broadly-scoped
-    # ClickHouse queries that break under this model — those must run serial.
-    #   --xdist-group=parallel: all tests EXCEPT FORCE_SERIAL_FILES (safe for -n N)
-    #   --xdist-group=serial:   only FORCE_SERIAL_FILES tests (single-threaded)
+    # Two-group split for xdist with per-worker ClickHouse databases.
+    # Most tests can run parallel — each xdist worker has its own Snuba instance
+    # pointing to its own ClickHouse database, so TRUNCATE TABLE is safe.
+    # Only relay_integration tests need serial execution (Kafka consumer path
+    # bypasses per-worker Snuba routing).
+    #   --xdist-group=parallel: all tests EXCEPT relay_integration (safe for -n N)
+    #   --xdist-group=serial:   only relay_integration tests (single-threaded)
     xdist_group = config.getoption("--xdist-group", default=None)
     if xdist_group is not None:
         parallel_items = []
