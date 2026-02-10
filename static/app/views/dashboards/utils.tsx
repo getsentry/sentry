@@ -644,3 +644,8 @@ export const usesTimeSeriesData = (displayType?: DisplayType) => {
 export const widgetFetchesOwnData = (widgetType: DisplayType) => {
   return widgetType === DisplayType.SERVER_TREE;
 };
+
+// Custom widgets for prebuilt dashboards are not editable at this time
+export const isWidgetEditable = (widgetType: DisplayType) => {
+  return widgetType !== DisplayType.SERVER_TREE;
+};
