@@ -1,16 +1,20 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import HookOrDefault from 'sentry/components/hookOrDefault';
+import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/gettingStartedDoc/utils/stepsToMarkdown';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import MonitorCreateForm from 'sentry/views/insights/crons/components/monitorCreateForm';
 
@@ -19,9 +23,24 @@ import {useCronsUpsertGuideState} from './useCronsUpsertGuideState';
 
 export function CronsLandingPanel() {
   const organization = useOrganization();
+  const guideContainerRef = useRef<HTMLDivElement>(null);
 
   const {platformKey, guideKey, platform, setPlatformGuide} = useCronsUpsertGuideState();
   const guideVisibile = platform && guideKey;
+
+  const activeGuide = platform?.guides.find(g => g.key === guideKey);
+
+  const getGuideMarkdown = () => {
+    if (!guideContainerRef.current) {
+      return '';
+    }
+    try {
+      const html = guideContainerRef.current.innerHTML;
+      return simpleHtmlToMarkdown(html);
+    } catch {
+      return '';
+    }
+  };
 
   const OnboardingPanelHook = HookOrDefault({
     hookName: 'component:crons-onboarding-panel',
@@ -59,7 +78,27 @@ export function CronsLandingPanel() {
           {t('Back to Platforms')}
         </BackButton>
         <PanelBody withPadding>
-          <h3>{t('Get Started with %s', platform.label)}</h3>
+          <Flex align="center" justify="between">
+            <h3>{t('Get Started with %s', platform.label)}</h3>
+            {activeGuide && (
+              <Tooltip title={t('Let an LLM do all the work instead')}>
+                <Button
+                  size="xs"
+                  icon={<IconCopy />}
+                  onClick={() => {
+                    trackAnalytics('onboarding.copy_instructions', {
+                      organization,
+                      format: 'markdown',
+                      source: 'crons_upsert_guide',
+                    });
+                    copyToClipboard(getGuideMarkdown());
+                  }}
+                >
+                  {t('Copy as Markdown')}
+                </Button>
+              </Tooltip>
+            )}
+          </Flex>
           <Tabs onChange={key => setPlatformGuide(platformKey, key)} value={guideKey}>
             <TabList>
               {[
@@ -73,7 +112,7 @@ export function CronsLandingPanel() {
               {[
                 ...platform.guides.map(({key, Guide}) => (
                   <TabPanels.Item key={key}>
-                    <GuideContainer>
+                    <GuideContainer ref={guideContainerRef}>
                       <Guide />
                     </GuideContainer>
                   </TabPanels.Item>
