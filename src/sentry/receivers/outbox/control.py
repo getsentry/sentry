@@ -95,7 +95,6 @@ def process_sentry_app_installation_deletes(
         region_name=region_name,
         status=ObjectStatus.DISABLED,
         sentry_app_id=payload["sentry_app_id"],
-        organization_id=payload["organization_id"],
     )
 
 

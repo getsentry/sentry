@@ -42,6 +42,7 @@ class DatabaseBackedActionService(ActionService):
             dataconditiongroupaction__condition_group__organization_id=organization_id,
         ).update(status=status)
 
+
     def update_action_status_for_sentry_app_via_sentry_app_id(
         self,
         *,
