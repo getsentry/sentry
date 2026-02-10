@@ -108,13 +108,12 @@ class TestProcessDataSources(BaseWorkflowTest):
             )
 
     def test_sql_cascades(self) -> None:
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(3):
             """
-            On cache miss, there are 2 SQL queries for `bulk_fetch_enabled_detectors`:
+            There are 3 SQL queries for `bulk_fetch_enabled_detectors`:
+            - Get the data source with organization (select_related, for feature flag check)
             - Get the detector and data condition group (via join through data source mapping)
             - Get all the data conditions for the group (prefetch)
-
-            On cache hit, there are 0 queries (everything cached).
             """
             _, detectors = process_data_source(self.two_detector_packet, "test")
             # If the detector is not prefetched this will increase the query count

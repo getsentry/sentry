@@ -670,6 +670,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:traces-page-cross-event-querying", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable downsampled date page filter
     manager.add("organizations:downsampled-date-page-filter", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable feature flag to cache detectors by data source
+    manager.add("organizations:cache-detectors-by-data-source", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
     # Enable feature flag to send expanded sentry apps webhooks (issue.created for all group categories)
     manager.add("organizations:expanded-sentry-apps-webhooks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)

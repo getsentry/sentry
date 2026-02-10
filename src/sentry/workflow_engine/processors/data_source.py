@@ -2,10 +2,10 @@ import logging
 
 import sentry_sdk
 
-from sentry.options.rollout import in_random_rollout
+from sentry import features
 from sentry.utils import metrics
 from sentry.workflow_engine.caches.detector import DetectorByDataSourceCacheAccess
-from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.models import DataPacket, DataSource, Detector
 
 logger = logging.getLogger("sentry.workflow_engine.process_data_source")
 
@@ -16,7 +16,17 @@ def bulk_fetch_enabled_detectors(source_id: str, query_type: str) -> list[Detect
     This will also prefetch all the subsequent data models for evaluating the detector.
     """
 
-    if in_random_rollout("workflow_engine.cache-detectors-by-data-source"):
+    try:
+        data_source = DataSource.objects.select_related("organization").get(source_id=source_id)
+        organization = data_source.organization
+    except DataSource.DoesNotExist:
+        logger.warning(
+            "workflow_engine.process_data_sources.data_source_not_found",
+            extra={"source_id": source_id},
+        )
+        return []
+
+    if features.has("organizations:cache-detectors-by-data-source", organization):
         cache_access = DetectorByDataSourceCacheAccess(source_id, query_type)
         detectors = cache_access.get()
         if detectors is None:
