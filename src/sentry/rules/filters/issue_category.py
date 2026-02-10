@@ -11,18 +11,35 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.types.condition_activity import ConditionActivity
 
 CATEGORY_CHOICES = OrderedDict([(f"{gc.value}", str(gc.name).lower()) for gc in GroupCategory])
+INCLUDE_CHOICES = OrderedDict([("1", "equal to"), ("0", "not equal to")])
 
 
 class IssueCategoryForm(forms.Form):
+    include = forms.ChoiceField(choices=list(INCLUDE_CHOICES.items()), required=False, initial="1")
     value = forms.ChoiceField(choices=list(CATEGORY_CHOICES.items()))
 
 
 class IssueCategoryFilter(EventFilter):
     id = "sentry.rules.filters.issue_category.IssueCategoryFilter"
-    form_fields = {"value": {"type": "choice", "choices": list(CATEGORY_CHOICES.items())}}
+    form_fields = {
+        "include": {
+            "type": "choice",
+            "choices": list(INCLUDE_CHOICES.items()),
+            "initial": "1",
+        },
+        "value": {"type": "choice", "choices": list(CATEGORY_CHOICES.items())},
+    }
     rule_type = "filter/event"
-    label = "The issue's category is equal to {value}"
+    label = "The issue's category is {include} {value}"
     prompt = "The issue's category is ..."
+
+    @staticmethod
+    def _is_include(value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if value in (0, "0", "false", "False"):
+            return False
+        return True
 
     def _passes(self, group: Group) -> bool:
         try:
@@ -30,8 +47,11 @@ class IssueCategoryFilter(EventFilter):
         except (TypeError, ValueError):
             return False
 
+        include = self._is_include(self.get_option("include", True))
+
         if group:
-            return value == group.issue_category or value == group.issue_category_v2
+            category_matches = value == group.issue_category or value == group.issue_category_v2
+            return category_matches if include else not category_matches
 
         return False
 
@@ -52,7 +72,9 @@ class IssueCategoryFilter(EventFilter):
         value = self.data["value"]
         title = CATEGORY_CHOICES.get(value)
         group_category_name = title.title() if title else ""
-        return self.label.format(value=group_category_name)
+        include = self._is_include(self.data.get("include", True))
+        include_label = "is equal to" if include else "is not equal to"
+        return self.label.format(include=include_label, value=group_category_name)
 
     def get_form_instance(self) -> IssueCategoryForm:
         return IssueCategoryForm(self.data)

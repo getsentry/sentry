@@ -45,6 +45,32 @@ class IssueCategoryFilterErrorTest(RuleTestCase):
         self.assertPasses(self.get_rule(data={"value": GroupCategory.ERROR.value}), event)
         self.assertPasses(self.get_rule(data={"value": GroupCategory.ERROR.value}), group_event)
 
+    def test_exclude(self) -> None:
+        event = self.get_event()
+        assert event.group is not None
+        group_event = event.for_group(event.group)
+
+        self.assertDoesNotPass(
+            self.get_rule(data={"value": GroupCategory.ERROR.value, "include": False}), event
+        )
+        self.assertDoesNotPass(
+            self.get_rule(data={"value": GroupCategory.ERROR.value, "include": False}), group_event
+        )
+
+        self.assertPasses(
+            self.get_rule(data={"value": GroupCategory.PERFORMANCE.value, "include": False}), event
+        )
+        self.assertPasses(
+            self.get_rule(data={"value": GroupCategory.PERFORMANCE.value, "include": False}),
+            group_event,
+        )
+
+    def test_exclude_string_value(self) -> None:
+        event = self.get_event()
+        self.assertDoesNotPass(
+            self.get_rule(data={"value": GroupCategory.ERROR.value, "include": "0"}), event
+        )
+
 
 class IssueCategoryFilterPerformanceTest(
     RuleTestCase,
