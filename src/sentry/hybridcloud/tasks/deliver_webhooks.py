@@ -75,6 +75,16 @@ PROVIDER_PRIORITY = {
 DEFAULT_PROVIDER_PRIORITY = 10
 
 
+def _set_webhook_delivery_sentry_context(payload: WebhookPayload) -> None:
+    """Set Sentry context at webhook delivery entrypoint for easier debugging."""
+    sentry_sdk.set_tag("mailbox_name", payload.mailbox_name)
+    context: dict[str, str] = {
+        "mailbox_name": payload.mailbox_name,
+        "provider": payload.provider or "unknown",
+    }
+    sentry_sdk.set_context("webhook_delivery", context)
+
+
 class DeliveryFailed(Exception):
     """
     Used to signal an expected delivery failure.
@@ -185,6 +195,8 @@ def drain_mailbox(payload_id: int) -> None:
         )
         return
 
+    _set_webhook_delivery_sentry_context(payload)
+
     delivered = 0
     deadline = timezone.now() + BATCH_SCHEDULE_OFFSET
     while True:
@@ -264,6 +276,8 @@ def drain_mailbox_parallel(payload_id: int) -> None:
             },
         )
         return
+
+    _set_webhook_delivery_sentry_context(payload)
 
     # Remove batches payloads that have been backlogged for MAX_DELIVERY_AGE.
     # Once payloads are this old they are low value, and we're better off prioritizing new work.
