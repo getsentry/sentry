@@ -180,8 +180,12 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
 
   const isTimeSeriesData = usesTimeSeriesData(widget.displayType);
 
-  const enableSeriesHook = isTimeSeriesData && !disabled && !propsLoading;
-  const enableTableHook = !isTimeSeriesData && !disabled && !propsLoading;
+  const widgetFetchesOwnData = widget.displayType === DisplayType.SERVER_TREE;
+
+  const enableHooks = !disabled && !propsLoading && !widgetFetchesOwnData;
+
+  const enableSeriesHook = isTimeSeriesData && enableHooks;
+  const enableTableHook = !isTimeSeriesData && enableHooks;
   const needsBreakdownTable = isTimeSeriesData && widget.legendType === 'breakdown';
 
   const tableWidget = useMemo(
