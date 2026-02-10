@@ -961,8 +961,8 @@ def nodejs_error_with_cause(exceptions: list[SingleException]) -> int | None:
     and returns the cause as the primary exception to display in issue titles and alerts.
 
     This applies to all JavaScript/Node.js errors with causes, not just React-specific errors.
-    
-    In Sentry's exception chain structure, exceptions are ordered from innermost (index 0) to 
+
+    In Sentry's exception chain structure, exceptions are ordered from innermost (index 0) to
     outermost (index -1). We want to find and return the innermost exception marked with source="cause".
     """
     if len(exceptions) < 2:
