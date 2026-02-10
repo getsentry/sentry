@@ -3,7 +3,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useAuthToken} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {useSelectedCodeTab} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
+import {getSelectedCodeTab} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import type {OnboardingStep} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {stepsToMarkdown} from 'sentry/components/onboarding/gettingStartedDoc/utils/stepsToMarkdown';
 import {IconCopy} from 'sentry/icons';
@@ -58,22 +58,19 @@ interface OnboardingCopyMarkdownButtonProps {
 }
 
 /**
- * A "Copy to Markdown" button pre-wired for onboarding steps. Reads from
- * SelectedCodeTabContext to copy only the user's currently selected tab variant.
- *
- * Must be rendered inside a `<SelectedCodeTabProvider>`.
+ * A "Copy to Markdown" button pre-wired for onboarding steps. Reads the
+ * currently selected code tab and auth token at click time.
  */
 export function OnboardingCopyMarkdownButton({
   steps,
   organization,
   source,
 }: OnboardingCopyMarkdownButtonProps) {
-  const {selectedTab} = useSelectedCodeTab();
   const authToken = useAuthToken();
 
   const getMarkdown = () =>
     stepsToMarkdown(steps, {
-      selectedTabLabel: selectedTab ?? undefined,
+      selectedTabLabel: getSelectedCodeTab() ?? undefined,
       authToken,
     });
 

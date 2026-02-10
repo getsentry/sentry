@@ -7,7 +7,6 @@ import FeedbackConfigToggle from 'sentry/components/feedback/feedbackOnboarding/
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
-import {SelectedCodeTabProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -112,55 +111,53 @@ export function FeedbackOnboardingLayout({
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <Wrapper>
         {introduction && <Stack marginBottom="3xl">{introduction}</Stack>}
-        <SelectedCodeTabProvider>
-          <OnboardingCopyMarkdownButton
-            steps={steps}
-            organization={organization}
-            source="feedback_onboarding"
-          />
-          <Steps>
-            {steps
-              // TODO(aknaus): Move inserting the toggle into the docs definitions
-              // once the content blocks migration is done. This logic here is very brittle.
-              .map(step => {
-                if (
-                  step.type !== StepType.CONFIGURE ||
-                  configType !== 'feedbackOnboardingNpm' ||
-                  hideFeedbackConfigToggle
-                ) {
+        <OnboardingCopyMarkdownButton
+          steps={steps}
+          organization={organization}
+          source="feedback_onboarding"
+        />
+        <Steps>
+          {steps
+            // TODO(aknaus): Move inserting the toggle into the docs definitions
+            // once the content blocks migration is done. This logic here is very brittle.
+            .map(step => {
+              if (
+                step.type !== StepType.CONFIGURE ||
+                configType !== 'feedbackOnboardingNpm' ||
+                hideFeedbackConfigToggle
+              ) {
+                return step;
+              }
+
+              if (step.content) {
+                // Insert the feedback config toggle before the code block
+                const codeIndex = step.content?.findIndex(b => b.type === 'code');
+                if (codeIndex === -1) {
                   return step;
                 }
-
-                if (step.content) {
-                  // Insert the feedback config toggle before the code block
-                  const codeIndex = step.content?.findIndex(b => b.type === 'code');
-                  if (codeIndex === -1) {
-                    return step;
-                  }
-                  const newContent = [...step.content];
-                  if (codeIndex !== undefined) {
-                    newContent.splice(codeIndex, 0, {
-                      type: 'custom',
-                      bottomMargin: false,
-                      content: feedbackConfigToggle,
-                    });
-                  }
-                  return {
-                    ...step,
-                    content: newContent,
-                  };
+                const newContent = [...step.content];
+                if (codeIndex !== undefined) {
+                  newContent.splice(codeIndex, 0, {
+                    type: 'custom',
+                    bottomMargin: false,
+                    content: feedbackConfigToggle,
+                  });
                 }
-
                 return {
                   ...step,
-                  codeHeader: feedbackConfigToggle,
+                  content: newContent,
                 };
-              })
-              .map(step => (
-                <Step key={step.title ?? step.type} {...step} />
-              ))}
-          </Steps>
-        </SelectedCodeTabProvider>
+              }
+
+              return {
+                ...step,
+                codeHeader: feedbackConfigToggle,
+              };
+            })
+            .map(step => (
+              <Step key={step.title ?? step.type} {...step} />
+            ))}
+        </Steps>
       </Wrapper>
     </AuthTokenGeneratorProvider>
   );

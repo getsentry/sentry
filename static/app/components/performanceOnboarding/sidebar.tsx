@@ -12,7 +12,6 @@ import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
-import {SelectedCodeTabProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -339,18 +338,16 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       {performanceDocs.introduction && (
         <Introduction>{performanceDocs.introduction(docParams)}</Introduction>
       )}
-      <SelectedCodeTabProvider>
-        <OnboardingCopyMarkdownButton
-          steps={steps}
-          organization={organization}
-          source="performance_sidebar_onboarding"
-        />
-        <Steps>
-          {steps.map(step => {
-            return <Step key={step.title ?? step.type} {...step} />;
-          })}
-        </Steps>
-      </SelectedCodeTabProvider>
+      <OnboardingCopyMarkdownButton
+        steps={steps}
+        organization={organization}
+        source="performance_sidebar_onboarding"
+      />
+      <Steps>
+        {steps.map(step => {
+          return <Step key={step.title ?? step.type} {...step} />;
+        })}
+      </Steps>
       <EventWaiter
         api={api}
         organization={organization}

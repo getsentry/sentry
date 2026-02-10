@@ -11,7 +11,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
-import {SelectedCodeTabProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   DocsParams,
@@ -325,26 +324,24 @@ export function Onboarding() {
         <PlatformOptionDropdown platformOptions={integrationOptions} />
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
-      <SelectedCodeTabProvider>
-        <OnboardingCopyMarkdownButton
-          steps={steps}
-          organization={organization}
-          source="mcp_onboarding"
-        />
-        <GuidedSteps>
-          {steps
-            // Only show non-optional steps
-            .filter(step => !step.collapsible)
-            .map((step, index) => (
-              <StepRenderer
-                key={index}
-                project={project}
-                step={step}
-                isLastStep={index === steps.length - 1}
-              />
-            ))}
-        </GuidedSteps>
-      </SelectedCodeTabProvider>
+      <OnboardingCopyMarkdownButton
+        steps={steps}
+        organization={organization}
+        source="mcp_onboarding"
+      />
+      <GuidedSteps>
+        {steps
+          // Only show non-optional steps
+          .filter(step => !step.collapsible)
+          .map((step, index) => (
+            <StepRenderer
+              key={index}
+              project={project}
+              step={step}
+              isLastStep={index === steps.length - 1}
+            />
+          ))}
+      </GuidedSteps>
     </OnboardingPanel>
   );
 }

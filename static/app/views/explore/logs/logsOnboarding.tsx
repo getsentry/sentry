@@ -12,7 +12,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
-import {SelectedCodeTabProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   ProductSolution,
@@ -307,44 +306,42 @@ function Onboarding({organization, project}: OnboardingProps) {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
-      <SelectedCodeTabProvider>
-        <OnboardingCopyMarkdownButton
-          steps={steps}
-          organization={organization}
-          source="logs_onboarding"
-        />
-        <GuidedSteps
-          initialStep={decodeInteger(location.query.guidedStep)}
-          onStepChange={step => {
-            navigate({
-              pathname: location.pathname,
-              query: {
-                ...location.query,
-                guidedStep: step,
-              },
-            });
-          }}
-        >
-          {steps.map((step, index) => {
-            const title = step.title ?? STEP_TITLES[step.type];
-            return (
-              <GuidedSteps.Step key={title} stepKey={title} title={title}>
-                <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
-                {index === steps.length - 1 ? (
-                  <GuidedSteps.ButtonWrapper>
-                    <GuidedSteps.BackButton size="md" />
-                  </GuidedSteps.ButtonWrapper>
-                ) : (
-                  <GuidedSteps.ButtonWrapper>
-                    <GuidedSteps.BackButton size="md" />
-                    <GuidedSteps.NextButton size="md" />
-                  </GuidedSteps.ButtonWrapper>
-                )}
-              </GuidedSteps.Step>
-            );
-          })}
-        </GuidedSteps>
-      </SelectedCodeTabProvider>
+      <OnboardingCopyMarkdownButton
+        steps={steps}
+        organization={organization}
+        source="logs_onboarding"
+      />
+      <GuidedSteps
+        initialStep={decodeInteger(location.query.guidedStep)}
+        onStepChange={step => {
+          navigate({
+            pathname: location.pathname,
+            query: {
+              ...location.query,
+              guidedStep: step,
+            },
+          });
+        }}
+      >
+        {steps.map((step, index) => {
+          const title = step.title ?? STEP_TITLES[step.type];
+          return (
+            <GuidedSteps.Step key={title} stepKey={title} title={title}>
+              <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+              {index === steps.length - 1 ? (
+                <GuidedSteps.ButtonWrapper>
+                  <GuidedSteps.BackButton size="md" />
+                </GuidedSteps.ButtonWrapper>
+              ) : (
+                <GuidedSteps.ButtonWrapper>
+                  <GuidedSteps.BackButton size="md" />
+                  <GuidedSteps.NextButton size="md" />
+                </GuidedSteps.ButtonWrapper>
+              )}
+            </GuidedSteps.Step>
+          );
+        })}
+      </GuidedSteps>
     </OnboardingPanel>
   );
 }

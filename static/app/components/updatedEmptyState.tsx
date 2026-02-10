@@ -11,7 +11,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
-import {SelectedCodeTabProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   DocsParams,
@@ -181,45 +180,43 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
         <Body>
           <Setup>
             <SetupTitle project={project} />
-            <SelectedCodeTabProvider>
-              <OnboardingCopyMarkdownButton
-                steps={steps}
-                organization={organization}
-                source="issues_onboarding"
-              />
-              <GuidedSteps
-                initialStep={decodeInteger(location.query.guidedStep)}
-                onStepChange={step => {
-                  navigate({
-                    pathname: location.pathname,
-                    query: {
-                      ...location.query,
-                      guidedStep: step,
-                    },
-                  });
-                }}
-              >
-                {steps.map((step, index) => {
-                  const title = step.title ?? StepTitles[step.type ?? 'install'];
-                  const isLastStep = index === steps.length - 1;
-                  return (
-                    <GuidedSteps.Step key={index} stepKey={title} title={title}>
-                      <ContentBlocksRenderer
-                        contentBlocks={step.content}
-                        spacing={space(1)}
-                      />
-                      <GuidedSteps.ButtonWrapper>
-                        <GuidedSteps.BackButton size="md" />
-                        <GuidedSteps.NextButton size="md" />
-                        {isLastStep && <WaitingIndicator project={project} />}
-                      </GuidedSteps.ButtonWrapper>
-                      {/* This spacer ensures the whole pulse effect is visible, as the parent has overflow: hidden */}
-                      {isLastStep && <PulseSpacer />}
-                    </GuidedSteps.Step>
-                  );
-                })}
-              </GuidedSteps>
-            </SelectedCodeTabProvider>
+            <OnboardingCopyMarkdownButton
+              steps={steps}
+              organization={organization}
+              source="issues_onboarding"
+            />
+            <GuidedSteps
+              initialStep={decodeInteger(location.query.guidedStep)}
+              onStepChange={step => {
+                navigate({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    guidedStep: step,
+                  },
+                });
+              }}
+            >
+              {steps.map((step, index) => {
+                const title = step.title ?? StepTitles[step.type ?? 'install'];
+                const isLastStep = index === steps.length - 1;
+                return (
+                  <GuidedSteps.Step key={index} stepKey={title} title={title}>
+                    <ContentBlocksRenderer
+                      contentBlocks={step.content}
+                      spacing={space(1)}
+                    />
+                    <GuidedSteps.ButtonWrapper>
+                      <GuidedSteps.BackButton size="md" />
+                      <GuidedSteps.NextButton size="md" />
+                      {isLastStep && <WaitingIndicator project={project} />}
+                    </GuidedSteps.ButtonWrapper>
+                    {/* This spacer ensures the whole pulse effect is visible, as the parent has overflow: hidden */}
+                    {isLastStep && <PulseSpacer />}
+                  </GuidedSteps.Step>
+                );
+              })}
+            </GuidedSteps>
           </Setup>
           <Preview>
             <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>

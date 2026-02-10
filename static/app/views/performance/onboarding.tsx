@@ -29,7 +29,6 @@ import FeatureTourModal, {
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
-import {SelectedCodeTabProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   ProductSolution,
@@ -579,74 +578,72 @@ export function Onboarding({organization, project}: OnboardingProps) {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
-      <SelectedCodeTabProvider>
-        <OnboardingCopyMarkdownButton
-          steps={steps}
-          organization={organization}
-          source="performance_onboarding"
-        />
-        <GuidedSteps
-          initialStep={decodeInteger(location.query.guidedStep)}
-          onStepChange={step => {
-            navigate({
-              pathname: location.pathname,
-              query: {
-                ...location.query,
-                guidedStep: step,
-              },
-            });
-          }}
-        >
-          {steps.map((step, index) => {
-            const title = step.title ?? STEP_TITLES[step.type];
-            return (
-              <GuidedSteps.Step key={title} stepKey={title} title={title}>
-                <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
-                {index === steps.length - 1 ? (
-                  <Fragment>
-                    {eventWaitingIndicator}
-                    <GuidedSteps.ButtonWrapper>
-                      <GuidedSteps.BackButton size="md" />
-                      {received ? (
-                        <Button
-                          priority="primary"
-                          busy={!traceId}
-                          title={traceId ? undefined : t('Processing trace\u2026')}
-                          onClick={() => {
-                            const params = new URLSearchParams(window.location.search);
-                            params.set('table', Tab.TRACE);
-                            params.set('query', `trace:${traceId}`);
-                            params.delete('guidedStep');
-                            testableWindowLocation.assign(
-                              `${window.location.pathname}?${params.toString()}`
-                            );
-                          }}
-                        >
-                          {t('Take me to my trace')}
-                        </Button>
-                      ) : isEAPTraceEnabled ? null : (
-                        <SampleButton
-                          triggerText={t('Take me to an example')}
-                          loadingMessage={t('Processing sample trace...')}
-                          errorMessage={t('Failed to create sample trace')}
-                          organization={organization}
-                          project={project}
-                          api={api}
-                        />
-                      )}
-                    </GuidedSteps.ButtonWrapper>
-                  </Fragment>
-                ) : (
+      <OnboardingCopyMarkdownButton
+        steps={steps}
+        organization={organization}
+        source="performance_onboarding"
+      />
+      <GuidedSteps
+        initialStep={decodeInteger(location.query.guidedStep)}
+        onStepChange={step => {
+          navigate({
+            pathname: location.pathname,
+            query: {
+              ...location.query,
+              guidedStep: step,
+            },
+          });
+        }}
+      >
+        {steps.map((step, index) => {
+          const title = step.title ?? STEP_TITLES[step.type];
+          return (
+            <GuidedSteps.Step key={title} stepKey={title} title={title}>
+              <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+              {index === steps.length - 1 ? (
+                <Fragment>
+                  {eventWaitingIndicator}
                   <GuidedSteps.ButtonWrapper>
                     <GuidedSteps.BackButton size="md" />
-                    <GuidedSteps.NextButton size="md" />
+                    {received ? (
+                      <Button
+                        priority="primary"
+                        busy={!traceId}
+                        title={traceId ? undefined : t('Processing trace\u2026')}
+                        onClick={() => {
+                          const params = new URLSearchParams(window.location.search);
+                          params.set('table', Tab.TRACE);
+                          params.set('query', `trace:${traceId}`);
+                          params.delete('guidedStep');
+                          testableWindowLocation.assign(
+                            `${window.location.pathname}?${params.toString()}`
+                          );
+                        }}
+                      >
+                        {t('Take me to my trace')}
+                      </Button>
+                    ) : isEAPTraceEnabled ? null : (
+                      <SampleButton
+                        triggerText={t('Take me to an example')}
+                        loadingMessage={t('Processing sample trace...')}
+                        errorMessage={t('Failed to create sample trace')}
+                        organization={organization}
+                        project={project}
+                        api={api}
+                      />
+                    )}
                   </GuidedSteps.ButtonWrapper>
-                )}
-              </GuidedSteps.Step>
-            );
-          })}
-        </GuidedSteps>
-      </SelectedCodeTabProvider>
+                </Fragment>
+              ) : (
+                <GuidedSteps.ButtonWrapper>
+                  <GuidedSteps.BackButton size="md" />
+                  <GuidedSteps.NextButton size="md" />
+                </GuidedSteps.ButtonWrapper>
+              )}
+            </GuidedSteps.Step>
+          );
+        })}
+      </GuidedSteps>
     </OnboardingPanel>
   );
 }

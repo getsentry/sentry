@@ -1,24 +1,17 @@
-import {createContext, useContext, useState} from 'react';
+/**
+ * Simple module-level store for tracking the currently selected code tab
+ * (e.g. "npm", "yarn", "pnpm") across onboarding code snippets.
+ *
+ * Avoids React context so consumers don't need a wrapping provider,
+ * keeping diffs minimal when adding the Copy as Markdown button.
+ */
 
-interface SelectedCodeTabContextValue {
-  selectedTab: string | null;
-  setSelectedTab: (tab: string) => void;
+let _selectedTab: string | null = null;
+
+export function getSelectedCodeTab(): string | null {
+  return _selectedTab;
 }
 
-const SelectedCodeTabContext = createContext<SelectedCodeTabContextValue>({
-  selectedTab: null,
-  setSelectedTab: () => {},
-});
-
-export function SelectedCodeTabProvider({children}: {children: React.ReactNode}) {
-  const [selectedTab, setSelectedTab] = useState<string | null>(null);
-  return (
-    <SelectedCodeTabContext value={{selectedTab, setSelectedTab}}>
-      {children}
-    </SelectedCodeTabContext>
-  );
-}
-
-export function useSelectedCodeTab() {
-  return useContext(SelectedCodeTabContext);
+export function setSelectedCodeTab(tab: string): void {
+  _selectedTab = tab;
 }
