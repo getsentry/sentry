@@ -282,6 +282,19 @@ x-sentry-service-config:
         uptime-checker,
         uptime-results,
       ]
+    # For uptime development: all services except the checker
+    # itself, which would be built and run locally.
+    uptime-dev:
+      [
+        snuba,
+        postgres,
+        relay,
+        taskbroker,
+        taskworker,
+        ingest-events,
+        ingest-transactions,
+        uptime-results,
+      ]
     ingest-all:
       [
         billing-metrics-consumer,
