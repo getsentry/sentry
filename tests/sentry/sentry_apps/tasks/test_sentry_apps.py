@@ -1314,7 +1314,6 @@ class TestSendResourceChangeWebhook(TestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @with_feature("organizations:integrations-event-hooks")
     def test_sends_webhooks_with_send_webhook_sentry_failure(self, mock_record: MagicMock) -> None:
-
         self.project = self.create_project()
         self.sentry_app_1 = self.create_sentry_app(
             organization=self.project.organization,

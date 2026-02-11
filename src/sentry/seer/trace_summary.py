@@ -66,7 +66,6 @@ def _call_seer(
     trace_content: list[Any],
     only_transaction: bool = False,
 ) -> SummarizeTraceResponse:
-
     path = "/v1/automation/summarize/trace"
     body = orjson.dumps(
         {

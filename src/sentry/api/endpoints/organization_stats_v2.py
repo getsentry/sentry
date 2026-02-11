@@ -188,7 +188,6 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         Select a field, define a date range, and group or filter by columns.
         """
         with self.handle_query_errors():
-
             tenant_ids = {"organization_id": organization.id}
             with sentry_sdk.start_span(op="outcomes.endpoint", name="build_outcomes_query"):
                 query = self.build_outcomes_query(

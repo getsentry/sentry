@@ -285,7 +285,6 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
 
 
 class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator):
-
     @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_create_with_valid_data(

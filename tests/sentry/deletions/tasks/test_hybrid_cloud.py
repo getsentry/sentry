@@ -766,9 +766,9 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
                     transaction_id="foobar",
                 ),
             )
-            assert (
-                ids == bounds_with_expected_results
-            ), f"Expected  IDs '{bounds_with_expected_results}', got '{ids}', for input: '{bounds}'"
+            assert ids == bounds_with_expected_results, (
+                f"Expected  IDs '{bounds_with_expected_results}', got '{ids}', for input: '{bounds}'"
+            )
 
     def test_get_ids_for_tombstone_cascade_cross_db_with_multiple_tombstone_types(self) -> None:
         data = setup_cross_db_deletion_data()

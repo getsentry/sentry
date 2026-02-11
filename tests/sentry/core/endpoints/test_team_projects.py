@@ -102,7 +102,6 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert response.data["platform"][0] == "Invalid platform"
 
     def test_invalid_name(self) -> None:
-
         invalid_name = list(RESERVED_PROJECT_SLUGS)[0]
         response = self.get_error_response(
             self.organization.slug,

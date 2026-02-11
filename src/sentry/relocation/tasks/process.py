@@ -759,7 +759,7 @@ def preprocessing_transfer(uuid: str) -> None:
             raise FileNotFoundError("User-supplied relocation data not found.")
 
         file: File = raw_relocation_file.file
-        path = f'runs/{uuid}/in/{kind.to_filename("tar")}'
+        path = f"runs/{uuid}/in/{kind.to_filename('tar')}"
 
         # Copy all of the files from Django's abstract filestore into an isolated,
         # backend-specific filestore for relocation operations only.
@@ -799,7 +799,7 @@ def preprocessing_baseline_config(uuid: str) -> None:
         ERR_PREPROCESSING_INTERNAL,
     ):
         kind = RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA
-        path = f'runs/{uuid}/in/{kind.to_filename("tar")}'
+        path = f"runs/{uuid}/in/{kind.to_filename('tar')}"
         relocation_storage = get_relocation_storage()
 
         # TODO(getsentry/team-ospo#216): A very nice optimization here is to only pull this down
@@ -848,7 +848,7 @@ def preprocessing_colliding_users(uuid: str) -> None:
         ERR_PREPROCESSING_INTERNAL,
     ):
         kind = RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA
-        path = f'runs/{uuid}/in/{kind.to_filename("tar")}'
+        path = f"runs/{uuid}/in/{kind.to_filename('tar')}"
         relocation_storage = get_relocation_storage()
         fp = BytesIO()
         log_gcp_credentials_details(logger)

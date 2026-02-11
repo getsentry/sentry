@@ -29,7 +29,6 @@ class BufferHashKeys:
 
 
 class BufferProtocol(Protocol):
-
     def get_hash(self, model: type[models.Model], field: dict[str, Any]) -> dict[str, str]: ...
 
     def get_hash_length(self, model: type[models.Model], field: dict[str, Any]) -> int: ...

@@ -260,7 +260,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         for i, test_case in enumerate(test_cases):
             mock_broadcast.reset_mock()
             block = MemoryBlock(
-                id=f"block{i+1}",
+                id=f"block{i + 1}",
                 message=Message(message="test", role="tool_use"),
                 timestamp="2024-01-01T00:00:00Z",
                 artifacts=[

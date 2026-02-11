@@ -559,7 +559,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 dashboard_create_lock.acquire(),
                 transaction.atomic(router.db_for_write(Dashboard)),
             ):
-
                 dashboard_count = Dashboard.objects.filter(
                     organization=organization, prebuilt_id=None
                 ).count()

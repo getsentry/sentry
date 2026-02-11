@@ -284,7 +284,6 @@ def to_size_info(
 def transform_preprod_artifact_to_build_details(
     artifact: PreprodArtifact,
 ) -> BuildDetailsApiResponse:
-
     size_metrics_list = list(artifact.preprodartifactsizemetrics_set.all())
 
     base_size_metrics_list: list[PreprodArtifactSizeMetrics] = []

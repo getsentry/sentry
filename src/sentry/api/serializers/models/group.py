@@ -675,7 +675,8 @@ class GroupSerializerBase(Serializer, ABC):
             )
         )
         _commit_resolutions = {
-            i.group_id: d for i, d in zip(commit_results, serialize(commit_results, user))  # type: ignore[attr-defined]  # django-stubs
+            i.group_id: d
+            for i, d in zip(commit_results, serialize(commit_results, user))  # type: ignore[attr-defined]  # django-stubs
         }
 
         return _release_resolutions, _commit_resolutions

@@ -15,7 +15,6 @@ from sentry.taskworker.task import Task
 
 @region_silo_model
 class File(AbstractFile[FileBlobIndex, FileBlob]):
-
     blobs = models.ManyToManyField("sentry.FileBlob", through="sentry.FileBlobIndex")
 
     # <Legacy fields>

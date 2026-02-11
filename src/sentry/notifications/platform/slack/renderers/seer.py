@@ -68,7 +68,6 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
 
 
 class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
-
     @classmethod
     def render[DataT: NotificationData](
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate

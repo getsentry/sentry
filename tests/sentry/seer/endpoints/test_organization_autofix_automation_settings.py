@@ -264,7 +264,6 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         assert response.status_code == 400
 
     def test_post_rejects_invalid_project_ids(self):
-
         response = self.client.post(
             self.url,
             {
@@ -275,7 +274,6 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         assert response.status_code == 403
 
     def test_post_rejects_invalid_tuning(self):
-
         response = self.client.post(
             self.url,
             {
@@ -286,7 +284,6 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         assert response.status_code == 400
 
     def test_post_rejects_invalid_stopping_point(self):
-
         response = self.client.post(
             self.url,
             {

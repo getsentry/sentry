@@ -1312,9 +1312,9 @@ def test_read_from_set() -> None:
         for queue_key in queue_keys:
             queue_members = buffer.client.zrange(queue_key, 0, -1)
             for member in queue_members:
-                assert member.startswith(
-                    b"span-buf:s:"
-                ), f"Expected SET key in queue, got: {member.decode()}"
+                assert member.startswith(b"span-buf:s:"), (
+                    f"Expected SET key in queue, got: {member.decode()}"
+                )
 
         # Verify flush works and returns SET keys
         rv = buffer.flush_segments(now=11)

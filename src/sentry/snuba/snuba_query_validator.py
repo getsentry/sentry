@@ -377,7 +377,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         except Exception:
             logger.exception("Error while validating snuba alert rule query")
             raise serializers.ValidationError(
-                "Invalid Query or Metric: An error occurred while attempting " "to run the query"
+                "Invalid Query or Metric: An error occurred while attempting to run the query"
             )
 
     def _validate_time_window(self, value: int, dataset: Dataset):

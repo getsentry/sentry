@@ -97,7 +97,6 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         subscription_ids: list[str],
         timerange_args: StatsArgsDict,
     ) -> TimeSeriesResponse:
-
         eap_query_start = timerange_args["start"]
         start_timestamp = Timestamp()
         start_timestamp.FromDatetime(eap_query_start)

@@ -10,7 +10,6 @@ from sentry.testutils.helpers.eventprocessing import save_new_event
 
 
 class GroupingContextTest(TestCase):
-
     def _get_new_context(self, initial_context: dict[str, Any] | None = None) -> GroupingContext:
         strategy_class = create_strategy_configuration_class(
             id="doggity_dogs_dogs", initial_context=initial_context
