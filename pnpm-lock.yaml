@@ -427,11 +427,11 @@ importers:
         specifier: ^5.3.2
         version: 5.3.2
       peggy:
-        specifier: ^4.1.1
-        version: 4.1.1
+        specifier: 5.0.6
+        version: 5.0.6
       platformicons:
-        specifier: ^9.0.4
-        version: 9.0.4(react@19.2.3)
+        specifier: ^9.0.7
+        version: 9.0.7(react@19.2.3)
       po-catalog-loader:
         specifier: 2.1.0
         version: 2.1.0(gettext-parser@7.0.1)
@@ -2630,9 +2630,9 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@peggyjs/from-mem@1.3.4':
-    resolution: {integrity: sha512-6DqaCO73ihyM2AJ2Vl4QQGmmU3MoD4hFh0RFRzxPdLkSLfE0QMEyDfaojE/R3KbsL1UP4VQyJA2clwX4agSTBw==}
-    engines: {node: '>=18'}
+  '@peggyjs/from-mem@3.1.1':
+    resolution: {integrity: sha512-m5OEjgJaePWpyNtQCvRZkpLoV+z44eh6QIO9yEwQuOThdUdkECO3wcKLT3tFA3H8WM5bxU/K/dpmo7r/X16UEw==}
+    engines: {node: '>=20.8'}
 
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
@@ -3604,12 +3604,6 @@ packages:
   '@types/node@22.15.21':
     resolution: {integrity: sha512-EV/37Td6c+MgKAbkcLG6vqZ2zEYHD7bvSrzqqs2RIhbA6w3x+Dqz8MZM3sP6kGTeLrdoOgKZe+Xja7tUB2DNkQ==}
 
-  '@types/node@22.16.5':
-    resolution: {integrity: sha512-bJFoMATwIGaxxx8VJPeM8TonI8t579oRvgAuT8zFugJsJZgzqv0Fu8Mhp68iecjzG7cnN3mO2dJQ5uUM2EFrgQ==}
-
-  '@types/node@22.17.1':
-    resolution: {integrity: sha512-y3tBaz+rjspDTylNjAX37jEC3TETEFGNJL6uQDxwF9/8GLLIjW1rvVHlynyuUKMnMr1Roq8jOv3vkopBjC4/VA==}
-
   '@types/node@22.19.2':
     resolution: {integrity: sha512-LPM2G3Syo1GLzXLGJAKdqoU35XvrWzGJ21/7sgZTUpbkBaOasTj8tjwn6w+hCkqaa1TfJ/w67rJSwYItlJ2mYw==}
 
@@ -4559,9 +4553,9 @@ packages:
     resolution: {integrity: sha512-yPVavfyCcRhmorC7rWlkHn15b4wDVgVmBA7kV4QVBsF7kv/9TKJAbAXVTxvTnwP8HHKjRCJDClKbciiYS7p0DQ==}
     engines: {node: '>=16'}
 
-  commander@12.1.0:
-    resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
-    engines: {node: '>=18'}
+  commander@14.0.3:
+    resolution: {integrity: sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==}
+    engines: {node: '>=20'}
 
   commander@2.20.3:
     resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
@@ -7379,9 +7373,9 @@ packages:
     resolution: {integrity: sha512-gDKb8aZMDeD/tZWs9P6+q0J9Mwkdl6xMV8TjnGP3qJVJ06bdMgkbBlLU8IdfOsIsFz2BW1rNVT3XuNEl8zPAvw==}
     engines: {node: '>=8'}
 
-  peggy@4.1.1:
-    resolution: {integrity: sha512-2emciJQKahHJpT7f1asizGSnJ8bq0TKgWMXnCrtAaSH1NIXaGifYxL5m5KMrCdlaqaQJz3SVexNkx+I+Vz66VA==}
-    engines: {node: '>=18'}
+  peggy@5.0.6:
+    resolution: {integrity: sha512-Sud8Zus0JAgE+U4zwkJv29OOaXhviFI7J90/6cGfy3OoqR8dpnieeF9a46dj0bTtqiFnrFatldA6ltQyOJvNmg==}
+    engines: {node: '>=20'}
     hasBin: true
 
   performance-now@2.1.0:
@@ -7425,8 +7419,8 @@ packages:
     resolution: {integrity: sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ==}
     engines: {node: '>=8'}
 
-  platformicons@9.0.4:
-    resolution: {integrity: sha512-/tSypfsAzHz3z88veg2bjN/OU4fVerh/nimLX41LR+icJxYUeuzP32+Cb3+rKj0GM8p85TLBRowgKULb7mrbDA==}
+  platformicons@9.0.7:
+    resolution: {integrity: sha512-+3t3J5LllMANkZ3Ykg44Tka0blhEGz9+ydSg3m6rUCsWF3y6RbFLTqn9GiM3gmeSzTidwSxg3RDA4WCG+h5YpA==}
     peerDependencies:
       react: '*'
 
@@ -8028,11 +8022,6 @@ packages:
     resolution: {integrity: sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==}
     hasBin: true
 
-  semver@7.6.3:
-    resolution: {integrity: sha512-oVekP1cKtI+CTDvHWYFUcMtsK/00wmAEfyqKfNdARm8u1wNVhSgaX7A8d4UuIlUI5e84iEwOhs7ZPYRmzU9U6A==}
-    engines: {node: '>=10'}
-    hasBin: true
-
   semver@7.7.2:
     resolution: {integrity: sha512-RF0Fw+rO5AMf9MAyaRXI4AV0Ulj5lMHqVxxdSgiVbixSCXoEmmX/jk0CuJw4+3SqroYO9VoUh+HcuJivvtJemA==}
     engines: {node: '>=10'}
@@ -8153,9 +8142,9 @@ packages:
   sockjs@0.3.24:
     resolution: {integrity: sha512-GJgLTZ7vYb/JtPSSZ10hsOYIvEYsjbNU+zPdIHcUaWVNUEPivzxku31865sSSud0Da0W4lEeOPlmw93zLQchuQ==}
 
-  source-map-generator@0.8.0:
-    resolution: {integrity: sha512-psgxdGMwl5MZM9S3FWee4EgsEaIjahYV5AzGnwUvPhWeITz/j6rKpysQHlQ4USdxvINlb8lKfWGIXwfkrgtqkA==}
-    engines: {node: '>= 10'}
+  source-map-generator@2.0.2:
+    resolution: {integrity: sha512-unCl5BQhF/us51DiT7SvlSY3QUPhyfAdHJxd8l7FXdwzqxli0UDMV2dEuei2SeGp3Z4rB/AJ9zKi1mGOp2K2ww==}
+    engines: {node: '>=20'}
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
@@ -10664,7 +10653,7 @@ snapshots:
   '@jest/console@30.0.4':
     dependencies:
       '@jest/types': 30.0.1
-      '@types/node': 22.17.1
+      '@types/node': 22.19.2
       chalk: 4.1.2
       jest-message-util: 30.0.2
       jest-util: 30.0.2
@@ -10678,14 +10667,14 @@ snapshots:
       '@jest/test-result': 30.0.4
       '@jest/transform': 30.0.4
       '@jest/types': 30.0.1
-      '@types/node': 22.17.1
+      '@types/node': 22.19.2
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       ci-info: 4.2.0
       exit-x: 0.2.2
       graceful-fs: 4.2.11
       jest-changed-files: 30.0.2
-      jest-config: 30.0.4(@types/node@22.17.1)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@types/node@22.15.21)(typescript@5.9.3))
+      jest-config: 30.0.4(@types/node@22.19.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@types/node@22.15.21)(typescript@5.9.3))
       jest-haste-map: 30.0.2
       jest-message-util: 30.0.2
       jest-regex-util: 30.0.1
@@ -10716,7 +10705,7 @@ snapshots:
       '@jest/fake-timers': 30.0.4
       '@jest/types': 30.0.1
       '@types/jsdom': 21.1.7
-      '@types/node': 22.15.21
+      '@types/node': 22.19.2
       jest-mock: 30.0.2
       jest-util: 30.0.2
       jsdom: 26.1.0
@@ -10725,7 +10714,7 @@ snapshots:
     dependencies:
       '@jest/fake-timers': 30.0.4
       '@jest/types': 30.0.1
-      '@types/node': 22.15.21
+      '@types/node': 22.19.2
       jest-mock: 30.0.2
 
   '@jest/expect-utils@30.0.0':
@@ -10747,7 +10736,7 @@ snapshots:
     dependencies:
       '@jest/types': 30.0.1
       '@sinonjs/fake-timers': 13.0.5
-      '@types/node': 22.17.1
+      '@types/node': 22.19.2
       jest-message-util: 30.0.2
       jest-mock: 30.0.2
       jest-util: 30.0.2
@@ -10772,7 +10761,7 @@ snapshots:
 
   '@jest/pattern@30.0.1':
     dependencies:
-      '@types/node': 22.17.1
+      '@types/node': 22.19.2
       jest-regex-util: 30.0.1
 
   '@jest/reporters@30.0.4':
@@ -10783,7 +10772,7 @@ snapshots:
       '@jest/transform': 30.0.4
       '@jest/types': 30.0.1
       '@jridgewell/trace-mapping': 0.3.29
-      '@types/node': 22.17.1
+      '@types/node': 22.19.2
       chalk: 4.1.2
       collect-v8-coverage: 1.0.2
       exit-x: 0.2.2
@@ -10864,7 +10853,7 @@ snapshots:
       '@jest/schemas': 30.0.0
       '@types/istanbul-lib-coverage': 2.0.6
       '@types/istanbul-reports': 3.0.4
-      '@types/node': 22.15.21
+      '@types/node': 22.19.2
       '@types/yargs': 17.0.33
       chalk: 4.1.2
 
@@ -10874,7 +10863,7 @@ snapshots:
       '@jest/schemas': 30.0.1
       '@types/istanbul-lib-coverage': 2.0.6
       '@types/istanbul-reports': 3.0.4
-      '@types/node': 22.17.1
+      '@types/node': 22.19.2
       '@types/yargs': 17.0.33
       chalk: 4.1.2
 
@@ -11514,9 +11503,9 @@ snapshots:
   '@oxc-resolver/binding-win32-x64-msvc@11.15.0':
     optional: true
 
-  '@peggyjs/from-mem@1.3.4':
+  '@peggyjs/from-mem@3.1.1':
     dependencies:
-      semver: 7.6.3
+      semver: 7.7.2
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
@@ -12763,7 +12752,7 @@ snapshots:
 
   '@types/concat-stream@2.0.3':
     dependencies:
-      '@types/node': 22.16.5
+      '@types/node': 22.19.2
 
   '@types/connect-history-api-fallback@1.5.4':
     dependencies:
@@ -12772,7 +12761,7 @@ snapshots:
 
   '@types/connect@3.4.38':
     dependencies:
-      '@types/node': 22.17.1
+      '@types/node': 22.19.2
 
   '@types/cors@2.8.19':
     dependencies:
@@ -12864,7 +12853,7 @@ snapshots:
 
   '@types/jsdom@21.1.7':
     dependencies:
-      '@types/node': 22.15.21
+      '@types/node': 22.19.2
       '@types/tough-cookie': 4.0.5
       parse5: 7.3.0
 
@@ -12886,21 +12875,13 @@ snapshots:
 
   '@types/mysql@2.15.27':
     dependencies:
-      '@types/node': 22.17.1
+      '@types/node': 22.19.2
 
   '@types/node-forge@1.3.14':
     dependencies:
       '@types/node': 22.19.2
 
   '@types/node@22.15.21':
-    dependencies:
-      undici-types: 6.21.0
-
-  '@types/node@22.16.5':
-    dependencies:
-      undici-types: 6.21.0
-
-  '@types/node@22.17.1':
     dependencies:
       undici-types: 6.21.0
 
@@ -12922,7 +12903,7 @@ snapshots:
 
   '@types/pg@8.15.6':
     dependencies:
-      '@types/node': 22.17.1
+      '@types/node': 22.19.2
       pg-protocol: 1.9.5
       pg-types: 2.2.0
 
@@ -12977,7 +12958,7 @@ snapshots:
 
   '@types/readable-stream@4.0.18':
     dependencies:
-      '@types/node': 22.15.21
+      '@types/node': 22.19.2
       safe-buffer: 5.1.2
 
   '@types/reflux@0.4.1': {}
@@ -13021,7 +13002,7 @@ snapshots:
 
   '@types/tedious@4.0.14':
     dependencies:
-      '@types/node': 22.17.1
+      '@types/node': 22.19.2
 
   '@types/tough-cookie@4.0.5': {}
 
@@ -13979,7 +13960,7 @@ snapshots:
 
   commander@11.1.0: {}
 
-  commander@12.1.0: {}
+  commander@14.0.3: {}
 
   commander@2.20.3: {}
 
@@ -14375,7 +14356,7 @@ snapshots:
       '@one-ini/wasm': 0.1.1
       commander: 10.0.1
       minimatch: 9.0.1
-      semver: 7.7.2
+      semver: 7.7.3
 
   ee-first@1.1.1: {}
 
@@ -16023,7 +16004,7 @@ snapshots:
       '@babel/parser': 7.28.0
       '@istanbuljs/schema': 0.1.3
       istanbul-lib-coverage: 3.2.0
-      semver: 7.7.2
+      semver: 7.7.3
     transitivePeerDependencies:
       - supports-color
 
@@ -16084,7 +16065,7 @@ snapshots:
       '@jest/expect': 30.0.4
       '@jest/test-result': 30.0.4
       '@jest/types': 30.0.1
-      '@types/node': 22.17.1
+      '@types/node': 22.19.2
       chalk: 4.1.2
       co: 4.6.0
       dedent: 1.6.0(babel-plugin-macros@3.1.0)
@@ -16156,7 +16137,7 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
-  jest-config@30.0.4(@types/node@22.17.1)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@types/node@22.15.21)(typescript@5.9.3)):
+  jest-config@30.0.4(@types/node@22.19.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@types/node@22.15.21)(typescript@5.9.3)):
     dependencies:
       '@babel/core': 7.28.0
       '@jest/get-type': 30.0.1
@@ -16183,7 +16164,7 @@ snapshots:
       slash: 3.0.0
       strip-json-comments: 3.1.1
     optionalDependencies:
-      '@types/node': 22.17.1
+      '@types/node': 22.19.2
       ts-node: 10.9.2(@types/node@22.15.21)(typescript@5.9.3)
     transitivePeerDependencies:
       - babel-plugin-macros
@@ -16232,7 +16213,7 @@ snapshots:
       '@jest/environment': 30.0.4
       '@jest/fake-timers': 30.0.4
       '@jest/types': 30.0.1
-      '@types/node': 22.17.1
+      '@types/node': 22.19.2
       jest-mock: 30.0.2
       jest-util: 30.0.2
       jest-validate: 30.0.2
@@ -16249,7 +16230,7 @@ snapshots:
   jest-haste-map@30.0.2:
     dependencies:
       '@jest/types': 30.0.1
-      '@types/node': 22.17.1
+      '@types/node': 22.19.2
       anymatch: 3.1.3
       fb-watchman: 2.0.2
       graceful-fs: 4.2.11
@@ -16314,13 +16295,13 @@ snapshots:
   jest-mock@30.0.0:
     dependencies:
       '@jest/types': 30.0.0
-      '@types/node': 22.15.21
+      '@types/node': 22.19.2
       jest-util: 30.0.0
 
   jest-mock@30.0.2:
     dependencies:
       '@jest/types': 30.0.1
-      '@types/node': 22.17.1
+      '@types/node': 22.19.2
       jest-util: 30.0.2
 
   jest-pnp-resolver@1.2.3(jest-resolve@30.0.2):
@@ -16356,7 +16337,7 @@ snapshots:
       '@jest/test-result': 30.0.4
       '@jest/transform': 30.0.4
       '@jest/types': 30.0.1
-      '@types/node': 22.17.1
+      '@types/node': 22.19.2
       chalk: 4.1.2
       emittery: 0.13.1
       exit-x: 0.2.2
@@ -16385,7 +16366,7 @@ snapshots:
       '@jest/test-result': 30.0.4
       '@jest/transform': 30.0.4
       '@jest/types': 30.0.1
-      '@types/node': 22.17.1
+      '@types/node': 22.19.2
       chalk: 4.1.2
       cjs-module-lexer: 2.1.0
       collect-v8-coverage: 1.0.2
@@ -16424,7 +16405,7 @@ snapshots:
       jest-message-util: 30.0.2
       jest-util: 30.0.2
       pretty-format: 30.0.2
-      semver: 7.7.2
+      semver: 7.7.3
       synckit: 0.11.8
     transitivePeerDependencies:
       - supports-color
@@ -16432,7 +16413,7 @@ snapshots:
   jest-util@30.0.0:
     dependencies:
       '@jest/types': 30.0.0
-      '@types/node': 22.15.21
+      '@types/node': 22.19.2
       chalk: 4.1.2
       ci-info: 4.2.0
       graceful-fs: 4.2.11
@@ -16441,7 +16422,7 @@ snapshots:
   jest-util@30.0.2:
     dependencies:
       '@jest/types': 30.0.1
-      '@types/node': 22.17.1
+      '@types/node': 22.19.2
       chalk: 4.1.2
       ci-info: 4.2.0
       graceful-fs: 4.2.11
@@ -16460,7 +16441,7 @@ snapshots:
     dependencies:
       '@jest/test-result': 30.0.4
       '@jest/types': 30.0.1
-      '@types/node': 22.17.1
+      '@types/node': 22.19.2
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       emittery: 0.13.1
@@ -17374,7 +17355,7 @@ snapshots:
 
   node-abi@3.75.0:
     dependencies:
-      semver: 7.7.2
+      semver: 7.7.3
 
   node-fetch@2.7.0(encoding@0.1.13):
     dependencies:
@@ -17397,7 +17378,7 @@ snapshots:
   normalize-package-data@6.0.2:
     dependencies:
       hosted-git-info: 7.0.2
-      semver: 7.7.2
+      semver: 7.7.3
       validate-npm-package-license: 3.0.4
 
   normalize-path@3.0.0: {}
@@ -17694,11 +17675,11 @@ snapshots:
 
   path-type@4.0.0: {}
 
-  peggy@4.1.1:
+  peggy@5.0.6:
     dependencies:
-      '@peggyjs/from-mem': 1.3.4
-      commander: 12.1.0
-      source-map-generator: 0.8.0
+      '@peggyjs/from-mem': 3.1.1
+      commander: 14.0.3
+      source-map-generator: 2.0.2
 
   performance-now@2.1.0: {}
 
@@ -17731,7 +17712,7 @@ snapshots:
     dependencies:
       find-up: 4.1.0
 
-  platformicons@9.0.4(react@19.2.3):
+  platformicons@9.0.7(react@19.2.3):
     dependencies:
       '@types/node': 22.19.2
       '@types/react': 19.2.1
@@ -18425,8 +18406,6 @@ snapshots:
 
   semver@6.3.1: {}
 
-  semver@7.6.3: {}
-
   semver@7.7.2: {}
 
   semver@7.7.3: {}
@@ -18609,7 +18588,7 @@ snapshots:
       uuid: 8.3.2
       websocket-driver: 0.7.4
 
-  source-map-generator@0.8.0: {}
+  source-map-generator@2.0.2: {}
 
   source-map-js@1.2.1: {}
 
@@ -19174,7 +19153,7 @@ snapshots:
       '@types/concat-stream': 2.0.3
       '@types/debug': 4.1.12
       '@types/is-empty': 1.2.3
-      '@types/node': 22.16.5
+      '@types/node': 22.19.2
       '@types/unist': 3.0.3
       concat-stream: 2.0.0
       debug: 4.4.1

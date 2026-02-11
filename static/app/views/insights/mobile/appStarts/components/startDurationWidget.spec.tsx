@@ -6,12 +6,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 import StartDurationWidget from './startDurationWidget';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 
 describe('StartDurationWidget', () => {

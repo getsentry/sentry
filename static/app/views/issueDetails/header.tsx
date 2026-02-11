@@ -15,7 +15,7 @@ import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';

@@ -21,7 +21,7 @@ import {renderArchiveReason} from 'sentry/components/archivedBox';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {renderResolutionReason} from 'sentry/components/resolutionBox';
 import {
   IconCheckmark,

@@ -136,7 +136,7 @@ describe('SeerSection', () => {
     it('shows issue summary and "Fix with Seer" when consent flow is removed and there is no autofix quota', async () => {
       const orgWithConsentFlowRemoved = OrganizationFixture({
         hideAiFeatures: false,
-        features: ['gen-ai-features', 'gen-ai-consent-flow-removal'],
+        features: ['gen-ai-features'],
       });
 
       MockApiClient.addMockResponse({

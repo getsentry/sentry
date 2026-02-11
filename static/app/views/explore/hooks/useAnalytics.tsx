@@ -2,6 +2,7 @@ import {useEffect, useEffectEvent, useMemo, useRef, type RefObject} from 'react'
 import * as Sentry from '@sentry/react';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -10,7 +11,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {useChartSelection} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';

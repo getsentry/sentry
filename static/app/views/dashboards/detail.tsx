@@ -30,7 +30,7 @@ import {
   WidgetViewerQueryField,
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';

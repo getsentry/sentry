@@ -27,6 +27,7 @@ import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import GroupList from 'sentry/components/issues/groupList';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {
@@ -51,7 +52,6 @@ import {MarkedText} from 'sentry/utils/marked/markedText';
 import {isNativePlatform} from 'sentry/utils/platform';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {type GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';

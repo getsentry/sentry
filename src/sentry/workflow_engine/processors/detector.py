@@ -468,11 +468,29 @@ def associate_new_group_with_detector(group: Group, detector_id: int | None = No
     Return whether the group was associated.
     """
     if detector_id is None:
-        # For error Groups, we know there is a Detector and we can find it by project.
+        # For error Groups, we expect there to be a Detector that we can find by project.
+        # The detector may be missing due to concurrent project deletion.
         if group.type == ErrorGroupType.type_id:
             if not options.get("workflow_engine.associate_error_detectors", False):
                 return False
-            detector_id = Detector.get_error_detector_for_project(group.project.id).id
+            try:
+                detector_id = Detector.get_error_detector_for_project(group.project.id).id
+            except Detector.DoesNotExist:
+                # If the project is mid-deletion, the detector will be missing, so infrequently
+                # hitting this case is fine, but we add a metric to make sure it stays infrequent.
+                metrics.incr(
+                    "workflow_engine.associate_new_group_with_detector",
+                    tags={"group_type": group.type, "result": "error_detector_not_found"},
+                )
+                logger.info(
+                    "associate_new_group_with_detector_error_detector_not_found",
+                    extra={
+                        "group_id": group.id,
+                        "group_type": group.type,
+                        "project_id": group.project.id,
+                    },
+                )
+                return False
         else:
             metrics.incr(
                 "workflow_engine.associate_new_group_with_detector",
