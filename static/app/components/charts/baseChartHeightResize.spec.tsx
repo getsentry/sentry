@@ -23,7 +23,7 @@ function TestContainer({children}: {children: React.ReactNode}) {
   );
 }
 
-describe('BaseChart', function () {
+describe('BaseChart', () => {
   it('can scale to full parent height when given autoHeightResize', () => {
     render(
       <TestContainer>

@@ -142,7 +142,7 @@ def expect_models(group: set[NormalizedModelName], *marking: type | Literal["__a
 
 
 def get_matching_exportable_models(
-    matcher: Callable[[ModelRelations], bool] = lambda mr: True
+    matcher: Callable[[ModelRelations], bool] = lambda mr: True,
 ) -> set[type[models.Model]]:
     """
     Helper function that returns all of the model class definitions that return true for the provided matching function. Models will be iterated in the order specified by the `sorted_dependencies` function.

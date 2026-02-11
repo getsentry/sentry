@@ -1,17 +1,19 @@
 ---
 title: Flex
 description: A flexible layout component that provides CSS flexbox functionality with responsive props and spacing controls.
-source: 'sentry/components/core/layout/flex'
+category: layout
+source: '@sentry/scraps/layout'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/flex.tsx
 ---
 
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
+
 import * as Storybook from 'sentry/stories';
 
-import APIReference from '!!type-loader!sentry/components/core/layout/flex';
+import documentation from '!!type-loader!@sentry/scraps/layout/flex';
 
-export const types = {Flex: APIReference.Flex};
+export {documentation};
 
 The `Flex` component is a layout component that extends the `Container` component with CSS flexbox properties. It combines the powerful spacing, sizing, and styling capabilities of `Container` with flexible positioning and alignment controls.
 
@@ -27,9 +29,55 @@ To create a basic flex container, wrap elements in `<Flex>` and they will be lai
 </Flex>
 ```
 
+### Composition
+
+The `Flex` implements composition via <a href="/stories/layout/composition">render prop</a> pattern.
+
+<Storybook.Demo>
+  <Flex
+    border="primary"
+    radius="md"
+    padding="md"
+    justify="between"
+    background="primary"
+    width="80%"
+  >
+    {props => (
+      <p {...props}>
+        <span>Justify</span>
+        <span>Between</span>
+        <span>On</span>
+        <span>Paragraph</span>
+      </p>
+    )}
+  </Flex>
+</Storybook.Demo>
+```jsx
+<Flex width="80%" justify="between">
+  {props => (
+    <p {...props}>
+      <span>Justify</span>
+      <span>Between</span>
+      <span>On</span>
+      <span>Paragraph</span>
+    </p>
+  )}
+</Flex>
+```
+
+### Specifying the DOM Node via `as` prop
+
+The `Flex` component renders a `div` element by default, but you can specify the DOM node to render by passing a `as` prop.
+
+```tsx
+<Flex as="section" padding="md" background="primary">
+  Basic flex content
+</Flex>
+```
+
 ### Flex Properties
 
-Flex extends the `Container` component by adding Flex specific properties like `direction`, `gap`, `justify`, `align`, `wrap`, `flex`, `inline` that influence the layout of its children.
+Flex extends the `Container` component by adding Flex specific properties like `direction`, `gap`, `justify`, `align`, `wrap`, `flex`, that influence the layout of its children.
 
 Simialarly to `Container`, `Flex` inherits all spacing props like `m`, `p`, `mt`, `mb`, `ml`, `mr`, `pt`, `pb`, `pl`, `pr` and implements responsive props so that the layout can be changed per breakpoint.
 

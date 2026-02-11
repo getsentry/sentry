@@ -7,15 +7,15 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
-import ModalStore from 'sentry/stores/modalStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import ProjectTeams from 'sentry/views/settings/project/projectTeams';
 
-describe('ProjectTeams', function () {
+describe('ProjectTeams', () => {
   let org: Organization;
   let project: Project;
 
@@ -37,7 +37,7 @@ describe('ProjectTeams', function () {
     access: ['team:read'],
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     const initialData = initializeOrg();
     org = initialData.organization;
     project = {
@@ -47,11 +47,6 @@ describe('ProjectTeams', function () {
 
     TeamStore.loadInitialData([team1WithAdmin, team2WithAdmin]);
 
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/`,
-      method: 'GET',
-      body: project,
-    });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/`,
       method: 'GET',
@@ -64,12 +59,11 @@ describe('ProjectTeams', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
   });
 
-  it('can remove a team from project', async function () {
+  it('can remove a team from project', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/`,
       method: 'GET',
@@ -90,7 +84,10 @@ describe('ProjectTeams', function () {
       statusCode: 200,
     });
 
-    render(<ProjectTeams organization={org} project={project} />);
+    render(<ProjectTeams />, {
+      outletContext: {project},
+      organization: org,
+    });
 
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
@@ -125,7 +122,7 @@ describe('ProjectTeams', function () {
     });
   });
 
-  it('cannot remove a team without admin scopes', async function () {
+  it('cannot remove a team without admin scopes', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/`,
       method: 'GET',
@@ -146,7 +143,10 @@ describe('ProjectTeams', function () {
       statusCode: 200,
     });
 
-    render(<ProjectTeams organization={org} project={project} />);
+    render(<ProjectTeams />, {
+      outletContext: {project},
+      organization: org,
+    });
 
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
@@ -169,7 +169,7 @@ describe('ProjectTeams', function () {
     expect(mock3).not.toHaveBeenCalled();
   });
 
-  it('removes team from project when project team is not in org list', async function () {
+  it('removes team from project when project team is not in org list', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/`,
       method: 'GET',
@@ -194,7 +194,10 @@ describe('ProjectTeams', function () {
       body: [team3NoAdmin],
     });
 
-    render(<ProjectTeams organization={org} project={project} />);
+    render(<ProjectTeams />, {
+      outletContext: {project},
+      organization: org,
+    });
 
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
@@ -233,7 +236,7 @@ describe('ProjectTeams', function () {
     });
   });
 
-  it('can associate a team with project', async function () {
+  it('can associate a team with project', async () => {
     const endpoint = `/projects/${org.slug}/${project.slug}/teams/${team2WithAdmin.slug}/`;
     const mock = MockApiClient.addMockResponse({
       url: endpoint,
@@ -241,15 +244,18 @@ describe('ProjectTeams', function () {
       statusCode: 200,
     });
 
-    render(<ProjectTeams organization={org} project={project} />);
+    render(<ProjectTeams />, {
+      outletContext: {project},
+      organization: org,
+    });
 
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     expect(mock).not.toHaveBeenCalled();
 
     // Add a team
-    await userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]!);
-    await userEvent.click(screen.getByText('#team-slug-2'));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Team'}));
+    await userEvent.click(await screen.findByText('#team-slug-2'));
 
     await waitFor(() => {
       expect(mock).toHaveBeenCalledWith(
@@ -261,7 +267,7 @@ describe('ProjectTeams', function () {
     });
   });
 
-  it('creates a new team adds it to current project using the "create team modal" in dropdown', async function () {
+  it('creates a new team adds it to current project using the "create team modal" in dropdown', async () => {
     MockApiClient.addMockResponse({
       url: '/assistant/',
       body: {},
@@ -280,21 +286,23 @@ describe('ProjectTeams', function () {
       body: TeamFixture({slug: 'new-team'}),
     });
 
-    render(<ProjectTeams project={project} organization={org} />);
+    render(<ProjectTeams />, {
+      outletContext: {project},
+      organization: org,
+    });
 
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     // Add new team
-    await userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]!);
+    await userEvent.click(screen.getByRole('button', {name: 'Add Team'}));
 
-    // XXX(epurkhiser): Create Team should really be a button
-    await userEvent.click(screen.getByRole('link', {name: 'Create Team'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Create Team'}));
 
     renderGlobalModal();
-    await screen.findByRole('dialog');
+    const modal = await screen.findByRole('dialog');
 
-    await userEvent.type(screen.getByRole('textbox', {name: 'Team Name'}), 'new-team');
-    await userEvent.click(screen.getByRole('button', {name: 'Create Team'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Team Slug'}), 'new-team');
+    await userEvent.click(within(modal).getByRole('button', {name: 'Create Team'}));
 
     await waitFor(() => expect(createTeam).toHaveBeenCalledTimes(1));
 

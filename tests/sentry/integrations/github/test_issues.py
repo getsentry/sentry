@@ -3,7 +3,7 @@ from collections.abc import Mapping, Sequence
 from functools import cached_property
 from typing import cast
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -17,16 +17,18 @@ from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import FeedbackGroup
+from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
+    IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
-    IntegrationInstallationConfigurationError,
 )
+from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
-from sentry.testutils.silo import all_silo_test
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -222,6 +224,14 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def test_create_issue(self) -> None:
+        with assume_test_silo_mode(SiloMode.REGION):
+            Repository.objects.create(
+                name="getsentry/sentry",
+                provider="integrations:github",
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
+
         responses.add(
             responses.POST,
             "https://api.github.com/repos/getsentry/sentry/issues",
@@ -267,7 +277,15 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_create_issue_with_invalid_field(self, mock_record):
+    def test_create_issue_with_invalid_field(self, mock_record: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.REGION):
+            Repository.objects.create(
+                name="getsentry/sentry",
+                provider="integrations:github",
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
+
         responses.add(
             responses.POST,
             "https://api.github.com/repos/getsentry/sentry/issues",
@@ -302,6 +320,14 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def test_create_issue_with_bad_github_repo(self) -> None:
+        with assume_test_silo_mode(SiloMode.REGION):
+            Repository.objects.create(
+                name="getsentry/sentry",
+                provider="integrations:github",
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
+
         responses.add(
             responses.POST,
             "https://api.github.com/repos/getsentry/sentry/issues",
@@ -319,15 +345,56 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "description": "This is the description",
         }
 
-        with pytest.raises(IntegrationInstallationConfigurationError) as e:
+        with pytest.raises(IntegrationConfigurationError) as e:
             self.install.create_issue(form_data)
 
-        assert e.value.args[0] == {
-            "detail": "Issues are disabled for this repo, please check your repo's permissions"
+        assert (
+            e.value.args[0]
+            == "Issues are disabled for this repository, please check your repository permissions"
+        )
+
+    @responses.activate
+    def test_create_issue_with_bad_github_repo_permissions(self) -> None:
+        with assume_test_silo_mode(SiloMode.REGION):
+            Repository.objects.create(
+                name="getsentry/sentry",
+                provider="integrations:github",
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
+
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/getsentry/sentry/issues",
+            status=403,
+            json={
+                "message": "Repository was archived so is read-only.",
+                "documentation_url": "https://docs.github.com/rest/issues/issues#create-an-issue",
+                "status": "403",
+            },
+        )
+
+        form_data = {
+            "repo": "getsentry/sentry",
+            "title": "hello",
+            "description": "This is the description",
         }
+
+        with pytest.raises(IntegrationConfigurationError) as e:
+            self.install.create_issue(form_data)
+
+        assert e.value.args[0] == "Repository was archived so is read-only."
 
     @responses.activate
     def test_create_issue_raises_integration_error(self) -> None:
+        with assume_test_silo_mode(SiloMode.REGION):
+            Repository.objects.create(
+                name="getsentry/sentry",
+                provider="integrations:github",
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
+
         responses.add(
             responses.POST,
             "https://api.github.com/repos/getsentry/sentry/issues",
@@ -350,9 +417,120 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
         assert e.value.args[0] == "Error Communicating with GitHub (HTTP 500): dang snap!"
 
+    def test_create_issue_with_repo_not_belonging_to_integration(self) -> None:
+        with assume_test_silo_mode(SiloMode.REGION):
+            Repository.objects.create(
+                name="getsentry/sentry",
+                provider="integrations:github",
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
+
+        # Try to create issue with a repo that doesn't belong to this installation
+        form_data = {
+            "repo": "different-org/different-repo",
+            "title": "hello",
+            "description": "This is the description",
+        }
+
+        with pytest.raises(IntegrationFormError) as exc_info:
+            self.install.create_issue(form_data)
+
+        assert exc_info.value.field_errors == {
+            "repo": "Given repository, different-org/different-repo does not belong to this installation"
+        }
+
+    @responses.activate
+    def test_create_issue_with_valid_repo_ownership(self) -> None:
+        with assume_test_silo_mode(SiloMode.REGION):
+            Repository.objects.create(
+                name="getsentry/sentry",
+                provider="integrations:github",
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
+
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/getsentry/sentry/issues",
+            json={
+                "number": 321,
+                "title": "hello",
+                "body": "This is the description",
+                "html_url": "https://github.com/getsentry/sentry/issues/321",
+            },
+        )
+
+        form_data = {
+            "repo": "getsentry/sentry",
+            "title": "hello",
+            "description": "This is the description",
+        }
+
+        result = self.install.create_issue(form_data)
+
+        assert result == {
+            "key": 321,
+            "description": "This is the description",
+            "title": "hello",
+            "url": "https://github.com/getsentry/sentry/issues/321",
+            "repo": "getsentry/sentry",
+        }
+
+    def test_get_issue_with_repo_not_belonging_to_integration(self) -> None:
+        with assume_test_silo_mode(SiloMode.REGION):
+            Repository.objects.create(
+                name="getsentry/sentry",
+                provider="integrations:github",
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
+
+        data = {"repo": "different-org/different-repo", "externalIssue": "321"}
+
+        with pytest.raises(IntegrationFormError) as exc_info:
+            self.install.get_issue("321", data=data)
+
+        assert exc_info.value.field_errors == {
+            "repo": "Given repository, different-org/different-repo does not belong to this installation"
+        }
+
+    @responses.activate
+    def test_get_issue_with_valid_repo_ownership(self) -> None:
+        with assume_test_silo_mode(SiloMode.REGION):
+            Repository.objects.create(
+                name="getsentry/sentry",
+                provider="integrations:github",
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
+
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/sentry/issues/321",
+            json={
+                "number": "321",
+                "title": "Test Issue",
+                "body": "Test Description",
+                "html_url": "https://github.com/getsentry/sentry/issues/321",
+            },
+        )
+
+        data = {"repo": "getsentry/sentry", "externalIssue": "321"}
+        result = self.install.get_issue("321", data=data)
+
+        assert result == {
+            "key": "321",
+            "title": "Test Issue",
+            "description": "Test Description",
+            "url": "https://github.com/getsentry/sentry/issues/321",
+            "repo": "getsentry/sentry",
+        }
+
     def test_performance_issues_content(self) -> None:
         """Test that a GitHub issue created from a performance issue has the expected title and description"""
         event = self.create_performance_issue()
+        assert event.group is not None
         description = self.install.get_group_description(event.group, event)
         assert "db - SELECT `books_author`.`id`, `books_author" in description
         title = self.install.get_group_title(event.group, event)
@@ -399,6 +577,14 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def test_link_issue(self) -> None:
+        with assume_test_silo_mode(SiloMode.REGION):
+            Repository.objects.create(
+                name="getsentry/sentry",
+                provider="integrations:github",
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
+
         issue_id = "321"
 
         responses.add(

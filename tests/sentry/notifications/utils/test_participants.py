@@ -7,7 +7,6 @@ from datetime import timedelta
 import pytest
 from django.utils import timezone
 
-from sentry.eventstore.models import Event
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.ownership import grammar
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
@@ -20,11 +19,7 @@ from sentry.models.repository import Repository
 from sentry.models.team import Team
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
-from sentry.notifications.types import (
-    ActionTargetType,
-    FallthroughChoiceType,
-    NotificationSettingEnum,
-)
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils.participants import (
     FALLTHROUGH_NOTIFICATION_LIMIT,
     get_fallthrough_recipients,
@@ -32,11 +27,10 @@ from sentry.notifications.utils.participants import (
     get_owners,
     get_send_to,
 )
+from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.slack import link_team
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor
@@ -209,28 +203,6 @@ class GetSendToTeamTest(_ParticipantsTest):
                 value="never",
             )
         self.assert_recipients_are(self.get_send_to_team(), email=[self.user.id])
-
-    @with_feature("organizations:team-workflow-notifications")
-    def test_send_workflow_to_team_direct(self) -> None:
-        link_team(self.team, self.integration, "#team-channel", "team_channel_id")
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSettingProvider.objects.create(
-                team_id=self.team.id,
-                scope_type="team",
-                scope_identifier=self.team.id,
-                provider="slack",
-                type="workflow",
-                value="always",
-            )
-
-        assert get_send_to(
-            project=self.project,
-            target_type=ActionTargetType.TEAM,
-            target_identifier=self.team.id,
-            notification_type_enum=NotificationSettingEnum.WORKFLOW,
-        ) == {
-            ExternalProviders.SLACK: {Actor.from_orm_team(self.team)},
-        }
 
     def test_other_project_team(self) -> None:
         user_2 = self.create_user()
@@ -654,7 +626,7 @@ class GetOwnersCase(_ParticipantsTest):
         self.rule_2 = Rule(Matcher("path", "*.js"), [Owner("team", self.team_2.slug)])
         self.rule_3 = Rule(Matcher("path", "*.js"), [Owner("user", self.user_1.email)])
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         cache.delete(ProjectOwnership.get_cache_key(self.project.id))
         super().tearDown()
 

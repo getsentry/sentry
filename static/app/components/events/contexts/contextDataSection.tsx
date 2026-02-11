@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import ContextCard from 'sentry/components/events/contexts/contextCard';
@@ -44,7 +45,7 @@ export default function ContextDataSection({
 
   return (
     <InterimSection
-      key={'context'}
+      key="context"
       type={SectionKey.CONTEXTS}
       title={t('Contexts')}
       help={tct(

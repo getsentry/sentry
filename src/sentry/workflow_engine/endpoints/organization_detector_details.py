@@ -1,5 +1,7 @@
+from typing import Any
+
 from django.db import router, transaction
-from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
@@ -19,17 +21,21 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
-from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
-from sentry.grouping.grouptype import ErrorGroupType
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.metric_issue_detector import schedule_update_project_config
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
-from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
+from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
+from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkDetectorWorkflowsValidator,
+    can_delete_detector,
     can_edit_detector,
 )
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
@@ -37,8 +43,12 @@ from sentry.workflow_engine.models import Detector
 
 
 def get_detector_validator(
-    request: Request, project: Project, detector_type_slug: str, instance=None, partial=False
-):
+    request: Request,
+    project: Project,
+    detector_type_slug: str,
+    instance: Detector | None = None,
+    partial: bool = False,
+) -> BaseDetectorTypeValidator:
     type = grouptype.registry.get_by_slug(detector_type_slug)
     if type is None:
         error_message = get_unknown_detector_type_error(detector_type_slug, project.organization)
@@ -61,50 +71,60 @@ def get_detector_validator(
 
 
 @region_silo_endpoint
-@extend_schema(tags=["Workflows"])
+@extend_schema(tags=["Monitors"])
 class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
-    def convert_args(self, request: Request, detector_id, *args, **kwargs):
+    def convert_args(
+        self, request: Request, detector_id: str, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Organization | Detector]]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
+        validated_detector_id = to_valid_int_id("detector_id", detector_id, raise_404=True)
         try:
-            detector = Detector.objects.select_related("project").get(id=detector_id)
-            if detector.project.organization_id != kwargs["organization"].id:
-                raise ResourceDoesNotExist
+            detector = (
+                Detector.objects.with_type_filters()
+                .select_related("project")
+                .get(
+                    id=validated_detector_id,
+                    project__organization_id=kwargs["organization"].id,
+                )
+            )
             kwargs["detector"] = detector
         except Detector.DoesNotExist:
             raise ResourceDoesNotExist
 
+        # Verify user has access to the detector's project (respects Open Membership setting)
+        if not request.access.has_project_access(detector.project):
+            raise PermissionDenied
+
         return args, kwargs
 
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
-        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+        "DELETE": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ALERTS_NOTIFICATIONS
-
-    # TODO: We probably need a specific permission for detectors. Possibly specific detectors have different perms
-    # too?
     permission_classes = (OrganizationDetectorPermission,)
 
     @extend_schema(
-        operation_id="Fetch a Detector",
+        operation_id="Fetch a Monitor",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             DetectorParams.DETECTOR_ID,
         ],
         responses={
-            201: DetectorSerializer,
+            200: DetectorSerializer,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.GET_DETECTOR,
     )
-    def get(self, request: Request, organization: Organization, detector: Detector):
+    def get(self, request: Request, organization: Organization, detector: Detector) -> Response:
         """
-        Fetch a detector
-        `````````````````````````
-        Return details on an individual detector.
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
+        Return details on an individual monitor
         """
         serialized_detector = serialize(
             detector,
@@ -114,20 +134,12 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         return Response(serialized_detector)
 
     @extend_schema(
-        operation_id="Update a Detector",
+        operation_id="Update a Monitor by ID",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             DetectorParams.DETECTOR_ID,
         ],
-        request=PolymorphicProxySerializer(
-            "GenericDetectorSerializer",
-            serializers=[
-                gt.detector_settings.validator
-                for gt in grouptype.registry.all()
-                if gt.detector_settings and gt.detector_settings.validator
-            ],
-            resource_type_field_name=None,
-        ),
+        request=BaseDetectorTypeValidator,
         responses={
             200: DetectorSerializer,
             400: RESPONSE_BAD_REQUEST,
@@ -135,12 +147,13 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.UPDATE_DETECTOR,
     )
     def put(self, request: Request, organization: Organization, detector: Detector) -> Response:
         """
-        Update a Detector
-        ````````````````
-        Update an existing detector for a project.
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
+        Update an existing monitor
         """
         if not can_edit_detector(detector, request):
             raise PermissionDenied
@@ -154,7 +167,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic(router.db_for_write(Detector)):
-            updated_detector = validator.save()
+            with in_test_hide_transaction_boundary():
+                updated_detector = validator.save()
 
             workflow_ids = request.data.get("workflowIds")
             if workflow_ids is not None:
@@ -176,7 +190,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         return Response(serialize(updated_detector, request.user), status=status.HTTP_200_OK)
 
     @extend_schema(
-        operation_id="Delete a Detector",
+        operation_id="Delete a Monitor",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             DetectorParams.DETECTOR_ID,
@@ -187,18 +201,23 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization: Organization, detector: Detector):
+    def delete(self, request: Request, organization: Organization, detector: Detector) -> Response:
         """
-        Delete a detector
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
+        Delete a monitor
         """
-        if not can_edit_detector(detector, request):
+        if not can_delete_detector(detector, request):
             raise PermissionDenied
 
-        if detector.type == ErrorGroupType.slug:
-            return Response(status=403)
+        validator = get_detector_validator(
+            request, detector.project, detector.type, instance=detector
+        )
+        validator.delete()
 
-        RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
-        detector.update(status=ObjectStatus.PENDING_DELETION)
+        if detector.type == MetricIssue.slug:
+            schedule_update_project_config(detector)
+
         create_audit_entry(
             request=request,
             organization=detector.project.organization,

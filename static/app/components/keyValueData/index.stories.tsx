@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import {
   KeyValueData,
   type KeyValueDataContentProps,
@@ -13,9 +14,9 @@ import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('KeyValueData', story => {
   story('Usage', () => (
-    <CodeSnippet language="js">
+    <CodeBlock language="js">
       import KeyValueData from 'sentry/components/keyValueData';
-    </CodeSnippet>
+    </CodeBlock>
   ));
   story('<KeyValueData.Content />', () => {
     const theme = useTheme();
@@ -104,7 +105,7 @@ export default Storybook.story('KeyValueData', story => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4,
-                  color: theme.green400,
+                  color: theme.colors.green500,
                 }}
               >
                 <IconSettings /> Custom Title Node
@@ -137,13 +138,13 @@ export default Storybook.story('KeyValueData', story => {
           <code>children</code>.
         </p>
         <p>
-          <CodeSnippet language="jsx">
+          <CodeBlock language="jsx">
             {`<KeyValueData.Container>
   <KeyValueData.Card ... />
   <KeyValueData.Card ... />
   <KeyValueData.Card ... />
 </KeyValueData.Container>`}
-          </CodeSnippet>
+          </CodeBlock>
         </p>
         <p>
           It should be noted that the number of items per card, or content size is not
@@ -249,7 +250,7 @@ function generateContentItems(theme: Theme): KeyValueDataContentProps[] {
         actionButton: (
           <Button
             aria-label="Click me"
-            borderless
+            priority="transparent"
             size="zero"
             icon={<IconEdit size="xs" />}
           />
@@ -261,12 +262,12 @@ function generateContentItems(theme: Theme): KeyValueDataContentProps[] {
         key: 'subject-node',
         subject: 'custom subject node',
         subjectNode: (
-          <span style={{color: theme.purple300}}>
+          <span style={{color: theme.tokens.content.accent}}>
             Custom Subject Node <IconSentry />
           </span>
         ),
         value: (
-          <span style={{color: theme.pink300}}>
+          <span style={{color: theme.colors.pink400}}>
             Custom Value Node <IconCodecov />
           </span>
         ),
@@ -277,7 +278,7 @@ function generateContentItems(theme: Theme): KeyValueDataContentProps[] {
         key: 'null-subject-node',
         subject: 'null-subject-node',
         subjectNode: null,
-        value: <Alert type="warning">Custom value can also span full length</Alert>,
+        value: <Alert variant="warning">Custom value can also span full length</Alert>,
       },
     },
     {

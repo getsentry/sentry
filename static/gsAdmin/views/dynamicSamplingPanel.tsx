@@ -3,12 +3,15 @@ import styled from '@emotion/styled';
 import isEmpty from 'lodash/isEmpty';
 import startCase from 'lodash/startCase';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Panel from 'sentry/components/panels/panel';
@@ -20,6 +23,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
 import {SearchInput} from 'admin/components/resultGrid';
@@ -189,7 +193,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
       addSuccessMessage('Project config successfully invalidated');
     } catch (error) {
       const message = 'Unable to invalidate project config';
-      handleXhrErrorResponse(message, error);
+      handleXhrErrorResponse(message, error as RequestError);
       addErrorMessage(message);
     }
   }
@@ -220,7 +224,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
         setSelectedConfigId(defaultConfigId?.[0] ?? '');
       } catch (error) {
         const message = 'Unable to fetch project config';
-        handleXhrErrorResponse(message, error);
+        handleXhrErrorResponse(message, error as RequestError);
         addErrorMessage(message);
       }
     }
@@ -242,7 +246,9 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
           <PanelHeaderRight>
             {selectedConfigId && (
               <CompactSelect
-                triggerProps={{size: 'xs', prefix: 'DSN'}}
+                trigger={triggerProps => (
+                  <OverlayTrigger.Button {...triggerProps} size="xs" prefix="DSN" />
+                )}
                 value={selectedConfigId}
                 options={Object.keys(projectConfig.configs).map(id => ({
                   value: id,
@@ -286,9 +292,9 @@ function DynamicSamplingPanelBody({config: dsnConfig}: {config: DSNConfig | null
 
   return (
     <PanelBody>
-      <SearchBar>
+      <Flex align="start" padding="md">
         {baseSampleRate > 0 && (
-          <BaseSampleRateWrapper type="info">
+          <BaseSampleRateWrapper variant="info">
             Base sample rate: {Math.round(baseSampleRate * 100 * 10000) / 10000}%
           </BaseSampleRateWrapper>
         )}
@@ -300,7 +306,7 @@ function DynamicSamplingPanelBody({config: dsnConfig}: {config: DSNConfig | null
           value={searchQuery}
           onChange={event => setSearchQuery(event.target.value?.toLowerCase())}
         />
-      </SearchBar>
+      </Flex>
       <DynamicSamplingRulesTable
         baseSampleRate={baseSampleRate}
         rules={rules}
@@ -373,7 +379,7 @@ function DynamicSamplingRulesTable({
       >
         {dynamicSamplingRules.map(row => (
           <Fragment key={row.id}>
-            <NameColumn>
+            <Stack gap="xs">
               {row.type}
               {defined(row.samplingValue.limit) && (
                 <NameColumnDetail data-test-id="limit">
@@ -397,9 +403,9 @@ function DynamicSamplingRulesTable({
                   </NameColumnDetail>
                 </div>
               )}
-            </NameColumn>
+            </Stack>
             <div>{row.formattedRateType}</div>
-            <ValueCell>
+            <Flex justify="end" paddingRight="3xl" gap="md">
               <Tooltip isHoverable title={row.samplingValue.value}>
                 {row.formattedRateValue}
               </Tooltip>
@@ -411,7 +417,7 @@ function DynamicSamplingRulesTable({
               >
                 <ImpactIndicatorIcon impact={row.impact} size="xs" />
               </Tooltip>
-            </ValueCell>
+            </Flex>
             <div>{row.target}</div>
           </Fragment>
         ))}
@@ -422,14 +428,8 @@ function DynamicSamplingRulesTable({
 
 const ImpactIndicatorIcon = styled(IconArrow)<{impact: number}>`
   display: ${p => (p.impact === 0 ? 'none' : 'inline-block')};
-  color: ${p => (p.impact > 0 ? p.theme.green300 : p.theme.red300)};
+  color: ${p => (p.impact > 0 ? p.theme.colors.green400 : p.theme.colors.red400)};
   transform: ${p => (p.impact > 0 ? 'rotate(45deg)' : 'rotate(135deg)')};
-`;
-
-const SearchBar = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  padding: ${space(1)};
 `;
 
 const PanelHeaderRight = styled('div')`
@@ -439,17 +439,10 @@ const PanelHeaderRight = styled('div')`
   text-transform: none;
 `;
 
-const ValueCell = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  gap: ${space(1)};
-  padding-right: ${space(4)};
-`;
-
 const BaseSampleRateWrapper = styled(Alert)`
   padding: ${space(1)};
   margin-right: ${space(1)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: 600;
   width: max-content;
   flex-basis: 50%;
@@ -461,14 +454,8 @@ const DSRulesTable = styled(PanelTable)`
   margin-bottom: 0;
 `;
 
-const NameColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
 const NameColumnDetail = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   > strong {
     margin-right: ${space(0.5)};
   }

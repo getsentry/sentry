@@ -1,6 +1,7 @@
+import type {TextProps} from '@sentry/scraps/text';
+
 import type {Actor, ObjectStatus} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 
 /**
  * Some old monitor configurations do NOT have a schedule_type
@@ -73,6 +74,8 @@ interface CrontabConfig extends BaseConfig {
   schedule_type: ScheduleType.CRONTAB | LegacyDefaultSchedule;
 }
 
+export type MonitorIntervalUnit = 'year' | 'month' | 'week' | 'day' | 'hour' | 'minute';
+
 /**
  * The configuration object used when the schedule is an INTERVAL
  */
@@ -80,10 +83,7 @@ export interface IntervalConfig extends BaseConfig {
   /**
    * The interval style schedule
    */
-  schedule: [
-    value: number,
-    interval: 'year' | 'month' | 'week' | 'day' | 'hour' | 'minute',
-  ];
+  schedule: [value: number, interval: MonitorIntervalUnit];
   schedule_type: ScheduleType.INTERVAL;
 }
 
@@ -130,15 +130,6 @@ export interface Monitor {
     }>;
     environment?: string;
   };
-}
-
-export interface MonitorStat {
-  duration: number;
-  error: number;
-  missed: number;
-  ok: number;
-  timeout: number;
-  ts: number;
 }
 
 export interface CheckIn {
@@ -216,8 +207,8 @@ export type MonitorBucket = [timestamp: number, envData: MonitorBucketEnvMapping
  * timeline view
  */
 export interface StatusNotice {
-  color: ColorOrAlias;
   icon: React.ReactNode;
+  variant: TextProps<any>['variant'];
   label?: React.ReactNode;
 }
 
@@ -329,6 +320,7 @@ export type CheckInCellKey =
   | 'started'
   | 'completed'
   | 'duration'
+  | 'checkInId'
   | 'issues'
   | 'environment'
   | 'expectedAt';

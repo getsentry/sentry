@@ -10,7 +10,7 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {getInterval} from 'sentry/components/charts/utils';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
@@ -114,7 +114,7 @@ function SidebarCharts({
           if (errored) {
             return (
               <ErrorPanel height="300px">
-                <IconWarning color="gray300" size="lg" />
+                <IconWarning variant="muted" size="lg" />
               </ErrorPanel>
             );
           }
@@ -209,7 +209,7 @@ function SidebarChartsContainer({
         interval: 0.2,
         axisLabel: {
           formatter: (value: number) => `${formatFloat(value, 1)}`,
-          color: theme.chartLabel,
+          color: theme.tokens.content.secondary,
         },
         ...axisLineConfig,
       },
@@ -221,7 +221,7 @@ function SidebarChartsContainer({
         max: 1.0,
         axisLabel: {
           formatter: (value: number) => formatPercentage(value, 0),
-          color: theme.chartLabel,
+          color: theme.tokens.content.secondary,
         },
         ...axisLineConfig,
       },
@@ -276,7 +276,7 @@ function SidebarChartsContainer({
       includePrevious={false}
       yAxis={['apdex()', 'failure_rate()']}
       partial
-      referrer="api.performance.transaction-summary.sidebar-chart"
+      referrer="api.insights.transaction-summary.sidebar-chart"
       queryExtras={queryExtras}
     >
       {({results, errored, loading, reloading}) => {
@@ -333,7 +333,7 @@ const ChartLabel = styled('div')<{top: string}>`
 `;
 
 const ChartValue = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 export default SidebarChartsContainer;

@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 from multiprocessing.context import TimeoutError
-from typing import NoReturn
 
-from celery import current_task
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     ON_ATTEMPTS_EXCEEDED_DEADLETTER,
     ON_ATTEMPTS_EXCEEDED_DISCARD,
@@ -12,18 +10,18 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     RetryState,
 )
 
-from sentry.taskworker.state import current_task as taskworker_current_task
+from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
 
-class RetryError(Exception):
+class RetryTaskError(Exception):
     """
     Exception that tasks can raise to indicate that the current task activation
     should be retried.
     """
 
 
-class NoRetriesRemainingError(RetryError):
+class NoRetriesRemainingError(RetryTaskError):
     """
     Exception that is raised by retry helper methods to signal to tasks that
     the current attempt is terminal and there won't be any further retries.
@@ -42,27 +40,20 @@ class LastAction(Enum):
         raise ValueError(f"Unknown LastAction: {self}")
 
 
-def retry_task(exc: Exception | None = None) -> NoReturn:
+def retry_task(exc: Exception | None = None, raise_on_no_retries: bool = True) -> None:
     """
     Helper for triggering retry errors.
     If all retries have been consumed, this will raise a
-    sentry.taskworker.retry.NoRetriesRemaining or
-    celery.exceptions.MaxRetriesExceededError depending on how
-    the task is operated.
-
-    During task conversion, this function will shim
-    between celery's retry API and Taskworker retry API.
+    sentry.taskworker.retry.NoRetriesRemaining
     """
-    celery_retry = getattr(current_task, "retry", None)
-    if celery_retry:
-        current_task.retry(exc=exc)
-        assert False, "unreachable"
-    else:
-        current = taskworker_current_task()
-        if current and not current.retries_remaining:
-            metrics.incr("taskworker.retry.no_retries_remaining")
+    current = current_task()
+    if current and not current.retries_remaining:
+        metrics.incr("taskworker.retry.no_retries_remaining")
+        if raise_on_no_retries:
             raise NoRetriesRemainingError()
-        raise RetryError()
+        else:
+            return
+    raise RetryTaskError()
 
 
 class Retry:
@@ -93,8 +84,8 @@ class Retry:
         if self.max_attempts_reached(state):
             return False
 
-        # Explicit RetryError with attempts left.
-        if isinstance(exc, RetryError):
+        # Explicit RetryTaskError with attempts left.
+        if isinstance(exc, RetryTaskError):
             return True
 
         # No retries for types on the ignore list

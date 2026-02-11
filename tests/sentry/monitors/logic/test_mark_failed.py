@@ -16,13 +16,16 @@ from sentry.monitors.models import (
     MonitorIncident,
     MonitorStatus,
     ScheduleType,
+    is_monitor_muted,
 )
 from sentry.testutils.cases import TestCase
 
 
 class MarkFailedTestCase(TestCase):
     @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
-    def test_mark_failed_default_params(self, mock_dispatch_incident_occurrence):
+    def test_mark_failed_default_params(
+        self, mock_dispatch_incident_occurrence: mock.MagicMock
+    ) -> None:
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -69,7 +72,7 @@ class MarkFailedTestCase(TestCase):
         )
 
     @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
-    def test_mark_failed_muted(self, mock_dispatch_incident_occurrence):
+    def test_mark_failed_muted(self, mock_dispatch_incident_occurrence: mock.MagicMock) -> None:
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -80,12 +83,12 @@ class MarkFailedTestCase(TestCase):
                 "max_runtime": None,
                 "checkin_margin": None,
             },
-            is_muted=True,
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment_id=self.environment.id,
             status=MonitorStatus.OK,
+            is_muted=True,
         )
         assert monitor_environment.active_incident is None
         checkin = MonitorCheckIn.objects.create(
@@ -98,52 +101,16 @@ class MarkFailedTestCase(TestCase):
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
-        assert monitor.is_muted
+        assert is_monitor_muted(monitor)
         assert monitor_environment.status == MonitorStatus.ERROR
 
         assert mock_dispatch_incident_occurrence.call_count == 0
         assert monitor_environment.active_incident is not None
 
     @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
-    def test_mark_failed_env_muted(self, mock_dispatch_incident_occurrence):
-        monitor = Monitor.objects.create(
-            name="test monitor",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            config={
-                "schedule": [1, "month"],
-                "schedule_type": ScheduleType.INTERVAL,
-                "max_runtime": None,
-                "checkin_margin": None,
-            },
-            is_muted=False,
-        )
-        monitor_environment = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment_id=self.environment.id,
-            status=MonitorStatus.OK,
-            is_muted=True,
-        )
-        assert monitor_environment.active_incident is None
-
-        checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
-            monitor_environment=monitor_environment,
-            project_id=self.project.id,
-            status=CheckInStatus.UNKNOWN,
-        )
-        assert mark_failed(checkin, failed_at=checkin.date_added)
-
-        monitor.refresh_from_db()
-        monitor_environment.refresh_from_db()
-        assert not monitor.is_muted
-        assert monitor_environment.is_muted
-        assert monitor_environment.status == MonitorStatus.ERROR
-        assert mock_dispatch_incident_occurrence.call_count == 0
-        assert monitor_environment.active_incident is not None
-
-    @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
-    def test_mark_failed_issue_threshold(self, mock_dispatch_incident_occurrence):
+    def test_mark_failed_issue_threshold(
+        self, mock_dispatch_incident_occurrence: mock.MagicMock
+    ) -> None:
         failure_issue_threshold = 8
         monitor = Monitor.objects.create(
             name="test monitor",
@@ -270,7 +237,9 @@ class MarkFailedTestCase(TestCase):
     # Test to make sure that timeout mark_failed (which occur in the past)
     # correctly create issues once passing the failure_issue_threshold
     @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
-    def test_mark_failed_issue_threshold_timeout(self, mock_dispatch_incident_occurrence):
+    def test_mark_failed_issue_threshold_timeout(
+        self, mock_dispatch_incident_occurrence: mock.MagicMock
+    ) -> None:
         failure_issue_threshold = 8
         monitor = Monitor.objects.create(
             name="test monitor",
@@ -340,7 +309,9 @@ class MarkFailedTestCase(TestCase):
 
     # we are duplicating this test as the code paths are different, for now
     @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
-    def test_mark_failed_issue_threshold_disabled(self, mock_dispatch_incident_occurrence):
+    def test_mark_failed_issue_threshold_disabled(
+        self, mock_dispatch_incident_occurrence: mock.MagicMock
+    ) -> None:
         failure_issue_threshold = 8
         monitor = Monitor.objects.create(
             name="test monitor",
@@ -353,12 +324,12 @@ class MarkFailedTestCase(TestCase):
                 "max_runtime": None,
                 "checkin_margin": None,
             },
-            is_muted=True,
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment_id=self.environment.id,
             status=MonitorStatus.OK,
+            is_muted=True,
         )
         assert monitor_environment.active_incident is None
         for _ in range(0, failure_issue_threshold):
@@ -372,7 +343,7 @@ class MarkFailedTestCase(TestCase):
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
-        assert monitor.is_muted
+        assert is_monitor_muted(monitor)
         assert monitor_environment.status == MonitorStatus.ERROR
 
         assert mock_dispatch_incident_occurrence.call_count == 0
@@ -429,3 +400,75 @@ class MarkFailedTestCase(TestCase):
         grouphash = GroupHash.objects.get(hash=issue_platform_hash)
         group_assignee = GroupAssignee.objects.get(group_id=grouphash.group_id)
         assert group_assignee.user_id == monitor.owner_user_id
+
+    @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
+    @mock.patch("sentry.monitors.logic.incident_occurrence.resolve_incident_group")
+    def test_mark_failed_fingerprint_after_resolution(
+        self, mock_resolve_incident_group, mock_dispatch_incident_occurrence
+    ):
+        """Test that resolving and recreating an incident maintains the same fingerprint"""
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            config={
+                "schedule": [1, "hour"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "failure_issue_threshold": 3,
+            },
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+        )
+        expected_fingerprint = f"crons:{monitor_environment.id}"
+
+        for i in range(3):
+            checkin = MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                status=CheckInStatus.ERROR,
+            )
+            mark_failed(checkin, failed_at=checkin.date_added)
+
+        first_incident = MonitorIncident.objects.get(monitor_environment=monitor_environment)
+        assert first_incident.grouphash == expected_fingerprint
+
+        ok_checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.OK,
+        )
+
+        from sentry.monitors.logic.mark_ok import mark_ok
+
+        mark_ok(ok_checkin, ok_checkin.date_added)
+
+        monitor_environment.refresh_from_db()
+        assert monitor_environment.status == MonitorStatus.OK
+
+        first_incident.refresh_from_db()
+        assert first_incident.resolving_checkin == ok_checkin
+
+        for i in range(3):
+            checkin = MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                status=CheckInStatus.ERROR,
+            )
+            mark_failed(checkin, failed_at=checkin.date_added)
+
+        incidents = MonitorIncident.objects.filter(
+            monitor_environment=monitor_environment
+        ).order_by("date_added")
+        assert incidents.count() == 2
+
+        second_incident = incidents.last()
+        assert second_incident
+        assert second_incident.id != first_incident.id
+        assert second_incident.grouphash == expected_fingerprint
+        assert second_incident.grouphash == first_incident.grouphash

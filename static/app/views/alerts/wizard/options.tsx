@@ -1,6 +1,7 @@
 import mapValues from 'lodash/mapValues';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {FeatureBadge} from '@sentry/scraps/badge';
+
 import {STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS} from 'sentry/components/events/searchBarFieldConstants';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -23,7 +24,7 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
-import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
+import {hasLogAlerts, hasTraceMetricsAlerts} from 'sentry/views/alerts/wizard/utils';
 import {
   deprecateTransactionAlerts,
   hasEAPAlerts,
@@ -50,7 +51,8 @@ export type AlertType =
   | 'trace_item_duration'
   | 'trace_item_failure_rate'
   | 'trace_item_lcp'
-  | 'trace_item_logs';
+  | 'trace_item_logs'
+  | 'trace_item_metrics';
 
 export enum MEPAlertsQueryType {
   ERROR = 0,
@@ -71,6 +73,7 @@ export const DEPRECATED_TRANSACTION_ALERTS: AlertType[] = [
   'lcp',
   'fid',
   'cls',
+  'custom_transactions',
 ];
 
 export const DatasetMEPAlertQueryTypes: Record<
@@ -105,6 +108,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   trace_item_lcp: t('Largest Contentful Paint'),
   eap_metrics: t('Spans'),
   trace_item_logs: t('Logs'),
+  trace_item_metrics: t('Custom Metrics'),
   crons_monitor: t('Cron Monitor'),
 };
 
@@ -114,7 +118,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
  */
 export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
   uptime_monitor: <FeatureBadge type="new" />,
-  trace_item_logs: <FeatureBadge type="beta" />,
+  trace_item_metrics: <FeatureBadge type="beta" />,
 };
 
 type AlertWizardCategory = {
@@ -170,6 +174,13 @@ export const getAlertWizardCategories = (org: Organization) => {
       });
     }
 
+    if (hasTraceMetricsAlerts(org)) {
+      result.push({
+        categoryHeading: t('Metrics'),
+        options: ['trace_item_metrics' as const],
+      });
+    }
+
     if (org.features.includes('uptime')) {
       result.push({
         categoryHeading: t('Uptime Monitoring'),
@@ -182,10 +193,12 @@ export const getAlertWizardCategories = (org: Organization) => {
       options: ['crons_monitor'],
     });
 
-    result.push({
-      categoryHeading: t('Custom'),
-      options: ['custom_transactions'],
-    });
+    if (!deprecateTransactionAlerts(org)) {
+      result.push({
+        categoryHeading: t('Custom'),
+        options: ['custom_transactions'],
+      });
+    }
   }
   return result;
 };
@@ -222,7 +235,7 @@ export const AlertWizardRuleTemplates: Record<
     eventTypes: EventTypes.TRANSACTION,
   },
   apdex: {
-    aggregate: 'apdex(300)',
+    aggregate: 'apdex()',
     dataset: Dataset.TRANSACTIONS,
     eventTypes: EventTypes.TRANSACTION,
   },
@@ -264,7 +277,7 @@ export const AlertWizardRuleTemplates: Record<
   eap_metrics: {
     aggregate: 'count(span.duration)',
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-    eventTypes: EventTypes.TRANSACTION,
+    eventTypes: EventTypes.TRACE_ITEM_SPAN,
   },
   trace_item_throughput: {
     aggregate: 'count(span.duration)',
@@ -290,6 +303,11 @@ export const AlertWizardRuleTemplates: Record<
     aggregate: 'count(message)',
     dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
     eventTypes: EventTypes.TRACE_ITEM_LOG,
+  },
+  trace_item_metrics: {
+    aggregate: 'sum(value)',
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRACE_ITEM_METRIC,
   },
 };
 
@@ -356,7 +374,7 @@ const ERROR_SUPPORTED_TAGS = [
 
 // Some data sets support a very limited number of tags. For these cases,
 // define all supported tags explicitly
-export function datasetSupportedTags(
+function datasetSupportedTags(
   dataset: Dataset,
   org: Organization
 ): TagCollection | undefined {

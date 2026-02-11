@@ -5,7 +5,7 @@ from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project
-LATEST_EPOCH = 13
+LATEST_EPOCH = 15
 
 register(key="sentry:grouping_config", default=DEFAULT_GROUPING_CONFIG)
 register(key="sentry:grouping_enhancements", default="")
@@ -30,13 +30,13 @@ register(key="sentry:similarity_backfill_completed", default=None)
 # version is set on a project's DSN.
 register(
     key="sentry:default_loader_version",
-    # TODO(lforst): Make v9 loader default
-    epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x", 13: "8.x"},
+    epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x", 13: "8.x", 14: "9.x", 15: "10.x"},
 )
 
-# Default symbol sources.  The ios source does not exist by default and
-# will be skipped later.  The microsoft source exists by default and is
-# unlikely to be disabled.
+# Default symbol sources. The ios source does not exist by default and
+# will be skipped later. The microsoft source exists by default and is
+# unlikely to be disabled. Platform-specific sources may be added via
+# set_default_symbol_sources() when a project is created.
 register(
     key="sentry:builtin_symbol_sources",
     epoch_defaults={
@@ -85,6 +85,8 @@ register(key="filters:filtered-transaction", default="1")
 # extracted performance metrics.
 register(key="sentry:transaction_metrics_custom_tags", epoch_defaults={1: []})
 
+# c.f. set_default_disabled_detectors, which can disable detectors on project creation
+# for specific platforms
 DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "uncompressed_assets_detection_enabled": True,
     "consecutive_http_spans_detection_enabled": True,
@@ -99,7 +101,8 @@ DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "http_overhead_detection_enabled": True,
     "transaction_duration_regression_detection_enabled": True,
     "function_duration_regression_detection_enabled": True,
-    "db_query_injection_detection_enabled": True,
+    "db_query_injection_detection_enabled": False,
+    "web_vitals_detection_enabled": True,
 }
 
 DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS = {
@@ -162,7 +165,10 @@ register(
 # The available loader SDK versions
 register(
     key="sentry:loader_available_sdk_versions",
-    epoch_defaults={1: ["9.x", "8.x", "7.x", "6.x", "5.x", "4.x"], 11: ["9.x", "8.x", "7.x"]},
+    epoch_defaults={
+        1: ["10.x", "9.x", "8.x", "7.x", "6.x", "5.x", "4.x"],
+        11: ["10.x", "9.x", "8.x", "7.x"],
+    },
 )
 
 # Dynamic sampling rate in project-level "manual" configuration mode
@@ -171,11 +177,20 @@ register(key="sentry:target_sample_rate", default=TARGET_SAMPLE_RATE_DEFAULT)
 # Should tempest fetch screenshots for this project
 register(key="sentry:tempest_fetch_screenshots", default=False)
 
-# Should tempest fetch dumps for this project
-register(key="sentry:tempest_fetch_dumps", default=False)
-
 # Should autofix run automatically on new issues
 register(key="sentry:autofix_automation_tuning", default=AutofixAutomationTuningSettings.OFF)
 
 # Should seer scanner run automatically on new issues
 register(key="sentry:seer_scanner_automation", default=True)
+
+# Boolean to enable/disable preprod size analysis for this project.
+register(key="sentry:preprod_size_enabled_by_customer", default=True)
+
+# Structured search filter to determine which preprod builds get size analysis.
+register(key="sentry:preprod_size_enabled_query", default="")
+
+# Boolean to enable/disable preprod build distribution for this project.
+register(key="sentry:preprod_distribution_enabled_by_customer", default=True)
+
+# Structured search filter to determine which preprod builds get build distribution.
+register(key="sentry:preprod_distribution_enabled_query", default="")

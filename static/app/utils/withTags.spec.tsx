@@ -23,12 +23,12 @@ function TestComponent({other, tags}: TestComponentProps) {
   );
 }
 
-describe('withTags HoC', function () {
+describe('withTags HoC', () => {
   beforeEach(() => {
     TagStore.reset();
   });
 
-  it('works', function () {
+  it('works', () => {
     const Container = withTags(TestComponent);
     render(<Container other="value" />);
 

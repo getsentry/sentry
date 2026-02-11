@@ -1,6 +1,7 @@
 import type {PlatformKey} from 'sentry/types/project';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import type {TraceWaterFallSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import type {CrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
+import type {TraceTreeSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {TraceDrawerActionKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 export type TracingEventParameters = {
@@ -10,10 +11,16 @@ export type TracingEventParameters = {
   'trace.configurations_docs_link_clicked': {
     title: string;
   };
+
   'trace.explorer.ai_query_applied': {
     group_by_count: number;
     query: string;
     visualize_count: number;
+  };
+  'trace.explorer.ai_query_feedback': {
+    correct_query_results: 'yes' | 'no';
+    natural_language_query: string;
+    query: string;
   };
   'trace.explorer.ai_query_interface': {
     action: 'opened' | 'closed' | 'consent_accepted';
@@ -25,25 +32,41 @@ export type TracingEventParameters = {
   'trace.explorer.ai_query_submitted': {
     natural_language_query: string;
   };
+  'trace.explorer.cross_event_added': {
+    type: CrossEventType;
+  };
+  'trace.explorer.cross_event_changed': {
+    new_type: CrossEventType;
+    old_type: CrossEventType;
+  };
+  'trace.explorer.cross_event_removed': {
+    type: CrossEventType;
+  };
   'trace.explorer.metadata': {
-    columns: string[];
+    columns: readonly string[];
     columns_count: number;
     confidences: string[];
+    dataScanned: string;
     dataset: string;
+    empty_buckets_percentage: number[];
+    gave_seer_consent: 'given' | 'not_given' | 'gen_ai_features_disabled';
     has_exceeded_performance_usage_limit: boolean | null;
     interval: string;
     page_source: 'explore' | 'compare';
     query_status: 'success' | 'error' | 'pending';
     result_length: number;
     result_missing_root: number;
-    result_mode: 'trace samples' | 'span samples' | 'aggregates';
+    result_mode: 'trace samples' | 'span samples' | 'aggregates' | 'attribute breakdowns';
     sample_counts: number[];
     title: string;
     user_queries: string;
     user_queries_count: number;
+    version: 2;
     visualizes: BaseVisualize[];
     visualizes_count: number;
-    empty_buckets_percentage?: number[];
+    attribute_breakdowns_mode?: 'breakdowns' | 'cohort_comparison';
+    cross_event_log_query_count?: number;
+    cross_event_span_query_count?: number;
   };
   'trace.explorer.schema_hints_click': {
     source: 'list' | 'drawer';
@@ -58,19 +81,23 @@ export type TracingEventParameters = {
     type: 'samples' | 'traces' | 'aggregates';
   };
   'trace.load.empty_state': {
-    source: TraceWaterFallSource;
+    source: TraceTreeSource;
   };
   'trace.load.error_state': {
-    source: TraceWaterFallSource;
+    error_status: number | null;
+    source: TraceTreeSource;
+    span_count: number | null;
   };
   'trace.metadata': {
+    eap_spans_count: number;
     has_exceeded_performance_usage_limit: boolean | null;
+    issues_count: number;
     num_nodes: number;
     num_root_children: number;
     project_platforms: string[];
     referrer: string | null;
     shape: string;
-    source: TraceWaterFallSource;
+    source: TraceTreeSource;
     trace_age: string;
     trace_duration_seconds: number;
   };
@@ -92,6 +119,10 @@ export type TracingEventParameters = {
   };
   'trace.quality.quota_exceeded.learn_more_clicked': {
     traceType: string;
+  };
+  'trace.trace_drawer_details.eap_span_has_details': {
+    has_logs_details: boolean;
+    has_profile_details: boolean;
   };
   'trace.trace_drawer_explore_search': {
     key: string;
@@ -115,9 +146,6 @@ export type TracingEventParameters = {
     num_children: number;
     project_platform: string;
     type: string;
-    next_op?: string;
-    parent_op?: string;
-    previous_op?: string;
   };
   'trace.trace_layout.tab_pin': Record<string, unknown>;
   'trace.trace_layout.tab_view': {
@@ -177,6 +205,7 @@ export type TracingEventParameters = {
   'trace_explorer.search_request': {
     queries: string[];
   };
+
   'trace_explorer.search_success': {
     has_data: boolean;
     num_missing_trace_root: number;
@@ -205,7 +234,11 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.explorer.ai_query_rejected': 'Trace Explorer: AI Query Rejected',
   'trace.explorer.ai_query_submitted': 'Trace Explorer: AI Query Submitted',
   'trace.explorer.ai_query_interface': 'Trace Explorer: AI Query Interface',
+  'trace.explorer.ai_query_feedback': 'Trace Explorer: AI Query Feedback',
   'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
+  'trace.explorer.cross_event_added': 'Trace Explorer: Cross Event Added',
+  'trace.explorer.cross_event_changed': 'Trace Explorer: Cross Event Changed',
+  'trace.explorer.cross_event_removed': 'Trace Explorer: Cross Event Removed',
   'trace.explorer.schema_hints_click':
     'Improved Trace Explorer: Schema Hints Click Events',
   'trace.explorer.schema_hints_drawer':
@@ -214,6 +247,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_drawer_explore_search': 'Searched Trace Explorer',
+  'trace.trace_drawer_details.eap_span_has_details': 'EAP Span has Details',
   'trace.tracing_onboarding': 'Tracing Onboarding UI',
   'trace.tracing_onboarding_platform_docs_viewed':
     'Viewed Platform Docs for Onboarding UI',

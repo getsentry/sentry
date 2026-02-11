@@ -18,10 +18,10 @@ class ApiError(Exception):
         self.status_code = status_code
         self.body = body
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"status={self.status_code} body={self.body}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<ApiError: {self}>"
 
 
@@ -96,7 +96,11 @@ class ApiClient:
 
         if params:
             mock_request.GET._mutable = True
-            mock_request.GET.update(params)
+            for key, value in params.items():
+                if isinstance(value, list):
+                    mock_request.GET.setlist(key, [str(v) for v in value])
+                else:
+                    mock_request.GET[key] = str(value)
             mock_request.GET._mutable = False
 
         if data:

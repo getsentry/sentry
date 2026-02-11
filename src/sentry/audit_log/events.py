@@ -23,10 +23,10 @@ def _get_member_display(email: str | None, target_user: User | None) -> str:
 
 
 class MemberAddAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=2, name="MEMBER_ADD", api_name="member.add")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         if audit_log_entry.target_user == audit_log_entry.actor:
             return "joined the organization"
 
@@ -35,10 +35,10 @@ class MemberAddAuditLogEvent(AuditLogEvent):
 
 
 class MemberEditAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=4, name="MEMBER_EDIT", api_name="member.edit")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         member = _get_member_display(audit_log_entry.data.get("email"), audit_log_entry.target_user)
         role = audit_log_entry.data.get("role") or "N/A"
 
@@ -50,10 +50,10 @@ class MemberEditAuditLogEvent(AuditLogEvent):
 
 
 class MemberRemoveAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=5, name="MEMBER_REMOVE", api_name="member.remove")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         if audit_log_entry.target_user == audit_log_entry.actor:
             return "left the organization"
 
@@ -62,10 +62,10 @@ class MemberRemoveAuditLogEvent(AuditLogEvent):
 
 
 class MemberJoinTeamAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=6, name="MEMBER_JOIN_TEAM", api_name="member.join-team")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         if audit_log_entry.target_user == audit_log_entry.actor:
             return "joined team {team_slug}".format(**audit_log_entry.data)
 
@@ -76,10 +76,10 @@ class MemberJoinTeamAuditLogEvent(AuditLogEvent):
 
 
 class MemberLeaveTeamAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=7, name="MEMBER_LEAVE_TEAM", api_name="member.leave-team")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         if audit_log_entry.target_user == audit_log_entry.actor:
             return "left team {team_slug}".format(**audit_log_entry.data)
 
@@ -90,10 +90,10 @@ class MemberLeaveTeamAuditLogEvent(AuditLogEvent):
 
 
 class MemberPendingAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=8, name="MEMBER_PENDING", api_name="member.pending")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         user_display_name = _get_member_display(
             audit_log_entry.data.get("email"), audit_log_entry.target_user
         )
@@ -101,39 +101,39 @@ class MemberPendingAuditLogEvent(AuditLogEvent):
 
 
 class OrgAddAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=10, name="ORG_ADD", api_name="org.create")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         if channel := audit_log_entry.data.get("channel"):
             return f"created the organization with {channel} integration"
         return "created the organization"
 
 
 class OrgEditAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=11, name="ORG_EDIT", api_name="org.edit")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         items_string = ", ".join(f"{k} {v}" for k, v in audit_log_entry.data.items())
         return "edited the organization setting: " + items_string
 
 
 class TeamEditAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=21, name="TEAM_EDIT", api_name="team.edit")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         slug = audit_log_entry.data["slug"]
 
         return f"edited team {slug}"
 
 
 class ProjectEditAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=31, name="PROJECT_EDIT", api_name="project.edit")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         if "old_slug" in audit_log_entry.data:
             return "renamed project slug from {old_slug} to {new_slug}".format(
                 **audit_log_entry.data
@@ -145,10 +145,10 @@ class ProjectEditAuditLogEvent(AuditLogEvent):
 
 
 class ProjectKeyEditAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=51, name="PROJECTKEY_EDIT", api_name="projectkey.edit")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         items_strings = []
         if "prev_rate_limit_count" in audit_log_entry.data:
             items_strings.append(
@@ -171,15 +171,15 @@ class ProjectKeyEditAuditLogEvent(AuditLogEvent):
 
 
 class ProjectPerformanceDetectionSettingsAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             event_id=178,
             name="PROJECT_PERFORMANCE_ISSUE_DETECTION_CHANGE",
             api_name="project.change-performance-issue-detection",
         )
 
-    def render(self, audit_log_entry: AuditLogEntry):
-        from sentry.api.endpoints.project_performance_issue_settings import (
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
+        from sentry.issues.endpoints.project_performance_issue_settings import (
             project_settings_to_group_map as map,
         )
 
@@ -209,91 +209,91 @@ def render_project_action(audit_log_entry: AuditLogEntry, action: str):
 
 
 class ProjectEnableAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=37, name="PROJECT_ENABLE", api_name="project.enable")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         return render_project_action(audit_log_entry, "enable")
 
 
 class ProjectDisableAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=38, name="PROJECT_DISABLE", api_name="project.disable")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         return render_project_action(audit_log_entry, "disable")
 
 
 class ProjectOwnershipRuleEditAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             event_id=179, name="PROJECT_OWNERSHIPRULE_EDIT", api_name="project.ownership-rule.edit"
         )
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         return "modified ownership rules"
 
 
 class SSOEditAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=62, name="SSO_EDIT", api_name="sso.edit")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         settings = ", ".join(f"{k} {v}" for k, v in audit_log_entry.data.items())
         return "edited sso settings: " + settings
 
 
 class ServiceHookAddAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=100, name="SERVICEHOOK_ADD", api_name="servicehook.create")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         full_url = audit_log_entry.data.get("url")
         return f'added a service hook for "{truncatechars(full_url, 64)}"'
 
 
 class ServiceHookEditAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=101, name="SERVICEHOOK_EDIT", api_name="servicehook.edit")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         full_url = audit_log_entry.data.get("url")
         return f'edited the service hook for "{truncatechars(full_url, 64)}"'
 
 
 class ServiceHookRemoveAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=102, name="SERVICEHOOK_REMOVE", api_name="servicehook.remove")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         full_url = audit_log_entry.data.get("url")
         return f'removed the service hook for "{truncatechars(full_url, 64)}"'
 
 
 class IntegrationDisabledAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=108, name="INTEGRATION_DISABLED", api_name="integration.disable")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         provider = audit_log_entry.data.get("provider") or ""
         return f"disabled {provider} integration".format(**audit_log_entry.data)
 
 
 class IntegrationUpgradeAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=109, name="INTEGRATION_UPGRADE", api_name="integration.upgrade")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         if audit_log_entry.data.get("provider"):
             return "upgraded {name} for the {provider} integration".format(**audit_log_entry.data)
         return "updated an integration"
 
 
 class IntegrationAddAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=110, name="INTEGRATION_ADD", api_name="integration.add")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         if audit_log_entry.data.get("provider"):
             return "installed {name} for the {provider} integration".format(**audit_log_entry.data)
         return "enabled integration {integration} for project {project}".format(
@@ -302,10 +302,10 @@ class IntegrationAddAuditLogEvent(AuditLogEvent):
 
 
 class IntegrationEditAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=111, name="INTEGRATION_EDIT", api_name="integration.edit")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         if audit_log_entry.data.get("provider"):
             return "edited the {name} for the {provider} integration".format(**audit_log_entry.data)
         return "edited integration {integration} for project {project}".format(
@@ -314,10 +314,10 @@ class IntegrationEditAuditLogEvent(AuditLogEvent):
 
 
 class IntegrationRemoveAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(event_id=112, name="INTEGRATION_REMOVE", api_name="integration.remove")
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         if audit_log_entry.data.get("provider"):
             return "uninstalled {name} for the {provider} integration".format(
                 **audit_log_entry.data
@@ -328,38 +328,38 @@ class IntegrationRemoveAuditLogEvent(AuditLogEvent):
 
 
 class InternalIntegrationAddAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             event_id=130, name="INTERNAL_INTEGRATION_ADD", api_name="internal-integration.create"
         )
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         integration_name = audit_log_entry.data.get("name") or ""
         return f"created internal integration {integration_name}"
 
 
 class InternalIntegrationDisabledAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             event_id=131,
             name="INTERNAL_INTEGRATION_DISABLED",
             api_name="internal-integration.disable",
         )
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         integration_name = audit_log_entry.data.get("name") or ""
         return f"disabled internal integration {integration_name}".format(**audit_log_entry.data)
 
 
 class MonitorAddAuditLogEvent(AuditLogEvent):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             event_id=120,
             name="MONITOR_ADD",
             api_name="monitor.add",
         )
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         entry_data = audit_log_entry.data
         name = entry_data.get("name")
         upsert = entry_data.get("upsert")

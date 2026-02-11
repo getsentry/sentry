@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
 
-import {type Fidelity, getInterval} from 'sentry/components/charts/utils';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {getInterval, type Fidelity} from 'sentry/components/charts/utils';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 export function usePageFilterChartParams({
   granularity = 'spans',

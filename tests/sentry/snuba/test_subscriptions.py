@@ -173,7 +173,7 @@ class CreateSnubaSubscriptionTest(TestCase):
         assert subscription.subscription_id is not None
 
     @mock.patch("sentry.snuba.tasks.get_entity_subscription_from_snuba_query")
-    def test_handler_querybuilder_errors(self, mock_entity):
+    def test_handler_querybuilder_errors(self, mock_entity: mock.MagicMock) -> None:
         mock_entity.dataset = None
         entity_subscription = mock.Mock()
         mock_entity.return_value = entity_subscription

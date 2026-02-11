@@ -27,8 +27,6 @@ class Topic(Enum):
     TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
     GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-results"
     METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
-    EAP_SPANS_SUBSCRIPTIONS_RESULTS = "eap-spans-subscription-results"
-    EAP_ITEMS_SUBSCRIPTIONS_RESULTS = "subscription-results-eap-items"
     INGEST_EVENTS = "ingest-events"
     INGEST_EVENTS_DLQ = "ingest-events-dlq"
     INGEST_EVENTS_BACKLOG = "ingest-events-backlog"
@@ -60,14 +58,12 @@ class Topic(Enum):
     MONITORS_CLOCK_TASKS = "monitors-clock-tasks"
     MONITORS_INCIDENT_OCCURRENCES = "monitors-incident-occurrences"
     UPTIME_RESULTS = "uptime-results"
-    SNUBA_UPTIME_RESULTS = "snuba-uptime-results"
     EVENTSTREAM_GENERIC = "generic-events"
     GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
     GROUP_ATTRIBUTES = "group-attributes"
     SHARED_RESOURCES_USAGE = "shared-resources-usage"
-    SNUBA_SPANS = "snuba-spans"
-    SNUBA_OURLOGS = "snuba-ourlogs"
     SNUBA_ITEMS = "snuba-items"
+    EAP_ITEMS_SUBSCRIPTIONS_RESULTS = "subscription-results-eap-items"
     BUFFERED_SEGMENTS = "buffered-segments"
     BUFFERED_SEGMENTS_DLQ = "buffered-segments-dlq"
 
@@ -80,6 +76,8 @@ class Topic(Enum):
     TASKWORKER_BUFFER_DLQ = "taskworker-buffer-dlq"
     TASKWORKER_CONTROL = "taskworker-control"
     TASKWORKER_CONTROL_DLQ = "taskworker-control-dlq"
+    TASKWORKER_CONTROL_LIMITED = "taskworker-control-limited"
+    TASKWORKER_CONTROL_LIMITED_DLQ = "taskworker-control-limited-dlq"
     TASKWORKER_CUTOVER = "taskworker-cutover"
     TASKWORKER_EMAIL = "taskworker-email"
     TASKWORKER_EMAIL_DLQ = "taskworker-email-dlq"
@@ -114,7 +112,6 @@ class Topic(Enum):
 
 
 class ConsumerDefinition(TypedDict, total=False):
-
     # Default topic
     topic: Required[Topic]
 

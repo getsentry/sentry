@@ -3,9 +3,12 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import Text from 'sentry/components/text';
+import {Prose} from '@sentry/scraps/text';
+
+import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
+
 /**
  * The default wrapper for the detail text.
  *
@@ -36,7 +39,7 @@ const Header = styled((props: React.ComponentProps<typeof motion.h2>) => (
 ))`
   display: flex;
   align-items: center;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin-bottom: ${space(1)};
 `;
 
@@ -212,7 +215,7 @@ function PageOverlay({
           </Background>
         )}
         <Wrapper ref={wrapperRef}>
-          <Text>{text({Body, Header})}</Text>
+          <PageOverlayProse>{text({Body, Header})}</PageOverlayProse>
         </Wrapper>
       </ContentWrapper>
     </MaskedContent>
@@ -252,6 +255,17 @@ const MaskedContent = styled('div')`
   overflow: hidden;
   flex-grow: 1;
   flex-basis: 0;
+`;
+
+const PageOverlayProse = styled(Prose)`
+  ${Panel} & {
+    padding-left: ${space(2)};
+    padding-right: ${space(2)};
+
+    &:first-child {
+      padding-top: ${space(2)};
+    }
+  }
 `;
 
 export default PageOverlay;

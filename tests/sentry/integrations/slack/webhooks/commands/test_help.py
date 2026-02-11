@@ -1,12 +1,6 @@
 import responses
 
-from fixtures.slack import (
-    DOCS_COMMAND,
-    HELP_COMMAND,
-    INVALID_COMMAND,
-    MISSING_COMMAND,
-    SUPPORT_COMMAND,
-)
+from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.message_builder.types import SlackBody
 from sentry.silo.base import SiloMode
 from sentry.testutils.helpers import get_response_text
@@ -41,10 +35,14 @@ class SlackCommandsHelpTest(SlackCommandsTest):
     @responses.activate
     def test_missing_command(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            region_response = SlackHelpMessageBuilder(
+                command=None,
+                integration_id=self.integration.id,
+            ).as_payload()
             responses.add(
                 method=responses.POST,
                 url="http://us.testserver/extensions/slack/commands/",
-                json=MISSING_COMMAND,
+                json=region_response,
             )
         data = self.send_slack_message("")
         assert_is_help_text(data)
@@ -52,32 +50,46 @@ class SlackCommandsHelpTest(SlackCommandsTest):
     @responses.activate
     def test_invalid_command(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            region_response = SlackHelpMessageBuilder(
+                command="invalid command",
+                integration_id=self.integration.id,
+            ).as_payload()
             responses.add(
                 method=responses.POST,
                 url="http://us.testserver/extensions/slack/commands/",
-                json=INVALID_COMMAND,
+                json=region_response,
             )
         data = self.send_slack_message("invalid command")
         assert_unknown_command_text(data, "invalid command")
 
     @responses.activate
-    def test_help_command(self) -> None:
+    def test_help_command_with_organization_team_linking(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            region_response = SlackHelpMessageBuilder(
+                command="help",
+                integration_id=self.integration.id,
+            ).as_payload()
             responses.add(
                 method=responses.POST,
                 url="http://us.testserver/extensions/slack/commands/",
-                json=HELP_COMMAND,
+                json=region_response,
             )
         data = self.send_slack_message("help")
-        assert_is_help_text(data)
+        text = get_response_text(data)
+        assert "`/sentry link team [organization_slug]`:" in text
+        assert "`/sentry unlink team [organization_slug]`:" in text
 
     @responses.activate
     def test_support_command(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            region_response = SlackHelpMessageBuilder(
+                command="support",
+                integration_id=self.integration.id,
+            ).as_payload()
             responses.add(
                 method=responses.POST,
                 url="http://us.testserver/extensions/slack/commands/",
-                json=SUPPORT_COMMAND,
+                json=region_response,
             )
         data = self.send_slack_message("support")
         assert_is_support_text(data)
@@ -85,10 +97,14 @@ class SlackCommandsHelpTest(SlackCommandsTest):
     @responses.activate
     def test_docs_command(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            region_response = SlackHelpMessageBuilder(
+                command="docs",
+                integration_id=self.integration.id,
+            ).as_payload()
             responses.add(
                 method=responses.POST,
                 url="http://us.testserver/extensions/slack/commands/",
-                json=DOCS_COMMAND,
+                json=region_response,
             )
         data = self.send_slack_message("docs")
         assert_is_docs_text(data)

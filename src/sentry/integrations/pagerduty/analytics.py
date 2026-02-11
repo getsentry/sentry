@@ -1,17 +1,10 @@
 from sentry import analytics
+from sentry.analytics.events.base_notification_sent import BaseNotificationSent
 
 
-class PagerdutyIntegrationNotificationSent(analytics.Event):
-    type = "integrations.pagerduty.notification_sent"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("category"),
-        analytics.Attribute("group_id"),
-        analytics.Attribute("notification_uuid"),
-        analytics.Attribute("alert_id", required=False),
-    )
+@analytics.eventclass("integrations.pagerduty.notification_sent")
+class PagerdutyIntegrationNotificationSent(BaseNotificationSent):
+    pass
 
 
 analytics.register(PagerdutyIntegrationNotificationSent)

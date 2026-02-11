@@ -35,6 +35,7 @@ export function ReleaseMetaFixture(params: Partial<ReleaseMeta> = {}): ReleaseMe
     commitCount: 2,
     released: '2020-03-23T01:02:30Z',
     commitFilesChanged: 17,
+    preprodBuildCount: 0,
     releaseFileCount: 1662,
     isArtifactBundle: false,
     ...params,

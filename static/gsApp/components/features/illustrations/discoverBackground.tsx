@@ -130,7 +130,7 @@ const landBeforeTimeAnimation = {
     animate: {opacity: 1, filter: 'saturation(1)'},
   },
   transition: testableTransition({
-    type: 'linear',
+    type: 'tween',
     duration: 1.4,
   }),
 };

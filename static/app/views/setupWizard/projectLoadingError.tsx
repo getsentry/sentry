@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -39,7 +40,7 @@ export function ProjectLoadingError({
   if (code === 'sso-required' && ssoLoginUrl) {
     return (
       <Alert
-        type="error"
+        variant="danger"
         trailingItems={
           <LinkButton href={ssoLoginUrl} size="xs">
             {t('Log in')}

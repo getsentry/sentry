@@ -1,5 +1,7 @@
 import type {Location} from 'history';
 
+import {Link} from '@sentry/scraps/link';
+
 import {
   deleteHomepageQuery,
   updateHomepageQuery,
@@ -11,7 +13,6 @@ import {
 } from 'sentry/actionCreators/discoverSavedQueries';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {Link} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -80,7 +81,7 @@ export function handleUpdateQuery(
 
   if (!eventView.name) {
     addErrorMessage(t('Please name your query'));
-    return Promise.reject();
+    return Promise.reject(new Error('Query name is required'));
   }
 
   trackAnalytics('discover_v2.update_query_request', {

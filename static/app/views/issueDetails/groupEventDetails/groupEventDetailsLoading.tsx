@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
@@ -52,9 +53,9 @@ export function GroupEventDetailsLoading() {
 
 const LoadingGroupContent = styled('div')`
   min-height: 90vh;
-  border: 1px solid ${p => p.theme.translucentBorder};
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const LoadingHeader = styled('div')`
@@ -63,6 +64,6 @@ const LoadingHeader = styled('div')`
   justify-content: space-between;
   align-items: center;
   gap: ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.translucentBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   overflow: hidden;
 `;

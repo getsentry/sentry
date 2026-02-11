@@ -5,6 +5,9 @@ from typing import Any
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
+from sentry.constants import ObjectStatus
+from sentry.integrations.msteams.utils import find_channel_id
+from sentry.integrations.services.integration.service import integration_service
 from sentry.utils.forms import set_field_choices
 
 
@@ -15,7 +18,6 @@ class MsTeamsNotifyServiceForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         self._team_list = [(i.id, i.name) for i in kwargs.pop("integrations")]
-        self.channel_transformer = kwargs.pop("channel_transformer")
 
         super().__init__(*args, **kwargs)
 
@@ -31,7 +33,13 @@ class MsTeamsNotifyServiceForm(forms.Form):
 
         integration_id = cleaned_data.get("team")
         channel = cleaned_data.get("channel", "")
-        channel_id = self.channel_transformer(integration_id, channel)
+        integration = integration_service.get_integration(
+            integration_id=integration_id, status=ObjectStatus.ACTIVE
+        )
+        if not integration:
+            raise forms.ValidationError(_("Team is a required field."), code="invalid")
+
+        channel_id = find_channel_id(integration, channel)
 
         if channel_id is None and integration_id is not None:
             params = {

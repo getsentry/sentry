@@ -1,4 +1,5 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {
   DEFAULT_INDEXED_SORT,
@@ -85,7 +86,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
           : []),
       ],
     },
-    'api.performance.browser.web-vitals.transaction'
+    Referrer.WEB_VITAL_TRANSACTION
   );
 
   const finalData = result.data.map(row => ({

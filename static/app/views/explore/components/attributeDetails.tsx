@@ -31,7 +31,9 @@ export function AttributeDetails({
   );
 }
 
-function traceItemTypeToType(traceItemType: TraceItemDataset): 'span' | 'log' {
+function traceItemTypeToType(
+  traceItemType: TraceItemDataset
+): 'span' | 'log' | 'tracemetric' {
   if (traceItemType === TraceItemDataset.SPANS) {
     return 'span' as const;
   }
@@ -40,17 +42,21 @@ function traceItemTypeToType(traceItemType: TraceItemDataset): 'span' | 'log' {
     return 'log' as const;
   }
 
+  if (traceItemType === TraceItemDataset.TRACEMETRICS) {
+    return 'tracemetric' as const;
+  }
+
   throw new Error('Cannot convert unknown trace item type to type');
 }
 
 const Details = styled('div')`
   padding: ${space(0.75)} ${space(1)};
   max-width: 220px;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const DetailsLabel = styled('p')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   word-break: break-all;
   margin-bottom: ${space(1)};
 `;

@@ -30,7 +30,7 @@ export function SelectionKeyHandler({
   undo,
   gridRef,
 }: SelectionKeyHandlerProps) {
-  const {dispatch, disabled} = useSearchQueryBuilder();
+  const {dispatch, disabled, currentInputValueRef} = useSearchQueryBuilder();
   const {selectInDirection} = useKeyboardSelection();
 
   const selectedTokens: ParseResultToken[] = [...state.collection.getKeys()]
@@ -46,7 +46,7 @@ export function SelectionKeyHandler({
       const text = e.clipboardData.getData('text/plain').replace('\n', '').trim();
 
       dispatch({
-        type: 'REPLACE_TOKENS_WITH_TEXT',
+        type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE',
         tokens: selectedTokens,
         text,
       });
@@ -62,7 +62,7 @@ export function SelectionKeyHandler({
           e.preventDefault();
           e.stopPropagation();
           dispatch({
-            type: 'REPLACE_TOKENS_WITH_TEXT',
+            type: 'REPLACE_TOKENS_WITH_TEXT_ON_DELETE',
             tokens: selectedTokens,
             text: '',
           });
@@ -70,6 +70,11 @@ export function SelectionKeyHandler({
             findNearestFreeTextKey(state, state.selectionManager.firstSelectedKey, 'left')
           );
           state.selectionManager.clearSelection();
+
+          // Ask Seer - Clear the input value when the user deletes all tokens
+          if (state.collection.size === selectedTokens.length) {
+            currentInputValueRef.current = '';
+          }
           return;
         }
         case 'ArrowRight':
@@ -123,7 +128,7 @@ export function SelectionKeyHandler({
               state.selectionManager.clearSelection();
               copySelectedTokens();
               dispatch({
-                type: 'REPLACE_TOKENS_WITH_TEXT',
+                type: 'REPLACE_TOKENS_WITH_TEXT_ON_CUT',
                 tokens: selectedTokens,
                 text: '',
               });
@@ -137,10 +142,22 @@ export function SelectionKeyHandler({
             return;
           }
 
+          // Wrap selected tokens in parentheses when ( or ) is pressed
+          if ((e.key === '(' || e.key === ')') && selectedTokens.length > 0) {
+            e.preventDefault();
+            e.stopPropagation();
+            dispatch({
+              type: 'WRAP_TOKENS_WITH_PARENTHESES',
+              tokens: selectedTokens,
+            });
+            state.selectionManager.clearSelection();
+            return;
+          }
+
           // If the key pressed will generate a symbol, replace the selection with it
           if (/^.$/u.test(e.key)) {
             dispatch({
-              type: 'REPLACE_TOKENS_WITH_TEXT',
+              type: 'REPLACE_TOKENS_WITH_TEXT_ON_KEY_DOWN',
               text: e.key,
               tokens: selectedTokens,
             });
@@ -152,7 +169,7 @@ export function SelectionKeyHandler({
           return;
       }
     },
-    [dispatch, selectInDirection, selectedTokens, state, undo]
+    [currentInputValueRef, dispatch, selectInDirection, selectedTokens, state, undo]
   );
 
   // Ensure that the selection is cleared when this input loses focus

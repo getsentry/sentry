@@ -3,8 +3,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import Form from 'sentry/components/deprecatedforms/form';
 import SelectCreatableField from 'sentry/components/deprecatedforms/selectCreatableField';
 
-describe('SelectCreatableField', function () {
-  it('can add user input into select field when using options', async function () {
+describe('SelectCreatableField', () => {
+  it('can add user input into select field when using options', async () => {
     render(
       <SelectCreatableField options={[{value: 'foo', label: 'Foo'}]} name="fieldName" />
     );
@@ -19,7 +19,7 @@ describe('SelectCreatableField', function () {
     expect(screen.getByText('bar')).toBeInTheDocument();
   });
 
-  it('can add user input into select field when using choices', async function () {
+  it('can add user input into select field when using choices', async () => {
     render(<SelectCreatableField choices={['foo']} name="fieldName" />);
 
     await userEvent.type(screen.getByRole('textbox'), 'bar');
@@ -32,7 +32,7 @@ describe('SelectCreatableField', function () {
     expect(screen.getByText('bar')).toBeInTheDocument();
   });
 
-  it('can add user input into select field when using paired choices', async function () {
+  it('can add user input into select field when using paired choices', async () => {
     render(<SelectCreatableField choices={[['foo', 'foo']]} name="fieldName" />);
 
     await userEvent.type(screen.getByRole('textbox'), 'bar');
@@ -45,7 +45,7 @@ describe('SelectCreatableField', function () {
     expect(screen.getByText('bar')).toBeInTheDocument();
   });
 
-  it('with Form context', async function () {
+  it('with Form context', async () => {
     const submitMock = jest.fn();
     render(
       <Form onSubmit={submitMock}>

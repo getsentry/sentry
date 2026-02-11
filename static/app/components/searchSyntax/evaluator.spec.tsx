@@ -1,8 +1,8 @@
 import {
   insertImplicitAND,
-  type ProcessedTokenResult,
   toFlattened,
   toPostFix,
+  type ProcessedTokenResult,
 } from 'sentry/components/searchSyntax/evaluator';
 import {
   parseSearch,

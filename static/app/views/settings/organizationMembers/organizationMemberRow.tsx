@@ -1,10 +1,12 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import Confirm from 'sentry/components/confirm';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -169,9 +171,9 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
           ) : (
             <AuthStatus>
               {has2fa ? (
-                <IconCheckmark isCircled color="success" />
+                <IconCheckmark variant="success" />
               ) : (
-                <IconFlag color="error" />
+                <IconFlag variant="danger" />
               )}
               {has2fa ? t('2FA Enabled') : t('2FA Not Enabled')}
             </AuthStatus>
@@ -179,7 +181,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
         </div>
 
         {showRemoveButton || showLeaveButton ? (
-          <RightColumn>
+          <Flex justify="end">
             {showRemoveButton && canRemoveMember && (
               <Confirm
                 message={tct('Are you sure you want to remove [name] from [orgName]?', {
@@ -190,7 +192,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
               >
                 <Button
                   data-test-id="remove"
-                  icon={<IconSubtract isCircled />}
+                  icon={<IconSubtract />}
                   size="sm"
                   busy={this.state.busy}
                 >
@@ -215,7 +217,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                         ? t('You cannot modify this invite.')
                         : t('You do not have access to remove members')
                 }
-                icon={<IconSubtract isCircled />}
+                icon={<IconSubtract />}
               >
                 {t('Remove')}
               </Button>
@@ -254,7 +256,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 {t('Leave')}
               </Button>
             )}
-          </RightColumn>
+          </Flex>
         ) : null}
       </StyledPanelItem>
     );
@@ -271,11 +273,6 @@ const StyledPanelItem = styled(PanelItem)`
   align-items: center;
 `;
 // Force action button at the end to align to right
-const RightColumn = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
-
 const Section = styled('div')`
   display: inline-grid;
   grid-template-columns: max-content auto;
@@ -291,13 +288,13 @@ const MemberDescription = styled(Link)`
 const UserName = styled('div')`
   display: block;
   overflow: hidden;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   text-overflow: ellipsis;
 `;
 
 const Email = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   overflow: hidden;
   text-overflow: ellipsis;
 `;

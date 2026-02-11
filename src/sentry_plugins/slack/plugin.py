@@ -24,6 +24,8 @@ IGNORABLE_SLACK_ERROR_CODES = [
     status.HTTP_429_TOO_MANY_REQUESTS,
 ]
 
+SLACK_PLUGIN_TITLE_LENGTH_LIMIT = 256
+
 
 class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
     title = "Slack"
@@ -166,7 +168,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
         if not self.is_configured(project):
             return
 
-        title = event.title.encode("utf-8")
+        title = event.title[:SLACK_PLUGIN_TITLE_LENGTH_LIMIT].encode("utf-8")
         # TODO(dcramer): we'd like this to be the event culprit, but Sentry
         # does not currently retain it
         if group.culprit:

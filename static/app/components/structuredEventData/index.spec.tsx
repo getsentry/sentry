@@ -8,9 +8,9 @@ import {
 
 import StructuredEventData from 'sentry/components/structuredEventData';
 
-describe('StructuredEventData', function () {
-  describe('strings', function () {
-    it('should render urls w/ an additional <a> link', async function () {
+describe('StructuredEventData', () => {
+  describe('strings', () => {
+    it('should render urls w/ an additional <a> link', async () => {
       const URL = 'https://example.org/foo/bar/';
       renderGlobalModal();
       render(<StructuredEventData data={URL} />);
@@ -21,7 +21,7 @@ describe('StructuredEventData', function () {
       expect(screen.getByTestId('external-link-warning')).toBeInTheDocument();
     });
 
-    it('should not render urls if meta is present', function () {
+    it('should not render urls if meta is present', () => {
       const URL = 'https://example.org/foo/bar/super/long...';
       renderGlobalModal();
       const meta = {
@@ -41,7 +41,7 @@ describe('StructuredEventData', function () {
       expect(screen.queryByRole('link')).not.toBeInTheDocument();
     });
 
-    it('should render multiline strings correctly', function () {
+    it('should render multiline strings correctly', () => {
       const data = 'foo\nbar\nbaz';
       render(<StructuredEventData data={data} />);
 
@@ -51,15 +51,15 @@ describe('StructuredEventData', function () {
     });
   });
 
-  describe('boolean', function () {
-    it('should render boolean values correctly', function () {
+  describe('boolean', () => {
+    it('should render boolean values correctly', () => {
       render(<StructuredEventData data={false} />);
       expect(
         within(screen.getByTestId('value-boolean')).getByText('false')
       ).toBeInTheDocument();
     });
 
-    it('can customize how booleans are rendered', function () {
+    it('can customize how booleans are rendered', () => {
       render(
         <StructuredEventData
           data="bool_value_input"
@@ -75,15 +75,15 @@ describe('StructuredEventData', function () {
     });
   });
 
-  describe('null', function () {
-    it('should render null values correctly', function () {
+  describe('null', () => {
+    it('should render null values correctly', () => {
       render(<StructuredEventData data={null} />);
       expect(
         within(screen.getByTestId('value-null')).getByText('null')
       ).toBeInTheDocument();
     });
 
-    it('can customize how nulls are rendered', function () {
+    it('can customize how nulls are rendered', () => {
       render(
         <StructuredEventData
           data="null_value_input"
@@ -99,8 +99,8 @@ describe('StructuredEventData', function () {
     });
   });
 
-  describe('collpasible values', function () {
-    it('auto-collapses objects/arrays with more than 5 items', async function () {
+  describe('collpasible values', () => {
+    it('auto-collapses objects/arrays with more than 5 items', async () => {
       render(
         <StructuredEventData
           data={{

@@ -20,14 +20,14 @@ from sentry.integrations.services.integration import integration_service
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupmeta import GroupMeta
 from sentry.shared_integrations.exceptions import (
+    IntegrationConfigurationError,
     IntegrationError,
-    IntegrationInstallationConfigurationError,
+    IntegrationFormError,
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.users.services.user.serial import serialize_rpc_user
@@ -119,6 +119,7 @@ class RegionJiraIntegrationTest(APITestCase):
                     "choices": [("10000", "EX - Example"), ("10001", "ABC - Alphabetical")],
                     "label": "Jira Project",
                     "type": "select",
+                    "url": search_url,
                     "required": True,
                 },
                 {
@@ -214,7 +215,6 @@ class RegionJiraIntegrationTest(APITestCase):
             ]
 
     @responses.activate
-    @with_feature("organizations:jira-paginated-projects")
     def test_get_create_issue_config_with_none_issue(self) -> None:
         # Mock the paginated projects response
         responses.add(
@@ -276,7 +276,6 @@ class RegionJiraIntegrationTest(APITestCase):
         assert project_field["type"] == "select"
 
     @responses.activate
-    @with_feature("organizations:jira-paginated-projects")
     def test_get_create_issue_config_paginated_projects(self) -> None:
         """Test that projects are fetched using pagination when the feature flag is enabled"""
         event = self.store_event(
@@ -511,6 +510,10 @@ class RegionJiraIntegrationTest(APITestCase):
                 "type": "select",
                 "name": "project",
                 "label": "Jira Project",
+                "url": reverse(
+                    "sentry-extensions-jira-search",
+                    args=[self.organization.slug, self.integration.id],
+                ),
                 "updatesForm": True,
                 "required": True,
             }
@@ -545,6 +548,10 @@ class RegionJiraIntegrationTest(APITestCase):
                 "type": "select",
                 "name": "project",
                 "label": "Jira Project",
+                "url": reverse(
+                    "sentry-extensions-jira-search",
+                    args=[self.organization.slug, self.integration.id],
+                ),
                 "updatesForm": True,
                 "required": True,
             }
@@ -595,6 +602,10 @@ class RegionJiraIntegrationTest(APITestCase):
                 "type": "select",
                 "name": "project",
                 "label": "Jira Project",
+                "url": reverse(
+                    "sentry-extensions-jira-search",
+                    args=[self.organization.slug, self.integration.id],
+                ),
                 "updatesForm": True,
                 "required": True,
             }
@@ -713,6 +724,119 @@ class RegionJiraIntegrationTest(APITestCase):
                 "description": "example bug report",
                 "key": "APP-123",
             }
+
+    @responses.activate
+    def test_create_issue_with_form_error(self) -> None:
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/issue/createmeta",
+            body=StubService.get_stub_json("jira", "createmeta_response.json"),
+            content_type="json",
+        )
+        responses.add(
+            responses.POST,
+            "https://example.atlassian.net/rest/api/2/issue",
+            status=400,
+            body=json.dumps({"errors": {"issuetype": ["Issue type is required."]}}),
+            content_type="json",
+        )
+
+        installation = self.integration.get_installation(self.organization.id)
+        with pytest.raises(IntegrationFormError):
+            installation.create_issue(
+                {
+                    "title": "example summary",
+                    "description": "example bug report",
+                    "issuetype": "1",
+                    "project": "10000",
+                }
+            )
+
+    @responses.activate
+    def test_create_issue_with_configuration_error(self) -> None:
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/issue/createmeta",
+            body=StubService.get_stub_json("jira", "createmeta_response.json"),
+            content_type="json",
+        )
+        responses.add(
+            responses.POST,
+            "https://example.atlassian.net/rest/api/2/issue",
+            status=400,
+            body=json.dumps({"error": "Jira had an oopsie"}),
+            content_type="json",
+        )
+        installation = self.integration.get_installation(self.organization.id)
+        with pytest.raises(IntegrationConfigurationError):
+            installation.create_issue(
+                {
+                    "title": "example summary",
+                    "description": "example bug report",
+                    "issuetype": "1",
+                    "project": "10000",
+                }
+            )
+
+    @responses.activate
+    def test_create_issue_product_unavailable_error(self) -> None:
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/issue/createmeta",
+            body=StubService.get_stub_json("jira", "createmeta_response.json"),
+            content_type="json",
+        )
+        # Simulate Jira returning an HTML "Product Unavailable" error page
+        responses.add(
+            responses.POST,
+            "https://example.atlassian.net/rest/api/2/issue",
+            status=503,
+            body='<!DOCTYPE html>\n<html lang="en">\n    <head>\n        <title>Atlassian Cloud Notifications - Product Unavailable</title>\n    </head>\n    <body>\n        <h1>Jira has been deactivated</h1>\n    </body>\n</html>',
+            content_type="text/html",
+        )
+        installation = self.integration.get_installation(self.organization.id)
+        with pytest.raises(
+            IntegrationConfigurationError,
+            match="Something went wrong while communicating with Jira",
+        ):
+            installation.create_issue(
+                {
+                    "title": "example summary",
+                    "description": "example bug report",
+                    "issuetype": "1",
+                    "project": "10000",
+                }
+            )
+
+    @responses.activate
+    def test_create_issue_page_unavailable_error(self) -> None:
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/issue/createmeta",
+            body=StubService.get_stub_json("jira", "createmeta_response.json"),
+            content_type="json",
+        )
+        # Simulate Jira returning an HTML "Page Unavailable" error
+        responses.add(
+            responses.POST,
+            "https://example.atlassian.net/rest/api/2/issue",
+            status=503,
+            body='<!DOCTYPE html>\n<html lang="en">\n    <head>\n        <title>Page Unavailable</title>\n    </head>\n    <body>\n        <h1>Page Unavailable</h1>\n    </body>\n</html>',
+            content_type="text/html",
+        )
+        installation = self.integration.get_installation(self.organization.id)
+        with pytest.raises(
+            IntegrationConfigurationError,
+            match="Something went wrong while communicating with Jira",
+        ):
+            installation.create_issue(
+                {
+                    "title": "example summary",
+                    "description": "example bug report",
+                    "issuetype": "1",
+                    "project": "10000",
+                }
+            )
 
     @responses.activate
     def test_create_issue_labels_and_option(self) -> None:
@@ -888,7 +1012,7 @@ class RegionJiraIntegrationTest(APITestCase):
 
         responses.add(responses.PUT, assign_issue_url, status=401, json={})
 
-        with pytest.raises(IntegrationInstallationConfigurationError) as excinfo:
+        with pytest.raises(IntegrationConfigurationError) as excinfo:
             installation.sync_assignee_outbound(external_issue, user)
 
         assert str(excinfo.value) == "Insufficient permissions to assign user to the Jira issue."
@@ -1073,44 +1197,8 @@ class JiraIntegrationTest(APITestCase):
             "moon",
         ]
 
-    def test_get_config_data(self) -> None:
-        integration = self.create_provider_integration(provider="jira", name="Example Jira")
-        integration.add_organization(self.organization, self.user)
-
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=integration.id
-        )
-
-        org_integration.config = {
-            "sync_comments": True,
-            "sync_forward_assignment": True,
-            "sync_reverse_assignment": True,
-            "sync_status_reverse": True,
-            "sync_status_forward": True,
-        }
-        org_integration.save()
-
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
-            external_id="12345",
-            unresolved_status="in_progress",
-            resolved_status="done",
-        )
-
-        installation = integration.get_installation(self.organization.id)
-
-        assert installation.get_config_data() == {
-            "sync_comments": True,
-            "sync_forward_assignment": True,
-            "sync_reverse_assignment": True,
-            "sync_status_reverse": True,
-            "sync_status_forward": {"12345": {"on_resolve": "done", "on_unresolve": "in_progress"}},
-            "issues_ignored_fields": "",
-        }
-
     @responses.activate
-    @with_feature("organizations:jira-per-project-statuses")
-    def test_get_config_data_per_project_statuses_feature(self) -> None:
+    def test_get_config_data(self) -> None:
         integration = self.create_provider_integration(
             provider="jira",
             name="Example Jira",
@@ -1171,31 +1259,8 @@ class JiraIntegrationTest(APITestCase):
             "issues_ignored_fields": "",
         }
 
-    def test_get_config_data_issues_keys(self) -> None:
-        integration = self.create_provider_integration(provider="jira", name="Example Jira")
-        integration.add_organization(self.organization, self.user)
-
-        installation = integration.get_installation(self.organization.id)
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=integration.id
-        )
-
-        # If config has not be configured yet, uses empty string fallback
-        assert "issues_ignored_fields" not in org_integration.config
-        assert installation.get_config_data().get("issues_ignored_fields") == ""
-
-        # List is serialized as comma-separated list
-        org_integration.config["issues_ignored_fields"] = ["hello world", "goodnight", "moon"]
-        org_integration.save()
-        installation = integration.get_installation(self.organization.id)
-        assert (
-            installation.get_config_data().get("issues_ignored_fields")
-            == "hello world, goodnight, moon"
-        )
-
     @responses.activate
-    @with_feature("organizations:jira-per-project-statuses")
-    def test_get_config_data_issue_keys_per_project_statuses_feature(self) -> None:
+    def test_get_config_data_issue_keys(self) -> None:
         integration = self.create_provider_integration(
             provider="jira",
             name="Example Jira",

@@ -1,7 +1,5 @@
 ---
-created: '2025-05-27T19:29:15.718683+00:00'
-creator: sentry
-source: tests/sentry/relay/test_config.py
+source: tests/sentry/relay/test_config.py::test_get_project_config
 ---
 config:
   allowedDomains:
@@ -20,6 +18,7 @@ config:
     scrubData: true
     scrubDefaults: true
     sensitiveFields: []
+  downsampledEventRetention: 0
   filterSettings:
     csp:
       disallowedSources:
@@ -108,6 +107,26 @@ config:
               - name: ty
                 op: glob
                 value:
+                - ChunkLoadError
+              - name: value
+                op: glob
+                value:
+                - Failed to load chunk *
+              op: and
+            - inner:
+              - name: ty
+                op: glob
+                value:
+                - '*Uncaught *'
+              - name: value
+                op: glob
+                value:
+                - 'ChunkLoadError: Failed to load chunk *'
+              op: and
+            - inner:
+              - name: ty
+                op: glob
+                value:
                 - Error
               - name: value
                 op: glob
@@ -125,11 +144,11 @@ config:
             - name: value
               op: glob
               value:
-              - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*'
+              - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,421,422,423,425}*'
             - name: value
               op: glob
               value:
-              - '*https://react.dev/errors/{418,419,422,423,425}*'
+              - '*https://react.dev/errors/{418,419,421,422,423,425}*'
             op: or
           name: event.exception.values
           op: any
@@ -154,8 +173,8 @@ config:
       - '*/ping{/,}'
       - '*/up{/,}'
   groupingConfig:
-    enhancements: KLUv_SAYwQAAkwORs25ld3N0eWxlOjIwMjMtMDEtMTGQ#KLUv_SAYwQAAkwORs25ld3N0eWxlOjIwMjMtMDEtMTGQ#KLUv_SAYwQAAkwORs25ld3N0eWxlOjIwMjMtMDEtMTGQ
-    id: newstyle:2023-01-11
+    enhancements: KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyNi0wMS0yMJA#KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyNi0wMS0yMJA#KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyNi0wMS0yMJA
+    id: newstyle:2026-01-20
   performanceScore:
     profiles:
     - condition:

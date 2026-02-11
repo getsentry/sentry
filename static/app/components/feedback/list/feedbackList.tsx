@@ -4,7 +4,10 @@ import uniqBy from 'lodash/uniqBy';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Stack} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import type {ApiResult} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
@@ -28,7 +31,11 @@ function NoFeedback() {
   );
 }
 
-export default function FeedbackList() {
+interface Props {
+  onItemSelect: (itemIndex?: number) => void;
+}
+
+export default function FeedbackList({onItemSelect}: Props) {
   const {listQueryKey} = useFeedbackQueryKeys();
   const queryResult = useInfiniteApiQuery<FeedbackIssueListItem[]>({
     queryKey: listQueryKey ?? ['infinite', ''],
@@ -51,27 +58,36 @@ export default function FeedbackList() {
   return (
     <Fragment>
       <FeedbackListHeader {...checkboxState} />
-      <FeedbackListItems>
+      <Stack flexGrow={1} paddingBottom="xs">
         <InfiniteListState
           queryResult={queryResult}
           backgroundUpdatingMessage={() => null}
           loadingMessage={() => <LoadingIndicator />}
         >
-          <InfiniteListItems<FeedbackIssueListItem>
-            deduplicateItems={items => uniqBy(items, 'id')}
-            estimateSize={() => 24}
+          <InfiniteListItems<FeedbackIssueListItem, ApiResult<FeedbackIssueListItem[]>>
+            deduplicateItems={pages =>
+              uniqBy(
+                pages.flatMap(page => page[0]),
+                'id'
+              )
+            }
+            estimateSize={() => 80}
             queryResult={queryResult}
-            itemRenderer={({item}) => (
-              <ErrorBoundary mini>
-                <FeedbackListItem
-                  feedbackItem={item}
-                  isSelected={checkboxState.isSelected(item.id)}
-                  onSelect={() => {
-                    checkboxState.toggleSelected(item.id);
-                  }}
-                />
-              </ErrorBoundary>
-            )}
+            itemRenderer={({item, virtualItem}) => {
+              const itemIndex = virtualItem.index;
+              return (
+                <ErrorBoundary mini>
+                  <FeedbackListItem
+                    feedbackItem={item}
+                    isSelected={checkboxState.isSelected(item.id)}
+                    onSelect={() => {
+                      checkboxState.toggleSelected(item.id);
+                    }}
+                    onItemSelect={() => onItemSelect(itemIndex)}
+                  />
+                </ErrorBoundary>
+              );
+            }}
             emptyMessage={() => <NoFeedback />}
             loadingMoreMessage={() => (
               <Centered>
@@ -83,17 +99,10 @@ export default function FeedbackList() {
             loadingCompleteMessage={() => null}
           />
         </InfiniteListState>
-      </FeedbackListItems>
+      </Stack>
     </Fragment>
   );
 }
-
-const FeedbackListItems = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  padding-bottom: ${space(0.5)};
-`;
 
 const Centered = styled('div')`
   justify-self: center;
@@ -102,18 +111,18 @@ const Centered = styled('div')`
 const NoFeedbackWrapper = styled('div')`
   padding: ${space(4)} ${space(4)};
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
   }
 `;
 
 const NoFeedbackMessage = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.gray400};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.colors.gray500};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.fontSize.xl};
+    font-size: ${p => p.theme.font.size.xl};
   }
 `;

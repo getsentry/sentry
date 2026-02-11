@@ -72,8 +72,9 @@ class EventsMeta(TypedDict):
     isMetricsExtractedData: NotRequired[bool]
     discoverSplitDecision: NotRequired[str]
     # only returned when debug=True
-    query: NotRequired[dict[str, Any] | str]
+    debug_info: NotRequired[dict[str, Any]]
     full_scan: NotRequired[bool]
+    bytes_scanned: NotRequired[int | None]
 
 
 class EventsResponse(TypedDict):
@@ -81,7 +82,9 @@ class EventsResponse(TypedDict):
     meta: EventsMeta
 
 
-SAMPLING_MODES = Literal["BEST_EFFORT", "PREFLIGHT", "NORMAL", "HIGHEST_ACCURACY"]
+SAMPLING_MODES = Literal[
+    "BEST_EFFORT", "PREFLIGHT", "NORMAL", "HIGHEST_ACCURACY", "HIGHEST_ACCURACY_FLEX_TIME"
+]
 
 
 @dataclass
@@ -99,7 +102,8 @@ class SnubaParams:
     teams: Iterable[Team] = field(default_factory=list)
     organization: Organization | None = None
     sampling_mode: SAMPLING_MODES | None = None
-    debug: bool = False
+    debug: str | bool = False
+    case_insensitive: bool = False
 
     def __post_init__(self) -> None:
         if self.start:
@@ -270,7 +274,7 @@ class Span:
         parts = s.rsplit(":", 1)
         if len(parts) != 2:
             raise ValueError(
-                "span must consist of of a span op and a valid 16 character hex delimited by a colon (:)"
+                "span must consist of a span op and a valid 16 character hex delimited by a colon (:)"
             )
         if not is_span_id(parts[1]):
             raise ValueError(INVALID_SPAN_ID.format("spanGroup"))

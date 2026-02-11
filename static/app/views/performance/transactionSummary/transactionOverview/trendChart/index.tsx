@@ -5,7 +5,7 @@ import type {Query} from 'history';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
@@ -40,7 +40,6 @@ type Props = ViewProps & {
   queryExtra: Query;
   trendFunction: TrendFunctionField;
   trendParameter: string;
-  withoutZerofill: boolean;
   withBreakpoint?: boolean;
 };
 
@@ -53,7 +52,6 @@ function TrendChart({
   trendFunction,
   trendParameter,
   queryExtra,
-  withoutZerofill,
   withBreakpoint,
   eventView,
   start: propsStart,
@@ -228,8 +226,7 @@ function TrendChart({
                 yAxis={trendDisplay}
                 currentSeriesNames={[trendDisplay]}
                 partial
-                withoutZerofill={withoutZerofill}
-                referrer="api.performance.transaction-summary.trends-chart"
+                referrer="api.insights.transaction-summary.trends-chart"
               >
                 {({errored, loading, reloading, timeseriesData, timeframe}) => {
                   return (
@@ -269,8 +266,7 @@ function TrendChart({
           yAxis={trendDisplay}
           currentSeriesNames={[trendDisplay]}
           partial
-          withoutZerofill={withoutZerofill}
-          referrer="api.performance.transaction-summary.trends-chart"
+          referrer="api.insights.transaction-summary.trends-chart"
         >
           {({errored, loading, reloading, timeseriesData, timeframe: timeFrame}) => {
             return (

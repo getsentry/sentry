@@ -15,7 +15,7 @@ class ProjectTagKeyDetailsTest(APITestCase, SnubaTestCase):
     def test_simple(self) -> None:
         project = self.create_project()
 
-        def make_event(i):
+        def make_event(i: int) -> None:
             self.store_event(
                 data={
                     "tags": {"foo": f"val{i}"},
@@ -46,7 +46,7 @@ class ProjectTagKeyDetailsTest(APITestCase, SnubaTestCase):
 
 class ProjectTagKeyDeleteTest(APITestCase):
     @mock.patch("sentry.eventstream.backend")
-    def test_simple(self, mock_eventstream):
+    def test_simple(self, mock_eventstream: mock.MagicMock) -> None:
         key = "foo"
         val = "bar"
 

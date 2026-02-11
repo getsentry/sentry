@@ -12,8 +12,9 @@ from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.api import get_grouping_config_dict_for_project, load_grouping_config
 from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
 from sentry.grouping.enhancer import (
+    DEFAULT_ENHANCEMENTS_BASE,
     ENHANCEMENT_BASES,
-    Enhancements,
+    EnhancementsConfig,
     _is_valid_profiling_action,
     _is_valid_profiling_matcher,
     _split_rules,
@@ -34,6 +35,9 @@ def convert_to_dict(obj: object) -> object | dict[str, Any]:
 
     d: dict[str, Any] = {}
     for key, value in obj.__dict__.items():
+        if key == "custom_rule_strings":
+            key += " (sorted for snapshot stability - not in application order)"
+
         if key.startswith("_"):
             continue
         elif key in [
@@ -47,6 +51,8 @@ def convert_to_dict(obj: object) -> object | dict[str, Any]:
             "run_split_enhancements",
         ]:
             continue
+        elif isinstance(value, set):
+            d[key] = [convert_to_dict(x) for x in sorted(value)]
         elif isinstance(value, list):
             d[key] = [convert_to_dict(x) for x in value]
         elif isinstance(value, dict):
@@ -107,7 +113,7 @@ def assert_no_matching_frame_found(
 
 @pytest.mark.parametrize("version", [3])
 def test_basic_parsing(insta_snapshot: InstaSnapshotter, version: int) -> None:
-    enhancements = Enhancements.from_rules_text(
+    enhancements = EnhancementsConfig.from_rules_text(
         """
             path:*/code/game/whatever/*                     +app
             function:panic_handler                          ^-group -group
@@ -128,40 +134,44 @@ def test_basic_parsing(insta_snapshot: InstaSnapshotter, version: int) -> None:
     insta_snapshot(convert_to_dict(enhancements))
 
     enhancements_str = enhancements.base64_string
-    assert Enhancements.from_base64_string(enhancements_str).base64_string == enhancements_str
-    assert Enhancements.from_base64_string(enhancements_str)._get_base64_bytes_from_rules(
+    assert EnhancementsConfig.from_base64_string(enhancements_str).base64_string == enhancements_str
+    assert EnhancementsConfig.from_base64_string(enhancements_str)._get_base64_bytes_from_rules(
         enhancements.rules
     ) == enhancements._get_base64_bytes_from_rules(enhancements.rules)
     assert isinstance(enhancements_str, str)
 
 
 def test_parse_empty_with_base() -> None:
-    enhancements = Enhancements.from_rules_text(
+    enhancements = EnhancementsConfig.from_rules_text(
         "",
-        bases=["newstyle:2023-01-11"],
+        bases=[DEFAULT_ENHANCEMENTS_BASE],
     )
     assert enhancements
 
 
 def test_parsing_errors() -> None:
     with pytest.raises(InvalidEnhancerConfig):
-        Enhancements.from_rules_text("invalid.message:foo -> bar")
+        EnhancementsConfig.from_rules_text("invalid.message:foo -> bar")
 
 
 def test_caller_recursion() -> None:
     # Remove this test when CallerMatch can be applied recursively
     with pytest.raises(InvalidEnhancerConfig):
-        Enhancements.from_rules_text("[ category:foo ] | [ category:bar ] | category:baz +app")
+        EnhancementsConfig.from_rules_text(
+            "[ category:foo ] | [ category:bar ] | category:baz +app"
+        )
 
 
 def test_callee_recursion() -> None:
     # Remove this test when CalleeMatch can be applied recursively
     with pytest.raises(InvalidEnhancerConfig):
-        Enhancements.from_rules_text(" category:foo | [ category:bar ] | [ category:baz ] +app")
+        EnhancementsConfig.from_rules_text(
+            " category:foo | [ category:bar ] | [ category:baz ] +app"
+        )
 
 
 def test_flipflop_inapp() -> None:
-    enhancements = Enhancements.from_rules_text(
+    enhancements = EnhancementsConfig.from_rules_text(
         """
         family:all +app
         family:all -app
@@ -188,7 +198,7 @@ def test_flipflop_inapp() -> None:
 
 
 def test_basic_path_matching() -> None:
-    js_rule = Enhancements.from_rules_text("path:**/test.js +app").rules[0]
+    js_rule = EnhancementsConfig.from_rules_text("path:**/test.js +app").rules[0]
 
     assert_matching_frame_found(
         js_rule,
@@ -228,7 +238,7 @@ def test_basic_path_matching() -> None:
 
 
 def test_family_matching() -> None:
-    js_rule, native_rule = Enhancements.from_rules_text(
+    js_rule, native_rule = EnhancementsConfig.from_rules_text(
         """
         family:javascript path:**/test.js              +app
         family:native function:std::*                  -app
@@ -253,7 +263,7 @@ def test_family_matching() -> None:
 
 
 def test_app_matching() -> None:
-    app_yes_rule, app_no_rule = Enhancements.from_rules_text(
+    app_yes_rule, app_no_rule = EnhancementsConfig.from_rules_text(
         """
         family:javascript path:**/test.js app:yes       +app
         family:native path:**/test.c app:no            -group
@@ -278,7 +288,7 @@ def test_app_matching() -> None:
 
 
 def test_invalid_app_matcher() -> None:
-    rule = Enhancements.from_rules_text("app://../../src/some-file.ts -app").rules[0]
+    rule = EnhancementsConfig.from_rules_text("app://../../src/some-file.ts -app").rules[0]
 
     assert_no_matching_frame_found(rule, [{}], "javascript")
     assert_no_matching_frame_found(rule, [{"in_app": True}], "javascript")
@@ -288,7 +298,7 @@ def test_invalid_app_matcher() -> None:
 def test_package_matching() -> None:
     # This tests a bunch of different rules from the default in-app logic that
     # was ported from the former native plugin.
-    bundled_rule, macos_rule, linux_rule, windows_rule = Enhancements.from_rules_text(
+    bundled_rule, macos_rule, linux_rule, windows_rule = EnhancementsConfig.from_rules_text(
         """
         family:native package:/var/**/Frameworks/**                  -app
         family:native package:**/*.app/Contents/**                   +app
@@ -327,7 +337,7 @@ def test_package_matching() -> None:
 
 
 def test_type_matching() -> None:
-    zero_rule, error_rule = Enhancements.from_rules_text(
+    zero_rule, error_rule = EnhancementsConfig.from_rules_text(
         """
         family:other error.type:ZeroDivisionError -app
         family:other error.type:*Error -app
@@ -351,7 +361,7 @@ def test_type_matching() -> None:
 
 
 def test_value_matching() -> None:
-    foo_rule, failed_rule = Enhancements.from_rules_text(
+    foo_rule, failed_rule = EnhancementsConfig.from_rules_text(
         """
         family:other error.value:foo -app
         family:other error.value:Failed* -app
@@ -375,7 +385,7 @@ def test_value_matching() -> None:
 
 
 def test_mechanism_matching() -> None:
-    rule = Enhancements.from_rules_text("family:other error.mechanism:NSError -app").rules[0]
+    rule = EnhancementsConfig.from_rules_text("family:other error.mechanism:NSError -app").rules[0]
 
     assert_no_matching_frame_found(rule, [{"function": "foo"}], "python")
 
@@ -393,7 +403,7 @@ def test_mechanism_matching() -> None:
 
 
 def test_mechanism_matching_no_frames() -> None:
-    rule = Enhancements.from_rules_text("error.mechanism:NSError -app").rules[0]
+    rule = EnhancementsConfig.from_rules_text("error.mechanism:NSError -app").rules[0]
     exception_data = {"mechanism": {"type": "NSError"}}
 
     # Does not crash:
@@ -405,7 +415,7 @@ def test_mechanism_matching_no_frames() -> None:
 
 
 def test_range_matching() -> None:
-    rule = Enhancements.from_rules_text(
+    rule = EnhancementsConfig.from_rules_text(
         "[ function:foo ] | function:* | [ function:baz ] category=bar"
     ).rules[0]
 
@@ -423,7 +433,7 @@ def test_range_matching() -> None:
 
 
 def test_range_matching_direct() -> None:
-    rule = Enhancements.from_rules_text("function:bar | [ function:baz ] -group").rules[0]
+    rule = EnhancementsConfig.from_rules_text("function:bar | [ function:baz ] -group").rules[0]
 
     assert get_matching_frame_indices(
         rule,
@@ -458,7 +468,7 @@ def test_range_matching_direct() -> None:
     ],
 )
 def test_app_no_matches(frame: dict[str, Any]) -> None:
-    enhancements = Enhancements.from_rules_text("app:no +app")
+    enhancements = EnhancementsConfig.from_rules_text("app:no +app")
     enhancements.apply_category_and_updated_in_app_to_frames([frame], "native", {})
     assert frame.get("in_app") is True
 
@@ -589,7 +599,7 @@ class EnhancementsTest(TestCase):
             assert contributes_rule_actions == expected_as_contributes_rule_actions
 
     def test_splits_rules_correctly(self) -> None:
-        enhancements = Enhancements.from_rules_text(self.rules_text, version=3)
+        enhancements = EnhancementsConfig.from_rules_text(self.rules_text, version=3)
         assert [rule.text for rule in enhancements.classifier_rules] == [
             "function:sit +app",
             "function:roll_over category=trick",
@@ -641,7 +651,7 @@ class EnhancementsTest(TestCase):
             assert parse_enhancements_spy.call_count == 1
 
     def test_loads_enhancements_from_base64_string(self) -> None:
-        enhancements = Enhancements.from_rules_text("function:playFetch +app")
+        enhancements = EnhancementsConfig.from_rules_text("function:playFetch +app")
         assert len(enhancements.rules) == 1
         assert str(enhancements.rules[0]) == "<EnhancementRule function:playFetch +app>"
         assert enhancements.id is None
@@ -657,7 +667,9 @@ class EnhancementsTest(TestCase):
     def test_loads_split_enhancements_from_base64_string(self, split_rules_spy: MagicMock) -> None:
         # Using version 3 forces the enhancements to be split, and we know a split will happen
         # because the rule below has both an in-app and a contributes action
-        enhancements = Enhancements.from_rules_text("function:playFetch +app +group", version=3)
+        enhancements = EnhancementsConfig.from_rules_text(
+            "function:playFetch +app +group", version=3
+        )
         assert len(enhancements.rules) == 1
         assert len(enhancements.classifier_rules) == 1
         assert len(enhancements.contributes_rules) == 1
@@ -692,7 +704,7 @@ class EnhancementsTest(TestCase):
         assert split_rules_spy.call_count == 1
 
     def test_uses_default_enhancements_when_loading_string_with_invalid_version(self) -> None:
-        enhancements = Enhancements.from_rules_text("function:playFetch +app")
+        enhancements = EnhancementsConfig.from_rules_text("function:playFetch +app")
         assert len(enhancements.rules) == 1
         assert str(enhancements.rules[0]) == "<EnhancementRule function:playFetch +app>"
         assert enhancements.id is None
@@ -707,7 +719,58 @@ class EnhancementsTest(TestCase):
         assert "<EnhancementRule function:playFetch +app>" not in {
             str(rule) for rule in strategy_config.enhancements.rules
         }
-        assert strategy_config.enhancements.id == DEFAULT_GROUPING_CONFIG
+        assert strategy_config.enhancements.id == DEFAULT_ENHANCEMENTS_BASE
+
+    # TODO: This and `test_base64_string_with_old_enhancements_name_runs_default_rules` are here in
+    # order to test the temporary shim in the enhancements module which makes the default
+    # enhancements able to be looked up by their old name. Once that's removed (once the relevat
+    # events have aged out, after Nov 2025), these tests can be removed as well.
+    def test_successfully_loads_base64_string_with_old_enhancements_name(self) -> None:
+        enhancements = EnhancementsConfig.from_rules_text(
+            "function:playFetch +app", bases=["newstyle:2023-01-11"]
+        )
+        assert len(enhancements.rules) == 1
+        assert str(enhancements.rules[0]) == "<EnhancementRule function:playFetch +app>"
+        assert enhancements.id is None
+        assert enhancements.bases == ["newstyle:2023-01-11"]
+
+        strategy_config = load_grouping_config(
+            {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements.base64_string}
+        )
+        assert len(strategy_config.enhancements.rules) == 1
+        assert str(enhancements.rules[0]) == "<EnhancementRule function:playFetch +app>"
+        assert strategy_config.enhancements.id is None
+        assert strategy_config.enhancements.bases == ["newstyle:2023-01-11"]
+
+    def test_base64_string_with_old_enhancements_name_runs_default_rules(self) -> None:
+        old_name_enhancements = EnhancementsConfig.from_rules_text(
+            "", bases=["newstyle:2023-01-11"]
+        )
+        default_enhancements = EnhancementsConfig.from_rules_text(
+            "", bases=["all-platforms:2023-01-11"]
+        )
+
+        old_name_strategy_config = load_grouping_config(
+            {"id": DEFAULT_GROUPING_CONFIG, "enhancements": old_name_enhancements.base64_string}
+        )
+        default_strategy_config = load_grouping_config(
+            {"id": DEFAULT_GROUPING_CONFIG, "enhancements": default_enhancements.base64_string}
+        )
+
+        # Internal Node function, should get marked out of app by our default rules
+        frame1: dict[str, Any] = {"function": "nextTick", "filename": "dogs/are/great.js"}
+        frame2: dict[str, Any] = {"function": "nextTick", "filename": "dogs/are/great.js"}
+
+        old_name_strategy_config.enhancements.apply_category_and_updated_in_app_to_frames(
+            [frame1], "node", {}
+        )
+        default_strategy_config.enhancements.apply_category_and_updated_in_app_to_frames(
+            [frame2], "node", {}
+        )
+
+        # Enhancements with the old name behave the same as our default enhancements
+        assert frame1["in_app"] is False
+        assert frame2["in_app"] is False
 
 
 # Note: This primarily tests `assemble_stacktrace_component`'s handling of `contributes` values, as
@@ -795,7 +858,7 @@ class AssembleStacktraceComponentTest(TestCase):
 
         app_expected_frame_results = [(False, "non app frame")]
 
-        enhancements = Enhancements.from_rules_text("")
+        enhancements = EnhancementsConfig.from_rules_text("")
         mock_rust_enhancements = self.MockRustEnhancements(
             frame_results=rust_frame_results, stacktrace_results=(False, "some stacktrace hint")
         )
@@ -814,98 +877,3 @@ class AssembleStacktraceComponentTest(TestCase):
             self.assert_frame_values_match_expected(
                 app_stacktrace_component, expected_frame_results=app_expected_frame_results
             )
-
-    def test_marks_app_stacktrace_non_contributing_if_no_in_app_frames(self) -> None:
-        """
-        Test that if frame special-casing for the app variant results in no contributing frames, the
-        stacktrace is marked non-contributing.
-        """
-        incoming_frames = [
-            {"in_app": False},
-            {"in_app": True},
-            {"in_app": True},
-        ]
-        frame_components = [
-            # All possibilities (all combos of app vs system, contributing vs not) except a
-            # contributing system frame, since that will never be passed to
-            # `assemble_stacktrace_component` when dealing with the app variant
-            self.system_frame(contributes=False, hint="non app frame"),
-            self.in_app_frame(contributes=False, hint="ignored due to recursion"),
-            self.in_app_frame(contributes=True, hint=None),
-        ]
-
-        # With these results, there will still be a contributing frame in the end
-        rust_frame_results1 = [
-            (True, "un-ignored by stacktrace rule (...)"),
-            (False, None),
-            (True, None),
-        ]
-        # With these results, there won't
-        rust_frame_results2 = [
-            (True, "un-ignored by stacktrace rule (...)"),
-            (False, None),
-            (False, "ignored by stacktrace rule (...)"),
-        ]
-
-        # In both cases, the first frame doesn't contribute because it's a system frame, even though
-        # the rust results say it should
-        expected_frame_results1 = [
-            (False, "non app frame"),
-            (False, "ignored due to recursion"),
-            (True, None),
-        ]
-        expected_frame_results2 = [
-            (False, "non app frame"),
-            (False, "ignored due to recursion"),
-            (False, "ignored by stacktrace rule (...)"),
-        ]
-
-        enhancements1 = Enhancements.from_rules_text("")
-        mock_rust_enhancements1 = self.MockRustEnhancements(
-            frame_results=rust_frame_results1, stacktrace_results=(True, None)
-        )
-        enhancements2 = Enhancements.from_rules_text("")
-        mock_rust_enhancements2 = self.MockRustEnhancements(
-            frame_results=rust_frame_results2, stacktrace_results=(True, None)
-        )
-
-        # In this case, even after we force the system frame not to contribute, we'll still have
-        # another contributing frame, so we'll use rust's `contributing: True` for the stacktrace
-        # component.
-        with mock.patch.object(
-            enhancements1, "contributes_rust_enhancements", mock_rust_enhancements1
-        ):
-            stacktrace_component1 = enhancements1.assemble_stacktrace_component(
-                variant_name="app",
-                frame_components=frame_components,
-                frames=incoming_frames,
-                platform="javascript",
-                exception_data={},
-            )
-
-            self.assert_frame_values_match_expected(
-                stacktrace_component1, expected_frame_results=expected_frame_results1
-            )
-
-            assert stacktrace_component1.contributes is True
-            assert stacktrace_component1.hint is None
-
-        # In this case, once we force the system frame not to contribute, we won't have any
-        # contributing frames, so we'll force `contributing: False` for the stacktrace component.
-        with mock.patch.object(
-            enhancements2, "contributes_rust_enhancements", mock_rust_enhancements2
-        ):
-            stacktrace_component2 = enhancements2.assemble_stacktrace_component(
-                variant_name="app",
-                frame_components=frame_components,
-                frames=incoming_frames,
-                platform="javascript",
-                exception_data={},
-            )
-
-            self.assert_frame_values_match_expected(
-                stacktrace_component2, expected_frame_results=expected_frame_results2
-            )
-
-            assert stacktrace_component2.contributes is False
-            assert stacktrace_component2.hint is None

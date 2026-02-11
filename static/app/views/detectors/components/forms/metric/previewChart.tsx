@@ -1,8 +1,6 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {t} from 'sentry/locale';
+import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {MetricDetectorChart} from 'sentry/views/detectors/components/forms/metric/metricDetectorChart';
 import {
   createConditions,
@@ -10,31 +8,43 @@ import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
-import {useTimePeriodSelection} from 'sentry/views/detectors/hooks/useTimePeriodSelection';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 
-export function MetricDetectorPreviewChart() {
+interface MetricDetectorPreviewChartProps {
+  detector?: MetricDetector;
+}
+
+export function MetricDetectorPreviewChart({
+  detector,
+}: MetricDetectorPreviewChartProps = {}) {
   // Get all the form fields needed for the chart
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
   const aggregateFunction = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
   const interval = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.interval);
-  const query = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
+  const rawQuery = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
   const environment = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.environment);
   const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
+  const extrapolationMode = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.extrapolationMode
+  );
 
   // Threshold-related form fields
-  const conditionValue = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.conditionValue
+  const highThreshold = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.highThreshold
   );
   const conditionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionType
   );
-  const highThreshold = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.highThreshold
+  const mediumThreshold = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.mediumThreshold
   );
-  const initialPriorityLevel = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel
+  const resolutionStrategy = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy
+  );
+  const resolutionValue = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.resolutionValue
   );
   const detectionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.detectionType
@@ -42,67 +52,54 @@ export function MetricDetectorPreviewChart() {
   const conditionComparisonAgo = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionComparisonAgo
   );
-
-  const {selectedTimePeriod, setSelectedTimePeriod, timePeriodOptions} =
-    useTimePeriodSelection({
-      dataset: getBackendDataset(dataset),
-      interval,
-    });
+  const sensitivity = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.sensitivity);
+  const thresholdType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.thresholdType
+  );
 
   // Create condition group from form data using the helper function
   const conditions = useMemo(() => {
-    // Wait for a condition value to be defined
-    if (detectionType === 'static' && !conditionValue) {
+    // Wait for a high threshold value to be defined
+    if (detectionType === 'static' && !highThreshold) {
       return [];
     }
 
     return createConditions({
       conditionType,
-      conditionValue,
-      initialPriorityLevel,
       highThreshold,
+      mediumThreshold,
+      resolutionStrategy,
+      resolutionValue,
     });
-  }, [conditionType, conditionValue, initialPriorityLevel, highThreshold, detectionType]);
+  }, [
+    conditionType,
+    highThreshold,
+    mediumThreshold,
+    resolutionStrategy,
+    resolutionValue,
+    detectionType,
+  ]);
+
+  const datasetConfig = getDatasetConfig(dataset);
+  const {query, eventTypes} = datasetConfig.separateEventTypesFromQuery(rawQuery);
 
   return (
-    <ChartContainer>
-      <MetricDetectorChart
-        dataset={dataset}
-        aggregate={aggregateFunction}
-        interval={interval}
-        query={query}
-        environment={environment}
-        projectId={projectId}
-        conditions={conditions}
-        detectionType={detectionType}
-        statsPeriod={selectedTimePeriod}
-        comparisonDelta={detectionType === 'percent' ? conditionComparisonAgo : undefined}
-      />
-      <ChartFooter>
-        <CompactSelect
-          size="sm"
-          options={timePeriodOptions}
-          value={selectedTimePeriod}
-          onChange={opt => setSelectedTimePeriod(opt.value)}
-          triggerProps={{
-            borderless: true,
-            prefix: t('Display'),
-          }}
-        />
-      </ChartFooter>
-    </ChartContainer>
+    <MetricDetectorChart
+      detectorDataset={dataset}
+      dataset={getBackendDataset(dataset)}
+      aggregate={aggregateFunction}
+      interval={interval}
+      query={query}
+      eventTypes={eventTypes}
+      environment={environment}
+      projectId={projectId}
+      conditions={conditions}
+      detectionType={detectionType}
+      comparisonDelta={detectionType === 'percent' ? conditionComparisonAgo : undefined}
+      sensitivity={sensitivity}
+      thresholdType={thresholdType}
+      extrapolationMode={extrapolationMode}
+      detectorId={detector?.id}
+    />
   );
 }
-
-const ChartContainer = styled('div')`
-  max-width: 1440px;
-  border-top: 1px solid ${p => p.theme.border};
-`;
-
-const ChartFooter = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: ${p => `${p.theme.space.sm} 0`};
-  border-top: 1px solid ${p => p.theme.border};
-`;

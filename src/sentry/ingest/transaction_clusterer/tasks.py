@@ -7,7 +7,6 @@ import sentry_sdk
 
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import performance_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
@@ -31,7 +30,7 @@ MERGE_THRESHOLD = 200
 #: very low-cardinality or very high-cardinality, so we can use a more aggressive threshold.
 MERGE_THRESHOLD_SPANS = 50
 
-#: Number of projects to process in one celery task
+#: Number of projects to process in one task
 #: The number 100 was chosen at random and might still need tweaking.
 PROJECTS_PER_TASK = 100
 
@@ -43,16 +42,8 @@ CLUSTERING_TIMEOUT_PER_PROJECT = 0.3
 
 @instrumented_task(
     name="sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
-    queue="transactions.name_clusterer",
-    default_retry_delay=5,  # copied from release monitor
-    max_retries=5,  # copied from release monitor
-    taskworker_config=TaskworkerConfig(
-        namespace=performance_tasks,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
+    namespace=performance_tasks,
+    retry=Retry(times=5, delay=5),
 )
 def spawn_clusterers(**kwargs: Any) -> None:
     """Look for existing transaction name sets in redis and spawn clusterers for each"""
@@ -68,19 +59,9 @@ def spawn_clusterers(**kwargs: Any) -> None:
 
 @instrumented_task(
     name="sentry.ingest.transaction_clusterer.tasks.cluster_projects",
-    queue="transactions.name_clusterer",
-    default_retry_delay=5,  # copied from release monitor
-    max_retries=5,  # copied from release monitor
-    soft_time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT,
-    time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2,  # extra 2s to emit metrics
-    taskworker_config=TaskworkerConfig(
-        namespace=performance_tasks,
-        processing_deadline_duration=int(PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2),
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
+    namespace=performance_tasks,
+    processing_deadline_duration=int(PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2),
+    retry=Retry(times=5, delay=5),
 )
 def cluster_projects(project_ids: Sequence[int]) -> None:
     projects = Project.objects.get_many_from_cache(project_ids)

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 from django.test import override_settings
@@ -16,8 +16,8 @@ from sentry.testutils.helpers.analytics import assert_analytics_events_recorded
 class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.preprod_artifact = PreprodArtifact.objects.create(
-            project=self.project, state=PreprodArtifact.ArtifactState.UPLOADED
+        self.preprod_artifact = self.create_preprod_artifact(
+            state=PreprodArtifact.ArtifactState.UPLOADED
         )
 
     def _get_url(self, artifact_id=None):
@@ -60,7 +60,7 @@ class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
         assert call_kwargs["artifact_id"] == str(artifact_id or self.preprod_artifact.id)
 
     @patch("sentry.analytics.record")
-    def test_assemble_size_analysis_success(self, mock_analytics):
+    def test_assemble_size_analysis_success(self, mock_analytics: MagicMock) -> None:
         blobs = self._create_blobs()
         checksum = "a" * 40
         data = {
@@ -91,7 +91,7 @@ class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
         self._assert_task_called_with(mock_task, checksum, [b.checksum for b in blobs])
 
     @patch("sentry.analytics.record")
-    def test_assemble_installable_app_success(self, mock_analytics):
+    def test_assemble_installable_app_success(self, mock_analytics: MagicMock) -> None:
         blobs = self._create_blobs()
         checksum = "a" * 40
         data = {
@@ -226,7 +226,7 @@ class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
             },
             authenticated=False,
         )
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_artifact_id_passed_to_task(self) -> None:
         """Test that arbitrary artifact_id values are accepted and passed to the task."""

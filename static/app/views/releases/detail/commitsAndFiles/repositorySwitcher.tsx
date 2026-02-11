@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -26,8 +28,11 @@ function RepositorySwitcher({repositories, activeRepository}: RepositorySwitcher
 
   return (
     <CompactSelect
-      triggerLabel={activeRepo}
-      triggerProps={{prefix: t('Filter')}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Filter')}>
+          {activeRepo ?? triggerProps.children}
+        </OverlayTrigger.Button>
+      )}
       value={activeRepo}
       options={repositories.map(repo => ({
         value: repo.name,
@@ -42,5 +47,9 @@ function RepositorySwitcher({repositories, activeRepository}: RepositorySwitcher
 export default RepositorySwitcher;
 
 const RepoLabel = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

@@ -1,53 +1,34 @@
-import styled from '@emotion/styled';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
 
-import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {IconCopy} from 'sentry/icons';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
-type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
-
-type Props = {
+interface CopyToClipboardButtonProps extends Omit<
+  Extract<ButtonProps, {'aria-label': string}>,
+  'children' | 'onCopy' | 'onError'
+> {
   text: string;
-  iconSize?: React.ComponentProps<typeof IconCopy>['size'];
+  children?: never;
+  onCopy?: undefined | ((copiedText: string) => void);
   onError?: undefined | ((error: Error) => void);
-} & Overwrite<
-  Omit<ButtonProps, 'children'>,
-  Partial<
-    Pick<ButtonProps, 'aria-label'> & {onCopy: undefined | ((copiedText: string) => void)}
-  >
->;
+}
 
 export function CopyToClipboardButton({
-  iconSize,
   onCopy,
   onError,
   text,
-  onClick: passedOnClick,
   ...props
-}: Props) {
-  const {onClick, label} = useCopyToClipboard({
-    text,
-    onCopy,
-    onError,
-  });
+}: CopyToClipboardButtonProps) {
+  const {copy} = useCopyToClipboard();
 
   return (
-    <CopyButton
-      aria-label={label}
-      title={label}
-      tooltipProps={{delay: 0}}
-      translucentBorder
+    <Button
       onClick={e => {
-        onClick();
-        passedOnClick?.(e);
+        copy(text).then(onCopy).catch(onError);
+        props.onClick?.(e);
       }}
+      icon={<IconCopy variant="muted" />}
       {...props}
-    >
-      <IconCopy size={iconSize} />
-    </CopyButton>
+    />
   );
 }
-
-const CopyButton = styled(Button)`
-  color: ${p => p.theme.subText};
-`;

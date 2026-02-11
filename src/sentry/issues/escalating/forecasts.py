@@ -6,7 +6,10 @@ import logging
 from collections.abc import Iterable, Sequence
 from datetime import datetime
 
+import sentry_sdk
+
 from sentry import analytics
+from sentry.issues.analytics import IssueForecastSaved
 from sentry.issues.escalating.escalating import (
     ParsedGroupsCount,
     parse_groups_past_counts,
@@ -17,7 +20,6 @@ from sentry.issues.escalating.escalating_issues_alg import generate_issue_foreca
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 
 logger = logging.getLogger(__name__)
@@ -49,7 +51,10 @@ def save_forecast_per_group(
                 "save_forecast_per_group",
                 extra={"group_id": group_id, "group_counts": group_count},
             )
-    analytics.record("issue_forecasts.saved", num_groups=len(group_counts.keys()))
+    try:
+        analytics.record(IssueForecastSaved(num_groups=len(group_counts.keys())))
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 def generate_and_save_forecasts(groups: Iterable[Group]) -> None:
@@ -72,11 +77,8 @@ def generate_and_save_forecasts(groups: Iterable[Group]) -> None:
 
 @instrumented_task(
     name="sentry.tasks.weekly_escalating_forecast.generate_and_save_missing_forecasts",
-    queue="weekly_escalating_forecast",
+    namespace=issues_tasks,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-    ),
 )
 def generate_and_save_missing_forecasts(group_id: int) -> None:
     """

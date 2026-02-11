@@ -1,6 +1,7 @@
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
+import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {
   Opportunity,
@@ -96,7 +97,7 @@ export const useTransactionWebVitalsScoresQuery = ({
         totalOpportunityScoreField,
       ],
     },
-    'api.performance.browser.web-vitals.transactions-scores'
+    Referrer.WEB_VITAL_TRANSACTIONS_SCORES
   );
 
   const tableData: Array<

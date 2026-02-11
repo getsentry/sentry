@@ -1,5 +1,6 @@
 import {useState} from 'react';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -7,13 +8,14 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
-  type DashboardDetails,
-  type DashboardFilters,
   DisplayType,
   WidgetType,
+  type DashboardDetails,
+  type DashboardFilters,
 } from 'sentry/views/dashboards/types';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
+import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
@@ -63,9 +65,7 @@ function WidgetPreview({
       false,
   };
 
-  const isChart =
-    widget.displayType !== DisplayType.TABLE &&
-    widget.displayType !== DisplayType.BIG_NUMBER;
+  const isTimeSeries = usesTimeSeriesData(widget.displayType);
 
   // the spans dataset doesn't handle timeseries for duplicate yAxes/aggregates
   // automatically, so we need to dedupe them
@@ -93,6 +93,8 @@ function WidgetPreview({
     setTableWidths(widths);
   }
 
+  const useTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
+
   return (
     <WidgetCard
       disableFullscreen
@@ -104,7 +106,7 @@ function WidgetPreview({
       organization={organization}
       selection={pageFilters.selection}
       widget={
-        widget.widgetType === WidgetType.SPANS && isChart
+        widget.widgetType === WidgetType.SPANS && isTimeSeries
           ? widgetWithDedupedYAxes
           : widget
       }
@@ -114,7 +116,7 @@ function WidgetPreview({
       showContextMenu={false}
       renderErrorMessage={errorMessage =>
         typeof errorMessage === 'string' && (
-          <PanelAlert type="error">{errorMessage}</PanelAlert>
+          <PanelAlert variant="danger">{errorMessage}</PanelAlert>
         )
       }
       onLegendSelectChanged={() => {}}
@@ -129,7 +131,7 @@ function WidgetPreview({
       // dashboard state to be added
       onWidgetSplitDecision={() => {}}
       // onWidgetSplitDecision={onWidgetSplitDecision}
-
+      tableItemLimit={widget.limit}
       showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
       // ensure table columns are at least a certain width (helps with lack of truncation on large fields)
       minTableColumnWidth={MIN_TABLE_COLUMN_WIDTH_PX}
@@ -137,6 +139,8 @@ function WidgetPreview({
       showLoadingText
       onWidgetTableSort={handleWidgetTableSort}
       onWidgetTableResizeColumn={handleWidgetTableResizeColumn}
+      disableTableActions
+      useTimeseriesVisualization={useTimeseriesVisualization}
     />
   );
 }

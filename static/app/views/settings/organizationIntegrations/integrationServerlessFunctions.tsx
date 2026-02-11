@@ -1,7 +1,8 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -12,11 +13,12 @@ import type {
   ServerlessFunction,
 } from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {IntegrationServerlessRow} from 'sentry/views/settings/organizationIntegrations/integrationServerlessRow';
@@ -29,7 +31,12 @@ export function IntegrationServerlessFunctions({
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/integrations/${integration.id}/serverless-functions/`,
+    getApiUrl(
+      `/organizations/$organizationIdOrSlug/integrations/$integrationId/serverless-functions/`,
+      {
+        path: {organizationIdOrSlug: organization.slug, integrationId: integration.id},
+      }
+    ),
   ];
   const {data: serverlessFunctions = [], isSuccess} = useApiQuery<ServerlessFunction[]>(
     queryKey,
@@ -51,7 +58,7 @@ export function IntegrationServerlessFunctions({
   return (
     <Fragment>
       <Alert.Container>
-        <Alert type="info" showIcon={false}>
+        <Alert variant="info" showIcon={false}>
           {t(
             'Manage your AWS Lambda functions below. Only Node and Python runtimes are currently supported.'
           )}

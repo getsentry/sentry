@@ -17,14 +17,14 @@ const mockResponse = (mocks: Array<[string, unknown]>) => {
   mocks.forEach(([url, body]) => MockApiClient.addMockResponse({url, body}));
 };
 
-describe('IntegrationListDirectory', function () {
-  beforeEach(function () {
+describe('IntegrationListDirectory', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
   const organization = OrganizationFixture();
 
-  describe('Renders view', function () {
+  describe('Renders view', () => {
     beforeEach(() => {
       mockResponse([
         [
@@ -49,7 +49,7 @@ describe('IntegrationListDirectory', function () {
       ]);
     });
 
-    it('shows installed integrations at the top in order of weight', async function () {
+    it('shows installed integrations at the top in order of weight', async () => {
       render(<IntegrationListDirectory />, {
         organization,
       });
@@ -68,7 +68,7 @@ describe('IntegrationListDirectory', function () {
       ].map(testId => expect(screen.getByTestId(testId)).toBeInTheDocument());
     });
 
-    it('does not show legacy plugin that has a First Party Integration if not installed', async function () {
+    it('does not show legacy plugin that has a First Party Integration if not installed', async () => {
       render(<IntegrationListDirectory />, {
         organization,
       });
@@ -78,7 +78,7 @@ describe('IntegrationListDirectory', function () {
       expect(screen.queryByText('GitHub (Legacy)')).not.toBeInTheDocument();
     });
 
-    it('shows legacy plugin that has a First Party Integration if installed', async function () {
+    it('shows legacy plugin that has a First Party Integration if installed', async () => {
       render(<IntegrationListDirectory />, {
         organization,
       });
@@ -87,7 +87,7 @@ describe('IntegrationListDirectory', function () {
       expect(await screen.findByText('PagerDuty (Legacy)')).toBeInTheDocument();
     });
 
-    it('shows integrations that match the search query', async function () {
+    it('shows integrations that match the search query', async () => {
       render(<IntegrationListDirectory />, {organization});
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 

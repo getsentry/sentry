@@ -1,6 +1,7 @@
 from .activity import *  # NOQA
 from .apiapplication import *  # NOQA
 from .apiauthorization import *  # NOQA
+from .apidevicecode import *  # NOQA
 from .apigrant import *  # NOQA
 from .apikey import *  # NOQA
 from .apiscopes import *  # NOQA
@@ -16,6 +17,7 @@ from .avatars import *  # NOQA
 from .broadcast import *  # NOQA
 from .commit import *  # NOQA
 from .commitauthor import *  # NOQA
+from .commitcomparison import *  # NOQA
 from .commitfilechange import *  # noqa
 from .counter import *  # NOQA
 from .dashboard import *  # NOQA
@@ -48,7 +50,9 @@ from .groupinbox import *  # NOQA
 from .grouplink import *  # NOQA
 from .groupmeta import *  # NOQA
 from .groupopenperiod import *  # NOQA
+from .groupopenperiodactivity import *  # NOQA
 from .groupowner import *  # NOQA
+from .groupreaction import *  # NOQA
 from .groupredirect import *  # NOQA
 from .grouprelease import *  # NOQA
 from .groupresolution import *  # NOQA
@@ -66,6 +70,7 @@ from .latestreporeleaseenvironment import *  # NOQA
 from .options import *  # NOQA
 from .organization import *  # NOQA
 from .organizationaccessrequest import *  # NOQA
+from .organizationcontributors import *  # NOQA
 from .organizationmapping import *  # NOQA
 from .organizationmember import *  # NOQA
 from .organizationmemberinvite import *  # NOQA
@@ -100,6 +105,7 @@ from .releaseheadcommit import *  # NOQA
 from .releaseprojectenvironment import *  # NOQA
 from .releases.release_project import *  # NOQA
 from .repository import *  # NOQA
+from .repositorysettings import *  # NOQA
 from .rollbackorganization import *  # NOQA
 from .rollbackuser import *  # NOQA
 from .rule import *  # NOQA

@@ -1,5 +1,6 @@
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.constants import ADJUSTED_FACTOR_REDIS_CACHE_KEY_TTL
+from sentry.utils import metrics
 
 
 def generate_recalibrate_orgs_cache_key(org_id: int) -> str:
@@ -17,6 +18,9 @@ def set_guarded_adjusted_factor(org_id: int, adjusted_factor: float) -> None:
         # Since we don't want any error to cause the system to drift significantly from the target sample rate, we want
         # to set a small TTL for the adjusted factor.
         redis_client.pexpire(cache_key, ADJUSTED_FACTOR_REDIS_CACHE_KEY_TTL)
+        metrics.distribution(
+            "dynamic_sampling.tasks.recalibrate_orgs.set_guarded_adjusted_factor", adjusted_factor
+        )
     else:
         delete_adjusted_factor(org_id)
 
@@ -42,6 +46,7 @@ def delete_adjusted_factor(org_id: int) -> None:
     cache_key = generate_recalibrate_orgs_cache_key(org_id)
 
     redis_client.delete(cache_key)
+    metrics.incr("dynamic_sampling.tasks.recalibrate_orgs.delete_adjusted_factor")
 
 
 def generate_recalibrate_projects_cache_key(project_id: int) -> str:
@@ -59,6 +64,10 @@ def set_guarded_adjusted_project_factor(project_id: int, adjusted_factor: float)
         # Since we don't want any error to cause the system to drift significantly from the target sample rate, we want
         # to set a small TTL for the adjusted factor.
         redis_client.pexpire(cache_key, ADJUSTED_FACTOR_REDIS_CACHE_KEY_TTL)
+        metrics.distribution(
+            "dynamic_sampling.tasks.recalibrate_projects.set_guarded_adjusted_project_factor",
+            adjusted_factor,
+        )
     else:
         delete_adjusted_project_factor(project_id)
 
@@ -84,6 +93,7 @@ def delete_adjusted_project_factor(project_id: int) -> None:
     cache_key = generate_recalibrate_projects_cache_key(project_id)
 
     redis_client.delete(cache_key)
+    metrics.incr("dynamic_sampling.tasks.recalibrate_projects.delete_adjusted_project_factor")
 
 
 def compute_adjusted_factor(

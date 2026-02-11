@@ -2,12 +2,13 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Access from 'sentry/components/acl/access';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import Confirm from 'sentry/components/confirm';
-import {Button, type ButtonProps} from 'sentry/components/core/button';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
@@ -23,25 +24,23 @@ import {IconDelete, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {KeyValueListData} from 'sentry/types/group';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Release, SourceMapsArchive} from 'sentry/types/release';
 import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {AssociatedReleases} from 'sentry/views/settings/projectSourceMaps/associatedReleases';
 import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
 
-type Props = RouteComponentProps<{
-  orgId: string;
-  projectId: string;
-  bundleId?: string;
-}> & {
+type Props = {
   project: Project;
 };
 
@@ -97,7 +96,9 @@ function useSourceMapUploads({
     refetch: archivesRefetch,
   } = useApiQuery<SourceMapsArchive[]>(
     [
-      `/projects/${organization.slug}/${project.slug}/files/source-maps/`,
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/files/source-maps/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
       {
         query: {query, cursor, sortBy: '-date_added'},
       },
@@ -115,7 +116,12 @@ function useSourceMapUploads({
     refetch: debugIdBundlesRefetch,
   } = useApiQuery<DebugIdBundle[]>(
     [
-      `/projects/${organization.slug}/${project.slug}/files/artifact-bundles/`,
+      getApiUrl(
+        `/projects/$organizationIdOrSlug/$projectIdOrSlug/files/artifact-bundles/`,
+        {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+        }
+      ),
       {
         query: {query, cursor, sortBy: '-date_added'},
       },
@@ -133,7 +139,9 @@ function useSourceMapUploads({
 
   const {data: releasesData, isPending: releasesLoading} = useApiQuery<Release[]>(
     [
-      `/organizations/${organization.slug}/releases/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/releases/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           project: [project.id],
@@ -171,11 +179,13 @@ function useSourceMapUploads({
   };
 }
 
-export function SourceMapsList({location, router, project}: Props) {
+export function SourceMapsList({project}: Props) {
   const organization = useOrganization();
-  const query = decodeScalar(location.query.query) ?? '';
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const cursor = location.query.cursor ?? '';
+  const query = decodeScalar(location.query.query);
+  const cursor = decodeScalar(location.query.cursor);
 
   const {
     data: sourceMapUploads,
@@ -195,12 +205,12 @@ export function SourceMapsList({location, router, project}: Props) {
 
   const handleSearch = useCallback(
     (newQuery: string) => {
-      router.push({
+      navigate({
         ...location,
         query: {...location.query, cursor: undefined, query: newQuery},
       });
     },
-    [router, location]
+    [navigate, location]
   );
 
   const platformByProject = defined(project.platform)
@@ -258,7 +268,7 @@ function ReactNativeCallOut() {
           {strong: <strong />}
         )}
       </div>
-      <CodeSnippet
+      <CodeBlock
         dark
         language="bash"
         tabs={[
@@ -271,7 +281,7 @@ function ReactNativeCallOut() {
         {selectedTab === 'expo'
           ? '# First run this to create a build and upload source maps\n./gradlew assembleRelease\n# Then run this to test your build locally\nnpx expo run:android --variant release\n\n# iOS version (pending confirmation)\nnpx expo run:ios --configuration Release'
           : 'npx react-native run-android --mode release\nnpx react-native run-ios --mode Release'}
-      </CodeSnippet>
+      </CodeBlock>
     </div>
   );
 }
@@ -297,29 +307,28 @@ function SourceMapsEmptyState({
             ? t('No source maps uploads matching your search')
             : t('No source maps uploaded')
         }
-        description={
-          query
-            ? tct(
-                'Try to modify or [clear:clear] your search to see all source maps uploads.',
-                {
-                  clear: (
-                    <Button
-                      priority="link"
-                      aria-label={t('Clear Search')}
-                      onClick={onClearSearch}
-                    />
-                  ),
-                }
-              )
-            : tct(
-                'Source maps allow Sentry to map your production code to your source code. See our [docs:docs] to learn more about configuring your application to upload source maps to Sentry.',
-                {
-                  docs: <ExternalLink href={docsLink} />,
-                }
-              )
-        }
         action={project.platform === 'react-native' ? <ReactNativeCallOut /> : undefined}
-      />
+      >
+        {query
+          ? tct(
+              'Try to modify or [clear:clear] your search to see all source maps uploads.',
+              {
+                clear: (
+                  <Button
+                    priority="link"
+                    aria-label={t('Clear Search')}
+                    onClick={onClearSearch}
+                  />
+                ),
+              }
+            )
+          : tct(
+              'Source maps allow Sentry to map your production code to your source code. See our [docs:docs] to learn more about configuring your application to upload source maps to Sentry.',
+              {
+                docs: <ExternalLink href={docsLink} />,
+              }
+            )}
+      </EmptyMessage>
     </Panel>
   );
 }
@@ -498,8 +507,8 @@ const ItemHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.md};
-  border-bottom: 1px solid ${p => p.theme.border};
+  font-size: ${p => p.theme.font.size.md};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   line-height: 1;
   padding: ${space(1)} ${space(2)};
 `;

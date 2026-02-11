@@ -5,12 +5,14 @@ import type {
   SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
 import type {WidgetType} from 'sentry/views/dashboards/types';
+import type {ReadableSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
 import type {ExternalTeam} from './integrations';
 import type {OnboardingTaskStatus} from './onboarding';
 import type {Project} from './project';
 import type {Relay} from './relay';
+import type {CodeReviewTrigger} from './seer';
 import type {User} from './user';
 
 /**
@@ -22,7 +24,6 @@ export interface OrganizationSummary {
   dateCreated: string;
   features: string[];
   githubNudgeInvite: boolean;
-  githubOpenPRBot: boolean;
   githubPRBot: boolean;
   gitlabPRBot: boolean;
   hideAiFeatures: boolean;
@@ -50,20 +51,25 @@ export interface Organization extends OrganizationSummary {
   access: Scope[];
   aggregatedDataConsent: boolean;
   alertsMemberWrite: boolean;
+  allowBackgroundAgentDelegation: boolean;
   allowJoinRequests: boolean;
   allowMemberInvite: boolean;
   allowMemberProjectCreation: boolean;
   allowSharedIssues: boolean;
   allowSuperuserAccess: boolean;
   attachmentsRole: string;
+  autoEnableCodeReview: boolean;
+  autoOpenPrs: boolean;
   /** @deprecated use orgRoleList instead. */
   availableRoles: Array<{id: string; name: string}>;
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
+  defaultCodeReviewTriggers: CodeReviewTrigger[];
   defaultRole: string;
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;
+  hasGranularReplayPermissions: boolean;
   isDefault: boolean;
   isDynamicallySampled: boolean;
   onboardingTasks: OnboardingTaskStatus[];
@@ -81,6 +87,7 @@ export interface Organization extends OrganizationSummary {
     projectLimit: number | null;
   };
   relayPiiConfig: string | null;
+  replayAccessMembers: number[];
   requiresSso: boolean;
   safeFields: string[];
   samplingMode: 'organization' | 'project';
@@ -92,6 +99,7 @@ export interface Organization extends OrganizationSummary {
   targetSampleRate: number;
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
+  consoleSdkInviteQuota?: number;
   defaultAutofixAutomationTuning?:
     | 'off'
     | 'super_low'
@@ -102,7 +110,8 @@ export interface Organization extends OrganizationSummary {
     | null;
   defaultSeerScannerAutomation?: boolean;
   desiredSampleRate?: number | null;
-  effectiveSampleRate?: number | null;
+  enableSeerCoding?: boolean;
+  enableSeerEnhancedAlerts?: boolean;
   enabledConsolePlatforms?: string[];
   extraOptions?: {
     traces: {
@@ -274,6 +283,7 @@ export interface NewQuery {
   end?: string | Date;
   environment?: readonly string[];
   expired?: boolean;
+  exploreQuery?: Partial<ReadableSavedQuery>;
   id?: string;
   interval?: string;
   multiSort?: boolean;
@@ -309,7 +319,7 @@ type AccuracyStatsItem<T> = {
   value: T;
 };
 
-export type AccuracyStats<T> = Array<AccuracyStatsItem<T>>;
+type AccuracyStats<T> = Array<AccuracyStatsItem<T>>;
 
 // API response for a single Discover timeseries
 export type EventsStats = {
@@ -398,6 +408,7 @@ export enum SessionStatus {
   HEALTHY = 'healthy',
   ABNORMAL = 'abnormal',
   ERRORED = 'errored',
+  UNHANDLED = 'unhandled',
   CRASHED = 'crashed',
 }
 

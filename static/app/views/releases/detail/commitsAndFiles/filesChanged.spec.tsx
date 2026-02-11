@@ -1,10 +1,11 @@
 import {CommitAuthorFixture} from 'sentry-fixture/commitAuthor';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {ReleaseProjectFixture} from 'sentry-fixture/releaseProject';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import type {RouterConfig} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import type {CommitFile} from 'sentry/types/integrations';
@@ -29,10 +30,15 @@ function CommitFileFixture(params: Partial<CommitFile> = {}): CommitFile {
 describe('FilesChanged', () => {
   const release = ReleaseFixture();
   const project = ReleaseProjectFixture() as Required<ReleaseProject>;
-  const {router, organization} = initializeOrg({
-    router: {params: {release: release.version}},
-  });
+  const organization = OrganizationFixture();
   const repos = [RepositoryFixture({integrationId: '1'})];
+  const initialRouterConfig: RouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/releases/${release.version}/files-changed/`,
+      query: {},
+    },
+    route: '/organizations/:orgId/releases/:release/files-changed/',
+  };
 
   function renderComponent() {
     return render(
@@ -50,8 +56,8 @@ describe('FilesChanged', () => {
         <FilesChanged />
       </ReleaseContext>,
       {
-        router,
-        deprecatedRouterMocks: true,
+        organization,
+        initialRouterConfig,
       }
     );
   }

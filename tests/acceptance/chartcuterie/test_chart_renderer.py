@@ -3,14 +3,14 @@ from sentry.testutils.helpers.response import close_streaming_response
 
 
 class TestChartRenderer(AcceptanceTestCase):
-    def test_debug_renders(self):
+    def test_debug_renders(self) -> None:
         options = {
             "chart-rendering.enabled": True,
             "system.url-prefix": self.browser.live_server_url,
         }
 
         with self.options(options):
-            self.browser.get("debug/chart-renderer/")
+            self.browser.get("debug/charts/chart-renderer/")
 
         self.wait_for_loading()
 

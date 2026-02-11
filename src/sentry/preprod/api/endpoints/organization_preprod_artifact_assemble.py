@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 import jsonschema
 import orjson
 import sentry_sdk
@@ -11,19 +15,53 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.debug_files.upload import find_missing_chunks
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
+from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiAssembleEvent
-from sentry.preprod.tasks import assemble_preprod_artifact
-from sentry.tasks.assemble import (
-    AssembleTask,
-    ChunkFileState,
-    get_assemble_status,
-    set_assemble_status,
-)
+from sentry.preprod.api.schemas import SHA_PATTERN, VCS_ERROR_MESSAGES, VCS_SCHEMA_PROPERTIES
+from sentry.preprod.exceptions import NoPreprodQuota
+from sentry.preprod.tasks import assemble_preprod_artifact, create_preprod_artifact
+from sentry.preprod.url_utils import get_preprod_artifact_url
+from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
+from sentry.ratelimits.config import RateLimitConfig
+from sentry.tasks.assemble import ChunkFileState
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
+SUPPORTED_VCS_PROVIDERS = [
+    IntegrationProviderSlug.GITHUB,
+    IntegrationProviderSlug.GITLAB,
+    IntegrationProviderSlug.GITHUB_ENTERPRISE,
+    IntegrationProviderSlug.BITBUCKET,
+    IntegrationProviderSlug.BITBUCKET_SERVER,
+]
 
-def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict, str | None]:
+
+def validate_vcs_parameters(data: dict[str, Any]) -> str | None:
+    head_sha = data.get("head_sha")
+    base_sha = data.get("base_sha")
+
+    if head_sha and base_sha and head_sha == base_sha:
+        return f"Head SHA and base SHA cannot be the same ({head_sha}). Please provide a different base SHA."
+
+    if not head_sha and base_sha:
+        return "Head SHA is required when base SHA is provided. Please provide a head SHA."
+
+    # If any VCS parameters are provided, all required ones must be present
+    vcs_params = {
+        "head_sha": head_sha,
+        "head_repo_name": data.get("head_repo_name"),
+        "provider": data.get("provider"),
+    }
+
+    if any(vcs_params.values()) and any(not v for v in vcs_params.values()):
+        missing_params = [k for k, v in vcs_params.items() if not v]
+        return f"All required VCS parameters must be provided when using VCS features. Missing parameters: {', '.join(missing_params)}"
+
+    return None
+
+
+def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict[str, Any], str | None]:
     """
     Validate the JSON schema for preprod artifact assembly requests.
 
@@ -33,14 +71,20 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict, str | N
     schema = {
         "type": "object",
         "properties": {
-            "checksum": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+            "checksum": {"type": "string", "pattern": SHA_PATTERN},
             "chunks": {
                 "type": "array",
-                "items": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+                "items": {"type": "string", "pattern": SHA_PATTERN},
             },
             # Optional metadata
-            "git_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
             "build_configuration": {"type": "string"},
+            "release_notes": {"type": "string"},
+            "install_groups": {
+                "type": "array",
+                "items": {"type": "string", "maxLength": 255},
+                "minItems": 1,
+            },
+            **VCS_SCHEMA_PROPERTIES,
         },
         "required": ["checksum", "chunks"],
         "additionalProperties": False,
@@ -49,14 +93,18 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict, str | N
     error_messages = {
         "checksum": "The checksum field is required and must be a 40-character hexadecimal string.",
         "chunks": "The chunks field is required and must be provided as an array of 40-character hexadecimal strings.",
-        "git_sha": "The git_sha field must be a 40-character hexadecimal SHA1 string (no uppercase letters).",
         "build_configuration": "The build_configuration field must be a string.",
+        "release_notes": "The release_notes field must be a string.",
+        "install_groups": "The install_groups field must be an array of strings, each with maximum length of 255 characters.",
+        **VCS_ERROR_MESSAGES,
     }
 
     try:
         data = orjson.loads(request_body)
         jsonschema.validate(data, schema)
-        return data, None
+        # Filter out empty strings to treat them as "not provided"
+        filtered_data = {k: v for k, v in data.items() if v != ""}
+        return filtered_data, None
     except jsonschema.ValidationError as e:
         error_message = e.message
         # Get the field from the path if available
@@ -76,16 +124,15 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectReleasePermission,)
 
-    enforce_rate_limit = True
-    rate_limits = {
-        "POST": {
-            RateLimitCategory.ORGANIZATION: RateLimit(
-                limit=100, window=60
-            ),  # 100 requests per minute per org
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60),
+            }
         }
-    }
+    )
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Assembles a preprod artifact (mobile build, etc.) and stores it in the database.
         """
@@ -99,7 +146,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
         )
 
         if not settings.IS_DEV and not features.has(
-            "organizations:preprod-artifact-assemble", project.organization, actor=request.user
+            "organizations:preprod-frontend-routes", project.organization, actor=request.user
         ):
             return Response({"error": "Feature not enabled"}, status=403)
 
@@ -108,8 +155,24 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             if error_message:
                 return Response({"error": error_message}, status=400)
 
-            checksum = data.get("checksum")
+            # Support a limited subset of providers
+            provider = data.get("provider")
+            if provider is not None and provider not in SUPPORTED_VCS_PROVIDERS:
+                supported_providers = ", ".join(SUPPORTED_VCS_PROVIDERS)
+                return Response(
+                    {
+                        "error": f"Unsupported VCS provider '{provider}'. Supported providers are: {supported_providers}"
+                    },
+                    status=400,
+                )
+
+            checksum = str(data.get("checksum", ""))
             chunks = data.get("chunks", [])
+
+            # Validate VCS parameters
+            vcs_error = validate_vcs_parameters(data)
+            if vcs_error:
+                return Response({"error": vcs_error}, status=400)
 
             # Check if all requested chunks have been uploaded
             missing_chunks = find_missing_chunks(project.organization_id, set(chunks))
@@ -121,19 +184,49 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                     }
                 )
 
-            # Check current assembly status
-            state, detail = get_assemble_status(AssembleTask.PREPROD_ARTIFACT, project.id, checksum)
-            if state is not None:
-                return Response({"state": state, "detail": detail, "missingChunks": []})
-
             # There is neither a known file nor a cached state, so we will
             # have to create a new file.  Assure that there are checksums.
             # If not, we assume this is a poll and report NOT_FOUND
             if not chunks:
                 return Response({"state": ChunkFileState.NOT_FOUND, "missingChunks": []})
 
-            set_assemble_status(
-                AssembleTask.PREPROD_ARTIFACT, project.id, checksum, ChunkFileState.CREATED
+            try:
+                artifact = create_preprod_artifact(
+                    org_id=project.organization_id,
+                    project_id=project.id,
+                    checksum=checksum,
+                    build_configuration_name=data.get("build_configuration"),
+                    release_notes=data.get("release_notes"),
+                    install_groups=data.get("install_groups"),
+                    head_sha=data.get("head_sha"),
+                    base_sha=data.get("base_sha"),
+                    provider=data.get("provider"),
+                    head_repo_name=data.get("head_repo_name"),
+                    base_repo_name=data.get("base_repo_name"),
+                    head_ref=data.get("head_ref"),
+                    base_ref=data.get("base_ref"),
+                    pr_number=data.get("pr_number"),
+                )
+            except NoPreprodQuota:
+                return Response(
+                    {"detail": "Organization does not have quota for preprod features"},
+                    status=403,
+                )
+
+            if artifact is None:
+                return Response(
+                    {
+                        "state": ChunkFileState.ERROR,
+                        "detail": "Failed to create preprod artifact row.",
+                    },
+                    status=500,
+                )
+
+            create_preprod_status_check_task.apply_async(
+                kwargs={
+                    "preprod_artifact_id": artifact.id,
+                    "caller": "assemble_endpoint",
+                }
             )
 
             assemble_preprod_artifact.apply_async(
@@ -142,7 +235,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                     "project_id": project.id,
                     "checksum": checksum,
                     "chunks": chunks,
-                    "git_sha": data.get("git_sha"),
+                    "artifact_id": artifact.id,
                     "build_configuration": data.get("build_configuration"),
                 }
             )
@@ -150,4 +243,12 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             if is_org_auth_token_auth(request.auth):
                 update_org_auth_token_last_used(request.auth, [project.id])
 
-        return Response({"state": ChunkFileState.CREATED, "missingChunks": []})
+        artifact_url = get_preprod_artifact_url(artifact)
+
+        return Response(
+            {
+                "state": ChunkFileState.CREATED,
+                "missingChunks": [],
+                "artifactUrl": artifact_url,
+            }
+        )

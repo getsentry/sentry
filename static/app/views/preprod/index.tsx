@@ -1,15 +1,14 @@
+import {Outlet} from 'react-router-dom';
+
+import {Alert} from '@sentry/scraps/alert';
+
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = {
-  children: NonNullable<React.ReactNode>;
-};
-
-function PreprodContainer({children}: Props) {
+export default function PreprodContainer() {
   const organization = useOrganization();
 
   return (
@@ -19,16 +18,16 @@ function PreprodContainer({children}: Props) {
       renderDisabled={() => (
         <Layout.Page withPadding>
           <Alert.Container>
-            <Alert type="warning" showIcon={false}>
+            <Alert variant="warning" showIcon={false}>
               {t("You don't have access to this feature")}
             </Alert>
           </Alert.Container>
         </Layout.Page>
       )}
     >
-      <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
+      <NoProjectMessage organization={organization}>
+        <Outlet />
+      </NoProjectMessage>
     </Feature>
   );
 }
-
-export default PreprodContainer;

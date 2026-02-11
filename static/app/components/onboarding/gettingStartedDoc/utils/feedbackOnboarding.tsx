@@ -1,8 +1,11 @@
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
+  ContentBlock,
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
@@ -76,7 +79,7 @@ export const getCrashReportInstallDescription = () =>
 export function FeedbackOnboardingWebApiBanner() {
   return (
     <Alert.Container>
-      <Alert type="info">
+      <Alert variant="info">
         {tct(
           `When a user experiences an error, Sentry provides the ability to collect additional feedback. You can use an endpoint in Sentry to submit it. [link:Read our docs] to learn more.`,
           {
@@ -139,12 +142,10 @@ export const getCrashReportModalConfigDescription = ({link}: {link: string}) =>
 
 const getCrashReportModalSnippetJavaScript = (params: any) => [
   {
-    code: [
-      {
-        label: 'HTML',
-        value: 'html',
-        language: 'html',
-        code: `<script>
+    label: 'HTML',
+    value: 'html',
+    language: 'html',
+    code: `<script>
   Sentry.init({
     dsn: "${params.dsn.public}",
     beforeSend(event, hint) {
@@ -156,20 +157,26 @@ const getCrashReportModalSnippetJavaScript = (params: any) => [
     },
   });
 </script>`,
+  },
+];
+
+export const getCrashReportJavaScriptInstallSteps = (params: any): OnboardingStep[] => [
+  {
+    type: StepType.INSTALL,
+    content: [
+      {
+        type: 'text',
+        text: getCrashReportModalInstallDescriptionJavaScript(),
+      },
+      {
+        type: 'code',
+        tabs: getCrashReportModalSnippetJavaScript(params),
       },
     ],
   },
 ];
 
-export const getCrashReportJavaScriptInstallStep = (params: any) => [
-  {
-    type: StepType.INSTALL,
-    description: getCrashReportModalInstallDescriptionJavaScript(),
-    configurations: getCrashReportModalSnippetJavaScript(params),
-  },
-];
-
-export function getCrashReportSDKInstallFirstStep(params: DocsParams) {
+export function getCrashReportSDKInstallFirstBlocks(params: DocsParams): ContentBlock[] {
   const dataLoaded =
     params.sourcePackageRegistries && !params.sourcePackageRegistries.isLoading;
   const version =
@@ -183,21 +190,26 @@ export function getCrashReportSDKInstallFirstStep(params: DocsParams) {
       ]!.checksums['sha384-base64']) ??
     '';
 
-  return {
-    description: t('Make sure you have the JavaScript SDK available:'),
-    code: [
-      {
-        label: 'HTML',
-        value: 'html',
-        language: 'html',
-        code: `<script
+  return [
+    {
+      type: 'text',
+      text: t('Make sure you have the JavaScript SDK available:'),
+    },
+    {
+      type: 'code',
+      tabs: [
+        {
+          label: 'HTML',
+          language: 'html',
+          code: `<script
   src="https://browser.sentry-cdn.com/${version}/bundle.min.js"
   integrity="sha384-${hash}"
   crossorigin="anonymous"
 ></script>`,
-      },
-    ],
-  };
+        },
+      ],
+    },
+  ];
 }
 
 const getGenericScript = (params: any) => [
@@ -214,13 +226,14 @@ const getGenericScript = (params: any) => [
   },
 ];
 
-export const getCrashReportGenericInstallStep = (params: any) => [
+export const getCrashReportGenericInstallSteps = (params: any): OnboardingStep[] => [
   {
     type: StepType.INSTALL,
-    configurations: [
-      getCrashReportSDKInstallFirstStep(params),
+    content: [
+      ...getCrashReportSDKInstallFirstBlocks(params),
       {
-        description: tct(
+        type: 'text',
+        text: tct(
           'You will then need to call [codeShow:showReportDialog] and pass in the generated event ID. This event ID is returned from all calls to [codeEvent:CaptureEvent] and [codeException:CaptureException]. There is also a function called [codeLast:LastEventId] that returns the ID of the most recently sent event.',
           {
             codeShow: <code />,
@@ -229,19 +242,23 @@ export const getCrashReportGenericInstallStep = (params: any) => [
             codeLast: <code />,
           }
         ),
-        code: getGenericScript(params),
+      },
+      {
+        type: 'code',
+        tabs: getGenericScript(params),
       },
     ],
   },
 ];
 
-export const getCrashReportBackendInstallStep = (params: any) => [
+export const getCrashReportBackendInstallSteps = (params: any): OnboardingStep[] => [
   {
     type: StepType.INSTALL,
-    configurations: [
-      getCrashReportSDKInstallFirstStep(params),
+    content: [
+      ...getCrashReportSDKInstallFirstBlocks(params),
       {
-        description: tct(
+        type: 'text',
+        text: tct(
           'You will then need to call [codeShow:showReportDialog] and pass in the generated event ID. This event ID is returned from all calls to [codeEvent:capture_event] and [codeException:capture_exception]. There is also a function called [codeLast:last_event_id] that returns the ID of the most recently sent event.',
           {
             codeShow: <code />,
@@ -250,13 +267,18 @@ export const getCrashReportBackendInstallStep = (params: any) => [
             codeLast: <code />,
           }
         ),
-        code: getGenericScript(params),
+      },
+      {
+        type: 'code',
+        tabs: getGenericScript(params),
       },
     ],
   },
 ];
 
-export function getCrashReportSDKInstallFirstStepRails(params: DocsParams) {
+export function getCrashReportSDKInstallFirstBlocksRails(
+  params: DocsParams
+): ContentBlock[] {
   const dataLoaded =
     params.sourcePackageRegistries && !params.sourcePackageRegistries.isLoading;
   const version =
@@ -270,56 +292,67 @@ export function getCrashReportSDKInstallFirstStepRails(params: DocsParams) {
       ]!.checksums['sha384-base64']) ??
     '';
 
-  return {
-    description: t('Make sure you have the JavaScript SDK available:'),
-    code: [
-      {
-        label: 'ERB',
-        value: 'erb',
-        language: 'erb',
-        code: `<script
-  src="https://browser.sentry-cdn.com/${version}/bundle.min.js"
-  integrity="sha384-${hash}"
-  crossorigin="anonymous"
-></script>`,
-      },
-    ],
-  };
+  return [
+    {
+      type: 'text',
+      text: t('Make sure you have the JavaScript SDK available:'),
+    },
+    {
+      type: 'code',
+      tabs: [
+        {
+          label: 'ERB',
+          language: 'erb',
+          code: `<script
+    src="https://browser.sentry-cdn.com/${version}/bundle.min.js"
+    integrity="sha384-${hash}"
+    crossorigin="anonymous"
+  ></script>`,
+        },
+      ],
+    },
+  ];
 }
 
-export const getCrashReportPHPInstallStep = (params: any) => [
+export const getCrashReportPHPInstallSteps = (params: any): OnboardingStep[] => [
   {
     type: StepType.INSTALL,
-    configurations: [
+    content: [
       {
-        description: tct('This function php returns the last [code:eventId]:', {
+        type: 'text',
+        text: tct('This function php returns the last [code:eventId]:', {
           code: <code />,
         }),
-        code: [
+      },
+      {
+        type: 'code',
+        tabs: [
           {
             label: 'PHP',
-            value: 'php',
             language: 'php',
-            code: `\Sentry\SentrySdk::getCurrentHub()->getLastEventId();`,
+            code: `\\Sentry\\SentrySdk::getCurrentHub()->getLastEventId();`,
           },
         ],
       },
-      getCrashReportSDKInstallFirstStep(params),
+      ...getCrashReportSDKInstallFirstBlocks(params),
       {
-        description: t(
+        type: 'text',
+        text: t(
           'Depending on how you render your templates, the example would be in a simple php file:'
         ),
-        code: [
+      },
+      {
+        type: 'code',
+        tabs: [
           {
             label: 'HTML',
-            value: 'html',
             language: 'html',
-            code: `<?php if (\Sentry\SentrySdk::getCurrentHub()->getLastEventId()) { ?>
+            code: `<?php if (\\Sentry\\SentrySdk::getCurrentHub()->getLastEventId()) { ?>
 <script>
   Sentry.init({ dsn: "${params.dsn.public}" });
   Sentry.showReportDialog({
     eventId:
-      "<?php echo \Sentry\SentrySdk::getCurrentHub()->getLastEventId(); ?>",
+      "<?php echo \\Sentry\\SentrySdk::getCurrentHub()->getLastEventId(); ?>",
   });
 </script>
 <?php } ?>`,

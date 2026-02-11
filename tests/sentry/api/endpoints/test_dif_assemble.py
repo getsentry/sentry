@@ -1,5 +1,5 @@
 from hashlib import sha1
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core.files.base import ContentFile
 from django.urls import reverse
@@ -139,7 +139,7 @@ class DifAssembleEndpoint(APITestCase):
         assert set(response.data[not_found_checksum]["missingChunks"]) == {not_found_checksum}
 
     @patch("sentry.tasks.assemble.assemble_dif")
-    def test_assemble(self, mock_assemble_dif):
+    def test_assemble(self, mock_assemble_dif: MagicMock) -> None:
         content1 = b"foo"
         fileobj1 = ContentFile(content1)
         checksum1 = sha1(content1).hexdigest()

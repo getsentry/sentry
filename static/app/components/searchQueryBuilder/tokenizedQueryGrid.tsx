@@ -17,7 +17,7 @@ import {SearchQueryBuilderFilter} from 'sentry/components/searchQueryBuilder/tok
 import {SearchQueryBuilderFreeText} from 'sentry/components/searchQueryBuilder/tokens/freeText';
 import {SearchQueryBuilderParen} from 'sentry/components/searchQueryBuilder/tokens/paren';
 import {makeTokenKey} from 'sentry/components/searchQueryBuilder/utils';
-import {type ParseResultToken, Token} from 'sentry/components/searchSyntax/parser';
+import {Token, type ParseResultToken} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -197,8 +197,8 @@ export function TokenizedQueryGrid({
 
 const SearchQueryGridWrapper = styled('div')`
   /* calc + 1px to account for the border */
-  padding-top: ${p => (p.theme.isChonk ? `calc(${space(0.5)} + 1px);` : space(0.75))};
-  padding-bottom: ${p => (p.theme.isChonk ? `calc(${space(0.5)} + 1px);` : space(0.75))};
+  padding-top: calc(${space(0.5)} + 1px);
+  padding-bottom: calc(${space(0.5)} + 1px);
   padding-left: 32px;
   padding-right: ${space(0.75)};
   display: flex;

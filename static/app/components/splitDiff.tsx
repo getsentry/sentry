@@ -1,6 +1,11 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Change} from 'diff';
 import {diffChars, diffLines, diffWords} from 'diff';
+
+import {Flex} from '@sentry/scraps/layout';
+
+import {unreachable} from 'sentry/utils/unreachable';
 
 // @TODO(jonasbadalic): This used to be defined on the theme, but is component specific and lacks dark mode.
 export const DIFF_COLORS = {
@@ -10,65 +15,118 @@ export const DIFF_COLORS = {
   added: 'hsl(166deg 58% 47% / 32%)',
 } as const;
 
-const diffFnMap = {
-  chars: diffChars,
-  words: diffWords,
-  lines: diffLines,
-} as const;
-
 type Props = {
   base: string;
   target: string;
   className?: string;
-  type?: keyof typeof diffFnMap;
+  type?: 'lines' | 'words' | 'chars';
 };
 
-function SplitDiff({className, type = 'lines', base, target}: Props) {
-  const diffFn = diffFnMap[type];
+// this function splits the lines from diffLines into words that are diffed
+function getDisplayData(
+  line: Change[],
+  highlightAdded: Change | undefined,
+  highlightRemoved: Change | undefined
+): Change[] {
+  if (!highlightAdded && !highlightRemoved) {
+    return line;
+  }
 
-  const baseLines = base.split('\n');
-  const targetLines = target.split('\n');
-  const [largerArray] =
-    baseLines.length > targetLines.length
-      ? [baseLines, targetLines]
-      : [targetLines, baseLines];
-  const results = largerArray.map((_line, index) =>
-    diffFn(baseLines[index] || '', targetLines[index] || '', {newlineIsToken: true})
+  const leftText = line.reduce(
+    (acc, result) => (result.added ? acc : acc + result.value),
+    ''
   );
+  const rightText = line.reduce(
+    (acc, result) => (result.removed ? acc : acc + result.value),
+    ''
+  );
+
+  if (!leftText && !rightText) {
+    return line;
+  }
+
+  return diffWords(leftText, rightText);
+}
+
+function SplitDiff({className, type = 'lines', base, target}: Props) {
+  // split one change that includes multiple lines into one change per line (for formatting)
+  const groupedChanges = useMemo((): Change[][] => {
+    let diffResults: Change[] | undefined;
+    switch (type) {
+      case 'lines':
+        diffResults = diffLines(base, target, {newlineIsToken: true});
+        break;
+      case 'words':
+        diffResults = diffWords(base, target);
+        break;
+      case 'chars':
+        diffResults = diffChars(base, target);
+        break;
+      default:
+        unreachable(type);
+        break;
+    }
+    const results = diffResults ?? [];
+
+    let currentLine: Change[] = [];
+    const processedLines: Change[][] = [];
+    for (const change of results) {
+      const lines = change.value.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const lineValue = lines[i];
+        if (lineValue !== undefined && lineValue !== '') {
+          currentLine.push({
+            value: lineValue,
+            added: change.added,
+            removed: change.removed,
+            count: 1,
+          });
+        }
+        if (i < lines.length - 1) {
+          processedLines.push(currentLine);
+          currentLine = [];
+        }
+      }
+    }
+    if (currentLine.length > 0) {
+      processedLines.push(currentLine);
+    }
+    return processedLines;
+  }, [base, target, type]);
 
   return (
     <SplitTable className={className} data-test-id="split-diff">
       <SplitBody>
-        {results.map((line, j) => {
+        {groupedChanges.map((line, j) => {
           const highlightAdded = line.find(result => result.added);
           const highlightRemoved = line.find(result => result.removed);
 
           return (
             <tr key={j}>
               <Cell isRemoved={highlightRemoved}>
-                <Line>
-                  {line
+                <Flex wrap="wrap">
+                  {getDisplayData(line, highlightAdded, highlightRemoved)
                     .filter(result => !result.added)
                     .map((result, i) => (
                       <Word key={i} isRemoved={result.removed}>
                         {result.value}
                       </Word>
                     ))}
-                </Line>
+                </Flex>
               </Cell>
 
               <Gap />
 
               <Cell isAdded={highlightAdded}>
-                <Line>
-                  {line
+                <Flex wrap="wrap">
+                  {getDisplayData(line, highlightAdded, highlightRemoved)
                     .filter(result => !result.removed)
                     .map((result, i) => (
                       <Word key={i} isAdded={result.added}>
                         {result.value}
                       </Word>
                     ))}
-                </Line>
+                </Flex>
               </Cell>
             </tr>
           );
@@ -85,8 +143,8 @@ const SplitTable = styled('table')`
 `;
 
 const SplitBody = styled('tbody')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const Cell = styled('td')<{isAdded?: Change; isRemoved?: Change}>`
@@ -97,11 +155,6 @@ const Cell = styled('td')<{isAdded?: Change; isRemoved?: Change}>`
 
 const Gap = styled('td')`
   width: 20px;
-`;
-
-const Line = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
 `;
 
 const Word = styled('span')<{isAdded?: boolean; isRemoved?: boolean}>`

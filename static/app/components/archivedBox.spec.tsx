@@ -7,11 +7,11 @@ import * as analytics from 'sentry/utils/analytics';
 
 import ArchivedBox from './archivedBox';
 
-describe('ArchivedBox', function () {
+describe('ArchivedBox', () => {
   const organization = OrganizationFixture();
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
-  it('handles ignoreUntil', function () {
+  it('handles ignoreUntil', () => {
     render(
       <ArchivedBox
         substatus={GroupSubstatus.ARCHIVED_UNTIL_CONDITION_MET}
@@ -21,7 +21,7 @@ describe('ArchivedBox', function () {
     );
     expect(screen.getByText(/This issue has been archived until/)).toBeInTheDocument();
   });
-  it('handles ignoreCount', function () {
+  it('handles ignoreCount', () => {
     render(
       <ArchivedBox
         substatus={GroupSubstatus.ARCHIVED_UNTIL_CONDITION_MET}
@@ -33,7 +33,7 @@ describe('ArchivedBox', function () {
       screen.getByText(/This issue has been archived until it affects/)
     ).toBeInTheDocument();
   });
-  it('handles ignoreCount with ignoreWindow', function () {
+  it('handles ignoreCount with ignoreWindow', () => {
     render(
       <ArchivedBox
         substatus={GroupSubstatus.ARCHIVED_UNTIL_CONDITION_MET}
@@ -45,7 +45,7 @@ describe('ArchivedBox', function () {
       screen.getByText(/This issue has been archived until it occurs/)
     ).toBeInTheDocument();
   });
-  it('handles ignoreUserCount', function () {
+  it('handles ignoreUserCount', () => {
     render(
       <ArchivedBox
         substatus={GroupSubstatus.ARCHIVED_UNTIL_CONDITION_MET}
@@ -57,7 +57,7 @@ describe('ArchivedBox', function () {
       screen.getByText(/This issue has been archived until it affects/)
     ).toBeInTheDocument();
   });
-  it('handles ignoreUserCount with ignoreUserWindow', function () {
+  it('handles ignoreUserCount with ignoreUserWindow', () => {
     render(
       <ArchivedBox
         substatus={GroupSubstatus.ARCHIVED_UNTIL_CONDITION_MET}
@@ -69,7 +69,7 @@ describe('ArchivedBox', function () {
       screen.getByText(/This issue has been archived until it affects/)
     ).toBeInTheDocument();
   });
-  it('handles archived forever', function () {
+  it('handles archived forever', () => {
     render(
       <ArchivedBox
         substatus={GroupSubstatus.ARCHIVED_FOREVER}
@@ -79,7 +79,7 @@ describe('ArchivedBox', function () {
     );
     expect(screen.getByText(/This issue has been archived forever/)).toBeInTheDocument();
   });
-  it('handles archived until escalating', function () {
+  it('handles archived until escalating', () => {
     render(
       <ArchivedBox
         substatus={GroupSubstatus.ARCHIVED_UNTIL_ESCALATING}
@@ -96,7 +96,7 @@ describe('ArchivedBox', function () {
       )
     ).toBeInTheDocument();
   });
-  it('tracks analytics when issue status docs is clicks', async function () {
+  it('tracks analytics when issue status docs is clicks', async () => {
     render(
       <ArchivedBox
         substatus={GroupSubstatus.ARCHIVED_UNTIL_ESCALATING}

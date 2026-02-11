@@ -11,6 +11,7 @@ import sentry_sdk
 from sentry import analytics
 from sentry.db.models import Model
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.environment import Environment
 from sentry.notifications.types import FineTuningAPIKey, NotificationSettingEnum, UnsubscribeContext
 from sentry.notifications.utils.actions import MessageAction
@@ -18,6 +19,7 @@ from sentry.types.actor import Actor
 from sentry.utils.safe import safe_execute
 
 if TYPE_CHECKING:
+    from sentry.models.group import Group
     from sentry.models.organization import Organization
     from sentry.models.project import Project
 
@@ -50,11 +52,14 @@ class BaseNotification(abc.ABC):
     message_builder = "SlackNotificationsMessageBuilder"
     # some notifications have no settings for it which is why it is optional
     notification_setting_type_enum: NotificationSettingEnum | None = None
-    analytics_event: str = ""
+
+    group: Group
+    project: Project
 
     def __init__(self, organization: Organization, notification_uuid: str | None = None):
         self.organization = organization
         self.notification_uuid = notification_uuid if notification_uuid else str(uuid.uuid4())
+        self.alert_id: int | None = None
 
     @property
     def from_email(self) -> str | None:
@@ -160,33 +165,57 @@ class BaseNotification(abc.ABC):
     def get_callback_data(self) -> Mapping[str, Any] | None:
         return None
 
-    @property
-    def analytics_instance(self) -> Any | None:
+    def get_specific_analytics_event(self, provider: ExternalProviders) -> analytics.Event | None:
         """
-        Returns an instance for that can be used for analytics such as an organization or project
+        Returns the specific analytics event for the provider.
         """
         return None
 
-    def record_analytics(self, event_name: str, *args: Any, **kwargs: Any) -> None:
-        analytics.record(event_name, *args, **kwargs)
-
     def record_notification_sent(self, recipient: Actor, provider: ExternalProviders) -> None:
+        from sentry.integrations.discord.analytics import DiscordIntegrationNotificationSent
+        from sentry.integrations.msteams.analytics import MSTeamsIntegrationNotificationSent
+        from sentry.integrations.opsgenie.analytics import OpsgenieIntegrationNotificationSent
+        from sentry.integrations.pagerduty.analytics import PagerdutyIntegrationNotificationSent
+        from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
+
         with sentry_sdk.start_span(op="notification.send", name="record_notification_sent"):
-            # may want to explicitly pass in the parameters for this event
-            self.record_analytics(
-                f"integrations.{provider.name}.notification_sent",
-                category=self.metrics_key,
-                notification_uuid=self.notification_uuid if self.notification_uuid else "",
-                **self.get_log_params(recipient),
-            )
+            project: Project | None = getattr(self, "project", None)
+            group: Group | None = getattr(self, "group", None)
+
+            PROVIDER_TO_EVENT_CLASS = {
+                ExternalProviders.EMAIL: EmailNotificationSent,
+                ExternalProviders.SLACK: SlackIntegrationNotificationSent,
+                ExternalProviders.MSTEAMS: MSTeamsIntegrationNotificationSent,
+                ExternalProviders.PAGERDUTY: PagerdutyIntegrationNotificationSent,
+                ExternalProviders.OPSGENIE: OpsgenieIntegrationNotificationSent,
+                ExternalProviders.DISCORD: DiscordIntegrationNotificationSent,
+            }
+
+            try:
+                if event_class := PROVIDER_TO_EVENT_CLASS.get(provider):
+                    analytics.record(
+                        event_class(
+                            organization_id=self.organization.id,
+                            project_id=project.id if project else None,
+                            category=self.metrics_key,
+                            actor_id=recipient.id if recipient.is_user else None,
+                            user_id=recipient.id if recipient.is_user else None,
+                            group_id=group.id if group else None,
+                            id=recipient.id,
+                            actor_type=recipient.actor_type,
+                            notification_uuid=self.notification_uuid,
+                            alert_id=self.alert_id if self.alert_id else None,
+                        )
+                    )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
             # record an optional second event
-            if self.analytics_event:
-                self.record_analytics(
-                    self.analytics_event,
-                    self.analytics_instance,
-                    providers=provider.name.lower() if provider.name else "",
-                    **self.get_custom_analytics_params(recipient),
-                )
+            if notification_event := self.get_specific_analytics_event(provider):
+                try:
+                    analytics.record(notification_event)
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
 
     def get_referrer(self, provider: ExternalProviders, recipient: Actor | None = None) -> str:
         # referrer needs the provider and recipient
@@ -297,8 +326,8 @@ class BaseNotification(abc.ABC):
 
 class ProjectNotification(BaseNotification, abc.ABC):
     def __init__(self, project: Project, notification_uuid: str | None = None) -> None:
-        self.project = project
         super().__init__(project.organization, notification_uuid)
+        self.project = project
 
     def get_project_link(self) -> str:
         return self.organization.absolute_url(

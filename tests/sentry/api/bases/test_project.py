@@ -1,9 +1,12 @@
 from rest_framework.views import APIView
 
 from sentry.api.bases.project import ProjectAndStaffPermission, ProjectPermission
+from sentry.models.apitoken import ApiToken
+from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.requests import drf_request_from_request
+from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
 
 
@@ -12,7 +15,15 @@ class ProjectPermissionBase(TestCase):
         super().setUp()
         self.permission_cls = ProjectPermission
 
-    def has_object_perm(self, method, obj, auth=None, user=None, is_superuser=None, is_staff=None):
+    def has_object_perm(
+        self,
+        method: str,
+        obj: Project,
+        auth: ApiToken | None = None,
+        user: User | None = None,
+        is_superuser: bool | None = None,
+        is_staff: bool | None = None,
+    ) -> bool:
         perm = self.permission_cls()
         request = self.make_request(
             user=user, auth=auth, method=method, is_superuser=is_superuser, is_staff=is_staff

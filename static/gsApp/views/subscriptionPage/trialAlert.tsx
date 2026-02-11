@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import Panel from 'sentry/components/panels/panel';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -41,13 +42,18 @@ function TrialAlert({organization, subscription}: Props) {
     : 'business plan';
 
   return (
-    <Panel data-test-id="trial-alert">
+    <Container
+      data-test-id="trial-alert"
+      background="primary"
+      border="primary"
+      radius="md"
+    >
       <SubscriptionBody withPadding>
         <TrialInfo>
-          <TrialHeader>
+          <Flex align="center" gap="md">
             <StyledHeading>{trialName}</StyledHeading>
             <TrialBadge subscription={subscription} organization={organization} />
-          </TrialHeader>
+          </Flex>
           <StyledSubText>
             {tct("With your trial you have access to Sentry's [featuresName] features.", {
               featuresName,
@@ -67,7 +73,7 @@ function TrialAlert({organization, subscription}: Props) {
           </ButtonWrapper>
         )}
       </SubscriptionBody>
-    </Panel>
+    </Container>
   );
 }
 
@@ -77,19 +83,13 @@ const TrialInfo = styled('div')`
   gap: ${space(1)};
 `;
 
-const TrialHeader = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
 const StyledHeading = styled('span')`
   font-weight: 400;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 const StyledSubText = styled(TextBlock)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin: 0;
 `;
 

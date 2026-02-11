@@ -1,9 +1,11 @@
-import {useTheme} from '@emotion/react';
-
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {decodeList} from 'sentry/utils/queryString';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {WebVitalsWeightList} from 'sentry/views/insights/browser/webVitals/components/charts/webVitalWeightList';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
@@ -12,10 +14,6 @@ import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeigh
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {InsightsTimeSeriesWidget} from 'sentry/views/insights/common/components/insightsTimeSeriesWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {
-  type DiscoverSeries,
-  useSpanSeries,
-} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {SpanFields} from 'sentry/views/insights/types';
 
 export default function PerformanceScoreBreakdownChartWidget(
@@ -32,8 +30,6 @@ export default function PerformanceScoreBreakdownChartWidget(
       transaction: decodeList,
     },
   });
-  const theme = useTheme();
-  const segmentColors = theme.chart.getColorPalette(4).slice(0, 5);
   const search = new MutableSearch(
     `${DEFAULT_QUERY_FILTER} has:measurements.score.total`
   );
@@ -54,11 +50,10 @@ export default function PerformanceScoreBreakdownChartWidget(
     data: vitalScoresData,
     isLoading: areVitalScoresLoading,
     error: vitalScoresError,
-  } = useSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
-      samplingMode: 'HIGHEST_ACCURACY',
-      interval: '12h',
-      search,
+      sampling: SAMPLING_MODE.HIGH_ACCURACY,
+      query: search,
       yAxis: [
         'performance_score(measurements.score.lcp)',
         'performance_score(measurements.score.fcp)',
@@ -67,49 +62,43 @@ export default function PerformanceScoreBreakdownChartWidget(
         'performance_score(measurements.score.ttfb)',
         'count()',
       ],
-      transformAliasToInputFormat: true,
+      pageFilters: props.pageFilters,
     },
-    'api.performance.browser.web-vitals.timeseries-scores2',
-    props.pageFilters
+    'api.insights.web-vitals.timeseries-scores2'
   );
 
+  const timeSeries = vitalScoresData?.timeSeries || [];
   const webVitalsThatHaveData: WebVitals[] = vitalScoresData
     ? ORDER.filter(webVital => {
         const key = `performance_score(measurements.score.${webVital})` as const;
-        const series = vitalScoresData[key];
+        const series = timeSeries.find(ts => ts.yAxis === key);
 
-        return series.data.some(datum => datum.value > 0);
+        return series ? series.values.some(datum => (datum.value || 0) > 0) : false;
       })
     : [];
 
   const weights = getWeights(webVitalsThatHaveData);
 
-  const allSeries: DiscoverSeries[] = vitalScoresData
-    ? ORDER.map((webVital, index) => {
+  const allSeries: TimeSeries[] = vitalScoresData?.timeSeries
+    ? ORDER.map(webVital => {
         const key = `performance_score(measurements.score.${webVital})` as const;
-        const series = vitalScoresData[key];
+        const series = timeSeries.find(ts => ts.yAxis === key);
 
-        const scaledSeries: DiscoverSeries = {
+        if (!series) return null;
+
+        return {
           ...series,
-          data: series.data.map(datum => {
-            return {
-              ...datum,
-              value: datum.value * weights[webVital],
-            };
-          }),
-          color: segmentColors[index],
           meta: {
+            ...series.meta,
             // TODO: The backend doesn't return these score fields with the "score" type yet. Fill this in manually for now.
-            fields: {
-              ...series.meta?.fields,
-              [key]: 'score',
-            },
-            units: series.meta?.units,
+            valueType: 'score' as const,
           },
+          values: series.values.map(item => ({
+            ...item,
+            value: (item.value ?? 0) * weights[webVital],
+          })),
         };
-
-        return scaledSeries;
-      })
+      }).filter(defined)
     : [];
 
   return (
@@ -121,7 +110,7 @@ export default function PerformanceScoreBreakdownChartWidget(
       visualizationType="area"
       isLoading={areVitalScoresLoading}
       error={vitalScoresError}
-      series={allSeries}
+      timeSeries={allSeries}
       description={<WebVitalsWeightList weights={weights} />}
     />
   );

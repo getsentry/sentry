@@ -82,12 +82,17 @@ class ApiGrant(Model):
         null=True,
         on_delete="CASCADE",
     )
+    # PKCE (RFC 7636): code_challenge and method for Proof Key for Code Exchange.
+    # If present, the token endpoint MUST verify the code_verifier against this challenge.
+    # Reference: https://datatracker.ietf.org/doc/html/rfc7636
+    code_challenge = models.CharField(max_length=128, null=True)
+    code_challenge_method = models.CharField(max_length=10, null=True)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_apigrant"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"api_grant_id={self.id}, user_id={self.user.id}, application_id={self.application.id}"
         )
@@ -107,7 +112,7 @@ class ApiGrant(Model):
         return uri == self.redirect_uri
 
     @classmethod
-    def get_lock_key(cls, grant_id):
+    def get_lock_key(cls, grant_id) -> str:
         return f"api_grant:{grant_id}"
 
     @classmethod

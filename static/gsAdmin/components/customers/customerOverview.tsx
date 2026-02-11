@@ -3,15 +3,18 @@ import styled from '@emotion/styled';
 import upperFirst from 'lodash/upperFirst';
 import moment from 'moment-timezone';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import ChangeARRAction from 'admin/components/changeARRAction';
@@ -29,12 +32,15 @@ import type {
   ReservedBudgetMetricHistory,
   Subscription,
 } from 'getsentry/types';
-import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
+import {AddOnCategory, BillingType, OnDemandBudgetMode} from 'getsentry/types';
 import {
+  displayBudgetName,
   formatBalance,
   formatReservedWithUnits,
   getActiveProductTrial,
+  getBilledCategory,
   getProductTrial,
+  RETENTION_SETTINGS_CATEGORIES,
 } from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
@@ -128,11 +134,11 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
             <small>{customer.contractInterval}</small>
           </DetailLabel>
         )}
+        {/* TODO(billing): Should we start calling On-Demand periods "Pay-as-you-go" periods? */}
         <DetailLabel title="On-Demand">
           <OnDemandSummary customer={customer} />
         </DetailLabel>
         <DetailLabel title="Can Trial" yesNo={customer.canTrial} />
-        <DetailLabel title="Can Grace Period" yesNo={customer.canGracePeriod} />
         <DetailLabel title="Legacy Soft Cap" yesNo={customer.hasSoftCap} />
         {customer.hasSoftCap && (
           <DetailLabel
@@ -211,7 +217,9 @@ function ReservedData({customer}: ReservedDataProps) {
                   : 'None'}
               </DetailLabel>
               {customer.onDemandInvoicedManual && (
-                <DetailLabel title={`Pay-as-you-go Cost-Per-Event ${categoryName}`}>
+                <DetailLabel
+                  title={`${displayBudgetName(customer.planDetails, {title: true})} Cost-Per-Event ${categoryName}`}
+                >
                   {typeof categoryHistory.paygCpe === 'number'
                     ? displayPriceWithCents({
                         cents: categoryHistory.paygCpe,
@@ -394,35 +402,58 @@ function isWithinAcceptedMargin(
 }
 
 function DynamicSampling({organization}: {organization: Organization}) {
-  if (organization.features?.includes('dynamic-sampling')) {
-    const effectiveSampleRate = organization.effectiveSampleRate
-      ? organization.effectiveSampleRate * 100
-      : null;
-    const desiredSampleRate = organization.desiredSampleRate
-      ? organization.desiredSampleRate * 100
-      : null;
-    const diffSampleRate =
-      effectiveSampleRate && desiredSampleRate
-        ? Math.abs(effectiveSampleRate - desiredSampleRate)
-        : null;
+  const dynamicSamplingEnabled = organization.features?.includes('dynamic-sampling');
 
-    return (
-      <ThresholdLabel
-        positive={
-          effectiveSampleRate && desiredSampleRate
-            ? isWithinAcceptedMargin(effectiveSampleRate, desiredSampleRate)
-            : false
-        }
-      >
-        {effectiveSampleRate && desiredSampleRate
-          ? `${effectiveSampleRate.toFixed(2)}% instead of ${desiredSampleRate.toFixed(2)}% (~${diffSampleRate?.toFixed(2)}%)`
-          : desiredSampleRate
-            ? `${desiredSampleRate.toFixed(2)}%`
-            : 'n/a'}
-      </ThresholdLabel>
-    );
+  const {data, isPending, isError} = useApiQuery<{effectiveSampleRate: number | null}>(
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
+    {
+      staleTime: Infinity,
+      enabled: dynamicSamplingEnabled,
+    }
+  );
+
+  if (!dynamicSamplingEnabled) {
+    return <ThresholdLabel positive={false}>Disabled</ThresholdLabel>;
   }
-  return <ThresholdLabel positive={false}>Disabled</ThresholdLabel>;
+  if (isError) {
+    return <ThresholdLabel positive={false}>Error loading data</ThresholdLabel>;
+  }
+  if (isPending) {
+    return <ThresholdLabel positive={false}>Loading...</ThresholdLabel>;
+  }
+
+  if (!defined(data.effectiveSampleRate)) {
+    return <ThresholdLabel positive={false}>n/a</ThresholdLabel>;
+  }
+
+  const effectiveSampleRate = data.effectiveSampleRate * 100;
+  const desiredSampleRate = organization.desiredSampleRate
+    ? organization.desiredSampleRate * 100
+    : null;
+  const diffSampleRate =
+    effectiveSampleRate && desiredSampleRate
+      ? Math.abs(effectiveSampleRate - desiredSampleRate)
+      : null;
+
+  return (
+    <ThresholdLabel
+      positive={
+        effectiveSampleRate && desiredSampleRate
+          ? isWithinAcceptedMargin(effectiveSampleRate, desiredSampleRate)
+          : false
+      }
+    >
+      {effectiveSampleRate && desiredSampleRate
+        ? `${effectiveSampleRate.toFixed(2)}% instead of ${desiredSampleRate.toFixed(2)}% (~${diffSampleRate?.toFixed(2)}%)`
+        : desiredSampleRate
+          ? `${desiredSampleRate.toFixed(2)}%`
+          : 'n/a'}
+    </ThresholdLabel>
+  );
 }
 
 function CustomerOverview({customer, onAction, organization}: Props) {
@@ -442,14 +473,35 @@ function CustomerOverview({customer, onAction, organization}: Props) {
   const region = regionMap[organization.links.regionUrl] ?? '??';
 
   const productTrialCategories = Object.values(BILLED_DATA_CATEGORY_INFO).filter(
-    categoryInfo =>
-      categoryInfo.canProductTrial &&
-      customer.planDetails?.categories.includes(categoryInfo.plural)
+    categoryInfo => {
+      // Category must be in the plan's categories
+      if (!customer.planDetails?.categories.includes(categoryInfo.plural)) {
+        return false;
+      }
+      // Include if regular product trial is enabled
+      if (categoryInfo.canProductTrial) {
+        return true;
+      }
+      // Include admin-only product trials if graduated (true) or feature flag is enabled
+      if (categoryInfo.adminOnlyProductTrialFeature === true) {
+        // Graduated flag - always include without feature flag check
+        return true;
+      }
+      if (
+        typeof categoryInfo.adminOnlyProductTrialFeature === 'string' &&
+        organization.features?.includes(categoryInfo.adminOnlyProductTrialFeature)
+      ) {
+        return true;
+      }
+      return false;
+    }
   );
 
-  const productTrialCategoryGroups = Object.values(
-    customer.planDetails?.availableReservedBudgetTypes || {}
-  ).filter(group => group.canProductTrial);
+  const productTrialAddOns = Object.values(customer.addOns || {}).filter(
+    // TODO(billing): Right now all our add-ons can use product trials, but in future we should distinguish this
+    // like we do for other product types
+    addOn => addOn.isAvailable
+  );
 
   const categoryHasUsedProductTrial = (category: DataCategory) => {
     const trial = getProductTrial(customer.productTrials ?? [], category);
@@ -468,7 +520,8 @@ function CustomerOverview({customer, onAction, organization}: Props) {
   const getTrialManagementActions = (
     category: DataCategory,
     apiName: string,
-    trialName: string
+    trialName: string,
+    isAdminOnly = false
   ) => {
     const formattedApiName = upperFirst(apiName);
     const formattedTrialName = toTitleCase(trialName, {allowInnerUpperCase: true});
@@ -485,9 +538,9 @@ function CustomerOverview({customer, onAction, organization}: Props) {
       hasActiveProductTrial || categoryHasUsedProductTrial(category);
     return (
       <DetailLabel key={apiName} title={formattedTrialName}>
-        <TrialState>
+        <Stack gap="md">
           <StyledTag
-            type={
+            variant={
               lessThanOneDayLeft
                 ? 'promotion'
                 : hasActiveProductTrial
@@ -503,7 +556,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                 ? 'Used'
                 : 'Available'}
           </StyledTag>
-          <TrialActions>
+          <Flex align="center" wrap="wrap" gap="md">
             <Button
               size="xs"
               onClick={() => updateCustomerStatus(`allowTrial${formattedApiName}`)}
@@ -512,7 +565,9 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                 hasActiveProductTrial
                   ? `A product trial is currently active for ${formattedTrialName}`
                   : hasUsedProductTrial
-                    ? `Allow customer to start a new trial for ${formattedTrialName}`
+                    ? isAdminOnly
+                      ? `Reset trial eligibility for ${formattedTrialName}`
+                      : `Allow customer to start a new trial for ${formattedTrialName}`
                     : `A product trial is already available for ${formattedTrialName}`
               }
             >
@@ -546,8 +601,8 @@ function CustomerOverview({customer, onAction, organization}: Props) {
             >
               Stop Trial
             </Button>
-          </TrialActions>
-        </TrialState>
+          </Flex>
+        </Stack>
       </DetailLabel>
     );
   };
@@ -613,7 +668,10 @@ function CustomerOverview({customer, onAction, organization}: Props) {
           <DetailLabel title="Internal ID">{customer.id}</DetailLabel>
           <DetailLabel title="Data Storage Location">{region}</DetailLabel>
           <DetailLabel title="Data Retention">
-            {customer.dataRetention || '90d'}
+            {customer.orgRetention?.standard ??
+              customer.categories?.errors?.retention?.standard ??
+              90}
+            {' days'}
           </DetailLabel>
           <DetailLabel title="Joined">
             {moment(customer.dateJoined).fromNow()}
@@ -730,7 +788,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
             </ExternalLink>
           </DetailLabel>
         </DetailList>
-        {productTrialCategories.length + productTrialCategoryGroups.length > 0 && (
+        {productTrialCategories.length + productTrialAddOns.length > 0 && (
           <Fragment>
             <h6>Product Trials</h6>
             <ProductTrialsDetailListContainer>
@@ -743,16 +801,19 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                 return getTrialManagementActions(
                   categoryInfo.plural,
                   categoryInfo.plural,
-                  categoryName
+                  categoryName,
+                  !!categoryInfo.adminOnlyProductTrialFeature
                 );
               })}
-              {productTrialCategoryGroups.map(group => {
-                const category = group.dataCategories[0]; // doesn't matter which category we use
+              {productTrialAddOns.map(addOn => {
+                const category = getBilledCategory(customer, addOn.apiName);
                 if (category) {
                   return getTrialManagementActions(
                     category,
-                    group.apiName,
-                    group.productName
+                    addOn.apiName,
+                    addOn.apiName === AddOnCategory.LEGACY_SEER
+                      ? addOn.productName + ' (Legacy)'
+                      : addOn.productName
                   );
                 }
                 return null;
@@ -760,23 +821,54 @@ function CustomerOverview({customer, onAction, organization}: Props) {
             </ProductTrialsDetailListContainer>
           </Fragment>
         )}
+        <Fragment>
+          <h6>Retention Settings</h6>
+          <table style={{borderSpacing: '15px', borderCollapse: 'separate'}}>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Standard</th>
+                <th>
+                  <Tooltip title="Null means use the Downsample default">
+                    Downsampled
+                  </Tooltip>
+                </th>
+                <th>
+                  <Tooltip title="Zero means use the standard retention.">
+                    Downsample Default
+                  </Tooltip>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortCategories(customer.categories || {})
+                .filter(bmh => RETENTION_SETTINGS_CATEGORIES.has(bmh.category))
+                .map(bmh => (
+                  <tr key={bmh.category}>
+                    <td>
+                      {getPlanCategoryName({
+                        plan: customer.planDetails,
+                        category: bmh.category,
+                      })}
+                    </td>
+                    <td>{bmh.retention?.standard}</td>
+                    <td>
+                      {bmh.retention?.downsampled === null
+                        ? 'null'
+                        : bmh.retention?.downsampled}
+                    </td>
+                    <td>
+                      {customer.planDetails.retentions?.[bmh.category]?.downsampled}
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </Fragment>
       </div>
     </DetailsContainer>
   );
 }
-
-const TrialState = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const TrialActions = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-wrap: wrap;
-  align-items: center;
-`;
 
 const ProductTrialsDetailListContainer = styled(DetailList)`
   align-items: baseline;
@@ -812,7 +904,7 @@ function ThresholdLabel({positive, children}: ThresholdLabelProps) {
 }
 
 const ThresholdValue = styled('dd')<{positive: boolean}>`
-  color: ${p => (p.positive ? p.theme.green400 : p.theme.red400)};
+  color: ${p => (p.positive ? p.theme.colors.green500 : p.theme.colors.red500)};
 `;
 
 export default CustomerOverview;

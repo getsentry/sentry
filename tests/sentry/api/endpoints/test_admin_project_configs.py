@@ -39,7 +39,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
             }
         )
 
-    def get_url(self, proj_id=None, key=None):
+    def get_url(self, proj_id: str | int | None = None, key: str | int | None = None) -> str:
         query = {}
         if proj_id is not None:
             query["projectId"] = proj_id

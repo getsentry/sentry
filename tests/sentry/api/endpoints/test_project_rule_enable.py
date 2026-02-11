@@ -1,13 +1,15 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from rest_framework import status
 
 from sentry import audit_log
+from sentry.analytics.events.rule_reenable import RuleReenableExplicit
 from sentry.constants import ObjectStatus
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.rule import Rule
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -21,7 +23,7 @@ class ProjectRuleEnableTestCase(APITestCase):
         self.login_as(user=self.user)
 
     @patch("sentry.analytics.record")
-    def test_simple(self, record_analytics):
+    def test_simple(self, record_analytics: MagicMock) -> None:
         self.rule.status = ObjectStatus.DISABLED
         self.rule.save()
         with outbox_runner():
@@ -38,12 +40,13 @@ class ProjectRuleEnableTestCase(APITestCase):
                 target_object=self.rule.id,
                 event=audit_log.get_event_id("RULE_EDIT"),
             ).exists()
-        assert self.analytics_called_with_args(
+        assert_any_analytics_event(
             record_analytics,
-            "rule_reenable.explicit",
-            rule_id=self.rule.id,
-            user_id=self.user.id,
-            organization_id=self.organization.id,
+            RuleReenableExplicit(
+                rule_id=self.rule.id,
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+            ),
         )
 
     def test_rule_enabled(self) -> None:
@@ -72,11 +75,19 @@ class ProjectRuleEnableTestCase(APITestCase):
             }
         ]
         rule = self.create_project_rule(
-            project=self.project, action_data=actions, condition_data=conditions
+            project=self.project,
+            action_data=actions,
+            condition_data=conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
 
         rule2 = self.create_project_rule(
-            project=self.project, action_data=actions, condition_data=conditions
+            project=self.project,
+            action_data=actions,
+            condition_data=conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
         rule2.status = ObjectStatus.DISABLED
         rule2.save()
@@ -181,10 +192,10 @@ class ProjectRuleEnableTestCase(APITestCase):
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
             }
         ]
-        rule = Rule.objects.create(
-            project=self.project,
-            data={"conditions": conditions, "action_match": "all"},
+        rule = self.create_project_rule(
+            project=self.project, condition_data=conditions, action_data=[{}]
         )
+        rule.data["actions"] = []
         rule.status = ObjectStatus.DISABLED
         rule.save()
 

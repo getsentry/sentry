@@ -1,36 +1,36 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ExternalLink} from 'sentry/components/core/link';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tct} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQuery, useQueries} from 'sentry/utils/queryClient';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import ProjectProguardRow from './projectProguardRow';
-
-type ProjectProguardProps = RouteComponentProps<{projectId: string}> & {
-  organization: Organization;
-  project: Project;
-};
 
 export type ProguardMappingAssociation = {
   releases: string[];
 };
 
-function ProjectProguard({organization, location, router, params}: ProjectProguardProps) {
+export default function ProjectProguard() {
   const api = useApi();
-  const {projectId} = params;
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
   const {
@@ -40,7 +40,9 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
     refetch: fetchData,
   } = useApiQuery<DebugFile[]>(
     [
-      `/projects/${organization.slug}/${projectId}/files/dsyms/`,
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
       {
         query: {
           query: location.query.query,
@@ -56,38 +58,14 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
 
   const mappingsPageLinks = getResponseHeader?.('Link');
 
-  const associationsResults = useQueries({
-    queries:
-      mappings?.map(mapping => {
-        const queryKey = [
-          `/projects/${organization.slug}/${projectId}/files/proguard-artifact-releases/`,
-          {
-            query: {
-              proguard_uuid: mapping.uuid,
-            },
-          },
-        ] as ApiQueryKey;
-        return {
-          queryKey,
-          queryFn: () =>
-            api.requestPromise(queryKey[0], {
-              method: 'GET',
-              query: queryKey[1]?.query,
-            }) as Promise<ProguardMappingAssociation>,
-        };
-      }) ?? [],
-  });
-
-  const associationsFetched = associationsResults.every(result => result.isFetched);
-
   const handleSearch = useCallback(
     (query: string) => {
-      router.push({
+      navigate({
         ...location,
         query: {...location.query, cursor: undefined, query: query || undefined},
       });
     },
-    [location, router]
+    [location, navigate]
   );
 
   const handleDelete = useCallback(
@@ -97,7 +75,7 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
         await api.requestPromise(
           `/projects/${
             organization.slug
-          }/${projectId}/files/dsyms/?id=${encodeURIComponent(id)}`,
+          }/${project.slug}/files/dsyms/?id=${encodeURIComponent(id)}`,
           {
             method: 'DELETE',
           }
@@ -110,13 +88,13 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
         addErrorMessage('An error occurred while deleting the mapping file');
       }
     },
-    [api, fetchData, organization.slug, projectId]
+    [api, fetchData, organization.slug, project.slug]
   );
 
   const query =
     typeof location.query.query === 'string' ? location.query.query : undefined;
 
-  const isLoading = loading || dataLoading || !associationsFetched;
+  const isLoading = loading || dataLoading;
 
   return (
     <Fragment>
@@ -154,15 +132,14 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
         isLoading={isLoading}
       >
         {mappings?.length
-          ? mappings.map((mapping, index) => {
+          ? mappings.map(mapping => {
               const downloadUrl = `${api.baseUrl}/projects/${
                 organization.slug
-              }/${projectId}/files/dsyms/?id=${encodeURIComponent(mapping.id)}`;
+              }/${project.slug}/files/dsyms/?id=${encodeURIComponent(mapping.id)}`;
 
               return (
                 <ProjectProguardRow
                   mapping={mapping}
-                  associations={associationsResults[index]!.data}
                   downloadUrl={downloadUrl}
                   onDelete={handleDelete}
                   key={mapping.id}
@@ -176,8 +153,6 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
     </Fragment>
   );
 }
-
-export default ProjectProguard;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: minmax(220px, 1fr) max-content 120px;

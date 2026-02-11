@@ -5,21 +5,26 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
 
-import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 
-describe('Uptime Alert Form', function () {
+describe('Uptime Alert Form', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({environments: ['prod', 'dev']});
 
-  beforeEach(function () {
+  beforeEach(() => {
     OrganizationStore.onUpdate(organization);
     ProjectsStore.loadInitialData([project]);
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       body: [MemberFixture()],
@@ -34,12 +39,31 @@ describe('Uptime Alert Form', function () {
     return screen.getByRole('textbox', {name});
   }
 
-  it('can create a new rule', async function () {
-    render(<UptimeAlertForm organization={organization} project={project} />, {
-      organization,
-    });
+  function numberInput(name: string) {
+    return screen.getByRole('spinbutton', {name});
+  }
+
+  it('shows validation errors on required sibling fields after first field change', async () => {
+    render(<UptimeAlertForm />, {organization});
     await screen.findByText('Configure Request');
 
+    // Initially no validation error tooltips should be rendered
+    expect(document.querySelectorAll('[data-tooltip]')).toHaveLength(0);
+
+    // Change one field (Method) to trigger first-change validation
+    await selectEvent.select(input('Method'), 'POST');
+
+    // Validation error tooltips should now appear on other required empty fields
+    await waitFor(() => {
+      expect(document.querySelectorAll('[data-tooltip]').length).toBeGreaterThan(0);
+    });
+  });
+
+  it('can create a new rule', async () => {
+    render(<UptimeAlertForm />, {organization});
+    await screen.findByText('Configure Request');
+
+    await selectEvent.select(input('Project'), project.slug);
     await selectEvent.select(input('Environment'), 'prod');
 
     const timeout = screen.getByRole('slider', {name: 'Timeout'});
@@ -58,6 +82,18 @@ describe('Uptime Alert Form', function () {
     await userEvent.type(input('Value of X-Something'), 'Header Value');
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Allow Sampling'}));
+
+    // Test threshold fields - should be empty with placeholders
+    expect(numberInput('Failure Tolerance')).toHaveValue(null);
+    expect(numberInput('Recovery Tolerance')).toHaveValue(null);
+    expect(numberInput('Failure Tolerance')).toHaveAttribute(
+      'placeholder',
+      'Defaults to 3'
+    );
+    expect(numberInput('Recovery Tolerance')).toHaveAttribute(
+      'placeholder',
+      'Defaults to 1'
+    );
 
     const name = input('Uptime rule name');
     await userEvent.clear(name);
@@ -91,7 +127,45 @@ describe('Uptime Alert Form', function () {
     );
   });
 
-  it('renders existing rule', async function () {
+  it('can create a new rule with custom thresholds', async () => {
+    render(<UptimeAlertForm />, {organization});
+    await screen.findByText('Configure Request');
+
+    await selectEvent.select(input('Project'), project.slug);
+    await selectEvent.select(input('Environment'), 'prod');
+    await userEvent.clear(input('URL'));
+    await userEvent.type(input('URL'), 'http://example.com');
+
+    const name = input('Uptime rule name');
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Rule with Custom Thresholds');
+
+    // Set custom threshold values
+    await userEvent.type(numberInput('Failure Tolerance'), '5');
+    await userEvent.type(numberInput('Recovery Tolerance'), '2');
+
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/uptime/`,
+      method: 'POST',
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Rule'}));
+
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          environment: 'prod',
+          name: 'Rule with Custom Thresholds',
+          url: 'http://example.com',
+          downtimeThreshold: '5',
+          recoveryThreshold: '2',
+        }),
+      })
+    );
+  });
+
+  it('renders existing rule', async () => {
     const rule = UptimeRuleFixture({
       name: 'Existing Rule',
       environment: 'prod',
@@ -106,11 +180,10 @@ describe('Uptime Alert Form', function () {
       traceSampling: true,
       timeoutMs: 7500,
       owner: ActorFixture(),
+      downtimeThreshold: 4,
+      recoveryThreshold: 2,
     });
-    render(
-      <UptimeAlertForm organization={organization} project={project} rule={rule} />,
-      {organization}
-    );
+    render(<UptimeAlertForm rule={rule} />, {organization});
     await screen.findByText('Configure Request');
 
     expect(input('Uptime rule name')).toHaveValue('Existing Rule');
@@ -126,9 +199,11 @@ describe('Uptime Alert Form', function () {
     expect(screen.getByRole('menuitemradio', {name: 'prod'})).toBeChecked();
     expect(screen.getByRole('checkbox', {name: 'Allow Sampling'})).toBeChecked();
     expect(screen.getByRole('slider', {name: 'Timeout'})).toHaveValue('7500');
+    expect(numberInput('Failure Tolerance')).toHaveValue(4);
+    expect(numberInput('Recovery Tolerance')).toHaveValue(2);
   });
 
-  it('handles simple edits', async function () {
+  it('handles simple edits', async () => {
     // XXX(epurkhiser): This test covers the case where the formModel waws not
     // triggering the observer that updates the apiEndpoint url based on the
     // selected project for existing rules. The other tests all pass as the
@@ -141,10 +216,7 @@ describe('Uptime Alert Form', function () {
       url: 'https://existing-url.com',
       owner: ActorFixture(),
     });
-    render(
-      <UptimeAlertForm organization={organization} project={project} rule={rule} />,
-      {organization}
-    );
+    render(<UptimeAlertForm rule={rule} />, {organization});
     await screen.findByText('Configure Request');
 
     await userEvent.type(input('URL'), '/test');
@@ -166,20 +238,17 @@ describe('Uptime Alert Form', function () {
     );
   });
 
-  it('can edit an existing rule', async function () {
-    OrganizationStore.onUpdate(organization);
-
+  it('can edit an existing rule', async () => {
     const rule = UptimeRuleFixture({
       name: 'Existing Rule',
       projectSlug: project.slug,
       url: 'https://existing-url.com',
       owner: ActorFixture(),
       traceSampling: false,
+      downtimeThreshold: 4,
+      recoveryThreshold: 2,
     });
-    render(
-      <UptimeAlertForm organization={organization} project={project} rule={rule} />,
-      {organization}
-    );
+    render(<UptimeAlertForm rule={rule} />, {organization});
     await screen.findByText('Configure Request');
 
     await selectEvent.select(input('Interval'), 'Every 10 minutes');
@@ -204,6 +273,12 @@ describe('Uptime Alert Form', function () {
     await userEvent.type(input('Value of X-Another'), 'Second Value');
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Allow Sampling'}));
+
+    // Update threshold values
+    await userEvent.clear(numberInput('Failure Tolerance'));
+    await userEvent.type(numberInput('Failure Tolerance'), '6');
+    await userEvent.clear(numberInput('Recovery Tolerance'));
+    await userEvent.type(numberInput('Recovery Tolerance'), '3');
 
     const name = input('Uptime rule name');
     await userEvent.clear(name);
@@ -235,22 +310,19 @@ describe('Uptime Alert Form', function () {
           intervalSeconds: 60 * 10,
           traceSampling: true,
           timeoutMs: 7500,
+          downtimeThreshold: '6',
+          recoveryThreshold: '3',
         }),
       })
     );
-  });
+  }, 20_000);
 
-  it('does not show body for GET and HEAD', async function () {
-    OrganizationStore.onUpdate(organization);
-
+  it('does not show body for GET and HEAD', async () => {
     const rule = UptimeRuleFixture({
       projectSlug: project.slug,
       owner: ActorFixture(),
     });
-    render(
-      <UptimeAlertForm organization={organization} project={project} rule={rule} />,
-      {organization}
-    );
+    render(<UptimeAlertForm rule={rule} />, {organization});
     await screen.findByText('Configure Request');
 
     // GET
@@ -269,9 +341,7 @@ describe('Uptime Alert Form', function () {
     expect(input('Body')).toBeInTheDocument();
   });
 
-  it('updates environments for different projects', async function () {
-    OrganizationStore.onUpdate(organization);
-
+  it('updates environments for different projects', async () => {
     const project1 = ProjectFixture({
       slug: 'project-1',
       environments: ['dev-1', 'prod-1'],
@@ -282,9 +352,7 @@ describe('Uptime Alert Form', function () {
     });
 
     ProjectsStore.loadInitialData([project, project1, project2]);
-    render(<UptimeAlertForm organization={organization} project={project} />, {
-      organization,
-    });
+    render(<UptimeAlertForm />, {organization});
     await screen.findByText('Configure Request');
 
     // Select project 1
@@ -308,18 +376,17 @@ describe('Uptime Alert Form', function () {
     expect(screen.getByRole('menuitemradio', {name: 'prod-2'})).toBeInTheDocument();
   });
 
-  it('can create a new environment', async function () {
-    OrganizationStore.onUpdate(organization);
-
-    render(<UptimeAlertForm organization={organization} project={project} />, {
-      organization,
-    });
+  it('can create a new environment', async () => {
+    render(<UptimeAlertForm />, {organization});
     await screen.findByText('Configure Request');
 
+    await selectEvent.select(input('Project'), project.slug);
     await userEvent.type(input('Environment'), 'my-custom-env');
     await userEvent.click(
       screen.getByRole('menuitemradio', {name: 'Create "my-custom-env"'})
     );
+
+    await selectEvent.select(input('Interval'), 'Every 10 minutes');
 
     await userEvent.clear(input('URL'));
     await userEvent.type(input('URL'), 'http://example.com');
@@ -328,14 +395,14 @@ describe('Uptime Alert Form', function () {
     await userEvent.clear(name);
     await userEvent.type(name, 'New Uptime Rule');
 
-    const updateMock = MockApiClient.addMockResponse({
+    const createMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/`,
       method: 'POST',
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Rule'}));
 
-    expect(updateMock).toHaveBeenCalledWith(
+    expect(createMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         data: expect.objectContaining({}),
@@ -343,10 +410,8 @@ describe('Uptime Alert Form', function () {
     );
   });
 
-  it('sets a default name from the url', async function () {
-    render(<UptimeAlertForm organization={organization} project={project} />, {
-      organization,
-    });
+  it('sets a default name from the url', async () => {
+    render(<UptimeAlertForm />, {organization});
     await userEvent.clear(input('URL'));
     await userEvent.type(input('URL'), 'http://my-cool-site.com/');
 
@@ -358,5 +423,345 @@ describe('Uptime Alert Form', function () {
 
     const pathName = input('Uptime rule name');
     expect(pathName).toHaveValue('Uptime check for example.com/with-path');
+  });
+
+  it('sends assertion in create request when feature is enabled', async () => {
+    const orgWithAssertions = OrganizationFixture({
+      features: ['uptime-runtime-assertions'],
+    });
+    OrganizationStore.onUpdate(orgWithAssertions);
+
+    render(<UptimeAlertForm />, {organization: orgWithAssertions});
+    await screen.findByText('Configure Request');
+
+    // Verify the Verification section is shown
+    expect(screen.getByText('Verification')).toBeInTheDocument();
+
+    await selectEvent.select(input('Project'), project.slug);
+    await selectEvent.select(input('Environment'), 'prod');
+    await userEvent.clear(input('URL'));
+    await userEvent.type(input('URL'), 'http://example.com');
+
+    const name = input('Uptime rule name');
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Rule with Assertion');
+
+    const createMock = MockApiClient.addMockResponse({
+      url: `/projects/${orgWithAssertions.slug}/${project.slug}/uptime/`,
+      method: 'POST',
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Rule'}));
+
+    expect(createMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: 'Rule with Assertion',
+          url: 'http://example.com',
+          assertion: {
+            root: {
+              op: 'and',
+              id: expect.any(String),
+              children: [
+                {
+                  op: 'status_code_check',
+                  id: expect.any(String),
+                  operator: {cmp: 'greater_than'},
+                  value: 199,
+                },
+                {
+                  op: 'status_code_check',
+                  id: expect.any(String),
+                  operator: {cmp: 'less_than'},
+                  value: 300,
+                },
+              ],
+            },
+          },
+        }),
+      })
+    );
+  });
+
+  it('does not show assertions when feature is disabled', async () => {
+    const orgWithoutAssertions = OrganizationFixture({
+      features: [],
+    });
+    OrganizationStore.onUpdate(orgWithoutAssertions);
+
+    render(<UptimeAlertForm />, {organization: orgWithoutAssertions});
+    await screen.findByText('Configure Request');
+
+    // Verify the Verification section is NOT shown
+    expect(screen.queryByText('Verification')).not.toBeInTheDocument();
+  });
+
+  it('renders and updates assertion for existing rule', async () => {
+    const orgWithAssertions = OrganizationFixture({
+      features: ['uptime-runtime-assertions'],
+    });
+    OrganizationStore.onUpdate(orgWithAssertions);
+
+    const assertion = {
+      root: {
+        op: 'and' as const,
+        children: [
+          {
+            id: 'test-1',
+            op: 'status_code_check' as const,
+            operator: {cmp: 'equals' as const},
+            value: 200,
+          },
+        ],
+        id: 'root-1',
+      },
+    };
+
+    const rule = UptimeRuleFixture({
+      name: 'Rule with Assertion',
+      projectSlug: project.slug,
+      url: 'https://existing-url.com',
+      owner: ActorFixture(),
+      assertion,
+    });
+
+    render(<UptimeAlertForm rule={rule} />, {organization: orgWithAssertions});
+    await screen.findByText('Verification');
+
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/projects/${orgWithAssertions.slug}/${project.slug}/uptime/${rule.id}/`,
+      method: 'PUT',
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
+
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          assertion,
+        }),
+      })
+    );
+  });
+
+  it('displays assertion compilation errors', async () => {
+    const orgWithAssertions = OrganizationFixture({
+      features: ['uptime-runtime-assertions'],
+    });
+    OrganizationStore.onUpdate(orgWithAssertions);
+
+    render(<UptimeAlertForm />, {organization: orgWithAssertions});
+    await screen.findByText('Verification');
+
+    await selectEvent.select(input('Project'), project.slug);
+    await selectEvent.select(input('Environment'), 'prod');
+    await userEvent.clear(input('URL'));
+    await userEvent.type(input('URL'), 'http://example.com');
+
+    const name = input('Uptime rule name');
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Rule with Invalid Assertion');
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${orgWithAssertions.slug}/${project.slug}/uptime/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        assertion: {
+          error: 'compilation_error',
+          details: 'Invalid JSON path expression: syntax error at position 5',
+        },
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Rule'}));
+
+    // The error message from the assertion compilation should be displayed with title
+    expect(
+      await screen.findByText(
+        'Compilation Error: Invalid JSON path expression: syntax error at position 5'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('displays assertion serialization errors', async () => {
+    const orgWithAssertions = OrganizationFixture({
+      features: ['uptime-runtime-assertions'],
+    });
+    OrganizationStore.onUpdate(orgWithAssertions);
+
+    render(<UptimeAlertForm />, {organization: orgWithAssertions});
+    await screen.findByText('Verification');
+
+    await selectEvent.select(input('Project'), project.slug);
+    await selectEvent.select(input('Environment'), 'prod');
+    await userEvent.clear(input('URL'));
+    await userEvent.type(input('URL'), 'http://example.com');
+
+    const name = input('Uptime rule name');
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Rule with Invalid Assertion');
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${orgWithAssertions.slug}/${project.slug}/uptime/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        assertion: {
+          error: 'serialization_error',
+          details: 'unknown variant `invalid_op`, expected one of `and`, `or`',
+        },
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Rule'}));
+
+    // The error message from the assertion serialization should be displayed with title
+    expect(
+      await screen.findByText(
+        'Serialization Error: unknown variant `invalid_op`, expected one of `and`, `or`'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('preserves null assertion when editing rule without assertions', async () => {
+    const orgWithAssertions = OrganizationFixture({
+      features: ['uptime-runtime-assertions'],
+    });
+    OrganizationStore.onUpdate(orgWithAssertions);
+
+    // Rule with no assertions (assertion: null from API)
+    const rule = UptimeRuleFixture({
+      name: 'Rule without Assertion',
+      projectSlug: project.slug,
+      url: 'https://existing-url.com',
+      owner: ActorFixture(),
+      assertion: null,
+    });
+
+    render(<UptimeAlertForm rule={rule} />, {organization: orgWithAssertions});
+    await screen.findByText('Verification');
+
+    // Should show empty UI - Add Assertion button but no assertion inputs
+    expect(screen.getByRole('button', {name: 'Add Assertion'})).toBeInTheDocument();
+    // The assertion field should not have any status code inputs (which would indicate defaults were applied)
+    const assertionSection = screen.getByText('Verification').closest('section');
+    expect(
+      assertionSection?.querySelectorAll('input[type="text"]').length ?? 0
+    ).toBeLessThanOrEqual(0);
+
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/projects/${orgWithAssertions.slug}/${project.slug}/uptime/${rule.id}/`,
+      method: 'PUT',
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
+
+    // Should submit null, not default assertions
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          assertion: null,
+        }),
+      })
+    );
+  });
+
+  it('preserves null assertion when feature flag is disabled', async () => {
+    // When the feature flag is off, the assertions field isn't rendered,
+    // so we need to ensure the original null assertion is preserved on submit
+    const orgWithoutAssertions = OrganizationFixture({
+      features: [],
+    });
+    OrganizationStore.onUpdate(orgWithoutAssertions);
+
+    const rule = UptimeRuleFixture({
+      name: 'Rule without Assertion',
+      projectSlug: project.slug,
+      url: 'https://existing-url.com',
+      owner: ActorFixture(),
+      assertion: null,
+    });
+
+    render(<UptimeAlertForm rule={rule} />, {organization: orgWithoutAssertions});
+    await screen.findByText('Configure Request');
+
+    // Verification section should NOT be shown
+    expect(screen.queryByText('Verification')).not.toBeInTheDocument();
+
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/projects/${orgWithoutAssertions.slug}/${project.slug}/uptime/${rule.id}/`,
+      method: 'PUT',
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
+
+    // Should submit null assertion, not the empty default structure
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          assertion: null,
+        }),
+      })
+    );
+  });
+
+  it('preserves existing assertion when feature flag is disabled', async () => {
+    // When the feature flag is off but the rule has existing assertions,
+    // those assertions should be preserved on submit
+    const orgWithoutAssertions = OrganizationFixture({
+      features: [],
+    });
+    OrganizationStore.onUpdate(orgWithoutAssertions);
+
+    const existingAssertion = {
+      root: {
+        op: 'and' as const,
+        children: [
+          {
+            id: 'test-1',
+            op: 'status_code_check' as const,
+            operator: {cmp: 'equals' as const},
+            value: 200,
+          },
+        ],
+        id: 'root-1',
+      },
+    };
+
+    const rule = UptimeRuleFixture({
+      name: 'Rule with Assertion',
+      projectSlug: project.slug,
+      url: 'https://existing-url.com',
+      owner: ActorFixture(),
+      assertion: existingAssertion,
+    });
+
+    render(<UptimeAlertForm rule={rule} />, {organization: orgWithoutAssertions});
+    await screen.findByText('Configure Request');
+
+    // Verification section should NOT be shown
+    expect(screen.queryByText('Verification')).not.toBeInTheDocument();
+
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/projects/${orgWithoutAssertions.slug}/${project.slug}/uptime/${rule.id}/`,
+      method: 'PUT',
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
+
+    // Should submit the existing assertion unchanged
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          assertion: existingAssertion,
+        }),
+      })
+    );
   });
 });

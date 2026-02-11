@@ -6,10 +6,10 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectTeamAccess from 'sentry/views/projectDetail/projectTeamAccess';
 
-describe('ProjectDetail > ProjectTeamAccess', function () {
+describe('ProjectDetail > ProjectTeamAccess', () => {
   const {organization} = initializeOrg();
 
-  it('renders a list', function () {
+  it('renders a list', () => {
     render(
       <ProjectTeamAccess
         organization={organization}
@@ -21,7 +21,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     expect(screen.getByText('#team-slug')).toBeInTheDocument();
   });
 
-  it('links to a team settings', function () {
+  it('links to a team settings', () => {
     render(
       <ProjectTeamAccess
         organization={organization}
@@ -35,7 +35,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     );
   });
 
-  it('display the right empty state with access', function () {
+  it('display the right empty state with access', () => {
     render(<ProjectTeamAccess organization={organization} project={ProjectFixture()} />);
 
     expect(screen.getByRole('button', {name: 'Assign Team'})).toHaveAttribute(
@@ -44,7 +44,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     );
   });
 
-  it('display the right empty state without access', function () {
+  it('display the right empty state without access', () => {
     render(
       <ProjectTeamAccess
         organization={{...organization, access: []}}
@@ -57,7 +57,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     );
   });
 
-  it('collapses more than 5 teams', async function () {
+  it('collapses more than 5 teams', async () => {
     render(
       <ProjectTeamAccess
         organization={organization}
@@ -84,7 +84,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     expect(screen.getAllByTestId('badge-display-name')).toHaveLength(5);
   });
 
-  it('sorts teams alphabetically', function () {
+  it('sorts teams alphabetically', () => {
     render(
       <ProjectTeamAccess
         organization={organization}

@@ -1,12 +1,12 @@
 import fs from 'node:fs/promises';
-import path from 'node:path';
+import path, {resolve} from 'node:path'; // Added for module check
 import {fileURLToPath} from 'node:url';
-import {resolve} from 'node:path'; // Added for module check
 
-import {glob} from 'tinyglobby';
-import ts from 'typescript';
+import {ATTRIBUTE_METADATA} from '@sentry/conventions';
 import {po} from 'gettext-parser';
 import type {GetTextTranslation, GetTextTranslations} from 'gettext-parser';
+import {glob} from 'tinyglobby';
+import ts from 'typescript';
 
 const FUNCTION_NAMES: Record<string, string[]> = {
   gettext: ['msgid'],
@@ -22,6 +22,7 @@ const FUNCTION_NAMES: Record<string, string[]> = {
   t: ['msgid'],
   tn: ['msgid', 'msgid_plural', 'count'],
   tct: ['msgid'],
+  tctCode: ['msgid'],
 };
 
 function getTsScriptKind(filePath: string): ts.ScriptKind {
@@ -185,6 +186,11 @@ function extractTranslationsFromFileContent(
                 ? existingEntry.comments.translator + `\n`
                 : '') + translate.comments.translator;
           }
+          // Preserve msgid_plural if the new entry has one
+          if (finalTranslateEntry.msgid_plural && !existingEntry.msgid_plural) {
+            existingEntry.msgid_plural = finalTranslateEntry.msgid_plural;
+            existingEntry.msgstr = finalTranslateEntry.msgstr;
+          }
         } else {
           currentContext[finalTranslateEntry.msgid] = finalTranslateEntry;
         }
@@ -195,6 +201,38 @@ function extractTranslationsFromFileContent(
   };
 
   visit(sourceFile);
+}
+
+function extractBriefsFromAttributeMetadata(
+  gettextData: GetTextTranslations,
+  nplurals: number
+): void {
+  const context = gettextData.translations[''] ?? {};
+
+  for (const [attributeName, metadata] of Object.entries(ATTRIBUTE_METADATA)) {
+    const brief = metadata.brief;
+
+    if (!brief || typeof brief !== 'string') {
+      continue;
+    }
+
+    // Skip if already exists
+    if (context[brief]) {
+      continue;
+    }
+
+    const translate: GetTextTranslation = {
+      msgid: brief,
+      msgstr: [''],
+      comments: {
+        extracted: `Attribute \`${attributeName}\` metadata description from @sentry/conventions`,
+      },
+    };
+
+    context[brief] = translate;
+  }
+
+  gettextData.translations[''] = context;
 }
 
 const OUTPUT_FILE = 'build/javascript.po';
@@ -247,6 +285,9 @@ async function main() {
   };
 
   await Promise.all(files.map(processFile));
+
+  // Extract briefs from ATTRIBUTE_METADATA
+  extractBriefsFromAttributeMetadata(gettextData, nplurals);
 
   const outputFilePath = path.resolve(BASE_DIRECTORY, OUTPUT_FILE);
   const compiledPoBuffer = po.compile(gettextData, {sort: true});

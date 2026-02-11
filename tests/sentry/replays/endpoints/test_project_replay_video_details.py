@@ -37,7 +37,7 @@ class ReplayVideoDetailsTestCase(APITestCase, ReplaysSnubaTestCase):
         storage_kv.set(key=filename, value=zlib.compress(pack(b"[]", data)))
         self.filename = filename + ".video"
 
-    def save_replay_segment(self, segment_id: int, **metadata) -> None:
+    def save_replay_segment(self, segment_id: int) -> None:
         # Insert a mock row into the database for tracking the blob.
         self.store_replays(
             mock_replay(
@@ -46,13 +46,16 @@ class ReplayVideoDetailsTestCase(APITestCase, ReplaysSnubaTestCase):
                 self.replay_id,
                 segment_id=segment_id,
                 retention_days=30,
-                **metadata,
             )
         )
 
-    def save_video(self, segment_id: int, data: bytes, **metadata) -> None:
+    def save_video(
+        self,
+        segment_id: int,
+        data: bytes,
+    ) -> None:
         self.save_video_file(segment_id, data)
-        self.save_replay_segment(segment_id, **metadata)
+        self.save_replay_segment(segment_id)
 
     def test_get_replay_video(self) -> None:
         self.save_video(0, self.segment_data)

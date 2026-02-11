@@ -16,8 +16,12 @@ describe('formatTooltipValue', () => {
 
   describe('number', () => {
     it.each([
-      [17.1238, '17.124'],
+      [0.000033452, '0.000033452'],
+      [0.00003, '0.00003'],
+      [17.1238, '17.1238'],
+      [170, '170'],
       [1772313.1, '1,772,313.1'],
+      [1772313.11123, '1,772,313.11123'],
     ])('Formats %s as %s', (value, formattedValue) => {
       expect(formatTooltipValue(value, 'number')).toEqual(formattedValue);
     });
@@ -46,7 +50,7 @@ describe('formatTooltipValue', () => {
 
   describe('size', () => {
     it.each([
-      [0, 'byte', '0.0 B'],
+      [0, 'byte', '0 B'],
       [0.712, 'megabyte', '712 KB'],
       [1231, 'kibibyte', '1.2 MiB'],
     ])('Formats %s as %s', (value, unit, formattedValue) => {
@@ -79,9 +83,9 @@ describe('formatTooltipValue', () => {
       [0, '$0'],
       [17, '$17'],
       [171, '$171'],
-      [17111, '$17.11k'],
-      [17_000_110, '$17m'],
-      [1_000_110_000, '$1b'],
+      [17111, '$17.11K'],
+      [17_000_110, '$17M'],
+      [1_000_110_000, '$1B'],
     ])('Formats %s as %s', (value, formattedValue) => {
       expect(formatTooltipValue(value, 'currency')).toEqual(formattedValue);
     });

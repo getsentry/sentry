@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
@@ -25,7 +26,7 @@ import {
 } from 'sentry/views/insights/common/components/textAlign';
 import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {type ModuleName, SpanFields} from 'sentry/views/insights/types';
+import {SpanFields, type ModuleName} from 'sentry/views/insights/types';
 import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanFields;

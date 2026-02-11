@@ -119,8 +119,7 @@
         "value": {
           "type": "valueText",
           "value": "2018-01-01T05:06:07",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {

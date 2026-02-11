@@ -1,9 +1,9 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
+import debounce from 'lodash/debounce';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {testableDebounce} from 'sentry/utils/url/testUtils';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -11,6 +11,7 @@ import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/conte
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: jest.fn(),
 }));
+jest.mock('lodash/debounce');
 
 jest.mock('sentry/views/dashboards/widgetLibrary/data', () => ({
   getTopNConvertedDefaultWidgets: jest.fn(() => [
@@ -21,15 +22,12 @@ jest.mock('sentry/views/dashboards/widgetLibrary/data', () => ({
       displayType: 'line',
       widgetType: 'transactions-like',
       queries: [],
+      isCustomizable: true,
     },
   ]),
 }));
 
 const mockUseNavigate = jest.mocked(useNavigate);
-
-const router = RouterFixture({
-  location: LocationFixture({query: {}}),
-});
 
 jest.mock('sentry/actionCreators/indicator');
 
@@ -37,8 +35,12 @@ describe('WidgetTemplatesList', () => {
   const onSave = jest.fn();
 
   beforeEach(() => {
+    jest.useFakeTimers();
+
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
+
+    jest.mocked(debounce).mockImplementation(testableDebounce);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
@@ -50,6 +52,8 @@ describe('WidgetTemplatesList', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
 
   it('should render the widget templates list', async () => {
@@ -61,10 +65,7 @@ describe('WidgetTemplatesList', () => {
           setIsPreviewDraggable={jest.fn()}
           setCustomizeFromLibrary={jest.fn()}
         />
-      </WidgetBuilderProvider>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      </WidgetBuilderProvider>
     );
 
     expect(await screen.findByText('Duration Distribution')).toBeInTheDocument();
@@ -72,6 +73,8 @@ describe('WidgetTemplatesList', () => {
   });
 
   it('should render buttons when the user clicks on a widget template', async () => {
+    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+
     render(
       <WidgetBuilderProvider>
         <WidgetTemplatesList
@@ -80,20 +83,21 @@ describe('WidgetTemplatesList', () => {
           setIsPreviewDraggable={jest.fn()}
           setCustomizeFromLibrary={jest.fn()}
         />
-      </WidgetBuilderProvider>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      </WidgetBuilderProvider>
     );
 
     const widgetTemplate = await screen.findByText('Duration Distribution');
-    await userEvent.click(widgetTemplate);
+    await user.click(widgetTemplate);
+
+    jest.runAllTimers();
 
     expect(await screen.findByText('Customize')).toBeInTheDocument();
     expect(await screen.findByText('Add to dashboard')).toBeInTheDocument();
   });
 
   it('should put widget in url when clicking a template', async () => {
+    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
@@ -105,19 +109,16 @@ describe('WidgetTemplatesList', () => {
           setIsPreviewDraggable={jest.fn()}
           setCustomizeFromLibrary={jest.fn()}
         />
-      </WidgetBuilderProvider>,
-      {
-        router,
-        deprecatedRouterMocks: true,
-      }
+      </WidgetBuilderProvider>
     );
 
-    const widgetTemplate = await screen.findByText('Duration Distribution');
-    await userEvent.click(widgetTemplate);
+    const widgetTemplate = screen.getByText('Duration Distribution');
+    await user.click(widgetTemplate);
+
+    jest.runAllTimers();
 
     expect(mockNavigate).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        ...router.location,
         query: expect.objectContaining({
           description: 'some description',
           title: 'Duration Distribution',
@@ -130,6 +131,8 @@ describe('WidgetTemplatesList', () => {
   });
 
   it('should show error message when the widget fails to save', async () => {
+    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+
     render(
       <WidgetBuilderProvider>
         <WidgetTemplatesList
@@ -138,16 +141,15 @@ describe('WidgetTemplatesList', () => {
           setIsPreviewDraggable={jest.fn()}
           setCustomizeFromLibrary={jest.fn()}
         />
-      </WidgetBuilderProvider>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      </WidgetBuilderProvider>
     );
 
     const widgetTemplate = await screen.findByText('Duration Distribution');
-    await userEvent.click(widgetTemplate);
+    await user.click(widgetTemplate);
 
-    await userEvent.click(await screen.findByText('Add to dashboard'));
+    await user.click(await screen.findByText('Add to dashboard'));
+
+    jest.runAllTimers();
 
     await waitFor(() => {
       expect(addErrorMessage).toHaveBeenCalledWith('Unable to add widget');

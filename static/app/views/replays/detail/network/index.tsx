@@ -2,8 +2,9 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import type {GridCellProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, MultiGrid} from 'react-virtualized';
 
-import {Flex} from 'sentry/components/core/layout/flex';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';

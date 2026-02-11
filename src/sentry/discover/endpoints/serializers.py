@@ -204,8 +204,6 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             "conditions",
             "aggregations",
             "range",
-            "start",
-            "end",
             "orderby",
             "limit",
             "widths",
@@ -218,6 +216,9 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         for key in query_keys:
             if data.get(key) is not None:
                 query[key] = data[key]
+        for key in ("start", "end"):
+            if data.get(key) is not None:
+                query[key] = data[key].isoformat()
 
         version = data.get("version", 1)
         self.validate_version_fields(version, query)

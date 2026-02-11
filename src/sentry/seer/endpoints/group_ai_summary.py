@@ -9,8 +9,11 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupAiEndpoint
+from sentry.api.helpers.deprecation import deprecated
+from sentry.constants import CELL_API_DEPRECATION_DATE
+from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.issue_summary import get_issue_summary
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -25,14 +28,17 @@ class GroupAiSummaryEndpoint(GroupAiEndpoint):
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
-    rate_limits = {
-        "POST": {
-            RateLimitCategory.IP: RateLimit(limit=20, window=60),
-            RateLimitCategory.USER: RateLimit(limit=20, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.IP: RateLimit(limit=20, window=60),
+                RateLimitCategory.USER: RateLimit(limit=20, window=60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60),
+            }
         }
-    }
+    )
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-ai-summary"])
     def post(self, request: Request, group: Group) -> Response:
         data = orjson.loads(request.body) if request.body else {}
         force_event_id = data.get("event_id", None)

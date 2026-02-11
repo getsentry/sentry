@@ -13,7 +13,7 @@ import hookIntegrationFeatures from 'getsentry/hooks/integrationFeatures';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 
-describe('hookIntegrationFeatures', function () {
+describe('hookIntegrationFeatures', () => {
   const {FeatureList, IntegrationFeatures} = hookIntegrationFeatures();
 
   const organization = OrganizationFixture();
@@ -27,7 +27,7 @@ describe('hookIntegrationFeatures', function () {
     });
   });
 
-  it('does not gate free-only feature sets', async function () {
+  it('does not gate free-only feature sets', async () => {
     const sub = SubscriptionFixture({organization});
     SubscriptionStore.set(organization.slug, sub);
 
@@ -60,7 +60,7 @@ describe('hookIntegrationFeatures', function () {
     });
   });
 
-  it('gates premium only features and requires upgrade with free plan', async function () {
+  it('gates premium only features and requires upgrade with free plan', async () => {
     const sub = SubscriptionFixture({organization});
     SubscriptionStore.set(organization.slug, sub);
 
@@ -104,7 +104,7 @@ describe('hookIntegrationFeatures', function () {
     });
   });
 
-  describe('FeatureList and IntegrationFeatures that distinguish free and premium', function () {
+  describe('FeatureList and IntegrationFeatures that distinguish free and premium', () => {
     const sub = SubscriptionFixture({organization, plan: 'am2_team'});
     SubscriptionStore.set(organization.slug, sub);
 
@@ -138,7 +138,7 @@ describe('hookIntegrationFeatures', function () {
       },
     ];
 
-    it('renders with the correct callback', async function () {
+    it('renders with the correct callback', async () => {
       const renderCallback = jest.fn(() => <Fragment />);
 
       render(
@@ -168,7 +168,7 @@ describe('hookIntegrationFeatures', function () {
       });
     });
 
-    it('renders feature list', async function () {
+    it('renders feature list', async () => {
       render(
         <FeatureList
           provider={{key: 'example'}}
@@ -182,7 +182,7 @@ describe('hookIntegrationFeatures', function () {
       expect(screen.getByText('Event hooks plan feature')).toBeInTheDocument();
     });
 
-    it('renders no plan required for `non-plan-feature` feature', async function () {
+    it('renders no plan required for `non-plan-feature` feature', async () => {
       render(
         <FeatureList
           provider={{key: 'example'}}
@@ -196,7 +196,7 @@ describe('hookIntegrationFeatures', function () {
       expect(screen.getByText('Enabled')).toBeInTheDocument();
     });
 
-    it('renders team plan required for `integrations-issue-basic` feature', async function () {
+    it('renders team plan required for `integrations-issue-basic` feature', async () => {
       render(
         <FeatureList
           provider={{key: 'example'}}
@@ -210,7 +210,7 @@ describe('hookIntegrationFeatures', function () {
       expect(screen.getByText('Issue basic plan feature')).toBeInTheDocument();
     });
 
-    it('renders biz plan required for `integrations-event-hooks` feature', async function () {
+    it('renders biz plan required for `integrations-event-hooks` feature', async () => {
       render(
         <FeatureList
           provider={{key: 'example'}}
@@ -224,7 +224,7 @@ describe('hookIntegrationFeatures', function () {
     });
   });
 
-  describe('Gates features available ONLY on am2 plans', function () {
+  describe('Gates features available ONLY on am2 plans', () => {
     const features = [
       {
         description: 'Link stack trace to source code.',
@@ -240,7 +240,7 @@ describe('hookIntegrationFeatures', function () {
       });
     });
 
-    it('free features enabled when on any am2 plan', async function () {
+    it('free features enabled when on any am2 plan', async () => {
       organization.features = ['integrations-stacktrace-link'];
 
       const sub = SubscriptionFixture({organization, plan: 'am2_team'});
@@ -258,7 +258,7 @@ describe('hookIntegrationFeatures', function () {
       expect(screen.getByText('Link stack trace to source code.')).toBeInTheDocument();
     });
 
-    it('renders required performance plan am1 free features when on legacy plan', async function () {
+    it('renders required performance plan am1 free features when on legacy plan', async () => {
       organization.features = [];
       const sub = SubscriptionFixture({organization, plan: 's1', isFree: false});
       SubscriptionStore.set(organization.slug, sub);

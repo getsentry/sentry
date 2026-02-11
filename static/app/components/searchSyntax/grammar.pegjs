@@ -196,10 +196,22 @@ is_filter
 
 // in filter key:[val1, val2]
 text_in_filter
-  = negation:negation? key:text_key sep value:text_in_list &{
+  = negation:negation?
+    key:text_key
+    sep
+    wildcard_op:wildcard_op?
+    value:text_in_list &{
       return tc.predicateFilter(FilterType.TEXT_IN, key)
     } {
-      return tc.tokenFilter(FilterType.TEXT_IN, key, value, opDefault, !!negation);
+      const wildcard = wildcard_op ? wildcard_op.join("") : undefined;
+      return tc.tokenFilter(
+        FilterType.TEXT_IN,
+        key,
+        value,
+        opDefault,
+        !!negation,
+        wildcard,
+      );
     }
 
 // standard key:val filter
@@ -211,11 +223,20 @@ text_filter
   = negation:negation?
     key:text_key
     sep
+    wildcard_op:wildcard_op?
     op:(operator &{ return tc.predicateTextOperator(key); })?
     value:search_value &{
       return tc.predicateFilter(FilterType.TEXT, key)
     } {
-      return tc.tokenFilter(FilterType.TEXT, key, value, op ? op[0] : opDefault, !!negation);
+      const wildcard = wildcard_op ? wildcard_op.join("") : undefined;
+      return tc.tokenFilter(
+        FilterType.TEXT,
+        key,
+        value,
+        op ? op[0] : opDefault,
+        !!negation,
+        wildcard,
+      );
     }
 
 // Filter keys
@@ -264,6 +285,11 @@ explicit_number_tag_key
       return tc.tokenKeyExplicitNumberTag(prefix, key)
     }
 
+explicit_boolean_tag_key
+  = prefix:"tags" open_bracket key:escaped_key spaces comma spaces 'boolean' closed_bracket {
+      return tc.tokenKeyExplicitBooleanTag(prefix, key)
+    }
+
 aggregate_key
   = name:key open_paren s1:spaces args:function_args? s2:spaces closed_paren {
       return tc.tokenKeyAggregate(name, args, s1, s2);
@@ -289,12 +315,12 @@ quoted_aggregate_param
     }
 
 explicit_tag_aggregate_param
-  = key:(explicit_tag_key / explicit_string_tag_key / explicit_number_tag_key) {
+  = key:(explicit_tag_key / explicit_string_tag_key / explicit_number_tag_key / explicit_boolean_tag_key) {
       return tc.tokenKeyAggregateParam(key.text, false);
     }
 
 search_key
-  = explicit_number_flag_key / explicit_number_tag_key / key / quoted_key
+  = explicit_number_flag_key / explicit_number_tag_key / explicit_boolean_tag_key / key / quoted_key
 
 text_key
   = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key / search_key
@@ -349,6 +375,11 @@ numeric_in_list
     &end_value {
       return tc.tokenValueNumberList(item1, items);
     }
+
+wildcard_op
+  = wildcard_unicode
+    (contains / starts_with / ends_with )
+    wildcard_unicode
 
 // See: https://stackoverflow.com/a/39617181/790169
 in_value_termination
@@ -423,6 +454,10 @@ open_bracket   = "["
 closed_bracket = "]"
 sep            = ":"
 negation       = "!"
+wildcard_unicode     = [\uF00D]
+contains             = "Contains"
+starts_with          = "StartsWith"
+ends_with            = "EndsWith"
 comma          = ","
 spaces         = " "* { return tc.tokenSpaces(text()) }
 

@@ -130,7 +130,7 @@ class IssueAlertNotificationMessageRepository:
         except NotificationMessage.DoesNotExist:
             return None
         except Exception as e:
-            self._logger.exception(
+            self._logger.warning(
                 "Failed to get parent notification for issue rule",
                 exc_info=e,
                 extra={
@@ -159,7 +159,7 @@ class IssueAlertNotificationMessageRepository:
             )
             return IssueAlertNotificationMessage.from_model(instance=new_instance)
         except Exception as e:
-            self._logger.exception(
+            self._logger.warning(
                 "failed to create new issue alert notification alert",
                 exc_info=e,
                 extra=data.__dict__,
@@ -179,7 +179,7 @@ class IssueAlertNotificationMessageRepository:
         control the usage of memory in the application.
         It is up to the caller to iterate over all the data, or store in memory if they need all objects concurrently.
         """
-        group_id_filter = Q(rule_fire_history__group__id__in=group_ids) if group_ids else Q()
+        group_id_filter = Q(rule_fire_history__group_id__in=group_ids) if group_ids else Q()
         project_id_filter = Q(rule_fire_history__project_id__in=project_ids) if project_ids else Q()
         open_period_start_filter = (
             Q(open_period_start=open_period_start) if open_period_start else Q()
@@ -193,7 +193,7 @@ class IssueAlertNotificationMessageRepository:
             for instance in query:
                 yield IssueAlertNotificationMessage.from_model(instance=instance)
         except Exception as e:
-            self._logger.exception(
+            self._logger.warning(
                 "Failed to get parent notifications on filters",
                 exc_info=e,
                 extra=filter.__dict__,

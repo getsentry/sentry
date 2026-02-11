@@ -37,7 +37,7 @@ class CodecovEndpoint(OrganizationEndpoint):
         request._request.integration = integration  # type: ignore[attr-defined]
 
         # Note: Currently we will allow all users to access all the repos of the org.
-        # We might want to add a permission check for the repos that the user have acces to in the future.
+        # We might want to add a permission check for the repos that the user have access to in the future.
 
         parsed_kwargs["owner"] = integration
         return (parsed_args, parsed_kwargs)

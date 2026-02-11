@@ -13,8 +13,7 @@ class NewHighPriorityIssueConditionTest(RuleTestCase):
     def setUp(self) -> None:
         self.rule = Rule(environment_id=1, project=self.project, label="label")
 
-    def test_applies_correctly_with_high_priority_alerts(self) -> None:
-        self.project.flags.has_high_priority_alerts = True
+    def test_applies_correctly(self) -> None:
         self.project.save()
         rule = self.get_rule(rule=self.rule)
 
@@ -31,20 +30,3 @@ class NewHighPriorityIssueConditionTest(RuleTestCase):
 
         self.event.group.update(priority=PriorityLevel.LOW)
         self.assertDoesNotPass(rule, is_new_group_environment=True)
-
-    def test_applies_correctly_without_high_priority_alerts(self) -> None:
-        self.project.flags.has_high_priority_alerts = False
-        self.project.save()
-        rule = self.get_rule(rule=self.rule)
-
-        self.event.group.update(priority=PriorityLevel.HIGH)
-        self.assertPasses(rule, self.event, is_new_group_environment=True)
-        self.assertDoesNotPass(rule, self.event, is_new_group_environment=False)
-
-        self.event.group.update(priority=PriorityLevel.MEDIUM)
-        self.assertPasses(rule, self.event, is_new_group_environment=True)
-        self.assertDoesNotPass(rule, self.event, is_new_group_environment=False)
-
-        self.event.group.update(priority=PriorityLevel.LOW)
-        self.assertPasses(rule, self.event, is_new_group_environment=True)
-        self.assertDoesNotPass(rule, self.event, is_new_group_environment=False)

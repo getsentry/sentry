@@ -54,6 +54,7 @@ VALID_FILE_TYPES = (
     "bcsymbolmap",
     "il2cpp",
     "proguard",
+    "dartsymbolmap",
 )
 
 VALID_CASINGS = ("lowercase", "uppercase", "default")
@@ -85,6 +86,7 @@ COMMON_SOURCE_PROPERTIES = {
     "filters": FILTERS_SCHEMA,
     "is_public": {"type": "boolean"},
     "has_index": {"type": "boolean"},
+    "platforms": {"type": "array", "items": {"type": "string"}},
 }
 
 APP_STORE_CONNECT_SCHEMA = {

@@ -125,7 +125,7 @@ def some_dotnet_sdk(request):
     return request.param
 
 
-def test_add_aspnetcore_sdk(some_dotnet_sdk):
+def test_add_aspnetcore_sdk(some_dotnet_sdk) -> None:
     setup = SdkSetupState(
         sdk_name=some_dotnet_sdk,
         sdk_version="1.2.0",
@@ -152,7 +152,7 @@ def test_add_aspnetcore_sdk(some_dotnet_sdk):
         ]
 
 
-def test_add_serilog_sdk(some_dotnet_sdk):
+def test_add_serilog_sdk(some_dotnet_sdk) -> None:
     setup = SdkSetupState(
         sdk_name=some_dotnet_sdk,
         sdk_version="1.2.0",
@@ -174,7 +174,7 @@ def test_add_serilog_sdk(some_dotnet_sdk):
         ]
 
 
-def test_add_no_dotnet_sdk(some_dotnet_sdk):
+def test_add_no_dotnet_sdk(some_dotnet_sdk) -> None:
     setup = SdkSetupState(
         sdk_name=some_dotnet_sdk,
         sdk_version="1.2.0",
@@ -191,7 +191,7 @@ def test_add_no_dotnet_sdk(some_dotnet_sdk):
     assert suggestions == []
 
 
-def test_more_specific_dotnet_sdk(some_dotnet_sdk):
+def test_more_specific_dotnet_sdk(some_dotnet_sdk) -> None:
     setup = SdkSetupState(
         sdk_name=some_dotnet_sdk,
         sdk_version="1.2.0",

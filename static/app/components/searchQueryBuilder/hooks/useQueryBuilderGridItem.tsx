@@ -1,4 +1,4 @@
-import {type RefObject, useCallback} from 'react';
+import {useCallback, type RefObject} from 'react';
 import {focusSafely, getFocusableTreeWalker} from '@react-aria/focus';
 import {useGridListItem} from '@react-aria/gridlist';
 import {isMac} from '@react-aria/utils';

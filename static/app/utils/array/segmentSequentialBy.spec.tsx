@@ -1,11 +1,11 @@
 import {segmentSequentialBy} from 'sentry/utils/array/segmentSequentialBy';
 
-describe('segmentSequentialBy', function () {
-  it('handles empty array', function () {
+describe('segmentSequentialBy', () => {
+  it('handles empty array', () => {
     expect(segmentSequentialBy([], () => true)).toEqual([]);
   });
 
-  it('handles single item', function () {
+  it('handles single item', () => {
     const data = [42];
 
     const result = segmentSequentialBy(data, isEven);
@@ -13,7 +13,7 @@ describe('segmentSequentialBy', function () {
     expect(result).toEqual([{predicateValue: true, data: [42]}]);
   });
 
-  it('groups varying items into partitions', function () {
+  it('groups varying items into partitions', () => {
     const data = [1, 3, 5, 2, 4, 6, 7, 9, 11, 8, 10];
 
     const result = segmentSequentialBy(data, isEven);
@@ -26,7 +26,7 @@ describe('segmentSequentialBy', function () {
     ]);
   });
 
-  it('handles all items evaluating to the same value', function () {
+  it('handles all items evaluating to the same value', () => {
     const data = [2, 4, 6, 8, 10];
 
     const result = segmentSequentialBy(data, isEven);

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
@@ -38,7 +38,7 @@ class AuthLoginEndpointTest(APITestCase):
         autospec=True,
         return_value=True,
     )
-    def test_login_ratelimit(self, is_limited):
+    def test_login_ratelimit(self, is_limited: MagicMock) -> None:
         response = self.get_error_response(
             username=self.user.username, password="admin", status_code=400
         )

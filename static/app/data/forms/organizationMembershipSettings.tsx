@@ -109,6 +109,32 @@ const formGroups: JsonFormObject[] = [
           'Role required to download debug information files, proguard mappings and source maps.'
         ),
       },
+      {
+        name: 'hasGranularReplayPermissions',
+        type: 'boolean',
+        label: t('Restrict Replay Access'),
+        help: t(
+          'Allow granular access to replay data by selecting specific members of your organization.'
+        ),
+        confirm: {
+          isDangerous: true,
+          false: t(
+            'This will allow all members of your organization to access replay data. Do you want to continue?'
+          ),
+        },
+        visible: ({features}) => features.has('granular-replay-permissions'),
+      },
+      {
+        name: 'replayAccessMembers',
+        type: 'sentry_member_selector',
+        label: t('Replay Access Members'),
+        help: t('Select the members who will have access to replay data.'),
+        multiple: true,
+        formatMessageValue: false,
+        visible: ({model, features}) =>
+          features.has('granular-replay-permissions') &&
+          model.getValue('hasGranularReplayPermissions'),
+      },
     ],
   },
 ];

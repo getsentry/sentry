@@ -1,4 +1,5 @@
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 from jsonschema import ValidationError
@@ -22,7 +23,7 @@ class TestEventAttributeCondition(ConditionTestCase):
         "attribute": "platform",
     }
 
-    def get_event(self, **kwargs):
+    def get_event(self, **kwargs: Any) -> Any:
         data = {
             "message": "hello world",
             "request": {"method": "GET", "url": "http://example.com/"},
@@ -92,7 +93,7 @@ class TestEventAttributeCondition(ConditionTestCase):
         event = self.store_event(data, project_id=self.project.id)
         return event
 
-    def setup_group_event_and_job(self):
+    def setup_group_event_and_job(self) -> None:
         self.group_event = self.event.for_group(self.group)
         self.event_data = WorkflowEventData(
             event=self.group_event,
@@ -107,7 +108,7 @@ class TestEventAttributeCondition(ConditionTestCase):
             ),
         )
 
-    def error_setup(self):
+    def error_setup(self) -> None:
         self.event = self.get_event(
             exception={
                 "values": [
@@ -572,8 +573,8 @@ class TestEventAttributeCondition(ConditionTestCase):
         )
         self.assert_does_not_pass(self.dc, self.event_data)
 
-    @patch("sentry.eventstore.models.get_interfaces", return_value={})
-    def test_exception_type_keyerror(self, mock_get_interfaces):
+    @patch("sentry.services.eventstore.models.get_interfaces", return_value={})
+    def test_exception_type_keyerror(self, mock_get_interfaces: MagicMock) -> None:
         self.dc.comparison.update(
             {
                 "match": MatchType.EQUAL,
@@ -613,8 +614,8 @@ class TestEventAttributeCondition(ConditionTestCase):
         )
         self.assert_does_not_pass(self.dc, self.event_data)
 
-    @patch("sentry.eventstore.models.get_interfaces", return_value={})
-    def test_error_handled_keyerror(self, mock_get_interfaces):
+    @patch("sentry.services.eventstore.models.get_interfaces", return_value={})
+    def test_error_handled_keyerror(self, mock_get_interfaces: MagicMock) -> None:
         self.error_setup()
         self.dc.comparison.update(
             {

@@ -1,20 +1,21 @@
 import {Fragment, useCallback, useState} from 'react';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
-import {ExternalLink} from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {Project, ProjectKey} from 'sentry/types/project';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
 type Props = {
@@ -33,6 +34,8 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
   const [optimisticState, setOptimisticState] = useState({
     browserSdkVersion: data.browserSdkVersion,
     hasDebug: data.dynamicSdkLoaderOptions.hasDebug,
+    hasLogsAndMetrics: data.dynamicSdkLoaderOptions.hasLogsAndMetrics,
+    hasFeedback: data.dynamicSdkLoaderOptions.hasFeedback,
     hasPerformance: data.dynamicSdkLoaderOptions.hasPerformance,
     hasReplay: data.dynamicSdkLoaderOptions.hasReplay,
   });
@@ -46,6 +49,8 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
           // "7.x" was the "latest" version when "latest" was phased out.
           data.browserSdkVersion === 'latest' ? '7.x' : data.browserSdkVersion,
         hasDebug: data.dynamicSdkLoaderOptions.hasDebug,
+        hasLogsAndMetrics: data.dynamicSdkLoaderOptions.hasLogsAndMetrics,
+        hasFeedback: data.dynamicSdkLoaderOptions.hasFeedback,
         hasPerformance: data.dynamicSdkLoaderOptions.hasPerformance,
         hasReplay: data.dynamicSdkLoaderOptions.hasReplay,
       };
@@ -56,15 +61,14 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
     : [];
 
   const apiEndpoint = `/projects/${orgSlug}/${project.slug}/keys/${keyId}/`;
-  const loaderLink = getDynamicText({
-    value: data.dsn.cdn,
-    fixed: '__JS_SDK_LOADER_URL__',
-  });
+  const loaderLink = data.dsn.cdn;
 
   const updateLoaderOption = useCallback(
     async (changes: {
       browserSdkVersion?: string;
       hasDebug?: boolean;
+      hasFeedback?: boolean;
+      hasLogsAndMetrics?: boolean;
       hasPerformance?: boolean;
       hasReplay?: boolean;
     }) => {
@@ -72,6 +76,8 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
       setOptimisticState({
         browserSdkVersion: data.browserSdkVersion,
         hasDebug: data.dynamicSdkLoaderOptions.hasDebug,
+        hasLogsAndMetrics: data.dynamicSdkLoaderOptions.hasLogsAndMetrics,
+        hasFeedback: data.dynamicSdkLoaderOptions.hasFeedback,
         hasPerformance: data.dynamicSdkLoaderOptions.hasPerformance,
         hasReplay: data.dynamicSdkLoaderOptions.hasReplay,
         ...changes,
@@ -86,6 +92,11 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
           browserSdkVersion,
           dynamicSdkLoaderOptions: {
             hasDebug: changes.hasDebug ?? data.dynamicSdkLoaderOptions.hasDebug,
+            hasLogsAndMetrics: sdkVersionSupportsLogsAndMetrics(browserSdkVersion)
+              ? (changes.hasLogsAndMetrics ??
+                data.dynamicSdkLoaderOptions.hasLogsAndMetrics)
+              : false,
+            hasFeedback: changes.hasFeedback ?? data.dynamicSdkLoaderOptions.hasFeedback,
             hasPerformance:
               changes.hasPerformance ?? data.dynamicSdkLoaderOptions.hasPerformance,
             hasReplay: changes.hasReplay ?? data.dynamicSdkLoaderOptions.hasReplay,
@@ -96,6 +107,8 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
           browserSdkVersion,
           dynamicSdkLoaderOptions: {
             hasDebug: changes.hasDebug ?? data.dynamicSdkLoaderOptions.hasDebug,
+            hasLogsAndMetrics: false,
+            hasFeedback: false,
             hasPerformance: false,
             hasReplay: false,
           },
@@ -113,7 +126,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
         addSuccessMessage(t('Successfully updated dynamic SDK loader configuration'));
       } catch (error) {
         const message = t('Unable to updated dynamic SDK loader configuration');
-        handleXhrErrorResponse(message, error);
+        handleXhrErrorResponse(message, error as RequestError);
         addErrorMessage(message);
       } finally {
         setRequestPending(false);
@@ -124,6 +137,8 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
       apiEndpoint,
       data.browserSdkVersion,
       data.dynamicSdkLoaderOptions.hasDebug,
+      data.dynamicSdkLoaderOptions.hasLogsAndMetrics,
+      data.dynamicSdkLoaderOptions.hasFeedback,
       data.dynamicSdkLoaderOptions.hasPerformance,
       data.dynamicSdkLoaderOptions.hasReplay,
       setRequestPending,
@@ -259,8 +274,88 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
           />
 
           <BooleanField
-            label={t('Enable Debug Bundles & Logging')}
-            name={`${keyId}-has-logging`}
+            label={t('Enable Logs and Metrics')}
+            name={`${keyId}-has-logs-and-metrics`}
+            value={
+              sdkVersionSupportsLogsAndMetrics(data.browserSdkVersion)
+                ? values.hasLogsAndMetrics
+                : false
+            }
+            onChange={(value: any) => {
+              updateLoaderOption({hasLogsAndMetrics: value});
+            }}
+            disabled={
+              !hasAccess ||
+              requestPending ||
+              !sdkVersionSupportsLogsAndMetrics(data.browserSdkVersion)
+            }
+            help={
+              sdkVersionSupportsLogsAndMetrics(data.browserSdkVersion)
+                ? data.dynamicSdkLoaderOptions.hasLogsAndMetrics
+                  ? tct(
+                      'The default config is [codeEnableLogs:enableLogs: true]. [configDocs:Read the docs] to learn how to configure this.',
+                      {
+                        codeEnableLogs: <code />,
+                        configDocs: (
+                          <ExternalLink href="https://docs.sentry.io/platforms/javascript/logs" />
+                        ),
+                      }
+                    )
+                  : undefined
+                : t('Only available in SDK version 10.x and above')
+            }
+            disabledReason={
+              hasAccess ? undefined : t('You do not have permission to edit this setting')
+            }
+          />
+
+          <BooleanField
+            label={t('Enable User Feedback')}
+            name={`${keyId}-has-feedback`}
+            value={
+              sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
+                ? values.hasFeedback
+                : false
+            }
+            onChange={(value: any) => {
+              updateLoaderOption({hasFeedback: value});
+            }}
+            disabled={
+              !hasAccess ||
+              requestPending ||
+              !sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
+            }
+            help={
+              sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
+                ? data.dynamicSdkLoaderOptions.hasFeedback
+                  ? tct(
+                      `[es6Warning]The default config is [codeAutoInject:autoInject: true]. [configDocs:Read the docs] to learn how to configure this.`,
+                      {
+                        es6Warning:
+                          // latest is deprecated but resolves to v7
+                          data.browserSdkVersion === '7.x' ||
+                          data.browserSdkVersion === 'latest'
+                            ? t(
+                                'When using User Feedback, the loader will load the ES6 bundle instead of the ES5 bundle.'
+                              ) + ' '
+                            : '',
+                        codeAutoInject: <code />,
+                        configDocs: (
+                          <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/loader/#custom-configuration" />
+                        ),
+                      }
+                    )
+                  : undefined
+                : t('Only available in SDK version 7.x and above')
+            }
+            disabledReason={
+              hasAccess ? undefined : t('You do not have permission to edit this setting')
+            }
+          />
+
+          <BooleanField
+            label={t('Enable SDK debugging')}
+            name={`${keyId}-has-debug`}
             value={values.hasDebug}
             onChange={(value: any) => {
               updateLoaderOption({hasDebug: value});
@@ -281,6 +376,11 @@ function sdkVersionSupportsPerformanceAndReplay(sdkVersion: string): boolean {
     sdkVersion === 'latest' ||
     sdkVersion === '7.x' ||
     sdkVersion === '8.x' ||
-    sdkVersion === '9.x'
+    sdkVersion === '9.x' ||
+    sdkVersion === '10.x'
   );
+}
+
+function sdkVersionSupportsLogsAndMetrics(sdkVersion: string): boolean {
+  return sdkVersion === '10.x';
 }

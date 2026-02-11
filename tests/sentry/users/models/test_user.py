@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+import pytest
+from django.db import IntegrityError
 from django.db.models import Q
 
 import sentry.hybridcloud.rpc.caching as caching_module
@@ -182,6 +184,11 @@ class UserDetailsTest(TestCase):
         assert user.email == "b@example.com"
         assert user.get_salutation_name() == "Hello"
 
+    def test_email_unique(self) -> None:
+        self.create_user(email="a@example.com", username="123456", is_test_user=False)
+        with pytest.raises(IntegrityError):
+            self.create_user(email="a@example.com", username="789", is_test_user=False)
+
 
 ORG_MEMBER_MERGE_TESTED: set[NormalizedModelName] = set()
 
@@ -250,13 +257,37 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         assert AuthIdentity.objects.filter(user=to_user).count() == 1
         assert not AuthIdentity.objects.filter(user=from_user).exists()
 
+    def test_merge_handles_groupseen_conflicts(self) -> None:
+        from_user = self.create_user("from-user@example.com")
+        to_user = self.create_user("to-user@example.com")
+        org = self.create_organization(name="conflict-org")
+
+        with outbox_runner():
+            with assume_test_silo_mode(SiloMode.REGION):
+                self.create_member(user=from_user, organization=org)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            project = self.create_project(organization=org)
+            group = self.create_group(project=project)
+            # Create conflicting GroupSeen entries for both users on the same group
+            GroupSeen.objects.create(project=project, group=group, user_id=from_user.id)
+            GroupSeen.objects.create(project=project, group=group, user_id=to_user.id)
+
+        # Execute the merge; should not raise and should dedupe GroupSeen
+        with outbox_runner():
+            from_user.merge_to(to_user)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert not GroupSeen.objects.filter(group=group, user_id=from_user.id).exists()
+            assert GroupSeen.objects.filter(group=group, user_id=to_user.id).count() == 1
+
     @expect_models(
         ORG_MEMBER_MERGE_TESTED,
         OrgAuthToken,
         OrganizationMember,
         OrganizationMemberMapping,
     )
-    def test_duplicate_memberships(self, expected_models: list[type[Model]]):
+    def test_duplicate_memberships(self, expected_models: list[type[Model]]) -> None:
         from_user = self.create_user("foo@example.com")
         to_user = self.create_user("bar@example.com")
         org_slug = "org-with-duplicate-members-being-merged"
@@ -349,7 +380,9 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         RuleSnooze,
         SavedSearch,
     )
-    def test_only_source_user_is_member_of_organization(self, expected_models: list[type[Model]]):
+    def test_only_source_user_is_member_of_organization(
+        self, expected_models: list[type[Model]]
+    ) -> None:
         from_user = self.create_exhaustive_user("foo@example.com")
         to_user = self.create_exhaustive_user("bar@example.com")
         org_slug = "org-only-from-user-is-member-of"
@@ -391,7 +424,9 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         RuleSnooze,
         SavedSearch,
     )
-    def test_both_users_are_members_of_organization(self, expected_models: list[type[Model]]):
+    def test_both_users_are_members_of_organization(
+        self, expected_models: list[type[Model]]
+    ) -> None:
         from_user = self.create_exhaustive_user("foo@example.com")
         to_user = self.create_exhaustive_user("bar@example.com")
         random_user = self.create_user("random@example.com")
@@ -432,7 +467,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
             ).exists()
 
     @expect_models(ORG_MEMBER_MERGE_TESTED, OrganizationMemberInvite)
-    def test_member_invite(self, expected_models: list[type[Model]]):
+    def test_member_invite(self, expected_models: list[type[Model]]) -> None:
         """
         Member invite only depends on email and thus should not be transferred to the to user.
         """

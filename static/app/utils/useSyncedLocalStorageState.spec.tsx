@@ -3,7 +3,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import localStorageWrapper from 'sentry/utils/localStorage';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
-describe('useSyncedLocalStorageState', function () {
+describe('useSyncedLocalStorageState', () => {
   beforeEach(() => {
     localStorageWrapper.clear();
   });
@@ -20,7 +20,7 @@ describe('useSyncedLocalStorageState', function () {
     return <div>{value ? 'Value is on' : 'Value is off'}</div>;
   }
 
-  it('responds to changes in multiple components', async function () {
+  it('responds to changes in multiple components', async () => {
     localStorageWrapper.setItem('key', 'true');
 
     function TestComponent() {

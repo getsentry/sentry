@@ -4,11 +4,11 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
-describe('normalizeUrl', function () {
+describe('normalizeUrl', () => {
   let configState: Config;
   let result: any;
 
-  beforeEach(function () {
+  beforeEach(() => {
     configState = ConfigStore.getState();
     ConfigStore.loadInitialData({
       ...configState,
@@ -20,11 +20,11 @@ describe('normalizeUrl', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     ConfigStore.loadInitialData(configState);
   });
 
-  it('replaces paths in strings', function () {
+  it('replaces paths in strings', () => {
     const location = LocationFixture();
     const cases = [
       // input, expected
@@ -78,6 +78,8 @@ describe('normalizeUrl', function () {
       ['/join-request/acme/', '/join-request/'],
       ['/onboarding/acme/', '/onboarding/'],
       ['/onboarding/acme/project/', '/onboarding/project/'],
+      ['/checkout/acme/', '/checkout/'],
+      ['/checkout/acme/?query=value', '/checkout/?query=value'],
 
       ['/organizations/new/', '/organizations/new/'],
       ['/organizations/albertos-organizations/issues/', '/issues/'],
@@ -106,14 +108,6 @@ describe('normalizeUrl', function () {
       ],
       // Team settings links in breadcrumbs can be pre-normalized from breadcrumbs
       ['/settings/teams/peeps/', '/settings/teams/peeps/'],
-      [
-        '/settings/billing/checkout/?_q=all#hash',
-        '/settings/billing/checkout/?_q=all#hash',
-      ],
-      [
-        '/settings/billing/bundle-checkout/?_q=all#hash',
-        '/settings/billing/bundle-checkout/?_q=all#hash',
-      ],
     ];
     for (const [input, expected] of cases) {
       result = normalizeUrl(input!);
@@ -149,7 +143,7 @@ describe('normalizeUrl', function () {
     }
   });
 
-  it('replaces pathname in objects', function () {
+  it('replaces pathname in objects', () => {
     const location = LocationFixture();
     result = normalizeUrl({pathname: '/settings/acme/'}, location);
     expect(result.pathname).toBe('/settings/organization/');

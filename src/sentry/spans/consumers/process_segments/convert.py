@@ -1,80 +1,107 @@
-from collections.abc import MutableMapping
 from typing import Any, cast
 
 import orjson
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SpanLink
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
+from sentry_protos.snuba.v1.trace_item_pb2 import (
+    AnyValue,
+    ArrayValue,
+    KeyValue,
+    KeyValueList,
+    TraceItem,
+)
 
-from sentry.spans.consumers.process_segments.enrichment import Span
+from sentry.spans.consumers.process_segments.types import CompatibleSpan
+from sentry.utils.eap import hex_to_item_id
 
 I64_MAX = 2**63 - 1
 
 FIELD_TO_ATTRIBUTE = {
-    "description": "sentry.raw_description",
-    "duration_ms": "sentry.duration_ms",
-    "is_segment": "sentry.is_segment",
-    "exclusive_time_ms": "sentry.exclusive_time_ms",
-    "start_timestamp_precise": "sentry.start_timestamp_precise",
-    "end_timestamp_precise": "sentry.end_timestamp_precise",
-    "is_remote": "sentry.is_remote",
-    "parent_span_id": "sentry.parent_span_id",
-    "profile_id": "sentry.profile_id",
-    "segment_id": "sentry.segment_id",
-    "received": "sentry.received",
-    "origin": "sentry.origin",
-    "kind": "sentry.kind",
-    "hash": "sentry.hash",
+    "end_timestamp": "sentry.end_timestamp_precise",
     "event_id": "sentry.event_id",
+    "hash": "sentry.hash",
+    "name": "sentry.name",
+    "parent_span_id": "sentry.parent_span_id",
+    "received": "sentry.received",
+    "start_timestamp": "sentry.start_timestamp_precise",
+}
+
+RENAME_ATTRIBUTES = {
+    ATTRIBUTE_NAMES.SENTRY_DESCRIPTION: "sentry.raw_description",
+    ATTRIBUTE_NAMES.SENTRY_SEGMENT_ID: "sentry.segment_id",
 }
 
 
-def convert_span_to_item(span: Span) -> TraceItem:
-    attributes: MutableMapping[str, AnyValue] = {}  # TODO
+def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
+    attributes: dict[str, AnyValue] = {}
 
     client_sample_rate = 1.0
     server_sample_rate = 1.0
 
-    for k, v in (span.get("data") or {}).items():
-        if v is not None:
+    for k, attribute in (span.get("attributes") or {}).items():
+        if attribute is None:
+            continue
+        if (value := attribute.get("value")) is None:
+            continue
+        try:
+            # NOTE: This ignores the `type` field of the attribute itself
+            attributes[k] = _anyvalue(value)
+        except Exception:
+            sentry_sdk.capture_exception()
+        else:
+            if k == ATTRIBUTE_NAMES.SENTRY_CLIENT_SAMPLE_RATE:
+                try:
+                    client_sample_rate = float(value)  # type:ignore[arg-type]
+                except ValueError:
+                    pass
+            elif k == ATTRIBUTE_NAMES.SENTRY_SERVER_SAMPLE_RATE:
+                try:
+                    server_sample_rate = float(value)  # type:ignore[arg-type]
+                except ValueError:
+                    pass
+
+    # For `is_segment`, we trust the value written by `flush_segments` over a pre-existing attribute:
+    if (is_segment := span.get("is_segment")) is not None:
+        attributes["sentry.is_segment"] = _anyvalue(is_segment)
+
+    for field_name, attribute_name in FIELD_TO_ATTRIBUTE.items():
+        attribute = span.get(field_name)  # type:ignore[assignment]
+        if attribute is not None:
+            attributes[attribute_name] = _anyvalue(attribute)
+
+    # Rename some attributes from their sentry-conventions name to what the product currently expects.
+    # Eventually this should all be handled by deprecation policies in sentry-conventions.
+    for convention_name, eap_name in RENAME_ATTRIBUTES.items():
+        if convention_name in attributes:
+            attributes[eap_name] = attributes.pop(convention_name)
+
+    try:
+        attributes["sentry.duration_ms"] = AnyValue(
+            double_value=round(1000.0 * (span["end_timestamp"] - span["start_timestamp"]), 6)
+        )
+    except Exception:
+        sentry_sdk.capture_exception()
+
+    if span_meta := span.get("_meta"):
+        for attr, meta in (span_meta.get("attributes") or {}).items():
             try:
-                attributes[k] = _anyvalue(v)
+                if attr in RENAME_ATTRIBUTES:
+                    attr = RENAME_ATTRIBUTES[attr]
+                # Meta is expected to be a stringified json object.
+                value = orjson.dumps({"meta": meta}).decode()
+                attributes[f"sentry._meta.fields.attributes.{attr}"] = _anyvalue(value)
             except Exception:
                 sentry_sdk.capture_exception()
 
-    for k, v in (span.get("measurements") or {}).items():
-        if k is not None and v is not None:
-            if k == "client_sample_rate":
-                client_sample_rate = v["value"]
-            elif k == "server_sample_rate":
-                server_sample_rate = v["value"]
-            else:
-                attributes[k] = AnyValue(double_value=float(v["value"]))
-
-    for k, v in (span.get("sentry_tags") or {}).items():
-        if v is not None:
-            if k == "description":
-                k = "sentry.normalized_description"
-            else:
-                k = f"sentry.{k}"
-
-            attributes[k] = AnyValue(string_value=str(v))
-
-    for k, v in (span.get("tags") or {}).items():
-        if v is not None:
-            attributes[k] = AnyValue(string_value=str(v))
-
-    for field_name, attribute_name in FIELD_TO_ATTRIBUTE.items():
-        v = span.get(field_name)
-        if v is not None:
-            attributes[attribute_name] = _anyvalue(v)
-
     if links := span.get("links"):
         try:
-            sanitized_links = [_sanitize_span_link(link) for link in links]
-            attributes["sentry.links"] = _anyvalue(sanitized_links)
+            sanitized_links = [_sanitize_span_link(link) for link in links if link is not None]
+            # Span links are expected to be a stringified json object.
+            value = orjson.dumps(sanitized_links).decode()
+            attributes["sentry.links"] = _anyvalue(value)
         except Exception:
             sentry_sdk.capture_exception()
             attributes["sentry.dropped_links_count"] = AnyValue(int_value=len(links))
@@ -83,13 +110,14 @@ def convert_span_to_item(span: Span) -> TraceItem:
         organization_id=span["organization_id"],
         project_id=span["project_id"],
         trace_id=span["trace_id"],
-        item_id=int(span["span_id"], 16).to_bytes(16, "little"),
+        item_id=hex_to_item_id(span["span_id"]),
         item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
-        timestamp=_timestamp(span["start_timestamp_precise"]),
+        timestamp=_timestamp(span["start_timestamp"]),
         attributes=attributes,
         client_sample_rate=client_sample_rate,
         server_sample_rate=server_sample_rate,
         retention_days=span["retention_days"],
+        downsampled_retention_days=span.get("downsampled_retention_days", 0),
         received=_timestamp(span["received"]),
     )
 
@@ -105,8 +133,14 @@ def _anyvalue(value: Any) -> AnyValue:
         return AnyValue(int_value=value)
     elif isinstance(value, float):
         return AnyValue(double_value=value)
-    elif isinstance(value, (list, dict)):
-        return AnyValue(string_value=orjson.dumps(value).decode())
+    elif isinstance(value, list):
+        return AnyValue(array_value=ArrayValue(values=[_anyvalue(v) for v in value]))
+    elif isinstance(value, dict):
+        return AnyValue(
+            kvlist_value=KeyValueList(
+                values=[KeyValue(key=k, value=_anyvalue(v)) for k, v in value.items()]
+            )
+        )
 
     raise ValueError(f"Unknown value type: {type(value)}")
 
@@ -127,16 +161,20 @@ def _sanitize_span_link(link: SpanLink) -> SpanLink:
     attributes, so span links are stored as a JSON-encoded string. In order to
     prevent unbounded storage, we only support well-known attributes.
     """
+
     sanitized_link = cast(SpanLink, {**link})
 
     allowed_attributes = {}
-    attributes = link.get("attributes", {}) or {}
+    attributes = link.get("attributes") or {}
 
     # In the future, we want Relay to drop unsupported attributes, so there
     # might be an intermediary state where there is a pre-existing dropped
     # attributes count. Respect that count, if it's present. It should always be
     # an integer.
-    dropped_attributes_count = attributes.get("sentry.dropped_attributes_count", 0)
+    try:
+        dropped_attributes_count = int(attributes["sentry.dropped_attributes_count"]["value"])  # type: ignore[index,arg-type]
+    except (KeyError, ValueError, TypeError):
+        dropped_attributes_count = 0
 
     for key, value in attributes.items():
         if key in ALLOWED_LINK_ATTRIBUTE_KEYS:
@@ -145,7 +183,10 @@ def _sanitize_span_link(link: SpanLink) -> SpanLink:
             dropped_attributes_count += 1
 
     if dropped_attributes_count > 0:
-        allowed_attributes["sentry.dropped_attributes_count"] = dropped_attributes_count
+        allowed_attributes["sentry.dropped_attributes_count"] = {
+            "type": "integer",
+            "value": dropped_attributes_count,
+        }
 
     # Only include the `attributes` key if the key was present in the original
     # link, don't create a an empty object, since there is a semantic difference

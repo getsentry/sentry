@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
 import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
 import {
-  Body as _TableWrapper,
   Grid as _Table,
+  Body as _TableWrapper,
   GridBody,
   GridBodyCell,
   GridBodyCellStatus,
@@ -55,6 +55,7 @@ export const ALLOWED_CELL_ACTIONS: Actions[] = [
   Actions.SHOW_LESS_THAN,
   Actions.COPY_TO_CLIPBOARD,
   Actions.OPEN_EXTERNAL_LINK,
+  Actions.OPEN_INTERNAL_LINK,
 ];
 
 const MINIMUM_COLUMN_WIDTH = COL_WIDTH_MINIMUM;
@@ -65,7 +66,7 @@ export function useTableStyles(
   options?: {
     minimumColumnWidth?: number;
     prefixColumnWidth?: 'min-content' | number;
-    staticColumnWidths?: Record<string, number | '1fr'>;
+    staticColumnWidths?: Record<string, number | 'minmax(90px,1fr)'>;
   }
 ) {
   const minimumColumnWidth = options?.minimumColumnWidth ?? MINIMUM_COLUMN_WIDTH;

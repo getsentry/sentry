@@ -10,6 +10,7 @@ import type {Event, ExceptionType} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {ExceptionContent} from './crashContent/exception';
@@ -65,6 +66,7 @@ export function Exception({
         title={t('Stack Trace')}
         type={EntryType.EXCEPTION}
         projectSlug={projectSlug}
+        event={event}
         eventId={event.id}
         platform={event.platform ?? 'other'}
         hasMinified={!!data.values?.some(value => value.rawStacktrace)}
@@ -106,17 +108,22 @@ export function Exception({
               meta={meta}
             />
             {hasStreamlinedUI && group && (
-              <ErrorBoundary
-                mini
-                message={t('There was an error loading the suspect commits')}
-              >
-                <SuspectCommits
-                  projectSlug={projectSlug}
-                  eventId={event.id}
-                  group={group}
-                  commitRow={CommitRow}
-                />
-              </ErrorBoundary>
+              <Fragment>
+                {data.values && data.values.length > 1 && (
+                  <SectionDivider orientation="horizontal" />
+                )}
+                <ErrorBoundary
+                  mini
+                  message={t('There was an error loading the suspect commits')}
+                >
+                  <SuspectCommits
+                    projectSlug={projectSlug}
+                    eventId={event.id}
+                    group={group}
+                    commitRow={CommitRow}
+                  />
+                </ErrorBoundary>
+              </Fragment>
             )}
           </Fragment>
         )}

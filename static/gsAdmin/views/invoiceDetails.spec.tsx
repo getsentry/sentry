@@ -13,10 +13,10 @@ import ConfigStore from 'sentry/stores/configStore';
 
 import InvoiceDetails from 'admin/views/invoiceDetails';
 
-describe('InvoiceDetails', function () {
+describe('InvoiceDetails', () => {
   const mockOrg = OrganizationFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/`,
@@ -43,18 +43,19 @@ describe('InvoiceDetails', function () {
     ]);
   });
 
-  describe('Close Invoice', function () {
-    it('can close invoice', async function () {
+  describe('Close Invoice', () => {
+    it('can close invoice', async () => {
       const invoice = InvoiceFixture({isClosed: false});
       MockApiClient.addMockResponse({
-        url: `/_admin/invoices/${invoice.id}/`,
+        url: `/_admin/cells/us/admin-invoices/${invoice.id}/`,
         body: invoice,
       });
 
       const updateMock = MockApiClient.addMockResponse({
-        url: `/customers/${mockOrg.slug}/invoices/${invoice.id}/close/`,
+        url: `/_admin/cells/us/invoices/${invoice.id}/close/`,
         method: 'PUT',
         body: InvoiceFixture({isClosed: true}),
+        host: 'https://us.sentry.io',
       });
 
       render(<InvoiceDetails />, {
@@ -77,10 +78,10 @@ describe('InvoiceDetails', function () {
       expect(updateMock).toHaveBeenCalled();
     });
 
-    it('cannot close already closed invoice', async function () {
+    it('cannot close already closed invoice', async () => {
       const invoice = InvoiceFixture({isClosed: true});
       MockApiClient.addMockResponse({
-        url: `/_admin/invoices/${invoice.id}/`,
+        url: `/_admin/cells/de/admin-invoices/${invoice.id}/`,
         body: invoice,
         host: 'https://de.sentry.io',
       });
@@ -104,12 +105,12 @@ describe('InvoiceDetails', function () {
       );
     });
 
-    it('requires billing admin permission', async function () {
+    it('requires billing admin permission', async () => {
       ConfigStore.set('user', UserFixture({permissions: new Set([])}));
 
       const invoice = InvoiceFixture({isClosed: false});
       MockApiClient.addMockResponse({
-        url: `/_admin/invoices/${invoice.id}/`,
+        url: `/_admin/cells/us/admin-invoices/${invoice.id}/`,
         body: invoice,
         host: 'https://us.sentry.io',
       });
@@ -134,11 +135,11 @@ describe('InvoiceDetails', function () {
     });
   });
 
-  describe('Retry Payment', function () {
-    it('can retry payment', async function () {
+  describe('Retry Payment', () => {
+    it('can retry payment', async () => {
       const invoice = InvoiceFixture({isPaid: false});
       MockApiClient.addMockResponse({
-        url: `/_admin/invoices/${invoice.id}/`,
+        url: `/_admin/cells/us/admin-invoices/${invoice.id}/`,
         body: invoice,
         host: 'https://us.sentry.io',
       });
@@ -171,10 +172,10 @@ describe('InvoiceDetails', function () {
       expect(updateMock).toHaveBeenCalled();
     });
 
-    it('cannot retry already paid invoice', async function () {
+    it('cannot retry already paid invoice', async () => {
       const invoice = InvoiceFixture({isPaid: true});
       MockApiClient.addMockResponse({
-        url: `/_admin/invoices/${invoice.id}/`,
+        url: `/_admin/cells/us/admin-invoices/${invoice.id}/`,
         body: invoice,
         host: 'https://us.sentry.io',
       });

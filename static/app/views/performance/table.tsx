@@ -1,13 +1,14 @@
-import {Component, type ReactNode, useEffect} from 'react';
+import {Component, useEffect, type ReactNode} from 'react';
 import type {Theme} from '@emotion/react';
-import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
+
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumn} from 'sentry/components/tables/gridEditable';
@@ -19,7 +20,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -35,8 +35,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {
-  type DomainViewFilters,
   useDomainViewFilters,
+  type DomainViewFilters,
 } from 'sentry/views/insights/pages/useFilters';
 import {getLandingDisplayFromParam} from 'sentry/views/performance/landing/utils';
 
@@ -259,7 +259,7 @@ class _Table extends Component<Props, State> {
   ): React.ReactNode {
     const {eventView, organization, projects, location, withStaticFilters} = this.props;
 
-    if (!tableData || !tableData.meta) {
+    if (!tableData?.meta) {
       return dataRow[column.key];
     }
     const tableMeta = tableData.meta;
@@ -280,6 +280,8 @@ class _Table extends Component<Props, State> {
       Actions.SHOW_GREATER_THAN,
       Actions.SHOW_LESS_THAN,
       Actions.EDIT_THRESHOLD,
+      Actions.OPEN_EXTERNAL_LINK,
+      Actions.OPEN_INTERNAL_LINK,
     ];
 
     const cellActions = withStaticFilters ? [] : allowActions;
@@ -361,13 +363,17 @@ class _Table extends Component<Props, State> {
                 'Transactions are grouped together until we receive enough data to identify parameter patterns.'
               )}
             >
-              <UnparameterizedTooltipWrapper data-test-id="unparameterized-indicator">
+              <Flex
+                justify="center"
+                align="center"
+                data-test-id="unparameterized-indicator"
+              >
                 <LoadingIndicator
                   mini
                   size={16}
                   style={{margin: 0, width: 16, height: 16}}
                 />
-              </UnparameterizedTooltipWrapper>
+              </Flex>
             </Tooltip>
           );
         }
@@ -527,14 +533,12 @@ class _Table extends Component<Props, State> {
       if (teamKeyTransactionColumn) {
         if (isHeader) {
           const star = (
-            <TeamKeyTransactionWrapper>
-              <IconStar
-                key="keyTransaction"
-                color="yellow300"
-                isSolid
-                data-test-id="team-key-transaction-header"
-              />
-            </TeamKeyTransactionWrapper>
+            <IconStar
+              key="keyTransaction"
+              variant="warning"
+              isSolid
+              data-test-id="team-key-transaction-header"
+            />
           );
           return [
             this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, {title: star}),
@@ -598,69 +602,59 @@ class _Table extends Component<Props, State> {
     const columnSortBy = sortedEventView.getSorts();
 
     const prependColumnWidths = ['max-content'];
-
     return (
       <div data-test-id="performance-table">
-        <DemoTourElement
-          id={DemoTourStep.PERFORMANCE_TABLE}
-          title={t('See slow transactions')}
-          description={t(
-            `Trace slow-loading pages back to their API calls, as well as, related errors and users impacted across projects.
-            Select a transaction to see more details.`
-          )}
-        >
-          <MEPConsumer>
-            {value => {
-              return (
-                <DiscoverQuery
-                  eventView={sortedEventView}
-                  orgSlug={organization.slug}
-                  location={location}
-                  setError={error => setError(error?.message)}
-                  referrer="api.performance.landing-table"
-                  transactionName={transaction}
-                  transactionThreshold={transactionThreshold}
-                  queryExtras={getMEPQueryParams(value)}
-                >
-                  {({pageLinks, isLoading, tableData}) => (
-                    <TrackHasDataAnalytics isLoading={isLoading} tableData={tableData}>
-                      <VisuallyCompleteWithData
-                        id="PerformanceTable"
-                        hasData={
-                          !isLoading && !!tableData?.data && tableData.data.length > 0
-                        }
+        <MEPConsumer>
+          {value => {
+            return (
+              <DiscoverQuery
+                eventView={sortedEventView}
+                orgSlug={organization.slug}
+                location={location}
+                setError={error => setError(error?.message)}
+                referrer="api.insights.landing-table"
+                transactionName={transaction}
+                transactionThreshold={transactionThreshold}
+                queryExtras={getMEPQueryParams(value)}
+              >
+                {({pageLinks, isLoading, tableData}) => (
+                  <TrackHasDataAnalytics isLoading={isLoading} tableData={tableData}>
+                    <VisuallyCompleteWithData
+                      id="PerformanceTable"
+                      hasData={
+                        !isLoading && !!tableData?.data && tableData.data.length > 0
+                      }
+                      isLoading={isLoading}
+                    >
+                      <GridEditable
                         isLoading={isLoading}
-                      >
-                        <GridEditable
-                          isLoading={isLoading}
-                          data={tableData ? tableData.data : []}
-                          columnOrder={columnOrder}
-                          columnSortBy={columnSortBy}
-                          bodyStyle={{overflow: 'visible'}}
-                          grid={{
-                            onResizeColumn: this.handleResizeColumn,
-                            renderHeadCell: this.renderHeadCellWithMeta(
-                              tableData?.meta
-                            ) as any,
-                            renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                            renderPrependColumns: this.renderPrependCellWithData(
-                              tableData
-                            ) as any,
-                            prependColumnWidths,
-                          }}
-                        />
-                      </VisuallyCompleteWithData>
-                      <Pagination
-                        pageLinks={pageLinks}
-                        paginationAnalyticsEvent={this.paginationAnalyticsEvent}
+                        data={tableData ? tableData.data : []}
+                        columnOrder={columnOrder}
+                        columnSortBy={columnSortBy}
+                        bodyStyle={{overflow: 'visible'}}
+                        grid={{
+                          onResizeColumn: this.handleResizeColumn,
+                          renderHeadCell: this.renderHeadCellWithMeta(
+                            tableData?.meta
+                          ) as any,
+                          renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                          renderPrependColumns: this.renderPrependCellWithData(
+                            tableData
+                          ) as any,
+                          prependColumnWidths,
+                        }}
                       />
-                    </TrackHasDataAnalytics>
-                  )}
-                </DiscoverQuery>
-              );
-            }}
-          </MEPConsumer>
-        </DemoTourElement>
+                    </VisuallyCompleteWithData>
+                    <Pagination
+                      pageLinks={pageLinks}
+                      paginationAnalyticsEvent={this.paginationAnalyticsEvent}
+                    />
+                  </TrackHasDataAnalytics>
+                )}
+              </DiscoverQuery>
+            );
+          }}
+        </MEPConsumer>
       </div>
     );
   }
@@ -680,17 +674,5 @@ function Table(props: Omit<Props, 'summaryConditions'> & {summaryConditions?: st
     />
   );
 }
-
-// Align the contained IconStar with the IconStar buttons in individual table
-// rows, which have 2px padding + 1px border.
-const TeamKeyTransactionWrapper = styled('div')`
-  padding: 3px;
-`;
-
-const UnparameterizedTooltipWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
 
 export default Table;

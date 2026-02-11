@@ -62,8 +62,7 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
 
     permission_classes = (OrganizationTraceExplorerAIPermission,)
 
-    @staticmethod
-    def post(request: Request, organization: Organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Request to translate a natural language query into a sentry EQS query.
         """
@@ -73,17 +72,26 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        project_ids = [int(x) for x in request.data.get("project_ids", [])]
+        raw_project_ids = request.data.get("project_ids", [])
         natural_language_query = request.data.get("natural_language_query")
         limit = request.data.get("limit", 1)
 
-        if len(project_ids) == 0 or not natural_language_query:
+        # Validate required parameters before calling get_projects()
+        if len(raw_project_ids) == 0 or not natural_language_query:
             return Response(
                 {
                     "detail": "Missing one or more required parameters: project_ids, natural_language_query"
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # Validate project access after confirming valid input
+        projects = self.get_projects(
+            request=request,
+            organization=organization,
+            project_ids={int(x) for x in raw_project_ids},
+        )
+        project_ids = [p.id for p in projects]
 
         if organization.get_option("sentry:hide_ai_features", False):
             return Response(
@@ -92,8 +100,6 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
             )
 
         if not features.has(
-            "organizations:gen-ai-explore-traces", organization=organization, actor=request.user
-        ) or not features.has(
             "organizations:gen-ai-features", organization=organization, actor=request.user
         ):
             return Response(
@@ -110,23 +116,10 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
             organization.id, organization.slug, project_ids, natural_language_query
         )
 
-        if "responses" not in data:
-            return Response(
-                {
-                    "status": "ok",
-                    "query": data["query"],  # the sentry EQS query as a string
-                    "stats_period": data["stats_period"],
-                    "group_by": list(data.get("group_by", [])),
-                    "visualization": list(
-                        data.get("visualization")
-                    ),  # [{chart_type: 1, y_axes: ["count_message"]}, ...]
-                    "sort": data["sort"],
-                }
-            )
+        responses = data.get("responses", [])[:limit]
+        unsupported_reason = data.get("unsupported_reason")
 
-        data = data["responses"][:limit]
-
-        if len(data) == 0:
+        if len(responses) == 0 and not unsupported_reason:
             logger.info("No results found for query")
             return Response(
                 {"detail": "No results found for query"},
@@ -141,10 +134,12 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
                         "query": query["query"],
                         "stats_period": query["stats_period"],
                         "group_by": list(query.get("group_by", [])),
-                        "visualization": list(query.get("visualization")),
+                        "visualization": list(query.get("visualization", [])),
                         "sort": query["sort"],
+                        "mode": query.get("mode", "spans"),
                     }
-                    for query in data
+                    for query in responses
                 ],
+                "unsupported_reason": unsupported_reason,
             }
         )

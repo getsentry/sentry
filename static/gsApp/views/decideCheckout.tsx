@@ -1,25 +1,32 @@
-import {useState} from 'react';
-
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import useSubscription from 'getsentry/hooks/useSubscription';
 import {PlanTier} from 'getsentry/types';
+import {hasPartnerMigrationFeature} from 'getsentry/utils/billing';
 import AMCheckout from 'getsentry/views/amCheckout';
 
-interface Props extends RouteComponentProps<Record<PropertyKey, unknown>, unknown> {}
-
-function DecideCheckout(props: Props) {
+function DecideCheckout() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const organization = useOrganization();
-  const [tier, setTier] = useState<string | null>(null);
+  const subscription = useSubscription();
 
-  const checkoutProps = {...props, organization, onToggleLegacy: setTier};
+  // if we're showing new checkout, ensure we show the checkout for
+  // the current plan tier (we will only toggle between tiers for legacy checkout)
+  const tier = subscription?.planTier ?? null;
+
+  const checkoutProps = {
+    organization,
+    location,
+    navigate,
+  };
 
   const hasAm3Feature = organization.features?.includes('am3-billing');
-  const hasPartnerMigrationFeature = organization.features.includes(
-    'partner-billing-migration'
-  );
-  if (hasAm3Feature || hasPartnerMigrationFeature) {
+  const isMigratingPartner = hasPartnerMigrationFeature(organization);
+  if (hasAm3Feature || isMigratingPartner) {
     return (
       <ErrorBoundary errorTag={{checkout: PlanTier.AM3}}>
         <AMCheckout checkoutTier={PlanTier.AM3} {...checkoutProps} />

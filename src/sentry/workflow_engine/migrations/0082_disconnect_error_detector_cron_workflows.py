@@ -7,7 +7,6 @@ from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +18,7 @@ def disconnect_error_detector_cron_workflows(
     AlertRuleWorkflow = apps.get_model("workflow_engine", "AlertRuleWorkflow")
     DetectorWorkflow = apps.get_model("workflow_engine", "DetectorWorkflow")
 
-    for rule in RangeQuerySetWrapper(Rule.objects.filter(source=1)):
+    for rule in Rule.objects.filter(source=1):
         arw = AlertRuleWorkflow.objects.filter(rule_id=rule.id).select_related("workflow").first()
         if not arw:
             logger.info(

@@ -9,6 +9,7 @@ import sys
 import time
 from datetime import datetime
 from hashlib import sha256
+from pathlib import Path
 from typing import TypeVar
 from unittest import mock
 
@@ -175,9 +176,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.BROKER_BACKEND = "memory"
     settings.BROKER_URL = "memory://"
-    settings.CELERY_ALWAYS_EAGER = False
-    settings.CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
-    settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
+    settings.TASKWORKER_ALWAYS_EAGER = False
     settings.SENTRY_METRICS_DISALLOW_BAD_TAGS = True
 
     settings.DEBUG_VIEWS = True
@@ -219,6 +218,11 @@ def pytest_configure(config: pytest.Config) -> None:
             "github-app.name": "sentry-test-app",
             "github-app.client-id": "github-client-id",
             "github-app.client-secret": "github-client-secret",
+            "github-console-sdk-app.id": 42,
+            "github-console-sdk-app.client-id": "github-client-id",
+            "github-console-sdk-app.client-secret": "github-client-secret",
+            "github-console-sdk-app.installation-id": "123123123",
+            "github-console-sdk-app.private-key": "github-private-key",
             "vsts.client-id": "vsts-client-id",
             "vsts.client-secret": "vsts-client-secret",
             "vsts-limited.client-id": "vsts-limited-client-id",
@@ -285,17 +289,20 @@ def pytest_configure(config: pytest.Config) -> None:
     asset_version_patcher.start()
     from sentry.runner.initializer import initialize_app
 
-    initialize_app({"settings": settings, "options": None})
+    SENTRY_SKIP_SERVICE_VALIDATION = "SENTRY_SKIP_SERVICE_VALIDATION" in os.environ
+
+    initialize_app(
+        {"settings": settings, "options": None},
+        skip_service_validation=SENTRY_SKIP_SERVICE_VALIDATION,
+    )
     sentry_sdk.get_global_scope().set_client(None)
     register_extensions()
 
-    from sentry.utils.redis import clusters
+    if not SENTRY_SKIP_SERVICE_VALIDATION:
+        from sentry.utils.redis import clusters
 
-    with clusters.get("default").all() as client:
-        client.flushdb()
-
-    # force celery registration
-    from sentry.celery import app  # NOQA
+        with clusters.get("default").all() as client:
+            client.flushdb()
 
 
 def register_extensions() -> None:
@@ -329,6 +336,26 @@ def register_extensions() -> None:
     )
 
 
+def pytest_sessionstart(session: pytest.Session) -> None:
+    from sentry.taskworker.registry import TaskNamespace
+
+    # Store original send_task so tests that need it can restore it
+    TaskNamespace._original_send_task = TaskNamespace.send_task  # type: ignore[attr-defined]
+
+    # Prevent tests from producing real Kafka messages via the taskworker pipeline.
+    # Tests use TaskRunner (TASKWORKER_ALWAYS_EAGER=True) or BurstTaskRunner
+    # (_signal_send hook) which both operate before send_task in the call chain.
+    TaskNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[method-assign]
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    from sentry.taskworker.registry import TaskNamespace
+
+    if hasattr(TaskNamespace, "_original_send_task"):
+        TaskNamespace.send_task = TaskNamespace._original_send_task  # type: ignore[method-assign]
+        del TaskNamespace._original_send_task
+
+
 def pytest_runtest_setup(item: pytest.Item) -> None:
     if item.config.getvalue("nomigrations") and any(
         mark for mark in item.iter_markers(name="migrations")
@@ -346,13 +373,6 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
 
     with clusters.get("default").all() as client:
         client.flushdb()
-
-    from celery.app.control import Control
-
-    from sentry.celery import app
-
-    celery_app_control = Control(app)
-    celery_app_control.discard_all()
 
     from sentry.models.options.organization_option import OrganizationOption
     from sentry.models.options.project_option import ProjectOption
@@ -398,12 +418,40 @@ def _shuffle(items: list[pytest.Item], r: random.Random) -> None:
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    """After collection, we need to select tests based on group and group strategy"""
+    """After collection, select tests based on selective file filter and group strategy.
+
+    When SELECTED_TESTS_FILE is set, only tests from files listed in that file are kept.
+    This enables selective testing while maintaining proper conftest loading order by
+    invoking pytest with the tests/ directory instead of specific file paths.
+    """
+
+    keep, discard = [], []
+
+    # Filter by selected test files if SELECTED_TESTS_FILE is set
+    selected_tests_file = os.environ.get("SELECTED_TESTS_FILE")
+    if selected_tests_file:
+        selected_path = Path(selected_tests_file)
+        if selected_path.exists():
+            with selected_path.open() as f:
+                selected_files = {line.strip() for line in f if line.strip()}
+
+            if selected_files:
+                for item in items:
+                    test_file = item.nodeid.split("::")[0]
+                    if test_file in selected_files:
+                        keep.append(item)
+                    else:
+                        discard.append(item)
+
+                items[:] = keep
+                if discard:
+                    config.hook.pytest_deselected(items=discard)
 
     total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
     current_group = int(os.environ.get("TEST_GROUP", 0))
     grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "scope")
 
+    # Reset keep/discard for sharding logic
     keep, discard = [], []
 
     for index, item in enumerate(items):
@@ -427,7 +475,8 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     items[:] = keep
 
     if os.environ.get("SENTRY_SHUFFLE_TESTS"):
-        seed = int(os.environ.get("SENTRY_SHUFFLE_TESTS_SEED", time.time()))
+        seed_env = os.environ.get("SENTRY_SHUFFLE_TESTS_SEED")
+        seed = int(seed_env) if seed_env else int(time.time())
         config.get_terminal_writer().line(f"SENTRY_SHUFFLE_TESTS_SEED: {seed}")
         _shuffle(items, random.Random(seed))
 

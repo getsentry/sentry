@@ -1,5 +1,7 @@
 import type {Theme} from '@emotion/react';
 
+import type {HeadingSize, TextSize} from 'sentry/utils/theme';
+
 import type {HeadingProps} from './heading';
 import type {TextProps} from './text';
 
@@ -10,23 +12,39 @@ export function getTextDecoration(p: TextProps<any> | HeadingProps) {
   }
   if (p.underline) {
     decorations.push('underline');
+
+    if (p.underline === 'dotted') {
+      decorations.push('dotted');
+    }
   }
   return decorations.join(' ');
 }
 
-export function getLineHeight(density: TextProps<any>['density']) {
+export function getLineHeight(
+  density: 'compressed' | 'comfortable' | undefined,
+  theme: Theme
+): string | undefined {
+  if (density === undefined) {
+    return undefined;
+  }
+
   switch (density) {
     case 'compressed':
-      return '1';
+      return theme.font.lineHeight.compressed.toString();
     case 'comfortable':
-      return '1.4';
-    // @TODO: Fixed density is 16, how does that work with larger sizes?
-    case undefined:
+      return theme.font.lineHeight.comfortable.toString();
     default:
-      return '1.2';
+      return undefined;
   }
 }
 
-export function getFontSize(size: TextProps<any>['size'], theme: Theme) {
-  return theme.fontSize[size ?? 'md'];
+export function getFontSize(
+  size: TextSize | HeadingSize | undefined,
+  theme: Theme
+): string | undefined {
+  if (size === undefined) {
+    return undefined;
+  }
+
+  return theme.font.size[size];
 }

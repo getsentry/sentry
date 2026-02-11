@@ -267,6 +267,35 @@ def mock_replay_click(
     }
 
 
+def mock_replay_tap(
+    timestamp: datetime.datetime,
+    project_id: int,
+    replay_id: str,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    return {
+        "type": "replay_event",
+        "start_time": sec(timestamp),
+        "replay_id": replay_id,
+        "project_id": project_id,
+        "retention_days": kwargs.pop("retention_days", 30),
+        "payload": {
+            "type": "replay_tap",
+            "replay_id": replay_id,
+            "environment": kwargs.pop("environment", "production"),
+            "taps": [
+                {
+                    "message": kwargs["message"],
+                    "view_class": kwargs.pop("view_class", ""),
+                    "view_id": kwargs.pop("view_id", ""),
+                    "event_hash": str(uuid.uuid4()),
+                    "timestamp": sec(timestamp),
+                }
+            ],
+        },
+    }
+
+
 def mock_replay_viewed(
     timestamp: float,
     project_id: int,

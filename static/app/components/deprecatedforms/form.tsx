@@ -2,8 +2,9 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+
 import FormContext from 'sentry/components/deprecatedforms/formContext';
 import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
@@ -139,7 +140,7 @@ class Form<
           aria-label={(this.props as any)['aria-label']}
         >
           {isError && !hideErrors && (
-            <Alert type="error" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               {nonFieldErrors ? (
                 <div>
                   <p>

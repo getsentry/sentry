@@ -51,7 +51,7 @@ class RepoExistsError(SentryAPIException):
         super().__init__(code=code, message=message, detail=detail, **kwargs)
         self.repos = repos
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.repos:
             return f"Repositories already exist: {', '.join(repo['name'] for repo in self.repos)}"
         return "Repositories already exist."

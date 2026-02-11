@@ -1,5 +1,5 @@
-import Color from 'color';
-import type {ZRLineType} from 'echarts/types/src/util/types';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 
 import type {Series} from 'sentry/types/echarts';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -33,7 +33,7 @@ export function createIngestionSeries(
     return [orignalSeries];
   }
 
-  const series = [
+  const series: Series[] = [
     {
       ...orignalSeries,
       data: orignalSeries.data.slice(0, -ingestionBuckets),
@@ -86,7 +86,7 @@ function createIngestionLineSeries(series: Series, fogBucketCnt = 0) {
     // We include the last non-fog of war bucket so that the line is connected
     data: series.data.slice(-fogBucketCnt - 1),
     lineStyle: {
-      type: 'dotted' as ZRLineType,
+      type: 'dotted' as const,
     },
   };
 }
@@ -100,8 +100,8 @@ function createIngestionAreaSeries(series: Series, fogBucketCnt = 0) {
     // We include the last non-fog of war bucket so that the line is connected
     data: series.data.slice(-fogBucketCnt - 1),
     lineStyle: {
-      type: 'dotted' as ZRLineType,
-      color: Color(series.color).lighten(0.3).string(),
+      type: 'dotted' as const,
+      color: color(series.color).lighten(0.3).string(),
     },
   };
 }

@@ -1,6 +1,7 @@
 import * as qs from 'query-string';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -47,7 +48,7 @@ export function TransactionCell({project, transaction, transactionMethod}: Props
 
   return (
     <OverflowEllipsisTextContainer>
-      <Link to={`${pathname}/?${qs.stringify(query)}`}>{transaction}</Link>
+      <Link to={`${pathname}?${qs.stringify(query)}`}>{transaction}</Link>
     </OverflowEllipsisTextContainer>
   );
 }

@@ -3,11 +3,11 @@ import type {Location} from 'history';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t} from 'sentry/locale';
@@ -17,7 +17,6 @@ import type {Project} from 'sentry/types/project';
 import {HealthStatsPeriodOption, type Release} from 'sentry/types/release';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 import ReleaseCard from 'sentry/views/releases/list/releaseCard';
 import ReleasesAdoptionChart from 'sentry/views/releases/list/releasesAdoptionChart';
 import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
@@ -51,7 +50,6 @@ function ReleaseListInner({
   shouldShowQuickstart,
   showReleaseAdoptionStages,
 }: Props) {
-  const router = useRouter();
   const location = useLocation();
   const hasReleasesSetup = selectedProject?.features.includes('releases');
 
@@ -80,7 +78,7 @@ function ReleaseListInner({
       releasesReloading={reloading}
       healthStatsPeriod={
         typeof location.query.healthStatsPeriod === 'string'
-          ? HealthStatsPeriodOption.TWENTY_FOUR_HOURS
+          ? location.query.healthStatsPeriod === HealthStatsPeriodOption.TWENTY_FOUR_HOURS
             ? HealthStatsPeriodOption.TWENTY_FOUR_HOURS
             : HealthStatsPeriodOption.AUTO
           : undefined
@@ -102,7 +100,6 @@ function ReleaseListInner({
                 organization={organization}
                 selection={selection}
                 location={location}
-                router={router}
                 activeDisplay={activeDisplay}
               />
             )}
@@ -201,7 +198,7 @@ function EmptyReleaseMessage({
   if (searchQuery?.length) {
     return (
       <Panel>
-        <EmptyMessage icon={<IconSearch size="xl" />} size="large">{`${t(
+        <EmptyMessage icon={<IconSearch />} size="lg">{`${t(
           'There are no releases that match'
         )}: '${searchQuery}'.`}</EmptyMessage>
       </Panel>
@@ -211,7 +208,7 @@ function EmptyReleaseMessage({
   if (activeSort === ReleasesSortOption.USERS_24_HOURS) {
     return (
       <Panel>
-        <EmptyMessage icon={<IconSearch size="xl" />} size="large">
+        <EmptyMessage icon={<IconSearch />} size="lg">
           {t('There are no releases with active user data (users in the last 24 hours).')}
         </EmptyMessage>
       </Panel>
@@ -221,7 +218,7 @@ function EmptyReleaseMessage({
   if (activeSort === ReleasesSortOption.SESSIONS_24_HOURS) {
     return (
       <Panel>
-        <EmptyMessage icon={<IconSearch size="xl" />} size="large">
+        <EmptyMessage icon={<IconSearch />} size="lg">
           {t(
             'There are no releases with active session data (sessions in the last 24 hours).'
           )}
@@ -236,7 +233,7 @@ function EmptyReleaseMessage({
   ) {
     return (
       <Panel>
-        <EmptyMessage icon={<IconSearch size="xl" />} size="large">
+        <EmptyMessage icon={<IconSearch />} size="lg">
           {t('There are no releases with semantic versioning.')}
         </EmptyMessage>
       </Panel>
@@ -246,7 +243,7 @@ function EmptyReleaseMessage({
   if (activeSort !== ReleasesSortOption.DATE) {
     return (
       <Panel>
-        <EmptyMessage icon={<IconSearch size="xl" />} size="large">
+        <EmptyMessage icon={<IconSearch />} size="lg">
           {`${t('There are no releases with data in the')} ${selectedPeriod}.`}
         </EmptyMessage>
       </Panel>
@@ -256,7 +253,7 @@ function EmptyReleaseMessage({
   if (activeStatus === ReleasesStatusOption.ARCHIVED) {
     return (
       <Panel>
-        <EmptyMessage icon={<IconSearch size="xl" />} size="large">
+        <EmptyMessage icon={<IconSearch />} size="lg">
           {t('There are no archived releases.')}
         </EmptyMessage>
       </Panel>
@@ -265,7 +262,7 @@ function EmptyReleaseMessage({
 
   return (
     <Panel>
-      <EmptyMessage icon={<IconSearch size="xl" />} size="large">
+      <EmptyMessage icon={<IconSearch />} size="lg">
         {`${t('There are no releases with data in the')} ${selectedPeriod}.`}
       </EmptyMessage>
     </Panel>

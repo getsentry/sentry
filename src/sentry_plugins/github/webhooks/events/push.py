@@ -81,7 +81,7 @@ class PushEventWebhook(Webhook):
                                 with GithubPluginClient() as client:
                                     gh_user = client.request_no_auth("GET", f"/users/{gh_username}")
                             except ApiError as exc:
-                                logger.exception(str(exc))
+                                logger.warning(str(exc))
                             else:
                                 # even if we can't find a user, set to none so we
                                 # don't re-query
@@ -155,20 +155,29 @@ class PushEventWebhook(Webhook):
                     for fname in commit["added"]:
                         file_changes.append(
                             CommitFileChange(
-                                organization_id=organization_id, commit=c, filename=fname, type="A"
+                                organization_id=organization_id,
+                                commit_id=c.id,
+                                filename=fname,
+                                type="A",
                             )
                         )
 
                     for fname in commit["removed"]:
                         file_changes.append(
                             CommitFileChange(
-                                organization_id=organization_id, commit=c, filename=fname, type="D"
+                                organization_id=organization_id,
+                                commit_id=c.id,
+                                filename=fname,
+                                type="D",
                             )
                         )
                     for fname in commit["modified"]:
                         file_changes.append(
                             CommitFileChange(
-                                organization_id=organization_id, commit=c, filename=fname, type="M"
+                                organization_id=organization_id,
+                                commit_id=c.id,
+                                filename=fname,
+                                type="M",
                             )
                         )
 

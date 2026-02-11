@@ -3,7 +3,9 @@ import styled from '@emotion/styled';
 
 import {IconSettings} from 'sentry/icons/iconSettings';
 import {IconUser} from 'sentry/icons/iconUser';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
@@ -22,7 +24,7 @@ const enum CallTreeTableClassNames {
 }
 
 export const CallTreeTable = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   margin: 0;
   overflow: auto;
   max-height: 100%;
@@ -30,7 +32,7 @@ export const CallTreeTable = styled('div')`
   width: 100%;
   display: flex;
   flex-direction: column;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 
   .${CallTreeTableClassNames.ROW} {
     display: flex;
@@ -44,42 +46,38 @@ export const CallTreeTable = styled('div')`
     }
 
     &[tabindex='0'] {
-      background: ${p => p.theme.blue300};
+      background: ${p => p.theme.tokens.background.accent.vibrant};
       color: #fff;
 
       .${CallTreeTableClassNames.WEIGHT} {
-        color: ${p => p.theme.white};
+        color: ${p => p.theme.colors.white};
         opacity: 0.7;
       }
 
       .${CallTreeTableClassNames.BACKGROUND_WEIGHT} {
-        background-color: ${props => props.theme.yellow100};
-        border-bottom: 1px solid ${props => props.theme.yellow200};
+        background-color: ${props => props.theme.colors.yellow100};
+        border-bottom: 1px solid ${props => props.theme.colors.yellow200};
       }
 
       .${CallTreeTableClassNames.FRAME_TYPE} {
-        color: ${p => p.theme.white};
+        color: ${p => p.theme.colors.white};
         opacity: 0.7;
       }
     }
 
     &[data-hovered='true']:not([tabindex='0']) {
-      background: ${p => p.theme.surface200};
+      background: ${p => p.theme.tokens.background.tertiary};
     }
   }
 
   .${CallTreeTableClassNames.CELL} {
     position: relative;
     width: 164px;
-    border-right: 1px solid ${p => p.theme.border};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
     display: flex;
     align-items: center;
     padding-right: ${space(1)};
     justify-content: flex-end;
-
-    &:nth-child(2) {
-      padding-right: 0;
-    }
 
     &:focus {
       outline: none;
@@ -89,7 +87,7 @@ export const CallTreeTable = styled('div')`
   .${CallTreeTableClassNames.FRAME_CELL} {
     display: flex;
     align-items: center;
-    padding: 0 ${space(1)};
+    padding-left: ${space(1)};
     white-space: nowrap;
 
     &:focus {
@@ -100,7 +98,7 @@ export const CallTreeTable = styled('div')`
     display: inline-block;
     min-width: 7ch;
     padding-right: 0px;
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     opacity: 1;
   }
   .${CallTreeTableClassNames.BACKGROUND_WEIGHT} {
@@ -108,8 +106,8 @@ export const CallTreeTable = styled('div')`
     position: absolute;
     right: 0;
     top: 0;
-    background-color: ${props => props.theme.yellow100};
-    border-bottom: 1px solid ${props => props.theme.yellow200};
+    background-color: ${props => props.theme.colors.yellow100};
+    border-bottom: 1px solid ${props => props.theme.colors.yellow200};
     transform-origin: center right;
     height: 100%;
     width: 100%;
@@ -122,7 +120,7 @@ export const CallTreeTable = styled('div')`
     display: flex;
     align-items: center;
     justify-content: center;
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     opacity: ${_p => 1};
   }
 
@@ -153,7 +151,7 @@ export const CallTreeTable = styled('div')`
   .${CallTreeTableClassNames.GHOST_ROW_CELL} {
     width: 164px;
     height: 100%;
-    border-right: 1px solid ${p => p.theme.border};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
     position: absolute;
     left: 0;
     top: 0;
@@ -212,8 +210,8 @@ export const CallTreeTableHeader = styled('div')`
 
   > div {
     position: relative;
-    border-bottom: 1px solid ${p => p.theme.border};
-    background-color: ${p => p.theme.background};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+    background-color: ${p => p.theme.tokens.background.primary};
     white-space: nowrap;
 
     &:last-child {
@@ -221,7 +219,7 @@ export const CallTreeTableHeader = styled('div')`
     }
 
     &:not(:last-child) {
-      border-right: 1px solid ${p => p.theme.border};
+      border-right: 1px solid ${p => p.theme.tokens.border.primary};
     }
   }
 `;
@@ -233,7 +231,7 @@ export const CallTreeTableHeaderButton = styled('button')`
   justify-content: space-between;
   padding: 0 ${space(1)};
   border: none;
-  background-color: ${props => props.theme.surface200};
+  background-color: ${p => p.theme.tokens.background.tertiary};
   transition: background-color 100ms ease-in-out;
   line-height: 29px;
 
@@ -378,12 +376,12 @@ const TEXT_ALIGN_RIGHT: React.CSSProperties = {textAlign: 'right'};
 
 interface CallTreeTableRowProps {
   children: React.ReactNode;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent<HTMLElement>) => void;
   onContextMenu: (e: React.MouseEvent) => void;
-  onKeyDown: (event: React.KeyboardEvent) => void;
-  onMouseEnter: () => void;
+  onKeyDown: (e: React.KeyboardEvent) => void;
+  onMouseEnter: (e: React.MouseEvent<HTMLElement>) => void;
   tabIndex: number;
-  top: string;
+  top: React.CSSProperties['top'];
   ref?: React.Ref<HTMLDivElement>;
 }
 export function CallTreeTableRow({ref, ...props}: CallTreeTableRowProps) {
@@ -403,7 +401,7 @@ export function CallTreeTableRow({ref, ...props}: CallTreeTableRowProps) {
   );
 }
 
-interface CallTreeTableColumns {
+interface BaseCallTreeTableColumns {
   formatDuration: (value: number) => string;
   frameColor: string;
   node: VirtualizedTreeNode<FlamegraphFrame>;
@@ -413,12 +411,17 @@ interface CallTreeTableColumns {
     opts?: {expandChildren: boolean}
   ) => void;
   referenceNode: FlamegraphFrame;
+  tabIndex: number;
+  type: 'count' | 'time';
+}
+
+interface CallTreeTableColumns extends BaseCallTreeTableColumns {
   relativeSelfWeight: number;
   relativeTotalWeight: number;
   selfWeight: number | React.ReactNode;
-  tabIndex: number;
   totalWeight: number | React.ReactNode;
-  type: 'count' | 'time';
+  avgWeight?: React.ReactNode;
+  showAvg?: boolean;
 }
 
 export function CallTreeTableFixedColumns(props: CallTreeTableColumns) {
@@ -437,34 +440,39 @@ export function CallTreeTableFixedColumns(props: CallTreeTableColumns) {
         </div>
       </div>
       <div className={CallTreeTableClassNames.CELL} style={TEXT_ALIGN_RIGHT}>
-        {typeof props.totalWeight === 'number'
-          ? props.formatDuration(props.totalWeight)
-          : props.totalWeight}
-        <div className={CallTreeTableClassNames.WEIGHT}>
-          {props.relativeTotalWeight.toFixed(1)}%
-          <div
-            className={CallTreeTableClassNames.BACKGROUND_WEIGHT}
-            style={{transform: `scaleX(${props.relativeTotalWeight / 100})`}}
-          />
-        </div>
-        <div className={CallTreeTableClassNames.FRAME_TYPE}>
-          {props.node.node.node.frame.is_application ? (
-            <IconUser size="xs" />
+        {props.showAvg ? (
+          defined(props.avgWeight) ? (
+            props.avgWeight
           ) : (
-            <IconSettings size="xs" />
-          )}
-        </div>
+            <span>{t('Unknown')}</span>
+          )
+        ) : (
+          <Fragment>
+            {typeof props.totalWeight === 'number'
+              ? props.formatDuration(props.totalWeight)
+              : props.totalWeight}
+            <div className={CallTreeTableClassNames.WEIGHT}>
+              {props.relativeTotalWeight.toFixed(1)}%
+              <div
+                className={CallTreeTableClassNames.BACKGROUND_WEIGHT}
+                style={{transform: `scaleX(${props.relativeTotalWeight / 100})`}}
+              />
+            </div>
+            <div className={CallTreeTableClassNames.FRAME_TYPE}>
+              {props.node.node.node.frame.is_application ? (
+                <IconUser size="xs" />
+              ) : (
+                <IconSettings size="xs" />
+              )}
+            </div>
+          </Fragment>
+        )}
       </div>
     </Fragment>
   );
 }
 
-export function CallTreeTableDynamicColumns(
-  props: Omit<
-    CallTreeTableColumns,
-    'relativeTotalWeight' | 'relativeSelfWeight' | 'selfWeight' | 'totalWeight'
-  >
-) {
+export function CallTreeTableDynamicColumns(props: BaseCallTreeTableColumns) {
   const handleExpanding = (evt: React.MouseEvent) => {
     evt.stopPropagation();
     props.onExpandClick(props.node, !props.node.expanded, {

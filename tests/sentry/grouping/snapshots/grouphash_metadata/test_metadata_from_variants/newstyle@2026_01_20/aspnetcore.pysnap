@@ -1,0 +1,208 @@
+---
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "85f90327d3b9ef257838f2664b9915e6"
+    contributing component: exception
+    hint: None
+    root_component:
+      app*
+        exception*
+          type*
+            "System.Exception"
+          stacktrace*
+            frame* (marked in-app by the client)
+              module*
+                "(unknown)"
+              function*
+                "lambda_method"
+            frame* (marked in-app by the client)
+              module*
+                "SentryTest2.Controllers.ValuesController"
+              function*
+                "Get"
+  system*
+    hash: "97dff72812f7f33f6fd01179d7963d07"
+    contributing component: exception
+    hint: None
+    root_component:
+      system*
+        exception*
+          type*
+            "System.Exception"
+          stacktrace*
+            frame*
+              module*
+                "Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware"
+              function*
+                "Invoke"
+            frame*
+              module*
+                "System.Runtime.CompilerServices.TaskAwaiter"
+              function*
+                "HandleNonSuccessAndDebuggerNotification"
+            frame*
+              module*
+                "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+              function*
+                "Throw"
+            frame*
+              module*
+                "Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware"
+              function*
+                "Invoke"
+            frame*
+              module*
+                "System.Runtime.CompilerServices.TaskAwaiter"
+              function*
+                "HandleNonSuccessAndDebuggerNotification"
+            frame*
+              module*
+                "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+              function*
+                "Throw"
+            frame*
+              module*
+                "Microsoft.AspNetCore.Routing.EndpointMiddleware"
+              function*
+                "Invoke"
+            frame*
+              module*
+                "System.Runtime.CompilerServices.TaskAwaiter"
+              function*
+                "HandleNonSuccessAndDebuggerNotification"
+            frame*
+              module*
+                "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+              function*
+                "Throw"
+            frame*
+              module*
+                "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
+              function*
+                "InvokeAsync"
+            frame*
+              module*
+                "System.Runtime.CompilerServices.TaskAwaiter"
+              function*
+                "HandleNonSuccessAndDebuggerNotification"
+            frame*
+              module*
+                "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+              function*
+                "Throw"
+            frame*
+              module*
+                "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
+              function*
+                "InvokeFilterPipelineAsync"
+            frame*
+              module*
+                "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
+              function*
+                "Next"
+            frame*
+              module*
+                "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
+              function*
+                "Rethrow"
+            frame*
+              module*
+                "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+              function*
+                "Throw"
+            frame*
+              module*
+                "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
+              function*
+                "InvokeNextResourceFilter"
+            frame*
+              module*
+                "System.Runtime.CompilerServices.TaskAwaiter"
+              function*
+                "HandleNonSuccessAndDebuggerNotification"
+            frame*
+              module*
+                "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+              function*
+                "Throw"
+            frame*
+              module*
+                "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
+              function*
+                "InvokeInnerFilterAsync"
+            frame*
+              module*
+                "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
+              function*
+                "Next"
+            frame*
+              module*
+                "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
+              function*
+                "Rethrow"
+            frame*
+              module*
+                "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+              function*
+                "Throw"
+            frame*
+              module*
+                "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
+              function*
+                "InvokeNextActionFilterAsync"
+            frame*
+              module*
+                "System.Runtime.CompilerServices.TaskAwaiter"
+              function*
+                "HandleNonSuccessAndDebuggerNotification"
+            frame*
+              module*
+                "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+              function*
+                "Throw"
+            frame*
+              module*
+                "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
+              function*
+                "InvokeActionMethodAsync"
+            frame*
+              module*
+                "Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor"
+              function*
+                "Execute"
+            frame*
+              module*
+                "Microsoft.Extensions.Internal.ObjectMethodExecutor"
+              function*
+                "Execute"
+            frame*
+              module*
+                "(unknown)"
+              function*
+                "lambda_method"
+            frame*
+              module*
+                "SentryTest2.Controllers.ValuesController"
+              function*
+                "Get"

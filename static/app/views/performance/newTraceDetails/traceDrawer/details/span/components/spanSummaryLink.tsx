@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -13,7 +14,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {
   querySummaryRouteWithQuery,
   resourceSummaryRouteWithQuery,
-} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/utils';
 
 interface Props {
   category: string | undefined;
@@ -35,7 +36,7 @@ function SpanSummaryLink(props: Props) {
   const resolvedModule = resolveSpanModule(props.op, props.category);
 
   if (
-    props.organization.features.includes('insights-initial-modules') &&
+    props.organization.features.includes('insight-modules') &&
     resolvedModule === ModuleName.DB
   ) {
     return (
@@ -60,7 +61,7 @@ function SpanSummaryLink(props: Props) {
   }
 
   if (
-    props.organization.features.includes('insights-initial-modules') &&
+    props.organization.features.includes('insight-modules') &&
     resolvedModule === ModuleName.RESOURCE &&
     resourceSummaryAvailable(props.op)
   ) {

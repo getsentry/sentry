@@ -5,14 +5,10 @@ from typing import Any
 from attr import dataclass
 
 from sentry.integrations.base import IntegrationDomain
-from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.services.integration import RpcOrganizationIntegration
 from sentry.integrations.utils.metrics import IntegrationEventLifecycleMetric
 from sentry.models.commit import Commit
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
-from sentry.organizations.services.organization import RpcOrganization
 
 
 class SCMIntegrationInteractionType(StrEnum):
@@ -40,6 +36,9 @@ class SCMIntegrationInteractionType(StrEnum):
     QUEUE_COMMENT_TASK = "queue_comment_task"
     GET_PR_DIFFS = "get_pr_diffs"  # open PR comments
 
+    GET_PR_COMMENTS = "get_pr_comments"
+    GET_ISSUE_COMMENTS = "get_issue_comments"
+
     # Tasks
     LINK_ALL_REPOS = "link_all_repos"
 
@@ -47,12 +46,11 @@ class SCMIntegrationInteractionType(StrEnum):
     DERIVE_CODEMAPPINGS = "derive_codemappings"
     STUDENT_PACK = "student_pack"
 
-    # External Issue Comment Sync
-    SYNC_EXTERNAL_ISSUE_COMMENT_CREATE = "sync_external_issue_comment_create"
-    SYNC_EXTERNAL_ISSUE_COMMENT_UPDATE = "sync_external_issue_comment_update"
-
     # Releases
     COMPARE_COMMITS = "compare_commits"
+
+    # Status Checks
+    CREATE_STATUS_CHECK = "create_status_check"
 
 
 @dataclass
@@ -63,10 +61,8 @@ class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
 
     interaction_type: SCMIntegrationInteractionType
     provider_key: str
-
-    # Optional attributes to populate extras
-    organization: Organization | RpcOrganization | None = None
-    org_integration: OrganizationIntegration | RpcOrganizationIntegration | None = None
+    integration_id: int | None = None
+    organization_id: int | None = None
 
     def get_integration_domain(self) -> IntegrationDomain:
         return IntegrationDomain.SOURCE_CODE_MANAGEMENT
@@ -79,8 +75,8 @@ class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
 
     def get_extras(self) -> Mapping[str, Any]:
         return {
-            "organization_id": (self.organization.id if self.organization else None),
-            "org_integration_id": (self.org_integration.id if self.org_integration else None),
+            "organization_id": (self.organization_id if self.organization_id else None),
+            "integration_id": (self.integration_id if self.integration_id else None),
         }
 
 

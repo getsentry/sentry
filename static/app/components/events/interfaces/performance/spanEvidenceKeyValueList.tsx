@@ -1,16 +1,17 @@
 import type {ReactNode} from 'react';
 import {Fragment, useMemo} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import ClippedBox from 'sentry/components/clippedBox';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
@@ -184,7 +185,6 @@ function NPlusOneDBQueriesSpanEvidence({
     );
   const evidenceData = event?.occurrence?.evidenceData ?? {};
   const patternSize = evidenceData.patternSize ?? 0;
-  const patternSpanIds = (evidenceData.patternSpanIds ?? []).join(', ');
 
   return (
     <PresortedKeyValueList
@@ -197,9 +197,6 @@ function NPlusOneDBQueriesSpanEvidence({
             : null,
           ...repeatingSpanRows,
           patternSize > 0 ? makeRow(t('Pattern Size'), patternSize) : null,
-          patternSpanIds.length > 0
-            ? makeRow(t('Pattern Span IDs'), patternSpanIds)
-            : null,
         ].filter(Boolean) as KeyValueListData
       }
     />
@@ -218,7 +215,8 @@ function NPlusOneAPICallsSpanEvidence({
   const evidenceData = occurrence?.evidenceData ?? {};
   const baseURL = requestEntry?.data?.url;
 
-  const queryParameters = formatChangingQueryParameters(offendingSpans, baseURL);
+  const queryParameters =
+    evidenceData.parameters ?? formatChangingQueryParameters(offendingSpans, baseURL);
   const pathParameters = evidenceData.pathParameters ?? [];
   const commonPathPrefix =
     occurrence?.subtitle ?? formatBasePath(offendingSpans[0]!, baseURL);
@@ -350,6 +348,60 @@ function DBQueryInjectionVulnerabilityEvidence({
   );
 }
 
+function AIDetectedSpanEvidence({
+  event,
+  organization,
+  location,
+  projectSlug,
+}: SpanEvidenceKeyValueListProps) {
+  const evidenceData = event?.occurrence?.evidenceData ?? {};
+  const transactionName = evidenceData.transaction ?? event.title;
+
+  const transactionSummaryLocation = transactionSummaryRouteWithQuery({
+    organization,
+    projectID: event.projectID,
+    transaction: transactionName,
+    query: {},
+  });
+
+  const traceSlug = event.contexts?.trace?.trace_id ?? '';
+
+  const eventDetailsLocation = generateLinkToEventInTraceView({
+    traceSlug,
+    eventId: event.eventID,
+    timestamp: event.endTimestamp ?? '',
+    location,
+    organization,
+  });
+
+  const actionButton = projectSlug ? (
+    <LinkButton size="xs" to={eventDetailsLocation}>
+      {t('View Full Trace')}
+    </LinkButton>
+  ) : undefined;
+
+  const transactionRow = makeRow(
+    t('Transaction'),
+    <pre>
+      <Tooltip title={t('View Transaction Summary')} skipWrapper>
+        <Link to={transactionSummaryLocation}>{transactionName}</Link>
+      </Tooltip>
+    </pre>,
+    actionButton
+  );
+
+  return (
+    <PresortedKeyValueList
+      data={[
+        transactionRow,
+        makeRow(t('Explanation'), evidenceData.explanation),
+        makeRow(t('Impact'), evidenceData.impact),
+        makeRow(t('Evidence'), evidenceData.evidence),
+      ]}
+    />
+  );
+}
+
 const PREVIEW_COMPONENTS: Partial<
   Record<IssueType, (p: SpanEvidenceKeyValueListProps) => React.ReactElement | null>
 > = {
@@ -370,6 +422,8 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.PROFILE_FRAME_DROP]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FUNCTION_REGRESSION]: RegressionEvidence,
   [IssueType.QUERY_INJECTION_VULNERABILITY]: DBQueryInjectionVulnerabilityEvidence,
+  [IssueType.WEB_VITALS]: WebVitalsEvidence,
+  [IssueType.LLM_DETECTED_EXPERIMENTAL]: AIDetectedSpanEvidence,
 };
 
 export function SpanEvidenceKeyValueList({
@@ -403,7 +457,6 @@ export function SpanEvidenceKeyValueList({
       />
     );
   }
-
   const Component = PREVIEW_COMPONENTS[issueType] ?? DefaultSpanEvidence;
 
   return (
@@ -422,7 +475,7 @@ export function SpanEvidenceKeyValueList({
 }
 
 const HighlightedEvidence = styled('span')`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 const isRequestEntry = (entry: Entry): entry is EntryRequest => {
@@ -500,6 +553,17 @@ function UncompressedAssetSpanEvidence({
         ),
       ]}
     />
+  );
+}
+
+function WebVitalsEvidence({event}: SpanEvidenceKeyValueListProps) {
+  const transactionRow = makeRow(
+    t('Transaction'),
+    <pre>{event.tags.find(tag => tag.key === 'transaction')?.value}</pre>
+  );
+
+  return (
+    <PresortedKeyValueList data={[transactionRow].filter(Boolean) as KeyValueListData} />
   );
 }
 
@@ -611,7 +675,7 @@ function getSpanEvidenceValue(span: Span | null) {
   return `${span.op} - ${span.description}`;
 }
 
-const StyledCodeSnippet = styled(CodeSnippet)`
+const StyledCodeSnippet = styled(CodeBlock)`
   pre {
     /* overflow is set to visible in global styles so need to enforce auto here */
     overflow: auto !important;

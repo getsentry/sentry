@@ -1,14 +1,15 @@
 import {Component, createRef, Fragment} from 'react';
 import {createPortal} from 'react-dom';
-import {css, type Theme, withTheme} from '@emotion/react';
+import {css, withTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Input} from 'sentry/components/core/input';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
 import {IconAdd, IconDelete, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -490,7 +491,7 @@ class ColumnEditCollection extends Component<Props, State> {
               onTouchStart={event => this.startDrag(event, i)}
               icon={<IconGrabbable size="xs" />}
               size="zero"
-              borderless
+              priority="transparent"
             />
           ) : singleColumn && showAliasField ? null : (
             <span />
@@ -533,7 +534,7 @@ class ColumnEditCollection extends Component<Props, State> {
                 title={t('Remove column')}
                 onClick={() => this.removeColumn(i)}
                 icon={<IconDelete />}
-                borderless
+                priority="transparent"
               />
             ) : (
               <RemoveButton
@@ -541,7 +542,7 @@ class ColumnEditCollection extends Component<Props, State> {
                 aria-label={t('Remove column')}
                 onClick={() => this.removeColumn(i)}
                 icon={<IconDelete />}
-                borderless
+                priority="transparent"
               />
             )
           ) : singleColumn && showAliasField ? null : (
@@ -645,7 +646,7 @@ class ColumnEditCollection extends Component<Props, State> {
               onClick={this.handleAddColumn}
               title={title}
               disabled={!canAdd}
-              icon={<IconAdd isCircled />}
+              icon={<IconAdd />}
             >
               {t('Add a Column')}
             </Button>
@@ -656,7 +657,7 @@ class ColumnEditCollection extends Component<Props, State> {
                 onClick={this.handleAddEquation}
                 title={title}
                 disabled={!canAdd}
-                icon={<IconAdd isCircled />}
+                icon={<IconAdd />}
               >
                 {t('Add an Equation')}
               </Button>
@@ -677,13 +678,15 @@ function OnDemandEquationsWarning() {
           `This is using indexed data because we don't routinely collect metrics for equations.`
         )}
       >
-        <IconWarning color="warningText" />
+        <IconWarning variant="warning" />
       </Tooltip>
     </OnDemandContainer>
   );
 }
 
-const Actions = styled(ButtonBar)<{showAliasField?: boolean}>`
+const Actions = styled((props: GridProps & {showAliasField?: boolean}) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))<{showAliasField?: boolean}>`
   grid-column: ${p => (p.showAliasField ? '1/-1' : ' 2/3')};
   justify-content: flex-start;
 `;
@@ -715,11 +718,11 @@ const RowContainer = styled('div')<{
 `;
 
 const Ghost = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   display: block;
   position: absolute;
   padding: ${GHOST_PADDING}px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
   width: 710px;
   opacity: 0.8;
@@ -744,8 +747,8 @@ const OnDemandContainer = styled('div')`
 
 const DragPlaceholder = styled('div')`
   margin: 0 ${space(3)} ${space(1)} ${space(3)};
-  border: 2px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 2px dashed ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   height: ${p => p.theme.form.md.height};
 `;
 

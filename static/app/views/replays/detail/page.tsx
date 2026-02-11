@@ -1,4 +1,5 @@
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplayAlert';
@@ -39,10 +40,10 @@ export default function ReplayDetailsPage({readerResult}: Props) {
           <NotFound />
         </Layout.Page>
       )}
-      renderProcessingError={({replay}) => (
+      renderProcessingError={() => (
         <Layout.Page withPadding>
           <Flex direction="column">
-            <ReplayProcessingError processingErrors={replay!.processingErrors()} />
+            <ReplayProcessingError />
           </Flex>
         </Layout.Page>
       )}

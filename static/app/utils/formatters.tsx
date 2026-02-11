@@ -32,13 +32,13 @@ export const MICROSECOND = 0.001;
 export const NANOSECOND = 0.000001;
 
 const numberFormatSteps = [
-  [1_000_000_000, 'b'],
-  [1_000_000, 'm'],
-  [1_000, 'k'],
+  [1_000_000_000, 'B'],
+  [1_000_000, 'M'],
+  [1_000, 'K'],
 ] as const;
 
 /**
- * Formats a number with an abbreviation e.g. 1000 -> 1k.
+ * Formats a number with an abbreviation e.g. 1000 -> 1K.
  *
  * @param number the number to format
  * @param maximumSignificantDigits the number of significant digits to include
@@ -91,7 +91,7 @@ export function formatAbbreviatedNumber(
 /**
  * Formats a number with an abbreviation and rounds to 2
  * decimal digits without forcing trailing zeros.
- * e. g. 1000 -> 1k, 1234 -> 1.23k
+ * e. g. 1000 -> 1K, 1234 -> 1.23K
  */
 export function formatAbbreviatedNumberWithDynamicPrecision(
   value: number | string
@@ -243,20 +243,28 @@ function getShortSpanOperationDescription(operation?: string) {
 /**
  * Formats a change rate with a sign (+/-) and 2 decimal places.
  *
- * e.g. `0.46 -> '+0.46%'`, `-0.46 -> '-0.46%'`, `0 -> '0%'`
+ * e.g. `0.46 -> '+0.46%'`, `-0.46 -> '-0.46%'`, `0 -> '0.00%'`
  *
  * @param change the change rate to format
+ * @param options formatting options
+ * @param options.minimumValue minimum value threshold, below which "<{minimumValue}%" is shown
  */
-export function formatPercentRate(change: number) {
+export function formatPercentRate(change: number, options?: {minimumValue?: number}) {
+  const {minimumValue} = options ?? {};
+
+  if (change === 0) {
+    return '0.00%';
+  }
+
+  if (minimumValue && Math.abs(change) > 0 && Math.abs(change) < minimumValue) {
+    return change > 0 ? `<+${minimumValue.toFixed(2)}%` : `<-${minimumValue.toFixed(2)}%`;
+  }
+
   if (change > 0) {
     return `+${change.toFixed(2)}%`;
   }
 
-  if (change < 0) {
-    return `${change.toFixed(2)}%`;
-  }
-
-  return '0.00%';
+  return `${change.toFixed(2)}%`;
 }
 
 /**

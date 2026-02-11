@@ -2,9 +2,9 @@ import {useCallback, useEffect, useMemo, useRef} from 'react';
 import type {DataZoomComponentOption, ECharts, ToolboxComponentOption} from 'echarts';
 import * as qs from 'query-string';
 
-import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
 import ToolBox from 'sentry/components/charts/components/toolBox';
+import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import type {DateString} from 'sentry/types/core';
 import type {
   EChartChartReadyHandler,
@@ -162,9 +162,9 @@ export function useChartZoom({
       if (usePageDate) {
         const newQuery = {
           ...location.query,
-          pageStart: startFormatted,
-          pageEnd: endFormatted,
-          pageStatsPeriod: newPeriod.period ?? undefined,
+          start: startFormatted,
+          end: endFormatted,
+          statsPeriod: newPeriod.period ?? undefined,
         };
 
         // Only push new location if query params has changed because this will cause a heavy re-render

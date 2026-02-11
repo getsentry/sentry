@@ -11,12 +11,10 @@ import {openModal} from 'sentry/actionCreators/modal';
 import type {TagCollection} from 'sentry/types/group';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
-import type {AggregateField} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
-import {
-  DEFAULT_VISUALIZATION,
-  Visualize,
-} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {AggregateColumnEditorModal} from 'sentry/views/explore/tables/aggregateColumnEditorModal';
 
 const stringTags: TagCollection = {
@@ -65,8 +63,16 @@ const numberTags: TagCollection = {
   },
 };
 
-describe('AggregateColumnEditorModal', function () {
-  it('allows closes modal on apply', async function () {
+const booleanTags: TagCollection = {
+  'feature.enabled': {
+    key: 'feature.enabled',
+    name: 'feature.enabled',
+    kind: FieldKind.BOOLEAN,
+  },
+};
+
+describe('AggregateColumnEditorModal', () => {
+  it('allows closes modal on apply', async () => {
     const onClose = jest.fn();
 
     renderGlobalModal();
@@ -76,10 +82,11 @@ describe('AggregateColumnEditorModal', function () {
         modalProps => (
           <AggregateColumnEditorModal
             {...modalProps}
-            columns={[{groupBy: ''}, new Visualize(DEFAULT_VISUALIZATION)]}
+            columns={[{groupBy: ''}, new VisualizeFunction(DEFAULT_VISUALIZATION)]}
             onColumnsChange={() => {}}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={booleanTags}
           />
         ),
         {onClose}
@@ -91,7 +98,7 @@ describe('AggregateColumnEditorModal', function () {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('can delete aggregate fields until there is 1 of the type left', async function () {
+  it('can delete aggregate fields until there is 1 of the type left', async () => {
     const onColumnsChange = jest.fn();
 
     renderGlobalModal();
@@ -104,12 +111,13 @@ describe('AggregateColumnEditorModal', function () {
             columns={[
               {groupBy: 'geo.country'},
               {groupBy: 'geo.region'},
-              new Visualize('count(span.duration)'),
-              new Visualize('avg(span.self_time)'),
+              new VisualizeFunction('count(span.duration)'),
+              new VisualizeFunction('avg(span.self_time)'),
             ]}
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={booleanTags}
           />
         ),
         {onClose: jest.fn()}
@@ -122,8 +130,8 @@ describe('AggregateColumnEditorModal', function () {
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.country'},
       {groupBy: 'geo.region'},
-      new Visualize('count(span.duration)'),
-      new Visualize('avg(span.self_time)'),
+      new VisualizeFunction('count(span.duration)'),
+      new VisualizeFunction('avg(span.self_time)'),
     ]);
 
     await userEvent.click(screen.getAllByLabelText('Remove Column')[0]!);
@@ -131,8 +139,8 @@ describe('AggregateColumnEditorModal', function () {
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.region'},
-      new Visualize('count(span.duration)'),
-      new Visualize('avg(span.self_time)'),
+      new VisualizeFunction('count(span.duration)'),
+      new VisualizeFunction('avg(span.self_time)'),
     ]);
 
     // only 1 group by remaining, disable the delete option
@@ -143,7 +151,7 @@ describe('AggregateColumnEditorModal', function () {
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.region'},
-      new Visualize('avg(span.self_time)'),
+      new VisualizeFunction('avg(span.self_time)'),
     ]);
 
     // 1 group by and visualize remaining so both should be disabled
@@ -158,7 +166,7 @@ describe('AggregateColumnEditorModal', function () {
     ]);
   });
 
-  it('allows adding a column', async function () {
+  it('allows adding a column', async () => {
     const onColumnsChange = jest.fn();
 
     renderGlobalModal();
@@ -168,10 +176,14 @@ describe('AggregateColumnEditorModal', function () {
         modalProps => (
           <AggregateColumnEditorModal
             {...modalProps}
-            columns={[{groupBy: 'geo.country'}, new Visualize(DEFAULT_VISUALIZATION)]}
+            columns={[
+              {groupBy: 'geo.country'},
+              new VisualizeFunction(DEFAULT_VISUALIZATION),
+            ]}
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={booleanTags}
           />
         ),
         {onClose: jest.fn()}
@@ -183,7 +195,7 @@ describe('AggregateColumnEditorModal', function () {
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.country'},
-      new Visualize('count(span.duration)'),
+      new VisualizeFunction('count(span.duration)'),
     ]);
 
     await userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
@@ -194,7 +206,7 @@ describe('AggregateColumnEditorModal', function () {
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.country'},
-      new Visualize('count(span.duration)'),
+      new VisualizeFunction('count(span.duration)'),
       {groupBy: ''},
     ]);
 
@@ -206,9 +218,9 @@ describe('AggregateColumnEditorModal', function () {
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.country'},
-      new Visualize('count(span.duration)'),
+      new VisualizeFunction('count(span.duration)'),
       {groupBy: ''},
-      new Visualize('count(span.duration)'),
+      new VisualizeFunction('count(span.duration)'),
     ]);
 
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -221,7 +233,7 @@ describe('AggregateColumnEditorModal', function () {
     ]);
   });
 
-  it('allows changing a column', async function () {
+  it('allows changing a column', async () => {
     const onColumnsChange = jest.fn();
 
     renderGlobalModal();
@@ -231,10 +243,14 @@ describe('AggregateColumnEditorModal', function () {
         modalProps => (
           <AggregateColumnEditorModal
             {...modalProps}
-            columns={[{groupBy: 'geo.country'}, new Visualize(DEFAULT_VISUALIZATION)]}
+            columns={[
+              {groupBy: 'geo.country'},
+              new VisualizeFunction(DEFAULT_VISUALIZATION),
+            ]}
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={booleanTags}
           />
         ),
         {onClose: jest.fn()}
@@ -246,21 +262,36 @@ describe('AggregateColumnEditorModal', function () {
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.country'},
-      new Visualize('count(span.duration)'),
+      new VisualizeFunction('count(span.duration)'),
     ]);
 
-    const options: string[] = ['\u2014', 'geo.city', 'geo.country', 'project', 'span.op'];
-    await userEvent.click(screen.getByRole('button', {name: 'Group By geo.country'}));
+    const options: string[] = [
+      '\u2014',
+      'feature.enabled',
+      'foo',
+      'geo.city',
+      'geo.country',
+      'project',
+      'span.duration',
+      'span.op',
+      'span.self_time',
+    ];
+
+    const row = screen.getAllByTestId('editor-row')[0]!;
+
+    await userEvent.click(
+      within(row).getByRole('button', {name: 'Group By geo.country'})
+    );
     const groupByOptions = await screen.findAllByRole('option');
     groupByOptions.forEach((option, i) => {
       expect(option).toHaveTextContent(options[i]!);
     });
 
-    await userEvent.click(groupByOptions[1]!);
+    await userEvent.click(groupByOptions[3]!);
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.city'},
-      new Visualize('count(span.duration)'),
+      new VisualizeFunction('count(span.duration)'),
     ]);
 
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -270,7 +301,7 @@ describe('AggregateColumnEditorModal', function () {
     ]);
   });
 
-  it('allows adding an equation', async function () {
+  it('allows adding an equation', async () => {
     const {organization} = initializeOrg({
       organization: {
         features: ['visibility-explore-equations'],
@@ -286,10 +317,14 @@ describe('AggregateColumnEditorModal', function () {
         modalProps => (
           <AggregateColumnEditorModal
             {...modalProps}
-            columns={[{groupBy: 'geo.country'}, new Visualize(DEFAULT_VISUALIZATION)]}
+            columns={[
+              {groupBy: 'geo.country'},
+              new VisualizeFunction(DEFAULT_VISUALIZATION),
+            ]}
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={booleanTags}
           />
         ),
         {onClose: jest.fn()}

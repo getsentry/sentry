@@ -4,8 +4,8 @@ import selectEvent from 'sentry-test/selectEvent';
 import Form from 'sentry/components/deprecatedforms/form';
 import SelectField from 'sentry/components/deprecatedforms/selectField';
 
-describe('SelectField', function () {
-  it('renders without form context', function () {
+describe('SelectField', () => {
+  it('renders without form context', () => {
     render(
       <SelectField
         options={[
@@ -18,11 +18,11 @@ describe('SelectField', function () {
     );
   });
 
-  it('renders with flat options', function () {
+  it('renders with flat options', () => {
     render(<SelectField choices={['a', 'b', 'c']} name="fieldName" />);
   });
 
-  it('renders with paired options', function () {
+  it('renders with paired options', () => {
     render(
       <SelectField
         options={[
@@ -35,7 +35,7 @@ describe('SelectField', function () {
     );
   });
 
-  it('can change value and submit', async function () {
+  it('can change value and submit', async () => {
     const mock = jest.fn();
     render(
       <Form onSubmit={mock}>
@@ -58,7 +58,7 @@ describe('SelectField', function () {
     );
   });
 
-  it('can set the value to empty string via props with no options', async function () {
+  it('can set the value to empty string via props with no options', async () => {
     const mock = jest.fn();
     const {rerender} = render(
       <SelectField
@@ -83,8 +83,8 @@ describe('SelectField', function () {
     expect(mock).toHaveBeenLastCalledWith('');
   });
 
-  describe('Multiple', function () {
-    it('selects multiple values and submits', async function () {
+  describe('Multiple', () => {
+    it('selects multiple values and submits', async () => {
       const mock = jest.fn();
       render(
         <Form onSubmit={mock}>

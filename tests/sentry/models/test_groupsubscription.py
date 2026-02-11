@@ -14,8 +14,6 @@ from sentry.notifications.types import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.slack import link_team
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
 from sentry.users.services.user import RpcUser
@@ -74,75 +72,6 @@ class SubscribeTest(TestCase):
 
         assert len(GroupSubscription.objects.filter(group=group)) == 1
 
-    @with_feature("organizations:team-workflow-notifications")
-    def test_bulk_teams(self) -> None:
-        group = self.create_group()
-
-        team_ids = []
-        for _ in range(20):
-            team = self.create_team()
-            team_ids.append(team.id)
-
-        GroupSubscription.objects.bulk_subscribe(group=group, team_ids=team_ids)
-
-        assert len(GroupSubscription.objects.filter(group=group)) == 20
-
-        one_more = self.create_team()
-        team_ids.append(one_more.id)
-
-        # should not error
-        GroupSubscription.objects.bulk_subscribe(group=group, team_ids=team_ids)
-
-        assert len(GroupSubscription.objects.filter(group=group)) == 21
-
-    @with_feature("organizations:team-workflow-notifications")
-    def test_bulk_teams_dupes(self) -> None:
-        group = self.create_group()
-
-        team_ids = []
-
-        team = self.create_team()
-        team_ids.append(team.id)
-        team_ids.append(team.id)
-
-        GroupSubscription.objects.bulk_subscribe(group=group, team_ids=team_ids)
-
-        assert len(GroupSubscription.objects.filter(group=group)) == 1
-
-    @with_feature("organizations:team-workflow-notifications")
-    def test_bulk_users_and_teams(self) -> None:
-        group = self.create_group()
-
-        user_ids = []
-        team_ids = []
-
-        for _ in range(10):
-            user = self.create_user()
-            user_ids.append(user.id)
-            team = self.create_team()
-            team_ids.append(team.id)
-
-        GroupSubscription.objects.bulk_subscribe(group=group, user_ids=user_ids, team_ids=team_ids)
-
-        assert len(GroupSubscription.objects.filter(group=group)) == 20
-
-    @with_feature("organizations:team-workflow-notifications")
-    def test_bulk_user_on_team(self) -> None:
-        """
-        Test that ensures bulk_subscribe subscribes users and teams individually, even if one of those users is part of one of those teams.
-        """
-        group = self.create_group()
-        team = self.create_team()
-        user = self.create_user()
-        self.create_member(user=user, organization=self.organization, role="member", teams=[team])
-
-        team_ids = [team.id]
-        user_ids = [user.id]
-
-        GroupSubscription.objects.bulk_subscribe(group=group, user_ids=user_ids, team_ids=team_ids)
-
-        assert len(GroupSubscription.objects.filter(group=group)) == 2
-
     def test_actor_user(self) -> None:
         group = self.create_group()
         user = self.create_user()
@@ -169,23 +98,6 @@ class SubscribeTest(TestCase):
         # should not error
         GroupSubscription.objects.subscribe_actor(group=group, actor=team)
 
-    @with_feature("organizations:team-workflow-notifications")
-    def test_subscribe_team(self) -> None:
-        org = self.create_organization()
-        group = self.create_group()
-        user = self.create_user(email="foo@example.com")
-        team = self.create_team(organization=org)
-        self.create_member(user=user, organization=org, role="owner", teams=[team])
-
-        GroupSubscription.objects.subscribe_actor(group=group, actor=team)
-
-        assert not GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
-
-        assert GroupSubscription.objects.filter(group=group, team=team).exists()
-
-        # should not error
-        GroupSubscription.objects.subscribe_actor(group=group, actor=team)
-
 
 class GetParticipantsTest(TestCase):
     def setUp(self) -> None:
@@ -201,7 +113,7 @@ class GetParticipantsTest(TestCase):
         self.rpc_user = rpc_user
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def update_user_settings_always(self):
+    def update_user_settings_always(self) -> None:
         NotificationSettingOption.objects.update_or_create(
             scope_type=NotificationScopeEnum.USER.value,
             scope_identifier=self.user.id,
@@ -211,7 +123,7 @@ class GetParticipantsTest(TestCase):
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def update_user_setting_subscribe_only(self):
+    def update_user_setting_subscribe_only(self) -> None:
         NotificationSettingOption.objects.update_or_create(
             scope_type=NotificationScopeEnum.USER.value,
             scope_identifier=self.user.id,
@@ -229,7 +141,7 @@ class GetParticipantsTest(TestCase):
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def update_user_setting_never(self):
+    def update_user_setting_never(self) -> None:
         NotificationSettingOption.objects.update_or_create(
             scope_type=NotificationScopeEnum.USER.value,
             scope_identifier=self.user.id,
@@ -247,7 +159,7 @@ class GetParticipantsTest(TestCase):
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def update_project_setting_always(self):
+    def update_project_setting_always(self) -> None:
         NotificationSettingOption.objects.update_or_create(
             scope_type=NotificationScopeEnum.PROJECT.value,
             scope_identifier=self.group.project_id,
@@ -265,7 +177,7 @@ class GetParticipantsTest(TestCase):
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def update_project_setting_subscribe_only(self):
+    def update_project_setting_subscribe_only(self) -> None:
         NotificationSettingOption.objects.update_or_create(
             scope_type=NotificationScopeEnum.PROJECT.value,
             scope_identifier=self.group.project_id,
@@ -283,7 +195,7 @@ class GetParticipantsTest(TestCase):
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def update_project_setting_never(self):
+    def update_project_setting_never(self) -> None:
         NotificationSettingOption.objects.update_or_create(
             scope_type=NotificationScopeEnum.PROJECT.value,
             scope_identifier=self.group.project_id,
@@ -301,7 +213,7 @@ class GetParticipantsTest(TestCase):
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def update_team_setting_subscribe_only(self, team_id: int):
+    def update_team_setting_subscribe_only(self, team_id: int) -> None:
         NotificationSettingOption.objects.update_or_create(
             scope_type=NotificationScopeEnum.TEAM.value,
             scope_identifier=team_id,
@@ -324,7 +236,7 @@ class GetParticipantsTest(TestCase):
         *,
         email: dict[RpcUser, int] | dict[Team, int] | None = None,
         slack: dict[RpcUser, int] | dict[Team, int] | None = None,
-    ):
+    ) -> None:
         all_participants = GroupSubscription.objects.get_participants(group or self.group)
 
         all_expected = {ExternalProviders.EMAIL: email, ExternalProviders.SLACK: slack}
@@ -343,83 +255,6 @@ class GetParticipantsTest(TestCase):
         group = self.create_group(project=project)
         user2 = self.create_user("bar@example.com")
         self.create_member(user=user2, organization=self.org)
-
-        # implicit membership
-        self._assert_subscribers_are(
-            group,
-            email={self.rpc_user: GroupSubscriptionReason.implicit},
-            slack={self.rpc_user: GroupSubscriptionReason.implicit},
-        )
-
-        # unsubscribed
-        GroupSubscription.objects.create(
-            user_id=self.user.id, group=group, project=project, is_active=False
-        )
-
-        self._assert_subscribers_are(group)
-
-        # not participating by default
-        GroupSubscription.objects.filter(user_id=self.user.id, group=group).delete()
-
-        self.update_user_setting_subscribe_only()
-
-        self._assert_subscribers_are(group)
-
-        # explicitly participating
-        GroupSubscription.objects.create(
-            user_id=self.user.id,
-            group=group,
-            project=project,
-            is_active=True,
-            reason=GroupSubscriptionReason.comment,
-        )
-
-        self._assert_subscribers_are(
-            group,
-            email={self.rpc_user: GroupSubscriptionReason.comment},
-            slack={self.rpc_user: GroupSubscriptionReason.comment},
-        )
-
-    @with_feature("organizations:team-workflow-notifications")
-    def test_simple_teams(self) -> None:
-        team = self.create_team(organization=self.org)
-        project = self.create_project(teams=[self.team, team], organization=self.org)
-        group = self.create_group(project=project)
-        user2 = self.create_user("bar@example.com")
-        self.create_member(user=user2, organization=self.org)
-
-        link_team(team, self.integration, "#team-channel", "team_channel_id")
-
-        # explicit participation
-        GroupSubscription.objects.create(
-            team_id=team.id,
-            group=group,
-            project=project,
-            is_active=True,
-            reason=GroupSubscriptionReason.comment,
-        )
-
-        self._assert_subscribers_are(
-            group,
-            email={
-                self.rpc_user: GroupSubscriptionReason.implicit,
-                team: GroupSubscriptionReason.comment,
-            },
-            slack={
-                self.rpc_user: GroupSubscriptionReason.implicit,
-                team: GroupSubscriptionReason.comment,
-            },
-        )
-
-    @with_feature("organizations:team-workflow-notifications")
-    def test_simple_with_workflow(self) -> None:
-        # Include an extra team here to prove the subquery works
-        team_2 = self.create_team(organization=self.org)
-        project = self.create_project(teams=[self.team, team_2], organization=self.org)
-        group = self.create_group(project=project)
-        user2 = self.create_user("bar@example.com")
-        self.create_member(user=user2, organization=self.org)
-        self.update_team_setting_subscribe_only(team_2.id)
 
         # implicit membership
         self._assert_subscribers_are(

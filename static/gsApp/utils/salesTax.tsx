@@ -101,6 +101,7 @@ const SALES_TAX_COUNTRY_INFO = {
   MT: taxInfo.VAT,
   NL: taxInfo.VAT,
   NO: taxInfo.VAT,
+  PH: taxInfo.TIN,
   PL: taxInfo.VAT,
   PT: taxInfo.VAT,
   RO: taxInfo.VAT,
@@ -197,13 +198,6 @@ function countryHasRegionChoices(
   return !!countryCode && countryCode in REGION_BY_COUNTRY_CODE;
 }
 
-function getRegionChoices(countryCode?: BillingDetails['countryCode']) {
-  return countryHasRegionChoices(countryCode)
-    ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      Object.entries(REGION_BY_COUNTRY_CODE[countryCode])
-    : [];
-}
-
 function getRegionChoiceCode(
   countryCode?: BillingDetails['countryCode'],
   region?: BillingDetails['region']
@@ -216,25 +210,10 @@ function getRegionChoiceCode(
     : undefined;
 }
 
-function getRegionChoiceName(
-  countryCode?: BillingDetails['countryCode'],
-  region?: BillingDetails['region']
-) {
-  return countryHasRegionChoices(countryCode) &&
-    !!region &&
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    region in REGION_BY_COUNTRY_CODE[countryCode]
-    ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      REGION_BY_COUNTRY_CODE[countryCode][region]
-    : region;
-}
-
 export {
   countryHasRegionChoices,
   countryHasSalesTax,
-  getRegionChoices,
   getRegionChoiceCode,
-  getRegionChoiceName,
   getTaxFieldInfo,
   type TaxFieldInfo,
 };

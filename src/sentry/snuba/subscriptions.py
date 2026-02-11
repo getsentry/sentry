@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Collection, Iterable
+from collections.abc import Collection, Iterable, Sequence
 from datetime import timedelta
 
 from django.db import router, transaction
@@ -7,7 +7,12 @@ from django.db import router, transaction
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.models import (
+    ExtrapolationMode,
+    QuerySubscription,
+    SnubaQuery,
+    SnubaQueryEventType,
+)
 from sentry.snuba.tasks import (
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
@@ -26,6 +31,8 @@ def create_snuba_query(
     resolution: timedelta,
     environment: Environment | None,
     event_types: Collection[SnubaQueryEventType.EventType] = (),
+    group_by: Sequence[str] | None = None,
+    extrapolation_mode: ExtrapolationMode | None = None,
 ):
     """
     Constructs a SnubaQuery which is the postgres representation of a query in snuba
@@ -50,6 +57,12 @@ def create_snuba_query(
         time_window=int(time_window.total_seconds()),
         resolution=int(resolution.total_seconds()),
         environment=environment,
+        group_by=group_by,
+        extrapolation_mode=(
+            extrapolation_mode.value
+            if extrapolation_mode is not None
+            else ExtrapolationMode.UNKNOWN.value
+        ),
     )
     if not event_types:
         if dataset == Dataset.Events:
@@ -76,6 +89,7 @@ def update_snuba_query(
     resolution,
     environment,
     event_types,
+    extrapolation_mode: ExtrapolationMode | None = None,
 ):
     """
     Updates a SnubaQuery. Triggers updates to any related QuerySubscriptions.
@@ -116,6 +130,11 @@ def update_snuba_query(
             time_window=int(time_window.total_seconds()),
             resolution=int(resolution.total_seconds()),
             environment=environment,
+            extrapolation_mode=(
+                extrapolation_mode.value
+                if extrapolation_mode is not None
+                else snuba_query.extrapolation_mode
+            ),
         )
         if new_event_types:
             SnubaQueryEventType.objects.bulk_create(
@@ -237,7 +256,7 @@ def update_snuba_subscription(subscription, old_query_type, old_dataset, old_agg
     return subscription
 
 
-def bulk_delete_snuba_subscriptions(subscriptions):
+def bulk_delete_snuba_subscriptions(subscriptions: Iterable[QuerySubscription]) -> None:
     """
     Deletes a list of snuba query subscriptions.
     :param subscriptions: The subscriptions to delete
@@ -248,7 +267,7 @@ def bulk_delete_snuba_subscriptions(subscriptions):
         delete_snuba_subscription(subscription)
 
 
-def delete_snuba_subscription(subscription):
+def delete_snuba_subscription(subscription: QuerySubscription) -> None:
     """
     Deletes a subscription to a snuba query.
     :param subscription: The subscription to delete

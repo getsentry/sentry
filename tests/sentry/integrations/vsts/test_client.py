@@ -3,7 +3,7 @@ from __future__ import annotations
 from time import time
 from typing import TypedDict
 from unittest import mock
-from unittest.mock import call
+from unittest.mock import MagicMock, call
 from urllib.parse import parse_qs, quote_plus
 
 import orjson
@@ -142,6 +142,20 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert identity.data["refresh_token"] == refresh_token != self.refresh_token
         assert identity.data["expires"] == expires
 
+    def test_identity_property_raises_when_identity_id_is_none(self) -> None:
+        self.assert_installation()
+        integration, installation = self._get_integration_and_install()
+        assert installation.org_integration is not None
+
+        client = VstsApiClient(
+            base_url=self.vsts_base_url,
+            oauth_redirect_url=VstsIntegrationProvider.oauth_redirect_url,
+            org_integration_id=installation.org_integration.id,
+            identity_id=None,
+        )
+        with pytest.raises(ValueError, match="identity_id is not set"):
+            client.identity
+
     def test_project_pagination(self) -> None:
         def request_callback(request):
             query = parse_qs(request.url.split("?")[1])
@@ -261,7 +275,9 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         side_effect=ApiUnauthorized(text="Unauthorized"),
     )
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_check_file_unauthorized(self, mock_record_event, mock_check_file):
+    def test_check_file_unauthorized(
+        self, mock_record_event: MagicMock, mock_check_file: MagicMock
+    ) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
         with assume_test_silo_mode(SiloMode.REGION):
@@ -385,7 +401,9 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         ),
     )
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_get_stacktrace_link_identity_deleted(self, mock_record, mock_check_file):
+    def test_get_stacktrace_link_identity_deleted(
+        self, mock_record: MagicMock, mock_check_file: MagicMock
+    ) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
         with assume_test_silo_mode(SiloMode.REGION):

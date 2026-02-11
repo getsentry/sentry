@@ -27,11 +27,11 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('ProfileContext', function () {
+describe('ProfileContext', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
-  it('returns values and according to the parameters', function () {
+  it('returns values and according to the parameters', () => {
     const event = TransactionEventFixture({
       _meta: {contexts: {profile: MOCK_REDACTION}},
     });
@@ -49,7 +49,7 @@ describe('ProfileContext', function () {
         subject: 'Profile ID',
         value: PROFILE_ID,
         action: {
-          link: `/organizations/${organization.slug}/profiling/profile/${project.slug}/${PROFILE_ID}/flamegraph/`,
+          link: `/organizations/${organization.slug}/explore/profiling/profile/${project.slug}/${PROFILE_ID}/flamegraph/`,
         },
       },
       {
@@ -58,7 +58,7 @@ describe('ProfileContext', function () {
         value: PROFILER_ID,
         action: {
           link: {
-            pathname: `/organizations/${organization.slug}/profiling/profile/${project.slug}/flamegraph/`,
+            pathname: `/organizations/${organization.slug}/explore/profiling/profile/${project.slug}/flamegraph/`,
             query: {
               profilerId: PROFILER_ID,
               eventId: event.id,
@@ -83,7 +83,7 @@ describe('ProfileContext', function () {
     ]);
   });
 
-  it('renders with meta annotations correctly', function () {
+  it('renders with meta annotations correctly', () => {
     const event = TransactionEventFixture({
       _meta: {contexts: {profile: MOCK_REDACTION}},
     });
@@ -91,8 +91,8 @@ describe('ProfileContext', function () {
     render(
       <ContextCard
         event={event}
-        type={'default'}
-        alias={'profile'}
+        type="default"
+        alias="profile"
         project={project}
         value={{...MOCK_PROFILE_CONTEXT, extra_data: ''}}
       />,

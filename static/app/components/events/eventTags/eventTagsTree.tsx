@@ -12,7 +12,7 @@ import {space} from 'sentry/styles/space';
 import type {Event, EventTagWithMeta} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -99,6 +99,7 @@ function getTagTreeRows({
   uniqueKey,
   event,
   project,
+  isLast,
 }: EventTagsTreeRowProps & {uniqueKey: string}): React.ReactNode[] {
   const subtreeTags = Object.keys(content.subtree);
   const subtreeRows = subtreeTags.reduce<React.ReactNode[]>((rows, tag, i) => {
@@ -123,6 +124,7 @@ function getTagTreeRows({
       data-test-id="tag-tree-row"
       event={event}
       project={project}
+      isLast={isLast}
     />,
     ...subtreeRows,
   ];
@@ -235,12 +237,12 @@ export const TreeColumn = styled('div')`
     margin-left: -${space(1)};
   }
   &:not(:first-child) {
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
     padding-left: ${space(2)};
     margin-left: -1px;
   }
   &:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.innerBorder};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
     padding-right: ${space(2)};
   }
 `;

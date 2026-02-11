@@ -2,19 +2,26 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
-import {IconAllProjects} from 'sentry/views/nav/iconAllProjects';
+import {Stack} from '@sentry/scraps/layout';
+
+import {IconAllProjects, IconMyProjects} from 'sentry/icons';
 
 interface ProjectIconProps {
   projectPlatforms: string[];
+  allProjects?: boolean;
   className?: string;
 }
 
-function ProjectIcon({projectPlatforms, className}: ProjectIconProps) {
+function ProjectIcon({projectPlatforms, allProjects, className}: ProjectIconProps) {
   let renderedIcons: React.ReactNode;
 
   switch (projectPlatforms.length) {
     case 0:
-      renderedIcons = <IconAllProjects />;
+      renderedIcons = allProjects ? (
+        <IconAllProjects size="md" />
+      ) : (
+        <IconMyProjects size="md" />
+      );
       break;
     case 1:
       renderedIcons = (
@@ -38,19 +45,17 @@ function ProjectIcon({projectPlatforms, className}: ProjectIconProps) {
   }
 
   return (
-    <IconWrap className={className} data-project-icon>
+    <Stack
+      justify="center"
+      align="center"
+      flexShrink={0}
+      className={className}
+      data-project-icon
+    >
       {renderedIcons}
-    </IconWrap>
+    </Stack>
   );
 }
-
-const IconWrap = styled('div')`
-  display: flex;
-  flex-shrink: 0;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-`;
 
 const IconContainer = styled('div')`
   position: relative;
@@ -62,7 +67,7 @@ const IconContainer = styled('div')`
 const BorderOverlay = styled('div')`
   position: absolute;
   inset: 0;
-  border: 1px solid ${p => p.theme.translucentGray100};
+  border: 1px solid ${p => p.theme.colors.gray100};
   border-radius: 3px;
   pointer-events: none;
 `;

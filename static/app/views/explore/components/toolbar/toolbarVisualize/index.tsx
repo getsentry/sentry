@@ -1,13 +1,16 @@
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
+import {getFieldDefinition} from 'sentry/utils/fields';
 import {
   ToolbarFooterButton,
   ToolbarHeader,
@@ -35,9 +38,13 @@ interface ToolbarVisualizeDropdownProps {
   canDelete: boolean;
   fieldOptions: Array<SelectOption<SelectKey>>;
   onChangeAggregate: (option: SelectOption<SelectKey>) => void;
-  onChangeArgument: (option: SelectOption<SelectKey>) => void;
+  onChangeArgument: (index: number, option: SelectOption<SelectKey>) => void;
   onDelete: () => void;
   parsedFunction: ParsedFunction | null;
+  label?: ReactNode;
+  loading?: boolean;
+  onClose?: () => void;
+  onSearch?: (search: string) => void;
 }
 
 export function ToolbarVisualizeDropdown({
@@ -47,26 +54,56 @@ export function ToolbarVisualizeDropdown({
   onChangeAggregate,
   onChangeArgument,
   onDelete,
+  onSearch,
+  onClose,
   parsedFunction,
+  label,
+  loading,
 }: ToolbarVisualizeDropdownProps) {
+  const aggregateFunc = parsedFunction?.name;
+  const aggregateDefinition = aggregateFunc
+    ? getFieldDefinition(aggregateFunc, 'span')
+    : undefined;
+
   return (
     <ToolbarRow>
+      {label}
       <AggregateCompactSelect
         searchable
         options={aggregateOptions}
         value={parsedFunction?.name ?? ''}
         onChange={onChangeAggregate}
       />
-      <FieldCompactSelect
-        searchable
-        options={fieldOptions}
-        value={parsedFunction?.arguments[0] ?? ''}
-        onChange={onChangeArgument}
-        disabled={fieldOptions.length === 1}
-      />
+      {aggregateDefinition?.parameters?.map((param, index) => {
+        return (
+          <FieldCompactSelect
+            key={param.name}
+            searchable
+            options={fieldOptions}
+            value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
+            onChange={option => onChangeArgument(index, option)}
+            disabled={fieldOptions.length === 1}
+            onSearch={onSearch}
+            onClose={onClose}
+            loading={loading}
+          />
+        );
+      })}
+      {aggregateDefinition?.parameters?.length === 0 && ( // for parameterless functions, we want to still show show greyed out spans
+        <FieldCompactSelect
+          searchable
+          options={fieldOptions}
+          value={parsedFunction?.arguments[0] ?? ''}
+          onChange={option => onChangeArgument(0, option)}
+          disabled
+          onSearch={onSearch}
+          onClose={onClose}
+          loading={loading}
+        />
+      )}
       {canDelete ? (
         <Button
-          borderless
+          priority="transparent"
           icon={<IconDelete />}
           size="zero"
           onClick={onDelete}
@@ -80,20 +117,24 @@ export function ToolbarVisualizeDropdown({
 interface ToolbarVisualizeAddProps {
   add: () => void;
   disabled: boolean;
+  label?: string;
 }
 
-export function ToolbarVisualizeAddChart({add, disabled}: ToolbarVisualizeAddProps) {
+export function ToolbarVisualizeAddChart({
+  add,
+  disabled,
+  label,
+}: ToolbarVisualizeAddProps) {
   return (
     <ToolbarFooterButton
-      borderless
       size="zero"
       icon={<IconAdd />}
       onClick={add}
       priority="link"
-      aria-label={t('Add Chart')}
+      aria-label={label ?? t('Add Chart')}
       disabled={disabled}
     >
-      {t('Add Chart')}
+      {label ?? t('Add Chart')}
     </ToolbarFooterButton>
   );
 }
@@ -101,7 +142,6 @@ export function ToolbarVisualizeAddChart({add, disabled}: ToolbarVisualizeAddPro
 export function ToolbarVisualizeAddEquation({add, disabled}: ToolbarVisualizeAddProps) {
   return (
     <ToolbarFooterButton
-      borderless
       size="zero"
       icon={<IconAdd />}
       onClick={add}

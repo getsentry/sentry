@@ -1,5 +1,11 @@
 import type {ReactNode} from 'react';
-import {Children, Fragment} from 'react';
+import {Children, Fragment, useEffect} from 'react';
+
+import {Container} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+
+import {makeStorybookDocumentTitle} from 'sentry/stories/view/storyExports';
+import {StoryHeading} from 'sentry/stories/view/storyHeading';
 
 import * as Storybook from './';
 
@@ -30,14 +36,18 @@ export function story(title: string, setup: SetupFunction): StoryRenderFunction 
   setup(storyFn, apiReferenceFn);
 
   return function RenderStory() {
+    useEffect(() => {
+      document.title = makeStorybookDocumentTitle(title);
+    }, []);
+
     return (
       <Fragment>
-        <Storybook.Title>{title}</Storybook.Title>
-        {stories.map(({name, render}, i) => (
-          <Story key={i} name={name} render={render} />
+        <Heading as="h1">{title}</Heading>
+        {stories.map(({name, render}, idx) => (
+          <Story key={name + idx} name={name} render={render} />
         ))}
         {APIDocumentation.map((documentation, i) => (
-          <Storybook.APIReference key={i} types={documentation} />
+          <Storybook.APIReference key={i} componentProps={documentation} />
         ))}
       </Fragment>
     );
@@ -50,7 +60,11 @@ function Story(props: {name: string; render: StoryRenderFunction}) {
 
   return (
     <Storybook.Section>
-      <Storybook.Title>{props.name}</Storybook.Title>
+      <Container borderBottom="primary">
+        <StoryHeading as="h2" size="2xl">
+          {props.name}
+        </StoryHeading>
+      </Container>
       {isOneChild ? children : <Storybook.SideBySide>{children}</Storybook.SideBySide>}
     </Storybook.Section>
   );

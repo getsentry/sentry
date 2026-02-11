@@ -344,6 +344,14 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
+        event_id=142,
+        name="INVITE_REMOVE",
+        api_name="invite.remove",
+        template="removed the invite for {email}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
         event_id=160,
         name="ALERT_RULE_ADD",
         api_name="alertrule.create",
@@ -676,5 +684,21 @@ default_manager.add(
         name="ORG_CONSOLE_PLATFORM_EDIT",
         api_name="org.console-platform.edit",
         template="{console_platforms}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=1159,
+        name="REPO_SETTINGS_EDIT",
+        api_name="repo-settings.edit",
+        template="updated repository settings for {repository_count} repositories",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=1160,
+        name="AUTOFIX_SETTINGS_EDIT",
+        api_name="autofix-settings.edit",
+        template="updated autofix automation settings for {project_count} projects",
     )
 )

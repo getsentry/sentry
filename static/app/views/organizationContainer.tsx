@@ -1,21 +1,36 @@
-import styled from '@emotion/styled';
+import {Outlet} from 'react-router-dom';
 import {useProfiler} from '@sentry/react';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+import {Container} from '@sentry/scraps/layout';
+
 import LoadingError from 'sentry/components/loadingError';
-import LoadingTriangle from 'sentry/components/loadingTriangle';
-import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
+import {ORGANIZATION_FETCH_ERROR_TYPES, ROOT_ELEMENT} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 
 function OrganizationLoadingIndicator() {
   /* Track how long this component is rendered for. */
   useProfiler('OrganizationLoadingIndicator', {
     hasRenderSpan: true,
   });
-  return <LoadingTriangle>{t('Loading data for your organization.')}</LoadingTriangle>;
+
+  /**
+   * This is the initial loader React will render as the app bootstraps.
+   * Rather than rendering a loader component, we can reuse the existing DOM
+   * provided by the server-rendered Django view!
+   *
+   * This ensures there are no layout shifts as the app initially boots up
+   * because the DOM is exactly the same and React doesn't have to reconcile
+   * the fallback state.
+   */
+  const root = document.getElementById(ROOT_ELEMENT);
+  // There is no scenario in which this component is rendering,
+  // but the root element where the app is mounted doesn't exist
+  const ssrLoader = root!.innerHTML;
+
+  return <div dangerouslySetInnerHTML={{__html: ssrLoader}} />;
 }
 
 interface Props {
@@ -26,7 +41,7 @@ interface Props {
  * Ensures the current organization is loaded. A loading indicator will be
  * rendered while loading the organization.
  */
-function OrganizationContainer({children}: Props) {
+export function OrganizationContainer({children}: Props) {
   const {loading, error, errorType} = useLegacyStore(OrganizationStore);
 
   if (loading) {
@@ -56,13 +71,13 @@ function OrganizationContainer({children}: Props) {
     const errorBody =
       errorType === ORGANIZATION_FETCH_ERROR_TYPES.ORG_NO_ACCESS ? (
         <Alert.Container>
-          <Alert type="error" data-test-id="org-access-error" showIcon={false}>
+          <Alert variant="danger" data-test-id="org-access-error" showIcon={false}>
             {t('You do not have access to this organization.')}
           </Alert>
         </Alert.Container>
       ) : errorType === ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND ? (
         <Alert.Container>
-          <Alert type="error" data-test-id="org-loading-error" showIcon={false}>
+          <Alert variant="danger" data-test-id="org-loading-error" showIcon={false}>
             {t('The organization you were looking for was not found.')}
           </Alert>
         </Alert.Container>
@@ -70,14 +85,19 @@ function OrganizationContainer({children}: Props) {
         <LoadingError />
       );
 
-    return <ErrorWrapper>{errorBody}</ErrorWrapper>;
+    return <Container padding="2xl">{errorBody}</Container>;
   }
 
   return children;
 }
 
-const ErrorWrapper = styled('div')`
-  padding: ${space(3)};
-`;
-
-export default OrganizationContainer;
+/**
+ * Route component version of OrganizationContainer that uses <Outlet />.
+ */
+export default function OrganizationContainerRoute() {
+  return (
+    <OrganizationContainer>
+      <Outlet />
+    </OrganizationContainer>
+  );
+}

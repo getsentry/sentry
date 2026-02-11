@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
 from django.contrib.postgres.fields.array import ArrayField
-from django.db import IntegrityError, models
+from django.db import IntegrityError, models, router, transaction
 from django.db.models import Q, QuerySet
 from django.utils import timezone
 
@@ -18,9 +18,11 @@ from sentry.db.models import (
     Model,
     control_silo_model,
 )
-from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
+from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
+from sentry.types.region import find_all_region_names
 from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
@@ -53,7 +55,7 @@ class IdentityProvider(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     type = models.CharField(max_length=64)
-    config: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    config = models.JSONField(default=dict)
     date_added = models.DateTimeField(default=timezone.now, null=True)
     external_id = models.CharField(max_length=64, null=True)
 
@@ -84,12 +86,14 @@ class IdentityManager(BaseManager["Identity"]):
         external_id: str,
         should_reattach: bool = True,
         defaults: Mapping[str, Any | None] | None = None,
-    ) -> Identity:
+    ) -> Identity | None:
         """
         Link the user with the identity. If `should_reattach` is passed, handle
         the case where the user is linked to a different identity or the
         identity is linked to a different user.
         """
+        from sentry.integrations.slack.analytics import SlackIntegrationIdentityLinked
+
         defaults = {
             **(defaults or {}),
             "status": IdentityStatus.VALID,
@@ -107,12 +111,13 @@ class IdentityManager(BaseManager["Identity"]):
             return self.reattach(idp, external_id, user, defaults)
 
         analytics.record(
-            "integrations.identity_linked",
-            provider=IntegrationProviderSlug.SLACK.value,
-            # Note that prior to circa March 2023 this was user.actor_id. It changed
-            # when actor ids were no longer stable between regions for the same user
-            actor_id=user.id,
-            actor_type="user",
+            SlackIntegrationIdentityLinked(
+                provider=IntegrationProviderSlug.SLACK.value,
+                # Note that prior to circa March 2023 this was user.actor_id. It changed
+                # when actor ids were no longer stable between regions for the same user
+                actor_id=user.id,
+                actor_type="user",
+            )
         )
         return identity
 
@@ -131,7 +136,7 @@ class IdentityManager(BaseManager["Identity"]):
         external_id: str,
         user: User | RpcUser,
         defaults: Mapping[str, Any],
-    ) -> Identity:
+    ) -> Identity | None:
         identity_model = self.create(
             idp_id=idp.id, user_id=user.id, external_id=external_id, **defaults
         )
@@ -152,7 +157,7 @@ class IdentityManager(BaseManager["Identity"]):
         external_id: str,
         user: User | RpcUser,
         defaults: Mapping[str, Any],
-    ) -> Identity:
+    ) -> Identity | None:
         """
         Removes identities under `idp` associated with either `external_id` or `user`
         and creates a new identity linking them.
@@ -166,7 +171,7 @@ class IdentityManager(BaseManager["Identity"]):
         external_id: str,
         user: User | RpcUser,
         defaults: Mapping[str, Any],
-    ) -> Identity:
+    ) -> Identity | None:
         """
         Updates the identity object for a given user and identity provider
         with the new external id and other fields related to the identity status
@@ -197,7 +202,7 @@ class Identity(Model):
     idp = FlexibleForeignKey("sentry.IdentityProvider")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     external_id = models.TextField()
-    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    data = models.JSONField(default=dict)
     status = BoundedPositiveIntegerField(default=IdentityStatus.UNKNOWN)
     scopes = ArrayField(models.TextField(), default=list)
     date_verified = models.DateTimeField(default=timezone.now)
@@ -209,6 +214,20 @@ class Identity(Model):
         app_label = "sentry"
         db_table = "sentry_identity"
         unique_together = (("idp", "external_id"), ("idp", "user"))
+
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
+        with outbox_context(transaction.atomic(router.db_for_write(Identity))):
+            # Fan out to all regions to ensure HybridCloudForeignKey cascade works even without org memberships
+            region_names = find_all_region_names()
+            for region_name in region_names:
+                ControlOutbox(
+                    shard_scope=OutboxScope.USER_SCOPE,
+                    shard_identifier=self.user_id,
+                    object_identifier=self.id,
+                    category=OutboxCategory.IDENTITY_UPDATE,
+                    region_name=region_name,
+                ).save()
+            return super().delete(*args, **kwargs)
 
     def get_provider(self) -> Provider:
         from sentry.identity import get

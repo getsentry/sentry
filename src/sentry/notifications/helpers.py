@@ -80,7 +80,7 @@ class SubscriptionDetails(TypedDict, total=False):
 
 
 def get_subscription_from_attributes(
-    attrs: Mapping[str, Any]
+    attrs: Mapping[str, Any],
 ) -> tuple[bool, SubscriptionDetails | None]:
     subscription_details: SubscriptionDetails | None = None
     is_disabled, is_subscribed, subscription = attrs["subscription"]

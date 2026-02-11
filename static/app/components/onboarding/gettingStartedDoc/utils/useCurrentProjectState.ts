@@ -1,8 +1,8 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import partition from 'lodash/partition';
 
-import type {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
+import type {OnboardingDrawerKey} from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
@@ -11,9 +11,9 @@ import useProjects from 'sentry/utils/useProjects';
 
 type Props = {
   allPlatforms: readonly PlatformKey[];
-  currentPanel: '' | SidebarPanelKey;
+  currentPanel: '' | OnboardingDrawerKey;
   onboardingPlatforms: readonly PlatformKey[];
-  targetPanel: SidebarPanelKey;
+  targetPanel: OnboardingDrawerKey;
 };
 
 function useCurrentProjectState({

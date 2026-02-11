@@ -124,6 +124,11 @@ class ReplaySelectorValidator(serializers.Serializer):
         child=serializers.CharField(),
         help_text=("A list of project slugs to filter your results by."),
     )
+    environment = serializers.ListField(
+        help_text="The environment to filter by.",
+        required=False,
+        child=serializers.CharField(),
+    )
     sort = serializers.CharField(help_text="The field to sort the output by.", required=False)
     sortBy = serializers.CharField(help_text="The field to sort the output by.", required=False)
     orderBy = serializers.CharField(help_text="The field to sort the output by.", required=False)

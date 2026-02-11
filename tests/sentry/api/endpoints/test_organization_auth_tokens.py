@@ -2,6 +2,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry import options
+from sentry.models.apitoken import ApiToken
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.silo import control_silo_test, create_test_regions
@@ -98,7 +99,7 @@ class OrganizationAuthTokensListTest(APITestCase):
 
     def test_no_auth(self) -> None:
         response = self.get_error_response(self.organization.slug)
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_other_org(self) -> None:
         other_org = self.create_organization()
@@ -177,7 +178,7 @@ class OrganizationAuthTokenCreateTest(APITestCase):
 
     def test_no_auth(self) -> None:
         response = self.get_error_response(self.organization.slug)
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_other_org(self) -> None:
         other_org = self.create_organization()
@@ -185,6 +186,17 @@ class OrganizationAuthTokenCreateTest(APITestCase):
 
         self.login_as(self.user)
         response = self.get_error_response(other_org.slug, **payload)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_deny_token_access(self) -> None:
+        personal_token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
+        payload = {"name": "test token"}
+
+        response = self.get_error_response(
+            self.organization.slug,
+            **payload,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {personal_token.token}"},
+        )
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 

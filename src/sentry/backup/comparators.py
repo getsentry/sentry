@@ -592,6 +592,42 @@ class EqualOrRemovedComparator(JSONScrubbingComparator):
         return findings
 
 
+class OptionValueComparator(JSONScrubbingComparator):
+    """
+    Some exports from earlier sentry versions encode simple option values
+    as string integers, while newer versions of sentry encode those values as string.
+
+    If either side is a string, cast both to strings and compare.
+    """
+
+    def compare(self, on: InstanceID, left: Any, right: Any) -> list[ComparatorFinding]:
+        findings = []
+        fields = sorted(self.fields)
+        for f in fields:
+            left_field = left["fields"].get(f)
+            right_field = right["fields"].get(f)
+
+            if left_field == right_field:
+                continue
+
+            if isinstance(left_field, str):
+                right_field = str(right_field)
+            elif isinstance(right_field, str):
+                left_field = str(left_field)
+
+            if left_field != right_field:
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind(),
+                        on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
+                        reason=f"""the left value ({left_field}) of `{f}` was not equal to the right value ({right_field})""",
+                    )
+                )
+        return findings
+
+
 class SecretHexComparator(RegexComparator):
     """Certain 16-byte hexadecimal API keys are regenerated during an import operation."""
 
@@ -700,6 +736,17 @@ class UUID4Comparator(RegexComparator):
         return findings
 
 
+class DataSourceComparator(IgnoredComparator):
+    """
+    DataSource.source_id is a dynamic foreign key that gets remapped during import via the
+    normalize_before_relocation_import method. Since the remapping is handled there, we just
+    need to verify that both sides have a valid source_id value, without comparing the actual values.
+    """
+
+    def __init__(self):
+        super().__init__("source_id")
+
+
 def auto_assign_datetime_equality_comparators(comps: ComparatorMap) -> None:
     """Automatically assigns the DateAddedComparator to any `DateTimeField` that is not already
     claimed by the `DateUpdatedComparator`."""
@@ -742,19 +789,27 @@ def auto_assign_email_obfuscating_comparators(comps: ComparatorMap) -> None:
         name = str(get_model_name(e))
         fields = e._meta.get_fields()
         assign = set()
-        for f in fields:
-            if isinstance(f, models.EmailField):
-                assign.add(f.name)
 
-        if len(assign):
-            found = next(
-                filter(lambda e: isinstance(e, EmailObfuscatingComparator), comps[name]),
-                None,
-            )
-            if found:
-                found.fields.update(assign)
-            else:
-                comps[name].append(EmailObfuscatingComparator(*assign))
+        # Check each email field individually against existing comparators
+        for f in fields:
+            if isinstance(f, models.EmailField) and name in comps:
+                # Only add this field if it's not already handled by any existing comparator
+                field_already_handled = any(f.name in comp.fields for comp in comps[name])
+                if not field_already_handled:
+                    assign.add(f.name)
+
+        if not assign:
+            continue
+
+        # Find existing EmailObfuscatingComparator for this model
+        found = next(
+            filter(lambda e: isinstance(e, EmailObfuscatingComparator), comps[name]),
+            None,
+        )
+        if found:
+            found.fields.update(assign)
+        else:
+            comps[name].append(EmailObfuscatingComparator(*assign))
 
 
 def auto_assign_foreign_key_comparators(comps: ComparatorMap) -> None:
@@ -801,6 +856,8 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.dashboardlastvisited": [
                 DateUpdatedComparator("last_visited", "date_added", "date_updated"),
             ],
+            "sentry.dataforwarder": [DateUpdatedComparator("date_updated", "date_added")],
+            "sentry.dataforwarderproject": [DateUpdatedComparator("date_updated", "date_added")],
             "sentry.groupsearchview": [DateUpdatedComparator("date_updated")],
             "sentry.groupsearchviewlastvisited": [
                 DateUpdatedComparator("last_visited", "date_added", "date_updated")
@@ -819,6 +876,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.dashboardwidgetqueryondemand": [DateUpdatedComparator("date_modified")],
             "sentry.dashboardwidgetquery": [DateUpdatedComparator("date_modified")],
+            "sentry.dashboardfieldlink": [DateUpdatedComparator("date_added", "date_updated")],
             "sentry.email": [DateUpdatedComparator("date_added")],
             "sentry.organization": [AutoSuffixComparator("slug")],
             "sentry.organizationintegration": [DateUpdatedComparator("date_updated")],
@@ -843,6 +901,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.relay": [HashObfuscatingComparator("relay_id", "public_key")],
             "sentry.relayusage": [HashObfuscatingComparator("relay_id", "public_key")],
+            "sentry.repositorysettings": [
+                DateUpdatedComparator("date_updated", "date_added"),
+            ],
             "sentry.rollbackorganization": [DateUpdatedComparator("date_updated")],
             "sentry.rollbackuser": [
                 UUID4Comparator("uuid", "share_uuid"),
@@ -867,6 +928,8 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 # fields otherwise and scrub them from the comparison.
                 IgnoredComparator("last_password_change", "is_unclaimed", "is_password_expired"),
                 UserPasswordObfuscatingComparator(),
+                # `email_unique` can be set to None for relocated users when there are duplicate emails
+                EqualOrRemovedComparator("email_unique"),
             ],
             "sentry.useremail": [
                 DateUpdatedComparator("date_hash_added"),
@@ -879,6 +942,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 # we only really want to compare the IP address itself.
                 IgnoredComparator("country_code", "region_code"),
             ],
+            "sentry.useroption": [OptionValueComparator("value")],
             "sentry.userrole": [DateUpdatedComparator("date_updated")],
             "sentry.userroleuser": [DateUpdatedComparator("date_updated")],
             "workflow_engine.action": [DateUpdatedComparator("date_updated", "date_added")],
@@ -889,7 +953,10 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "workflow_engine.dataconditiongroupaction": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
-            "workflow_engine.datasource": [DateUpdatedComparator("date_updated", "date_added")],
+            "workflow_engine.datasource": [
+                DateUpdatedComparator("date_updated", "date_added"),
+                DataSourceComparator(),
+            ],
             "workflow_engine.datasourcedetector": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
@@ -928,6 +995,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 DateUpdatedComparator("date_updated", "date_added")
             ],
             "monitors.monitor": [UUID4Comparator("guid")],
+            "replays.organizationmemberreplayaccess": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
         },
     )
 

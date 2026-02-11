@@ -1,9 +1,7 @@
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import ResultGrid from 'sentry/components/resultGrid';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-
-type Props = RouteComponentProps;
 
 const getRow = (row: any) => [
   <td key={row.id}>
@@ -15,7 +13,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-function AdminOrganizations(props: Props) {
+export default function AdminOrganizations() {
   return (
     <div>
       <h3>{t('Organizations')}</h3>
@@ -34,10 +32,7 @@ function AdminOrganizations(props: Props) {
           ['employees', 'Employees'],
         ]}
         defaultSort="date"
-        {...props}
       />
     </div>
   );
 }
-
-export default AdminOrganizations;

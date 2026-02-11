@@ -1,6 +1,10 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {
@@ -11,18 +15,16 @@ import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMon
 import type {TimeWindow} from 'sentry/components/checkInTimeline/types';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import {getTimeRangeFromEvent} from 'sentry/components/checkInTimeline/utils/getTimeRangeFromEvent';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import Panel from 'sentry/components/panels/panel';
+import {useTimezone} from 'sentry/components/timezoneProvider';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
-import {type Group, GroupActivityType, GroupStatus} from 'sentry/types/group';
+import {GroupActivityType, GroupStatus, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -105,36 +107,37 @@ export function UptimeDataSection({group, event, project}: Props) {
   const now = useMemo(() => new Date(), []);
 
   const isResolved = group.status === GroupStatus.RESOLVED;
-  const alertRuleId = event.tags.find(tag => tag.key === 'uptime_rule')?.value;
+  const detectorId: number | undefined = event.occurrence?.evidenceData.detectorId;
 
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
   const timeWindow = location.query?.timeWindow as TimeWindow;
   const {since, until} = usePageFilterDates();
+  const timezone = useTimezone();
 
   const timeWindowConfig = useMemo(() => {
     if (defined(timeWindow)) {
       const {start, end} = getTimeRangeFromEvent(event, now, timeWindow);
-      return getConfigFromTimeRange(start, end, timelineWidth);
+      return getConfigFromTimeRange(start, end, timelineWidth, timezone);
     }
-    return getConfigFromTimeRange(since, until, timelineWidth);
-  }, [timeWindow, timelineWidth, since, until, event, now]);
+    return getConfigFromTimeRange(since, until, timelineWidth, timezone);
+  }, [timeWindow, timelineWidth, since, until, event, now, timezone]);
 
   const {data: uptimeStats, isPending} = useUptimeMonitorStats({
-    ruleIds: alertRuleId ? [alertRuleId] : [],
+    detectorIds: detectorId ? [String(detectorId)] : [],
     timeWindowConfig,
   });
-  const bucketedData = alertRuleId ? (uptimeStats?.[alertRuleId] ?? []) : [];
+  const bucketedData = detectorId ? (uptimeStats?.[detectorId] ?? []) : [];
 
   const actions = (
-    <ButtonBar>
-      {defined(alertRuleId) && (
+    <Grid flow="column" align="center" gap="md">
+      {defined(detectorId) && (
         <LinkButton
           icon={<IconSettings />}
           size="xs"
           to={makeAlertsPathname({
-            path: `/rules/uptime/${project.slug}/${alertRuleId}/details/`,
+            path: `/rules/uptime/${project.slug}/${detectorId}/details/`,
             organization,
           })}
         >
@@ -142,7 +145,7 @@ export function UptimeDataSection({group, event, project}: Props) {
         </LinkButton>
       )}
       <ResolutionSelector />
-    </ButtonBar>
+    </Grid>
   );
 
   return (
@@ -192,7 +195,7 @@ const DowntimeTooltipTitle = styled('div')`
 `;
 
 const DowntimeLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Text = styled('div')`
@@ -207,7 +210,7 @@ const TimelineContainer = styled(Panel)`
 `;
 
 const StyledGridLineTimeLabels = styled(GridLineLabels)`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const TimelineWidthTracker = styled('div')`

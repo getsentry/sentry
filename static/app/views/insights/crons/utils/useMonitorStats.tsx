@@ -1,5 +1,6 @@
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {MonitorBucket} from 'sentry/views/insights/crons/types';
@@ -19,10 +20,15 @@ interface Options {
   enabled?: boolean;
 }
 
+type Result = Record<string, MonitorBucket[]>;
+
 /**
  * Fetches Monitor stats
  */
-export function useMonitorStats({monitors, timeWindowConfig, enabled = true}: Options) {
+export function useMonitorStats(
+  {monitors, timeWindowConfig, enabled = true}: Options,
+  options: Partial<UseApiQueryOptions<Result>> = {}
+) {
   const {start, end, rollupConfig} = timeWindowConfig;
 
   const selectionQuery = {
@@ -34,9 +40,14 @@ export function useMonitorStats({monitors, timeWindowConfig, enabled = true}: Op
   const organization = useOrganization();
   const location = useLocation();
 
-  const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
+  const monitorStatsQueryKey = getApiUrl(
+    '/organizations/$organizationIdOrSlug/monitors-stats/',
+    {
+      path: {organizationIdOrSlug: organization.slug},
+    }
+  );
 
-  return useApiQuery<Record<string, MonitorBucket[]>>(
+  return useApiQuery<Result>(
     [
       monitorStatsQueryKey,
       {
@@ -51,6 +62,8 @@ export function useMonitorStats({monitors, timeWindowConfig, enabled = true}: Op
     {
       staleTime: 0,
       enabled: enabled && rollupConfig.totalBuckets > 0,
+      retry: false,
+      ...options,
     }
   );
 }

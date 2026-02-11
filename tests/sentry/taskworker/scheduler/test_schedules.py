@@ -80,6 +80,12 @@ def test_crontabschedule_invalid() -> None:
 def test_crontabschedule_is_due() -> None:
     schedule = CrontabSchedule("test", crontab(minute="*/5"))
 
+    # no last_run and not time to spawn
+    with freeze_time("2025-01-24 14:23:00"):
+        now = timezone.now()
+        assert not schedule.is_due(None)
+        assert not schedule.is_due(now)
+
     with freeze_time("2025-01-24 14:25:00"):
         now = timezone.now()
         assert schedule.is_due(None)
@@ -109,7 +115,15 @@ def test_crontabschedule_is_due() -> None:
 def test_crontabschedule_remaining_seconds() -> None:
     schedule = CrontabSchedule("test", crontab(minute="*/5"))
 
-    assert schedule.remaining_seconds(None) == 0
+    # no last_run, but due in one minute
+    with freeze_time("2025-01-24 14:24:00"):
+        assert not schedule.is_due(None)
+        assert schedule.remaining_seconds(None) == 60
+
+    # no last_run, but due now
+    with freeze_time("2025-01-24 14:25:00"):
+        assert schedule.is_due(None)
+        assert schedule.remaining_seconds(None) == 0
 
     # last run was late (14:21), next spawn is at 14:25
     with freeze_time("2025-01-24 14:25:00"):

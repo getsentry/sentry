@@ -1,7 +1,7 @@
 import type {AutofixRepoDefinition} from 'sentry/components/events/autofix/types';
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -12,6 +12,7 @@ interface AutofixSetupRepoDefinition extends AutofixRepoDefinition {
 }
 
 export interface AutofixSetupResponse {
+  autofixEnabled: boolean;
   billing: {
     hasAutofixQuota: boolean;
   } | null;
@@ -19,6 +20,7 @@ export interface AutofixSetupResponse {
     ok: boolean;
     reason: string | null;
   };
+  seerReposLinked: boolean;
   setupAcknowledgement: {
     orgHasAcknowledged: boolean;
     userHasAcknowledged: boolean;
@@ -57,11 +59,13 @@ export function useAutofixSetup(
 
   return {
     ...queryData,
+    autofixEnabled: Boolean(queryData.data?.autofixEnabled),
     canStartAutofix: Boolean(
       queryData.data?.integration.ok &&
-        queryData.data?.setupAcknowledgement.orgHasAcknowledged
+      queryData.data?.setupAcknowledgement.orgHasAcknowledged
     ),
     canCreatePullRequests: Boolean(queryData.data?.githubWriteIntegration?.ok),
     hasAutofixQuota: Boolean(queryData.data?.billing?.hasAutofixQuota),
+    seerReposLinked: Boolean(queryData.data?.seerReposLinked),
   };
 }

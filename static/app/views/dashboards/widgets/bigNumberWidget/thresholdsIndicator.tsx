@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import type {Polarity} from 'sentry/components/percentChange';
 import {normalizeUnit} from 'sentry/views/dashboards/utils';
+import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 import {ThresholdsHoverWrapper} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
-import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 type ValidThresholds = {
   max_values: {
@@ -53,11 +53,12 @@ export function ThresholdsIndicator({
       max1: max1 ?? null,
       max2: max2 ?? null,
     },
+    preferredPolarity,
   };
 
   return (
     <ThresholdsHoverWrapper thresholds={thresholdsConfig} type={type}>
-      <Circle role="status" aria-label={state} color={theme[colorName]} />
+      <Circle role="status" aria-label={state} color={theme.colors[colorName]} />
     </ThresholdsHoverWrapper>
   );
 }
@@ -78,9 +79,9 @@ const Circle = styled('div')<{color: string}>`
 type ThresholdState = 'poor' | 'meh' | 'good';
 
 const COLOR_NAME_FOR_STATE = {
-  poor: 'red300',
-  meh: 'yellow300',
-  good: 'green300',
+  poor: 'red400',
+  meh: 'yellow400',
+  good: 'green400',
 } as const satisfies Record<ThresholdState, string>;
 
 function getThresholdState(

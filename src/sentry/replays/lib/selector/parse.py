@@ -9,7 +9,7 @@ SelectorType = Union[Attrib, Class, Element, Hash]
 
 
 class QueryType:
-    def __init__(self):
+    def __init__(self) -> None:
         self.alt: str | None = None
         self.aria_label: str | None = None
         self.classes: list[str] = []

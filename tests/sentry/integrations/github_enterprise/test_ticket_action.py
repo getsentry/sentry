@@ -5,17 +5,20 @@ import responses
 from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.github_enterprise import client
 from sentry.integrations.github_enterprise.actions.create_ticket import (
     GitHubEnterpriseCreateTicketAction,
 )
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.rules import rules
+from sentry.services.eventstore.models import GroupEvent
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
 
@@ -90,6 +93,14 @@ class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCas
         title = "sample title"
         sample_description = "sample bug report"
         html_url = f"https://github.example.com/api/v3/foo/bar/issues/{self.issue_num}"
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            Repository.objects.create(
+                name=self.repo,
+                provider="integrations:github_enterprise",
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
 
         responses.add(
             method=responses.POST,

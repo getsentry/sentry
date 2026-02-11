@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
@@ -9,9 +9,9 @@ import {tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
-import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import withProjects from 'sentry/utils/withProjects';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
@@ -30,7 +30,7 @@ import {
 } from 'sentry/views/organizationStats/utils';
 
 import withSubscription from 'getsentry/components/withSubscription';
-import {PlanTier, type Subscription} from 'getsentry/types';
+import {type Subscription} from 'getsentry/types';
 import {SPIKE_PROTECTION_OPTION_DISABLED} from 'getsentry/views/spikeProtection/constants';
 import {SpikeProtectionRangeLimitation} from 'getsentry/views/spikeProtection/spikeProtectionCallouts';
 import SpikeProtectionHistoryTable from 'getsentry/views/spikeProtection/spikeProtectionHistoryTable';
@@ -204,9 +204,7 @@ function getSpikeDetails({
   return actualSpikes;
 }
 
-interface EnhancedUsageStatsOrganizationProps
-  extends WithRouteAnalyticsProps,
-    UsageStatsOrganizationProps {
+interface EnhancedUsageStatsOrganizationProps extends UsageStatsOrganizationProps {
   isSingleProject: boolean;
   projects: Project[];
   subscription: Subscription;
@@ -229,7 +227,6 @@ function EnhancedUsageStatsOrganization({
   dataCategory,
   dataCategoryName,
   dataCategoryApiName,
-  setRouteAnalyticsParams,
   isSingleProject,
   spikeCursor,
   clientDiscard,
@@ -261,7 +258,9 @@ function EnhancedUsageStatsOrganization({
   const projectWithSpikeProjectionOption = useApiQuery<Project[]>(
     [
       // This endpoint refetches the specific project with an added query for the SP option
-      `/organizations/${organization.slug}/projects/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           options: SPIKE_PROTECTION_OPTION_DISABLED,
@@ -280,7 +279,12 @@ function EnhancedUsageStatsOrganization({
   const spikesList = useApiQuery<SpikesList>(
     [
       // Get all the spikes in the time period
-      `/organizations/${organization.slug}/spikes/projects/${project?.slug}/`,
+      getApiUrl(
+        `/organizations/$organizationIdOrSlug/spikes/projects/$projectIdOrSlug/`,
+        {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project?.id!},
+        }
+      ),
       {
         query: {
           ...endpointQueryDatetime,
@@ -294,7 +298,15 @@ function EnhancedUsageStatsOrganization({
   const spikeThresholds = useApiQuery<SpikeThresholds>(
     [
       // Only fetch spike thresholds if the interval is 1h
-      `/organizations/${organization.slug}/spike-projection/projects/${project?.slug}/`,
+      getApiUrl(
+        `/organizations/$organizationIdOrSlug/spike-projection/projects/$projectIdOrSlug/`,
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project?.slug!,
+          },
+        }
+      ),
       {
         query: {
           ...endpointQueryDatetime,
@@ -305,33 +317,12 @@ function EnhancedUsageStatsOrganization({
     {staleTime: Infinity, retry: false, enabled: spikeThresholdsQueryEnabled}
   );
 
-  useEffect(() => {
-    setRouteAnalyticsParams({
-      subscription,
-      organization,
-      is_project_stats: isSingleProject,
-      has_spike_data: isSingleProject && hasAccurateSpikes,
-    });
-  }, [
-    hasAccurateSpikes,
-    isSingleProject,
-    organization,
-    setRouteAnalyticsParams,
+  useRouteAnalyticsParams({
     subscription,
-  ]);
-
-  const newEndpointQuery = useMemo(() => {
-    const query = endpointQuery;
-
-    if (
-      dataCategoryApiName === 'profile_duration' &&
-      subscription.planTier !== PlanTier.AM2
-    ) {
-      query.category.push('profile');
-    }
-
-    return query;
-  }, [endpointQuery, dataCategoryApiName, subscription.planTier]);
+    organization,
+    is_project_stats: isSingleProject,
+    has_spike_data: isSingleProject && hasAccurateSpikes,
+  });
 
   return (
     <UsageStatsOrganization
@@ -341,7 +332,7 @@ function EnhancedUsageStatsOrganization({
       dataCategoryName={dataCategoryName}
       dataDatetime={dataDatetime}
       projectIds={projectIds}
-      endpointQuery={newEndpointQuery}
+      endpointQuery={endpointQuery}
       handleChangeState={handleChangeState}
       clientDiscard={clientDiscard}
       chartTransform={chartTransform}
@@ -492,10 +483,8 @@ function EnhancedUsageStatsOrganization({
 
 const DroppedFromSpikesStat = styled('div')`
   display: inline-block;
-  color: ${p => p.theme.success};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.success};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
-export default withRouteAnalytics(
-  withProjects(withSubscription(EnhancedUsageStatsOrganization))
-);
+export default withProjects(withSubscription(EnhancedUsageStatsOrganization));

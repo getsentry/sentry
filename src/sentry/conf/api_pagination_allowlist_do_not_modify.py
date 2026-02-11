@@ -1,7 +1,7 @@
 """
-    This list is tracking old api endpoints that don't correctly implement pagination.
-    The goal is to eventually add pagination for all and shrink this list.
-    DO NOT ADD ANY NEW APIS
+This list is tracking old api endpoints that don't correctly implement pagination.
+The goal is to eventually add pagination for all and shrink this list.
+DO NOT ADD ANY NEW APIS
 """
 
 SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
@@ -52,6 +52,8 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "OrganizationMetricsTagsEndpoint",
     "OrganizationMissingMembersEndpoint",
     "OrganizationMonitorScheduleSampleDataEndpoint",
+    "OrganizationMonitorScheduleSampleBucketsEndpoint",
+    "OrganizationMonitorScheduleSampleWindowEndpoint",
     "OrganizationMonitorStatsEndpoint",
     "OrganizationPluginsConfigsEndpoint",
     "OrganizationPluginsEndpoint",
@@ -91,6 +93,7 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "ProjectUserStatsEndpoint",
     "ProjectUsersEndpoint",
     "ReleaseThresholdEndpoint",
+    "SentryAppInstallationServiceHookProjectsEndpoint",
     "SentryAppRequestsEndpoint",
     "SentryAppWebhookRequestsEndpoint",
     "SentryAppsStatsEndpoint",

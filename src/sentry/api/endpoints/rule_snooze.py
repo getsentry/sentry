@@ -1,14 +1,17 @@
 import datetime
 from typing import Any, Generic, TypeVar
 
+import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import router, transaction
 from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log
+from sentry.analytics.events.rule_snooze import RuleSnoozed, RuleUnSnoozed
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -24,6 +27,11 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.receivers.rule_snooze import _update_workflow_engine_models
+from sentry.workflow_engine.utils.legacy_metric_tracking import (
+    report_used_legacy_models,
+    track_alert_endpoint_execution,
+)
 
 
 def can_edit_alert_rule(organization, request):
@@ -133,16 +141,20 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
                 request=request, organization=project.organization, rule=rule
             )
 
-        analytics.record(
-            "rule.snoozed",
-            user_id=request.user.id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            rule_id=rule.id,
-            rule_type=self.rule_field,
-            target=data.get("target"),
-            until=data.get("until"),
-        )
+        try:
+            analytics.record(
+                RuleSnoozed(
+                    user_id=request.user.id,
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    rule_id=rule.id,
+                    rule_type=self.rule_field,
+                    target=data.get("target"),
+                    until=str(data.get("until")) if data.get("until") else None,
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         return Response(
             serialize(rule_snooze, request.user, RuleSnoozeSerializer()),
@@ -159,8 +171,11 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
             pass
 
         # if user can edit then delete it
+        # Only allow deletion of shared snooze if user created it or has proper permissions
         if shared_snooze and can_edit_alert_rule(project.organization, request):
-            shared_snooze.delete()
+            with transaction.atomic(router.db_for_write(RuleSnooze)):
+                _update_workflow_engine_models(shared_snooze, is_enabled=True)
+                shared_snooze.delete()
             deletion_type = "everyone"
 
         # next check if there is a mute for me that I can remove
@@ -176,15 +191,19 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
                 deletion_type = "me"
 
         if deletion_type:
-            analytics.record(
-                "rule.unsnoozed",
-                user_id=request.user.id,
-                organization_id=project.organization_id,
-                project_id=project.id,
-                rule_id=rule.id,
-                rule_type=self.rule_field,
-                target=deletion_type,
-            )
+            try:
+                analytics.record(
+                    RuleUnSnoozed(
+                        user_id=request.user.id,
+                        organization_id=project.organization_id,
+                        project_id=project.id,
+                        rule_id=rule.id,
+                        rule_type=self.rule_field,
+                        target=deletion_type,
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         # didn't find a match but there is a shared snooze
@@ -222,18 +241,36 @@ class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[Rule]):
     }
     rule_field = "rule"
 
+    @track_alert_endpoint_execution("POST", "sentry-api-0-rule-snooze")
+    def post(self, request: Request, project: Project, rule: Rule) -> Response:
+        # Tracking happens in fetch_rule_list, fetch_instance, and create_instance
+        return super().post(request, project, rule)
+
+    @track_alert_endpoint_execution("DELETE", "sentry-api-0-rule-snooze")
+    def delete(self, request: Request, project: Project, rule: Rule) -> Response:
+        # Tracking happens in fetch_rule_list and fetch_instance
+        return super().delete(request, project, rule)
+
     def fetch_rule_list(self, project: Project) -> BaseQuerySet[Rule]:
         queryset = Rule.objects.filter(project=project)
+        # Mark that we're using legacy Rule models
+        report_used_legacy_models()
 
         return queryset
 
     def fetch_instance(self, rule: Rule, user_id: int | None, **kwargs: Any) -> RuleSnooze:
-        rule_snooze = RuleSnooze.objects.get(user_id=user_id, rule=rule, **kwargs)
+        # Mark that we're using legacy Rule models (before query to track failures too)
+        report_used_legacy_models()
 
+        rule_snooze = RuleSnooze.objects.get(user_id=user_id, rule=rule, **kwargs)
         return rule_snooze
 
     def create_instance(self, rule: Rule, user_id: int | None, **kwargs: Any) -> RuleSnooze:
-        rule_snooze = RuleSnooze.objects.create(user_id=user_id, rule=rule, **kwargs)
+        with transaction.atomic(router.db_for_write(RuleSnooze)):
+            rule_snooze = RuleSnooze.objects.create(user_id=user_id, rule=rule, **kwargs)
+            # Mark that we're using legacy Rule models (creating foreign key relationship)
+            report_used_legacy_models()
+            _update_workflow_engine_models(rule_snooze, is_enabled=False)
 
         return rule_snooze
 
@@ -259,18 +296,36 @@ class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[AlertRule]):
     }
     rule_field = "alert_rule"
 
+    @track_alert_endpoint_execution("POST", "sentry-api-0-metric-rule-snooze")
+    def post(self, request: Request, project: Project, rule: AlertRule) -> Response:
+        # Tracking happens in fetch_rule_list, fetch_instance, and create_instance
+        return super().post(request, project, rule)
+
+    @track_alert_endpoint_execution("DELETE", "sentry-api-0-metric-rule-snooze")
+    def delete(self, request: Request, project: Project, rule: AlertRule) -> Response:
+        # Tracking happens in fetch_rule_list and fetch_instance
+        return super().delete(request, project, rule)
+
     def fetch_rule_list(self, project: Project) -> BaseQuerySet[AlertRule]:
         queryset = AlertRule.objects.fetch_for_project(project=project)
+        # Mark that we're using legacy AlertRule models
+        report_used_legacy_models()
 
         return queryset
 
     def fetch_instance(self, rule: AlertRule, user_id: int | None, **kwargs: Any) -> RuleSnooze:
-        rule_snooze = RuleSnooze.objects.get(user_id=user_id, alert_rule=rule, **kwargs)
+        # Mark that we're using legacy AlertRule models (before query to track failures too)
+        report_used_legacy_models()
 
+        rule_snooze = RuleSnooze.objects.get(user_id=user_id, alert_rule=rule, **kwargs)
         return rule_snooze
 
     def create_instance(self, rule: AlertRule, user_id: int | None, **kwargs: Any) -> RuleSnooze:
-        rule_snooze = RuleSnooze.objects.create(user_id=user_id, alert_rule=rule, **kwargs)
+        with transaction.atomic(router.db_for_write(RuleSnooze)):
+            rule_snooze = RuleSnooze.objects.create(user_id=user_id, alert_rule=rule, **kwargs)
+            # Mark that we're using legacy AlertRule models (creating foreign key relationship)
+            report_used_legacy_models()
+            _update_workflow_engine_models(rule_snooze, is_enabled=False)
 
         return rule_snooze
 

@@ -1,11 +1,12 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -16,12 +17,13 @@ import type {
   PluginProjectItem,
   PluginWithProjectList,
 } from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -40,6 +42,9 @@ import InstalledPlugin from 'sentry/views/settings/organizationIntegrations/inst
 import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 import PluginDeprecationAlert from 'sentry/views/settings/organizationIntegrations/pluginDeprecationAlert';
 
+// TODO @sentaur-athena: remove this once we have a solution to deprecate these plugins
+const TEMPORARY_PERMITTED_PLUGINS = new Set(['amazon-sqs']);
+
 function makePluginQueryKey({
   orgSlug,
   pluginSlug,
@@ -47,7 +52,12 @@ function makePluginQueryKey({
   orgSlug: string;
   pluginSlug: string;
 }): ApiQueryKey {
-  return [`/organizations/${orgSlug}/plugins/configs/`, {query: {plugins: pluginSlug}}];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/plugins/configs/`, {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+    {query: {plugins: pluginSlug}},
+  ];
 }
 
 function PluginDetailedView() {
@@ -323,8 +333,9 @@ function PluginDetailedView() {
               hideButtonIfDisabled={false}
               requiresAccess={false}
               renderTopButton={
-                // TODO @sentaur-athena: remove this once we have a solution to deprecate the heroku plugin
-                plugin.id === 'heroku' ? renderTopButton : renderDeprecatedButton
+                TEMPORARY_PERMITTED_PLUGINS.has(plugin.id)
+                  ? renderTopButton
+                  : renderDeprecatedButton
               }
             />
           }

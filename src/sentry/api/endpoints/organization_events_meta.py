@@ -8,11 +8,7 @@ from rest_framework.response import Response
 from sentry import features, options, search
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import (
-    NoProjects,
-    OrganizationEventsEndpointBase,
-    OrganizationEventsV2EndpointBase,
-)
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.event_search import parse_search_query
 from sentry.api.helpers.environments import get_environment_func
 from sentry.api.helpers.group_index import build_query_params_from_request
@@ -21,11 +17,12 @@ from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
-from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.events.types import SnubaParams
-from sentry.snuba import spans_indexed, spans_metrics, spans_rpc
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig
+from sentry.search.events.types import EventsResponse, SnubaParams
+from sentry.snuba import spans_indexed, spans_metrics
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.utils import RPC_DATASETS
 
 
@@ -65,7 +62,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
 
         return all_features
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -125,10 +122,9 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         try:
-            # events-meta is still used by events v1 which doesn't require global views
-            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
 
@@ -147,13 +143,17 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
         with handle_query_errors():
             with sentry_sdk.start_span(op="discover.endpoint", name="filter_creation"):
                 projects = self.get_projects(request, organization)
+                # Filter out None values from environments
+                environments = [e for e in snuba_params.environments if e is not None]
                 query_kwargs = build_query_params_from_request(
-                    request, organization, projects, snuba_params.environments
+                    request, organization, projects, environments
                 )
                 query_kwargs["limit"] = 5
                 try:
                     # Need to escape quotes in case some "joker" has a transaction with quotes
-                    transaction_name = UNESCAPED_QUOTE_RE.sub('\\"', lookup_keys["transaction"])
+                    transaction_name = UNESCAPED_QUOTE_RE.sub(
+                        '\\"', lookup_keys["transaction"] or ""
+                    )
                     parsed_terms = parse_search_query(f'transaction:"{transaction_name}"')
                 except ParseError:
                     return Response({"detail": "Invalid transaction search"}, status=400)
@@ -181,12 +181,12 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
 
 
 @region_silo_endpoint
-class OrganizationSpansSamplesEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -198,11 +198,13 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsV2EndpointBase):
 
         with handle_query_errors():
             if use_eap:
-                result = get_eap_span_samples(request, snuba_params, orderby)
-                dataset = spans_rpc
+                result: EAPResponse | EventsResponse = get_eap_span_samples(
+                    request, snuba_params, orderby
+                )
+                dataset = Spans
             else:
                 result = get_span_samples(request, snuba_params, orderby)
-                dataset = spans_indexed
+                dataset = spans_indexed  # type: ignore[assignment]
 
         return Response(
             self.handle_results_with_meta(
@@ -216,7 +218,9 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsV2EndpointBase):
         )
 
 
-def get_span_samples(request: Request, snuba_params: SnubaParams, orderby: list[str] | None):
+def get_span_samples(
+    request: Request, snuba_params: SnubaParams, orderby: list[str] | None
+) -> EventsResponse:
     is_frontend = is_frontend_request(request)
     buckets = request.GET.get("intervals", 3)
     lower_bound = request.GET.get("lowerBound", 0)
@@ -280,9 +284,10 @@ def get_span_samples(request: Request, snuba_params: SnubaParams, orderby: list[
             span_ids.append(top)
 
     if len(span_ids) > 0:
-        query = f"span_id:[{','.join(span_ids)}] {request.query_params.get('query')}"
+        user_query = request.query_params.get("query") or ""
+        query = f"span_id:[{','.join(span_ids)}] {user_query}"
     else:
-        query = request.query_params.get("query")
+        query = request.query_params.get("query") or ""
 
     return spans_indexed.query(
         selected_columns=selected_columns,
@@ -296,7 +301,9 @@ def get_span_samples(request: Request, snuba_params: SnubaParams, orderby: list[
     )
 
 
-def get_eap_span_samples(request: Request, snuba_params: SnubaParams, orderby: list[str] | None):
+def get_eap_span_samples(
+    request: Request, snuba_params: SnubaParams, orderby: list[str] | None
+) -> EAPResponse:
     lower_bound = request.GET.get("lowerBound", 0)
     first_bound = request.GET.get("firstBound")
     second_bound = request.GET.get("secondBound")
@@ -316,10 +323,10 @@ def get_eap_span_samples(request: Request, snuba_params: SnubaParams, orderby: l
         "trace",
     ]
 
-    query_string = request.query_params.get("query")
+    query_string = request.query_params.get("query") or ""
     bounds_query_string = f"{column}:>{lower_bound}ms {column}:<{upper_bound}ms {query_string}"
 
-    rpc_res = spans_rpc.run_table_query(
+    rpc_res = Spans.run_table_query(
         params=snuba_params,
         query_string=bounds_query_string,
         config=SearchResolverConfig(),
@@ -352,7 +359,7 @@ def get_eap_span_samples(request: Request, snuba_params: SnubaParams, orderby: l
         f"span_id:[{','.join(span_ids)}] {query_string}" if len(span_ids) > 0 else query_string
     )
 
-    return spans_rpc.run_table_query(
+    return Spans.run_table_query(
         params=snuba_params,
         config=SearchResolverConfig(use_aggregate_conditions=False),
         offset=0,

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import responses
@@ -24,7 +24,7 @@ class InstallationEndpointTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
-    def test_installation_endpoint(self, get_jwt):
+    def test_installation_endpoint(self, get_jwt: MagicMock) -> None:
         # add installation via GitHub webhook
         responses.add(
             method=responses.GET,

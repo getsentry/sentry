@@ -1,0 +1,101 @@
+{
+  "platform": "native",
+  "tags": [
+    ["environment", "production"],
+    ["level", "error"],
+    ["mechanism", "SceDbgBacktrace"],
+    ["os.name", "PlayStation"],
+    ["handled", "no"]
+  ],
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1751457103.2,
+        "message": "Game initialization completed"
+      },
+      {
+        "timestamp": 1751457103.205,
+        "message": "About to activate cheat command"
+      }
+    ]
+  },
+  "contexts": {
+    "device": {
+      "name": "PlayStation 5",
+      "type": "device"
+    },
+    "os": {
+      "name": "PlayStation",
+      "version": "9.00",
+      "type": "os"
+    }
+  },
+  "culprit": "USentryTowerCheatManager::ActivateGodMode",
+  "environment": "production",
+  "exception": {
+    "values": [
+      {
+        "type": "Exception",
+        "value": "This is an example of a PlayStation exception",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "sentry__unwind_stack_psunwind",
+              "symbol": "sentry__unwind_stack_psunwind",
+              "package": "/app0/eboot.bin",
+              "filename": "sentry_stacktrace_ps.cpp",
+              "abs_path": "D:\\projects\\sentry-playstation\\src\\sentry_stacktrace_ps.cpp",
+              "lineno": 442,
+              "in_app": false,
+              "instruction_addr": "0x25d31a1f"
+            },
+            {
+              "function": "USentryTowerCheatManager::ActivateGodMode",
+              "symbol": "_ZN23USentryTowerCheatManager15ActivateGodModeEv",
+              "package": "/app0/eboot.bin",
+              "filename": "SentryTowerCheatManager.cpp",
+              "abs_path": "D:\\projects\\unreal-tower\\Source\\SentryTower\\SentryTowerCheatManager.cpp",
+              "lineno": 67,
+              "pre_context": [
+                "    if (!CheatDatabase) {",
+                "        return;",
+                "    }",
+                "    FCheatData* CheatData = CheatDatabase->FindCheat(TEXT(\"GODMODE\"));"
+              ],
+              "context_line": "    CheatData->Activate();",
+              "post_context": [
+                "}",
+                "",
+                "void USentryTowerCheatManager::SpawnPowerup()",
+                "{"
+              ],
+              "in_app": true,
+              "instruction_addr": "0x2308b442"
+            }
+          ]
+        },
+        "mechanism": {
+          "type": "SceDbgBacktrace",
+          "description": "PlayStation stack trace capture",
+          "help_link": "https://www.playstation.com/en-us/support/"
+        }
+      }
+    ]
+  },
+  "sdk": {
+    "name": "sentry.native.playstation",
+    "version": "0.9.1",
+    "packages": [
+      {
+        "name": "github:getsentry/sentry-native",
+        "version": "0.9.1"
+      }
+    ]
+  },
+  "user": {
+    "id": "42",
+    "email": "jane.doe@example.com",
+    "ip_address": "127.0.0.1",
+    "username": "Jane Doe"
+  }
+}

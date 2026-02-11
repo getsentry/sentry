@@ -130,7 +130,7 @@ class SessionsRequest extends Component<Props, State> {
             )
           : response,
       });
-    } catch (error) {
+    } catch (error: any) {
       addErrorMessage(error.responseJSON?.detail ?? t('Error loading health data'));
       this.setState({
         reloading: false,

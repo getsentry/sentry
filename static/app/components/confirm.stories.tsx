@@ -1,9 +1,10 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import Confirm, {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
@@ -231,6 +232,6 @@ export default Storybook.story('Confirm', story => {
 });
 
 const ModalTrigger = styled('span')`
-  background: ${p => p.theme.green200};
+  background: ${p => p.theme.colors.green200};
   padding: ${space(1)};
 `;

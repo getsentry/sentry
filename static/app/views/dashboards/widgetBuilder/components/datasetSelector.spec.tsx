@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -13,44 +12,30 @@ jest.mock('sentry/utils/useNavigate', () => ({
 
 const mockUseNavigate = jest.mocked(useNavigate);
 
-describe('DatasetSelector', function () {
-  let router!: ReturnType<typeof RouterFixture>;
-  let organization!: ReturnType<typeof OrganizationFixture>;
-  beforeEach(function () {
-    router = RouterFixture();
-    organization = OrganizationFixture();
-  });
-
-  it('changes the dataset', async function () {
+describe('DatasetSelector', () => {
+  it('changes the dataset', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     render(
       <WidgetBuilderProvider>
         <DatasetSelector />
-      </WidgetBuilderProvider>,
-      {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      }
+      </WidgetBuilderProvider>
     );
 
-    await userEvent.click(await screen.findByLabelText('Issues'));
+    await userEvent.click(await screen.findByRole('button', {name: 'Errors'}));
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Issues'}));
 
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        ...router.location,
         query: expect.objectContaining({dataset: 'issue'}),
       }),
       expect.anything()
     );
   });
 
-  it('disables transactions dataset when discover-saved-queries-deprecation feature is enabled', async function () {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
+  it('disables transactions dataset when discover-saved-queries-deprecation feature is enabled', async () => {
     const organizationWithDeprecation = OrganizationFixture({
       features: ['discover-saved-queries-deprecation'],
     });
@@ -60,37 +45,22 @@ describe('DatasetSelector', function () {
         <DatasetSelector />
       </WidgetBuilderProvider>,
       {
-        router,
         organization: organizationWithDeprecation,
-        deprecatedRouterMocks: true,
       }
     );
 
-    const transactionsRadio = screen.getByRole('radio', {name: /transactions/i});
-    expect(transactionsRadio).toBeDisabled();
+    await userEvent.click(await screen.findByRole('button', {name: 'Errors'}));
 
-    // Hover on the disabled transactions dataset to show tooltip
-    await userEvent.hover(transactionsRadio);
+    const transactionsOption = await screen.findByRole('option', {name: 'Transactions'});
+    expect(transactionsOption).toHaveAttribute('aria-disabled', 'true');
 
     expect(
-      await screen.findByText(/This dataset is is no longer supported./i)
+      await screen.findByText(/No longer supported\. Use the spans dataset with the/)
     ).toBeInTheDocument();
-
-    // Click on the "Spans" link in the tooltip
-    const spansLink = screen.getByRole('link', {name: 'spans'});
-    await userEvent.click(spansLink);
-
-    // Verify navigation to spans dataset
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...router.location,
-        query: expect.objectContaining({dataset: 'spans'}),
-      }),
-      expect.anything()
-    );
+    expect(screen.getByText('is_transaction:true')).toBeInTheDocument();
   });
 
-  it('enables transactions dataset when discover-saved-queries-deprecation feature is disabled', async function () {
+  it('allows selection of transactions dataset when discover-saved-queries-deprecation feature is disabled', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
@@ -103,21 +73,22 @@ describe('DatasetSelector', function () {
         <DatasetSelector />
       </WidgetBuilderProvider>,
       {
-        router,
         organization: organizationWithoutDeprecation,
-        deprecatedRouterMocks: true,
       }
     );
 
-    const transactionsRadio = screen.getByRole('radio', {name: /transactions/i});
-    expect(transactionsRadio).toBeEnabled();
+    await userEvent.click(await screen.findByRole('button', {name: 'Errors'}));
 
-    // Verify transactions dataset can be selected
-    await userEvent.click(transactionsRadio);
+    const transactionsOption = await screen.findByRole('option', {name: 'Transactions'});
+
+    expect(
+      await screen.findByText('Transactions from your application')
+    ).toBeInTheDocument();
+
+    await userEvent.click(transactionsOption);
 
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        ...router.location,
         query: expect.objectContaining({dataset: 'transaction-like'}),
       }),
       expect.anything()

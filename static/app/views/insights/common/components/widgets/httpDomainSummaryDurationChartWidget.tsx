@@ -1,8 +1,8 @@
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useHttpDomainSummaryChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpDomainSummaryChartFilter';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {Referrer} from 'sentry/views/insights/http/referrers';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -18,14 +18,13 @@ export default function HttpDomainSummaryDurationChartWidget(
     isPending: isDurationDataLoading,
     data: durationData,
     error: durationError,
-  } = useSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
-      search: MutableSearch.fromQueryObject(chartFilters),
+      query: MutableSearch.fromQueryObject(chartFilters),
       yAxis: [`avg(${SpanFields.SPAN_SELF_TIME})`],
-      transformAliasToInputFormat: true,
+      pageFilters: props.pageFilters,
     },
-    referrer,
-    props.pageFilters
+    referrer
   );
 
   return (
@@ -34,7 +33,7 @@ export default function HttpDomainSummaryDurationChartWidget(
       id="httpDomainSummaryDurationChartWidget"
       title={getDurationChartTitle('http')}
       queryInfo={{search, referrer}}
-      series={[durationData['avg(span.self_time)']]}
+      timeSeries={durationData?.timeSeries}
       isLoading={isDurationDataLoading}
       error={durationError}
     />

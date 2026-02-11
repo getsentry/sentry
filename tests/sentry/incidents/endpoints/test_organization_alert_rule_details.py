@@ -3,7 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from functools import cached_property
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -52,18 +52,15 @@ from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_conn
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.base import SiloMode
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import ExtrapolationMode
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.migration_helpers.alert_rule import (
-    migrate_alert_rule,
-    migrate_metric_action,
-    migrate_metric_data_conditions,
-    migrate_resolve_threshold_data_condition,
-)
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
     assert_dual_written_resolution_threshold_equals,
@@ -229,19 +226,8 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
-        critical_trigger = AlertRuleTrigger.objects.get(
-            alert_rule_id=self.alert_rule.id, label="critical"
-        )
-        critical_trigger_action = AlertRuleTriggerAction.objects.get(
-            alert_rule_trigger=critical_trigger
-        )
-        _, _, _, self.detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
-        self.critical_detector_trigger, _, _ = migrate_metric_data_conditions(critical_trigger)
-
-        self.critical_action, _, _ = migrate_metric_action(critical_trigger_action)
-        self.resolve_trigger_data_condition = migrate_resolve_threshold_data_condition(
-            self.alert_rule
-        )
+        ard = AlertRuleDetector.objects.get(alert_rule_id=self.alert_rule.id)
+        self.detector = Detector.objects.get(id=ard.detector_id)
 
         with (
             self.feature("organizations:incidents"),
@@ -359,7 +345,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_dynamic_detection_type(self, mock_seer_request):
+    def test_dynamic_detection_type(self, mock_seer_request: MagicMock) -> None:
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
@@ -668,6 +654,29 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert response.data["snooze"]
         assert response.data["snoozeCreatedBy"] == user2.get_display_name()
 
+    @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
+    def test_get_shows_count_when_stored_as_upsampled_count(
+        self, mock_are_any_projects_error_upsampled
+    ) -> None:
+        """Test GET returns count() to user even when stored as upsampled_count() internally"""
+        mock_are_any_projects_error_upsampled.return_value = True
+
+        # Set up user membership FIRST before accessing self.alert_rule
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+
+        # Now access and modify the alert rule to have upsampled_count() internally
+        # (simulating what would happen if it was created with count() on upsampled project)
+        self.alert_rule.snuba_query.aggregate = "upsampled_count()"
+        self.alert_rule.snuba_query.save()
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
+
+        assert (
+            resp.data["aggregate"] == "count()"
+        ), "GET should return count() to user, hiding internal upsampled_count() storage"
+
 
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
@@ -704,23 +713,85 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             == list(audit_log_entry)[0].ip_address
         )
 
+    @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
+    def test_update_to_count_converts_internally_but_shows_count_on_upsampled_project(
+        self, mock_are_any_projects_error_upsampled
+    ) -> None:
+        """Test updating to count() converts to upsampled_count() internally but shows count() to user"""
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        # Mock that projects are upsampled
+        mock_are_any_projects_error_upsampled.return_value = True
+
+        alert_rule = self.alert_rule
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
+        # Update to count() aggregate - should convert internally but return count() to user
+        serialized_alert_rule["aggregate"] = "count()"
+        serialized_alert_rule["dataset"] = "events"
+        serialized_alert_rule["name"] = "Updated to Count Rule"
+
+        with self.feature("organizations:incidents"), outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        # User should see count() in response
+        assert resp.data["aggregate"] == "count()"
+
+        # But internally it should be stored as upsampled_count()
+        alert_rule.refresh_from_db()
+        assert (
+            alert_rule.snuba_query.aggregate == "upsampled_count()"
+        ), "UPDATE should convert count() to upsampled_count() internally for upsampled projects"
+
+    @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
+    def test_update_non_aggregate_field_preserves_transparency_on_upsampled_project(
+        self, mock_are_any_projects_error_upsampled
+    ) -> None:
+        """Test updating non-aggregate fields maintains transparency of upsampled_count()"""
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        mock_are_any_projects_error_upsampled.return_value = True
+
+        # Manually set the existing alert rule to have upsampled_count() internally
+        self.alert_rule.snuba_query.aggregate = "upsampled_count()"
+        self.alert_rule.snuba_query.save()
+        original_aggregate = self.alert_rule.snuba_query.aggregate
+
+        alert_rule = self.alert_rule
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
+        # Update only the name, not the aggregate
+        serialized_alert_rule["name"] = "Updated Name Only"
+
+        with self.feature("organizations:incidents"), outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        # User should see count() even though it's stored as upsampled_count()
+        assert (
+            resp.data["aggregate"] == "count()"
+        ), "UPDATE response should show count() to user, hiding internal upsampled_count() storage"
+        assert resp.data["name"] == "Updated Name Only"
+
+        # Internal storage should be unchanged
+        alert_rule.refresh_from_db()
+        assert alert_rule.snuba_query.aggregate == original_aggregate  # Still upsampled_count()
+
     def test_workflow_engine_serializer(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
-        critical_trigger = AlertRuleTrigger.objects.get(
-            alert_rule_id=self.alert_rule.id, label="critical"
-        )
-        critical_trigger_action = AlertRuleTriggerAction.objects.get(
-            alert_rule_trigger=critical_trigger
-        )
-        _, _, _, self.detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
-        self.critical_detector_trigger, _, _ = migrate_metric_data_conditions(critical_trigger)
-
-        self.critical_action, _, _ = migrate_metric_action(critical_trigger_action)
-        self.resolve_trigger_data_condition = migrate_resolve_threshold_data_condition(
-            self.alert_rule
-        )
+        ard = AlertRuleDetector.objects.get(alert_rule_id=self.alert_rule.id)
+        self.detector = Detector.objects.get(id=ard.detector_id)
 
         alert_rule = self.alert_rule
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
@@ -729,7 +800,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 
         with (
             self.feature("organizations:incidents"),
-            self.feature("organizations:workflow-engine-metric-alert-dual-write"),
             self.feature("organizations:workflow-engine-rule-serializers"),
             outbox_runner(),
         ):
@@ -880,7 +950,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert len(resp.data["triggers"]) == 1
 
     @mock.patch("sentry.incidents.serializers.alert_rule.dual_delete_migrated_alert_rule_trigger")
-    def test_dual_delete_trigger(self, mock_dual_delete):
+    def test_dual_delete_trigger(self, mock_dual_delete: MagicMock) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -900,7 +970,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         # we test the logic for this method elsewhere, so just test that it's correctly called
         assert mock_dual_delete.call_count == 1
 
-    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_delete_trigger_dual_update_resolve(self) -> None:
         """
         If there is no explicit resolve threshold on an alert rule, then we need to dual update the
@@ -931,7 +1000,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert len(resp.data["triggers"]) == 1
         assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
 
-    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_update_trigger_threshold_dual_update_resolve(self) -> None:
         """
         If there is no explicit resolve threshold on an alert rule, then we need to dual update the
@@ -970,7 +1038,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             )
         assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
 
-    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_update_trigger_threshold_dual_update_resolve_noop(self) -> None:
         """
         If there is an explicit resolve threshold on an alert rule, then updating triggers should
@@ -996,7 +1063,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         # remains unchanged
         assert_dual_written_resolution_threshold_equals(alert_rule, resolve_threshold)
 
-    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_remove_resolve_threshold_dual_update_resolve(self) -> None:
         """
         If we set the remove the resolve threshold from an alert rule, then we need to update the
@@ -1022,7 +1088,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         # resolve threshold changes to the warning threshold
         assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
 
-    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_dual_update_resolve_all_triggers_removed_and_recreated(self) -> None:
         """
         If a PUT request is made via the API and the trigger IDs are not specified in the
@@ -1050,7 +1115,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_update_timeout(self, mock_seer_request):
+    def test_anomaly_detection_alert_update_timeout(self, mock_seer_request: MagicMock) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         alert_rule = self.dynamic_alert_rule
@@ -1072,7 +1137,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_update_max_retry(self, mock_seer_request):
+    def test_anomaly_detection_alert_update_max_retry(self, mock_seer_request: MagicMock) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         alert_rule = self.dynamic_alert_rule
@@ -1097,7 +1162,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_update_other_error(self, mock_seer_request):
+    def test_anomaly_detection_alert_update_other_error(self, mock_seer_request: MagicMock) -> None:
         """
         Test the catch-all in case Seer returns something that we don't expect.
         """
@@ -1124,7 +1189,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_update_validation_error(self, mock_seer_request):
+    def test_anomaly_detection_alert_update_validation_error(
+        self, mock_seer_request: MagicMock
+    ) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         alert_rule = self.dynamic_alert_rule
@@ -1189,7 +1256,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     @mock.patch(
         "sentry.incidents.serializers.alert_rule_trigger.dual_delete_migrated_alert_rule_trigger_action"
     )
-    def test_dual_delete_action(self, mock_dual_delete):
+    def test_dual_delete_action(self, mock_dual_delete: MagicMock) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -1350,6 +1417,130 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 event=audit_log.get_event_id("ALERT_RULE_EDIT"), target_object=resp.data["id"]
             )
         assert len(audit_log_entry) == 1
+
+    def test_invalid_extrapolation_mode_save_after_migrated_to_eap(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        alert_rule.snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
+        alert_rule.snuba_query.extrapolation_mode = ExtrapolationMode.SERVER_WEIGHTED.value
+        alert_rule.snuba_query.save()
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        alert_rule_dict = deepcopy(self.alert_rule_dict)
+        alert_rule_dict["dataset"] = "events_analytics_platform"
+        alert_rule_dict["alertType"] = "eap_metrics"
+        alert_rule_dict["extrapolation_mode"] = "server_weighted"
+
+        with self.feature("organizations:incidents"):
+            self.get_error_response(
+                self.organization.slug, alert_rule.id, status_code=400, **alert_rule_dict
+            )
+
+    def test_invalid_extrapolation_mode_save_not_migrated_alert(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        alert_rule.snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
+        alert_rule.snuba_query.extrapolation_mode = ExtrapolationMode.UNKNOWN.value
+        alert_rule.snuba_query.save()
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        alert_rule_dict = deepcopy(self.alert_rule_dict)
+        alert_rule_dict["dataset"] = "events_analytics_platform"
+        alert_rule_dict["alertType"] = "eap_metrics"
+        alert_rule_dict["extrapolation_mode"] = "none"
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_error_response(
+                self.organization.slug, alert_rule.id, status_code=400, **alert_rule_dict
+            )
+
+        assert (
+            resp.data["nonFieldErrors"][0]
+            == "Invalid extrapolation mode for this alert type: none. Allowed modes are: client_and_server_weighted, unknown."
+        )
+
+    def test_update_marks_query_as_user_updated_when_snapshot_exists(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+
+        alert_rule.snuba_query.query_snapshot = {
+            "type": alert_rule.snuba_query.type,
+            "dataset": alert_rule.snuba_query.dataset,
+            "query": alert_rule.snuba_query.query,
+            "aggregate": alert_rule.snuba_query.aggregate,
+        }
+        alert_rule.snuba_query.save()
+
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        serialized_alert_rule["query"] = "user.modified:query"
+
+        with self.feature("organizations:incidents"), outbox_runner():
+            self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        alert_rule.snuba_query.refresh_from_db()
+        assert alert_rule.snuba_query.query_snapshot is not None
+        assert alert_rule.snuba_query.query_snapshot.get("user_updated") is True
+
+    def test_does_not_update_with_deprecation_flag_and_dataset_is_transactions(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        alert_rule.snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
+        alert_rule.snuba_query.save()
+
+        alert_rule_dict = deepcopy(self.alert_rule_dict)
+        alert_rule_dict["dataset"] = "transactions"
+
+        with (
+            self.feature(
+                ["organizations:incidents", "organizations:discover-saved-queries-deprecation"]
+            ),
+            outbox_runner(),
+        ):
+            self.get_error_response(
+                self.organization.slug, alert_rule.id, status_code=400, **alert_rule_dict
+            )
+
+        alert_rule.snuba_query.refresh_from_db()
+        assert alert_rule.snuba_query.dataset != Dataset.Transactions.value
+        assert alert_rule.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+
+    def test_does_not_update_with_deprecation_flag_and_dataset_is_generic_metrics(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        alert_rule.snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
+        alert_rule.snuba_query.save()
+
+        alert_rule_dict = deepcopy(self.alert_rule_dict)
+        alert_rule_dict["dataset"] = "generic_metrics"
+
+        with (
+            self.feature(
+                ["organizations:incidents", "organizations:discover-saved-queries-deprecation"]
+            ),
+            outbox_runner(),
+        ):
+            self.get_error_response(
+                self.organization.slug, alert_rule.id, status_code=400, **alert_rule_dict
+            )
+
+        alert_rule.snuba_query.refresh_from_db()
+        assert alert_rule.snuba_query.dataset != Dataset.PerformanceMetrics.value
+        assert alert_rule.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
 
 
 class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
@@ -1763,7 +1954,9 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
         ],
     )
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
-    def test_async_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):
+    def test_async_lookup_outside_transaction(
+        self, mock_uuid4: MagicMock, mock_get_channel_id: MagicMock
+    ) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -2115,7 +2308,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
     @patch(
         "sentry.incidents.endpoints.organization_alert_rule_details.dual_delete_migrated_alert_rule"
     )
-    def test_dual_delete(self, mock_dual_delete):
+    def test_dual_delete(self, mock_dual_delete: MagicMock) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )

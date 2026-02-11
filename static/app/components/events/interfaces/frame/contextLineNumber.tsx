@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Coverage} from 'sentry/types/integrations';
@@ -13,10 +14,10 @@ interface Props {
   coverage?: Coverage;
 }
 
-const coverageText: Record<Coverage, string | undefined> = {
-  [Coverage.NOT_COVERED]: t('Uncovered'),
-  [Coverage.COVERED]: t('Covered'),
-  [Coverage.PARTIAL]: t('Partially Covered'),
+export const coverageText: Record<Coverage, string | undefined> = {
+  [Coverage.NOT_COVERED]: t('Line uncovered by tests'),
+  [Coverage.COVERED]: t('Line covered by tests'),
+  [Coverage.PARTIAL]: t('Line partially covered by tests'),
   [Coverage.NOT_APPLICABLE]: undefined,
 };
 const coverageClass: Record<Coverage, string | undefined> = {
@@ -47,8 +48,8 @@ const Wrapper = styled('div')`
   height: 24px;
   width: 58px;
   display: inline-block;
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.font.size.sm};
   margin-right: ${space(1)};
 
   .line-number {
@@ -63,24 +64,23 @@ const Wrapper = styled('div')`
     margin-right: ${space(1.5)};
     background: transparent;
     min-width: 58px;
-    border-right-style: solid;
-    border-right-color: transparent;
+    border-right: 3px solid transparent;
     user-select: none;
   }
 
   &.covered .line-number {
-    background: ${p => p.theme.green100};
+    background: ${p => p.theme.colors.green100};
+    border-right: 3px solid ${p => p.theme.tokens.border.success.vibrant};
   }
 
   &.uncovered .line-number {
-    background: ${p => p.theme.red100};
-    border-right-color: ${p => p.theme.red300};
+    background: ${p => p.theme.colors.red100};
+    border-right: 3px solid ${p => p.theme.tokens.border.danger.vibrant};
   }
 
   &.partial .line-number {
-    background: ${p => p.theme.yellow100};
-    border-right-style: dashed;
-    border-right-color: ${p => p.theme.yellow300};
+    background: ${p => p.theme.colors.yellow100};
+    border-right: 3px dashed ${p => p.theme.tokens.border.warning.vibrant};
   }
 
   &.active {
@@ -89,17 +89,17 @@ const Wrapper = styled('div')`
 
   &.active.partial .line-number {
     mix-blend-mode: screen;
-    background: ${p => p.theme.yellow200};
+    background: ${p => p.theme.colors.yellow200};
   }
 
   &.active.covered .line-number {
     mix-blend-mode: screen;
-    background: ${p => p.theme.green200};
+    background: ${p => p.theme.colors.green200};
   }
 
   &.active.uncovered .line-number {
-    color: ${p => p.theme.stacktraceActiveText};
+    color: ${p => p.theme.colors.white};
     mix-blend-mode: screen;
-    background: ${p => p.theme.red300};
+    background: ${p => p.theme.colors.red400};
   }
 `;

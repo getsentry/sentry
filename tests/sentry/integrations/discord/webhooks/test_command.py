@@ -14,7 +14,7 @@ WEBHOOK_URL = "/extensions/discord/interactions/"
 
 class DiscordCommandInteractionTest(APITestCase):
     @mock.patch("sentry.integrations.discord.requests.base.verify_signature")
-    def test_command_interaction(self, mock_verify_signature):
+    def test_command_interaction(self, mock_verify_signature: mock.MagicMock) -> None:
         mock_verify_signature.return_value = True
         response = self.client.post(
             path=WEBHOOK_URL,
@@ -30,7 +30,7 @@ class DiscordCommandInteractionTest(APITestCase):
         assert response.status_code == 200
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_link_no_integration(self, mock_record):
+    def test_link_no_integration(self, mock_record: mock.MagicMock) -> None:
         with mock.patch(
             "sentry.integrations.discord.requests.base.verify_signature", return_value=True
         ):
@@ -52,7 +52,7 @@ class DiscordCommandInteractionTest(APITestCase):
         assert_failure_metric(mock_record, MessageCommandFailureReason.MISSING_DATA.value)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_link_no_user_id(self, mock_record):
+    def test_link_no_user_id(self, mock_record: mock.MagicMock) -> None:
         guild_id = "guild-id"
         self.create_integration(
             provider="discord",
@@ -81,7 +81,7 @@ class DiscordCommandInteractionTest(APITestCase):
         assert_failure_metric(mock_record, MessageCommandFailureReason.MISSING_DATA.value)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_link_guild(self, mock_record):
+    def test_link_guild(self, mock_record: mock.MagicMock) -> None:
         guild_id = "guild-id"
         self.create_integration(
             provider="discord",
@@ -117,7 +117,7 @@ class DiscordCommandInteractionTest(APITestCase):
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_link_dm(self, mock_record):
+    def test_link_dm(self, mock_record: mock.MagicMock) -> None:
         guild_id = "guild-id"
         self.create_integration(
             provider="discord",
@@ -153,7 +153,7 @@ class DiscordCommandInteractionTest(APITestCase):
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_link_already_linked(self, mock_record):
+    def test_link_already_linked(self, mock_record: mock.MagicMock) -> None:
         guild_id = "guild-id"
         discord_user_id = "user1234"
         integration = self.create_integration(
@@ -200,7 +200,7 @@ class DiscordCommandInteractionTest(APITestCase):
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_unlink_no_identity(self, mock_record):
+    def test_unlink_no_identity(self, mock_record: mock.MagicMock) -> None:
         with mock.patch(
             "sentry.integrations.discord.requests.base.verify_signature", return_value=True
         ):
@@ -225,7 +225,7 @@ class DiscordCommandInteractionTest(APITestCase):
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_unlink(self, mock_record):
+    def test_unlink(self, mock_record: mock.MagicMock) -> None:
         guild_id = "guild-id"
         discord_user_id = "user1234"
         integration = self.create_integration(
@@ -273,7 +273,7 @@ class DiscordCommandInteractionTest(APITestCase):
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_help(self, mock_record):
+    def test_help(self, mock_record: mock.MagicMock) -> None:
         with mock.patch(
             "sentry.integrations.discord.requests.base.verify_signature", return_value=True
         ):

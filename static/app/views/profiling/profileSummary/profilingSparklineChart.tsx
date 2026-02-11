@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 
 import type {LineChartProps, LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
@@ -72,7 +72,7 @@ function makeSeriesBeforeAfterLines(
 ): LineChartSeries[] {
   const dividingLine = {
     data: [],
-    color: theme.textColor,
+    color: theme.tokens.content.primary,
     seriesName: 'dividing line',
     markLine: {},
   };
@@ -80,7 +80,7 @@ function makeSeriesBeforeAfterLines(
     data: [{xAxis: breakpoint * 1e3}],
     label: {show: false},
     lineStyle: {
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       type: 'solid',
       width: 2,
     },
@@ -93,7 +93,7 @@ function makeSeriesBeforeAfterLines(
 
   const beforeLine = {
     data: [],
-    color: theme.textColor,
+    color: theme.tokens.content.primary,
     seriesName: 'before line',
     markLine: {},
   };
@@ -108,7 +108,7 @@ function makeSeriesBeforeAfterLines(
       show: false,
     },
     lineStyle: {
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       type: 'dashed',
       width: 1,
     },
@@ -120,7 +120,7 @@ function makeSeriesBeforeAfterLines(
 
   const afterLine = {
     data: [],
-    color: theme.textColor,
+    color: theme.tokens.content.primary,
     seriesName: 'after line',
     markLine: {},
   };
@@ -138,7 +138,7 @@ function makeSeriesBeforeAfterLines(
       show: false,
     },
     lineStyle: {
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       type: 'dashed',
       width: 1,
     },

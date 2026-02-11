@@ -3,7 +3,9 @@ from django.urls import reverse
 from sentry.testutils.cases import APITestCase
 
 
-class PromptsActivityTest(APITestCase):
+class PromptsActivityTestBase(APITestCase):
+    endpoint = "sentry-api-0-organization-prompts-activity"
+
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
@@ -12,7 +14,75 @@ class PromptsActivityTest(APITestCase):
         self.project = self.create_project(
             organization=self.org, teams=[self.team], name="Bengal-Elephant-Giraffe-Tree-House"
         )
-        self.path = reverse("sentry-api-0-organization-prompts-activity", args=[self.org.slug])
+        self.path = reverse(self.endpoint, args=[self.org.slug])
+
+
+class GetPromptsActivityTest(PromptsActivityTestBase):
+    method = "get"
+
+    def test_idor_get_project_from_different_org(self) -> None:
+        """Regression test: GET cannot access projects from other organizations (IDOR)."""
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+
+        resp = self.client.get(
+            self.path,
+            {
+                "project_id": str(other_project.id),
+                "feature": "releases",
+            },
+        )
+
+        # Should return 404 to prevent ID enumeration
+        assert resp.status_code == 404
+        assert resp.data["detail"] == "Project not found"
+
+    def test_get_empty_project_id(self) -> None:
+        """Test that empty string project_id returns 400 instead of 500."""
+        resp = self.client.get(
+            self.path,
+            {
+                "project_id": "",
+                "feature": "releases",
+            },
+        )
+
+        assert resp.status_code == 400
+        assert resp.data["detail"] == 'Missing required field "project_id"'
+
+
+class PutPromptsActivityTest(PromptsActivityTestBase):
+    method = "put"
+
+    def test_organization_permissions(self) -> None:
+        new_org = self.create_organization()
+        self.path = reverse("sentry-api-0-organization-prompts-activity", args=[new_org.slug])
+        resp = self.client.put(
+            self.path,
+            {
+                "organization_id": new_org.id,
+                "project_id": self.project.id,
+                "feature": "releases",
+                "status": "dismissed",
+            },
+        )
+
+        assert resp.status_code == 403
+
+    def test_organization_id_mismatch(self) -> None:
+        new_org = self.create_organization()
+        resp = self.client.put(
+            self.path,
+            {
+                "organization_id": new_org.id,
+                "project_id": self.project.id,
+                "feature": "releases",
+                "status": "dismissed",
+            },
+        )
+
+        assert resp.status_code == 400
+        assert resp.data["detail"] == "Organization missing or mismatched"
 
     def test_invalid_feature(self) -> None:
         # Invalid feature prompt name
@@ -45,14 +115,35 @@ class PromptsActivityTest(APITestCase):
     def test_invalid_project(self) -> None:
         # Invalid project id
         data = {
-            "organization_id": self.org.id,
             "project_id": self.project.id,
             "feature": "releases",
         }
         resp = self.client.get(self.path, data)
         assert resp.status_code == 200
+        project_id = self.project.id
         self.project.delete()
         # project doesn't exist
+        resp = self.client.put(
+            self.path,
+            {
+                "organization_id": self.org.id,
+                "project_id": project_id,
+                "feature": "releases",
+                "status": "dismissed",
+            },
+        )
+        assert resp.status_code == 400
+        assert resp.data["detail"] == "Project does not belong to this organization"
+
+    def test_dismiss(self) -> None:
+        data = {
+            "project_id": self.project.id,
+            "feature": "releases",
+        }
+        resp = self.client.get(self.path, data)
+        assert resp.status_code == 200
+        assert resp.data.get("data", None) is None
+
         resp = self.client.put(
             self.path,
             {
@@ -62,40 +153,37 @@ class PromptsActivityTest(APITestCase):
                 "status": "dismissed",
             },
         )
-        assert resp.status_code == 400
-
-    def test_dismiss(self) -> None:
-        data = {
-            "organization_id": self.org.id,
-            "project_id": self.project.id,
-            "feature": "releases",
-        }
-        resp = self.client.get(self.path, data)
-        assert resp.status_code == 200
-        assert resp.data.get("data", None) is None
-
-        self.client.put(
-            self.path,
-            {
-                "organization_id": self.org.id,
-                "project_id": self.project.id,
-                "feature": "releases",
-                "status": "dismissed",
-            },
-        )
+        assert resp.status_code == 201
 
         resp = self.client.get(self.path, data)
         assert resp.status_code == 200
         assert "data" in resp.data
         assert "dismissed_ts" in resp.data["data"]
 
-    def test_dismiss_legacy_path(self) -> None:
-        self.path = reverse("sentry-api-0-prompts-activity")
-        self.test_dismiss()
+    def test_dismiss_str_id(self) -> None:
+        resp = self.client.put(
+            self.path,
+            {
+                "organization_id": str(self.org.id),
+                "project_id": str(self.project.id),
+                "feature": "releases",
+                "status": "dismissed",
+            },
+        )
+        assert resp.status_code == 201, resp.content
+
+        data = {
+            "project_id": self.project.id,
+            "feature": "releases",
+        }
+        resp = self.client.get(self.path, data)
+        assert resp.status_code == 200
+        assert resp.data
+        assert "data" in resp.data
+        assert "dismissed_ts" in resp.data["data"]
 
     def test_snooze(self) -> None:
         data = {
-            "organization_id": self.org.id,
             "project_id": self.project.id,
             "feature": "releases",
         }
@@ -119,13 +207,8 @@ class PromptsActivityTest(APITestCase):
         assert "data" in resp.data
         assert "snoozed_ts" in resp.data["data"]
 
-    def test_snooze_legacy_path(self) -> None:
-        self.path = reverse("sentry-api-0-prompts-activity")
-        self.test_snooze()
-
     def test_visible(self) -> None:
         data = {
-            "organization_id": self.org.id,
             "project_id": self.project.id,
             "feature": "releases",
         }
@@ -149,13 +232,8 @@ class PromptsActivityTest(APITestCase):
         assert resp.data["data"].get("dismissed_ts") is None
         assert resp.data["data"].get("snoozed_ts") is None
 
-    def test_visible_legacy_path(self) -> None:
-        self.path = reverse("sentry-api-0-prompts-activity")
-        self.test_visible()
-
     def test_visible_after_dismiss(self) -> None:
         data = {
-            "organization_id": self.org.id,
             "project_id": self.project.id,
             "feature": "releases",
         }
@@ -191,7 +269,6 @@ class PromptsActivityTest(APITestCase):
 
     def test_batched(self) -> None:
         data = {
-            "organization_id": self.org.id,
             "project_id": self.project.id,
             "feature": ["releases", "alert_stream"],
         }
@@ -229,3 +306,35 @@ class PromptsActivityTest(APITestCase):
         assert resp.status_code == 200
         assert "dismissed_ts" in resp.data["features"]["releases"]
         assert "snoozed_ts" in resp.data["features"]["alert_stream"]
+
+    def test_project_from_different_organization(self) -> None:
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+
+        resp = self.client.put(
+            self.path,
+            {
+                "organization_id": self.org.id,
+                "project_id": other_project.id,
+                "feature": "releases",
+                "status": "dismissed",
+            },
+        )
+
+        assert resp.status_code == 400
+        assert resp.data["detail"] == "Project does not belong to this organization"
+
+    def test_put_empty_project_id(self) -> None:
+        """Test that empty string project_id in PUT returns 400 instead of 500."""
+        resp = self.client.put(
+            self.path,
+            {
+                "organization_id": self.org.id,
+                "project_id": "",
+                "feature": "releases",
+                "status": "dismissed",
+            },
+        )
+
+        assert resp.status_code == 400
+        assert resp.data["detail"] == "Invalid project_id"

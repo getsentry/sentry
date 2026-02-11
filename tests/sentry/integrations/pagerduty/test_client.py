@@ -1,5 +1,6 @@
+from collections.abc import Generator
 from unittest import mock
-from unittest.mock import call, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 import responses
@@ -35,7 +36,7 @@ class PagerDutyClientTest(APITestCase):
     provider = "pagerduty"
 
     @pytest.fixture(autouse=True)
-    def _setup_metric_patch(self):
+    def _setup_metric_patch(self) -> Generator[None]:
         with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 
@@ -75,7 +76,7 @@ class PagerDutyClientTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_send_trigger(self, mock_record):
+    def test_send_trigger(self, mock_record: MagicMock) -> None:
         expected_data = {
             "client": "sentry",
             "client_url": self.group.get_absolute_url(params={"referrer": "pagerduty_integration"}),

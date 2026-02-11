@@ -1,24 +1,32 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {
+  DatePageFilter,
+  type DatePageFilterProps,
+} from 'sentry/components/pageFilters/date/datePageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
@@ -27,30 +35,37 @@ import OverviewApiLatencyChartWidget from 'sentry/views/insights/common/componen
 import OverviewCacheMissChartWidget from 'sentry/views/insights/common/components/widgets/overviewCacheMissChartWidget';
 import OverviewJobsChartWidget from 'sentry/views/insights/common/components/widgets/overviewJobsChartWidget';
 import OverviewRequestsChartWidget from 'sentry/views/insights/common/components/widgets/overviewRequestsChartWidget';
-import OverviewSlowQueriesChartWidget from 'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget';
+import OverviewTimeConsumingQueriesWidget from 'sentry/views/insights/common/components/widgets/overviewTimeConsumingQueriesWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {Am1BackendOverviewPage} from 'sentry/views/insights/pages/backend/am1BackendOverviewPage';
 import {
   BackendOverviewTable,
   isAValidSort,
   type ValidSort,
 } from 'sentry/views/insights/pages/backend/backendTable';
-import {OldBackendOverviewPage} from 'sentry/views/insights/pages/backend/oldBackendOverviewPage';
+import {PlatformizedBackendOverviewPage} from 'sentry/views/insights/pages/backend/platformizedBackendOverviewPage';
+import {Referrer} from 'sentry/views/insights/pages/backend/referrers';
 import {
-  BACKEND_LANDING_TITLE,
   DEFAULT_SORT,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
-import {OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/frontend/settings';
-import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
+import {
+  OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS,
+  WEB_VITALS_OPS,
+} from 'sentry/views/insights/pages/frontend/settings';
+import useHasPlatformizedBackendOverview from 'sentry/views/insights/pages/frontend/utils/useHasPlatformizedBackendOverview';
+import {OVERVIEW_PAGE_ALLOWED_OPS as MOBILE_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
 import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {PlatformizedNextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs/platformizedNextJsOverviewPage';
+import useHasPlatformizedNextJsOverview from 'sentry/views/insights/pages/platform/nextjs/useHasPlatformizedNextJsOverview';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
@@ -58,24 +73,40 @@ import {categorizeProjects} from 'sentry/views/insights/pages/utils';
 import type {SpanProperty} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
-function BackendOverviewPage() {
+interface BackendOverviewPageProps {
+  datePageFilterProps: DatePageFilterProps;
+}
+
+function BackendOverviewPage({datePageFilterProps}: BackendOverviewPageProps) {
   useOverviewPageTrackPageload();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
   const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
+  const hasPlatformizedNextJsOverview = useHasPlatformizedNextJsOverview();
   const isNewBackendExperienceEnabled = useInsightsEap();
+  const hasPlatformizedBackendOverview = useHasPlatformizedBackendOverview();
+  if (isNextJsPageEnabled && hasPlatformizedNextJsOverview) {
+    return <PlatformizedNextJsOverviewPage />;
+  }
+  if (hasPlatformizedBackendOverview) {
+    return <PlatformizedBackendOverviewPage />;
+  }
   if (isLaravelPageAvailable) {
-    return <LaravelOverviewPage />;
+    return <LaravelOverviewPage datePageFilterProps={datePageFilterProps} />;
   }
   if (isNextJsPageEnabled) {
-    return <NextJsOverviewPage performanceType="backend" />;
+    return <NextJsOverviewPage datePageFilterProps={datePageFilterProps} />;
   }
   if (isNewBackendExperienceEnabled) {
-    return <EAPBackendOverviewPage />;
+    return <EAPBackendOverviewPage datePageFilterProps={datePageFilterProps} />;
   }
-  return <OldBackendOverviewPage />;
+  return <Am1BackendOverviewPage datePageFilterProps={datePageFilterProps} />;
 }
 
-function EAPBackendOverviewPage() {
+interface EAPBackendOverviewPageProps {
+  datePageFilterProps: DatePageFilterProps;
+}
+
+function EAPBackendOverviewPage({datePageFilterProps}: EAPBackendOverviewPageProps) {
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
@@ -83,6 +114,7 @@ function EAPBackendOverviewPage() {
   const navigate = useNavigate();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
+  useDefaultToAllProjects();
 
   const {query: searchBarQuery} = useLocationQuery({
     fields: {
@@ -91,7 +123,11 @@ function EAPBackendOverviewPage() {
   });
 
   const disallowedOps = [
-    ...new Set([...FRONTEND_OVERVIEW_PAGE_OPS, ...BACKEND_OVERVIEW_PAGE_OPS]),
+    ...new Set([
+      ...FRONTEND_OVERVIEW_PAGE_OPS,
+      ...MOBILE_OVERVIEW_PAGE_OPS,
+      ...WEB_VITALS_OPS,
+    ]),
   ];
 
   const {
@@ -180,7 +216,7 @@ function EAPBackendOverviewPage() {
         'sum(span.duration)',
       ],
     },
-    'api.performance.landing-table'
+    Referrer.BACKEND_LANDING_TABLE
   );
 
   const searchBarProjectsIds = [...selectedBackendProjects, ...selectedOtherProjects].map(
@@ -193,16 +229,15 @@ function EAPBackendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <BackendHeader headerTitle={BACKEND_LANDING_TITLE} />
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <ToolRibbon>
                 <PageFilterBar condensed>
                   <InsightsProjectSelector />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter />
+                  <InsightsEnvironmentSelector />
+                  <DatePageFilter {...datePageFilterProps} />
                 </PageFilterBar>
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
@@ -222,10 +257,10 @@ function EAPBackendOverviewPage() {
             ) : (
               <Fragment>
                 <ModuleLayout.Third>
-                  <StackedWidgetWrapper>
+                  <Stack gap="xl" height="100%" minHeight="502px">
                     <OverviewRequestsChartWidget />
                     <OverviewApiLatencyChartWidget />
-                  </StackedWidgetWrapper>
+                  </Stack>
                 </ModuleLayout.Third>
                 <ModuleLayout.TwoThirds>
                   <IssuesWidget />
@@ -236,7 +271,7 @@ function EAPBackendOverviewPage() {
                       <OverviewJobsChartWidget />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
-                      <OverviewSlowQueriesChartWidget />
+                      <OverviewTimeConsumingQueriesWidget />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
                       <OverviewCacheMissChartWidget />
@@ -256,9 +291,14 @@ function EAPBackendOverviewPage() {
 }
 
 function BackendOverviewPageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
   return (
-    <DomainOverviewPageProviders>
-      <BackendOverviewPage />
+    <DomainOverviewPageProviders maxPickableDays={maxPickableDays.maxPickableDays}>
+      <BackendOverviewPage datePageFilterProps={datePageFilterProps} />
     </DomainOverviewPageProviders>
   );
 }
@@ -269,15 +309,7 @@ const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
 
 export default BackendOverviewPageWithProviders;
 
-const StackedWidgetWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-  height: 100%;
-  min-height: 502px;
-`;
-
-const TripleRowWidgetWrapper = styled('div')`
+export const TripleRowWidgetWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   grid-template-rows: 300px;

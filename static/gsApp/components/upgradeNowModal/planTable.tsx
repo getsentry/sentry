@@ -46,7 +46,7 @@ function PlanTable({organization, previewData, reservations, subscription}: Prop
             abbr
           )}
           next={formatReservedWithUnits(
-            reservations.reservedErrors,
+            reservations.reservedErrors ?? null,
             DataCategory.ERRORS,
             abbr
           )}
@@ -61,7 +61,7 @@ function PlanTable({organization, previewData, reservations, subscription}: Prop
             abbr
           )}
           next={formatReservedWithUnits(
-            reservations.reservedTransactions,
+            reservations.reservedTransactions ?? null,
             DataCategory.TRANSACTIONS,
             abbr
           )}
@@ -83,7 +83,7 @@ function PlanTable({organization, previewData, reservations, subscription}: Prop
             abbr
           )}
           next={formatReservedWithUnits(
-            reservations.reservedAttachments,
+            reservations.reservedAttachments ?? null,
             DataCategory.ATTACHMENTS,
             abbr
           )}
@@ -159,7 +159,7 @@ function TableItem({
       <PlanLabel isTotal={isTotal}>{children}</PlanLabel>
       <PlanValue isTotal={isTotal}>
         {prev}
-        <IconArrow color="gray300" size="xs" direction="right" />
+        <IconArrow variant="muted" size="xs" direction="right" />
         <strong>{next}</strong>
       </PlanValue>
     </Fragment>
@@ -175,7 +175,8 @@ const PlanLabel = styled('dt')<{hasChanged?: boolean; isTotal?: boolean}>`
   padding: ${p => (p.isTotal ? space(1) : `${space(0.5)} ${space(1)}`)};
 
   font-weight: ${p => (p.hasChanged || p.isTotal ? 'bold' : 'normal')};
-  background: ${p => (p.isTotal ? p.theme.purple100 : 'transparent')};
+  background: ${p =>
+    p.isTotal ? p.theme.tokens.background.transparent.accent.muted : 'transparent'};
 `;
 
 const PlanValue = styled(PlanLabel)`
@@ -189,7 +190,7 @@ const PlanValue = styled(PlanLabel)`
 `;
 
 const EffectiveDate = styled('span')`
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   text-align: right;
 `;
 

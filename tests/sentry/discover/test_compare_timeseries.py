@@ -129,7 +129,6 @@ class CompareAlertsTimeseriesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSp
             timestamp=timestamp,
             duration=duration,
             organization_id=project.organization.id,
-            is_eap=True,
             **kwargs,
         )
 
@@ -146,7 +145,7 @@ class CompareAlertsTimeseriesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSp
         )
 
     @mock.patch("sentry.discover.compare_timeseries.sentry_sdk.set_extra")
-    def test_compare_simple(self, mock_set_extra):
+    def test_compare_simple(self, mock_set_extra: mock.MagicMock) -> None:
         result = compare_timeseries_for_alert_rule(self.alert_rule)
         for call in mock_set_extra.call_args_list:
             if call.args[0] in ["eap_call", "metrics_call"]:
@@ -176,8 +175,11 @@ class CompareAlertsTimeseriesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSp
         result = compare_timeseries_for_alert_rule(alert_rule)
         assert result["skipped"] is True
 
-    @mock.patch("sentry.discover.compare_timeseries.sentry_sdk.set_tag")
-    def test_false_positive_misfires(self, mock_set_tag):
+    @mock.patch("sentry.discover.compare_timeseries.sentry_sdk.isolation_scope")
+    def test_false_positive_misfires(self, mock_isolation_scope: mock.MagicMock) -> None:
+        mock_scope = mock.MagicMock()
+        mock_isolation_scope.return_value.__enter__.return_value = mock_scope
+
         alert_rule = self.create_alert_rule(
             dataset=Dataset.PerformanceMetrics,
             query_type=SnubaQuery.Type.PERFORMANCE,
@@ -192,11 +194,14 @@ class CompareAlertsTimeseriesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSp
         }
 
         assert_timeseries_close(aligned_timeseries=aligned_timeseries, alert_rule=alert_rule)
-        mock_set_tag.assert_any_call("false_positive_misfires", 1)
-        mock_set_tag.assert_any_call("false_negative_misfires", 0)
+        mock_scope.set_tag.assert_any_call("false_positive_misfires", 1)
+        mock_scope.set_tag.assert_any_call("false_negative_misfires", 0)
 
-    @mock.patch("sentry.discover.compare_timeseries.sentry_sdk.set_tag")
-    def test_false_negative_misfires(self, mock_set_tag):
+    @mock.patch("sentry.discover.compare_timeseries.sentry_sdk.isolation_scope")
+    def test_false_negative_misfires(self, mock_isolation_scope: mock.MagicMock) -> None:
+        mock_scope = mock.MagicMock()
+        mock_isolation_scope.return_value.__enter__.return_value = mock_scope
+
         alert_rule = self.create_alert_rule(
             dataset=Dataset.PerformanceMetrics,
             query_type=SnubaQuery.Type.PERFORMANCE,
@@ -211,5 +216,5 @@ class CompareAlertsTimeseriesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSp
         }
 
         assert_timeseries_close(aligned_timeseries=aligned_timeseries, alert_rule=alert_rule)
-        mock_set_tag.assert_any_call("false_positive_misfires", 0)
-        mock_set_tag.assert_any_call("false_negative_misfires", 1)
+        mock_scope.set_tag.assert_any_call("false_positive_misfires", 0)
+        mock_scope.set_tag.assert_any_call("false_negative_misfires", 1)

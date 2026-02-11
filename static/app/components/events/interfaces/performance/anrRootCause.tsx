@@ -25,7 +25,7 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useIssuesTraceTree';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
-import {isEAPTraceOccurrence} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import useTraceStateAnalytics from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
 
 enum AnrRootCauseAllowlist {
   PERFORMANCE_FILE_IO_MAIN_THREAD_GROUP_TYPE = 1008,
@@ -46,6 +46,13 @@ export function AnrRootCause({event, organization}: Props) {
     limit: 10000,
   });
   const tree = useIssuesTraceTree({trace, replay: null});
+  useTraceStateAnalytics({
+    trace,
+    organization,
+    traceTreeSource: 'issue_details_anr_root_cause',
+    tree,
+  });
+
   const traceNode = tree.root.children[0];
 
   const {projects} = useProjects();
@@ -135,12 +142,9 @@ export function AnrRootCause({event, organization}: Props) {
     >
       {potentialAnrRootCause?.map(occurence => {
         const project = projects.find(p => p.id === occurence.project_id.toString());
-        const title = isEAPTraceOccurrence(occurence)
-          ? occurence.description
-          : occurence.title;
-        const shortId = isEAPTraceOccurrence(occurence)
-          ? occurence.short_id
-          : occurence.issue_short_id;
+        const isEAPOccurence = 'description' in occurence;
+        const title = isEAPOccurence ? occurence.description : occurence.title;
+        const shortId = isEAPOccurence ? occurence.short_id : occurence.issue_short_id;
         return (
           <IssueSummary key={occurence.issue_id}>
             <Title>
@@ -188,14 +192,14 @@ function Spacer() {
 }
 
 const Subtitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TitleWithLink = styled(GlobalSelectionLink)`
   display: flex;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Title = styled('div')`

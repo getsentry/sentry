@@ -1,6 +1,6 @@
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
-describe('getRouteStringFromRoutes', function () {
+describe('getRouteStringFromRoutes', () => {
   const routes = [
     {path: '/'},
     {path: '/:orgId/'},
@@ -10,7 +10,7 @@ describe('getRouteStringFromRoutes', function () {
     {path: 'api-keys/', name: 'API Key'},
   ];
 
-  it('can get a route string from routes array and skips routes that do not have a path', function () {
+  it('can get a route string from routes array and skips routes that do not have a path', () => {
     expect(getRouteStringFromRoutes(routes)).toBe('/organizations/:orgId/api-keys/');
   });
 });

@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Panel from 'sentry/components/panels/panel';
@@ -20,7 +21,7 @@ export default function IntegrationAlertRules() {
       <PanelHeader>{t('Project Configuration')}</PanelHeader>
       <PanelBody>
         {projects.length === 0 && (
-          <EmptyMessage size="large">
+          <EmptyMessage size="lg">
             {t('You have no projects to add Alert Rules to')}
           </EmptyMessage>
         )}

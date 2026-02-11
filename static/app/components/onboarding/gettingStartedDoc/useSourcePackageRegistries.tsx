@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -22,7 +23,11 @@ export type ReleaseRegistrySdk = Record<
  */
 export function useSourcePackageRegistries(organization: Organization) {
   const releaseRegistrySdk = useApiQuery<ReleaseRegistrySdk>(
-    [`/organizations/${organization.slug}/sdks/`],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/sdks/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {
       staleTime: Infinity,
     }

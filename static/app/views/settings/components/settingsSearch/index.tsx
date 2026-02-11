@@ -1,7 +1,8 @@
-import {useMemo, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {InputGroup} from '@sentry/scraps/input';
+
 import {Search} from 'sentry/components/search';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -13,11 +14,7 @@ const MAX_RESULTS = 10;
 function SettingsSearch() {
   const searchInput = useRef<HTMLInputElement>(null);
 
-  const settingsSearchHotkeys = useMemo(() => {
-    return [{match: '/', callback: () => searchInput.current?.focus()}];
-  }, []);
-
-  useHotkeys(settingsSearchHotkeys);
+  useHotkeys([{match: '/', callback: () => searchInput.current?.focus()}]);
 
   return (
     <Search
@@ -44,5 +41,8 @@ function SettingsSearch() {
 export default SettingsSearch;
 
 const StyledSearchInput = styled(InputGroup.Input)`
-  width: 260px;
+  width: 100px;
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    width: 260px;
+  }
 `;

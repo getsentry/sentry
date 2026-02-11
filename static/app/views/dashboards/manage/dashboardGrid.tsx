@@ -3,10 +3,11 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
+import {Button} from '@sentry/scraps/button';
+
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import type {Client} from 'sentry/api';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -16,9 +17,11 @@ import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import withApi from 'sentry/utils/withApi';
+import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {
@@ -66,6 +69,7 @@ function DashboardGrid({
 
   useEffect(() => {
     if (dashboards?.length) {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setCurrentDashboards(dashboards);
     }
   }, [dashboards]);
@@ -74,7 +78,7 @@ function DashboardGrid({
     await updateDashboardFavorite(
       api,
       queryClient,
-      organization.slug,
+      organization,
       dashboard.id,
       isFavorited
     );
@@ -86,7 +90,23 @@ function DashboardGrid({
     });
   }
 
-  function renderDropdownMenu(dashboard: DashboardListItem) {
+  function renderDropdownMenu(dashboard: DashboardListItem, dashboardLimitData: any) {
+    const shouldDisablePrebuiltControls =
+      defined(dashboard.prebuiltId) &&
+      !organization.features.includes('dashboards-prebuilt-controls');
+    const {
+      hasReachedDashboardLimit,
+      isLoading: isLoadingDashboardsLimit,
+      limitMessage,
+    } = dashboardLimitData;
+
+    const disableDuplicate =
+      hasReachedDashboardLimit ||
+      isLoadingDashboardsLimit ||
+      shouldDisablePrebuiltControls;
+
+    const disableDelete = defined(dashboard.prebuiltId);
+
     const menuItems: MenuItemProps[] = [
       {
         key: 'dashboard-duplicate',
@@ -97,6 +117,13 @@ function DashboardGrid({
             priority: 'primary',
             onConfirm: () => handleDuplicateDashboard(dashboard, 'grid'),
           });
+        },
+        disabled: disableDuplicate,
+        tooltip: shouldDisablePrebuiltControls
+          ? t('Prebuilt dashboards cannot be duplicated')
+          : limitMessage,
+        tooltipOptions: {
+          isHoverable: true,
         },
       },
       {
@@ -110,8 +137,19 @@ function DashboardGrid({
             onConfirm: () => handleDeleteDashboard(dashboard, 'grid'),
           });
         },
+        disabled: disableDelete,
+        tooltip: shouldDisablePrebuiltControls
+          ? t('Prebuilt dashboards cannot be deleted')
+          : undefined,
       },
     ];
+
+    const disabledKeys = [];
+    if ((dashboards && dashboards.length <= 1) || disableDelete)
+      disabledKeys.push('dashboard-delete');
+    if (disableDuplicate) {
+      disabledKeys.push('dashboard-duplicate');
+    }
 
     return (
       <DropdownMenu
@@ -121,7 +159,7 @@ function DashboardGrid({
             {...triggerProps}
             aria-label={t('Dashboard actions')}
             size="xs"
-            borderless
+            priority="transparent"
             onClick={e => {
               e.stopPropagation();
               e.preventDefault();
@@ -132,7 +170,7 @@ function DashboardGrid({
           />
         )}
         position="bottom-end"
-        disabledKeys={dashboards && dashboards.length <= 1 ? ['dashboard-delete'] : []}
+        disabledKeys={disabledKeys}
         offset={4}
       />
     );
@@ -160,23 +198,28 @@ function DashboardGrid({
 
     return currentDashboards?.slice(0, rowCount * columnCount).map((dashboard, index) => {
       return (
-        <DashboardCard
-          key={`${index}-${dashboard.id}`}
-          title={dashboard.title}
-          to={{
-            pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
-            ...queryLocation,
-          }}
-          detail={tn('%s widget', '%s widgets', dashboard.widgetPreview.length)}
-          dateStatus={
-            dashboard.dateCreated ? <TimeSince date={dashboard.dateCreated} /> : undefined
-          }
-          createdBy={dashboard.createdBy}
-          renderWidgets={() => renderGridPreview(dashboard)}
-          renderContextMenu={() => renderDropdownMenu(dashboard)}
-          isFavorited={dashboard.isFavorited}
-          onFavorite={isFavorited => handleFavorite(dashboard, isFavorited)}
-        />
+        <DashboardCreateLimitWrapper key={`${index}-${dashboard.id}`}>
+          {dashboardLimitData => (
+            <DashboardCard
+              title={dashboard.title}
+              to={{
+                pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
+                ...queryLocation,
+              }}
+              detail={tn('%s widget', '%s widgets', dashboard.widgetPreview.length)}
+              dateStatus={
+                dashboard.dateCreated ? (
+                  <TimeSince date={dashboard.dateCreated} />
+                ) : undefined
+              }
+              createdBy={dashboard.createdBy}
+              renderWidgets={() => renderGridPreview(dashboard)}
+              renderContextMenu={() => renderDropdownMenu(dashboard, dashboardLimitData)}
+              isFavorited={dashboard.isFavorited}
+              onFavorite={isFavorited => handleFavorite(dashboard, isFavorited)}
+            />
+          )}
+        </DashboardCreateLimitWrapper>
       );
     });
   }
@@ -201,7 +244,7 @@ function DashboardGrid({
       <DashboardGridContainer
         rows={rowCount}
         columns={columnCount}
-        data-test-id={'dashboard-grid'}
+        data-test-id="dashboard-grid"
       >
         {renderMiniDashboards()}
         {isLoading &&

@@ -1,5 +1,5 @@
-import {type DOMAttributes, type FocusEvent, useCallback, useMemo} from 'react';
-import {type AriaGridListOptions, useGridList} from '@react-aria/gridlist';
+import {useCallback, useMemo, type DOMAttributes, type FocusEvent} from 'react';
+import {useGridList, type AriaGridListOptions} from '@react-aria/gridlist';
 import {ListKeyboardDelegate} from '@react-aria/selection';
 import type {ListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
@@ -34,13 +34,17 @@ export function useQueryBuilderGrid({
   gridProps: DOMAttributes<HTMLDivElement>;
 } {
   // The default behavior uses vertical naviation, but we want horizontal navigation
-  const delegate = new ListKeyboardDelegate({
-    collection: state.collection,
-    disabledKeys: state.disabledKeys,
-    ref,
-    orientation: 'horizontal',
-    direction: 'ltr',
-  });
+  const delegate = useMemo(
+    () =>
+      new ListKeyboardDelegate({
+        collection: state.collection,
+        disabledKeys: state.disabledKeys,
+        ref,
+        orientation: 'horizontal',
+        direction: 'ltr',
+      }),
+    [state.collection, state.disabledKeys, ref]
+  );
 
   const {gridProps: originalGridProps} = useGridList(
     {

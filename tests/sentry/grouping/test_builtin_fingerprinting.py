@@ -6,20 +6,15 @@ from unittest import mock
 
 import pytest
 
-from sentry import eventstore
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
-from sentry.eventstore.models import Event
 from sentry.grouping.api import (
     apply_server_side_fingerprinting,
     get_default_grouping_config_dict,
     get_fingerprinting_config_for_project,
 )
-from sentry.grouping.fingerprinting import (
-    FINGERPRINTING_BASES,
-    BuiltInFingerprintingRules,
-    FingerprintingRules,
-    _load_configs,
-)
+from sentry.grouping.fingerprinting import FINGERPRINTING_BASES, FingerprintingConfig, _load_configs
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 
 GROUPING_CONFIG = get_default_grouping_config_dict()
@@ -124,7 +119,7 @@ def test_default_bases(default_bases: list[str]) -> None:
 
 
 def test_built_in_nextjs_rules_base(default_bases: list[str]) -> None:
-    rules = FingerprintingRules(rules=[], bases=default_bases)
+    rules = FingerprintingConfig(rules=[], bases=default_bases)
 
     assert rules._to_config_structure() == {"rules": [], "version": 1}
     assert rules._to_config_structure(include_builtin=True) == {
@@ -218,7 +213,7 @@ def test_built_in_nextjs_rules_base(default_bases: list[str]) -> None:
 def test_built_in_nextjs_rules_from_empty_config_string(
     default_bases: list[str],
 ) -> None:
-    rules = FingerprintingRules.from_config_string("", bases=default_bases)
+    rules = FingerprintingConfig.from_config_string("", bases=default_bases)
 
     assert rules._to_config_structure() == {"rules": [], "version": 1}
     assert rules._to_config_structure(include_builtin=True) == {
@@ -312,7 +307,7 @@ def test_built_in_nextjs_rules_from_empty_config_string(
 def test_built_in_nextjs_rules_from_config_string_with_custom(
     default_bases: list[str],
 ) -> None:
-    rules = FingerprintingRules.from_config_string(
+    rules = FingerprintingConfig.from_config_string(
         "error.type:DatabaseUnavailable -> DatabaseUnavailable",
         bases=default_bases,
     )
@@ -462,7 +457,7 @@ def test_load_configs_borked_file_doesnt_blow_up(tmp_path: Path) -> None:
 def test_builtinfingerprinting_rules_from_config_structure_overrides_is_builtin(
     is_builtin: bool | None,
 ) -> None:
-    rules = BuiltInFingerprintingRules._from_config_structure(
+    rules = FingerprintingConfig._from_config_structure(
         {
             "rules": [
                 {
@@ -474,6 +469,7 @@ def test_builtinfingerprinting_rules_from_config_structure_overrides_is_builtin(
             ],
         },
         bases=[],
+        mark_as_built_in=True,
     )
 
     assert rules.rules[0].is_builtin is True
@@ -483,7 +479,7 @@ def test_builtinfingerprinting_rules_from_config_structure_overrides_is_builtin(
 def test_fingerprinting_rules_from_config_structure_preserves_is_builtin(
     is_builtin: bool | None,
 ) -> None:
-    rules = FingerprintingRules._from_config_structure(
+    rules = FingerprintingConfig._from_config_structure(
         {
             "rules": [
                 {
@@ -573,11 +569,14 @@ class BuiltInFingerprintingTest(TestCase):
 
         assert variants["built_in_fingerprint"].as_dict() == {
             "hash": mock.ANY,  # ignore hash as it can change for unrelated reasons
-            "type": "built_in_fingerprint",
+            "type": "custom_fingerprint",
+            "key": "built_in_fingerprint",
+            "contributes": True,
             "description": "Sentry defined fingerprint",
             "values": ["chunkloaderror"],
             "client_values": ["my-route", "{{ default }}"],
             "matched_rule": 'family:"javascript" type:"ChunkLoadError" -> "chunkloaderror"',
+            "hint": None,
         }
 
     def test_built_in_chunkload_rules_value_only(self) -> None:
@@ -731,7 +730,7 @@ class BuiltInFingerprintingTest(TestCase):
         mgr.normalize()
         data = mgr.get_data()
         data.setdefault("fingerprint", ["{{ default }}"])
-        fingerprinting_config = FingerprintingRules.from_config_string(
+        fingerprinting_config = FingerprintingConfig.from_config_string(
             'family:javascript tags.transaction:"*" message:"Text content does not match server-rendered HTML." -> hydrationerror, {{tags.transaction}}'
         )
         apply_server_side_fingerprinting(data, fingerprinting_config)

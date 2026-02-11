@@ -90,7 +90,7 @@ class SlackRequest:
     def is_challenge(self) -> bool:
         return False
 
-    def _get_context(self):
+    def _get_context(self) -> None:
         team_id = None
         user_id = None
         # Let the intended validation methods handle the errors from reading these fields
@@ -239,7 +239,7 @@ class SlackRequest:
         self._info("slack.request")
 
     def _error(self, key: str) -> None:
-        _logger.error(key, extra={**self.logging_data})
+        _logger.warning(key, extra={**self.logging_data})
 
     def _info(self, key: str) -> None:
         _logger.info(key, extra={**self.logging_data})

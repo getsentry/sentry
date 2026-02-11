@@ -1,12 +1,12 @@
 import {useCallback} from 'react';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {
   TraceItemDataset,
   UseTraceItemAttributeBaseProps,
@@ -14,15 +14,17 @@ import type {
 
 interface UseGetTraceItemAttributeKeysProps extends UseTraceItemAttributeBaseProps {
   projectIds?: Array<string | number>;
+  query?: string;
 }
 
 type TraceItemAttributeKeyOptions = Pick<
   ReturnType<typeof normalizeDateTimeParams>,
   'end' | 'start' | 'statsPeriod' | 'utc'
 > & {
-  attributeType: 'string' | 'number';
+  attributeType: 'string' | 'number' | 'boolean';
   itemType: TraceItemDataset;
   project?: string[];
+  query?: string;
   substringMatch?: string;
 };
 
@@ -32,17 +34,20 @@ export function makeTraceItemAttributeKeysQueryOptions({
   datetime,
   projectIds,
   search,
+  query,
 }: {
   datetime: PageFilters['datetime'];
   traceItemType: TraceItemDataset;
-  type: 'string' | 'number';
+  type: 'string' | 'number' | 'boolean';
   projectIds?: Array<string | number>;
+  query?: string;
   search?: string;
 }): TraceItemAttributeKeyOptions {
   const options: TraceItemAttributeKeyOptions = {
     itemType: traceItemType,
     attributeType: type,
     project: projectIds?.map(String),
+    query,
     substringMatch: search,
     ...normalizeDateTimeParams(datetime),
   };
@@ -56,6 +61,7 @@ export function useGetTraceItemAttributeKeys({
   traceItemType,
   projectIds,
   type,
+  query,
 }: UseGetTraceItemAttributeKeysProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -69,6 +75,7 @@ export function useGetTraceItemAttributeKeys({
         datetime: selection.datetime,
         projectIds: projectIds ?? selection.projects,
         search: queryString,
+        query,
       });
 
       let result: Tag[];
@@ -87,7 +94,7 @@ export function useGetTraceItemAttributeKeys({
 
       return getTraceItemTagCollection(result, type);
     },
-    [api, organization, selection, traceItemType, projectIds, type]
+    [api, organization, selection, traceItemType, projectIds, type, query]
   );
 
   return getTraceItemAttributeKeys;
@@ -108,15 +115,22 @@ export function getTraceItemTagCollection(
     // SnQL forbids `-` but is allowed in RPC. So add it back later
     if (
       !/^[a-zA-Z0-9_.:-]+$/.test(attribute.key) &&
-      !/^tags\[[a-zA-Z0-9_.:-]+,number\]$/.test(attribute.key)
+      !/^tags\[[a-zA-Z0-9_.:-]+,(number|boolean)\]$/.test(attribute.key)
     ) {
       continue;
+    }
+
+    let kind = FieldKind.TAG;
+    if (type === 'number') {
+      kind = FieldKind.MEASUREMENT;
+    } else if (type === 'boolean') {
+      kind = FieldKind.BOOLEAN;
     }
 
     attributes[attribute.key] = {
       key: attribute.key,
       name: attribute.name,
-      kind: type === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG,
+      kind,
       secondaryAliases: attribute?.secondaryAliases ?? [],
     };
   }

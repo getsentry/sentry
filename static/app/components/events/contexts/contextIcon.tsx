@@ -1,15 +1,16 @@
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import logoAmazon from 'sentry-logos/logo-amazon.svg';
 import logoAmd from 'sentry-logos/logo-amd.svg';
-import logoAndroid from 'sentry-logos/logo-android.svg';
 import logoAndroidPhone from 'sentry-logos/logo-android-phone.svg';
 import logoAndroidTablet from 'sentry-logos/logo-android-tablet.svg';
-import logoApple from 'sentry-logos/logo-apple.svg';
+import logoAndroid from 'sentry-logos/logo-android.svg';
 import logoApplePhone from 'sentry-logos/logo-apple-phone.svg';
 import logoAppleTablet from 'sentry-logos/logo-apple-tablet.svg';
 import logoAppleTv from 'sentry-logos/logo-apple-tv.svg';
 import logoAppleWatch from 'sentry-logos/logo-apple-watch.svg';
+import logoApple from 'sentry-logos/logo-apple.svg';
 import logoArm from 'sentry-logos/logo-arm.svg';
+import logoBazzite from 'sentry-logos/logo-bazzite.svg';
 import logoChrome from 'sentry-logos/logo-chrome.svg';
 import logoChromium from 'sentry-logos/logo-chromium.svg';
 import logoCloudflareWorker from 'sentry-logos/logo-cloudflare-worker.svg';
@@ -27,9 +28,8 @@ import logoMonogorilla from 'sentry-logos/logo-monogorilla.svg';
 import logoMotorola from 'sentry-logos/logo-motorola.svg';
 import logoNetcore from 'sentry-logos/logo-netcore.svg';
 import logoNetframework from 'sentry-logos/logo-netframework.svg';
-import logoNintendo from 'sentry-logos/logo-nintendo.svg';
-import logoNintendoSwitch from 'sentry-logos/logo-nintendo-switch.svg';
 import logoNintendoSwitch2 from 'sentry-logos/logo-nintendo-switch-2.svg';
+import logoNintendoSwitch from 'sentry-logos/logo-nintendo-switch.svg';
 import logoNode from 'sentry-logos/logo-node.svg';
 import logoNvidia from 'sentry-logos/logo-nvidia.svg';
 import logoOpera from 'sentry-logos/logo-opera.svg';
@@ -40,6 +40,7 @@ import logoQq from 'sentry-logos/logo-qq.svg';
 import logoRuby from 'sentry-logos/logo-ruby.svg';
 import logoSafari from 'sentry-logos/logo-safari.svg';
 import logoSamsung from 'sentry-logos/logo-samsung.svg';
+import logoSteamos from 'sentry-logos/logo-steamos.svg';
 import logoUbuntu from 'sentry-logos/logo-ubuntu.svg';
 import logoUnity from 'sentry-logos/logo-unity.svg';
 import logoUnknown from 'sentry-logos/logo-unknown.svg';
@@ -47,29 +48,28 @@ import logoVercel from 'sentry-logos/logo-vercel.svg';
 import logoWindows from 'sentry-logos/logo-windows.svg';
 import logoXbox from 'sentry-logos/logo-xbox.svg';
 
+import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {IconSize} from 'sentry/utils/theme';
 
 const LOGO_MAPPING = {
   'android-phone': logoAndroidPhone,
   'android-tablet': logoAndroidTablet,
-  'chrome-mobile-ios': logoChrome,
   'google-chrome': logoChrome,
   'internet-explorer': logoIe,
   'legacy-edge': logoEdgeOld,
   'mac-os-x': logoApple,
-  'chrome-os': logoChrome,
   'mobile-safari': logoSafari,
   'nintendo-switch': logoNintendoSwitch,
   'nintendo-switch-2': logoNintendoSwitch2,
   'net-core': logoNetcore,
   'net-framework': logoNetframework,
   'qq-browser': logoQq,
-  'nintendo-os': logoNintendo,
+  'microsoft-edge': logoEdgeNew,
   amazon: logoAmazon,
   amd: logoAmd,
   android: logoAndroid,
+  bazzite: logoBazzite,
   apple: logoApple,
   appletv: logoAppleTv,
   arm: logoArm,
@@ -104,6 +104,7 @@ const LOGO_MAPPING = {
   ruby: logoRuby,
   safari: logoSafari,
   samsung: logoSamsung,
+  steamos: logoSteamos,
   tvos: logoApple,
   ubuntu: logoUbuntu,
   vercel: logoVercel,
@@ -143,23 +144,33 @@ export function getLogoImage(name: string) {
     return logoNvidia;
   }
 
+  if (name.startsWith('nintendo-')) {
+    return logoNintendoSwitch;
+  }
+
+  if (name.startsWith('chrome-')) {
+    return logoChrome;
+  }
+
+  if (name.startsWith('firefox-')) {
+    return logoFirefox;
+  }
+
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return LOGO_MAPPING[name] ?? logoUnknown;
 }
 
 export interface ContextIconProps {
   name: string;
-  size?: IconSize;
+  size?: SVGIconProps['size'];
 }
 
 export function ContextIcon({name, size: providedSize = 'xl'}: ContextIconProps) {
-  const theme = useTheme();
-  const size = theme.iconSizes[providedSize];
+  const size = SvgIcon.ICON_SIZES[providedSize];
 
   // Apply darkmode CSS to icon when in darkmode
   const isDarkmode = useLegacyStore(ConfigStore).theme === 'dark';
   const extraCass = isDarkmode && INVERT_IN_DARKMODE.includes(name) ? darkCss : null;
-
   const imageName = getLogoImage(name);
 
   return <img height={size} width={size} css={extraCass} src={imageName} />;

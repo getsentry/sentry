@@ -1,11 +1,12 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import Access from 'sentry/components/acl/access';
 import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {IconCopy, IconEdit} from 'sentry/icons';
@@ -14,7 +15,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 import {
   AlertWizardAlertNames,
   DEPRECATED_TRANSACTION_ALERTS,
@@ -66,8 +66,6 @@ function DetailsHeader({
     },
   };
 
-  const isSnoozed = rule?.snooze ?? false;
-
   const ruleType =
     rule &&
     getAlertTypeFromAggregateDataset({
@@ -114,16 +112,15 @@ function DetailsHeader({
         </RuleTitle>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           {rule && project && (
             <Access access={['alerts:write']}>
               {({hasAccess}) => (
                 <SnoozeAlert
-                  isSnoozed={isSnoozed}
+                  isSnoozed={rule?.snoozeForEveryone ?? false}
                   onSnooze={onSnooze}
                   ruleId={rule.id}
                   projectSlug={project.slug}
-                  ruleActionCategory={getAlertRuleActionCategory(rule)}
                   hasAccess={hasAccess}
                   type="metric"
                 />
@@ -150,7 +147,7 @@ function DetailsHeader({
           <LinkButton size="sm" icon={<IconEdit />} to={settingsLink}>
             {t('Edit Rule')}
           </LinkButton>
-        </ButtonBar>
+        </Grid>
       </Layout.HeaderActions>
     </Layout.Header>
   );

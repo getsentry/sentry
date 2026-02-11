@@ -1,17 +1,17 @@
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 
-describe('middleEllipsis', function () {
-  it('returns slug if it is already short enough', function () {
+describe('middleEllipsis', () => {
+  it('returns slug if it is already short enough', () => {
     expect(middleEllipsis('javascript', 20, ' ')).toBe('javascript');
   });
 
-  it('trims long but unhyphenated slug', function () {
+  it('trims long but unhyphenated slug', () => {
     expect(middleEllipsis('javascriptfrontendproject', 20, ' ')).toBe(
       'javascriptfrontendp…'
     );
   });
 
-  it('trims slug from the middle, preserves whole words', function () {
+  it('trims slug from the middle, preserves whole words', () => {
     expect(middleEllipsis('symbol collector console', 20, ' ')).toBe('symbol…console');
     expect(middleEllipsis('symbol collector mobile', 20, ' ')).toBe('symbol…mobile');
     expect(middleEllipsis('visual snapshot cloud run', 20, ' ')).toBe('visual…cloud run');
@@ -27,7 +27,7 @@ describe('middleEllipsis', function () {
     ).toBe('visual collector.console…technology-task.with_luck');
   });
 
-  it('trims slug from the middle, cuts whole words', function () {
+  it('trims slug from the middle, cuts whole words', () => {
     expect(middleEllipsis('sourcemapsio javascript', 20, ' ')).toBe(
       'sourcemaps…javascript'
     );

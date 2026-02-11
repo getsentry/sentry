@@ -5,89 +5,87 @@ import {
   getSeriesApiInterval,
   GranularityLadder,
   lightenHexToRgb,
-  processTableResults,
   THIRTY_DAYS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
-describe('Chart Utils', function () {
-  describe('getInterval()', function () {
-    describe('with high fidelity', function () {
-      it('greater than 24 hours', function () {
+describe('Chart Utils', () => {
+  describe('getInterval()', () => {
+    describe('with high fidelity', () => {
+      it('greater than 24 hours', () => {
         expect(getInterval({period: '25h'}, 'high')).toBe('30m');
       });
 
-      it('less than 30 minutes', function () {
+      it('less than 30 minutes', () => {
         expect(getInterval({period: '20m'}, 'high')).toBe('1m');
       });
-      it('between 30 minutes and 24 hours', function () {
+      it('between 30 minutes and 24 hours', () => {
         expect(getInterval({period: '12h'}, 'high')).toBe('5m');
       });
-      it('more than 14 days', function () {
+      it('more than 14 days', () => {
         expect(getInterval({period: '14d'}, 'high')).toBe('30m');
       });
-      it('more than 30 days', function () {
+      it('more than 30 days', () => {
         expect(getInterval({period: '30d'}, 'high')).toBe('1h');
       });
-      it('more than 60 days', function () {
+      it('more than 60 days', () => {
         expect(getInterval({period: '90d'}, 'high')).toBe('4h');
       });
     });
 
-    describe('with medium fidelity', function () {
-      it('greater than 24 hours', function () {
+    describe('with medium fidelity', () => {
+      it('greater than 24 hours', () => {
         expect(getInterval({period: '25h'})).toBe('1h');
         expect(getInterval({period: '25h'}, 'medium')).toBe('1h');
       });
 
-      it('less than 30 minutes', function () {
+      it('less than 30 minutes', () => {
         expect(getInterval({period: '20m'})).toBe('5m');
         expect(getInterval({period: '20m'}, 'medium')).toBe('5m');
       });
-      it('between 30 minutes and 24 hours', function () {
+      it('between 30 minutes and 24 hours', () => {
         expect(getInterval({period: '12h'})).toBe('15m');
         expect(getInterval({period: '12h'}, 'medium')).toBe('15m');
       });
-      it('more than 14 days', function () {
+      it('more than 14 days', () => {
         expect(getInterval({period: '14d'})).toBe('1h');
         expect(getInterval({period: '14d'}, 'medium')).toBe('1h');
       });
-      it('more than 30 days', function () {
+      it('more than 30 days', () => {
         expect(getInterval({period: '30d'})).toBe('4h');
         expect(getInterval({period: '30d'}, 'medium')).toBe('4h');
       });
-      it('more than 90 days', function () {
+      it('more than 90 days', () => {
         expect(getInterval({period: '90d'})).toBe('1d');
         expect(getInterval({period: '90d'}, 'medium')).toBe('1d');
       });
     });
 
-    describe('with low fidelity', function () {
-      it('greater than 24 hours', function () {
+    describe('with low fidelity', () => {
+      it('greater than 24 hours', () => {
         expect(getInterval({period: '25h'}, 'low')).toBe('6h');
       });
 
-      it('less than 30 minutes', function () {
+      it('less than 30 minutes', () => {
         expect(getInterval({period: '20m'}, 'low')).toBe('10m');
       });
-      it('between 30 minutes and 24 hours', function () {
+      it('between 30 minutes and 24 hours', () => {
         expect(getInterval({period: '12h'}, 'low')).toBe('1h');
       });
-      it('more than 14 days', function () {
+      it('more than 14 days', () => {
         expect(getInterval({period: '14d'}, 'low')).toBe('12h');
       });
-      it('more than 30 days', function () {
+      it('more than 30 days', () => {
         expect(getInterval({period: '30d'}, 'low')).toBe('1d');
       });
-      it('more than 90 days', function () {
+      it('more than 90 days', () => {
         expect(getInterval({period: '90d'}, 'low')).toBe('2d');
       });
     });
   });
 
-  describe('getUsageInterval', function () {
-    it('calculates intervals for a period', function () {
+  describe('getUsageInterval', () => {
+    it('calculates intervals for a period', () => {
       expect(getSeriesApiInterval({period: '90d'})).toBe('1d');
       expect(getSeriesApiInterval({period: '60d'})).toBe('1d');
 
@@ -103,121 +101,81 @@ describe('Chart Utils', function () {
     });
   });
 
-  describe('findGranularityIntervalForMinutes()', function () {
+  describe('findGranularityIntervalForMinutes()', () => {
     const ladder = new GranularityLadder([
       [THIRTY_DAYS, '1d'],
       [TWENTY_FOUR_HOURS, '30m'],
       [0, '15m'],
     ]);
 
-    it('handles negative intervals', function () {
+    it('handles negative intervals', () => {
       expect(ladder.getInterval(-1)).toBe('15m');
     });
 
-    it('finds granularity at lower bound', function () {
+    it('finds granularity at lower bound', () => {
       expect(ladder.getInterval(getDiffInMinutes({period: '2m'}))).toBe('15m');
     });
 
-    it('finds granularity between bounds', function () {
+    it('finds granularity between bounds', () => {
       expect(ladder.getInterval(getDiffInMinutes({period: '3d'}))).toBe('30m');
     });
 
-    it('finds granularity at upper bound', function () {
+    it('finds granularity at upper bound', () => {
       expect(ladder.getInterval(getDiffInMinutes({period: '60d'}))).toBe('1d');
     });
   });
 
-  describe('getDiffInMinutes()', function () {
-    describe('with period string', function () {
-      it('can parse a period string in seconds', function () {
+  describe('getDiffInMinutes()', () => {
+    describe('with period string', () => {
+      it('can parse a period string in seconds', () => {
         expect(getDiffInMinutes({period: '30s'})).toBe(0.5);
       });
-      it('can parse a period string in minutes', function () {
+      it('can parse a period string in minutes', () => {
         expect(getDiffInMinutes({period: '15m'})).toBe(15);
       });
-      it('can parse a period string in hours', function () {
+      it('can parse a period string in hours', () => {
         expect(getDiffInMinutes({period: '1h'})).toBe(60);
       });
-      it('can parse a period string in days', function () {
+      it('can parse a period string in days', () => {
         expect(getDiffInMinutes({period: '5d'})).toBe(7200);
       });
-      it('can parse a period string in weeks', function () {
+      it('can parse a period string in weeks', () => {
         expect(getDiffInMinutes({period: '1w'})).toBe(10080);
       });
-      it('can parse a period string with an upsell suffix', function () {
+      it('can parse a period string with an upsell suffix', () => {
         expect(getDiffInMinutes({period: '90d-trial'})).toBe(129600);
       });
     });
 
     // This uses moment so we probably don't need to test it too extensively
-    describe('with absolute dates', function () {});
+    describe('with absolute dates', () => {});
   });
 
-  describe('canIncludePreviousPeriod()', function () {
-    it('does not include if `includePrevious` is false', function () {
+  describe('canIncludePreviousPeriod()', () => {
+    it('does not include if `includePrevious` is false', () => {
       expect(canIncludePreviousPeriod(false, '7d')).toBe(false);
     });
 
-    it('is true if period is less than or equal to 45 days', function () {
+    it('is true if period is less than or equal to 45 days', () => {
       expect(canIncludePreviousPeriod(true, '45d')).toBe(true);
     });
 
-    it('is false if period is greater than 45d', function () {
+    it('is false if period is greater than 45d', () => {
       expect(canIncludePreviousPeriod(true, '46d')).toBe(false);
     });
 
-    it('returns value of `includePrevious` if no period', function () {
+    it('returns value of `includePrevious` if no period', () => {
       expect(canIncludePreviousPeriod(true, null)).toBe(true);
       expect(canIncludePreviousPeriod(false, null)).toBe(false);
     });
   });
 
-  describe('lightenHexToRgb', function () {
-    it('converts hex to rgb and lightens values', function () {
+  describe('lightenHexToRgb', () => {
+    it('converts hex to rgb and lightens values', () => {
       expect(lightenHexToRgb(['#2f2936', '#f0f0f0'])).toEqual([
         'rgb(77, 71, 84)',
         'rgb(255, 255, 255)',
       ]);
-    });
-  });
-
-  describe('processTableResults', function () {
-    it('transforms TableDataWithTitle array to chartable data', function () {
-      const tableData: TableDataWithTitle[] = [
-        {
-          data: [
-            {
-              'geo.country_code': 'PE',
-              count: 9215,
-              id: 'a',
-            },
-            {
-              'geo.country_code': 'VI',
-              count: 1,
-              id: 'b',
-            },
-          ],
-          meta: {
-            'geo.country_code': 'string',
-            count: 'integer',
-          },
-          title: 'Country',
-        },
-      ];
-      const result = {
-        title: 'Country',
-        data: [
-          {
-            name: 'PE',
-            value: 9215,
-          },
-          {
-            name: 'VI',
-            value: 1,
-          },
-        ],
-      };
-      expect(processTableResults(tableData)).toEqual(result);
     });
   });
 });

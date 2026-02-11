@@ -1,27 +1,21 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
-import usePageFilters from 'sentry/utils/usePageFilters';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import {ModuleName} from 'sentry/views/insights/types';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
-describe('DomainSelector', function () {
+describe('DomainSelector', () => {
   const organization = OrganizationFixture();
 
   jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -48,14 +42,12 @@ describe('DomainSelector', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('allows selecting a domain', async function () {
+  it('allows selecting a domain', async () => {
     render(<DomainSelector domainAlias="Domain" moduleName={ModuleName.DB} />);
-
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     await selectEvent.openMenu(screen.getByText('All'));
 
@@ -63,7 +55,7 @@ describe('DomainSelector', function () {
     expect(screen.getByText('sentry_organization')).toBeInTheDocument();
   });
 
-  it('fetches more domains if available', async function () {
+  it('fetches more domains if available', async () => {
     const fetchMoreResponse = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -84,8 +76,6 @@ describe('DomainSelector', function () {
 
     render(<DomainSelector domainAlias="Domain" moduleName={ModuleName.DB} />);
     expect(fetchMoreResponse).not.toHaveBeenCalled();
-
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     await selectEvent.openMenu(screen.getByText('All'));
 

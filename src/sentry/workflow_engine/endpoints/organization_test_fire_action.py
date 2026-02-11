@@ -15,24 +15,34 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams
 from sentry.constants import ObjectStatus
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.notification_action.grouptype import get_test_notification_event_data
 from sentry.notifications.types import TEST_NOTIFICATION_ID
+from sentry.workflow_engine.endpoints.organization_workflow_index import (
+    OrganizationWorkflowPermission,
+)
 from sentry.workflow_engine.endpoints.utils.test_fire_action import test_fire_action
 from sentry.workflow_engine.endpoints.validators.base.action import BaseActionValidator
-from sentry.workflow_engine.models import Action, Detector
+from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowEventData
 
 logger = logging.getLogger(__name__)
 
 
-class TestActionsValidator(CamelSnakeSerializer):
+class TestActionsValidator(CamelSnakeSerializer[Any]):
     actions = serializers.ListField(required=True)
 
-    def validate_actions(self, value):
+    def validate_actions(self, value: Any) -> Any:
+        validated_actions = []
         for action in value:
-            BaseActionValidator(data=action).is_valid(raise_exception=True)
-        return value
+            action_validator = BaseActionValidator(data=action, context=self.context)
+            action_validator.is_valid(raise_exception=True)
+
+            action.update(action_validator.validated_data)
+            validated_actions.append(action)
+
+        return validated_actions
 
 
 class TestFireActionErrorsResponse(TypedDict):
@@ -45,6 +55,7 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ECOSYSTEM
+    permission_classes = (OrganizationWorkflowPermission,)
 
     @extend_schema(
         operation_id="Test Fire Actions",
@@ -58,13 +69,13 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Test fires a list of actions without saving them to the database.
 
         The actions will be fired against a sample event in the first project of the organization.
         """
-        serializer = TestActionsValidator(data=request.data)
+        serializer = TestActionsValidator(data=request.data, context={"organization": organization})
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
@@ -97,7 +108,7 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
         return Response(status=status, data=response_data)
 
 
-def test_fire_actions(actions: list[dict[str, Any]], project: Project):
+def test_fire_actions(actions: list[dict[str, Any]], project: Project) -> tuple[Any, Any]:
     action_exceptions = []
 
     test_event = get_test_notification_event_data(project)
@@ -109,14 +120,6 @@ def test_fire_actions(actions: list[dict[str, Any]], project: Project):
     workflow_event_data = WorkflowEventData(
         event=test_event,
         group=test_event.group,
-    )
-
-    detector = Detector(
-        id=TEST_NOTIFICATION_ID,
-        project=project,
-        name="Test Detector",
-        enabled=True,
-        type="error",
     )
 
     for action_data in actions:
@@ -133,7 +136,7 @@ def test_fire_actions(actions: list[dict[str, Any]], project: Project):
         setattr(action, "workflow_id", workflow_id)
 
         # Test fire the action and collect any exceptions
-        exceptions = test_fire_action(action, workflow_event_data, detector)
+        exceptions = test_fire_action(action, workflow_event_data)
         if exceptions:
             action_exceptions.extend(exceptions)
 

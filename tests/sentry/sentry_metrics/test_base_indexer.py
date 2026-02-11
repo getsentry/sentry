@@ -18,7 +18,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 def assert_fetch_type_for_tag_string_set(
     meta: Mapping[str, Metadata], fetch_type: FetchType, str_set: set[str]
-):
+) -> None:
     assert all([meta[string].fetch_type == fetch_type for string in str_set])
 
 

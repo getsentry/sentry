@@ -3,12 +3,14 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable
 
+import sentry_sdk
 from django.db import models
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from sentry import analytics
+from sentry.analytics.events.codeowners_max_length_exceeded import CodeOwnersMaxLengthExceeded
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model, sane_repr
 from sentry.issues.ownership.grammar import (
@@ -91,11 +93,12 @@ class ProjectCodeOwners(Model):
     def update_schema(self, organization: Organization, raw: str | None = None) -> None:
         """
         Updating the schema goes through the following steps:
-        1. parsing the original codeowner file to get the associations
-        2. convert the codeowner file to the ownership syntax
-        3. convert the ownership syntax to the schema
+        1. Update the raw content (original CODEOWNERS text)
+        2. Parse the original CODEOWNERS file to get the associations
+        3. Convert the CODEOWNERS file to the ownership syntax
+        4. Convert the ownership syntax to the schema
         """
-        from sentry.api.validators.project_codeowners import validate_codeowners_associations
+        from sentry.api.validators.project_codeowners import build_codeowners_associations
         from sentry.utils.codeowners import MAX_RAW_LENGTH
 
         if raw and self.raw != raw:
@@ -105,14 +108,18 @@ class ProjectCodeOwners(Model):
             return
 
         if len(self.raw) > MAX_RAW_LENGTH:
-            analytics.record(
-                "codeowners.max_length_exceeded",
-                organization_id=organization.id,
-            )
+            try:
+                analytics.record(
+                    CodeOwnersMaxLengthExceeded(
+                        organization_id=organization.id,
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
             logger.warning({"raw": f"Raw needs to be <= {MAX_RAW_LENGTH} characters in length"})
             return
 
-        associations, _ = validate_codeowners_associations(self.raw, self.project)
+        associations, _ = build_codeowners_associations(self.raw, self.project)
 
         issue_owner_rules = convert_codeowners_syntax(
             codeowners=self.raw,
@@ -123,13 +130,16 @@ class ProjectCodeOwners(Model):
         # Convert IssueOwner syntax into schema syntax
         try:
             schema = create_schema_from_issue_owners(
-                project_id=self.project.id, issue_owners=issue_owner_rules
+                project_id=self.project.id,
+                issue_owners=issue_owner_rules,
+                remove_deleted_owners=True,
             )
             # Convert IssueOwner syntax into schema syntax
             if schema:
                 self.schema = schema
                 self.save()
         except ValidationError:
+            logger.exception("Failed to create schema from issue owners.")
             return
 
 
@@ -141,18 +151,14 @@ def modify_date_updated(instance, **kwargs):
 
 def process_resource_change(instance, change, **kwargs):
     from sentry.models.groupowner import GroupOwner
-    from sentry.models.projectownership import ProjectOwnership
 
     cache.set(
         ProjectCodeOwners.get_cache_key(instance.project_id),
         None,
         READ_CACHE_DURATION,
     )
-    ownership = ProjectOwnership.get_ownership_cached(instance.project_id)
-    if not ownership:
-        ownership = ProjectOwnership(project_id=instance.project_id)
 
-    GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(instance.project_id)
+    GroupOwner.set_project_ownership_version(instance.project_id)
 
 
 pre_save.connect(

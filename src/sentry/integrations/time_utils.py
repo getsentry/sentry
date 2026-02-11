@@ -1,10 +1,9 @@
 import time
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
-from django.utils import timezone
+from django.utils import timezone, translation
 from django.utils.timesince import timesince
-from django.utils.translation import gettext as _
 
 from sentry.models.group import Group
 
@@ -24,19 +23,20 @@ def get_approx_start_time(group: Group):
     return regression_time
 
 
-def time_since(value: datetime):
+def time_since(value: datetime) -> str | date:
     """
     Display the relative time
     """
     now = timezone.now()
     if value < (now - timedelta(days=5)):
         return value.date()
-    diff = timesince(value, now)
-    if diff == timesince(now, now):
-        return "Just now"
-    if diff == "1 day":
-        return _("Yesterday")
-    return f"{diff} ago"
+    with translation.override("en"):
+        diff = timesince(value, now)
+        if diff == timesince(now, now):
+            return "Just now"
+        if diff == "1 day":
+            return "Yesterday"
+        return f"{diff} ago"
 
 
 def get_relative_time(

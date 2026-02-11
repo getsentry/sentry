@@ -2,9 +2,11 @@ import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
 import {IconDelete, IconFile, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -92,7 +94,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
         )
       );
       onComplete(result.uuid);
-    } catch (error) {
+    } catch (error: any) {
       if (error.status === 409) {
         addErrorMessage(IN_PROGRESS_RELOCATION_ERROR_MSG);
       } else if (error.status === 429) {
@@ -126,16 +128,16 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
         {file ? (
           <FinishedWell>
             <IconFile size="lg" />
-            <FileInfo>
+            <Flex align="center" gap="xs">
               <div>{file.name}</div>
               <Button
                 aria-label={t('Remove file')}
                 icon={<IconDelete />}
-                borderless
+                priority="transparent"
                 size="xs"
                 onClick={() => setFile(undefined)}
               />
-            </FileInfo>
+            </Flex>
             <Button
               priority="primary"
               onClick={handleStartRelocation}
@@ -186,27 +188,27 @@ const Wrapper = styled('div')`
   margin-left: auto;
   margin-right: auto;
   padding: ${space(4)};
-  background-color: ${p => p.theme.surface400};
+  background-color: ${p => p.theme.tokens.background.primary};
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
   border-radius: 10px;
   width: 100%;
   font-size: 16px;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   mark {
     border-radius: 8px;
     padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.colors.gray100};
     margin-right: ${space(1)};
   }
   h2 {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
   }
   p {
     margin-bottom: ${space(1)};
   }
   .encrypt-help {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
   }
 `;
 
@@ -220,14 +222,8 @@ const FinishedWell = styled('div')`
   margin: ${space(2)} 0;
   padding: ${space(2)} ${space(3)};
   border-radius: 3px;
-  border: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.backgroundSecondary};
-`;
-
-const FileInfo = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const UploadWell = styled('div')<{draggedOver: boolean}>`
@@ -239,12 +235,15 @@ const UploadWell = styled('div')<{draggedOver: boolean}>`
   padding: ${space(2)} ${space(3)};
   height: 140px;
   border-radius: 3px;
-  border: 1px ${props => (props.draggedOver ? 'solid' : 'dashed')} ${p => p.theme.border};
+  border: 1px ${props => (props.draggedOver ? 'solid' : 'dashed')}
+    ${p => p.theme.tokens.border.primary};
   background: ${props =>
-    props.draggedOver ? p => p.theme.purple100 : p => p.theme.surface400};
+    props.draggedOver
+      ? p => p.theme.tokens.background.transparent.accent.muted
+      : p => p.theme.tokens.background.primary};
 
   .upload-icon {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
   }
 `;
 

@@ -30,7 +30,9 @@ class SafeRenderer extends marked.Renderer {
     }
 
     const out = super.link(tokens);
-    return dompurify.sanitize(out);
+    return dompurify.sanitize(out, {
+      FORBID_ATTR: ['style'],
+    });
   }
 
   image(tokens: Tokens.Image) {
@@ -51,7 +53,13 @@ class NoParagraphRenderer extends SafeRenderer {
 }
 
 function postprocess(html: string) {
-  return dompurify.sanitize(html);
+  return dompurify.sanitize(html, {
+    // Forbid style attributes to prevent CSS injection attacks
+    // This is the primary security fix to prevent arbitrary CSS injection
+    FORBID_ATTR: ['style'],
+    // Keep default tag allowlist but remove dangerous attributes
+    // This prevents CSS injection while preserving markdown functionality
+  });
 }
 
 const noHighlightingMarked = new Marked({
@@ -65,7 +73,6 @@ const noHighlightingMarked = new Marked({
 const highlightingMarked = new Marked(
   markedHighlight({
     async: true,
-    // eslint-disable-next-line require-await
     highlight: async (code, lang, _info): Promise<string> => {
       if (!lang) {
         return code;

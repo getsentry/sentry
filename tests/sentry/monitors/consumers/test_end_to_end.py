@@ -15,6 +15,7 @@ from django.test.utils import override_settings
 from django.utils import timezone
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import CheckIn
 
+import sentry.testutils.thread_leaks.pytest as thread_leaks
 from sentry.monitors.clock_dispatch import try_monitor_clock_tick
 from sentry.monitors.consumers.clock_tasks_consumer import MonitorClockTasksStrategyFactory
 from sentry.monitors.consumers.clock_tick_consumer import MonitorClockTickStrategyFactory
@@ -46,6 +47,7 @@ def create_consumer():
     return factory.create_with_partitions(commit, {partition: 0})
 
 
+@thread_leaks.thread_leak_allowlist(reason="monitors", issue=97032)
 class MonitorsClockTickEndToEndTest(TestCase):
     def send_checkin(
         self,

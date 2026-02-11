@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import IntEnum, unique
 from typing import TYPE_CHECKING, Any, Literal
 
-from django.conf import settings
 from django.core.cache import cache
 
 from sentry import features, options
@@ -29,13 +28,12 @@ class QuotaScope(IntEnum):
     ORGANIZATION = 1
     PROJECT = 2
     KEY = 3
-    GLOBAL = 4
 
     def api_name(self):
         return self.name.lower()
 
 
-AbuseQuotaScope = Literal[QuotaScope.ORGANIZATION, QuotaScope.PROJECT, QuotaScope.GLOBAL]
+AbuseQuotaScope = Literal[QuotaScope.ORGANIZATION, QuotaScope.PROJECT]
 
 
 @dataclass
@@ -58,13 +56,34 @@ class AbuseQuota:
     compat_option_sentry: str | None = None
 
 
+@dataclass
+class RetentionSettings:
+    standard: int
+    downsampled: int
+
+    def to_object(self) -> Mapping[str, Any]:
+        return {
+            "standard": self.standard,
+            "downsampled": self.downsampled,
+        }
+
+
+# This mirrors the Retentions struct in relay
+# https://github.com/getsentry/relay/blob/641e7f20cd/relay-dynamic-config/src/project.rs#L34-L45
+RETENTIONS_CONFIG_MAPPING = {
+    DataCategory.LOG_BYTE: "log",
+    DataCategory.TRANSACTION: "span",
+    DataCategory.SPAN: "span",
+    DataCategory.TRACE_METRIC: "traceMetric",
+}
+
+
 def build_metric_abuse_quotas() -> list[AbuseQuota]:
     quotas = list()
 
     scopes: list[tuple[AbuseQuotaScope, str]] = [
         (QuotaScope.PROJECT, "p"),
         (QuotaScope.ORGANIZATION, "o"),
-        (QuotaScope.GLOBAL, "g"),
     ]
 
     for scope, prefix in scopes:
@@ -300,10 +319,7 @@ class Quota(Service):
     """
 
     __all__ = (
-        "get_maximum_quota",
         "get_abuse_quotas",
-        "get_project_quota",
-        "get_organization_quota",
         "is_rate_limited",
         "validate",
         "refund",
@@ -311,7 +327,6 @@ class Quota(Service):
         "get_quotas",
         "get_blended_sample_rate",
         "get_transaction_sampling_tier_for_volume",
-        "assign_monitor_seat",
         "check_accept_monitor_checkin",
         "update_monitor_slug",
     )
@@ -392,26 +407,35 @@ class Quota(Service):
                           attachment in bytes.
         """
 
-    def get_event_retention(self, organization):
+    def get_event_retention(self, organization, category: DataCategory | None = None, **kwargs):
         """
         Returns the retention for events in the given organization in days.
         Returns ``None`` if events are to be stored indefinitely.
 
         :param organization: The organization model.
+        :param category: Return the retention policy for this data category.
+                         If this is not given, return the org-level policy.
         """
         return _limit_from_settings(options.get("system.event-retention-days"))
+
+    def get_downsampled_event_retention(
+        self, organization, category: DataCategory | None = None, **kwargs
+    ):
+        """
+        Returns the retention for downsampled events in the given organization in days.
+        Returning ``0`` means downsampled event retention will default to the value of ``get_event_retention``.
+        """
+        return 0
+
+    def get_retentions(
+        self, organization: Organization, **kwargs
+    ) -> Mapping[DataCategory, RetentionSettings]:
+        return {}
 
     def validate(self):
         """
         Validates that the quota service is operational.
         """
-
-    def _translate_quota(self, quota, parent_quota):
-        if str(quota).endswith("%"):
-            pct = int(quota[:-1])
-            quota = int(parent_quota or 0) * pct / 100
-
-        return _limit_from_settings(quota or parent_quota)
 
     def get_key_quota(self, key):
         from sentry import features
@@ -446,14 +470,6 @@ class Quota(Service):
                 scope=QuotaScope.PROJECT,
             ),
             AbuseQuota(
-                id="pati",
-                option="project-abuse-quota.transaction-limit",
-                compat_option_org="sentry:project-transaction-limit",
-                compat_option_sentry="getsentry.rate-limit.project-transactions",
-                categories=[index_data_category("transaction", org)],
-                scope=QuotaScope.PROJECT,
-            ),
-            AbuseQuota(
                 id="paa",
                 option="project-abuse-quota.attachment-limit",
                 categories=[DataCategory.ATTACHMENT],
@@ -471,18 +487,6 @@ class Quota(Service):
                 categories=[DataCategory.SESSION],
                 scope=QuotaScope.PROJECT,
             ),
-            AbuseQuota(
-                id="paspi",
-                option="project-abuse-quota.span-limit",
-                categories=[DataCategory.SPAN_INDEXED],
-                scope=QuotaScope.PROJECT,
-            ),
-            AbuseQuota(
-                id="pal",
-                option="project-abuse-quota.log-limit",
-                categories=[DataCategory.LOG_ITEM],
-                scope=QuotaScope.PROJECT,
-            ),
         ]
 
         abuse_quotas.extend(build_metric_abuse_quotas())
@@ -493,7 +497,6 @@ class Quota(Service):
         reason_codes = {
             QuotaScope.ORGANIZATION: "org_abuse_limit",
             QuotaScope.PROJECT: "project_abuse_limit",
-            QuotaScope.GLOBAL: "global_abuse_limit",
         }
 
         for quota in abuse_quotas:
@@ -545,61 +548,6 @@ class Quota(Service):
 
         return get_project_monitor_quota(project)
 
-    def get_project_quota(self, project):
-        from sentry.models.options.organization_option import OrganizationOption
-        from sentry.models.organization import Organization
-
-        if not project.is_field_cached("organization"):
-            project.set_cached_field_value(
-                "organization", Organization.objects.get_from_cache(id=project.organization_id)
-            )
-
-        org = project.organization
-
-        max_quota_share = int(
-            OrganizationOption.objects.get_value(org, "sentry:project-rate-limit", 100)
-        )
-
-        org_quota, window = self.get_organization_quota(org)
-
-        if max_quota_share != 100 and org_quota:
-            quota = self._translate_quota(f"{max_quota_share}%", org_quota)
-        else:
-            quota = None
-
-        return (quota, window)
-
-    def get_organization_quota(self, organization):
-        from sentry.models.options.organization_option import OrganizationOption
-
-        account_limit = _limit_from_settings(
-            OrganizationOption.objects.get_value(
-                organization=organization, key="sentry:account-rate-limit", default=0
-            )
-        )
-
-        system_limit = _limit_from_settings(options.get("system.rate-limit"))
-
-        # If there is only a single org, this one org should
-        # be allowed to consume the entire quota.
-        if settings.SENTRY_SINGLE_ORGANIZATION or account_limit:
-            if system_limit and (not account_limit or system_limit < account_limit / 60):
-                return (system_limit, 60)
-            # an account limit is enforced, which is set as a fixed value and cannot
-            # utilize percentage based limits
-            return (account_limit, 3600)
-
-        default_limit = self._translate_quota(
-            settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE, system_limit
-        )
-        return (default_limit, 60)
-
-    def get_maximum_quota(self, organization):
-        """
-        Return the maximum capable rate for an organization.
-        """
-        return (_limit_from_settings(options.get("system.rate-limit")), 60)
-
     def get_blended_sample_rate(
         self, project: Project | None = None, organization_id: int | None = None
     ) -> float | None:
@@ -635,9 +583,7 @@ class Quota(Service):
         """
         return SeatAssignmentResult(assignable=True)
 
-    def check_assign_seat(
-        self, data_category: DataCategory, seat_object: SeatObject
-    ) -> SeatAssignmentResult:
+    def check_assign_seat(self, seat_object: SeatObject) -> SeatAssignmentResult:
         """
         Determines if an assignable seat object can be assigned a seat.
         If it is not possible to assign a monitor a seat, a reason
@@ -653,7 +599,8 @@ class Quota(Service):
         return SeatAssignmentResult(assignable=True)
 
     def check_assign_seats(
-        self, data_category: DataCategory, seat_objects: list[SeatObject]
+        self,
+        seat_objects: Sequence[SeatObject],
     ) -> SeatAssignmentResult:
         """
         Determines if a list of assignable seat objects can be assigned seat.
@@ -672,7 +619,7 @@ class Quota(Service):
 
         return Outcome.ACCEPTED
 
-    def assign_seat(self, data_category: DataCategory, seat_object: SeatObject) -> int:
+    def assign_seat(self, seat_object: SeatObject) -> int:
         """
         Assigns a seat to an object if possible, resulting in Outcome.ACCEPTED.
         If the object cannot be assigned a seat it will be
@@ -687,12 +634,12 @@ class Quota(Service):
         Removes a monitor from it's assigned seat.
         """
 
-    def disable_seat(self, data_category: DataCategory, seat_object: SeatObject) -> None:
+    def disable_seat(self, seat_object: SeatObject) -> None:
         """
         Disables an assigned seat.
         """
 
-    def remove_seat(self, data_category: DataCategory, seat_object: SeatObject) -> None:
+    def remove_seat(self, seat_object: SeatObject) -> None:
         """
         Removes an assigned seat.
         """
@@ -743,7 +690,34 @@ class Quota(Service):
         """
         return True
 
-    def record_seer_run(self, org_id: int, project_id: int, data_category: DataCategory) -> None:
+    def has_usage_quota(self, org_id: int, data_category: DataCategory) -> bool:
+        """
+        Check if organization has available quota for a usage-based category.
+
+        This is for categories with TallyType.USAGE (not SEAT-based). Unlike
+        has_available_reserved_budget (which is for cost-based Reserved Budgets
+        where reserved=-2), this checks usage-based quotas where reserved=N
+        means N events are allocated.
+
+        Use for usage-based categories like SIZE_ANALYSIS, INSTALLABLE_BUILD, and
+        similar categories that are not rate-limited in Relay.
+
+        Args:
+            org_id: The organization ID
+            data_category: The data category to check quota for
+
+        Returns:
+            bool: True if the organization has quota available, False otherwise.
+        """
+        return True
+
+    def record_seer_run(
+        self,
+        org_id: int,
+        project_id: int,
+        data_category: DataCategory,
+        seat_object: SeatObject | None = None,
+    ) -> None:
         """
         Records a seer run for an organization.
         """
@@ -760,5 +734,25 @@ class Quota(Service):
         Returns:
             bool: True if the organization has quota available, False otherwise.
                   Always False if data category is not a profile duration category.
+        """
+        return True
+
+    def get_dashboard_limit(self, org_id: int) -> int:
+        """
+        Returns the maximum number of dashboards allowed for the organization's plan type.
+        """
+        return -1
+
+    def get_metric_detector_limit(self, org_id: int) -> int:
+        """
+        Returns the maximum number of detectors allowed for the organization's plan type.
+        """
+        return -1
+
+    def check_seer_quota(
+        self, org_id: int, data_category: DataCategory, seat_object: SeatObject | None = None
+    ) -> bool:
+        """
+        Checks if the organization has access to Seer for the given data category and seat object.
         """
         return True

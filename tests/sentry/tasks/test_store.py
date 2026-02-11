@@ -40,7 +40,7 @@ class BasicPreprocessorPlugin(Plugin2):
 
         return []
 
-    def is_enabled(self, project=None):
+    def is_enabled(self, project=None) -> bool:
         return True
 
 
@@ -70,13 +70,13 @@ def mock_symbolicate_event():
 
 @pytest.fixture
 def mock_event_processing_store():
-    with mock.patch("sentry.eventstore.processing.event_processing_store") as m:
+    with mock.patch("sentry.services.eventstore.processing.event_processing_store") as m:
         yield m
 
 
 @pytest.fixture
 def mock_transaction_processing_store():
-    with mock.patch("sentry.eventstore.processing.transaction_processing_store") as m:
+    with mock.patch("sentry.services.eventstore.processing.transaction_processing_store") as m:
         yield m
 
 
@@ -209,7 +209,7 @@ def test_process_event_unprocessed(
 
 
 @django_db_all
-def test_hash_discarded_raised(default_project, mock_refund, register_plugin):
+def test_hash_discarded_raised(default_project, mock_refund, register_plugin) -> None:
     register_plugin(globals(), BasicPreprocessorPlugin)
 
     data = {
@@ -246,7 +246,7 @@ def test_scrubbing_after_processing(
     mock_save_event,
     register_plugin,
     mock_event_processing_store,
-    setting_method,
+    setting_method: str,
     options_model,
 ):
     class TestPlugin(Plugin2):
@@ -258,7 +258,7 @@ def test_scrubbing_after_processing(
 
             return [more_extra]
 
-        def is_enabled(self, project=None):
+        def is_enabled(self, project=None) -> bool:
             return True
 
     register_plugin(globals(), TestPlugin)
@@ -307,7 +307,9 @@ def test_killswitch() -> None:
 
 
 @django_db_all
-def test_transactions_store(default_project, register_plugin, mock_transaction_processing_store):
+def test_transactions_store(
+    default_project, register_plugin, mock_transaction_processing_store
+) -> None:
     register_plugin(globals(), BasicPreprocessorPlugin)
 
     data = {

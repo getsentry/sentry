@@ -9,14 +9,13 @@ import orjson
 import sentry_sdk
 from slack_sdk.errors import SlackApiError
 
+from sentry import features
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
-from sentry.integrations.models.integration import Integration
 from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.base import NotificationMessageValidationError
 from sentry.integrations.repository.issue_alert import NewIssueAlertNotificationMessage
@@ -29,7 +28,6 @@ from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageB
 from sentry.integrations.slack.metrics import record_lifecycle_termination_level
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
-from sentry.integrations.slack.utils.channel import SlackChannelIdData, get_channel_id
 from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import EventLifecycle
@@ -38,10 +36,11 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
-from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
+from sentry.seer.entrypoints.integrations.slack import handle_prepare_autofix_update
+from sentry.services.eventstore.models import GroupEvent
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
 from sentry.workflow_engine.models.action import Action
@@ -255,12 +254,13 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         client = SlackSdkClient(integration_id=integration.id)
         text = str(blocks.get("text"))
+        message_ts: str | None = None
         # Wrap the Slack API call with lifecycle tracking
         with MessagingInteractionEvent(
             interaction_type=MessagingInteractionType.SEND_ISSUE_ALERT_NOTIFICATION,
             spec=SlackMessagingSpec(),
         ).capture() as lifecycle:
-            SlackNotifyServiceAction._send_slack_message(
+            message_ts = SlackNotifyServiceAction._send_slack_message(
                 client=client,
                 json_blocks=json_blocks,
                 text=text,
@@ -275,6 +275,17 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         # Save notification message if needed
         if save_notification_method:
             save_notification_method(data=notification_message_object)
+
+        organization = self.project.organization
+        cache_thread_ts = thread_ts or message_ts
+        if features.has("organizations:seer-slack-workflows", organization) and cache_thread_ts:
+            handle_prepare_autofix_update(
+                thread_ts=cache_thread_ts,
+                channel_id=channel,
+                group=event.group,
+                organization_id=organization.id,
+                integration_id=integration.id,
+            )
 
     def _send_issue_alert_notification(
         self,
@@ -438,6 +449,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     def after(
         self, event: GroupEvent, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture]:
+        from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
 
@@ -513,9 +526,4 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         return [s.strip() for s in self.get_option("tags", "").split(",")]
 
     def get_form_instance(self) -> SlackNotifyServiceForm:
-        return SlackNotifyServiceForm(
-            self.data, integrations=self.get_integrations(), channel_transformer=self.get_channel_id
-        )
-
-    def get_channel_id(self, integration: Integration, name: str) -> SlackChannelIdData:
-        return get_channel_id(integration, name)
+        return SlackNotifyServiceForm(self.data, integrations=self.get_integrations())

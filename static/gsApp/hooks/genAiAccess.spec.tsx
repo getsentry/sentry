@@ -28,14 +28,14 @@ const contextWrapper = (organization: Organization) => {
   };
 };
 
-describe('useGenAiConsentButtonAccess', function () {
+describe('useGenAiConsentButtonAccess', () => {
   beforeEach(() => {
     mockUseUser.mockReset();
     mockGetRegionData.mockReset();
   });
 
-  describe('Flag-based access', function () {
-    it('enables access for US region when flag is present', function () {
+  describe('Flag-based access', () => {
+    it('enables access for US region when flag is present', () => {
       const organization = OrganizationFixture({
         access: ['org:billing'],
         features: ['gen-ai-consent'],
@@ -65,8 +65,8 @@ describe('useGenAiConsentButtonAccess', function () {
     });
   });
 
-  describe('Billing Access', function () {
-    it('disables access for users without billing access', function () {
+  describe('Billing Access', () => {
+    it('disables access for users without billing access', () => {
       const organization = OrganizationFixture({
         access: [],
         features: ['gen-ai-consent'],
@@ -97,7 +97,7 @@ describe('useGenAiConsentButtonAccess', function () {
       );
     });
 
-    it('enables access for superusers regardless of billing access', function () {
+    it('enables access for superusers regardless of billing access', () => {
       const organization = OrganizationFixture({
         access: [],
         features: ['gen-ai-consent'],
@@ -128,7 +128,7 @@ describe('useGenAiConsentButtonAccess', function () {
       );
     });
 
-    it('enables access for users with billing access', function () {
+    it('enables access for users with billing access', () => {
       const organization = OrganizationFixture({
         access: ['org:billing'],
         features: ['gen-ai-consent'],
@@ -160,8 +160,8 @@ describe('useGenAiConsentButtonAccess', function () {
     });
   });
 
-  describe('Combined Conditions', function () {
-    it('shows region restriction when feature flag is off', function () {
+  describe('Combined Conditions', () => {
+    it('shows region restriction when feature flag is off', () => {
       const organization = OrganizationFixture({
         access: ['org:billing'],
         features: [],
@@ -192,7 +192,7 @@ describe('useGenAiConsentButtonAccess', function () {
       );
     });
 
-    it('allows access for invoiced customers with undefined msaUpdatedForDataConsent', function () {
+    it('allows access for invoiced customers with undefined msaUpdatedForDataConsent', () => {
       const organization = OrganizationFixture({
         access: ['org:billing'],
         features: ['gen-ai-consent'],

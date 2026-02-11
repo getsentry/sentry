@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
+from sentry.preprod.models import PreprodArtifact
 from sentry.testutils.cases import TestCase
 
 
@@ -15,20 +15,21 @@ class ProjectInstallablePreprodArtifactDownloadEndpointTest(TestCase):
             type="application/octet-stream",
         )
 
-        self.preprod_artifact = PreprodArtifact.objects.create(
+        self.preprod_artifact = self.create_preprod_artifact(
             project=self.project,
             file_id=self.file.id,
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
             installable_app_file_id=self.file.id,
+            app_id="com.example.TestApp",
+        )
+        self.mobile_app_info = self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=self.preprod_artifact,
             build_version="1.2.3",
-            extras={
-                "bundle_identifier": "com.example.TestApp",
-                "app_name": "TestApp",
-            },
+            app_name="TestApp",
         )
 
-        self.installable = InstallablePreprodArtifact.objects.create(
+        self.installable = self.create_installable_preprod_artifact(
             preprod_artifact=self.preprod_artifact,
             url_path="test-url-path-123",
             expiration_date=timezone.now() + timedelta(hours=24),
@@ -42,13 +43,13 @@ class ProjectInstallablePreprodArtifactDownloadEndpointTest(TestCase):
         return f"/api/0/projects/{org}/{proj}/files/installablepreprodartifact/{path}/"
 
     def test_download_ipa_success(self) -> None:
-        url = self._get_url()
+        url = self._get_url() + "?response_format=ipa"
         response = self.client.get(url)
 
         assert response.status_code == 200
         assert response["Content-Type"] == "application/octet-stream"
         assert "attachment" in response["Content-Disposition"]
-        assert 'filename="installable.ipa"' in response["Content-Disposition"]
+        assert 'filename="com.example.TestApp@1.2.3.ipa"' in response["Content-Disposition"]
         assert response["Content-Length"] == str(self.file.size)
 
         # Verify download count was incremented

@@ -13,8 +13,8 @@ import {
 } from '@dnd-kit/sortable';
 
 import {
-  type Column,
   useDragNDropColumns,
+  type Column,
 } from 'sentry/views/explore/hooks/useDragNDropColumns';
 
 interface DragNDropContextProps<T> {

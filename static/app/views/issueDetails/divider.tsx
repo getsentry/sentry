@@ -8,7 +8,8 @@ export function Divider() {
  * Using relative font size to match the font size of the parent element
  */
 const DividerWrapper = styled('div')`
-  color: ${p => p.theme.translucentBorder};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  color: ${p => p.theme.tokens.border.transparent.neutral.muted};
   font-size: 0.75em;
   display: flex;
   align-items: center;

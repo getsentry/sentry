@@ -1,18 +1,17 @@
-import {useMemo, useState} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useMemo} from 'react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
-import AutofixInsightSources from 'sentry/components/events/autofix/autofixInsightSources';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
+import AutofixInsightSources from 'sentry/components/events/autofix/insights/autofixInsightSources';
 import type {TimelineItemProps} from 'sentry/components/timeline';
 import {Timeline} from 'sentry/components/timeline';
 import {IconBroadcast, IconChevron, IconCode, IconUser} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import type {AutofixTimelineEvent} from './types';
 
@@ -39,17 +38,10 @@ function getEventColor(
   theme: Theme,
   isActive?: boolean
 ): TimelineItemProps['colorConfig'] {
-  if (isChonkTheme(theme)) {
-    return {
-      title: theme.colors.content.primary,
-      icon: isActive ? theme.colors.pink400 : theme.colors.content.muted,
-      iconBorder: isActive ? theme.colors.pink400 : theme.colors.content.muted,
-    };
-  }
   return {
-    title: theme.gray400,
-    icon: isActive ? theme.pink400 : theme.gray400,
-    iconBorder: isActive ? theme.pink400 : theme.gray400,
+    title: theme.tokens.content.primary,
+    icon: isActive ? theme.colors.pink400 : theme.tokens.content.secondary,
+    iconBorder: isActive ? theme.colors.pink400 : theme.tokens.content.secondary,
   };
 }
 
@@ -57,7 +49,9 @@ interface AutofixTimelineItemProps {
   event: AutofixTimelineEvent;
   groupId: string;
   index: number;
+  isExpanded: boolean;
   isMostImportantEvent: boolean;
+  onToggleExpand: (index: number) => void;
   retainInsightCardIndex: number | null | undefined;
   runId: string;
   stepIndex: number;
@@ -70,17 +64,18 @@ export function AutofixTimelineItem({
   getCustomIcon,
   groupId,
   index,
+  isExpanded,
   isMostImportantEvent,
+  onToggleExpand,
   retainInsightCardIndex,
   runId,
   stepIndex,
   codeUrl,
 }: AutofixTimelineItemProps) {
   const theme = useTheme();
-  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleToggle = () => {
-    setIsExpanded(current => !current);
+    onToggleExpand(index);
   };
 
   const titleHtml = useMemo(() => {
@@ -150,7 +145,7 @@ const AnimatedContent = styled(motion.div)`
 
 const StyledSpan = styled(MarkedText)`
   & code {
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     background-color: transparent;
     display: inline-block;
   }
@@ -165,11 +160,15 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: ${space(0.25)};
-  border-radius: ${p => p.theme.borderRadius};
+  padding: ${p => p.theme.space[0]} ${p => p.theme.space.xs};
+  border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
-  font-weight: ${p => (p.isActive ? p.theme.fontWeight.bold : p.theme.fontWeight.normal)};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   gap: ${space(1)};
+  text-decoration: ${p => (p.isActive ? 'underline dashed' : 'none')};
+  text-decoration-color: ${p => p.theme.colors.pink400};
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 
   & > span:first-of-type {
     flex: 1;
@@ -178,12 +177,18 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
   }
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   flex-shrink: 0;
   margin-right: ${space(0.25)};
 `;

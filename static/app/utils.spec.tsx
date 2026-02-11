@@ -1,9 +1,11 @@
 import {
+  convertMultilineFieldValue,
   descopeFeatureName,
   escapeDoubleQuotes,
   escapeIssueTagKey,
   explodeSlug,
   extractMultilineFields,
+  generateQueryWithTag,
 } from 'sentry/utils';
 
 describe('utils.escapeIssueTagKey', () => {
@@ -16,18 +18,18 @@ describe('utils.escapeIssueTagKey', () => {
     expect(escapeIssueTagKey('environment')).toBe('environment');
     expect(escapeIssueTagKey('project')).toBe('project');
   });
+
+  it('escapes empty keys for missing tag labels', () => {
+    expect(escapeIssueTagKey('')).toBe('""');
+  });
 });
 
-describe('utils.extractMultilineFields', function () {
-  it('should work for basic, simple values', function () {
+describe('utils.extractMultilineFields', () => {
+  it('should split string by newlines', () => {
     expect(extractMultilineFields('one\ntwo\nthree')).toEqual(['one', 'two', 'three']);
   });
 
-  it('should return an empty array if only whitespace', function () {
-    expect(extractMultilineFields('    \n    \n\n\n   \n')).toEqual([]);
-  });
-
-  it('should trim values and ignore empty lines', function () {
+  it('should trim values and ignore empty lines', () => {
     expect(
       extractMultilineFields(
         `one
@@ -40,15 +42,45 @@ five`
       )
     ).toEqual(['one', 'two', 'three', 'four', 'five']);
   });
+
+  it('should return string array as-is', () => {
+    expect(extractMultilineFields(['one', 'two', 'three'])).toEqual([
+      'one',
+      'two',
+      'three',
+    ]);
+  });
+
+  it('should return empty array for invalid input', () => {
+    expect(extractMultilineFields(null)).toEqual([]);
+    expect(extractMultilineFields(undefined)).toEqual([]);
+    expect(extractMultilineFields(['one', 2, 'three'])).toEqual([]);
+  });
 });
 
-describe('utils.explodeSlug', function () {
-  it('replaces slug special chars with whitespace', function () {
+describe('utils.convertMultilineFieldValue', () => {
+  it('should return string as-is', () => {
+    expect(convertMultilineFieldValue('one\ntwo\nthree')).toBe('one\ntwo\nthree');
+  });
+
+  it('should join string array with newlines', () => {
+    expect(convertMultilineFieldValue(['one', 'two', 'three'])).toBe('one\ntwo\nthree');
+  });
+
+  it('should return empty string for invalid input', () => {
+    expect(convertMultilineFieldValue(null)).toBe('');
+    expect(convertMultilineFieldValue(undefined)).toBe('');
+    expect(convertMultilineFieldValue(['one', 2, 'three'])).toBe('');
+  });
+});
+
+describe('utils.explodeSlug', () => {
+  it('replaces slug special chars with whitespace', () => {
     expect(explodeSlug('test--slug__replace-')).toBe('test slug replace');
   });
 });
 
-describe('utils.descopeFeatureName', function () {
+describe('utils.descopeFeatureName', () => {
   it('descopes the feature name', () => {
     [
       ['organizations:feature', 'feature'],
@@ -59,10 +91,10 @@ describe('utils.descopeFeatureName', function () {
   });
 });
 
-describe('utils.escapeDoubleQuotes', function () {
+describe('utils.escapeDoubleQuotes', () => {
   // test cases from https://gist.github.com/getify/3667624
 
-  it('should escape any unescaped double quotes', function () {
+  it('should escape any unescaped double quotes', () => {
     const cases = [
       ['a"b', 'a\\"b'], //
       ['a\\"b', 'a\\"b'], //
@@ -88,5 +120,16 @@ describe('utils.escapeDoubleQuotes', function () {
     // don't unnecessarily escape
     const actual = escapeDoubleQuotes(escapeDoubleQuotes(escapeDoubleQuotes('a"b')));
     expect(actual).toBe('a\\"b');
+  });
+});
+
+describe('utils.generateQueryWithTag', () => {
+  it('produces !has query when tag value missing', () => {
+    expect(
+      generateQueryWithTag({referrer: 'tag-details-drawer'}, {key: 'device', value: ''})
+    ).toEqual({
+      referrer: 'tag-details-drawer',
+      query: '!has:device',
+    });
   });
 });

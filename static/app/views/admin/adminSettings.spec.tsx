@@ -4,8 +4,8 @@ import AdminSettings from 'sentry/views/admin/adminSettings';
 
 // TODO(dcramer): this doesnt really test anything as we need to
 // mock the API Response/wait on it
-describe('AdminSettings', function () {
-  describe('render()', function () {
+describe('AdminSettings', () => {
+  describe('render()', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: '/internal/options/',
@@ -53,17 +53,6 @@ describe('AdminSettings', function () {
               isSet: true,
             },
             value: 'foo@example.com',
-          },
-          'system.rate-limit': {
-            field: {
-              disabledReason: 'diskPriority',
-              default: 0,
-              required: true,
-              disabled: true,
-              allowEmpty: false,
-              isSet: true,
-            },
-            value: 25,
           },
           'auth.allow-registration': {
             field: {
@@ -113,7 +102,7 @@ describe('AdminSettings', function () {
       });
     });
 
-    it('renders', function () {
+    it('renders', () => {
       render(<AdminSettings />);
     });
   });

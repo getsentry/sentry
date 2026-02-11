@@ -1,9 +1,11 @@
 import {useCallback, useId} from 'react';
 import styled from '@emotion/styled';
 
+import {InputGroup} from '@sentry/scraps/input';
+import type {InputProps} from '@sentry/scraps/input';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import type {InputProps} from 'sentry/components/core/input/inputGroup';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {selectText} from 'sentry/utils/selectText';
 
@@ -73,8 +75,9 @@ function TextCopyInput({
       />
       <InputGroup.TrailingItems>
         <StyledCopyButton
-          borderless
-          iconSize={size === 'xs' ? 'xs' : 'sm'}
+          aria-label={t('Copy to clipboard')}
+          priority="transparent"
+          size={size === 'xs' ? 'xs' : 'sm'}
           onCopy={onCopy}
           text={children}
         />

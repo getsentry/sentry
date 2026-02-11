@@ -10,6 +10,7 @@ from snuba_sdk import (
     Condition,
     CurriedFunction,
     Direction,
+    Entity,
     Function,
     Identifier,
     Lambda,
@@ -98,6 +99,17 @@ from sentry.search.utils import DEVICE_CLASS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.numbers import format_grouped_length
+
+
+class InvalidIssueSearchQuery(InvalidSearchQuery):
+    """Raised when an issue filter references non-existent issue IDs."""
+
+    def __init__(self, invalid_ids: list[str]):
+        self.invalid_ids = invalid_ids
+        super().__init__(f"Issue IDs do not exist: {invalid_ids}")
+
+    def __str__(self) -> str:
+        return f"Issue IDs do not exist: {self.invalid_ids}"
 
 
 class DiscoverDatasetConfig(DatasetConfig):
@@ -1043,7 +1055,23 @@ class DiscoverDatasetConfig(DatasetConfig):
                     required_args=[],
                     snql_aggregate=lambda args, alias: Function(
                         "toInt64",
-                        [Function("sum", [Function("ifNull", [Column("sample_weight"), 1])])],
+                        [
+                            Function(
+                                "sum",
+                                [
+                                    Function(
+                                        "ifNull",
+                                        [
+                                            Column(
+                                                "sample_weight",
+                                                entity=Entity("events", alias="events"),
+                                            ),
+                                            1,
+                                        ],
+                                    )
+                                ],
+                            )
+                        ],
                         alias,
                     ),
                     default_result_type="integer",
@@ -1842,6 +1870,8 @@ class DiscoverDatasetConfig(DatasetConfig):
                     self.builder.params.organization.id,
                     group_short_ids,
                 )
+            except Group.DoesNotExist:
+                raise InvalidIssueSearchQuery(group_short_ids)
             except Exception:
                 raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
             else:

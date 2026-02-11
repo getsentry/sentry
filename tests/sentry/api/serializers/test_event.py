@@ -13,7 +13,7 @@ from sentry.models.release import Release
 from sentry.sdk_updates import SdkIndexState
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.performance_issues.event_generators import get_event
+from sentry.testutils.issue_detection.event_generators import get_event
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -382,7 +382,7 @@ class IssueEventSerializerTest(TestCase):
         "sentry.sdk_updates.SdkIndexState",
         return_value=SdkIndexState(sdk_versions={"example.sdk": "2.0.0"}),
     )
-    def test_update_on_major(self, mock_index_state):
+    def test_update_on_major(self, mock_index_state: mock.MagicMock) -> None:
         min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
@@ -411,7 +411,7 @@ class IssueEventSerializerTest(TestCase):
         "sentry.sdk_updates.SdkIndexState",
         return_value=SdkIndexState(sdk_versions={"example.sdk": "1.1.0"}),
     )
-    def test_update_on_minor(self, mock_index_state):
+    def test_update_on_minor(self, mock_index_state: mock.MagicMock) -> None:
         min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
@@ -440,7 +440,7 @@ class IssueEventSerializerTest(TestCase):
         "sentry.sdk_updates.SdkIndexState",
         return_value=SdkIndexState(sdk_versions={"example.sdk": "1.0.1"}),
     )
-    def test_ignores_patch(self, mock_index_state):
+    def test_ignores_patch(self, mock_index_state: mock.MagicMock) -> None:
         min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
@@ -553,7 +553,7 @@ class SqlFormatEventSerializerTest(TestCase):
         assert result["release"]["lastCommit"]["id"] == "917ac271787e74ff2dbe52b67e77afcff9aaa305"
 
     def test_event_db_span_formatting(self) -> None:
-        event_data = get_event("n-plus-one-in-django-new-view")
+        event_data = get_event("n-plus-one-db/n-plus-one-in-django-new-view")
         event_data["contexts"] = {
             "trace": {
                 "trace_id": "530c14e044aa464db6ddb43660e6474f",

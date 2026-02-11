@@ -1,12 +1,12 @@
 import {Fragment, useEffect, useState} from 'react';
-import {css, type Theme, useTheme} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
 import {DISCOVER2_DOCS_URL} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,13 +15,13 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {
-  type Column,
   ERROR_FIELDS,
   ERROR_UPSAMPLING_AGGREGATION_FUNCTIONS,
   ERRORS_AGGREGATION_FUNCTIONS,
   getAggregations,
   TRANSACTION_FIELDS,
   TRANSACTIONS_AGGREGATION_FUNCTIONS,
+  type Column,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey, FieldKey} from 'sentry/utils/fields';
@@ -176,14 +176,14 @@ function ColumnEditModal(props: Props) {
         />
       </Body>
       <Footer>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <LinkButton priority="default" href={DISCOVER2_DOCS_URL} external>
             {t('Read the Docs')}
           </LinkButton>
           <Button aria-label={t('Apply')} priority="primary" onClick={handleApply}>
             {t('Apply')}
           </Button>
-        </ButtonBar>
+        </Grid>
       </Footer>
     </Fragment>
   );

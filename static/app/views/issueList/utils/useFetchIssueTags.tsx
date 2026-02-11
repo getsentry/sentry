@@ -1,21 +1,18 @@
 import {useMemo} from 'react';
 
 import {useFetchOrganizationTags} from 'sentry/actionCreators/tags';
-import {
-  ItemType,
-  type SearchGroup,
-} from 'sentry/components/deprecatedSmartSearchBar/types';
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
+import {ItemType, type SearchGroup} from 'sentry/components/searchBar/types';
 import {
   FixabilityScoreThresholds,
   getIssueTitleFromType,
   ISSUE_CATEGORY_TO_DESCRIPTION,
   IssueCategory,
   PriorityLevel,
+  VALID_ISSUE_CATEGORIES,
+  VISIBLE_ISSUE_TYPES,
   type Tag,
   type TagCollection,
-  VALID_ISSUE_CATEGORIES_V2,
-  VISIBLE_ISSUE_TYPES,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {escapeIssueTagKey} from 'sentry/utils';
@@ -31,7 +28,6 @@ import {
 } from 'sentry/utils/fields';
 import useAssignedSearchValues from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
 import useMemberUsernames from 'sentry/utils/membersAndTeams/useMemberUsernames';
-import useOrganization from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import useFetchOrganizationFeatureFlags from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
@@ -59,9 +55,28 @@ const PREDEFINED_FIELDS = {
 };
 
 // "environment" is excluded because it should be handled by the environment page filter
-const EXCLUDED_TAGS = ['environment'];
+const EXCLUDED_TAGS = [
+  'environment',
+  'ai_categorization.label.0',
+  'ai_categorization.label.1',
+  'ai_categorization.label.2',
+  'ai_categorization.label.3',
+  'ai_categorization.label.4',
+  'ai_categorization.label.5',
+  'ai_categorization.label.6',
+  'ai_categorization.label.7',
+  'ai_categorization.label.8',
+  'ai_categorization.label.9',
+  'ai_categorization.label.10',
+  'ai_categorization.label.11',
+  'ai_categorization.label.12',
+  'ai_categorization.label.13',
+  'ai_categorization.label.14',
+  'ai_categorization.label.15',
+  'ai_categorization.labels',
+];
 
-const SEARCHABLE_ISSUE_CATEGORIES = VALID_ISSUE_CATEGORIES_V2.filter(
+const SEARCHABLE_ISSUE_CATEGORIES = VALID_ISSUE_CATEGORIES.filter(
   category => category !== IssueCategory.FEEDBACK
 );
 
@@ -101,8 +116,6 @@ export const useFetchIssueTags = ({
   includeFeatureFlags = false,
   ...statsPeriodParams
 }: UseFetchIssueTagsParams) => {
-  const organization = useOrganization();
-
   const eventsTagsQuery = useFetchOrganizationTags(
     {
       orgSlug: org.slug,
@@ -192,7 +205,6 @@ export const useFetchIssueTags = ({
       currentTags: renamedTags,
       assigneeFieldValues: assignedValues,
       bookmarksValues: usernames,
-      organization,
     });
 
     return {
@@ -205,7 +217,6 @@ export const useFetchIssueTags = ({
     featureFlagTagsQuery.data,
     usernames,
     assignedValues,
-    organization,
   ]);
 
   return {
@@ -222,7 +233,6 @@ export const useFetchIssueTags = ({
 };
 
 function builtInIssuesFields({
-  organization,
   currentTags,
   assigneeFieldValues = [],
   bookmarksValues = [],
@@ -230,7 +240,6 @@ function builtInIssuesFields({
   assigneeFieldValues: SearchGroup[] | string[];
   bookmarksValues: string[];
   currentTags: TagCollection;
-  organization: Organization;
 }): TagCollection {
   const semverFields: TagCollection = Object.values(SEMVER_TAGS).reduce<TagCollection>(
     (acc, tag) => {
@@ -297,23 +306,15 @@ function builtInIssuesFields({
     [FieldKey.ISSUE_CATEGORY]: {
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_CATEGORY]!,
       name: 'Issue Category',
-      values: organization.features.includes('issue-taxonomy')
-        ? SEARCHABLE_ISSUE_CATEGORIES.map(value => ({
-            icon: null,
-            title: value,
-            name: value,
-            documentation: ISSUE_CATEGORY_TO_DESCRIPTION[value],
-            value,
-            type: ItemType.TAG_VALUE,
-            children: [],
-          }))
-        : [
-            IssueCategory.ERROR,
-            IssueCategory.PERFORMANCE,
-            IssueCategory.REPLAY,
-            IssueCategory.CRON,
-            IssueCategory.UPTIME,
-          ],
+      values: SEARCHABLE_ISSUE_CATEGORIES.map(value => ({
+        icon: null,
+        title: value,
+        name: value,
+        documentation: ISSUE_CATEGORY_TO_DESCRIPTION[value],
+        value,
+        type: ItemType.TAG_VALUE,
+        children: [],
+      })),
       predefined: true,
     },
     [FieldKey.ISSUE_TYPE]: {

@@ -33,20 +33,22 @@ export function locationDescriptorToTo(path: LocationDescriptor): To {
   if (to.pathname?.includes('?')) {
     const parts = to.pathname.split('?');
 
-    Sentry.captureMessage('Got pathname with `?`', scope =>
-      scope.setExtra('LocationDescriptor', path)
-    );
+    Sentry.logger.info('Got pathname with `?`', {LocationDescriptor: path});
 
     if (parts.length > 2) {
-      Sentry.captureMessage(
-        'Unexpected number of `?` when shimming search params in pathname for react-router 6'
+      Sentry.logger.info(
+        'Unexpected number of `?` when shimming search params in pathname for react-router 6',
+        {LocationDescriptor: path}
       );
     }
 
     const [pathname, search] = parts;
 
     if (search && path.search) {
-      Sentry.captureMessage('Got search in pathname and as part of LocationDescriptor');
+      Sentry.logger.info('Got search in pathname and as part of LocationDescriptor', {
+        LocationDescriptor: path,
+        search,
+      });
     }
 
     to.pathname = pathname;

@@ -8,10 +8,10 @@ import type {Tag, TagValue} from 'sentry/types/group';
 import {IsFieldValues} from 'sentry/utils/fields';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 
-describe('IssueListSearchBar', function () {
+describe('IssueListSearchBar', () => {
   const {organization} = initializeOrg();
 
-  beforeEach(function () {
+  beforeEach(() => {
     TagStore.reset();
     TagStore.loadTagsSuccess(TagsFixture());
 
@@ -27,11 +27,11 @@ describe('IssueListSearchBar', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  describe('Tags and Fields', function () {
+  describe('Tags and Fields', () => {
     const defaultProps = {
       organization,
       query: '',
@@ -39,7 +39,7 @@ describe('IssueListSearchBar', function () {
       onSearch: jest.fn(),
     };
 
-    it('displays the correct options for the is tag', async function () {
+    it('displays the correct options for the is tag', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/',
         body: [],
@@ -58,7 +58,7 @@ describe('IssueListSearchBar', function () {
       });
     });
 
-    it('displays the correct options under Event Tags', async function () {
+    it('displays the correct options under Event Tags', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/',
         body: [{key: 'someTag', name: 'Some Tag'}],
@@ -72,7 +72,7 @@ describe('IssueListSearchBar', function () {
       expect(await screen.findByRole('option', {name: 'someTag'})).toBeInTheDocument();
     });
 
-    it('displays tags in the has filter', async function () {
+    it('displays tags in the has filter', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/',
         body: [{key: 'someTag', name: 'Some Tag'}],
@@ -89,7 +89,7 @@ describe('IssueListSearchBar', function () {
       expect(await screen.findByRole('option', {name: 'someTag'})).toBeInTheDocument();
     });
 
-    it('displays conflicting tags', async function () {
+    it('displays conflicting tags', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/',
         body: [{key: 'message', name: 'message'}],
@@ -107,7 +107,7 @@ describe('IssueListSearchBar', function () {
     });
   });
 
-  describe('Tag Values', function () {
+  describe('Tag Values', () => {
     const newDefaultProps = {
       organization,
       query: '',

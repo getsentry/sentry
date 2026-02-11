@@ -2,8 +2,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 
-describe('Linkify()', function () {
-  it('does not alter text that does not contain urls', function () {
+describe('Linkify()', () => {
+  it('does not alter text that does not contain urls', () => {
     const text = 'This is not a link';
     const {container} = render(renderLinksInText({exceptionText: text}));
 
@@ -13,7 +13,7 @@ describe('Linkify()', function () {
     expect(container.firstChild).toHaveTextContent(text);
   });
 
-  it('applies links to text containing a single url and text', function () {
+  it('applies links to text containing a single url and text', () => {
     // fix
     const url = 'https://www.example.com';
     const text = `Go to ${url} to search.`;
@@ -28,7 +28,7 @@ describe('Linkify()', function () {
     expect(linkElement).toBeInTheDocument();
   });
 
-  it('applies link to text containing a single url', function () {
+  it('applies link to text containing a single url', () => {
     const url = 'https://www.example.com';
 
     render(renderLinksInText({exceptionText: url}));
@@ -37,7 +37,7 @@ describe('Linkify()', function () {
     expect(linkElement).toBeInTheDocument();
   });
 
-  it('applies links to text containing multiple urls', function () {
+  it('applies links to text containing multiple urls', () => {
     const url_1 = 'https://www.example.com';
     const url_2 = 'https://docs.sentry.io';
     const text = `Go to ${url_1} to search and ${url_2} for docs.`;
@@ -52,7 +52,7 @@ describe('Linkify()', function () {
     expect(container.firstChild).toHaveTextContent('Go to');
   });
 
-  it('applies links to text containing complex urls with query parameters and hashes', function () {
+  it('applies links to text containing complex urls with query parameters and hashes', () => {
     const url = 'https://www.example.com/search?query=linkify&sort=recent#section2';
     const text = `Go to ${url}`;
     const {container} = render(renderLinksInText({exceptionText: text}));
@@ -63,7 +63,7 @@ describe('Linkify()', function () {
     expect(container.firstChild).toHaveTextContent('Go to');
   });
 
-  it('handles text containing uls of non-supported schemes', function () {
+  it('handles text containing uls of non-supported schemes', () => {
     const url = 'ftp://myname:hello@lenny/lucky.png';
     const text = `Go to ${url}`;
     const {container} = render(renderLinksInText({exceptionText: text}));
@@ -75,7 +75,7 @@ describe('Linkify()', function () {
     expect(container.firstChild).toHaveTextContent(text);
   });
 
-  it('applies links to text containing urls at the start or end', function () {
+  it('applies links to text containing urls at the start or end', () => {
     const url_1 = 'https://www.example.com';
     const url_2 = 'https://docs.sentry.io';
     const text = `${url_1} and ${url_2}`;
@@ -88,7 +88,7 @@ describe('Linkify()', function () {
     expect(linkElement_2).toBeInTheDocument();
   });
 
-  it('applies links to long text containing urls', function () {
+  it('applies links to long text containing urls', () => {
     const url = 'https://www.example.com';
     const longString = 'a b c d e f g h i j k l m n o p'.repeat(1000);
     const text = `Go to ${url} ${longString}`;
@@ -100,9 +100,9 @@ describe('Linkify()', function () {
     expect(container.firstChild).toHaveTextContent('Go to');
   });
 
-  it('handles html/special characters in text input', function () {
+  it('handles html/special characters in text input', () => {
     const url = 'https://www.example.com';
-    const textWithHtml = `Check out this link: <a href="${url}">${url}</a> & don\'t forget to visit us!`;
+    const textWithHtml = `Check out this link: <a href="${url}">${url}</a> & don't forget to visit us!`;
     const {container} = render(renderLinksInText({exceptionText: textWithHtml}));
 
     const linkElements = screen.getAllByText(url);
@@ -111,7 +111,7 @@ describe('Linkify()', function () {
     expect(container).toHaveTextContent(textWithHtml);
   });
 
-  it('applies links to text containing urls of mixed casing', function () {
+  it('applies links to text containing urls of mixed casing', () => {
     const url = 'https://ExAmPlE.com';
     const text = `Go to ${url}`;
     const {container} = render(renderLinksInText({exceptionText: text}));
@@ -123,7 +123,7 @@ describe('Linkify()', function () {
     expect(container.firstChild).toHaveTextContent('Go to');
   });
 
-  it('applies links to text containing a single url and text and ignores a period', function () {
+  it('applies links to text containing a single url and text and ignores a period', () => {
     // fix
     const url = 'https://www.example.com';
     const text = `Go to ${url}.`;
@@ -138,7 +138,7 @@ describe('Linkify()', function () {
     expect(linkElement).toBeInTheDocument();
   });
 
-  it('applies links to text containing a single url that has a period inside', function () {
+  it('applies links to text containing a single url that has a period inside', () => {
     // fix
     const url = 'https://www.example.com/page.html';
     const text = `Go to ${url}`;

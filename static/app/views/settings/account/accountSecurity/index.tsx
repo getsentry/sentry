@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openEmailVerification} from 'sentry/actionCreators/modal';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Panel from 'sentry/components/panels/panel';
@@ -18,42 +18,30 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {Authenticator} from 'sentry/types/auth';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {OrganizationSummary} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
+import {useAccountSecurityContext} from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';
 import PasswordForm from 'sentry/views/settings/account/passwordForm';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = {
-  authenticators: Authenticator[] | null;
-  countEnrolled: number;
-  deleteDisabled: boolean;
-  handleRefresh: () => void;
-  hasVerifiedEmail: boolean;
-  onDisable: (auth: Authenticator) => void;
-  orgsRequire2fa: OrganizationSummary[];
-} & RouteComponentProps;
-
 /**
  * Lists 2fa devices + password change form
  */
-function AccountSecurity({
-  authenticators,
-  countEnrolled,
-  deleteDisabled,
-  onDisable,
-  hasVerifiedEmail,
-  orgsRequire2fa,
-  handleRefresh,
-  location,
-}: Props) {
+export default function AccountSecurity() {
+  const {
+    authenticators,
+    countEnrolled,
+    deleteDisabled,
+    onDisable,
+    hasVerifiedEmail,
+    orgsRequire2fa,
+    handleRefresh,
+  } = useAccountSecurityContext();
+
   const api = useApi();
 
   async function handleSessionClose() {
@@ -177,12 +165,12 @@ function AccountSecurity({
                     <AuthenticatorTitle>
                       {name}
                       {isBackupInterface && !isEnrolled && (
-                        <Tag type="info">{t('requires 2FA')}</Tag>
+                        <Tag variant="info">{t('requires 2FA')}</Tag>
                       )}
                     </AuthenticatorTitle>
                     <AuthenticatorDescription>{description}</AuthenticatorDescription>
                   </AuthenticatorDetails>
-                  <ButtonBar>
+                  <Grid flow="column" align="center" gap="md">
                     {!isBackupInterface && !isEnrolled && hasVerifiedEmail && (
                       <LinkButton
                         to={`/settings/account/security/mfa/${id}/enroll/`}
@@ -227,7 +215,7 @@ function AccountSecurity({
                         />
                       </RemoveConfirm>
                     )}
-                  </ButtonBar>
+                  </Grid>
                 </AuthenticatorPanelItem>
               );
             })}
@@ -238,13 +226,13 @@ function AccountSecurity({
 }
 
 const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const AuthenticatorList = styled(PanelBody)`
   display: grid;
   grid-template-columns: 1fr max-content;
-  gap: 0 ${space(1)};
+  gap: 0 ${p => p.theme.space.md};
 `;
 
 const AuthenticatorPanelItem = styled(PanelItem)`
@@ -260,20 +248,18 @@ const AuthenticatorPanelItem = styled(PanelItem)`
 const AuthenticatorDetails = styled('div')`
   display: grid;
   grid-template-columns: max-content minmax(auto, 600px);
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   align-items: center;
 `;
 
 const AuthenticatorTitle = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.75)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  gap: ${p => p.theme.space.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const AuthenticatorDescription = styled(TextBlock)`
   grid-column: 2;
   margin: 0;
 `;
-
-export default AccountSecurity;

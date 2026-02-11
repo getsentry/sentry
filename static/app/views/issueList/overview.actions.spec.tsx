@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import {GroupFixture} from 'sentry-fixture/group';
 import {GroupStatsFixture} from 'sentry-fixture/groupStats';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {
   render,
@@ -25,11 +24,11 @@ const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
 
-describe('IssueListOverview (actions)', function () {
+describe('IssueListOverview (actions)', () => {
   const groupStats = GroupStatsFixture();
   const organization = OrganizationFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     GroupStore.reset();
     SelectedGroupStore.reset();
@@ -84,9 +83,7 @@ describe('IssueListOverview (actions)', function () {
     TagStore.init?.();
   });
 
-  const defaultProps = RouteComponentPropsFixture();
-
-  describe('status', function () {
+  describe('status', () => {
     const group1 = GroupFixture({
       id: '1',
       metadata: {
@@ -117,13 +114,13 @@ describe('IssueListOverview (actions)', function () {
       });
     });
 
-    it('removes issues after resolving', async function () {
+    it('removes issues after resolving', async () => {
       const updateIssueMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'PUT',
       });
 
-      render(<IssueListOverview {...defaultProps} />, {organization});
+      render(<IssueListOverview />, {organization});
 
       const groups = await screen.findAllByTestId('group');
 
@@ -155,13 +152,13 @@ describe('IssueListOverview (actions)', function () {
       expect(screen.getByText('Group 2')).toBeInTheDocument();
     });
 
-    it('refreshes after resolving all issues on page', async function () {
+    it('refreshes after resolving all issues on page', async () => {
       const updateIssueMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'PUT',
       });
 
-      render(<IssueListOverview {...defaultProps} />, {
+      render(<IssueListOverview />, {
         organization,
 
         initialRouterConfig: {
@@ -215,7 +212,7 @@ describe('IssueListOverview (actions)', function () {
       expect(screen.queryByText('Group 2')).not.toBeInTheDocument();
     });
 
-    it('can undo resolve action', async function () {
+    it('can undo resolve action', async () => {
       const updateIssueMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'PUT',
@@ -223,7 +220,7 @@ describe('IssueListOverview (actions)', function () {
 
       render(
         <Fragment>
-          <IssueListOverview {...defaultProps} />
+          <IssueListOverview />
           <Indicators />
         </Fragment>,
         {organization}
@@ -279,7 +276,7 @@ describe('IssueListOverview (actions)', function () {
     });
   });
 
-  describe('mark reviewed', function () {
+  describe('mark reviewed', () => {
     const group1 = GroupFixture({
       id: '1',
       metadata: {
@@ -305,13 +302,13 @@ describe('IssueListOverview (actions)', function () {
       });
     });
 
-    it('removes issues after making reviewed (when on for review tab)', async function () {
+    it('removes issues after making reviewed (when on for review tab)', async () => {
       const updateIssueMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'PUT',
       });
 
-      render(<IssueListOverview {...defaultProps} />, {
+      render(<IssueListOverview />, {
         organization,
 
         initialRouterConfig: {
@@ -357,7 +354,7 @@ describe('IssueListOverview (actions)', function () {
     });
   });
 
-  describe('priority', function () {
+  describe('priority', () => {
     const medPriorityGroup = GroupFixture({
       id: '1',
       priority: PriorityLevel.MEDIUM,
@@ -381,13 +378,13 @@ describe('IssueListOverview (actions)', function () {
       });
     });
 
-    it('removes issues after bulk reprioritizing (when excluding priorities)', async function () {
+    it('removes issues after bulk reprioritizing (when excluding priorities)', async () => {
       const updateIssueMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'PUT',
       });
 
-      render(<IssueListOverview {...defaultProps} />, {
+      render(<IssueListOverview />, {
         organization,
       });
 
@@ -420,7 +417,7 @@ describe('IssueListOverview (actions)', function () {
       expect(screen.queryByText('Medium priority issue')).not.toBeInTheDocument();
     });
 
-    it('removes issues after reprioritizing single issue (when excluding priorities)', async function () {
+    it('removes issues after reprioritizing single issue (when excluding priorities)', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/prompts-activity/',
         body: {data: {dismissed_ts: null}},
@@ -430,7 +427,7 @@ describe('IssueListOverview (actions)', function () {
         method: 'PUT',
       });
 
-      render(<IssueListOverview {...defaultProps} />, {
+      render(<IssueListOverview />, {
         organization,
 
         initialRouterConfig: {
@@ -467,13 +464,13 @@ describe('IssueListOverview (actions)', function () {
       expect(screen.queryByText('Medium priority issue')).not.toBeInTheDocument();
     });
 
-    it('does not remove issues after bulk reprioritizing (when query includes all priorities)', async function () {
+    it('does not remove issues after bulk reprioritizing (when query includes all priorities)', async () => {
       const updateIssueMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'PUT',
       });
 
-      render(<IssueListOverview {...defaultProps} />, {
+      render(<IssueListOverview />, {
         organization,
 
         initialRouterConfig: {

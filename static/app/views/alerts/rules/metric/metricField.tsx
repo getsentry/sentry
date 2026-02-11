@@ -1,24 +1,10 @@
-import {Fragment} from 'react';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
-
-import type {FormFieldProps} from 'sentry/components/forms/formField';
-import FormField from 'sentry/components/forms/formField';
-import type {Organization} from 'sentry/types/organization';
 import type {Aggregation} from 'sentry/utils/discover/fields';
-import {
-  AGGREGATIONS,
-  explodeFieldString,
-  generateFieldAsString,
-} from 'sentry/utils/discover/fields';
+import {AGGREGATIONS} from 'sentry/utils/discover/fields';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {
   hideParameterSelectorSet,
   hidePrimarySelectorSet,
 } from 'sentry/views/alerts/wizard/options';
-import {QueryField} from 'sentry/views/discover/table/queryField';
-import {FieldValueKind} from 'sentry/views/discover/table/types';
-import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import type {OptionConfig} from './constants';
 import {
@@ -27,16 +13,6 @@ import {
   transactionFieldConfig,
 } from './constants';
 import {Dataset} from './types';
-
-type Props = Omit<FormFieldProps, 'children'> & {
-  organization: Organization;
-  alertType?: AlertType;
-  /**
-   * Optionally set a width for each column of selector
-   */
-  columnWidth?: number;
-  inFieldLabels?: boolean;
-};
 
 export const getFieldOptionConfig = ({
   dataset,
@@ -63,6 +39,17 @@ export const getFieldOptionConfig = ({
         agg.getFieldOverrides = () => {
           return {defaultValue: 'tags[sentry:user]'};
         };
+        return [key, agg];
+      }
+
+      // When using apdex with the transactions dataset, it uses the metrics which does not accept a parameter.
+      // Attempting to save with `apdex(300)` will fail with the message: "Cannot query apdex with a threshold parameter on the metrics dataset"
+      if (
+        (dataset === Dataset.TRANSACTIONS || dataset === Dataset.GENERIC_METRICS) &&
+        key === 'apdex'
+      ) {
+        const base = AGGREGATIONS[key] as Aggregation;
+        const agg: Aggregation = {...base, parameters: []};
         return [key, agg];
       }
 
@@ -94,71 +81,3 @@ export const getFieldOptionConfig = ({
     hideParameterSelector,
   };
 };
-
-function MetricField({
-  organization,
-  columnWidth,
-  inFieldLabels,
-  alertType,
-  ...props
-}: Props) {
-  return (
-    <FormField {...props}>
-      {({onChange, value, model, disabled}: any) => {
-        const dataset = model.getValue('dataset');
-
-        const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =
-          getFieldOptionConfig({
-            dataset: dataset as Dataset,
-            alertType,
-          });
-        const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
-        const fieldValue = explodeFieldString(value ?? '');
-
-        const fieldKey =
-          fieldValue?.kind === FieldValueKind.FUNCTION
-            ? `function:${fieldValue.function[0]}`
-            : '';
-
-        const selectedField = fieldOptions[fieldKey]?.value;
-        const numParameters: number =
-          selectedField?.kind === FieldValueKind.FUNCTION
-            ? selectedField.meta.parameters.length
-            : 0;
-
-        const parameterColumns =
-          numParameters - (hideParameterSelector ? 1 : 0) - (hidePrimarySelector ? 1 : 0);
-
-        return (
-          <Fragment>
-            <StyledQueryField
-              filterPrimaryOptions={option =>
-                option.value.kind === FieldValueKind.FUNCTION
-              }
-              fieldOptions={fieldOptions}
-              fieldValue={fieldValue}
-              onChange={v => onChange(generateFieldAsString(v), {})}
-              columnWidth={columnWidth}
-              gridColumns={parameterColumns + 1}
-              inFieldLabels={inFieldLabels}
-              shouldRenderTag={false}
-              disabled={disabled}
-              hideParameterSelector={hideParameterSelector}
-              hidePrimarySelector={hidePrimarySelector}
-            />
-          </Fragment>
-        );
-      }}
-    </FormField>
-  );
-}
-
-const StyledQueryField = styled(QueryField)<{gridColumns: number; columnWidth?: number}>`
-  ${p =>
-    p.columnWidth &&
-    css`
-      width: ${p.gridColumns * p.columnWidth}px;
-    `}
-`;
-
-export default MetricField;

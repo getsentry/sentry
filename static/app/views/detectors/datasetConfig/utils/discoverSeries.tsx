@@ -1,8 +1,14 @@
 import type {Series} from 'sentry/types/echarts';
-import type {EventsStats} from 'sentry/types/organization';
+import type {EventsStats, Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import type {DetectorSeriesQueryOptions} from 'sentry/views/detectors/datasetConfig/base';
+import {
+  EAP_EXTRAPOLATION_MODE_MAP,
+  ExtrapolationMode,
+} from 'sentry/views/alerts/rules/metric/types';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 /**
  * Transform EventsStats API response into Series format for AreaChart
@@ -59,6 +65,42 @@ export function transformEventsStatsComparisonSeries(
   };
 }
 
+interface DiscoverSeriesQueryOptions {
+  /**
+   * The aggregate to use for the series query. eg: `count()`
+   */
+  aggregate: string;
+  /**
+   * Comparison delta in seconds for % change alerts
+   */
+  comparisonDelta: number | undefined;
+  dataset: DiscoverDatasets;
+  environment: string;
+  /**
+   * Metric detector interval in seconds
+   */
+  interval: number;
+  organization: Organization;
+  projectId: string;
+  /**
+   * The filter query. eg: `span.op:http`
+   */
+  query: string;
+  end?: string | null;
+  /**
+   * Extra query parameters to pass
+   */
+  extra?: {
+    useOnDemandMetrics: 'true';
+  };
+  extrapolationMode?: ExtrapolationMode;
+  start?: string | null;
+  /**
+   * Relative time period for the query. Example: '7d'.
+   */
+  statsPeriod?: string | null;
+}
+
 export function getDiscoverSeriesQueryOptions({
   aggregate,
   environment,
@@ -69,9 +111,14 @@ export function getDiscoverSeriesQueryOptions({
   dataset,
   statsPeriod,
   comparisonDelta,
-}: DetectorSeriesQueryOptions): ApiQueryKey {
+  start,
+  end,
+  extrapolationMode,
+}: DiscoverSeriesQueryOptions): ApiQueryKey {
   return [
-    `/organizations/${organization.slug}/events-stats/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/events-stats/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
     {
       query: {
         interval: getDuration(interval, 0, false, true),
@@ -79,9 +126,18 @@ export function getDiscoverSeriesQueryOptions({
         yAxis: aggregate,
         dataset,
         includePrevious: false,
-        partial: true,
         includeAllArgs: true,
+        partial: '1',
         statsPeriod,
+        start,
+        end,
+        sampling:
+          extrapolationMode === ExtrapolationMode.NONE
+            ? SAMPLING_MODE.HIGH_ACCURACY
+            : SAMPLING_MODE.NORMAL,
+        extrapolationMode: extrapolationMode
+          ? EAP_EXTRAPOLATION_MODE_MAP[extrapolationMode]
+          : undefined,
         ...(environment && {environment: [environment]}),
         ...(query && {query}),
         ...(comparisonDelta && {comparisonDelta}),

@@ -10,10 +10,10 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class SentryAppPublishRequestTest(APITestCase):
-    def upload_logo(self):
+    def upload_logo(self) -> None:
         SentryAppAvatar.objects.create(sentry_app=self.sentry_app, avatar_type=1, color=True)
 
-    def upload_issue_link_logo(self):
+    def upload_issue_link_logo(self) -> None:
         SentryAppAvatar.objects.create(sentry_app=self.sentry_app, avatar_type=1, color=False)
 
     def setUp(self) -> None:
@@ -30,7 +30,7 @@ class SentryAppPublishRequestTest(APITestCase):
         self.login_as(user=self.user)
 
     @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
-    def test_publish_request(self, send):
+    def test_publish_request(self, send: mock.MagicMock) -> None:
         self.upload_logo()
         self.upload_issue_link_logo()
         send.return_value = 2
@@ -48,7 +48,7 @@ class SentryAppPublishRequestTest(APITestCase):
         send.assert_called_with(to=["integrations-platform@sentry.io", self.user.email])
 
     @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
-    def test_publish_request_email_fails(self, send):
+    def test_publish_request_email_fails(self, send: mock.MagicMock) -> None:
         send.return_value = 0
         self.upload_logo()
         self.upload_issue_link_logo()
@@ -69,7 +69,7 @@ class SentryAppPublishRequestTest(APITestCase):
         send.assert_called_with(to=["integrations-platform@sentry.io", self.user.email])
 
     @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
-    def test_publish_already_published(self, send_mail):
+    def test_publish_already_published(self, send_mail: mock.MagicMock) -> None:
         self.sentry_app.update(status=SentryAppStatus.PUBLISHED)
         response = self.client.post(self.url, format="json")
         assert response.status_code == 400
@@ -77,7 +77,7 @@ class SentryAppPublishRequestTest(APITestCase):
         send_mail.asssert_not_called()
 
     @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
-    def test_publish_internal(self, send_mail):
+    def test_publish_internal(self, send_mail: mock.MagicMock) -> None:
         self.sentry_app.update(status=SentryAppStatus.INTERNAL)
         response = self.client.post(self.url, format="json")
         assert response.status_code == 400
@@ -85,14 +85,14 @@ class SentryAppPublishRequestTest(APITestCase):
         send_mail.asssert_not_called()
 
     @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
-    def test_publish_no_logo(self, send_mail):
+    def test_publish_no_logo(self, send_mail: mock.MagicMock) -> None:
         response = self.client.post(self.url, format="json")
         assert response.status_code == 400
         assert response.data["detail"] == "Must upload a logo for the integration."
         send_mail.asssert_not_called()
 
     @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
-    def test_publish_no_issue_link_logo(self, send_mail):
+    def test_publish_no_issue_link_logo(self, send_mail: mock.MagicMock) -> None:
         """Test that you cannot submit a publication request for an issue link
         integration without having uploaded a black icon."""
         self.upload_logo()
@@ -105,7 +105,7 @@ class SentryAppPublishRequestTest(APITestCase):
         send_mail.asssert_not_called()
 
     @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
-    def test_publish_no_stacktrace_link_logo(self, send_mail):
+    def test_publish_no_stacktrace_link_logo(self, send_mail: mock.MagicMock) -> None:
         """Test that you cannot submit a publication request for a stacktrace link
         integration without having uploaded a black icon."""
         stacktrace_link_sentry_app = self.create_sentry_app(

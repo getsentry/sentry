@@ -1,80 +1,61 @@
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {LinkButton} from '@sentry/scraps/button';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GroupList from 'sentry/components/issues/groupList';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
-interface Props {
-  detectorId: string;
-  query?: Record<string, any>;
-}
+type DetectorDetailsOngoingIssuesProps = {
+  detector: Detector;
+  // Extra query params to include in the issue details link.
+  // Useful for feature-specific deep-linking.
+  issueLinkExtraQuery?: Record<string, string>;
+};
 
-function EmptyMessage() {
-  return (
-    <Panel>
-      <PanelBody>
-        <EmptyStateWarning small withIcon={false}>
-          {t('No ongoing issues found for this monitor')}
-        </EmptyStateWarning>
-      </PanelBody>
-    </Panel>
-  );
-}
-
-export function DetectorDetailsOngoingIssues({detectorId, query}: Props) {
+export function DetectorDetailsOngoingIssues({
+  detector,
+  issueLinkExtraQuery,
+}: DetectorDetailsOngoingIssuesProps) {
   const organization = useOrganization();
-
+  const query = `is:unresolved detector:${detector.id}`;
   const {selection} = usePageFilters();
-  const {start, end, period} = selection.datetime;
-  const timeProps =
-    start && end
-      ? {
-          start: getUtcDateString(start),
-          end: getUtcDateString(end),
-        }
-      : {
-          statsPeriod: period,
-        };
-
   const queryParams = {
-    ...(query || timeProps),
-    query: `is:unresolved detector:${detectorId}`,
-    limit: 5,
-  };
-
-  const issueSearch = {
-    pathname: `/organizations/${organization.slug}/issues/`,
-    query: queryParams,
+    query,
+    project: detector.projectId,
+    start: selection.datetime.start
+      ? getUtcDateString(selection.datetime.start)
+      : undefined,
+    end: selection.datetime.end ? getUtcDateString(selection.datetime.end) : undefined,
+    statsPeriod: selection.datetime.period ?? undefined,
   };
 
   return (
     <Section
-      title={
-        <Flex justify={'between'} align="center">
-          {t('Ongoing Issues')}
-          <LinkButton size="xs" to={issueSearch}>
-            {t('View All')}
-          </LinkButton>
-        </Flex>
+      title={t('Ongoing Issues')}
+      trailingItems={
+        <LinkButton
+          size="xs"
+          to={{
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: queryParams,
+          }}
+        >
+          {t('View All')}
+        </LinkButton>
       }
     >
       <ErrorBoundary mini>
-        <GroupList
-          endpointPath={`/organizations/${organization.slug}/issues/`}
-          queryParams={queryParams}
-          canSelectGroups={false}
-          withPagination={false}
-          withChart={false}
-          renderEmptyMessage={EmptyMessage}
-          source="detector-details"
-        />
+        <div>
+          <GroupList
+            numPlaceholderRows={5}
+            queryParams={{...queryParams, limit: 5}}
+            issueLinkExtraQuery={issueLinkExtraQuery}
+          />
+        </div>
       </ErrorBoundary>
     </Section>
   );

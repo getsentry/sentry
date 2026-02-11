@@ -1,14 +1,14 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Pagination from 'sentry/components/pagination';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import type {
@@ -158,16 +158,12 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   const navigate = useNavigate();
   const domainViewFilters = useDomainViewFilters();
 
-  const handleStandaloneClsLcp = organization.features.includes(
-    'performance-vitals-standalone-cls-lcp'
-  );
-
   const browserTypes = decodeBrowserTypes(location.query[SpanFields.BROWSER_NAME]);
   const subregions = decodeList(
     location.query[SpanFields.USER_GEO_SUBREGION]
   ) as SubregionCode[];
 
-  const defaultDatatype = handleStandaloneClsLcp ? Datatype.LCP : Datatype.PAGELOADS;
+  const defaultDatatype = Datatype.LCP;
   let datatype = defaultDatatype;
   if (
     Object.values(Datatype).includes(
@@ -298,12 +294,11 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             <AlignCenter>
               <StyledTooltip
                 isHoverable
+                showUnderline
                 title={
                   <span>
                     {tct('The [webVital] performance rating of this sample.', {
-                      webVital: handleStandaloneClsLcp
-                        ? datatype.toUpperCase()
-                        : 'overall',
+                      webVital: datatype.toUpperCase(),
                     })}
                     <br />
                     <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
@@ -312,11 +307,9 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
                   </span>
                 }
               >
-                <TooltipHeader>
-                  {tct('[webVital] Score', {
-                    webVital: handleStandaloneClsLcp ? datatype.toUpperCase() : 'Perf',
-                  })}
-                </TooltipHeader>
+                {tct('[webVital] Score', {
+                  webVital: datatype.toUpperCase(),
+                })}
               </StyledTooltip>
             </AlignCenter>
           }
@@ -469,21 +462,19 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
           undefined
         );
       return (
-        <NoOverflow>
-          <AlignCenter>
-            {replayTarget &&
-            Object.keys(replayTarget).length > 0 &&
-            replayExists(row[key]) ? (
-              <Tooltip title={t('View Replay')}>
-                <LinkButton to={replayTarget} size="xs">
-                  <IconPlay size="xs" />
-                </LinkButton>
-              </Tooltip>
-            ) : (
-              <NoValue>{NO_VALUE}</NoValue>
-            )}
-          </AlignCenter>
-        </NoOverflow>
+        <AlignCenter>
+          {replayTarget &&
+          Object.keys(replayTarget).length > 0 &&
+          replayExists(row[key]) ? (
+            <Tooltip title={t('View Replay')}>
+              <LinkButton to={replayTarget} size="xs">
+                <IconPlay size="xs" />
+              </LinkButton>
+            </Tooltip>
+          ) : (
+            <NoValue>{NO_VALUE}</NoValue>
+          )}
+        </AlignCenter>
       );
     }
 
@@ -556,59 +547,27 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
 
   return (
     <span>
-      <SearchBarContainer>
-        {handleStandaloneClsLcp ? (
-          <CompactSelect
-            triggerProps={{prefix: t('Web Vital')}}
-            value={datatype}
-            options={WEB_VITAL_DATATYPES.map(type => ({
-              label: type.toUpperCase(),
-              value: type,
-            }))}
-            onChange={newDataType => {
-              trackAnalytics('insight.vital.overview.toggle_data_type', {
-                organization,
-                type: newDataType.value,
-              });
-              navigate({
-                ...location,
-                query: {...location.query, [DATATYPE_KEY]: newDataType.value},
-              });
-            }}
-          />
-        ) : (
-          <SegmentedControl
-            size="md"
-            value={datatype}
-            aria-label={t('Data Type')}
-            onChange={newDataSet => {
-              // Reset pagination and sort when switching datatypes
-              trackAnalytics('insight.vital.overview.toggle_data_type', {
-                organization,
-                type: newDataSet,
-              });
-              navigate({
-                ...location,
-                query: {
-                  ...location.query,
-                  sort: undefined,
-                  cursor: undefined,
-                  [DATATYPE_KEY]: newDataSet,
-                },
-              });
-            }}
-          >
-            <SegmentedControl.Item key={Datatype.PAGELOADS} aria-label={t('Pageloads')}>
-              {t('Pageloads')}
-            </SegmentedControl.Item>
-            <SegmentedControl.Item
-              key={Datatype.INTERACTIONS}
-              aria-label={t('Interactions')}
-            >
-              {t('Interactions')}
-            </SegmentedControl.Item>
-          </SegmentedControl>
-        )}
+      <Flex marginBottom="xl" gap="md">
+        <CompactSelect
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Web Vital')} />
+          )}
+          value={datatype}
+          options={WEB_VITAL_DATATYPES.map(type => ({
+            label: type.toUpperCase(),
+            value: type,
+          }))}
+          onChange={newDataType => {
+            trackAnalytics('insight.vital.overview.toggle_data_type', {
+              organization,
+              type: newDataType.value,
+            });
+            navigate({
+              ...location,
+              query: {...location.query, [DATATYPE_KEY]: newDataType.value},
+            });
+          }}
+        />
         <StyledSearchBar>
           <TransactionSearchQueryBuilder
             projects={projectIds}
@@ -617,17 +576,11 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             onSearch={handleSearch}
           />
         </StyledSearchBar>
-      </SearchBarContainer>
+      </Flex>
       {datatype === Datatype.PAGELOADS && (
         <GridEditable
           isLoading={isLoading}
-          columnOrder={
-            handleStandaloneClsLcp
-              ? PAGELOADS_COLUMN_ORDER.filter(
-                  col => !['measurements.cls', 'measurements.lcp'].includes(col.key)
-                )
-              : PAGELOADS_COLUMN_ORDER
-          }
+          columnOrder={PAGELOADS_COLUMN_ORDER}
           columnSortBy={[]}
           data={tableData as any as TransactionSampleRowWithScore[]} // TODO: fix typing
           grid={{
@@ -665,7 +618,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         disabled button bar if pageLinks is not defined to minimize ui shifting */}
       {!(isSpansBasedDatatype ? standaloneSpansPageLinks : pageLinks) && (
         <Wrapper>
-          <ButtonBar merged gap="0">
+          <ButtonBar>
             <Button
               icon={<IconChevron direction="left" />}
               disabled
@@ -710,13 +663,7 @@ const StyledProjectAvatar = styled(ProjectAvatar)`
 `;
 
 const NoValue = styled('span')`
-  color: ${p => p.theme.subText};
-`;
-
-const SearchBarContainer = styled('div')`
-  display: flex;
-  margin-bottom: ${space(2)};
-  gap: ${space(1)};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledSearchBar = styled('div')`
@@ -732,10 +679,6 @@ const Wrapper = styled('div')`
   align-items: center;
   justify-content: flex-end;
   margin: 0;
-`;
-
-const TooltipHeader = styled('span')`
-  ${p => p.theme.tooltipUnderline()};
 `;
 
 const StyledTooltip = styled(Tooltip)`

@@ -2,7 +2,6 @@ from typing import Any, NotRequired, TypedDict
 
 from rest_framework import serializers
 
-from sentry import features
 from sentry.api.serializers.rest_framework import ValidationError
 from sentry.models.project import Project
 from sentry.models.savedsearch import SORT_LITERALS, SortOptions
@@ -37,11 +36,6 @@ class ViewValidator(serializers.Serializer):
     timeFilters = serializers.DictField(required=True, allow_empty=False)
 
     def validate_projects(self, value):
-        if not features.has("organizations:global-views", self.context["organization"]) and (
-            value == [-1] or value == [] or len(value) > 1
-        ):
-            raise ValidationError(detail="You do not have the multi project stream feature enabled")
-
         if value != [-1]:
             project_ids = set(value)
             existing_project_ids = set(

@@ -1,16 +1,20 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
+import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
+import displayRawContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
@@ -34,6 +38,7 @@ export const stackTraceDisplayOptionLabels = {
 
 type Props = {
   children: React.ReactNode;
+  event: Event;
   eventId: Event['id'];
   hasAbsoluteAddresses: boolean;
   hasAbsoluteFilePaths: boolean;
@@ -45,6 +50,7 @@ type Props = {
   stackTraceNotFound: boolean;
   title: React.ReactNode;
   type: string;
+  activeThreadId?: number;
   isNestedSection?: boolean;
 };
 
@@ -55,6 +61,7 @@ export function TraceEventDataSection({
   children,
   platform,
   projectSlug,
+  event,
   eventId,
   hasNewestFirst,
   hasMinified,
@@ -62,6 +69,7 @@ export function TraceEventDataSection({
   hasAbsoluteFilePaths,
   hasAbsoluteAddresses,
   isNestedSection = false,
+  activeThreadId,
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
@@ -228,6 +236,94 @@ export function TraceEventDataSection({
     [organization, platform, projectSlug, isMobile, displayOptions, setDisplayOptions]
   );
 
+  const handleCopyRawStacktrace = useCallback(() => {
+    trackAnalytics('stack-trace.copy_raw_clicked', {
+      organization,
+      project_slug: projectSlug,
+      platform,
+      is_mobile: isMobile,
+    });
+
+    const useMinified = displayOptions.includes('minified');
+
+    const stacktraceEntries = event.entries.filter(
+      entry =>
+        entry.type === EntryType.EXCEPTION ||
+        entry.type === EntryType.STACKTRACE ||
+        entry.type === EntryType.THREADS
+    );
+
+    const rawStacktraces = stacktraceEntries.map(entry => {
+      if (entry.type === EntryType.EXCEPTION) {
+        return (
+          entry.data.values
+            ?.map(exception => {
+              const stacktraceData = useMinified
+                ? (exception.rawStacktrace ?? exception.stacktrace)
+                : exception.stacktrace;
+              return displayRawContent({
+                data: stacktraceData,
+                platform: stacktraceData?.frames?.[0]?.platform ?? platform,
+                exception,
+                hasSimilarityEmbeddingsFeature: false,
+                includeLocation: true,
+                rawTrace: true,
+                isMinified: useMinified,
+              });
+            })
+            .filter(Boolean)
+            .join('\n\n') ?? ''
+        );
+      }
+      if (entry.type === EntryType.STACKTRACE) {
+        return displayRawContent({
+          data: entry.data,
+          platform: entry.data.frames?.[0]?.platform ?? platform,
+          hasSimilarityEmbeddingsFeature: false,
+          includeLocation: true,
+          rawTrace: true,
+          isMinified: useMinified,
+        });
+      }
+      if (entry.type === EntryType.THREADS) {
+        const activeThread = entry.data.values?.find(
+          thread => thread.id === activeThreadId
+        );
+        if (activeThread) {
+          const stacktraceData = useMinified
+            ? (activeThread.rawStacktrace ?? activeThread.stacktrace)
+            : activeThread.stacktrace;
+          if (stacktraceData) {
+            const threadInfo = activeThread.name ? `Thread: ${activeThread.name}\n` : '';
+            return (
+              threadInfo +
+              displayRawContent({
+                data: stacktraceData,
+                platform: stacktraceData.frames?.[0]?.platform ?? platform,
+                hasSimilarityEmbeddingsFeature: false,
+                includeLocation: true,
+                rawTrace: true,
+                isMinified: useMinified,
+              })
+            );
+          }
+        }
+        return '';
+      }
+      return '';
+    });
+
+    return rawStacktraces.filter(Boolean).join('\n\n');
+  }, [
+    event,
+    platform,
+    organization,
+    projectSlug,
+    isMobile,
+    activeThreadId,
+    displayOptions,
+  ]);
+
   function getDisplayOptions(): Array<{
     label: string;
     value: (typeof displayOptions)[number];
@@ -239,7 +335,6 @@ export function TraceEventDataSection({
       platform === 'native' ||
       platform === 'cocoa' ||
       platform === 'nintendo-switch' ||
-      platform === 'nintendo-switch-2' ||
       platform === 'playstation' ||
       platform === 'xbox'
     ) {
@@ -355,26 +450,21 @@ export function TraceEventDataSection({
       disableCollapsePersistence
       actions={
         !stackTraceNotFound && (
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             {!displayOptions.includes('raw-stack-trace') && (
-              <Tooltip
-                title={t('Only full version available')}
-                disabled={!forceFullStackTrace}
+              <SegmentedControl
+                size="xs"
+                aria-label={t('Filter frames')}
+                value={isFullStackTrace ? 'full' : 'relevant'}
+                onChange={handleFilterFramesChange}
               >
-                <SegmentedControl
-                  size="xs"
-                  aria-label={t('Filter frames')}
-                  value={isFullStackTrace ? 'full' : 'relevant'}
-                  onChange={handleFilterFramesChange}
-                >
-                  <SegmentedControl.Item key="relevant" disabled={forceFullStackTrace}>
-                    {t('Most Relevant')}
-                  </SegmentedControl.Item>
-                  <SegmentedControl.Item key="full">
-                    {t('Full Stack Trace')}
-                  </SegmentedControl.Item>
-                </SegmentedControl>
-              </Tooltip>
+                <SegmentedControl.Item key="relevant" disabled={forceFullStackTrace}>
+                  {t('Most Relevant')}
+                </SegmentedControl.Item>
+                <SegmentedControl.Item key="full">
+                  {t('Full Stack Trace')}
+                </SegmentedControl.Item>
+              </SegmentedControl>
             )}
             {displayOptions.includes('raw-stack-trace') && nativePlatform && (
               <LinkButton
@@ -394,11 +484,14 @@ export function TraceEventDataSection({
               </LinkButton>
             )}
             <CompactSelect
-              triggerProps={{
-                icon: <IconSort />,
-                size: 'xs',
-                title: sortByTooltip,
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  icon={<IconSort />}
+                  size="xs"
+                  title={sortByTooltip}
+                />
+              )}
               disabled={!!sortByTooltip}
               position="bottom-end"
               onChange={selectedOption => {
@@ -411,20 +504,32 @@ export function TraceEventDataSection({
               }))}
             />
             <CompactSelect
-              triggerProps={{
-                icon: <IconEllipsis />,
-                size: 'xs',
-                showChevron: false,
-                'aria-label': t('Options'),
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.IconButton
+                  {...triggerProps}
+                  size="xs"
+                  icon={<IconEllipsis />}
+                  aria-label={t('Display as')}
+                >
+                  {t('Display as')}
+                </OverlayTrigger.IconButton>
+              )}
               multiple
-              triggerLabel=""
               position="bottom-end"
               value={displayValues}
               onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}
               options={[{label: t('Display'), options: optionsToShow}]}
             />
-          </ButtonBar>
+
+            <CopyAsDropdown
+              size="xs"
+              items={CopyAsDropdown.makeDefaultCopyAsOptions({
+                text: handleCopyRawStacktrace,
+                json: undefined,
+                markdown: undefined,
+              })}
+            />
+          </Grid>
         )
       }
     >
@@ -444,10 +549,10 @@ function InlineThreadSection({
 }) {
   return (
     <Wrapper>
-      <InlineSectionHeaderWrapper>
+      <Flex justify="between" align="center" marginBottom="md">
         <ThreadHeading>{title}</ThreadHeading>
         {actions}
-      </InlineSectionHeaderWrapper>
+      </Flex>
       {children}
     </Wrapper>
   );
@@ -456,15 +561,8 @@ function InlineThreadSection({
 const Wrapper = styled('div')``;
 
 const ThreadHeading = styled('h3')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin-bottom: ${space(1)};
-`;
-
-const InlineSectionHeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(1)};
 `;

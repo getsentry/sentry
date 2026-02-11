@@ -1,22 +1,19 @@
-import type {Location} from 'history';
+import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {MODULE_FEATURE} from 'sentry/views/insights/mobile/screens/settings';
 import ScreensLandingPage from 'sentry/views/insights/mobile/screens/views/screensLandingPage';
+import MobileLayout from 'sentry/views/insights/pages/mobile/layout';
+import {ModuleName} from 'sentry/views/insights/types';
 
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/views/insights/mobile/common/queries/useCrossPlatformProject');
 
-describe('Screens Landing Page', function () {
+describe('Screens Landing Page', () => {
   const organization = OrganizationFixture({
     features: [MODULE_FEATURE],
   });
@@ -27,34 +24,17 @@ describe('Screens Landing Page', function () {
     platform: 'react-native',
   });
 
-  ProjectsStore.loadInitialData([project]);
-
-  jest.mocked(useLocation).mockReturnValue({
-    action: 'PUSH',
-    hash: '',
-    key: '',
-    pathname: '/organizations/org-slug/insights/mobile-vitals',
-    query: {
-      project: project.id,
-    },
-    search: '',
-    state: undefined,
-  } as Location);
-
-  jest.mocked(usePageFilters).mockReturnValue(
-    PageFilterStateFixture({
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [parseInt(project.id, 10)],
+  const baseRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/insights/mobile-vitals/`,
+      query: {
+        project: project.id,
       },
-    })
-  );
+    },
+    route: `/organizations/:orgId/insights/mobile-vitals/`,
+  };
+
+  ProjectsStore.loadInitialData([project]);
 
   jest.mocked(useCrossPlatformProject).mockReturnValue({
     project,
@@ -62,7 +42,7 @@ describe('Screens Landing Page', function () {
     isProjectCrossPlatform: true,
   });
 
-  describe('Top Section', function () {
+  describe('Top Section', () => {
     beforeEach(() => {
       organization.features = [MODULE_FEATURE];
       MockApiClient.addMockResponse({
@@ -72,6 +52,11 @@ describe('Screens Landing Page', function () {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
       });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/releases/`,
+        body: [],
+      });
     });
 
     afterEach(() => {
@@ -79,24 +64,25 @@ describe('Screens Landing Page', function () {
       jest.clearAllMocks();
     });
 
-    it('shows the platform selector for hybrid sdks', async function () {
-      render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
+    it('shows the platform selector for hybrid sdks', async () => {
+      render(<MobileLayout />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/mobile-vitals'},
+          route: '/',
+          children: [
+            {
+              path: 'mobile-vitals',
+              handle: {module: ModuleName.MOBILE_VITALS},
+              element: <Fragment />,
+            },
+          ],
+        },
+      });
       expect(await screen.findByLabelText('Android')).toBeInTheDocument();
     });
 
-    it('renders all vital cards', async function () {
-      jest.mocked(useLocation).mockReturnValue({
-        action: 'PUSH',
-        hash: '',
-        key: '',
-        pathname: '/organizations/org-slug/insights/mobile-vitals',
-        query: {
-          project: project.id,
-        },
-        search: '',
-        state: undefined,
-      } as Location);
-
+    it('renders all vital cards', async () => {
       const metricsMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
         body: {
@@ -129,7 +115,7 @@ describe('Screens Landing Page', function () {
           },
         },
         match: [
-          MockApiClient.matchQuery({referrer: 'api.starfish.mobile-screens-metrics'}),
+          MockApiClient.matchQuery({referrer: 'api.insights.mobile-screens-metrics'}),
         ],
       });
 
@@ -163,12 +149,15 @@ describe('Screens Landing Page', function () {
         },
         match: [
           MockApiClient.matchQuery({
-            referrer: 'api.starfish.mobile-screens-span-metrics',
+            referrer: 'api.insights.mobile-screens-span-metrics',
           }),
         ],
       });
 
-      render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
+      render(<ScreensLandingPage />, {
+        organization,
+        initialRouterConfig: baseRouterConfig,
+      });
 
       await waitFor(() => {
         expect(metricsMock).toHaveBeenCalled();
@@ -192,7 +181,7 @@ describe('Screens Landing Page', function () {
       }
     });
   });
-  describe('Permissions', function () {
+  describe('Permissions', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-stats/`,
@@ -201,24 +190,35 @@ describe('Screens Landing Page', function () {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
       });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/releases/`,
+        body: [],
+      });
     });
 
     afterEach(() => {
       MockApiClient.clearMockResponses();
     });
 
-    it('shows no content if permission is missing', async function () {
+    it('shows no content if permission is missing', async () => {
       organization.features = [];
-      render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
+      render(<ScreensLandingPage />, {
+        organization,
+        initialRouterConfig: baseRouterConfig,
+      });
       expect(
         await screen.findByText("You don't have access to this feature")
       ).toBeInTheDocument();
     });
 
-    it('shows content if permission is there', async function () {
-      organization.features = [MODULE_FEATURE, 'insights-entry-points'];
-      render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
-      expect(await screen.findAllByText('Mobile Vitals')).toHaveLength(2);
+    it('shows content if permission is present', async () => {
+      organization.features = [MODULE_FEATURE];
+      render(<ScreensLandingPage />, {
+        organization,
+        initialRouterConfig: baseRouterConfig,
+      });
+      expect(await screen.findAllByText('Avg. Cold App Start')).toHaveLength(1);
     });
   });
 });

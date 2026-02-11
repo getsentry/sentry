@@ -3,6 +3,7 @@ from datetime import timedelta
 import pytest
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Function, Op
+from snuba_sdk.conditions import ConditionGroup
 
 from sentry.exceptions import InvalidParams
 from sentry.release_health.metrics_sessions_v2 import (
@@ -41,7 +42,12 @@ MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
                 Condition(Column("session.status"), Op.NEQ, "abnormal"),
             ],
             [Condition(Column("release"), Op.EQ, "foo")],
-            {SessionStatus.HEALTHY, SessionStatus.ERRORED, SessionStatus.CRASHED},
+            {
+                SessionStatus.HEALTHY,
+                SessionStatus.ERRORED,
+                SessionStatus.CRASHED,
+                SessionStatus.UNHANDLED,
+            },
         ),
         (
             [
@@ -49,7 +55,12 @@ MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
                 Condition(Column("session.status"), Op.NOT_IN, ["abnormal", "bogus"]),
             ],
             [Condition(Column("release"), Op.EQ, "foo")],
-            {SessionStatus.HEALTHY, SessionStatus.ERRORED, SessionStatus.CRASHED},
+            {
+                SessionStatus.HEALTHY,
+                SessionStatus.ERRORED,
+                SessionStatus.CRASHED,
+                SessionStatus.UNHANDLED,
+            },
         ),
         (
             [
@@ -61,14 +72,18 @@ MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
         ),
     ],
 )
-def test_transform_conditions(input, expected_output, expected_status_filter):
+def test_transform_conditions(
+    input: ConditionGroup,
+    expected_output: ConditionGroup,
+    expected_status_filter: set[SessionStatus],
+) -> None:
     output, status_filter = _extract_status_filter_from_conditions(input)
     assert output == expected_output
     assert status_filter == expected_status_filter
 
 
 @pytest.mark.parametrize("input", [[Condition(Column("release"), Op.EQ, "foo")]])
-def test_transform_conditions_nochange(input):
+def test_transform_conditions_nochange(input: ConditionGroup) -> None:
     output, status_filter = _extract_status_filter_from_conditions(input)
     assert input == output
     assert status_filter is None
@@ -92,5 +107,5 @@ def test_transform_conditions_nochange(input):
         ],
     ],
 )
-def test_transform_conditions_illegal(input):
+def test_transform_conditions_illegal(input: ConditionGroup) -> None:
     pytest.raises(InvalidParams, _extract_status_filter_from_conditions, input)

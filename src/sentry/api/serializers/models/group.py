@@ -13,13 +13,10 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import features, tagstore
-from sentry.api.helpers.error_upsampling import are_any_projects_error_upsampled
+from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.actor import ActorSerializer
+from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
-from sentry.app import env
-from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS
 from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.services.integration import integration_service
@@ -37,8 +34,7 @@ from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.organizationmember import OrganizationMember
-from sentry.models.orgauthtoken import is_org_auth_token_auth
+from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.notifications.helpers import (
     SubscriptionDetails,
@@ -137,7 +133,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     issueCategory: str
     metadata: dict[str, Any]
     numComments: int
-    assignedTo: UserSerializerResponse
+    assignedTo: ActorSerializerResponse
     isBookmarked: bool
     isSubscribed: bool
     subscriptionDetails: SubscriptionDetails | None
@@ -162,6 +158,42 @@ class SeenStatsResponse(TypedDict):
 def is_seen_stats(o: object) -> TypeGuard[SeenStats]:
     # not a perfect check, but simulates what was being validated before
     return isinstance(o, dict) and "times_seen" in o
+
+
+def _make_group_project_response(project: Project) -> GroupProjectResponse:
+    return {
+        "id": str(project.id),
+        "name": project.name,
+        "slug": project.slug,
+        "platform": project.platform,
+    }
+
+
+def _get_status_label(group: Group):
+    status = group.get_status()
+
+    if status == GroupStatus.RESOLVED:
+        status_label = "resolved"
+    elif status == GroupStatus.IGNORED:
+        status_label = "ignored"
+    elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:
+        status_label = "pending_deletion"
+    elif status == GroupStatus.PENDING_MERGE:
+        status_label = "pending_merge"
+    elif status == GroupStatus.REPROCESSING:
+        status_label = "reprocessing"
+    else:
+        status_label = "unresolved"
+
+    return status_label
+
+
+def _get_substatus_label(group: Group):
+    return SUBSTATUS_TO_STR[group.substatus] if group.substatus else None
+
+
+def _get_level_label(group: Group):
+    return LOG_LEVELS.get(group.level, "unknown")
 
 
 class GroupSerializerBase(Serializer, ABC):
@@ -267,8 +299,6 @@ class GroupSerializerBase(Serializer, ABC):
         # should only have 1 org at this point
         organization_id = organization_id_list[0]
 
-        authorized = self._is_authorized(user, organization_id)
-
         annotations_by_group_id: MutableMapping[int, list[Any]] = defaultdict(list)
         for annotations_by_group in itertools.chain.from_iterable(
             [
@@ -312,7 +342,6 @@ class GroupSerializerBase(Serializer, ABC):
                 "resolution_type": resolution_type,
                 "resolution_actor": resolution_actor,
                 "share_id": share_ids.get(item.id),
-                "authorized": authorized,
             }
             if snuba_stats is not None:
                 result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
@@ -333,11 +362,7 @@ class GroupSerializerBase(Serializer, ABC):
         is_subscribed, subscription_details = get_subscription_from_attributes(attrs)
         share_id = attrs["share_id"]
         priority_label = PriorityLevel(obj.priority).to_str() if obj.priority else None
-        issue_category = (
-            obj.issue_category_v2.name.lower()
-            if features.has("organizations:issue-taxonomy", obj.project.organization, actor=user)
-            else obj.issue_category.name.lower()
-        )
+        issue_category = obj.issue_category_v2.name.lower()
         group_dict: BaseGroupSerializerResponse = {
             "id": str(obj.id),
             "shareId": share_id,
@@ -346,18 +371,13 @@ class GroupSerializerBase(Serializer, ABC):
             "culprit": obj.culprit,
             "permalink": permalink,
             "logger": obj.logger or None,
-            "level": LOG_LEVELS.get(obj.level, "unknown"),
+            "level": _get_level_label(obj),
             "status": status_label,
             "statusDetails": status_details,
-            "substatus": SUBSTATUS_TO_STR[obj.substatus] if obj.substatus else None,
+            "substatus": _get_substatus_label(obj),
             "isPublic": share_id is not None,
             "platform": obj.platform,
-            "project": {
-                "id": str(obj.project.id),
-                "name": obj.project.name,
-                "slug": obj.project.slug,
-                "platform": obj.project.platform,
-            },
+            "project": _make_group_project_response(obj.project),
             "type": obj.get_event_type(),
             "metadata": obj.get_event_metadata(),
             "numComments": obj.num_comments,
@@ -434,7 +454,10 @@ class GroupSerializerBase(Serializer, ABC):
                 )
             else:
                 status = GroupStatus.UNRESOLVED
-        if status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
+        # If the issue is UNRESOLVED but has resolved_at set, it means the user manually
+        # unresolved it after it was resolved. We should respect that and not override
+        # the status back to RESOLVED.
+        if status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age() and not obj.resolved_at:
             # When an issue is over the auto-resolve age but the task has not yet run
             # Only show as auto-resolved if this group type has auto-resolve enabled
             if obj.issue_type.enable_auto_resolve:
@@ -712,41 +735,6 @@ class GroupSerializerBase(Serializer, ABC):
             annotations_for_group.extend(safe_execute(plugin.get_annotations, group=item) or ())
 
         return annotations_for_group
-
-    @staticmethod
-    def _is_authorized(user, organization_id: int):
-        # If user is not logged in and member of the organization,
-        # do not return the permalink which contains private information i.e. org name.
-        request = env.request
-        if request and is_active_superuser(request) and request.user.id == user.id:
-            return True
-
-        # If user is a sentry_app then it's a proxy user meaning we can't do a org lookup via `get_orgs()`
-        # because the user isn't an org member. Instead we can use the auth token and the installation
-        # it's associated with to find out what organization the token has access to.
-        if (
-            request is not None
-            and getattr(request.user, "is_sentry_app", False)
-            and request.auth is not None
-            and request.auth.kind == "api_token"
-            and request.auth.token_has_org_access(organization_id)
-        ):
-            return True
-
-        if (
-            request
-            and user.is_anonymous
-            and hasattr(request, "auth")
-            and is_org_auth_token_auth(request.auth)
-        ):
-            return request.auth.organization_id == organization_id
-
-        return (
-            user.is_authenticated
-            and OrganizationMember.objects.filter(
-                user_id=user.id, organization_id=organization_id
-            ).exists()
-        )
 
     @staticmethod
     def _get_permalink(attrs, obj: Group) -> str:
@@ -1072,10 +1060,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
             ["max", "timestamp", "last_seen"],
             ["uniq", "tags[sentry:user]", "count"],
         ]
-        # Check if any projects are allowlisted for error upsampling
-        is_upsampled = are_any_projects_error_upsampled(project_ids)
-        if is_upsampled:
-            aggregations[0] = ["upsampled_count", "", "times_seen"]
 
         filters = {"project_id": project_ids, "group_id": group_ids}
         if environment_ids:
@@ -1163,3 +1147,57 @@ class GroupSerializerSnuba(GroupSerializerBase):
             }
             for item in item_list
         }
+
+
+class SimpleGroupSerializerResponse(TypedDict):
+    id: str
+    title: str
+    culprit: str | None
+    shortId: str | None
+    level: str
+    status: str
+    substatus: str | None
+    platform: str | None
+    project: GroupProjectResponse
+    type: str
+    issueType: str
+    issueCategory: str
+    metadata: dict[str, Any]
+    numComments: int
+    firstSeen: datetime | None
+    lastSeen: datetime | None
+
+
+class SimpleGroupSerializer(Serializer):
+    """
+    A serializer that only returns the most basic information about a group.
+    It should make minimal queries to the database.
+    """
+
+    def serialize(
+        self,
+        obj: Group,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> SimpleGroupSerializerResponse:
+        issue_category = obj.issue_category_v2.name.lower()
+
+        return SimpleGroupSerializerResponse(
+            id=str(obj.id),
+            title=obj.title,
+            culprit=obj.culprit,
+            shortId=obj.qualified_short_id,
+            level=_get_level_label(obj),
+            status=_get_status_label(obj),
+            substatus=_get_substatus_label(obj),
+            platform=obj.platform,
+            project=_make_group_project_response(obj.project),
+            type=obj.get_event_type(),
+            issueType=obj.issue_type.slug,
+            issueCategory=issue_category,
+            metadata=obj.get_event_metadata(),
+            numComments=obj.num_comments,
+            firstSeen=obj.first_seen,
+            lastSeen=obj.last_seen,
+        )

@@ -2,8 +2,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import UserMisery from 'sentry/components/userMisery';
 
-describe('UserMisery', function () {
-  it('renders no bars when user misery is less than 0.05', function () {
+describe('UserMisery', () => {
+  it('renders no bars when user misery is less than 0.05', () => {
     render(
       <UserMisery
         bars={10}
@@ -18,7 +18,7 @@ describe('UserMisery', function () {
     expect(screen.getByTestId('score-bar-0')).toBeInTheDocument();
   });
 
-  it('renders no bars when user misery is equal to 0.05', function () {
+  it('renders no bars when user misery is equal to 0.05', () => {
     render(
       <UserMisery
         bars={10}
@@ -33,7 +33,7 @@ describe('UserMisery', function () {
     expect(screen.getByTestId('score-bar-0')).toBeInTheDocument();
   });
 
-  it('renders one bar when user misery is greater than 0.05', function () {
+  it('renders one bar when user misery is greater than 0.05', () => {
     render(
       <UserMisery
         bars={10}

@@ -12,30 +12,30 @@ import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
 
 jest.mock('getsentry/utils/trackMarketingEvent');
 
-describe('analyticsInitUser', function () {
+describe('analyticsInitUser', () => {
   const user = UserFixture({});
   const _identifyInstance = new Amplitude.Identify();
 
-  beforeEach(function () {
+  beforeEach(() => {
     sessionStorageWrapper.clear();
     ConfigStore.set('enableAnalytics', true);
     ConfigStore.set('getsentry.amplitudeApiKey', 'foo');
     setWindowLocation('http:/localhost/');
   });
-  afterEach(function () {
+  afterEach(() => {
     sessionStorageWrapper.removeItem('marketing_event_recorded');
     (trackMarketingEvent as jest.Mock).mockClear();
     (Amplitude.setUserId as jest.Mock).mockClear();
     (Amplitude.track as jest.Mock).mockClear();
     (Amplitude.Identify as jest.Mock).mockClear();
   });
-  it('calls getInstance and initializes with user and user properties', function () {
+  it('calls getInstance and initializes with user and user properties', () => {
     analyticsInitUser(user);
     expect(Amplitude.Identify).toHaveBeenCalledWith();
     expect(_identifyInstance.set).toHaveBeenCalledWith('user_id', user.id);
     expect(_identifyInstance.set).toHaveBeenCalledWith('isInternalUser', false);
   });
-  it('calls user properties and sets isInternalUser with organization', function () {
+  it('calls user properties and sets isInternalUser with organization', () => {
     const internalUser = UserFixture({});
     internalUser.isSuperuser = false;
     internalUser.identities = [{organization: {slug: 'sentry'}}];
@@ -47,7 +47,7 @@ describe('analyticsInitUser', function () {
     expect(_identifyInstance.set).toHaveBeenCalledWith('isInternalUser', true);
     ConfigStore.set('user', oldConfig.user);
   });
-  it('calls user properties and sets isInternalUser with email', function () {
+  it('calls user properties and sets isInternalUser with email', () => {
     const internalUser = UserFixture({});
     internalUser.isSuperuser = false;
     internalUser.identities = [];
@@ -60,7 +60,7 @@ describe('analyticsInitUser', function () {
     expect(_identifyInstance.set).toHaveBeenCalledWith('isInternalUser', true);
     ConfigStore.set('user', oldConfig.user);
   });
-  it('handles frontend_events as array', function () {
+  it('handles frontend_events as array', () => {
     const events = [
       {event_name: 'Sign Up', event_label: 'Google'},
       {event_name: 'Start Trial'},
@@ -74,7 +74,7 @@ describe('analyticsInitUser', function () {
     });
     expect(sessionStorageWrapper.getItem('marketing_event_recorded')).toEqual(jsonEvents);
   });
-  it('handles frontend_events as single event', function () {
+  it('handles frontend_events as single event', () => {
     const events = {event_name: 'Sign Up', event_label: 'Google'};
     const jsonEvents = JSON.stringify(events);
     setWindowLocation(`http://localhost/?${qs.stringify({frontend_events: jsonEvents})}`);
@@ -82,7 +82,7 @@ describe('analyticsInitUser', function () {
     expect(trackMarketingEvent).toHaveBeenCalledWith('Sign Up', {event_label: 'Google'});
     expect(sessionStorageWrapper.getItem('marketing_event_recorded')).toEqual(jsonEvents);
   });
-  it('skip sending event if in session storage', function () {
+  it('skip sending event if in session storage', () => {
     const events = {event_name: 'Sign Up', event_label: 'Google'};
     const jsonEvents = JSON.stringify(events);
     setWindowLocation(`http://localhost/?${qs.stringify({frontend_events: jsonEvents})}`);
@@ -90,14 +90,14 @@ describe('analyticsInitUser', function () {
     analyticsInitUser(user);
     expect(trackMarketingEvent).not.toHaveBeenCalled();
   });
-  it('handles malformed event_name', function () {
+  it('handles malformed event_name', () => {
     const events = {event_name: undefined, event_label: 'Google'};
     const jsonEvents = JSON.stringify(events);
     setWindowLocation(`http://localhost/?${qs.stringify({frontend_events: jsonEvents})}`);
     analyticsInitUser(user);
     expect(trackMarketingEvent).not.toHaveBeenCalled();
   });
-  it('store previous_referrer in local storage', function () {
+  it('store previous_referrer in local storage', () => {
     setWindowLocation('http:/localhost/?referrer=something');
     // We need to spy on the prototype since this may not be a mocked class
     // https://stackoverflow.com/questions/32911630/how-do-i-deal-with-localstorage-in-jest-tests
@@ -105,7 +105,7 @@ describe('analyticsInitUser', function () {
     analyticsInitUser(user);
     expect(spy).toHaveBeenCalledWith('previous_referrer', 'something');
   });
-  it('analytics disabled', function () {
+  it('analytics disabled', () => {
     ConfigStore.set('enableAnalytics', false);
     analyticsInitUser(user);
     expect(Amplitude.Identify).not.toHaveBeenCalledWith();

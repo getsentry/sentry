@@ -1496,8 +1496,19 @@ class BaseQueryBuilder:
             operator = Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL
             env_conditions.append(Condition(environment, operator))
         if len(values) == 1:
-            operator = Op.EQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.NEQ
-            env_conditions.append(Condition(environment, operator, values.pop()))
+            if search_filter.value.is_wildcard():
+                env_conditions.append(
+                    Condition(
+                        Function("match", [environment, f"(?i){value}"]),
+                        Op(search_filter.operator),
+                        1,
+                    )
+                )
+            else:
+                operator = (
+                    Op.EQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.NEQ
+                )
+                env_conditions.append(Condition(environment, operator, values.pop()))
         elif values:
             operator = (
                 Op.IN if search_filter.operator in constants.EQUALITY_OPERATORS else Op.NOT_IN
@@ -1590,7 +1601,7 @@ class BaseQueryBuilder:
 
     def run_query(
         self,
-        referrer: str | None,
+        referrer: str,
         use_cache: bool = False,
         query_source: QuerySource | None = None,
     ) -> Any:

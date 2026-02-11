@@ -3,8 +3,8 @@ import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestin
 import {openModal} from 'sentry/actionCreators/modal';
 import NavigateToExternalLinkModal from 'sentry/components/modals/navigateToExternalLinkModal';
 
-describe('NavigateToExternalLinkModal', function () {
-  it('closes on cancel button click', async function () {
+describe('NavigateToExternalLinkModal', () => {
+  it('closes on cancel button click', async () => {
     const closeModal = jest.fn();
     const linkText = 'http://test-url.com';
 
@@ -37,7 +37,7 @@ describe('NavigateToExternalLinkModal', function () {
     expect(link).toBeInTheDocument();
   });
 
-  it('navigates on continue button click', async function () {
+  it('navigates on continue button click', async () => {
     const closeModal = jest.fn();
     const linkText = 'http://test-url.com';
 

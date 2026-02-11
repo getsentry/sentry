@@ -1,0 +1,58 @@
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
+from sentry.api.helpers.deprecation import deprecated
+from sentry.constants import CELL_API_DEPRECATION_DATE
+from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.tasks.reprocessing2 import reprocess_group
+
+
+@region_silo_endpoint
+class GroupReprocessingEndpoint(GroupEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-reprocessing"])
+    def post(self, request: Request, group) -> Response:
+        """
+        Reprocess a group
+        `````````````````
+
+        This endpoint triggers reprocessing for all events in a group.
+
+        :pparam string issue_id: the numeric ID of the issue to reprocess. The
+            reprocessed events will be assigned to a new numeric ID. See comments
+            in sentry.reprocessing2.
+        :auth: required
+        """
+
+        max_events = request.data.get("maxEvents")
+        if max_events is not None:
+            try:
+                max_events = int(max_events)
+            except (ValueError, TypeError):
+                return self.respond({"error": "maxEvents must be at least 1"}, status=400)
+
+            if max_events <= 0:
+                return self.respond({"error": "maxEvents must be at least 1"}, status=400)
+
+        remaining_events = request.data.get("remainingEvents")
+        if remaining_events not in ("delete", "keep"):
+            return self.respond({"error": "remainingEvents must be delete or keep"}, status=400)
+
+        if remaining_events == "delete" and not request.access.has_scope("event:admin"):
+            return self.respond(
+                {"error": "you do not have permission to delete remaining events"}, status=403
+            )
+
+        reprocess_group.delay(
+            project_id=group.project_id,
+            group_id=group.id,
+            max_events=max_events,
+            acting_user_id=getattr(request.user, "id", None),
+            remaining_events=remaining_events,
+        )
+        return self.respond(status=200)

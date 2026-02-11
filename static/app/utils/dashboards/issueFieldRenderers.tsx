@@ -3,8 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Count from 'sentry/components/count';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -79,17 +80,15 @@ const SPECIAL_FIELDS: SpecialFields = {
       };
 
       return (
-        <Container>
-          <QuickContextHoverWrapper
-            dataRow={data}
-            contextType={ContextType.ISSUE}
-            organization={organization}
-          >
-            <OverflowLink to={target} aria-label={issueID}>
-              <FieldShortId shortId={`${data.issue}`} />
-            </OverflowLink>
-          </QuickContextHoverWrapper>
-        </Container>
+        <QuickContextHoverWrapper
+          dataRow={data}
+          contextType={ContextType.ISSUE}
+          organization={organization}
+        >
+          <OverflowLink to={target} aria-label={issueID}>
+            <FieldShortId shortId={`${data.issue}`} />
+          </OverflowLink>
+        </QuickContextHoverWrapper>
       );
     },
   },
@@ -264,10 +263,10 @@ const StyledContent = styled('div')`
 
 const StyledLink = styled(Link)`
   ${contentStyle};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   &:hover {
-    color: ${p => p.theme.gray400};
-    background: ${p => p.theme.hover};
+    color: ${p => p.theme.colors.gray500};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 
@@ -285,16 +284,17 @@ const WrappedCount = styled(({value, ...p}: any) => (
   </div>
 ))`
   text-align: right;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-variant-numeric: tabular-nums;
   padding-left: ${space(2)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Divider = styled('div')`
   height: 1px;
   overflow: hidden;
-  background-color: ${p => p.theme.innerBorder};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background-color: ${p => p.theme.tokens.border.secondary};
 `;
 
 const LinksContainer = styled('span')`

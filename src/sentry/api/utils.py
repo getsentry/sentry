@@ -15,6 +15,7 @@ from django.db.utils import OperationalError
 from django.http import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import APIException, ParseError, Throttled
+from rest_framework.status import HTTP_504_GATEWAY_TIMEOUT
 from sentry_sdk import Scope
 from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
 
@@ -43,6 +44,7 @@ from sentry.search.events.types import SnubaParams
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.silo.base import SiloMode
 from sentry.types.region import get_local_region
+from sentry.utils import json
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.sdk import capture_exception, merge_context_into_scope, set_span_attribute
 from sentry.utils.snuba import (
@@ -61,11 +63,15 @@ from sentry.utils.snuba import (
     SnubaError,
     UnqualifiedQueryError,
 )
-from sentry.utils.snuba_rpc import SnubaRPCError
+from sentry.utils.snuba_rpc import SnubaRPCError, SnubaRPCRateLimitExceeded
 
 logger = logging.getLogger(__name__)
 
 MAX_STATS_PERIOD = timedelta(days=90)
+
+
+class TimeoutException(APIException):
+    status_code = HTTP_504_GATEWAY_TIMEOUT
 
 
 def get_datetime_from_stats_period(
@@ -372,20 +378,29 @@ def handle_query_errors() -> Generator[None]:
         message = str(error)
         sentry_sdk.set_tag("query.error_reason", f"Metric Error: {message}")
         raise ParseError(detail=message)
+    except SnubaRPCRateLimitExceeded:
+        sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
+        raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
     except SnubaRPCError as error:
         message = "Internal error. Please try again."
         arg = error.args[0] if len(error.args) > 0 else None
         if isinstance(arg, TimeoutError):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
-            raise ParseError(detail=TIMEOUT_RPC_ERROR_MESSAGE)
+            raise TimeoutException(detail=TIMEOUT_RPC_ERROR_MESSAGE)
         sentry_sdk.capture_exception(error)
+        if hasattr(error, "debug"):
+            raise APIException(
+                detail={
+                    "detail": message,
+                    "meta": {"debug_info": {"query": json.loads(error.debug)}},
+                }
+            )
         raise APIException(detail=message)
     except SnubaError as error:
         message = "Internal error. Please try again."
         arg = error.args[0] if len(error.args) > 0 else None
         if isinstance(error, RateLimitExceeded):
             sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
-            sentry_sdk.capture_exception(error)
             raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
         if isinstance(
             error,
@@ -399,7 +414,7 @@ def handle_query_errors() -> Generator[None]:
             ReadTimeoutError,
         ):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
-            raise ParseError(detail=TIMEOUT_ERROR_MESSAGE)
+            raise TimeoutException(detail=TIMEOUT_ERROR_MESSAGE)
         elif isinstance(error, (UnqualifiedQueryError)):
             sentry_sdk.set_tag("query.error_reason", str(error))
             raise ParseError(detail=str(error))

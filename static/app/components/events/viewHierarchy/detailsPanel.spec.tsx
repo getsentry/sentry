@@ -28,8 +28,8 @@ const MOCK_DATA = {
   ],
 };
 
-describe('View Hierarchy Details Panel', function () {
-  it('omits children from rendered data', function () {
+describe('View Hierarchy Details Panel', () => {
+  it('omits children from rendered data', () => {
     render(<DetailsPanel data={MOCK_DATA} />);
 
     expect(screen.getByRole('cell', {name: '200'})).toBeInTheDocument();
@@ -39,7 +39,7 @@ describe('View Hierarchy Details Panel', function () {
     expect(screen.queryByRole('cell', {name: 'children'})).not.toBeInTheDocument();
   });
 
-  it('accepts a custom title renderer', function () {
+  it('accepts a custom title renderer', () => {
     const testGetTitle = jest.fn().mockImplementation(data => {
       return `${data.type} - ${data.identifier}`;
     });

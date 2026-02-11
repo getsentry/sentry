@@ -3,12 +3,14 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptor} from 'history';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import type {Tag, TagSegment} from 'sentry/actionCreators/events';
 import {fetchTagFacets} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Button} from 'sentry/components/core/button';
 import {deviceNameMapper} from 'sentry/components/deviceName';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {TagFacetsList} from 'sentry/components/group/tagFacets';
@@ -140,7 +142,7 @@ class Tags extends Component<Props, State> {
         tags = [...this.state.tags, ...tags];
       }
       this.setState({loading: false, hasLoaded: true, tags, hasMore, nextCursor: cursor});
-    } catch (err) {
+    } catch (err: any) {
       if (
         err.status !== 400 &&
         err.responseJSON?.detail !==
@@ -202,7 +204,7 @@ class Tags extends Component<Props, State> {
     if (error) {
       return (
         <ErrorPanel height="132px">
-          <IconWarning color="gray300" size="lg" />
+          <IconWarning variant="muted" size="lg" />
         </ErrorPanel>
       );
     }
@@ -218,7 +220,7 @@ class Tags extends Component<Props, State> {
             (loading ? (
               this.renderPlaceholders()
             ) : (
-              <ButtonWrapper>
+              <Flex direction="column" align="center">
                 <Button
                   size="xs"
                   priority="primary"
@@ -230,7 +232,7 @@ class Tags extends Component<Props, State> {
                 >
                   {t('Show More')}
                 </Button>
-              </ButtonWrapper>
+              </Flex>
             ))}
         </Fragment>
       );
@@ -262,7 +264,7 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
 `;
 
 const StyledPlaceholder = styled(Placeholder)`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   height: 16px;
   margin-bottom: ${space(1.5)};
 `;
@@ -276,12 +278,6 @@ const StyledPlaceholderTitle = styled(Placeholder)`
 const StyledTagFacetList = styled(TagFacetsList)`
   margin-bottom: 0;
   width: 100%;
-`;
-
-const ButtonWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 `;
 
 export {Tags};

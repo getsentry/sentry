@@ -1,18 +1,16 @@
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationProjectsContainer from 'sentry/views/settings/organizationProjects';
 
-describe('OrganizationProjects', function () {
+describe('OrganizationProjects', () => {
   let projectsGetMock: jest.Mock;
   let statsGetMock: jest.Mock;
   let projectsPutMock: jest.Mock;
   const project = ProjectFixture();
-  const router = RouterFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     projectsGetMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project],
@@ -29,15 +27,12 @@ describe('OrganizationProjects', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('should render the projects in the store', async function () {
-    render(<OrganizationProjectsContainer />, {
-      router,
-      deprecatedRouterMocks: true,
-    });
+  it('should render the projects in the store', async () => {
+    render(<OrganizationProjectsContainer />);
 
     expect(await screen.findByText('project-slug')).toBeInTheDocument();
 
@@ -65,11 +60,8 @@ describe('OrganizationProjects', function () {
     expect(projectsPutMock).toHaveBeenCalledTimes(1);
   });
 
-  it('should search organization projects', async function () {
-    render(<OrganizationProjectsContainer />, {
-      router,
-      deprecatedRouterMocks: true,
-    });
+  it('should search organization projects', async () => {
+    const {router} = render(<OrganizationProjectsContainer />);
 
     expect(await screen.findByText('project-slug')).toBeInTheDocument();
 
@@ -77,10 +69,12 @@ describe('OrganizationProjects', function () {
     await userEvent.type(searchBox, 'random');
 
     await waitFor(() => {
-      expect(router.replace).toHaveBeenLastCalledWith({
-        pathname: '/mock-pathname/',
-        query: {query: 'random'},
-      });
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: '/mock-pathname/',
+          query: expect.objectContaining({query: 'random'}),
+        })
+      );
     });
   });
 });

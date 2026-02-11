@@ -1,10 +1,12 @@
 from datetime import timedelta
 from unittest import mock
 
+import psycopg2.errors
+from django.db import DataError
 from django.utils import timezone
-from pytest import raises
 
 from sentry.buffer.base import Buffer, BufferField
+from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -21,7 +23,7 @@ class BufferTest(TestCase):
         self.buf = Buffer()
 
     @mock.patch("sentry.buffer.base.process_incr")
-    def test_incr_delays_task(self, process_incr):
+    def test_incr_delays_task(self, process_incr: mock.MagicMock) -> None:
         model = Group
         columns = {"times_seen": 1}
         filters: dict[str, BufferField] = {"id": 1}
@@ -74,7 +76,7 @@ class BufferTest(TestCase):
         assert release_project_.new_groups == 1
 
     @mock.patch("sentry.models.Group.objects.create_or_update")
-    def test_signal_only(self, create_or_update):
+    def test_signal_only(self, create_or_update: mock.MagicMock) -> None:
         group = Group.objects.create(project=Project(id=1))
         columns = {"times_seen": 1}
         filters = {"id": group.id, "project_id": 1}
@@ -84,8 +86,49 @@ class BufferTest(TestCase):
         group.refresh_from_db()
         assert group.times_seen == prev_times_seen
 
-    def test_push_to_hash_bulk(self) -> None:
-        raises(NotImplementedError, self.buf.push_to_hash_bulk, Group, {"id": 1}, {"foo": "bar"})
+    def test_process_caps_times_seen_on_overflow(self) -> None:
+        """Test that times_seen is capped to BoundedPositiveIntegerField.MAX_VALUE when increment would cause overflow.
 
-    def test_get_hash_length(self) -> None:
-        raises(NotImplementedError, self.buf.get_hash_length, Group, {"id": 1})
+        Note: We use mocking here because triggering a real NumericValueOutOfRange
+        inside a test transaction causes PostgreSQL to abort the transaction,
+        preventing the retry from succeeding. In production, buffer processing
+        runs outside transactions, so the retry works correctly.
+        """
+        group = Group.objects.create(project=Project(id=1))
+        columns = {"times_seen": 1}
+        filters = {"id": group.id, "project_id": 1}
+
+        # First call raises overflow error, second call succeeds
+        cause = psycopg2.errors.NumericValueOutOfRange()
+        error = DataError("integer out of range")
+        error.__cause__ = cause
+        mock_update = mock.MagicMock(side_effect=[error, None])
+
+        with mock.patch.object(Group, "update", mock_update):
+            self.buf.process(Group, columns, filters)
+
+        # Verify it retried (called twice)
+        assert mock_update.call_count == 2
+
+        # Verify the second call had times_seen capped to BoundedPositiveIntegerField.MAX_VALUE
+        second_call_kwargs = mock_update.call_args_list[1][1]
+        assert second_call_kwargs["times_seen"] == BoundedPositiveIntegerField.MAX_VALUE
+
+    def test_process_skips_times_seen_increment_when_already_max(self) -> None:
+        """Test that we skip times_seen increment but still update other fields when at BoundedPositiveIntegerField.MAX_VALUE."""
+        group = Group.objects.create(project=Project(id=1))
+        Group.objects.filter(id=group.id).update(times_seen=BoundedPositiveIntegerField.MAX_VALUE)
+        columns = {"times_seen": 1}
+        filters = {"id": group.id, "project_id": 1}
+        the_date = timezone.now() + timedelta(days=5)
+
+        mock_update = mock.MagicMock()
+
+        with mock.patch.object(Group, "update", mock_update):
+            self.buf.process(Group, columns, filters, {"last_seen": the_date})
+
+        # Verify update was called once with last_seen but without times_seen
+        assert mock_update.call_count == 1
+        call_kwargs = mock_update.call_args[1]
+        assert "times_seen" not in call_kwargs
+        assert call_kwargs["last_seen"] == the_date

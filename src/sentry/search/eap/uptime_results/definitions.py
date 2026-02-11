@@ -5,10 +5,11 @@ from sentry.search.eap.uptime_results.attributes import UPTIME_ATTRIBUTE_DEFINIT
 
 UPTIME_RESULT_DEFINITIONS = ColumnDefinitions(
     aggregates={},
-    conditional_aggregates={},
     formulas={},
     columns=UPTIME_ATTRIBUTE_DEFINITIONS,
     contexts={},
     trace_item_type=TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
     filter_aliases={},
+    alias_to_column=None,
+    column_to_alias=None,
 )

@@ -1,12 +1,14 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -19,8 +21,8 @@ import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSam
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
 import {
-  type ProjectionSamplePeriod,
   useProjectSampleCounts,
+  type ProjectionSamplePeriod,
 } from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 import {
   useGetSamplingProjectRates,
@@ -119,10 +121,10 @@ export function ProjectSampling() {
             locationChange.nextLocation.pathname && formState.hasChanged
         }
       />
-      <MainControlBar>
+      <Flex justify="between" marginBottom="lg">
         <ProjectionPeriodControl period={period} onChange={setPeriod} />
         <SamplingModeSwitch initialTargetRate={initialTargetRate} />
-      </MainControlBar>
+      </Flex>
       {sampleCountsQuery.isError ? (
         <LoadingError onRetry={sampleCountsQuery.refetch} />
       ) : (
@@ -152,12 +154,6 @@ export function ProjectSampling() {
     </FormProvider>
   );
 }
-
-const MainControlBar = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${space(1.5)};
-`;
 
 const FormActions = styled('div')`
   display: grid;

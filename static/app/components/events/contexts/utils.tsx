@@ -5,12 +5,13 @@ import type {Location} from 'history';
 import moment from 'moment-timezone';
 import logoUnknown from 'sentry-logos/logo-unknown.svg';
 
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {UserAvatar} from '@sentry/scraps/avatar';
+
 import {DeviceName} from 'sentry/components/deviceName';
 import {
   ContextIcon,
-  type ContextIconProps,
   getLogoImage,
+  type ContextIconProps,
 } from 'sentry/components/events/contexts/contextIcon';
 import {getAppContextData} from 'sentry/components/events/contexts/knownContext/app';
 import {getBrowserContextData} from 'sentry/components/events/contexts/knownContext/browser';
@@ -36,6 +37,7 @@ import {
 } from 'sentry/components/events/contexts/platformContext/utils';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
+import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -81,9 +83,9 @@ export function generateIconName(
   const formattedName = name
     .split(/\d/)[0]!
     .toLowerCase()
-    .replace(/[^a-z0-9\-]+/g, '-')
-    .replace(/\-+$/, '')
-    .replace(/^\-+/, '');
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-+$/, '')
+    .replace(/^-+/, '');
 
   if (formattedName === 'edge' && version) {
     const majorVersion = version.split('.')[0]!;
@@ -191,7 +193,7 @@ export function getKnownStructuredData(
 
 /**
  * Returns the type of a given context, after coercing from its type and alias.
- * - 'type' refers the the `type` key on it's data blob. This is usually overridden by the SDK for known types, but not always.
+ * - 'type' refers to the `type` key on it's data blob. This is usually overridden by the SDK for known types, but not always.
  * - 'alias' refers to the key on event.contexts. This can be set by the user, but we have to depend on it for some contexts.
  */
 export function getContextType({alias, type}: {alias: string; type?: string}): string {
@@ -318,7 +320,6 @@ export function getContextIcon({
   type,
   value = {},
   contextIconProps = {},
-  theme,
 }: {
   alias: string;
   theme: Theme;
@@ -349,8 +350,8 @@ export function getContextIcon({
       break;
     case 'user': {
       const user = userContextToActor(value);
-      const iconSize = theme.iconSizes[contextIconProps?.size ?? 'xl'];
-      return <UserAvatar user={user} size={parseInt(iconSize, 10)} gravatar={false} />;
+      const iconSize = SvgIcon.ICON_SIZES[contextIconProps?.size ?? 'xl'];
+      return <UserAvatar user={user} size={parseInt(iconSize, 10)} />;
     }
     case 'gpu':
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
@@ -579,7 +580,7 @@ export function getContextSummary({
 }
 
 const RelativeTime = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.5)};
 `;
 

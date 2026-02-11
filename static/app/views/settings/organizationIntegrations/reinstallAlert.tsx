@@ -1,4 +1,5 @@
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {getIntegrationStatus} from 'sentry/utils/integrationUtil';
@@ -12,7 +13,7 @@ function ReinstallAlert({integrations = []}: Props) {
   if (statusList?.includes('disabled')) {
     return (
       <Alert.Container>
-        <Alert data-test-id="disabled-alert" type="warning">
+        <Alert data-test-id="disabled-alert" variant="warning">
           {t('Reinstall required for disabled integrations.')}
         </Alert>
       </Alert.Container>

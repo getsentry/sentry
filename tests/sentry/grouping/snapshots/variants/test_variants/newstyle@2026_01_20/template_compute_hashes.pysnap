@@ -1,0 +1,14 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+default:
+  hash: "1f5bdebe3c9f414c7dbb4296a8353245"
+  contributing component: template
+  hint: None
+  root_component:
+    default*
+      template*
+        filename*
+          "foo.html"
+        context_line*
+          "{% invalid template tag %}"

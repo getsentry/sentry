@@ -1,9 +1,10 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.group import SimpleGroupSerializer
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.types import ExternalProviderEnum
 from sentry.issues.grouptype import FeedbackGroup
@@ -78,6 +79,38 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         assert result["status"] == "ignored"
         assert result["statusDetails"]["actor"]["id"] == str(user.id)
 
+    def test_manually_unresolved_after_auto_resolve(self) -> None:
+        now = timezone.now()
+        self.project.update_option("sentry:resolve_age", 168)  # 7 days
+
+        user = self.create_user()
+        group = self.create_group(
+            status=GroupStatus.UNRESOLVED,
+            last_seen=now - timedelta(days=10),  # Last seen 10 days ago (past auto-resolve age)
+        )
+
+        group.resolved_at = now - timedelta(days=1)
+        group.save()
+
+        result = serialize(group, user)
+        assert result["status"] == "unresolved"
+        assert result["statusDetails"] == {}
+
+    def test_auto_resolve_not_yet_resolved(self) -> None:
+        now = timezone.now()
+        self.project.update_option("sentry:resolve_age", 168)  # 7 days
+
+        user = self.create_user()
+        group = self.create_group(
+            status=GroupStatus.UNRESOLVED,
+            last_seen=now - timedelta(days=10),  # Last seen 10 days ago (past auto-resolve age)
+        )
+        assert group.resolved_at is None
+
+        result = serialize(group, user)
+        assert result["status"] == "resolved"
+        assert result["statusDetails"]["autoResolved"] is True
+
     def test_resolved_in_next_release(self) -> None:
         release = self.create_release(project=self.project, version="a")
         user = self.create_user()
@@ -132,7 +165,7 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         assert result["statusDetails"]["inCommit"]["id"] == commit.key
 
     @patch("sentry.models.Group.is_over_resolve_age")
-    def test_auto_resolved(self, mock_is_over_resolve_age):
+    def test_auto_resolved(self, mock_is_over_resolve_age: MagicMock) -> None:
         mock_is_over_resolve_age.return_value = True
 
         user = self.create_user()
@@ -143,7 +176,9 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         assert result["statusDetails"] == {"autoResolved": True}
 
     @patch("sentry.models.Group.is_over_resolve_age")
-    def test_auto_resolved_respects_enable_auto_resolve_flag(self, mock_is_over_resolve_age):
+    def test_auto_resolved_respects_enable_auto_resolve_flag(
+        self, mock_is_over_resolve_age: MagicMock
+    ) -> None:
         mock_is_over_resolve_age.return_value = True
 
         user = self.create_user()
@@ -425,5 +460,31 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         perf_group = event.group
         serialized = serialize(perf_group)
         assert serialized["count"] == "1"
-        assert serialized["issueCategory"] == "performance"
+        assert serialized["issueCategory"] == "db_query"
         assert serialized["issueType"] == "performance_n_plus_one_db_queries"
+
+
+class SimpleGroupSerializerTest(TestCase):
+    def test_simple_group_serializer(self) -> None:
+        group = self.create_group()
+        serialized = serialize(group, self.user, SimpleGroupSerializer())
+        assert serialized["id"] == str(group.id)
+        assert serialized["title"] == group.title
+        assert serialized["culprit"] == group.culprit
+        assert serialized["level"] == "error"
+        assert serialized["project"] == {
+            "id": str(group.project.id),
+            "name": group.project.name,
+            "slug": group.project.slug,
+            "platform": group.project.platform,
+        }
+        assert serialized["shortId"] == group.qualified_short_id
+        assert serialized["status"] == "unresolved"
+        assert serialized["substatus"] == "new"
+        assert serialized["type"] == "default"
+        assert serialized["issueType"] == "error"
+        assert serialized["issueCategory"] == "error"
+        assert serialized["metadata"] == group.get_event_metadata()
+        assert serialized["numComments"] == group.num_comments
+        assert serialized["firstSeen"] == group.first_seen
+        assert serialized["lastSeen"] == group.last_seen

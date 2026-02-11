@@ -5,9 +5,7 @@ from collections.abc import Callable, Sequence
 
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.constants import ObjectStatus
-from sentry.eventstore.models import GroupEvent
 from sentry.exceptions import InvalidIdentity
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.mixins.issues import IssueBasicIntegration
@@ -19,12 +17,14 @@ from sentry.integrations.project_management.metrics import (
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.grouplink import GroupLink
-from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.notifications.utils.links import create_link_to_workflow
+from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
+    IntegrationConfigurationError,
     IntegrationFormError,
-    IntegrationInstallationConfigurationError,
+    IntegrationProviderError,
+    IntegrationResourceNotFoundError,
 )
 from sentry.silo.base import region_silo_function
 from sentry.types.rules import RuleFuture
@@ -80,7 +80,7 @@ def build_description_workflow_engine_ui(
     generate_footer: Callable[[str], str],
 ) -> str:
     project = event.group.project
-    workflow_url = create_link_to_workflow(project.organization.id, str(workflow_id))
+    workflow_url = create_link_to_workflow(project.organization.slug, str(workflow_id))
 
     description: str = installation.get_group_description(event.group, event) + generate_footer(
         workflow_url
@@ -142,9 +142,9 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             installation, IssueBasicIntegration
         ), "Installation must be an IssueBasicIntegration to create a ticket"
         data["title"] = installation.get_group_title(event.group, event)
-        if features.has("organizations:workflow-engine-ui-links", organization):
-            workflow_id = data.get("workflow_id")
-            assert workflow_id is not None
+
+        workflow_id = data.get("workflow_id")
+        if workflow_id is not None:
             data["description"] = build_description_workflow_engine_ui(
                 event, workflow_id, installation, generate_footer
             )
@@ -180,17 +180,17 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             try:
                 response = installation.create_issue(data)
             except (
-                IntegrationInstallationConfigurationError,
+                IntegrationConfigurationError,
                 IntegrationFormError,
                 InvalidIdentity,
                 ApiUnauthorized,
+                IntegrationResourceNotFoundError,
+                IntegrationProviderError,
             ) as e:
                 # Most of the time, these aren't explicit failures, they're
                 # some misconfiguration of an issue field - typically Jira.
-                # We only want to raise if the rule_id is -1 because that means we're testing the action
                 lifecycle.record_halt(e)
-                if rule_id == TEST_NOTIFICATION_ID:
-                    raise
+                raise
             # If we successfully created the issue, we want to create the link
             else:
                 create_link(integration, installation, event, response)

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import abc
-from typing import NotRequired, TypedDict, _TypedDict
+from collections.abc import Mapping
+from typing import Any, NotRequired, TypedDict, _TypedDict
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -20,6 +21,7 @@ from rest_framework.request import Request
 
 from sentry import features, options
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.auth.helper import AuthHelper
 from sentry.auth.provider import Provider
 from sentry.auth.store import FLOW_LOGIN
 from sentry.auth.view import AuthView
@@ -58,7 +60,7 @@ def get_provider(organization_slug: str) -> SAML2Provider | None:
 
 
 class SAML2LoginView(AuthView):
-    def dispatch(self, request: HttpRequest, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
         if "SAMLResponse" in request.POST:
             return pipeline.next_step()
 
@@ -76,7 +78,13 @@ class SAML2LoginView(AuthView):
         saml_config = build_saml_config(provider.config, pipeline.organization.slug)
         auth = build_auth(request, saml_config)
 
-        return HttpResponseRedirect(auth.login())
+        # Encode provider key in RelayState so it survives the SAML redirect.
+        # This allows detecting when a user completes a SAML flow that was started
+        # for a different provider (e.g., multiple SSO tabs open).
+        # Format: "provider_key:{key}" or just return_to URL for backward compat
+        relay_state = f"provider_key:{pipeline.provider.key}"
+
+        return HttpResponseRedirect(auth.login(return_to=relay_state))
 
 
 # With SAML, the SSO request can be initiated by both the Service Provider
@@ -126,9 +134,10 @@ class SAML2AcceptACSView(BaseView):
         return pipeline.current_step()
 
 
+@control_silo_view
 class SAML2ACSView(AuthView):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
         provider = pipeline.provider
 
         # If we're authenticating during the setup pipeline the provider will
@@ -147,9 +156,20 @@ class SAML2ACSView(AuthView):
 
         pipeline.bind_state("auth_attributes", auth.get_attributes())
 
+        # Extract the provider key from the RelayState parameter.
+        # This was encoded when the SAML flow started (in SAML2LoginView) and survives
+        # the redirect through the IdP, allowing us to detect if the user completed
+        # a SAML flow that was started for a different provider.
+        provider_key = None
+        relay_state = request.POST.get("RelayState") or request.GET.get("RelayState")
+        if relay_state and relay_state.startswith("provider_key:"):
+            provider_key = relay_state.split(":", 1)[1]
+        pipeline.bind_state("provider_key", provider_key)
+
         return pipeline.next_step()
 
 
+@control_silo_view
 class SAML2SLSView(BaseView):
     @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, organization_slug: str) -> HttpResponseRedirect:
@@ -164,7 +184,7 @@ class SAML2SLSView(BaseView):
         # No need to logout an anonymous user.
         should_logout = request.user.is_authenticated
 
-        def force_logout():
+        def force_logout() -> None:
             logout(request)
 
         redirect_to = auth.process_slo(
@@ -177,6 +197,7 @@ class SAML2SLSView(BaseView):
         return self.redirect(redirect_to)
 
 
+@control_silo_view
 class SAML2MetadataView(BaseView):
     def dispatch(self, request: HttpRequest, organization_slug: str) -> HttpResponse:
         provider = get_provider(organization_slug)
@@ -266,7 +287,7 @@ class SAML2Provider(Provider, abc.ABC):
         state.
         """
 
-    def attribute_mapping(self):
+    def attribute_mapping(self) -> Mapping[str, Any]:
         """
         Returns the default Attribute Key -> IdP attribute key mapping.
 
@@ -276,7 +297,7 @@ class SAML2Provider(Provider, abc.ABC):
         """
         return {}
 
-    def build_config(self, state):
+    def build_config(self, state: dict[str, Any]) -> dict[str, Any]:
         config = state
 
         # Default attribute mapping if none bound
@@ -285,7 +306,7 @@ class SAML2Provider(Provider, abc.ABC):
 
         return config
 
-    def build_identity(self, state):
+    def build_identity(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         raw_attributes = state["auth_attributes"]
         attributes = {}
 
@@ -358,7 +379,7 @@ class SamlConfig(TypedDict):
     idp: NotRequired[_SamlConfigIdp]
 
 
-def build_saml_config(provider_config, org: str) -> SamlConfig:
+def build_saml_config(provider_config: Mapping[str, Any], org: str) -> SamlConfig:
     """
     Construct the SAML configuration dict to be passed into the OneLogin SAML
     library.

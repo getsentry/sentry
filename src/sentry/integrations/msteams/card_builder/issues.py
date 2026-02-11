@@ -5,7 +5,6 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.messaging.message_builder import (
     build_attachment_text,
     build_attachment_title,
@@ -31,6 +30,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.services.eventstore.models import Event, GroupEvent
 
 from .base import MSTeamsMessageBuilder
 from .block import (

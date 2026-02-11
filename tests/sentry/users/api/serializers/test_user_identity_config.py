@@ -58,7 +58,7 @@ class UserIdentityConfigSerializerTest(TestCase):
         }
 
     @mock.patch("sentry.users.api.serializers.user_identity_config.is_login_provider")
-    def test_global_login_identity(self, mock_is_login_provider):
+    def test_global_login_identity(self, mock_is_login_provider: mock.MagicMock) -> None:
         mock_is_login_provider.return_value = True
 
         identity = Identity.objects.create(idp=self.idp, user=self.user, external_id="m9p8bzua")

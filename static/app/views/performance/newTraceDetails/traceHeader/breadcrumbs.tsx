@@ -12,6 +12,7 @@ import type {Project} from 'sentry/types/project';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
+import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 import type {
   RoutableModuleNames,
   URLBuilder,
@@ -27,7 +28,6 @@ import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
-import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 
 export enum TraceViewSources {
   TRACES = 'traces',
@@ -52,6 +52,7 @@ export enum TraceViewSources {
   FEEDBACK_DETAILS = 'feedback_details',
   LOGS = 'logs',
   AGENT_MONITORING = 'agent_monitoring',
+  TRACE_METRICS = 'trace_metrics',
 }
 
 // Ideally every new entry to ModuleName, would require a new source to be added here so we don't miss any.
@@ -59,7 +60,6 @@ const TRACE_SOURCE_TO_INSIGHTS_MODULE: Partial<Record<TraceViewSources, ModuleNa
   app_starts_module: ModuleName.APP_START,
   assets_module: ModuleName.RESOURCE,
   caches_module: ModuleName.CACHE,
-  llm_module: ModuleName.AI,
   queries_module: ModuleName.DB,
   requests_module: ModuleName.HTTP,
   screen_loads_module: ModuleName.SCREEN_LOAD,
@@ -68,21 +68,6 @@ const TRACE_SOURCE_TO_INSIGHTS_MODULE: Partial<Record<TraceViewSources, ModuleNa
   screen_load_module: ModuleName.SCREEN_LOAD,
   screen_rendering_module: ModuleName.SCREEN_RENDERING,
   mobile_screens_module: ModuleName.MOBILE_VITALS,
-};
-
-// Remove this when the new navigation is GA'd
-export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY: Partial<
-  Record<TraceViewSources, string>
-> = {
-  traces: 'traces',
-  metrics: 'metrics',
-  discover: 'discover',
-  profiling_flamegraph: 'profiling',
-  performance_transaction_summary: 'insights/summary',
-  issue_details: 'issues',
-  feedback_details: 'issues/feedback',
-  dashboards: 'dashboards',
-  logs: 'explore/logs',
 };
 
 export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
@@ -97,6 +82,7 @@ export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
   feedback_details: 'issues/feedback',
   dashboards: 'dashboards',
   logs: 'explore/logs',
+  trace_metrics: 'explore/metrics',
 };
 
 function getBreadCrumbTarget(pathname: string, query: Location['query']) {
@@ -154,31 +140,6 @@ function getPerformanceBreadCrumbs(
         ),
       });
       break;
-    case Tab.SPANS: {
-      crumbs.push({
-        label: t('Spans'),
-        to: getBreadCrumbTarget(
-          normalizeUrl(
-            `/organizations/${organization.slug}/${transactionSummaryUrl}/spans`
-          ),
-          location.query
-        ),
-      });
-
-      const {spanSlug} = location.query;
-      if (spanSlug) {
-        crumbs.push({
-          label: t('Span Summary'),
-          to: getBreadCrumbTarget(
-            normalizeUrl(
-              `/organizations/${organization.slug}/${transactionSummaryUrl}/spans/${spanSlug}`
-            ),
-            location.query
-          ),
-        });
-      }
-      break;
-    }
     default:
       crumbs.push({
         label: t('Transaction Summary'),
@@ -399,19 +360,7 @@ function getInsightsModuleBreadcrumbs(
         ),
       });
       break;
-    case ModuleName.AI:
-      if (location.query.groupId) {
-        crumbs.push({
-          label: t('Pipeline Summary'),
-          to: getBreadCrumbTarget(
-            normalizeUrl(
-              `/organizations/${organization.slug}/${moduleURLBuilder(moduleName, view)}/pipeline-type/${location.query.groupId}`
-            ),
-            location.query
-          ),
-        });
-      }
-      break;
+
     case ModuleName.CACHE:
     default:
       break;
@@ -444,11 +393,11 @@ function LeafBreadCrumbLabel({
       )}
       <span>{formatVersion(traceSlug)}</span>
       <CopyToClipboardButton
+        aria-label={t('Copy trace ID to clipboard')}
         className="trace-id-copy-button"
         text={traceSlug}
         size="zero"
-        borderless
-        iconSize="xs"
+        priority="transparent"
         style={{
           transform: 'translateY(-1px) translateX(-3px)',
         }}
@@ -564,6 +513,17 @@ export function getTraceViewBreadcrumbs({
           label: t('Logs'),
           to: getBreadCrumbTarget(
             normalizeUrl(`/organizations/${organization.slug}/explore/logs/`),
+            location.query
+          ),
+        },
+        leafBreadcrumb,
+      ];
+    case TraceViewSources.TRACE_METRICS:
+      return [
+        {
+          label: t('Metrics'),
+          to: getBreadCrumbTarget(
+            normalizeUrl(`/organizations/${organization.slug}/explore/metrics/`),
             location.query
           ),
         },

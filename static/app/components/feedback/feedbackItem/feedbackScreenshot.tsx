@@ -1,7 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import ImageVisualization from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -83,7 +84,7 @@ const StyledPanel = styled(Panel)`
   align-items: center;
   margin-bottom: 0;
   border: 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const StyledLoadingIndicator = styled('div')`
@@ -91,7 +92,7 @@ const StyledLoadingIndicator = styled('div')`
   align-items: center;
   justify-content: center;
   height: 100%;
-  background: ${p => p.theme.purple100};
+  background: ${p => p.theme.tokens.background.transparent.accent.muted};
 `;
 
 const StyledImageButton = styled('button')`
@@ -105,7 +106,7 @@ const StyledImageButton = styled('button')`
 const StyledImageVisualization = styled(ImageVisualization)`
   z-index: 1;
   border: 0;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   img {
     width: auto;
@@ -125,13 +126,13 @@ const FileDownload = styled('a')`
 `;
 
 const File = styled(StyledPanel)`
-  background: ${p => p.theme.purple100};
+  background: ${p => p.theme.tokens.background.transparent.accent.muted};
   padding: ${space(2)};
   max-width: 300px;
 `;
 
 const NoPreviewFound = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -18,8 +18,8 @@ import {ANNUAL, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import * as usePlanMigrations from 'getsentry/hooks/usePlanMigrations';
 import {CohortId, OnDemandBudgetMode} from 'getsentry/types';
 
-describe('PendingChanges', function () {
-  it('renders null pendingChanges)', function () {
+describe('PendingChanges', () => {
+  it('renders null pendingChanges)', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
     });
@@ -27,7 +27,7 @@ describe('PendingChanges', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders empty pendingChanges', function () {
+  it('renders empty pendingChanges', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       pendingChanges: null,
@@ -36,7 +36,7 @@ describe('PendingChanges', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders pending changes', function () {
+  it('renders pending changes', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       customPrice: 0,
@@ -46,6 +46,7 @@ describe('PendingChanges', function () {
           name: 'Team (Enterprise)',
           contractInterval: 'annual',
           billingInterval: 'annual',
+          budgetTerm: 'on-demand',
         }),
         plan: 'am1_team_ent',
         planName: 'Team (Enterprise)',
@@ -87,10 +88,10 @@ describe('PendingChanges', function () {
     expect(container).toHaveTextContent(
       'The following changes will take effect on Feb 16, 2022'
     );
-    expect(container).toHaveTextContent('On-demand maximum — $0.00 → $500.00');
+    expect(container).toHaveTextContent('On-Demand maximum — $0.00 → $500.00');
   });
 
-  it('renders pending changes with all categories', function () {
+  it('renders pending changes with all categories', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       customPrice: 0,
@@ -100,6 +101,7 @@ describe('PendingChanges', function () {
           name: 'Team (Enterprise)',
           contractInterval: 'annual',
           billingInterval: 'annual',
+          budgetTerm: 'on-demand',
         }),
         plan: 'am3_team_ent',
         planName: 'Team (Enterprise)',
@@ -140,10 +142,10 @@ describe('PendingChanges', function () {
     expect(container).toHaveTextContent(
       'The following changes will take effect on Feb 20, 2024'
     );
-    expect(container).toHaveTextContent('On-demand maximum — $0.00 → $500.00');
+    expect(container).toHaveTextContent('On-Demand maximum — $0.00 → $500.00');
   });
 
-  it('renders on-demand budgets', function () {
+  it('renders on-demand budgets', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       onDemandBudgets: {
@@ -189,11 +191,11 @@ describe('PendingChanges', function () {
       'The following changes will take effect on Feb 16, 2022'
     );
     expect(container).toHaveTextContent(
-      'On-demand budget — shared on-demand budget of $100 → per-category on-demand budget (errors at $3, transactions at $2, and attachments at $1)'
+      'On-Demand Budget — shared on-demand budget of $100 → per-category on-demand budget (errors at $3, transactions at $2, and attachments at $1)'
     );
   });
 
-  it('combines regular and on-demand changes', function () {
+  it('combines regular and on-demand changes', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       onDemandBudgets: {
@@ -234,14 +236,14 @@ describe('PendingChanges', function () {
     );
     expect(container).toHaveTextContent('Plan changes — Developer → Team (Enterprise)');
     expect(container).toHaveTextContent(
-      'On-demand budget — shared on-demand budget of $100 → per-category on-demand budget (errors at $3, transactions at $2, and attachments at $1)'
+      'On-Demand Budget — shared on-demand budget of $100 → per-category on-demand budget (errors at $3, transactions at $2, and attachments at $1)'
     );
     expect(screen.getAllByText(/The following changes will take effect on/)).toHaveLength(
       1
     );
   });
 
-  it('renders pending changes for plan migration', function () {
+  it('renders pending changes for plan migration', () => {
     const organization = OrganizationFixture();
     const am2BusinessPlan = PlanDetailsLookupFixture('am2_business_auf');
     const subscription = SubscriptionFixture({
@@ -311,7 +313,7 @@ describe('PendingChanges', function () {
     );
   });
 
-  it('renders reserved budgets with existing budgets', function () {
+  it('renders reserved budgets with existing budgets', () => {
     const subscription = Am3DsEnterpriseSubscriptionFixture({
       organization: OrganizationFixture(),
       pendingChanges: PendingChangesFixture({
@@ -360,7 +362,7 @@ describe('PendingChanges', function () {
     );
   });
 
-  it('does not render reserved budgets with mocked values', function () {
+  it('does not render reserved budgets with mocked values', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       reservedBudgets: [
@@ -393,7 +395,7 @@ describe('PendingChanges', function () {
     );
   });
 
-  it('renders reserved budgets without existing budgets', function () {
+  it('renders reserved budgets without existing budgets', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       plan: 'am3_business',
@@ -447,7 +449,7 @@ describe('PendingChanges', function () {
     );
   });
 
-  it('renders reserved budgets to reserved volume', function () {
+  it('renders reserved budgets to reserved volume', () => {
     const subscription = Am3DsEnterpriseSubscriptionFixture({
       organization: OrganizationFixture(),
       pendingChanges: PendingChangesFixture({
@@ -494,7 +496,7 @@ describe('PendingChanges', function () {
     );
   });
 
-  it('does not render reserved budgets if there are no changes', function () {
+  it('does not render reserved budgets if there are no changes', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
     });

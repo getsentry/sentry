@@ -16,17 +16,22 @@ from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
+from sentry.constants import ObjectStatus
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.atlassian_connect import (
     AtlassianConnectValidationError,
     get_integration_from_request,
 )
+from sentry.issues.services.issue import issue_service
+from sentry.issues.services.issue.model import RpcExternalIssueGroupMetadata
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.types.region import find_regions_for_orgs
 from sentry.utils.http import absolute_uri
-from sentry.web.frontend.base import region_silo_view
+from sentry.web.frontend.base import control_silo_view, region_silo_view
 
 from ..utils import handle_jira_api_error, set_badge
 from . import UNABLE_TO_VERIFY_INSTALLATION, JiraSentryUIBaseView
@@ -172,6 +177,83 @@ class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
             return self.get_response({"issue_not_linked": True})
 
         scope.set_tag("organization.slug", organization.slug)
+        response = self.handle_groups(groups)
+        scope.set_tag("status_code", response.status_code)
+
+        set_badge(integration, issue_key, len(groups))
+        return response
+
+
+@control_silo_view
+class JiraSentryIssueDetailsControlView(JiraSentryUIBaseView):
+    """
+    Handles requests (from the Sentry integration in Jira) for HTML to display when you
+    click on "Sentry -> Linked Issues" in the RH sidebar of an issue in the Jira UI.
+    Fans the request to all regions and returns the groups from all regions.
+    """
+
+    html_file = "sentry/integrations/jira-issue-list.html"
+
+    def handle_groups(self, groups: list[RpcExternalIssueGroupMetadata]) -> Response:
+        response_context = {"groups": [dict(group) for group in groups]}
+
+        logger.info(
+            "issue_hook.response",
+            extra={"issue_count": len(groups)},
+        )
+
+        return self.get_response(response_context)
+
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
+        try:
+            return super().dispatch(request, *args, **kwargs)
+        except ApiError as exc:
+            # Sometime set_badge() will fail to connect.
+            response_option = handle_jira_api_error(exc, " to set badge")
+            if response_option:
+                return self.get_response(response_option)
+            raise
+
+    def get(self, request: Request, issue_key, *args, **kwargs) -> Response:
+        scope = sentry_sdk.get_isolation_scope()
+
+        try:
+            integration = get_integration_from_request(request, "jira")
+        except AtlassianConnectValidationError as e:
+            scope.set_tag("failure", "AtlassianConnectValidationError")
+            logger.info(
+                "issue_hook.validation_error",
+                extra={
+                    "issue_key": issue_key,
+                    "error": str(e),
+                },
+            )
+            return self.get_response({"error_message": UNABLE_TO_VERIFY_INSTALLATION})
+        except ExpiredSignatureError:
+            scope.set_tag("failure", "ExpiredSignatureError")
+            return self.get_response({"refresh_required": True})
+
+        has_groups = False
+        groups = []
+        organization_ids = list(
+            OrganizationIntegration.objects.filter(
+                integration_id=integration.id,
+                status=ObjectStatus.ACTIVE,
+            ).values_list("organization_id", flat=True)
+        )
+        org_regions = find_regions_for_orgs(organization_ids)
+        for region_name in org_regions:
+            region_groups = issue_service.get_external_issue_groups(
+                region_name=region_name, external_issue_key=issue_key, integration_id=integration.id
+            )
+            if region_groups is not None:
+                groups.extend(region_groups)
+                has_groups = True
+
+        if not has_groups:
+            set_badge(integration, issue_key, 0)
+            return self.get_response({"issue_not_linked": True})
+
         response = self.handle_groups(groups)
         scope.set_tag("status_code", response.status_code)
 

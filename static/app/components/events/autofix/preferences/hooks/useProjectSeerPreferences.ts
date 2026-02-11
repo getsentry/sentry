@@ -3,7 +3,8 @@ import type {
   SeerRepoDefinition,
 } from 'sentry/components/events/autofix/types';
 import type {Project} from 'sentry/types/project';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export interface SeerPreferencesResponse {
@@ -11,15 +12,25 @@ export interface SeerPreferencesResponse {
   preference?: ProjectSeerPreferences | null;
 }
 
-function makeProjectSeerPreferencesQueryKey(orgSlug: string, projectSlug: string) {
-  return `/projects/${orgSlug}/${projectSlug}/seer/preferences/`;
+export function makeProjectSeerPreferencesQueryKey(
+  orgSlug: string,
+  projectSlug: string
+): ApiQueryKey {
+  return [
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/preferences/', {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        projectIdOrSlug: projectSlug,
+      },
+    }),
+  ];
 }
 
 export function useProjectSeerPreferences(project: Project) {
   const organization = useOrganization();
 
   const {data, ...rest} = useApiQuery<SeerPreferencesResponse>(
-    [makeProjectSeerPreferencesQueryKey(organization.slug, project.slug)],
+    makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
     {
       staleTime: 60000, // 1 minute
     }

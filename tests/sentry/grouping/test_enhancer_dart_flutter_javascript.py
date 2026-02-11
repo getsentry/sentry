@@ -9,15 +9,14 @@ from typing import Any
 
 from sentry.grouping.enhancer import ENHANCEMENT_BASES
 from sentry.testutils.cases import TestCase
-from sentry.testutils.fixtures import Fixtures
 
 
-class _BaseJavaScriptDartFlutterEnhancerTest(TestCase, Fixtures):
+class _BaseJavaScriptDartFlutterEnhancerTest(TestCase):
     PLATFORM = "javascript"
 
     def setUp(self) -> None:
         super().setUp()
-        self.enhancements = ENHANCEMENT_BASES["newstyle:2023-01-11"]
+        self.enhancements = ENHANCEMENT_BASES["all-platforms:2023-01-11"]
 
     def apply_rules(self, frame: dict[str, str]) -> dict[str, Any]:
         frames = [frame]

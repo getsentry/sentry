@@ -9,8 +9,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TraceDataSection as IssuesTraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {
-  type TimelineEvent,
   useTraceTimelineEvents,
+  type TimelineEvent,
 } from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
 
 /**

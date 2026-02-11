@@ -1,10 +1,11 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
-  type UseApiQueryOptions,
   useMutation,
   useQueryClient,
+  type ApiQueryKey,
+  type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
@@ -14,7 +15,7 @@ interface AssistantResult {
   seen: boolean;
 }
 
-const assistantQueryKey: ApiQueryKey = ['/assistant/'];
+const assistantQueryKey: ApiQueryKey = [getApiUrl('/assistant/')];
 
 export function useAssistant(
   options: Partial<UseApiQueryOptions<AssistantResult[]>> = {}

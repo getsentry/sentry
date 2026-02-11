@@ -9,13 +9,15 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 @condition_handler_registry.register(Condition.ISSUE_CATEGORY)
 class IssueCategoryConditionHandler(DataConditionHandler[WorkflowEventData]):
     group = DataConditionHandler.Group.ACTION_FILTER
+    subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
 
     comparison_json_schema = {
         "type": "object",
         "properties": {
             "value": {"type": "integer", "enum": [*GroupCategory]},
+            "include": {"type": "boolean"},
         },
-        "required": ["value"],
+        "required": ["value"],  # if include is not present, then default to True
         "additionalProperties": False,
     }
 
@@ -28,10 +30,15 @@ class IssueCategoryConditionHandler(DataConditionHandler[WorkflowEventData]):
         except (TypeError, ValueError, KeyError):
             return False
 
+        include = comparison.get("include", True)
+
         try:
             issue_category = group.issue_category
             issue_category_v2 = group.issue_category_v2
         except ValueError:
             return False
 
-        return bool(value == issue_category or value == issue_category_v2)
+        if include:
+            return bool(value == issue_category or value == issue_category_v2)
+
+        return bool(value != issue_category and value != issue_category_v2)

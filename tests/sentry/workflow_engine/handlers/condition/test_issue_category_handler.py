@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from jsonschema import ValidationError
@@ -35,6 +35,20 @@ class TestIssueCategoryCondition(ConditionTestCase):
         assert dc.type == self.condition
         assert dc.comparison == {
             "value": 1,
+        }
+        assert dc.condition_result is True
+        assert dc.condition_group == dcg
+
+    def test_dual_write_exclude(self) -> None:
+        dcg = self.create_data_condition_group()
+        dc = self.translate_to_data_condition(
+            {"id": IssueCategoryFilter.id, "value": "1", "include": False}, dcg
+        )
+
+        assert dc.type == self.condition
+        assert dc.comparison == {
+            "value": 1,
+            "include": False,
         }
         assert dc.condition_result is True
         assert dc.condition_group == dcg
@@ -85,7 +99,7 @@ class TestIssueCategoryCondition(ConditionTestCase):
         self.assert_passes(self.dc, WorkflowEventData(event=group_event, group=self.group))
 
     @patch("sentry.issues.grouptype.GroupTypeRegistry.get_by_type_id")
-    def test_invalid_issue_category(self, mock_get_by_type_id):
+    def test_invalid_issue_category(self, mock_get_by_type_id: MagicMock) -> None:
         mock_get_by_type_id.side_effect = ValueError("Invalid group type")
 
         self.assert_does_not_pass(
@@ -103,3 +117,15 @@ class TestIssueCategoryCondition(ConditionTestCase):
 
         self.dc.update(comparison={"value": GroupCategory.DB_QUERY.value})
         self.assert_passes(self.dc, WorkflowEventData(event=perf_group_event, group=perf_group))
+
+    def test_exclude(self) -> None:
+        assert self.event.group is not None
+        group_event = self.event.for_group(self.group)
+
+        self.dc.update(comparison={"value": GroupCategory.ERROR.value, "include": False})
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=self.event, group=self.group))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event, group=self.group))
+
+        self.dc.update(comparison={"value": GroupCategory.PERFORMANCE.value, "include": False})
+        self.assert_passes(self.dc, WorkflowEventData(event=self.event, group=self.group))
+        self.assert_passes(self.dc, WorkflowEventData(event=group_event, group=self.group))

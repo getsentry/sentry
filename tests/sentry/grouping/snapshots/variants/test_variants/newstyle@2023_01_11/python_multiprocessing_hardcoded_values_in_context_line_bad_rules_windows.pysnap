@@ -1,0 +1,749 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: "38660ba262e9baab1dcf0a432479f643"
+  contributing component: threads
+  hint: None
+  root_component:
+    app*
+      threads*
+        stacktrace*
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "__main__"
+            filename (ignored because module takes precedence)
+              "<string>"
+            function*
+              "<module>"
+            context_line*
+              "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=11, pipe_handle=32)"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "multiprocessing.spawn"
+            filename (ignored because module takes precedence)
+              "spawn.py"
+            function*
+              "spawn_main"
+            context_line*
+              "exitcode = _main(fd, parent_sentinel)"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "multiprocessing.spawn"
+            filename (ignored because module takes precedence)
+              "spawn.py"
+            function*
+              "_main"
+            context_line*
+              "return self._bootstrap(parent_sentinel)"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "multiprocessing.process"
+            filename (ignored because module takes precedence)
+              "process.py"
+            function*
+              "_bootstrap"
+            context_line*
+              "self.run()"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "multiprocessing.process"
+            filename (ignored because module takes precedence)
+              "process.py"
+            function*
+              "run"
+            context_line*
+              "self._target(*self._args, **self._kwargs)"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "uvicorn._subprocess"
+            filename (ignored because module takes precedence)
+              "_subprocess.py"
+            function*
+              "subprocess_started"
+            context_line*
+              "target(sockets=sockets)"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "uvicorn.server"
+            filename (ignored because module takes precedence)
+              "server.py"
+            function*
+              "run"
+            context_line*
+              "return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "asyncio.runners"
+            filename (ignored because module takes precedence)
+              "runners.py"
+            function*
+              "run"
+            context_line*
+              "return runner.run(main)"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+            module*
+              "asyncio.runners"
+            filename (ignored because module takes precedence)
+              "runners.py"
+            function*
+              "run"
+            context_line*
+              "return self._loop.run_until_complete(task)"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "asyncio.base_events"
+            filename (ignored because module takes precedence)
+              "base_events.py"
+            function*
+              "run_until_complete"
+            context_line*
+              "self.run_forever()"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "asyncio.base_events"
+            filename (ignored because module takes precedence)
+              "base_events.py"
+            function*
+              "run_forever"
+            context_line*
+              "self._run_once()"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "asyncio.base_events"
+            filename (ignored because module takes precedence)
+              "base_events.py"
+            function*
+              "_run_once"
+            context_line*
+              "handle._run()"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "asyncio.events"
+            filename (ignored because module takes precedence)
+              "events.py"
+            function*
+              "_run"
+            context_line*
+              "self._context.run(self._callback, *self._args)"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "uvicorn.lifespan.on"
+            filename (ignored because module takes precedence)
+              "on.py"
+            function*
+              "main"
+            context_line*
+              "await app(scope, self.receive, self.send)"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "uvicorn.middleware.proxy_headers"
+            filename (ignored because module takes precedence)
+              "proxy_headers.py"
+            function*
+              "__call__"
+            context_line*
+              "return await self.app(scope, receive, send)"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "fastapi.applications"
+            filename (ignored because module takes precedence)
+              "applications.py"
+            function*
+              "__call__"
+            context_line*
+              "await super().__call__(scope, receive, send)"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "starlette.applications"
+            filename (ignored because module takes precedence)
+              "applications.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.middleware_stack(scope, receive, send)"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "starlette.middleware.errors"
+            filename (ignored because module takes precedence)
+              "errors.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.app(scope, receive, send)"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "starlette.middleware.base"
+            filename (ignored because module takes precedence)
+              "base.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.app(scope, receive, send)"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "starlette.middleware.cors"
+            filename (ignored because module takes precedence)
+              "cors.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.app(scope, receive, send)"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "starlette.middleware.exceptions"
+            filename (ignored because module takes precedence)
+              "exceptions.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.app(scope, receive, send)"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "fastapi.middleware.asyncexitstack"
+            filename (ignored because module takes precedence)
+              "asyncexitstack.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.app(scope, receive, send)"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "starlette.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.middleware_stack(scope, receive, send)"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "starlette.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "app"
+            context_line*
+              "await self.lifespan(scope, receive, send)"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "starlette.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "lifespan"
+            context_line*
+              "async with self.lifespan_context(app) as maybe_state:"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+            module*
+              "app.main"
+            filename (ignored because module takes precedence)
+              "main.py"
+            function*
+              "run_app"
+            context_line*
+              "do_log(\"error\", f\"Error creating HTTP client: {e}\")"
+          frame (non app frame)
+            module*
+              "app.main"
+            filename (ignored because module takes precedence)
+              "main.py"
+            function*
+              "do_log"
+            context_line*
+              "getattr(logger, level)(msg, *args, **kwargs)"
+          frame (non app frame)
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "error"
+            context_line*
+              "self._log(ERROR, msg, args, **kwargs)"
+          frame (non app frame)
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "_log"
+            context_line*
+              "self.handle(record)"
+          frame (non app frame)
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "handle"
+            context_line*
+              "self.callHandlers(record)"
+          frame (non app frame)
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "callHandlers"
+            context_line*
+              "hdlr.handle(record)"
+          frame (non app frame)
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "handle"
+            context_line*
+              "self.emit(record)"
+--------------------------------------------------------------------------
+default:
+  hash: null
+  contributing component: null
+  hint: ignored because app/system threads take precedence
+  root_component:
+    default (ignored because app/system threads take precedence)
+      message (ignored because app/system threads take precedence)
+        "Error creating HTTP client: cannot import name 'create_http_client' from 'app.utils.http' (D:\\engine\\app\\utils\\http.py)"
+--------------------------------------------------------------------------
+system:
+  hash: "46b9ac9970eba6e39408d3392e619471"
+  contributing component: threads
+  hint: None
+  root_component:
+    system*
+      threads*
+        stacktrace*
+          frame*
+            module*
+              "__main__"
+            filename (ignored because module takes precedence)
+              "<string>"
+            function*
+              "<module>"
+            context_line*
+              "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=11, pipe_handle=32)"
+          frame*
+            module*
+              "multiprocessing.spawn"
+            filename (ignored because module takes precedence)
+              "spawn.py"
+            function*
+              "spawn_main"
+            context_line*
+              "exitcode = _main(fd, parent_sentinel)"
+          frame*
+            module*
+              "multiprocessing.spawn"
+            filename (ignored because module takes precedence)
+              "spawn.py"
+            function*
+              "_main"
+            context_line*
+              "return self._bootstrap(parent_sentinel)"
+          frame*
+            module*
+              "multiprocessing.process"
+            filename (ignored because module takes precedence)
+              "process.py"
+            function*
+              "_bootstrap"
+            context_line*
+              "self.run()"
+          frame*
+            module*
+              "multiprocessing.process"
+            filename (ignored because module takes precedence)
+              "process.py"
+            function*
+              "run"
+            context_line*
+              "self._target(*self._args, **self._kwargs)"
+          frame*
+            module*
+              "uvicorn._subprocess"
+            filename (ignored because module takes precedence)
+              "_subprocess.py"
+            function*
+              "subprocess_started"
+            context_line*
+              "target(sockets=sockets)"
+          frame*
+            module*
+              "uvicorn.server"
+            filename (ignored because module takes precedence)
+              "server.py"
+            function*
+              "run"
+            context_line*
+              "return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())"
+          frame*
+            module*
+              "asyncio.runners"
+            filename (ignored because module takes precedence)
+              "runners.py"
+            function*
+              "run"
+            context_line*
+              "return runner.run(main)"
+          frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+            module*
+              "asyncio.runners"
+            filename (ignored because module takes precedence)
+              "runners.py"
+            function*
+              "run"
+            context_line*
+              "return self._loop.run_until_complete(task)"
+          frame*
+            module*
+              "asyncio.base_events"
+            filename (ignored because module takes precedence)
+              "base_events.py"
+            function*
+              "run_until_complete"
+            context_line*
+              "self.run_forever()"
+          frame*
+            module*
+              "asyncio.base_events"
+            filename (ignored because module takes precedence)
+              "base_events.py"
+            function*
+              "run_forever"
+            context_line*
+              "self._run_once()"
+          frame*
+            module*
+              "asyncio.base_events"
+            filename (ignored because module takes precedence)
+              "base_events.py"
+            function*
+              "_run_once"
+            context_line*
+              "handle._run()"
+          frame*
+            module*
+              "asyncio.events"
+            filename (ignored because module takes precedence)
+              "events.py"
+            function*
+              "_run"
+            context_line*
+              "self._context.run(self._callback, *self._args)"
+          frame*
+            module*
+              "uvicorn.lifespan.on"
+            filename (ignored because module takes precedence)
+              "on.py"
+            function*
+              "main"
+            context_line*
+              "await app(scope, self.receive, self.send)"
+          frame*
+            module*
+              "uvicorn.middleware.proxy_headers"
+            filename (ignored because module takes precedence)
+              "proxy_headers.py"
+            function*
+              "__call__"
+            context_line*
+              "return await self.app(scope, receive, send)"
+          frame*
+            module*
+              "fastapi.applications"
+            filename (ignored because module takes precedence)
+              "applications.py"
+            function*
+              "__call__"
+            context_line*
+              "await super().__call__(scope, receive, send)"
+          frame*
+            module*
+              "starlette.applications"
+            filename (ignored because module takes precedence)
+              "applications.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.middleware_stack(scope, receive, send)"
+          frame*
+            module*
+              "starlette.middleware.errors"
+            filename (ignored because module takes precedence)
+              "errors.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.app(scope, receive, send)"
+          frame*
+            module*
+              "starlette.middleware.base"
+            filename (ignored because module takes precedence)
+              "base.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.app(scope, receive, send)"
+          frame*
+            module*
+              "starlette.middleware.cors"
+            filename (ignored because module takes precedence)
+              "cors.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.app(scope, receive, send)"
+          frame*
+            module*
+              "starlette.middleware.exceptions"
+            filename (ignored because module takes precedence)
+              "exceptions.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.app(scope, receive, send)"
+          frame*
+            module*
+              "fastapi.middleware.asyncexitstack"
+            filename (ignored because module takes precedence)
+              "asyncexitstack.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.app(scope, receive, send)"
+          frame*
+            module*
+              "starlette.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.middleware_stack(scope, receive, send)"
+          frame*
+            module*
+              "starlette.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "app"
+            context_line*
+              "await self.lifespan(scope, receive, send)"
+          frame*
+            module*
+              "starlette.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "lifespan"
+            context_line*
+              "async with self.lifespan_context(app) as maybe_state:"
+          frame*
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame*
+            module*
+              "app.main"
+            filename (ignored because module takes precedence)
+              "main.py"
+            function*
+              "run_app"
+            context_line*
+              "do_log(\"error\", f\"Error creating HTTP client: {e}\")"
+          frame*
+            module*
+              "app.main"
+            filename (ignored because module takes precedence)
+              "main.py"
+            function*
+              "do_log"
+            context_line*
+              "getattr(logger, level)(msg, *args, **kwargs)"
+          frame*
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "error"
+            context_line*
+              "self._log(ERROR, msg, args, **kwargs)"
+          frame*
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "_log"
+            context_line*
+              "self.handle(record)"
+          frame*
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "handle"
+            context_line*
+              "self.callHandlers(record)"
+          frame*
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "callHandlers"
+            context_line*
+              "hdlr.handle(record)"
+          frame*
+            module*
+              "logging"
+            filename (ignored because module takes precedence)
+              "__init__.py"
+            function*
+              "handle"
+            context_line*
+              "self.emit(record)"

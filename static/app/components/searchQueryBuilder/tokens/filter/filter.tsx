@@ -1,15 +1,20 @@
 import {Fragment, useLayoutEffect, useRef, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex} from '@sentry/scraps/layout';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
+import {
+  BaseGridCell,
+  FilterWrapper,
+} from 'sentry/components/searchQueryBuilder/tokens/components';
 import {AggregateKey} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {FilterKey} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKey';
 import {FilterOperator} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
@@ -20,20 +25,18 @@ import {
   isAggregateFilterToken,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
-import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
+import {GridInvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {
   FilterType,
-  type ParseResultToken,
   Token,
+  type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {prettifyTagKey} from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
 
 interface SearchQueryTokenProps {
   item: Node<ParseResultToken>;
@@ -48,9 +51,6 @@ interface FilterValueProps extends SearchQueryTokenProps {
 
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   const {size} = useSearchQueryBuilder();
-  const hasWildcardOperators = useOrganization().features.includes(
-    'search-query-builder-wildcard-operators'
-  );
 
   if (token.filter === FilterType.HAS) {
     return (
@@ -66,33 +66,21 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       const items = token.value.items;
 
       if (items.length === 1 && items[0]!.value) {
-        const allContains =
-          items[0]!.value.type === Token.VALUE_TEXT && !!items[0]!.value.wildcard;
-
         return (
           <FilterValueSingleTruncatedValue>
-            {formatFilterValue({
-              token: items[0]!.value,
-              stripWildcards: allContains && hasWildcardOperators,
-            })}
+            {formatFilterValue({token: items[0]!.value})}
           </FilterValueSingleTruncatedValue>
         );
       }
 
       const maxItems = size === 'small' ? 1 : 3;
-      const allContains = items.every(
-        item => item?.value?.type === Token.VALUE_TEXT && item.value.wildcard
-      );
 
       return (
-        <FilterValueList>
+        <Flex align="center" wrap="nowrap" gap="xs" maxWidth="400px">
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <FilterMultiValueTruncated>
-                {formatFilterValue({
-                  token: item.value!,
-                  stripWildcards: allContains && hasWildcardOperators,
-                })}
+                {formatFilterValue({token: item.value!})}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
                 <FilterValueOr> or </FilterValueOr>
@@ -100,7 +88,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
             </Fragment>
           ))}
           {items.length > maxItems && <span>+{items.length - maxItems}</span>}
-        </FilterValueList>
+        </Flex>
       );
     }
     case Token.VALUE_ISO_8601_DATE: {
@@ -111,14 +99,9 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       );
     }
     default: {
-      const allContains = token.value.type === Token.VALUE_TEXT && !!token.value.wildcard;
-
       return (
         <FilterValueSingleTruncatedValue>
-          {formatFilterValue({
-            token: token.value,
-            stripWildcards: allContains && hasWildcardOperators,
-          })}
+          {formatFilterValue({token: token.value})}
         </FilterValueSingleTruncatedValue>
       );
     }
@@ -256,6 +239,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
         token={token}
         state={state}
         item={item}
+        columnCount={4}
         containerDisplayMode="grid"
         forceVisible={filterMenuOpen ? false : undefined}
       >
@@ -304,116 +288,70 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   );
 }
 
-const FilterWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
-  position: relative;
-  border: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
-  height: 24px;
-  /* Ensures that filters do not grow outside of the container */
-  min-width: 0;
-
-  :focus {
-    background-color: ${p => p.theme.gray100};
-    outline: none;
-  }
-
-  ${p =>
-    p.state === 'invalid'
-      ? css`
-          border-color: ${p.theme.red200};
-          background-color: ${p.theme.red100};
-        `
-      : p.state === 'warning'
-        ? css`
-            border-color: ${p.theme.gray300};
-            background-color: ${p.theme.gray100};
-          `
-        : ''}
-
-  &[aria-selected='true'] {
-    background-color: ${p => p.theme.gray100};
-  }
-`;
-
-const GridInvalidTokenTooltip = styled(InvalidTokenTooltip)`
-  display: grid;
-  grid-template-columns: auto auto auto auto;
-  align-items: stretch;
-  height: 22px;
-`;
-
-const BaseGridCell = styled('div')`
-  display: flex;
-  align-items: stretch;
-  position: relative;
-`;
-
 const FilterValueGridCell = styled(BaseGridCell)`
   /* When we run out of space, shrink the value */
   min-width: 0;
 `;
 
 const ValueButton = styled(UnstyledButton)`
-  padding: 0 ${space(0.25)};
-  color: ${p => p.theme.purple400};
+  padding: 0 ${p => p.theme.space['2xs']};
+  color: ${p => p.theme.tokens.content.accent};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
   width: 100%;
   max-width: 400px;
 
   :focus {
-    background-color: ${p => p.theme.purple100};
-    border-left: 1px solid ${p => p.theme.innerBorder};
-    border-right: 1px solid ${p => p.theme.innerBorder};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
 const ValueEditing = styled('div')`
-  padding: 0 ${space(0.25)};
-  color: ${p => p.theme.purple400};
+  padding: 0 ${p => p.theme.space['2xs']};
+  color: ${p => p.theme.tokens.content.accent};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
   max-width: 100%;
 
   :focus-within {
-    background-color: ${p => p.theme.purple100};
-    border-left: 1px solid ${p => p.theme.innerBorder};
-    border-right: 1px solid ${p => p.theme.innerBorder};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
 const DeleteButton = styled(UnstyledButton)`
-  padding: 0 ${space(0.75)} 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space.sm} 0 ${p => p.theme.space.xs};
   border-radius: 0 3px 3px 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border-left: 1px solid transparent;
 
   :focus {
-    background-color: ${p => p.theme.translucentGray100};
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    background-color: ${p => p.theme.colors.gray100};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
-const FilterValueList = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: ${space(0.5)};
-  max-width: 400px;
-`;
-
 const FilterValueOr = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const FilterMultiValueTruncated = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 110px;
   width: min-content;
 `;
 
 const FilterValueSingleTruncatedValue = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 100%;
   width: min-content;
 `;

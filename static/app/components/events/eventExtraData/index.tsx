@@ -1,6 +1,7 @@
 import {useState} from 'react';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {
   getKnownData,
@@ -14,7 +15,7 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {getEventExtraDataKnownDataDetails} from './getEventExtraDataKnownDataDetails';
-import type {EventExtraData as TEventExtraData, EventExtraDataType} from './types';
+import type {EventExtraDataType, EventExtraData as TEventExtraData} from './types';
 
 type Props = {
   event: Event;

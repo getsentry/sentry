@@ -8,7 +8,6 @@ import type {Organization} from 'sentry/types/organization';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
@@ -23,11 +22,9 @@ function createWrapper(organization: Organization) {
     return (
       <QueryClientProvider client={makeTestQueryClient()}>
         <OrganizationContext value={organization}>
-          <PageParamsProvider>
-            <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-              {children}
-            </TraceItemAttributeProvider>
-          </PageParamsProvider>
+          <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+            {children}
+          </TraceItemAttributeProvider>
         </OrganizationContext>
       </QueryClientProvider>
     );
@@ -37,9 +34,11 @@ function createWrapper(organization: Organization) {
 function useWrapper(yAxis: string) {
   const {tags: stringTags} = useTraceItemTags('string');
   const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: booleanTags} = useTraceItemTags('boolean');
   return useVisualizeFields({
     numberTags,
     stringTags,
+    booleanTags,
     parsedFunction: parseFunction(yAxis) ?? undefined,
     traceItemType: TraceItemDataset.SPANS,
   });
@@ -48,7 +47,7 @@ function useWrapper(yAxis: string) {
 describe('useVisualizeFields', () => {
   const organization = OrganizationFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({

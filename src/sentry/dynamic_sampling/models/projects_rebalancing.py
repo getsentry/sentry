@@ -1,8 +1,11 @@
 from dataclasses import dataclass
 
-from sentry.dynamic_sampling.models.base import Model, ModelInput, ModelType
+from sentry.dynamic_sampling.models.base import Model, ModelInput
 from sentry.dynamic_sampling.models.common import RebalancedItem
-from sentry.dynamic_sampling.models.full_rebalancing import FullRebalancingInput
+from sentry.dynamic_sampling.models.full_rebalancing import (
+    FullRebalancingInput,
+    FullRebalancingModel,
+)
 
 
 @dataclass
@@ -27,9 +30,7 @@ class ProjectsRebalancingModel(Model[ProjectsRebalancingInput, list[RebalancedIt
 
         sorted_classes = sorted(classes, key=lambda x: (x.count, x.id), reverse=True)
 
-        from sentry.dynamic_sampling.models.factory import model_factory
-
-        full_rebalancing = model_factory(ModelType.FULL_REBALANCING)
+        full_rebalancing = FullRebalancingModel()
         result, _ = full_rebalancing.run(
             FullRebalancingInput(
                 classes=sorted_classes,

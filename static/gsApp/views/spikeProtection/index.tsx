@@ -1,6 +1,7 @@
-import {Fragment, useEffect} from 'react';
+import {useEffect} from 'react';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -16,6 +17,7 @@ import trackSpendVisibilityAnaltyics, {
 } from 'getsentry/utils/trackSpendVisibilityAnalytics';
 import {SPIKE_PROTECTION_DOCS_LINK} from 'getsentry/views/spikeProtection/constants';
 import SpikeProtectionProjects from 'getsentry/views/spikeProtection/spikeProtectionProjects';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 type Props = {organization: Organization; subscription: Subscription};
 
@@ -46,7 +48,7 @@ function SpikeProtectionRoot({organization, subscription}: Props) {
   );
 
   return (
-    <Fragment>
+    <SubscriptionPageContainer background="secondary">
       <SentryDocumentTitle
         title={t('Spike Protection Settings')}
         orgSlug={organization.slug}
@@ -63,7 +65,7 @@ function SpikeProtectionRoot({organization, subscription}: Props) {
       <NoProjectMessage organization={organization}>
         <SpikeProtectionProjects />
       </NoProjectMessage>
-    </Fragment>
+    </SubscriptionPageContainer>
   );
 }
 

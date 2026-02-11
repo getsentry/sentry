@@ -91,7 +91,7 @@ export function useContextMenu({container}: UseContextMenuOptions) {
   );
 
   const handleContextMenu = useCallback(
-    (evt: React.MouseEvent) => {
+    (evt: React.MouseEvent | MouseEvent) => {
       if (!container) {
         return;
       }

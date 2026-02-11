@@ -1,17 +1,22 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {
+  HeadSortCell,
+  useTableSort,
+} from 'sentry/views/insights/pages/agents/components/headSortCell';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
@@ -19,6 +24,7 @@ import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/E
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 import {useSpanTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {
@@ -35,7 +41,7 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
     width: 164,
   },
   {
-    key: 'avg_if(span.duration,span.op,queue.process)',
+    key: 'avg_if(span.duration,span.op,equals,queue.process)',
     name: t('Avg Processing Time'),
     width: 184,
   },
@@ -47,45 +53,51 @@ const rightAlignColumns = new Set([
   'failure_rate()',
   'sum(span.duration)',
   'avg(messaging.message.receive.latency)',
-  'avg_if(span.duration,span.op,queue.process)',
+  'avg_if(span.duration,span.op,equals,queue.process)',
 ]);
 
 export function JobsTable() {
   const {query} = useTransactionNameQuery();
+  const mutableQuery = new MutableSearch(query);
+  mutableQuery.addFilterValue(SpanFields.SPAN_OP, 'queue.process');
+
+  const {tableSort} = useTableSort();
   const tableDataRequest = useSpanTableData({
-    query: `span.op:queue.process ${query ?? ''}`.trim(),
+    query: mutableQuery,
     fields: [
       'count()',
       'project.id',
       'messaging.destination.name',
       'transaction',
       'avg(messaging.message.receive.latency)',
-      'avg_if(span.duration,span.op,queue.process)',
+      'avg_if(span.duration,span.op,equals,queue.process)',
       'failure_rate()',
       'sum(span.duration)',
     ],
-    cursorParamName: 'jobsCursor',
+    sort: tableSort,
     referrer: Referrer.PATHS_TABLE,
   });
 
-  const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
-    return (
-      <HeadSortCell
-        sortKey={column.key}
-        align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
-        forceCellGrow={column.key === 'transaction'}
-        cursorParamName="jobsCursor"
-      >
-        {column.name}
-      </HeadSortCell>
-    );
-  }, []);
+  const renderHeadCell = useCallback(
+    (column: GridColumnHeader<string>) => {
+      return (
+        <HeadSortCell
+          sortKey={column.key}
+          currentSort={tableSort}
+          align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
+          forceCellGrow={column.key === 'transaction'}
+        >
+          {column.name}
+        </HeadSortCell>
+      );
+    },
+    [tableSort]
+  );
+
+  type TableData = (typeof tableDataRequest.data)[number];
 
   const renderBodyCell = useCallback(
-    (
-      column: GridColumnOrder<string>,
-      dataRow: (typeof tableDataRequest.data)[number]
-    ) => {
+    (column: GridColumnOrder<string>, dataRow: TableData) => {
       switch (column.key) {
         case 'messaging.destination.name':
           return <DestinationCell destination={dataRow['messaging.destination.name']} />;
@@ -104,7 +116,7 @@ export function JobsTable() {
             />
           );
         case 'avg(messaging.message.receive.latency)':
-        case 'avg_if(span.duration,span.op,queue.process)':
+        case 'avg_if(span.duration,span.op,equals,queue.process)':
           return <DurationCell milliseconds={dataRow[column.key]} />;
         case 'count()':
           return <NumberCell value={dataRow['count()']} />;
@@ -114,7 +126,7 @@ export function JobsTable() {
           return <div />;
       }
     },
-    [tableDataRequest]
+    []
   );
 
   return (
@@ -122,13 +134,12 @@ export function JobsTable() {
       isLoading={tableDataRequest.isPending}
       error={tableDataRequest.error}
       data={tableDataRequest.data}
-      initialColumnOrder={defaultColumnOrder}
+      initialColumnOrder={defaultColumnOrder as Array<GridColumnOrder<keyof TableData>>}
       stickyHeader
       grid={{
         renderBodyCell,
         renderHeadCell,
       }}
-      cursorParamName="jobsCursor"
       pageLinks={tableDataRequest.pageLinks}
       isPlaceholderData={tableDataRequest.isPlaceholderData}
     />
@@ -154,7 +165,11 @@ function DestinationCell({destination}: {destination: string}) {
 }
 
 const StyledJobLink = styled(Link)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   min-width: 0;
 `;
 

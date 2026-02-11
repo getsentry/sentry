@@ -5,6 +5,7 @@ from collections.abc import Generator, Iterable, Iterator, MutableMapping
 from itertools import zip_longest
 from typing import Any, TypedDict
 
+import sentry_sdk
 from drf_spectacular.utils import extend_schema_serializer
 
 
@@ -89,6 +90,7 @@ class ReplayDetailsResponse(TypedDict, total=False):
     has_viewed: bool
 
 
+@sentry_sdk.trace
 def process_raw_response(
     response: list[dict[str, Any]], fields: list[str]
 ) -> list[ReplayDetailsResponse]:

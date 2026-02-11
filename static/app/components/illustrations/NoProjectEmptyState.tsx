@@ -202,7 +202,7 @@ const Smoke = styled('g')`
   )}
 `;
 
-function NoProjectEmptyState() {
+function NoProjectEmptyState({className}: {className?: string}) {
   return (
     <svg
       width="683"
@@ -210,6 +210,7 @@ function NoProjectEmptyState() {
       viewBox="0 0 683 600"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      className={className}
     >
       <Background {...backgroundAnimationProps}>
         <path d="M425.89 15.49v118.33h128c.38 0 0-118 0-118l-128-.33z" fill="#E7E1EC" />

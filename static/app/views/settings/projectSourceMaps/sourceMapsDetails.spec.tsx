@@ -85,14 +85,14 @@ function renderDebugIdBundlesMockRequests({
   return {artifactBundlesFiles, artifactBundlesDeletion};
 }
 
-describe('SourceMapsDetails', function () {
-  beforeEach(function () {
+describe('SourceMapsDetails', () => {
+  beforeEach(() => {
     OrganizationStore.init();
   });
 
-  describe('Release Bundles', function () {
-    it('renders default state', async function () {
-      const {organization, project, routerProps} = initializeOrg({
+  describe('Release Bundles', () => {
+    it('renders default state', async () => {
+      const {organization, project} = initializeOrg({
         organization: OrganizationFixture({
           access: ['org:superuser'],
         }),
@@ -114,15 +114,7 @@ describe('SourceMapsDetails', function () {
       });
 
       render(
-        <SourceMapsDetails
-          {...routerProps}
-          project={project}
-          params={{
-            orgId: organization.slug,
-            projectId: project.slug,
-            bundleId: 'bea7335dfaebc0ca6e65a057',
-          }}
-        />,
+        <SourceMapsDetails project={project} bundleId="bea7335dfaebc0ca6e65a057" />,
         {
           organization,
         }
@@ -152,8 +144,8 @@ describe('SourceMapsDetails', function () {
       );
     });
 
-    it('renders empty state', async function () {
-      const {organization, routerProps, project} = initializeOrg({
+    it('renders empty state', async () => {
+      const {organization, project} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -169,15 +161,7 @@ describe('SourceMapsDetails', function () {
       });
 
       render(
-        <SourceMapsDetails
-          {...routerProps}
-          project={project}
-          params={{
-            orgId: organization.slug,
-            projectId: project.slug,
-            bundleId: 'bea7335dfaebc0ca6e65a057',
-          }}
-        />,
+        <SourceMapsDetails project={project} bundleId="bea7335dfaebc0ca6e65a057" />,
         {
           organization,
         }
@@ -189,9 +173,9 @@ describe('SourceMapsDetails', function () {
     });
   });
 
-  describe('Artifact Bundles', function () {
-    it('renders default state', async function () {
-      const {organization, project, routerProps} = initializeOrg({
+  describe('Artifact Bundles', () => {
+    it('renders default state', async () => {
+      const {organization, project} = initializeOrg({
         organization: OrganizationFixture({
           access: ['org:superuser', 'project:releases'],
         }),
@@ -217,13 +201,8 @@ describe('SourceMapsDetails', function () {
 
       render(
         <SourceMapsDetails
-          {...routerProps}
           project={project}
-          params={{
-            orgId: organization.slug,
-            projectId: project.slug,
-            bundleId: '7227e105-744e-4066-8c69-3e5e344723fc',
-          }}
+          bundleId="7227e105-744e-4066-8c69-3e5e344723fc"
         />,
         {
           organization,
@@ -294,8 +273,8 @@ describe('SourceMapsDetails', function () {
       });
     });
 
-    it('renders empty state', async function () {
-      const {organization, project, routerProps} = initializeOrg({
+    it('renders empty state', async () => {
+      const {organization, project} = initializeOrg({
         router: {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
@@ -315,13 +294,8 @@ describe('SourceMapsDetails', function () {
 
       render(
         <SourceMapsDetails
-          {...routerProps}
           project={project}
-          params={{
-            orgId: organization.slug,
-            projectId: project.slug,
-            bundleId: '7227e105-744e-4066-8c69-3e5e344723fc',
-          }}
+          bundleId="7227e105-744e-4066-8c69-3e5e344723fc"
         />,
         {
           organization,

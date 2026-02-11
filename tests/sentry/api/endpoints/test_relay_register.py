@@ -4,7 +4,7 @@ import orjson
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
-from sentry_relay.auth import generate_key_pair
+from sentry_relay.auth import PublicKey, SecretKey, generate_key_pair
 
 from sentry.models.relay import Relay, RelayUsage
 from sentry.testutils.cases import APITestCase
@@ -25,7 +25,9 @@ class RelayRegisterTest(APITestCase):
 
         self.path = reverse("sentry-api-0-relay-register-challenge")
 
-    def register_relay(self, key_pair, version, relay_id):
+    def register_relay(
+        self, key_pair: tuple[SecretKey, PublicKey], version: str, relay_id: str | int
+    ) -> None:
 
         private_key = key_pair[0]
         public_key = key_pair[1]
@@ -567,8 +569,6 @@ class RelayRegisterTest(APITestCase):
             with override_options(
                 {
                     "relay.static_auth": static_auth,
-                    # XXX: Temporary; remove it once the endpoint is removed
-                    "issues.browser_reporting.reporting_endpoints_header_enabled": False,
                 }
             ):
                 self.register_relay(key_pair, "1.1.1", relay_id)

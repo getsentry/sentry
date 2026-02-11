@@ -1,9 +1,8 @@
 import {Fragment} from 'react';
 
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -51,11 +50,11 @@ function WrappedComponent({data, ...rest}: any) {
   );
 }
 
-describe('Performance > Widgets > Query Batching', function () {
+describe('Performance > Widgets > Query Batching', () => {
   let eventsMock: jest.Mock;
   let eventStatsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     eventsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/events/',
@@ -150,7 +149,7 @@ describe('Performance > Widgets > Query Batching', function () {
     });
   });
 
-  it('EventsRequest and DiscoverQuery based component fires queries without provider', async function () {
+  it('EventsRequest and DiscoverQuery based component fires queries without provider', async () => {
     const data = initializeData();
 
     render(
@@ -191,7 +190,7 @@ describe('Performance > Widgets > Query Batching', function () {
     );
   });
 
-  it('Multiple EventsRequest and DiscoverQuery based components fire individual queries without provider', async function () {
+  it('Multiple EventsRequest and DiscoverQuery based components fire individual queries without provider', async () => {
     const data = initializeData();
 
     render(
@@ -231,156 +230,5 @@ describe('Performance > Widgets > Query Batching', function () {
         }),
       })
     );
-  });
-
-  it('Multiple EventsRequest and DiscoverQuery based components merge queries with provider', async function () {
-    const data = initializeData();
-
-    render(
-      <GenericQueryBatcher>
-        <WrappedComponent
-          data={data}
-          defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
-          isMEPEnabled={false}
-        />
-        <WrappedComponent
-          data={data}
-          defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
-          isMEPEnabled={false}
-        />
-        <WrappedComponent
-          data={data}
-          defaultChartSetting={PerformanceWidgetSetting.USER_MISERY_AREA}
-          isMEPEnabled={false}
-        />
-      </GenericQueryBatcher>,
-      {
-        organization: data.organization,
-      }
-    );
-
-    await waitFor(() => expect(eventStatsMock).toHaveBeenCalled());
-    await waitFor(() => expect(eventsMock).toHaveBeenCalled());
-
-    expect(eventsMock).toHaveBeenNthCalledWith(
-      1,
-      '/organizations/org-slug/events/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: ['prod'],
-          field: ['epm()', 'failure_rate()', 'user_misery()'],
-          statsPeriod: '7d',
-        }),
-      })
-    );
-
-    expect(eventsMock).toHaveBeenCalledTimes(1);
-
-    expect(eventStatsMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          ...BASIC_QUERY_PARAMS,
-          yAxis: ['epm()', 'failure_rate()', 'user_misery()'],
-        }),
-      })
-    );
-    expect(eventStatsMock).toHaveBeenCalledTimes(1);
-
-    expect(await screen.findAllByTestId('widget-state-has-data')).toHaveLength(3);
-  });
-
-  it('Multiple EventsRequest and DiscoverQuery based components merge queries with provider and add MEP', async function () {
-    const data = initializeData();
-
-    render(
-      <GenericQueryBatcher>
-        <WrappedComponent
-          data={data}
-          defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
-          isMEPEnabled
-        />
-        <WrappedComponent
-          data={data}
-          defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
-          isMEPEnabled
-        />
-        <WrappedComponent
-          data={data}
-          defaultChartSetting={PerformanceWidgetSetting.USER_MISERY_AREA}
-          isMEPEnabled
-        />
-      </GenericQueryBatcher>,
-      {
-        organization: data.organization,
-      }
-    );
-
-    expect(await screen.findAllByTestId('performance-widget-title')).toHaveLength(3);
-
-    expect(eventStatsMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          ...BASIC_QUERY_PARAMS,
-          yAxis: ['epm()', 'failure_rate()', 'user_misery()'],
-        }),
-      })
-    );
-    expect(eventStatsMock).toHaveBeenCalledTimes(1);
-
-    expect(await screen.findAllByTestId('widget-state-has-data')).toHaveLength(3);
-  });
-
-  it('Errors work correctly', async function () {
-    eventStatsMock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/events-stats/`,
-      statusCode: 404,
-      body: {},
-    });
-
-    const data = initializeData();
-
-    render(
-      <GenericQueryBatcher>
-        <WrappedComponent
-          data={data}
-          defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
-          isMEPEnabled={false}
-        />
-        <WrappedComponent
-          data={data}
-          defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
-          isMEPEnabled={false}
-        />
-        <WrappedComponent
-          data={data}
-          defaultChartSetting={PerformanceWidgetSetting.USER_MISERY_AREA}
-          isMEPEnabled={false}
-        />
-      </GenericQueryBatcher>,
-      {
-        organization: data.organization,
-      }
-    );
-
-    expect(await screen.findAllByTestId('performance-widget-title')).toHaveLength(3);
-
-    expect(eventStatsMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          ...BASIC_QUERY_PARAMS,
-          yAxis: ['epm()', 'failure_rate()', 'user_misery()'],
-        }),
-      })
-    );
-    expect(eventStatsMock).toHaveBeenCalledTimes(1);
-
-    expect(await screen.findAllByTestId('widget-state-is-errored')).toHaveLength(3);
   });
 });

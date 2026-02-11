@@ -101,11 +101,11 @@ const metricConfig: IssueCategoryConfigMapping = {
     },
     detector: {
       enabled: true,
-      title: t('Metric Alert Detector'),
-      ctaText: t('View detector details'),
+      title: t('Metric Monitor'),
+      ctaText: t('View monitor details'),
     },
     header: {
-      filterBar: {enabled: true, fixedEnvironment: true},
+      filterBar: {enabled: true, fixedEnvironment: true, searchBar: {enabled: false}},
       graph: {enabled: true, type: 'detector-history'},
       tagDistribution: {enabled: false},
       occurrenceSummary: {enabled: false},
@@ -123,14 +123,15 @@ const metricConfig: IssueCategoryConfigMapping = {
     },
     eventAndUserCounts: {enabled: false},
     resources: null,
-    autofix: false,
+    autofix: true,
     mergedIssues: {enabled: false},
     similarIssues: {enabled: false},
     usesIssuePlatform: true,
     useOpenPeriodChecks: true,
     stats: {enabled: true},
     tags: {enabled: false},
-    issueSummary: {enabled: false},
+    issueSummary: {enabled: true},
+    groupingInfo: {enabled: false},
   },
 };
 

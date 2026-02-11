@@ -1,39 +1,43 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
+import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import ClippedBox from 'sentry/components/clippedBox';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Input} from 'sentry/components/core/input';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {SolutionEventItem} from 'sentry/components/events/autofix/autofixSolutionEventItem';
+import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
 import {
-  type AutofixSolutionTimelineEvent,
   AutofixStatus,
   AutofixStepType,
+  type AutofixSolutionTimelineEvent,
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
-  type AutofixResponse,
   makeAutofixQueryKey,
+  useAutofixData,
   useAutofixRepos,
+  type AutofixResponse,
 } from 'sentry/components/events/autofix/useAutofix';
+import {formatSolutionWithEvent} from 'sentry/components/events/autofix/utils';
 import {Timeline} from 'sentry/components/timeline';
-import {IconAdd, IconChat, IconFix} from 'sentry/icons';
+import {IconAdd, IconChat, IconCopy, IconFix} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
@@ -103,7 +107,7 @@ function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
       queryClient.invalidateQueries({
         queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
       });
-      addSuccessMessage('On it.');
+      addLoadingMessage('On it.');
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when selecting the solution.'));
@@ -116,16 +120,18 @@ type AutofixSolutionProps = {
   runId: string;
   solution: AutofixSolutionTimelineEvent[];
   solutionSelected: boolean;
+  status: AutofixStatus;
   agentCommentThread?: CommentThread;
   changesDisabled?: boolean;
   customSolution?: string;
   description?: string;
+  event?: Event;
   isSolutionFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 };
 
-const cardAnimationProps: AnimationProps = {
+const cardAnimationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
@@ -204,7 +210,7 @@ function SolutionDescription({
 }
 
 const Description = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   padding-bottom: ${space(2)};
   margin-bottom: ${space(2)};
 `;
@@ -265,27 +271,27 @@ export function formatSolutionText(
   }
 
   if (customSolution) {
-    return `# Proposed Changes\n\n${customSolution}`;
+    return `# Solution Plan\n\n${customSolution}`;
   }
 
   if (!solution || solution.length === 0) {
     return '';
   }
 
-  const parts = ['# Proposed Changes'];
+  const parts = ['# Solution Plan'];
 
   parts.push(
     solution
       .filter(event => event.is_active)
-      .map(event => {
-        const eventParts = [`### ${event.title}`];
+      .map((event, index) => {
+        const eventParts = [`### ${index + 1}. ${event.title}`];
 
         if (event.code_snippet_and_analysis) {
           eventParts.push(event.code_snippet_and_analysis);
         }
 
         if (event.relevant_code_file) {
-          eventParts.push(`(See ${event.relevant_code_file.file_path})`);
+          eventParts.push(`(See @${event.relevant_code_file.file_path})`);
         }
 
         return eventParts.join('\n');
@@ -299,25 +305,34 @@ export function formatSolutionText(
 function CopySolutionButton({
   solution,
   customSolution,
+  event,
   isEditing,
+  rootCause,
 }: {
   solution: AutofixSolutionTimelineEvent[];
   customSolution?: string;
+  event?: Event;
   isEditing?: boolean;
+  rootCause?: any;
 }) {
+  const text = formatSolutionWithEvent(solution, customSolution, event, rootCause);
+  const {copy} = useCopyToClipboard();
+
   if (isEditing) {
     return null;
   }
-  const text = formatSolutionText(solution, customSolution);
+
   return (
-    <CopyToClipboardButton
+    <Button
       size="sm"
-      text={text}
-      borderless
-      title="Copy solution as Markdown"
+      title="Copy plan as Markdown / LLM prompt"
+      onClick={() => copy(text, {successMessage: t('Solution copied to clipboard.')})}
       analyticsEventName="Autofix: Copy Solution as Markdown"
       analyticsEventKey="autofix.solution.copy"
-    />
+      icon={<IconCopy />}
+    >
+      {t('Copy')}
+    </Button>
   );
 }
 
@@ -326,19 +341,27 @@ function AutofixSolutionDisplay({
   description,
   groupId,
   runId,
+  status,
   previousDefaultStepIndex,
   previousInsightCount,
   customSolution,
   solutionSelected,
   agentCommentThread,
+  event,
 }: Omit<AutofixSolutionProps, 'repos'>) {
   const organization = useOrganization();
   const {data: group} = useGroup({groupId});
   const project = group?.project;
 
   const {repos} = useAutofixRepos(groupId);
+  const {data: autofixData} = useAutofixData({groupId});
+
+  // Get root cause data from autofix data
+  const rootCauseStep = autofixData?.steps?.find(
+    step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS
+  );
+  const rootCause = rootCauseStep?.causes?.[0];
   const {mutate: handleContinue, isPending} = useSelectSolution({groupId, runId});
-  const [isEditing, _setIsEditing] = useState(false);
   const [instructions, setInstructions] = useState('');
   const [solutionItems, setSolutionItems] = useState<AutofixSolutionTimelineEvent[]>( // This will become outdated if multiple people use it, but we can ignore this for now.
     () => {
@@ -367,6 +390,7 @@ function AutofixSolutionDisplay({
 
   const hasNoRepos = repos.length === 0;
   const cantReadRepos = repos.every(repo => repo.is_readable === false);
+  const enableSeerCoding = organization.enableSeerCoding !== false;
 
   const handleAddInstruction = () => {
     if (instructions.trim()) {
@@ -429,6 +453,46 @@ function AutofixSolutionDisplay({
     [organization, solutionItems]
   );
 
+  const handleCodeItUp = () => {
+    let finalSolutionItems = solutionItems;
+
+    // Check if there are instructions typed but not added
+    if (instructions.trim()) {
+      // Create a new step from the instructions input
+      const newStep: AutofixSolutionTimelineEvent = {
+        title: instructions,
+        timeline_item_type: 'human_instruction',
+        is_most_important_event: false,
+        is_active: true,
+      };
+
+      // Add the new step to the solution
+      finalSolutionItems = [...solutionItems, newStep];
+      setSolutionItems(finalSolutionItems);
+
+      // Clear the input
+      setInstructions('');
+
+      trackAnalytics('autofix.solution.add_step', {
+        organization,
+        solution: solutionItems,
+        newStep,
+      });
+    }
+
+    handleContinue({
+      mode: 'fix',
+      solution: finalSolutionItems,
+    });
+  };
+
+  // Check if instructions were provided (either typed in input or already added to solution and active)
+  const hasInstructions =
+    instructions.trim().length > 0 ||
+    solutionItems.some(
+      item => item.timeline_item_type === 'human_instruction' && item.is_active !== false
+    );
+
   useEffect(() => {
     setSolutionItems(
       solution.map(item => ({
@@ -441,9 +505,7 @@ function AutofixSolutionDisplay({
   if (!solution || solution.length === 0) {
     return (
       <Alert.Container>
-        <Alert type="error" showIcon={false}>
-          {t('No solution available.')}
-        </Alert>
+        <Alert variant="danger">{t('No solution available.')}</Alert>
       </Alert.Container>
     );
   }
@@ -452,18 +514,27 @@ function AutofixSolutionDisplay({
     return (
       <SolutionContainer>
         <CustomSolutionPadding>
-          <HeaderWrapper>
+          <Flex justify="between" align="center" wrap="wrap" gap="md">
             <HeaderText>
-              <HeaderIconWrapper ref={iconFixRef}>
-                <IconFix size="sm" color="green400" />
-              </HeaderIconWrapper>
+              <Flex justify="center" align="center" ref={iconFixRef}>
+                <IconFix size="sm" variant="success" />
+              </Flex>
               {t('Custom Solution')}
             </HeaderText>
-            <CopySolutionButton solution={solution} customSolution={customSolution} />
-          </HeaderWrapper>
+          </Flex>
           <Content>
             <SolutionDescriptionWrapper>{customSolution}</SolutionDescriptionWrapper>
           </Content>
+          <BottomDivider />
+          <Flex justify="end" align="center" padding="xl 0 0 0" gap="lg">
+            <div style={{flex: 1}} />
+            <CopySolutionButton
+              solution={solution}
+              customSolution={customSolution}
+              event={event}
+              rootCause={rootCause}
+            />
+          </Flex>
         </CustomSolutionPadding>
       </SolutionContainer>
     );
@@ -471,131 +542,139 @@ function AutofixSolutionDisplay({
 
   return (
     <SolutionContainer ref={containerRef}>
-      <ClippedBox clipHeight={408}>
-        <HeaderWrapper>
-          <HeaderText>
-            <HeaderIconWrapper ref={iconFixRef}>
-              <IconFix size="sm" color="green400" />
-            </HeaderIconWrapper>
-            {t('Solution')}
-            <ChatButton
-              size="zero"
-              borderless
-              title={t('Chat with Seer')}
-              onClick={handleSelectDescription}
-              analyticsEventName="Autofix: Solution Chat"
-              analyticsEventKey="autofix.solution.chat"
-            >
-              <IconChat size="xs" />
-            </ChatButton>
-          </HeaderText>
-          <ButtonBar>
-            <ButtonBar gap="0">
-              {!isEditing && (
-                <CopySolutionButton solution={solution} isEditing={isEditing} />
-              )}
-            </ButtonBar>
-            <ButtonBar gap="0">
-              <Tooltip
-                isHoverable
-                title={
-                  hasNoRepos
-                    ? tct(
-                        'Seer needs to be able to access your repos to write code for you. [link:Manage your integration and working repos here.]',
-                        {
-                          link: (
-                            <Link
-                              to={`/settings/${organization.slug}/projects/${project?.slug}/seer/`}
-                            />
-                          ),
-                        }
-                      )
-                    : cantReadRepos
-                      ? t(
-                          "Seer can't access any of your selected repos. Check your GitHub integration and make sure Seer has read access."
-                        )
-                      : undefined
-                }
-              >
-                <Button
-                  size="sm"
-                  priority={
-                    !solutionSelected || !valueIsEqual(solutionItems, solution, true)
-                      ? 'primary'
-                      : 'default'
-                  }
-                  busy={isPending}
-                  disabled={hasNoRepos || cantReadRepos}
-                  onClick={() => {
-                    handleContinue({
-                      mode: 'fix',
-                      solution: solutionItems,
-                    });
-                  }}
-                  analyticsEventName="Autofix: Code It Up"
-                  analyticsEventKey="autofix.solution.code"
-                >
-                  {t('Code It Up')}
-                </Button>
-              </Tooltip>
-            </ButtonBar>
-          </ButtonBar>
-        </HeaderWrapper>
-        <AnimatePresence>
-          {agentCommentThread && iconFixRef.current && (
-            <AutofixHighlightPopup
-              selectedText=""
-              referenceElement={iconFixRef.current}
-              groupId={groupId}
-              runId={runId}
-              stepIndex={previousDefaultStepIndex ?? 0}
-              retainInsightCardIndex={
-                previousInsightCount !== undefined && previousInsightCount >= 0
-                  ? previousInsightCount
-                  : null
-              }
-              isAgentComment
-              blockName={t('Seer is uncertain of the solution...')}
-            />
-          )}
-        </AnimatePresence>
-        <Content>
-          <SolutionDescription
-            solution={solutionItems}
+      <Flex justify="between" align="center" wrap="wrap" gap="md">
+        <HeaderText>
+          <Flex justify="center" align="center" ref={iconFixRef}>
+            <IconFix size="md" variant="success" />
+          </Flex>
+          {t('Solution')}
+          <Button
+            size="zero"
+            priority="transparent"
+            title={t('Chat with Seer')}
+            onClick={handleSelectDescription}
+            analyticsEventName="Autofix: Solution Chat"
+            analyticsEventKey="autofix.solution.chat"
+          >
+            <IconChat />
+          </Button>
+        </HeaderText>
+      </Flex>
+      <AnimatePresence>
+        {agentCommentThread && iconFixRef.current && (
+          <AutofixHighlightPopup
+            selectedText=""
+            referenceElement={iconFixRef.current}
             groupId={groupId}
             runId={runId}
-            description={description}
-            previousDefaultStepIndex={previousDefaultStepIndex}
-            previousInsightCount={previousInsightCount}
-            onDeleteItem={handleDeleteItem}
-            onToggleActive={handleToggleActive}
-            ref={descriptionRef}
+            stepIndex={previousDefaultStepIndex ?? 0}
+            retainInsightCardIndex={
+              previousInsightCount !== undefined && previousInsightCount >= 0
+                ? previousInsightCount
+                : null
+            }
+            isAgentComment
+            blockName={t('Seer is uncertain of the solution...')}
           />
-          <AddInstructionWrapper>
-            <InstructionsInputWrapper onSubmit={handleFormSubmit}>
-              <InstructionsInput
-                type="text"
-                name="additional-instructions"
-                placeholder={t('Add more instructions...')}
-                value={instructions}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setInstructions(e.target.value)
-                }
-                size="sm"
-              />
-              <SubmitButton
-                size="zero"
-                type="submit"
-                borderless
-                disabled={!instructions.trim()}
-                aria-label={t('Add to solution')}
-              >
-                <IconAdd size="xs" />
-              </SubmitButton>
-            </InstructionsInputWrapper>
-          </AddInstructionWrapper>
-        </Content>
-      </ClippedBox>
+        )}
+      </AnimatePresence>
+      <Content>
+        <SolutionDescription
+          solution={solutionItems}
+          groupId={groupId}
+          runId={runId}
+          description={description}
+          previousDefaultStepIndex={previousDefaultStepIndex}
+          previousInsightCount={previousInsightCount}
+          onDeleteItem={handleDeleteItem}
+          onToggleActive={handleToggleActive}
+          ref={descriptionRef}
+        />
+      </Content>
+      <BottomDivider />
+      <Flex justify="end" align="center" padding="xl 0 0 0" gap="lg">
+        <AddInstructionWrapper>
+          <InstructionsInputWrapper onSubmit={handleFormSubmit}>
+            <InstructionsInput
+              type="text"
+              name="additional-instructions"
+              placeholder={t('Add to the solution plan...')}
+              value={instructions}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setInstructions(e.target.value)
+              }
+              size="sm"
+            />
+            <SubmitButton
+              size="zero"
+              type="submit"
+              priority="transparent"
+              disabled={!instructions.trim()}
+              aria-label={t('Add to solution')}
+            >
+              <IconAdd size="xs" />
+            </SubmitButton>
+          </InstructionsInputWrapper>
+        </AddInstructionWrapper>
+        <Grid flow="column" align="center" gap="md">
+          <CopySolutionButton solution={solution} event={event} rootCause={rootCause} />
+          <Tooltip
+            isHoverable
+            title={
+              enableSeerCoding
+                ? hasNoRepos
+                  ? tct(
+                      'Seer needs to be able to access your repos to write code for you. [link:Manage your integration and working repos here.]',
+                      {
+                        link: (
+                          <Link
+                            to={`/settings/${organization.slug}/projects/${project?.slug}/seer/`}
+                          />
+                        ),
+                      }
+                    )
+                  : cantReadRepos
+                    ? t(
+                        "Seer can't access any of your selected repos. Check your GitHub integration and make sure Seer has read access."
+                      )
+                    : undefined
+                : tct(
+                    '[settings:"Enable Code Generation"] must be enabled by an admin in settings.',
+                    {
+                      settings: (
+                        <Link
+                          to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
+                        />
+                      ),
+                    }
+                  )
+            }
+          >
+            <Button
+              size="sm"
+              priority={
+                !solutionSelected || !valueIsEqual(solutionItems, solution, true)
+                  ? 'primary'
+                  : 'default'
+              }
+              busy={isPending}
+              disabled={hasNoRepos || cantReadRepos || !enableSeerCoding}
+              onClick={handleCodeItUp}
+              analyticsEventName="Autofix: Code It Up"
+              analyticsEventKey="autofix.solution.code"
+              analyticsParams={{
+                instruction_provided: hasInstructions,
+              }}
+              title={t('Implement this solution in code with Seer')}
+            >
+              {t('Code It Up')}
+            </Button>
+          </Tooltip>
+        </Grid>
+        {status === AutofixStatus.COMPLETED && (
+          <AutofixStepFeedback stepType="solution" groupId={groupId} runId={runId} />
+        )}
+      </Flex>
     </SolutionContainer>
   );
 }
@@ -606,9 +685,7 @@ export function AutofixSolution(props: AutofixSolutionProps) {
       <AnimatePresence initial={props.isSolutionFirstAppearance}>
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoSolutionPadding>
-            <Alert type="warning" showIcon={false}>
-              {t('No solution found.')}
-            </Alert>
+            <Alert variant="warning">{t('No solution found.')}</Alert>
           </NoSolutionPadding>
         </AnimationWrapper>
       </AnimatePresence>
@@ -629,36 +706,28 @@ const NoSolutionPadding = styled('div')`
 `;
 
 const SolutionContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
+  padding: ${p => p.theme.space.lg};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const Content = styled('div')`
   padding: ${space(1)} 0 0;
 `;
 
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: ${space(1)};
-`;
-
 const HeaderText = styled('div')`
-  font-weight: bold;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.lg};
   display: flex;
   align-items: center;
   gap: ${space(1)};
 `;
 
 const SolutionDescriptionWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-top: ${space(0.5)};
 `;
 
@@ -670,18 +739,12 @@ const CustomSolutionPadding = styled('div')`
   padding: ${space(1)} ${space(0.25)} ${space(2)} ${space(0.25)};
 `;
 
-const HeaderIconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
 const InstructionsInputWrapper = styled('form')`
   display: flex;
   position: relative;
-  border-radius: ${p => p.theme.borderRadius};
-  margin-top: ${space(0.5)};
-  margin-right: ${space(0.25)};
+  border-radius: ${p => p.theme.radius.md};
+  margin-left: ${p => p.theme.space['3xl']};
+  width: 250px;
 `;
 
 const InstructionsInput = styled(Input)`
@@ -689,7 +752,7 @@ const InstructionsInput = styled(Input)`
   padding-right: ${space(4)};
 
   &::placeholder {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -703,11 +766,11 @@ const SubmitButton = styled(Button)`
   border-radius: 5px;
 `;
 
-const AddInstructionWrapper = styled('div')`
-  padding: ${space(1)} ${space(1)} 0 ${space(3)};
+const BottomDivider = styled('div')`
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
+  margin-top: ${p => p.theme.space.lg};
 `;
 
-const ChatButton = styled(Button)`
-  color: ${p => p.theme.subText};
-  margin-left: -${space(0.5)};
+const AddInstructionWrapper = styled('div')`
+  flex: 0;
 `;

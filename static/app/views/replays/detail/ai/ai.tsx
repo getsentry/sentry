@@ -1,240 +1,270 @@
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Badge} from 'sentry/components/core/badge';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import loadingGif from 'sentry-images/spot/ai-loader.gif';
+import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
+import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
+
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconSeer, IconSync, IconThumb} from 'sentry/icons';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import {isSpanFrame} from 'sentry/utils/replays/types';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {ChapterList} from 'sentry/views/replays/detail/ai/chapterList';
+import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 import {NO_REPLAY_SUMMARY_MESSAGES} from 'sentry/views/replays/detail/ai/utils';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 
-import {useFetchReplaySummary} from './useFetchReplaySummary';
+const MAX_SEGMENTS_TO_SUMMARIZE = 150;
 
 export default function Ai() {
   const organization = useOrganization();
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
+
   const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
+  const segmentCount = replayRecord?.count_segments ?? 0;
   const project = useProjectFromId({project_id: replayRecord?.project_id});
+  const analyticsArea = useAnalyticsArea();
+
+  const replayTooLongMessage = t(
+    'If a replay is too long, we may only summarize a small portion of it.'
+  );
+
   const {
-    areAiFeaturesAllowed,
-    setupAcknowledgement,
-    isPending: isOrgSeerSetupPending,
-  } = useOrganizationSeerSetup();
-  const {
-    data: summaryData,
+    summaryData,
     isPending: isSummaryPending,
     isError,
-    isRefetching,
-    refetch,
-  } = useFetchReplaySummary({
-    staleTime: 0,
-    enabled: Boolean(
-      replayRecord?.id &&
-        project?.slug &&
-        organization.features.includes('replay-ai-summaries') &&
-        areAiFeaturesAllowed &&
-        setupAcknowledgement.orgHasAcknowledged
-    ),
-    retry: false,
-  });
+    isTimedOut,
+    startSummaryRequest,
+  } = useReplaySummaryContext();
 
-  if (!organization.features.includes('replay-ai-summaries') || !areAiFeaturesAllowed) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EmptySummaryContainer>
-          <Alert type="warning">
-            {t('AI features are not available for this organization.')}
-          </Alert>
-        </EmptySummaryContainer>
-      </Wrapper>
-    );
-  }
-
-  // check for org seer setup first before attempting to fetch summary
-  if (isOrgSeerSetupPending) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <LoadingContainer>
-          <LoadingIndicator />
-        </LoadingContainer>
-      </Wrapper>
-    );
-  }
-
-  // If our `replay-ai-summaries` ff is enabled and the org has gen AI ff enabled,
-  // but the org hasn't acknowledged the gen AI features, then show CTA.
-  if (!setupAcknowledgement.orgHasAcknowledged) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EmptySummaryContainer>
-          <CallToActionContainer>
-            <div>
-              <strong>{t('AI-Powered Replay Summaries')}</strong>
-            </div>
-            <div>
-              {t(
-                'Seer access is required to use replay summaries. Please view the Seer settings page for more information.'
-              )}
-            </div>
-            <div>
-              <LinkButton size="sm" priority="primary" to="/settings/seer/">
-                {t('View Seer Settings')}
-              </LinkButton>
-            </div>
-          </CallToActionContainer>
-        </EmptySummaryContainer>
-      </Wrapper>
-    );
-  }
-
-  if (isSummaryPending || isRefetching) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <LoadingContainer>
-          <LoadingIndicator />
-        </LoadingContainer>
-      </Wrapper>
-    );
-  }
+  const onlyInitFrames = useMemo(
+    () =>
+      replay
+        ?.getChapterFrames()
+        ?.every(frame => 'category' in frame && frame.category === 'replay.init'),
+    [replay]
+  );
 
   if (replayRecord?.project_id && !project) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EmptySummaryContainer>
-          <Alert type="error">
-            {t('Project not found. Unable to load replay summary.')}
-          </Alert>
-        </EmptySummaryContainer>
+        <EndStateContainer>
+          <img src={replayEmptyState} height={300} alt="" />
+          <div>{t('Project not found. Unable to load replay summary.')}</div>
+        </EndStateContainer>
+      </Wrapper>
+    );
+  }
+
+  if (!organization.features.includes('replay-ai-summaries') || !areAiFeaturesAllowed) {
+    return (
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <EndStateContainer>
+          <img src={replayEmptyState} height={300} alt="" />
+          <div>
+            {areAiFeaturesAllowed
+              ? t('Replay summaries are not available for this organization.')
+              : t('AI features are not available for this organization.')}
+          </div>
+        </EndStateContainer>
       </Wrapper>
     );
   }
 
   if (isError) {
     return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EmptySummaryContainer>
-          <Alert type="error">{t('Failed to load replay summary.')}</Alert>
-        </EmptySummaryContainer>
-      </Wrapper>
+      <AnalyticsArea name="error">
+        <ErrorState
+          organization={organization}
+          startSummaryRequest={startSummaryRequest}
+        />
+      </AnalyticsArea>
     );
   }
 
-  if (!summaryData) {
+  if (isTimedOut) {
+    return (
+      <AnalyticsArea name="timeout">
+        <ErrorState
+          organization={organization}
+          startSummaryRequest={startSummaryRequest}
+          extraMessage={t('timed out.')}
+        />
+      </AnalyticsArea>
+    );
+  }
+
+  if (isSummaryPending) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EmptySummaryContainer>
-          <Alert type="info" showIcon={false}>
-            {t('No summary available for this replay.')}
-          </Alert>
-        </EmptySummaryContainer>
+        <LoadingContainer>
+          <div>
+            <img src={loadingGif} style={{maxHeight: 400}} alt={t('Loading...')} />
+          </div>
+          <div>{t('This might take a few moments...')}</div>
+        </LoadingContainer>
       </Wrapper>
     );
   }
 
-  if (summaryData.data.time_ranges.length <= 1) {
-    if (
-      replay
-        ?.getChapterFrames()
-        ?.filter(frame => isSpanFrame(frame) || frame.category !== 'replay.init')
-        .length === 0
-    ) {
-      return (
-        <Wrapper data-test-id="replay-details-ai-summary-tab">
-          <EmptySummaryContainer>
-            <Alert type="info" showIcon={false}>
-              {
-                NO_REPLAY_SUMMARY_MESSAGES[
-                  Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
-                ]
-              }
-            </Alert>
-          </EmptySummaryContainer>
-        </Wrapper>
-      );
-    }
+  if (!summaryData?.data) {
+    return (
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <EndStateContainer>
+          <img src={aiBanner} alt="" />
+          <div>{t('No summary available for this replay.')}</div>
+        </EndStateContainer>
+      </Wrapper>
+    );
+  }
+
+  if (summaryData.data.time_ranges.length <= 1 && onlyInitFrames) {
+    return <NoReplaySummary />;
   }
 
   return (
     <Wrapper data-test-id="replay-details-ai-summary-tab">
       <Summary>
         <SummaryLeft>
-          <SummaryLeftTitle>
+          <Flex align="center" gap="md">
             <Flex align="center" gap="xs">
               {t('Replay Summary')}
-              <IconSeer />
             </Flex>
-            <Badge type="internal">{t('Internal')}</Badge>
-          </SummaryLeftTitle>
+          </Flex>
           <SummaryText>{summaryData.data.summary}</SummaryText>
         </SummaryLeft>
-        <SummaryRight>
+        <Stack align="end" gap="md">
           <Flex gap="xs">
-            <FeedbackButton type="positive" />
-            <FeedbackButton type="negative" />
+            <ThumbsUpDownButton type="positive" />
+            <ThumbsUpDownButton type="negative" />
           </Flex>
           <Button
             priority="default"
             type="button"
             size="xs"
             onClick={() => {
-              refetch();
+              startSummaryRequest();
               trackAnalytics('replay.ai-summary.regenerate-requested', {
                 organization,
+                area: analyticsArea + '.finished-summary',
               });
             }}
             icon={<IconSync size="xs" />}
           >
             {t('Regenerate')}
           </Button>
-        </SummaryRight>
+        </Stack>
       </Summary>
       <StyledTabItemContainer>
-        <OverflowBody>
-          <ChapterList summaryData={summaryData} />
-        </OverflowBody>
+        <Container as="section" flex="1 1 auto" overflow="auto">
+          <ChapterList timeRanges={summaryData.data.time_ranges} />
+          {segmentCount > MAX_SEGMENTS_TO_SUMMARIZE && (
+            <Subtext>{replayTooLongMessage}</Subtext>
+          )}
+        </Container>
       </StyledTabItemContainer>
     </Wrapper>
   );
 }
 
-function FeedbackButton({type}: {type: 'positive' | 'negative'}) {
-  const openForm = useFeedbackForm();
-  if (!openForm) {
-    return null;
-  }
+function ErrorState({
+  organization,
+  startSummaryRequest,
+  extraMessage,
+}: {
+  organization: Organization;
+  startSummaryRequest: () => void;
+  extraMessage?: string;
+}) {
+  const analyticsArea = useAnalyticsArea();
 
   return (
-    <Button
+    <Wrapper data-test-id="replay-details-ai-summary-tab">
+      <EndStateContainer>
+        <img src={aiBanner} alt="" />
+        <div>
+          {extraMessage
+            ? t('Failed to load replay summary - %s', extraMessage)
+            : t('Failed to load replay summary.')}
+        </div>
+        <div>
+          <Button
+            priority="default"
+            type="button"
+            size="xs"
+            onClick={() => {
+              startSummaryRequest();
+              trackAnalytics('replay.ai-summary.regenerate-requested', {
+                organization,
+                area: analyticsArea,
+              });
+            }}
+            icon={<IconSync size="xs" />}
+          >
+            {t('Retry')}
+          </Button>
+        </div>
+      </EndStateContainer>
+    </Wrapper>
+  );
+}
+
+function ThumbsUpDownButton({type}: {type: 'positive' | 'negative'}) {
+  return (
+    <FeedbackButton
       aria-label={t('Give feedback on the replay summary section')}
       icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
       title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
-      size={'xs'}
-      onClick={() =>
-        openForm({
-          messagePlaceholder:
-            type === 'positive'
-              ? t('What did you like about the replay summary and chapters?')
-              : t('How can we make the replay summary and chapters work better for you?'),
-          tags: {
-            ['feedback.source']: 'replay_ai_summary',
-            ['feedback.owner']: 'replay',
-            ['feedback.type']: type,
-          },
-        })
-      }
-    />
+      size="xs"
+      feedbackOptions={{
+        messagePlaceholder:
+          type === 'positive'
+            ? t('What did you like about the replay summary and chapters?')
+            : t('How can we make the replay summary and chapters work better for you?'),
+        tags: {
+          ['feedback.source']: 'replay_ai_summary',
+          ['feedback.owner']: 'replay',
+          ['feedback.type']: type,
+        },
+      }}
+    >
+      {undefined}
+    </FeedbackButton>
+  );
+}
+
+/**
+ * Due to the random message generation, the component can show a new message on each render. This is not ideal because we
+ * cause a lot of re-renders when the replay is played.
+ *
+ * Use `useRef` to store the message so that it is not changed after the initial render. (Alternatively, React.memo or React Compiler would also work)
+ */
+function NoReplaySummary() {
+  const noSummaryMessageRef = useRef(
+    NO_REPLAY_SUMMARY_MESSAGES[
+      Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
+    ]
+  );
+
+  return (
+    <Wrapper data-test-id="replay-details-ai-summary-tab">
+      <EndStateContainer>
+        <img src={aiBanner} alt="" />
+        <div>{noSummaryMessageRef.current}</div>
+      </EndStateContainer>
+    </Wrapper>
   );
 }
 
@@ -243,26 +273,24 @@ const Wrapper = styled('div')`
   flex-direction: column;
   flex-wrap: nowrap;
   min-height: 0;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const EmptySummaryContainer = styled('div')`
-  padding: ${space(2)};
-  overflow: auto;
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const LoadingContainer = styled('div')`
   display: flex;
   justify-content: center;
   padding: ${space(4)};
+  overflow: auto;
+  text-align: center;
+  flex-direction: column;
 `;
 
 const Summary = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(1)} ${space(1.5)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   gap: ${space(4)};
   justify-content: space-between;
 `;
@@ -272,30 +300,17 @@ const SummaryLeft = styled('div')`
   flex-direction: column;
   gap: ${space(0.5)};
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const SummaryRight = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  align-items: flex-end;
-`;
-
-const SummaryLeftTitle = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const SummaryText = styled('p')`
   line-height: 1.6;
   white-space: pre-wrap;
   margin: 0;
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const StyledTabItemContainer = styled(TabItemContainer)`
@@ -313,16 +328,20 @@ const StyledTabItemContainer = styled(TabItemContainer)`
   }
 `;
 
-const OverflowBody = styled('section')`
-  flex: 1 1 auto;
+const EndStateContainer = styled('div')`
   overflow: auto;
-`;
-
-const CallToActionContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${space(4)};
   padding: ${space(2)};
   align-items: center;
   text-align: center;
+`;
+
+const Subtext = styled(Text)`
+  padding: ${space(2)};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+  display: flex;
+  justify-content: center;
 `;

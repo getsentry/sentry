@@ -1,0 +1,16 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: "e3d593b4335190212ca7c18b8e967fb1"
+  contributing component: exception
+  hint: None
+  fingerprint_info: {"client_fingerprint":["{{ default }}","dogs are great"]}
+  root_component:
+    app*
+      exception*
+        type*
+          "FailedToFetchError"
+        value*
+          "FailedToFetchError: Charlie didn't bring the ball back!"
+  values: ["{{ default }}","dogs are great"]

@@ -7,5 +7,5 @@ function Divider() {
 export default Divider;
 
 const Wrapper = styled('div')`
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.colors.gray200};
 `;

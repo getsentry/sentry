@@ -6,8 +6,8 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
-  type SpansRPCQueryExtras,
   useProgressiveQuery,
+  type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {
@@ -19,7 +19,7 @@ import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSorte
 interface UseMultiQueryTimeseriesOptions {
   enabled: boolean;
   index: number;
-  queryExtras?: SpansRPCQueryExtras;
+  queryExtras?: RPCQueryExtras;
 }
 
 interface UseMultiQueryTimeseriesResults {
@@ -29,19 +29,20 @@ interface UseMultiQueryTimeseriesResults {
 export function useMultiQueryTimeseries({
   enabled,
   index,
+  queryExtras,
 }: UseMultiQueryTimeseriesOptions) {
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useMultiQueryTimeseriesImpl>['result']) => {
       const hasData = Object.values(results.data).some(result => {
         return Object.values(result).some(series => {
-          return series.sampleCount?.some(({value}) => {
-            return value > 0;
+          return series.values.some(value => {
+            return (value.sampleCount ?? 0) > 0;
           });
         });
       });
       const canGetMoreData = Object.values(results.data).some(result => {
         return Object.values(result).some(series => {
-          return series.dataScanned === 'partial';
+          return series.meta.dataScanned === 'partial';
         });
       });
 
@@ -51,7 +52,7 @@ export function useMultiQueryTimeseries({
   );
   return useProgressiveQuery<typeof useMultiQueryTimeseriesImpl>({
     queryHookImplementation: useMultiQueryTimeseriesImpl,
-    queryHookArgs: {enabled, index},
+    queryHookArgs: {enabled, index, queryExtras},
     queryOptions: {
       canTriggerHighAccuracy,
     },
@@ -106,7 +107,7 @@ function useMultiQueryTimeseriesImpl({
 
   const timeseriesResult = useSortedTimeSeries(
     options,
-    'api.explorer.stats',
+    `api.explore.spans-timeseries`,
     DiscoverDatasets.SPANS
   );
 

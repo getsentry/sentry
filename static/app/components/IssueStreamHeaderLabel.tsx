@@ -12,8 +12,8 @@ const IssueStreamHeaderLabel = styled('div')<{
   display: inline-block;
   margin-right: ${space(2)};
   font-size: 13px;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
 
   ${p =>
@@ -37,7 +37,7 @@ const IssueStreamHeaderLabel = styled('div')<{
         width: 1px;
         height: 100%;
 
-        background-color: ${p.theme.gray200};
+        background-color: ${p.theme.colors.gray200};
       }
     `}
 

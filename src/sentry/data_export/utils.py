@@ -1,4 +1,7 @@
+import logging
+from collections.abc import Callable
 from functools import wraps
+from typing import Any
 
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.snuba import discover
@@ -9,10 +12,12 @@ from .base import ExportError
 
 
 # Adapted into decorator from 'src/sentry/api/endpoints/organization_events.py'
-def handle_snuba_errors(logger):
-    def wrapper(func):
+def handle_snuba_errors(
+    logger: logging.Logger,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def wrapper(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
-        def wrapped(*args, **kwargs):
+        def wrapped(*args: Any, **kwargs: Any) -> Any:
             try:
                 return func(*args, **kwargs)
             except discover.InvalidSearchQuery as error:

@@ -1,7 +1,6 @@
 import pick from 'lodash/pick';
 import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {VercelProviderFixture} from 'sentry-fixture/vercelIntegration';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -46,9 +45,12 @@ describe('IntegrationOrganizationLink', () => {
   });
   let getOrgsMock: jest.Mock;
 
-  const router = RouterFixture({
-    params: {integrationSlug: 'vercel'},
-  });
+  const initialRouterConfig = {
+    location: {
+      pathname: '/extensions/vercel/link/',
+    },
+    route: '/extensions/:integrationSlug/link/',
+  };
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -83,8 +85,7 @@ describe('IntegrationOrganizationLink', () => {
     });
 
     render(<IntegrationOrganizationLink />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -113,8 +114,7 @@ describe('IntegrationOrganizationLink', () => {
     });
 
     render(<IntegrationOrganizationLink />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 

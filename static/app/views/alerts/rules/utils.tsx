@@ -2,8 +2,6 @@ import * as qs from 'query-string';
 
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
-import type {IssueAlertRule} from 'sentry/types/alerts';
-import {IssueAlertActionType, RuleActionsCategories} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -17,6 +15,11 @@ import {TIME_WINDOW_TO_INTERVAL} from 'sentry/views/alerts/utils/timePeriods';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {defaultMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
+import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
+import {getMetricsUrl} from 'sentry/views/explore/metrics/utils';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
@@ -78,39 +81,6 @@ function renderIdBadge(project: Project) {
       hideName
     />
   );
-}
-
-export function getRuleActionCategory(rule: IssueAlertRule) {
-  const numDefaultActions = rule.actions.filter(
-    action => action.id === IssueAlertActionType.NOTIFY_EMAIL
-  ).length;
-
-  switch (numDefaultActions) {
-    // Are all actions default actions?
-    case rule.actions.length:
-      return RuleActionsCategories.ALL_DEFAULT;
-    // Are none of the actions default actions?
-    case 0:
-      return RuleActionsCategories.NO_DEFAULT;
-    default:
-      return RuleActionsCategories.SOME_DEFAULT;
-  }
-}
-
-export function getAlertRuleActionCategory(rule: MetricRule) {
-  const actions = rule.triggers.flatMap(trigger => trigger.actions);
-  const numDefaultActions = actions.filter(action => action.type === 'email').length;
-
-  switch (numDefaultActions) {
-    // Are all actions default actions?
-    case actions.length:
-      return RuleActionsCategories.ALL_DEFAULT;
-    // Are none of the actions default actions?
-    case 0:
-      return RuleActionsCategories.NO_DEFAULT;
-    default:
-      return RuleActionsCategories.SOME_DEFAULT;
-  }
 }
 
 export function shouldUseErrorsDiscoverDataset(
@@ -215,6 +185,58 @@ export function getAlertRuleLogsUrl({
   return `${basePath}` + `?${qs.stringify(queryParams, {skipNull: true})}`;
 }
 
+export function getAlertRuleMetricsUrl({
+  rule,
+  organization,
+  timePeriod,
+  projectId,
+}: {
+  organization: Organization;
+  projectId: string;
+  rule: MetricRule;
+  timePeriod: TimePeriodType;
+}) {
+  if (
+    rule.dataset !== Dataset.EVENTS_ANALYTICS_PLATFORM ||
+    !rule.eventTypes?.includes(EventTypes.TRACE_ITEM_METRIC)
+  ) {
+    return '';
+  }
+
+  const interval =
+    TIME_WINDOW_TO_INTERVAL[rule.timeWindow as keyof typeof TIME_WINDOW_TO_INTERVAL];
+
+  const {traceMetric} = parseMetricAggregate(rule.aggregate);
+
+  const metricQuery = defaultMetricQuery();
+  metricQuery.metric = traceMetric;
+  metricQuery.queryParams = metricQuery.queryParams.replace({
+    mode: Mode.AGGREGATE,
+    query: rule.query,
+    aggregateFields: [new VisualizeFunction(rule.aggregate)],
+  });
+
+  return getMetricsUrl({
+    organization,
+    selection: {
+      datetime: {
+        period: timePeriod.usingPeriod
+          ? timePeriod.period === '9998m'
+            ? '7d'
+            : timePeriod.period
+          : null,
+        start: timePeriod.usingPeriod ? null : timePeriod.start,
+        end: timePeriod.usingPeriod ? null : timePeriod.end,
+        utc: timePeriod.utc || null,
+      },
+      environments: rule.environment ? [rule.environment] : [],
+      projects: [parseInt(projectId, 10)],
+    },
+    interval,
+    metricQueries: [metricQuery],
+  });
+}
+
 export function isEapAlertType(alertType?: AlertType) {
   if (!defined(alertType)) {
     return false;
@@ -226,5 +248,18 @@ export function isEapAlertType(alertType?: AlertType) {
     'trace_item_failure_rate',
     'trace_item_lcp',
     'trace_item_logs',
+    'trace_item_metrics',
   ].includes(alertType);
+}
+
+/**
+ * Converts frontend-only alert types to their backend equivalents.
+ * `trace_item_logs` and `trace_item_metrics` are frontend-only types
+ * that should be sent to the backend as `eap_metrics`.
+ */
+export function getBackendAlertType(alertType: AlertType): AlertType {
+  if (alertType === 'trace_item_logs' || alertType === 'trace_item_metrics') {
+    return 'eap_metrics';
+  }
+  return alertType;
 }

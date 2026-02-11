@@ -5,26 +5,26 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {AccessRequest} from 'sentry/types/organization';
-import {
-  type ApiQueryKey,
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import OrganizationTeams from './organizationTeams';
 
-function OrganizationTeamsContainer(props: RouteComponentProps) {
+export default function OrganizationTeamsContainer() {
   const api = useApi();
   const organization = useOrganization({allowNull: true});
   const queryClient = useQueryClient();
 
-  const queryKey: ApiQueryKey = useMemo(
-    () => [`/organizations/${organization?.slug}/access-requests/`],
+  const queryKey = useMemo(
+    () =>
+      [
+        getApiUrl(`/organizations/$organizationIdOrSlug/access-requests/`, {
+          path: {organizationIdOrSlug: organization?.slug!},
+        }),
+      ] as const,
     [organization?.slug]
   );
 
@@ -89,14 +89,11 @@ function OrganizationTeamsContainer(props: RouteComponentProps) {
 
   return (
     <OrganizationTeams
-      {...props}
+      organization={organization}
       access={new Set(organization?.access)}
       features={new Set(organization?.features)}
-      organization={organization}
       requestList={requestList}
       onRemoveAccessRequest={handleRemoveAccessRequest}
     />
   );
 }
-
-export default OrganizationTeamsContainer;

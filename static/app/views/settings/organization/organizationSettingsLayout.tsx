@@ -1,23 +1,14 @@
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
+import {Outlet} from 'react-router-dom';
+
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
-import OrganizationSettingsNavigation from 'sentry/views/settings/organization/organizationSettingsNavigation';
 
-type Props = RouteComponentProps & {
-  children: React.ReactNode;
-};
-
-function OrganizationSettingsLayout(props: Props) {
-  const prefersStackedNav = usePrefersStackedNav();
-
+export default function OrganizationSettingsLayout() {
   return (
-    <SettingsLayout
-      {...props}
-      renderNavigation={
-        prefersStackedNav ? undefined : () => <OrganizationSettingsNavigation />
-      }
-    />
+    <AnalyticsArea name="organization">
+      <SettingsLayout>
+        <Outlet />
+      </SettingsLayout>
+    </AnalyticsArea>
   );
 }
-
-export default OrganizationSettingsLayout;

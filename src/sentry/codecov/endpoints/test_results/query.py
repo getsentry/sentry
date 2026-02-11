@@ -31,7 +31,6 @@ query = """query GetTestResults(
                 name
                 failureRate
                 flakeRate
-                commitsFailed
                 totalFailCount
                 totalFlakyFailCount
                 totalSkipCount

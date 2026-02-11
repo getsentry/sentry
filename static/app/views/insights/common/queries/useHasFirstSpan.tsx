@@ -1,6 +1,6 @@
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {Project} from 'sentry/types/project';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -8,7 +8,6 @@ const excludedModuleNames = [
   ModuleName.OTHER,
   ModuleName.MOBILE_UI,
   ModuleName.SESSIONS,
-  ModuleName.AGENTS,
 ] as const;
 
 type ExcludedModuleNames = (typeof excludedModuleNames)[number];
@@ -23,11 +22,14 @@ const modulePropertyMap: Record<
   [ModuleName.VITAL]: 'hasInsightsVitals',
   [ModuleName.QUEUE]: 'hasInsightsQueues',
   [ModuleName.SCREEN_LOAD]: 'hasInsightsScreenLoad',
+  [ModuleName.AGENT_MODELS]: 'hasInsightsAgentMonitoring',
+  [ModuleName.AGENT_TOOLS]: 'hasInsightsAgentMonitoring',
   [ModuleName.APP_START]: 'hasInsightsAppStart',
-  [ModuleName.MCP]: 'hasInsightsMCP',
+  [ModuleName.MCP_TOOLS]: 'hasInsightsMCP',
+  [ModuleName.MCP_RESOURCES]: 'hasInsightsMCP',
+  [ModuleName.MCP_PROMPTS]: 'hasInsightsMCP',
   // Renamed resource to assets
   [ModuleName.RESOURCE]: 'hasInsightsAssets',
-  [ModuleName.AI]: 'hasInsightsLlmMonitoring',
   [ModuleName.SCREEN_RENDERING]: 'hasInsightsScreenLoad', // Screen rendering and screen loads share similar spans
   [ModuleName.MOBILE_VITALS]: 'hasInsightsScreenLoad',
 };
@@ -53,18 +55,10 @@ export function useHasFirstSpan(module: ModuleName, projects?: Project[]): boole
   }
 
   let selectedProjects: Project[] = [];
-  // There are three cases for the selected pageFilter projects:
-  //  - [] empty list represents "My Projects"
-  //  - [-1] represents "All Projects"
-  //  - [.., ..] otherwise, represents a list of project IDs
-  if (pageFilters.selection.projects.length === 0 && isActiveSuperuser()) {
-    selectedProjects = allProjects; // when superuser is enabled, My Projects isn't applicable, and in reality all projects are selected when projects.length === 0
-  }
-  if (pageFilters.selection.projects.length === 0) {
-    selectedProjects = allProjects.filter(p => p.isMember);
-  } else if (
-    pageFilters.selection.projects.length === 1 &&
-    pageFilters.selection.projects[0] === -1
+
+  if (
+    pageFilters.selection.projects.length === 0 ||
+    pageFilters.selection.projects[0] === ALL_ACCESS_PROJECTS
   ) {
     selectedProjects = allProjects;
   } else {

@@ -35,12 +35,19 @@ def handle_merge(
     if any([group.issue_category != GroupCategory.ERROR for group in group_list]):
         raise rest_framework.exceptions.ValidationError(detail="Only error issues can be merged.")
 
-    group_list_by_times_seen = sorted(group_list, key=lambda g: (g.times_seen, g.id), reverse=True)
-    primary_group, groups_to_merge = group_list_by_times_seen[0], group_list_by_times_seen[1:]
+    # Sort by:
+    # 1) Earliest first-seen time.
+    # 2) On tie: Higher times-seen (# of associated events)
+    # 3) On double-tie: Lower id.
+    group_list_sorted = sorted(
+        group_list,
+        key=lambda g: (g.first_seen, -g.times_seen, g.id),
+    )
+    primary_group, groups_to_merge = group_list_sorted[0], group_list_sorted[1:]
 
     group_ids_to_merge = [g.id for g in groups_to_merge]
     eventstream_state = eventstream.backend.start_merge(
-        primary_group.project_id, group_ids_to_merge, primary_group.id
+        primary_group.project_id, group_ids_to_merge, primary_group.id, primary_group.first_seen
     )
 
     Group.objects.filter(id__in=group_ids_to_merge).update(

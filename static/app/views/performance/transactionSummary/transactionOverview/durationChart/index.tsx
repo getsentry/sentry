@@ -5,7 +5,7 @@ import type {Query} from 'history';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
@@ -27,7 +27,6 @@ type Props = ViewProps & {
   currentFilter: SpanOperationBreakdownFilter;
   organization: OrganizationSummary;
   queryExtra: Query;
-  withoutZerofill: boolean;
   queryExtras?: Record<string, string>;
 };
 
@@ -45,7 +44,6 @@ function DurationChart({
   statsPeriod,
   queryExtra,
   currentFilter,
-  withoutZerofill,
   start: propsStart,
   end: propsEnd,
   queryExtras,
@@ -140,8 +138,7 @@ function DurationChart({
         includePrevious={false}
         yAxis={yAxis}
         partial
-        withoutZerofill={withoutZerofill}
-        referrer="api.performance.transaction-summary.duration-chart"
+        referrer="api.insights.transaction-summary.duration-chart"
         queryExtras={queryExtras}
       >
         {({results, errored, loading, reloading, timeframe: timeFrame}) => {

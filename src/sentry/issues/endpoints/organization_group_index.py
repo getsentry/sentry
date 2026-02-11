@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
+import sentry_sdk
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError, PermissionDenied
@@ -11,7 +12,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import start_span
 
-from sentry import analytics, features, search
+from sentry import analytics, search
+from sentry.analytics.events.issue_search_endpoint_queried import IssueSearchEndpointQueriedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -195,9 +197,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             query_kwargs["actor"] = request.user
             if query_kwargs["sort_by"] == "inbox":
                 query_kwargs.pop("sort_by")
+                query_kwargs.pop("referrer")
                 result = inbox_search(**query_kwargs)
             else:
-                query_kwargs["referrer"] = "search.group_index"
                 result = search.backend.query(**query_kwargs)
             return result, query_kwargs
 
@@ -206,7 +208,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         description=(
             "Return a list of issues for an organization. "
             "All parameters are supplied as query string parameters. "
-            "A default query of `is:unresolved issue.priority:[high,medium]` is applied. "
+            "A default query of `is:unresolved` is applied. "
             "To return all results, use an empty query value (i.e. ``?query=`). "
         ),
         parameters=[
@@ -261,16 +263,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         if not projects:
             return Response([])
 
-        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
-        if (
-            len(projects) > 1
-            and not features.has("organizations:global-views", organization, actor=request.user)
-            and not is_fetching_replay_data
-        ):
-            return Response(
-                {"detail": "You do not have the multi project stream feature enabled"}, status=400
-            )
-
         serializer = functools.partial(
             StreamGroupSerializerSnuba,
             environment_ids=[env.id for env in environments],
@@ -288,14 +280,20 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
 
         # record analytics for search query
         if request.user:
-            analytics.record(
-                "issue_search.endpoint_queried",
-                user_id=request.user.id,
-                organization_id=organization.id,
-                project_ids=",".join(map(str, project_ids)),
-                full_query_params=",".join(f"{key}={value}" for key, value in request.GET.items()),
-                query=query,
-            )
+            try:
+                analytics.record(
+                    IssueSearchEndpointQueriedEvent(
+                        user_id=request.user.id,
+                        organization_id=organization.id,
+                        project_ids=",".join(map(str, project_ids)),
+                        full_query_params=",".join(
+                            f"{key}={value}" for key, value in request.GET.items()
+                        ),
+                        query=query,
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
         if query:
             # check to see if we've got an event ID
@@ -391,6 +389,18 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             status_labels = {QUERY_STATUS_LOOKUP[s] for s in status[0].value.raw_value}
             context = [r for r in context if "status" not in r or r["status"] in status_labels]
 
+        # Sanity check: if we're on the first and last page with no more results,
+        # the estimated hits from sampling may be too high due to Snuba/Postgres
+        # data inconsistency. Cap hits to match the actual number of results.
+        if (
+            cursor_result.hits is not None
+            and cursor_result.next.has_results is False
+            and not request.GET.get("cursor")
+        ):
+            actual_count = len(context)
+            if cursor_result.hits > actual_count:
+                cursor_result.hits = actual_count
+
         response = Response(context)
 
         self.add_cursor_headers(request, response, cursor_result)
@@ -433,16 +443,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     @track_slo_response("workflow")
     def put(self, request: Request, organization: Organization) -> Response:
         projects = self.get_projects(request, organization)
-        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
-
-        if (
-            len(projects) > 1
-            and not features.has("organizations:global-views", organization, actor=request.user)
-            and not is_fetching_replay_data
-        ):
-            return Response(
-                {"detail": "You do not have the multi project stream feature enabled"}, status=400
-            )
 
         search_fn = functools.partial(
             self._search,
@@ -484,17 +484,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     @track_slo_response("workflow")
     def delete(self, request: Request, organization: Organization) -> Response:
         projects = self.get_projects(request, organization)
-
-        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
-
-        if (
-            len(projects) > 1
-            and not features.has("organizations:global-views", organization, actor=request.user)
-            and not is_fetching_replay_data
-        ):
-            return Response(
-                {"detail": "You do not have the multi project stream feature enabled"}, status=400
-            )
 
         search_fn = functools.partial(
             self._search,

@@ -30,13 +30,13 @@ class RelocationUtilsTestCase(TestCase):
         )
         self.uuid = self.relocation.uuid
 
-    def mock_message_builder(self, fake_message_builder: Mock):
+    def mock_message_builder(self, fake_message_builder: Mock) -> None:
         fake_message_builder.return_value.send_async.return_value = MagicMock()
 
 
 @patch("sentry.relocation.utils.MessageBuilder")
 class RelocationStartTestCase(RelocationUtilsTestCase):
-    def test_bad_relocation_not_found(self, fake_message_builder: Mock):
+    def test_bad_relocation_not_found(self, fake_message_builder: Mock) -> None:
         self.mock_message_builder(fake_message_builder)
 
         uuid = str(uuid4())
@@ -47,7 +47,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         assert rel is None
         assert not attempts_left
 
-    def test_bad_relocation_completed(self, fake_message_builder: Mock):
+    def test_bad_relocation_completed(self, fake_message_builder: Mock) -> None:
         self.mock_message_builder(fake_message_builder)
 
         self.relocation.status = Relocation.Status.FAILURE.value
@@ -61,7 +61,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         assert not attempts_left
         assert Relocation.objects.get(uuid=self.uuid).status == Relocation.Status.FAILURE.value
 
-    def test_bad_unknown_task(self, fake_message_builder: Mock):
+    def test_bad_unknown_task(self, fake_message_builder: Mock) -> None:
         self.mock_message_builder(fake_message_builder)
 
         (rel, attempts_left) = start_relocation_task(self.uuid, OrderedTask.NONE, 3)
@@ -76,7 +76,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         assert not attempts_left
         assert Relocation.objects.get(uuid=self.uuid).status == Relocation.Status.FAILURE.value
 
-    def test_bad_task_out_of_order_future_step(self, fake_message_builder: Mock):
+    def test_bad_task_out_of_order_future_step(self, fake_message_builder: Mock) -> None:
         self.mock_message_builder(fake_message_builder)
 
         self.relocation.latest_task = OrderedTask.PREPROCESSING_SCAN.name
@@ -94,7 +94,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         assert not attempts_left
         assert Relocation.objects.get(uuid=self.uuid).status == Relocation.Status.FAILURE.value
 
-    def test_bad_task_out_of_order_past_step(self, fake_message_builder: Mock):
+    def test_bad_task_out_of_order_past_step(self, fake_message_builder: Mock) -> None:
         self.mock_message_builder(fake_message_builder)
 
         self.relocation.latest_task = OrderedTask.PREPROCESSING_BASELINE_CONFIG.name
@@ -107,7 +107,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         assert attempts_left == 3
         assert Relocation.objects.get(uuid=self.uuid).status == Relocation.Status.IN_PROGRESS.value
 
-    def test_bad_task_attempts_exhausted(self, fake_message_builder: Mock):
+    def test_bad_task_attempts_exhausted(self, fake_message_builder: Mock) -> None:
         self.mock_message_builder(fake_message_builder)
 
         self.relocation.latest_task = OrderedTask.IMPORTING.name
@@ -126,7 +126,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         assert not attempts_left
         assert Relocation.objects.get(uuid=self.uuid).status == Relocation.Status.FAILURE.value
 
-    def test_good_first_task(self, fake_message_builder: Mock):
+    def test_good_first_task(self, fake_message_builder: Mock) -> None:
         self.mock_message_builder(fake_message_builder)
 
         (rel, attempts_left) = start_relocation_task(self.uuid, OrderedTask.UPLOADING_START, 3)
@@ -138,7 +138,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         assert relocation.step == Relocation.Step.UPLOADING.value
         assert relocation.status != Relocation.Status.FAILURE.value
 
-    def test_good_next_task(self, fake_message_builder: Mock):
+    def test_good_next_task(self, fake_message_builder: Mock) -> None:
         self.mock_message_builder(fake_message_builder)
 
         self.relocation.latest_task = OrderedTask.UPLOADING_COMPLETE.name
@@ -153,7 +153,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         assert relocation.step == Relocation.Step.PREPROCESSING.value
         assert relocation.status != Relocation.Status.FAILURE.value
 
-    def test_good_pause_at_scheduled_pause(self, fake_message_builder: Mock):
+    def test_good_pause_at_scheduled_pause(self, fake_message_builder: Mock) -> None:
         self.mock_message_builder(fake_message_builder)
 
         self.relocation.latest_task = OrderedTask.UPLOADING_COMPLETE.name
@@ -171,7 +171,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         assert relocation.status == Relocation.Status.PAUSE.value
         assert relocation.scheduled_pause_at_step is None
 
-    def test_good_already_paused(self, fake_message_builder: Mock):
+    def test_good_already_paused(self, fake_message_builder: Mock) -> None:
         self.mock_message_builder(fake_message_builder)
 
         self.relocation.latest_task = OrderedTask.UPLOADING_COMPLETE.name
@@ -189,7 +189,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         assert relocation.status == Relocation.Status.PAUSE.value
         assert relocation.scheduled_pause_at_step is None
 
-    def test_good_cancel_at_scheduled_cancel(self, fake_message_builder: Mock):
+    def test_good_cancel_at_scheduled_cancel(self, fake_message_builder: Mock) -> None:
         self.mock_message_builder(fake_message_builder)
 
         self.relocation.latest_task = OrderedTask.UPLOADING_COMPLETE.name
@@ -208,7 +208,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         assert relocation.scheduled_cancel_at_step is None
         assert relocation.failure_reason == "This relocation was cancelled by an administrator."
 
-    def test_good_already_cancelled(self, fake_message_builder: Mock):
+    def test_good_already_cancelled(self, fake_message_builder: Mock) -> None:
         self.mock_message_builder(fake_message_builder)
 
         self.relocation.step = Relocation.Step.POSTPROCESSING.value
@@ -229,7 +229,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         assert relocation.scheduled_cancel_at_step is None
         assert self.relocation.failure_reason == "Cancelled"
 
-    def test_good_cancel_before_pause(self, fake_message_builder: Mock):
+    def test_good_cancel_before_pause(self, fake_message_builder: Mock) -> None:
         self.mock_message_builder(fake_message_builder)
 
         self.relocation.latest_task = OrderedTask.UPLOADING_COMPLETE.name
@@ -250,7 +250,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         assert relocation.scheduled_cancel_at_step is None
         assert relocation.failure_reason == "This relocation was cancelled by an administrator."
 
-    def test_good_pause_before_cancel(self, fake_message_builder: Mock):
+    def test_good_pause_before_cancel(self, fake_message_builder: Mock) -> None:
         self.mock_message_builder(fake_message_builder)
 
         self.relocation.latest_task = OrderedTask.UPLOADING_COMPLETE.name
@@ -274,7 +274,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
 
 @patch("sentry.relocation.utils.MessageBuilder")
 class RelocationFailTestCase(RelocationUtilsTestCase):
-    def test_no_reason(self, fake_message_builder: Mock):
+    def test_no_reason(self, fake_message_builder: Mock) -> None:
         self.mock_message_builder(fake_message_builder)
 
         fail_relocation(self.relocation, OrderedTask.UPLOADING_COMPLETE)
@@ -290,7 +290,7 @@ class RelocationFailTestCase(RelocationUtilsTestCase):
         assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert not relocation.failure_reason
 
-    def test_with_reason(self, fake_message_builder: Mock):
+    def test_with_reason(self, fake_message_builder: Mock) -> None:
         self.mock_message_builder(fake_message_builder)
 
         fail_relocation(self.relocation, OrderedTask.UPLOADING_COMPLETE, "foo")
@@ -309,7 +309,7 @@ class RelocationFailTestCase(RelocationUtilsTestCase):
 
 @patch("sentry.relocation.utils.MessageBuilder")
 class RelocationRetryOrFailTestCase(RelocationUtilsTestCase):
-    def test_no_reason_attempts_left(self, fake_message_builder: Mock):
+    def test_no_reason_attempts_left(self, fake_message_builder: Mock) -> None:
         self.mock_message_builder(fake_message_builder)
 
         with pytest.raises(ValueError):
@@ -323,7 +323,7 @@ class RelocationRetryOrFailTestCase(RelocationUtilsTestCase):
         assert relocation.latest_notified != Relocation.EmailKind.FAILED.value
         assert not relocation.failure_reason
 
-    def test_no_reason_last_attempt(self, fake_message_builder: Mock):
+    def test_no_reason_last_attempt(self, fake_message_builder: Mock) -> None:
         self.mock_message_builder(fake_message_builder)
 
         # Wrap in `try/except` to make mypy happy.
@@ -343,7 +343,7 @@ class RelocationRetryOrFailTestCase(RelocationUtilsTestCase):
         assert relocation.status == Relocation.Status.FAILURE.value
         assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
 
-    def test_with_reason_attempts_left(self, fake_message_builder: Mock):
+    def test_with_reason_attempts_left(self, fake_message_builder: Mock) -> None:
         self.mock_message_builder(fake_message_builder)
 
         with pytest.raises(ValueError):
@@ -359,7 +359,7 @@ class RelocationRetryOrFailTestCase(RelocationUtilsTestCase):
         assert relocation.latest_notified != Relocation.EmailKind.FAILED.value
         assert not relocation.failure_reason
 
-    def test_with_reason_last_attempt(self, fake_message_builder: Mock):
+    def test_with_reason_last_attempt(self, fake_message_builder: Mock) -> None:
         self.mock_message_builder(fake_message_builder)
 
         # Wrap in `try/except` to make mypy happy.

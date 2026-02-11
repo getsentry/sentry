@@ -1,19 +1,12 @@
 import {t} from 'sentry/locale';
-import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
-import type {MultiSeriesEventsStats} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {
-  PRIMARY_RELEASE_COLOR,
-  SECONDARY_RELEASE_COLOR,
-} from 'sentry/views/insights/colors';
 // TODO(release-drawer): Only used in mobile/appStarts/components/
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import {Referrer} from 'sentry/views/insights/mobile/appStarts/referrers';
@@ -30,43 +23,13 @@ const WARM_START_CONDITIONS = [
   'span.description:["Warm Start","Warm App Start"]',
 ];
 
-export function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
-  const transformedSeries: Record<string, Series> = {};
-
-  if (defined(data)) {
-    Object.keys(data).forEach(releaseName => {
-      transformedSeries[releaseName] = {
-        seriesName: releaseName,
-        data:
-          data[releaseName]?.data?.map(datum => {
-            return {
-              name: datum[0] * 1000,
-              value: datum[1][0]!.count,
-            } as SeriesDataUnit;
-          }) ?? [],
-        ...(primaryRelease === releaseName
-          ? {color: PRIMARY_RELEASE_COLOR}
-          : {
-              color: SECONDARY_RELEASE_COLOR,
-              lineStyle: {type: 'dashed'},
-            }),
-      };
-    });
-  }
-  return transformedSeries;
-}
-
 interface Props {
   additionalFilters?: string[];
 }
 
 function StartDurationWidget({additionalFilters}: Props) {
   const location = useLocation();
-  const {
-    primaryRelease,
-    secondaryRelease,
-    isLoading: isReleasesLoading,
-  } = useReleaseSelection();
+  const {primaryRelease, isLoading: isReleasesLoading} = useReleaseSelection();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const startType =
@@ -81,46 +44,54 @@ function StartDurationWidget({additionalFilters}: Props) {
     query.addFilterValue('os.name', selectedPlatform);
   }
 
-  const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
+  const queryString = appendReleaseFilters(query, primaryRelease);
   const search = new MutableSearch(queryString);
   const referrer = Referrer.MOBILE_APP_STARTS_DURATION_CHART;
-  const groupBy = SpanFields.RELEASE;
+  const groupBy = primaryRelease ? SpanFields.RELEASE : SpanFields.TRANSACTION;
   const yAxis: SpanProperty = 'avg(span.duration)';
 
   const {
     data,
     isPending: isSeriesLoading,
     error: seriesError,
-  } = useTopNSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
       yAxis: [yAxis],
-      fields: [groupBy, 'avg(span.duration)'],
-      topN: 2,
-      search,
+      groupBy: [groupBy],
+      topEvents: 2,
+      query: search,
       enabled: !isReleasesLoading,
     },
     referrer
   );
 
+  const timeSeries = data?.timeSeries || [];
+
   // Only transform the data is we know there's at least one release
-  const sortedSeries = data
-    .sort((releaseA, _releaseB) => (releaseA.seriesName === primaryRelease ? -1 : 1))
-    .map(serie => ({
-      ...serie,
-      seriesName: `${yAxis} ${serie.seriesName}`,
-    }));
+  const sortedSeries = timeSeries.sort((releaseA, _releaseB) =>
+    releaseA.groupBy?.[0]?.value === primaryRelease ? -1 : 1
+  );
+
+  // If multiple releases are present, we need to set the yAxis to the release name,
+  // otherwise all will show "Avg. Duration" in the legend
+  timeSeries.forEach(release => {
+    const releaseName = release.groupBy?.find(entry => entry.key === 'release')?.value;
+    if (releaseName && typeof releaseName === 'string') {
+      release.yAxis = releaseName;
+    }
+  });
 
   return (
     <InsightsLineChartWidget
       title={
         startType === COLD_START_TYPE ? t('Average Cold Start') : t('Average Warm Start')
       }
-      series={sortedSeries}
+      timeSeries={sortedSeries}
       isLoading={isSeriesLoading}
       error={seriesError}
       queryInfo={{search, groupBy: [groupBy], referrer}}
       showReleaseAs="none"
-      showLegend="always"
+      showLegend={primaryRelease ? 'always' : 'never'}
       height={220}
     />
   );

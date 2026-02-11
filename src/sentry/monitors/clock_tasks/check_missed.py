@@ -42,7 +42,7 @@ IGNORE_MONITORS = ~Q(
 )
 
 
-def dispatch_check_missing(ts: datetime):
+def dispatch_check_missing(ts: datetime) -> None:
     """
     Given a clock tick timestamp determine which monitor environments are past
     their next_checkin_latest, indicating they haven't checked-in when they
@@ -83,7 +83,7 @@ def dispatch_check_missing(ts: datetime):
         produce_task(payload)
 
 
-def mark_environment_missing(monitor_environment_id: int, ts: datetime):
+def mark_environment_missing(monitor_environment_id: int, ts: datetime) -> None:
     logger.info("mark_missing", extra={"monitor_environment_id": monitor_environment_id})
 
     try:
@@ -100,7 +100,7 @@ def mark_environment_missing(monitor_environment_id: int, ts: datetime):
     except MonitorEnvironment.DoesNotExist:
         # Nothing to do. We already handled this miss in an earlier tasks
         # (or the environment was deleted)
-        return
+        return None
 
     monitor = monitor_environment.monitor
     # next_checkin must be set, since detecting this monitor as missed means

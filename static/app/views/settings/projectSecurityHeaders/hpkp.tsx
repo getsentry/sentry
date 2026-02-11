@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -8,6 +9,7 @@ import PreviewFeature from 'sentry/components/previewFeature';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -24,7 +26,7 @@ function getInstructions(keyList: ProjectKey[]) {
     '        \'pin-sha256="cUPcTAZWKaASuYWhhneDttWpY3oBAkE3h2+soZS7sWs="; \' \\\n' +
     '        \'pin-sha256="M8HztCzM3elUxkcjR2S5P4hhyBNf6lHkmjAHKhpGPWE="; \' \\\n' +
     "        'max-age=5184000; includeSubDomains; ' \\\n" +
-    `        \'report-uri="${getSecurityDsn(keyList)}"\' \n` +
+    `        'report-uri="${getSecurityDsn(keyList)}"' \n` +
     '    return response\n'
   );
 }
@@ -36,23 +38,30 @@ function getReportOnlyInstructions(keyList: ProjectKey[]) {
     '        \'pin-sha256="cUPcTAZWKaASuYWhhneDttWpY3oBAkE3h2+soZS7sWs="; \' \\\n' +
     '        \'pin-sha256="M8HztCzM3elUxkcjR2S5P4hhyBNf6lHkmjAHKhpGPWE="; \' \\\n' +
     "        'max-age=5184000; includeSubDomains; ' \\\n" +
-    `        \'report-uri="${getSecurityDsn(keyList)}"\' \n` +
+    `        'report-uri="${getSecurityDsn(keyList)}"' \n` +
     '    return response\n'
   );
 }
 
 function ProjectHpkpReports() {
   const organization = useOrganization();
-  const {projectId} = useParams();
+  const {projectId} = useParams<{projectId: string}>();
 
   const {
     data: keyList,
     isPending,
     isError,
     refetch,
-  } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectId}/keys/`], {
-    staleTime: 0,
-  });
+  } = useApiQuery<ProjectKey[]>(
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -65,13 +74,13 @@ function ProjectHpkpReports() {
   return (
     <div>
       <SentryDocumentTitle
-        title={routeTitleGen(t('HTTP Public Key Pinning (HPKP)'), projectId!, false)}
+        title={routeTitleGen(t('HTTP Public Key Pinning (HPKP)'), projectId, false)}
       />
       <SettingsPageHeader title={t('HTTP Public Key Pinning')} />
 
       <PreviewFeature />
 
-      <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId!} />
+      <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId} />
 
       <Panel>
         <PanelHeader>{t('About')}</PanelHeader>

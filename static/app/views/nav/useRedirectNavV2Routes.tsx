@@ -7,7 +7,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {useLastKnownRoute} from 'sentry/views/lastKnownRouteContextProvider';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 type Props = {
   newPathPrefix: `/${string}`;
@@ -17,11 +16,6 @@ type Props = {
 function useShouldRedirect(oldPathPrefix: `/${string}`) {
   const organization = useOrganization();
   const location = useLocation();
-  const prefersStackedNav = usePrefersStackedNav();
-
-  if (!prefersStackedNav) {
-    return false;
-  }
 
   if (USING_CUSTOMER_DOMAIN) {
     return location.pathname.startsWith(oldPathPrefix);
@@ -43,12 +37,9 @@ function useLogUnexpectedNavigationRedirect({shouldRedirect}: {shouldRedirect: b
 
   useEffect(() => {
     if (shouldRedirect && lastKnownRoute !== routeString) {
-      Sentry.captureMessage('Unexpected navigation redirect', {
-        level: 'warning',
-        tags: {
-          last_known_route: lastKnownRoute,
-          route: routeString,
-        },
+      Sentry.logger.warn('Unexpected navigation redirect', {
+        last_known_route: lastKnownRoute,
+        route: routeString,
       });
     }
   }, [lastKnownRoute, shouldRedirect, routeString]);
@@ -87,10 +78,14 @@ export function useRedirectNavV2Routes({
     );
   }
 
+  const newPath = newPathPrefix.startsWith('/settings/')
+    ? newPathPrefix.replace('/settings/', `/settings/${organization.slug}/`)
+    : `/organizations/${organization.slug}${newPathPrefix}`;
+
   return (
     location.pathname.replace(
       new RegExp(`^/organizations/${organization.slug}${oldPathPrefix}`),
-      `/organizations/${organization.slug}${newPathPrefix}`
+      newPath
     ) +
     location.search +
     location.hash

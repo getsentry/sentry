@@ -1,17 +1,17 @@
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 
 import {getIntervalOptionsForPageFilter, useChartInterval} from './useChartInterval';
 
-describe('useChartInterval', function () {
+describe('useChartInterval', () => {
   beforeEach(() => {
     PageFiltersStore.reset();
     PageFiltersStore.init();
   });
 
-  it('allows changing chart interval', function () {
+  it('allows changing chart interval', () => {
     let chartInterval!: ReturnType<typeof useChartInterval>[0];
     let setChartInterval!: ReturnType<typeof useChartInterval>[1];
     let intervalOptions!: ReturnType<typeof useChartInterval>[2];
@@ -29,7 +29,7 @@ describe('useChartInterval', function () {
       {value: '12h', label: '12 hours'},
       {value: '1d', label: '1 day'},
     ]);
-    expect(chartInterval).toBe('12h'); // default
+    expect(chartInterval).toBe('1h'); // default
 
     act(() => setChartInterval('3h'));
     expect(chartInterval).toBe('3h');
@@ -50,13 +50,13 @@ describe('useChartInterval', function () {
       {value: '15m', label: '15 minutes'},
     ]);
     act(() => {
-      setChartInterval('1m');
+      setChartInterval('15m');
     });
-    expect(chartInterval).toBe('1m');
+    expect(chartInterval).toBe('15m');
   });
 });
 
-describe('getIntervalOptionsForPageFilter', function () {
+describe('getIntervalOptionsForPageFilter', () => {
   it.each([
     '1h',
     '23h',
@@ -71,20 +71,17 @@ describe('getIntervalOptionsForPageFilter', function () {
     '60d',
     '89d',
     '90d',
-  ])(
-    'returns interval options with resulting in less than 1000 buckets',
-    function (period) {
-      const periodInHours = parsePeriodToHours(period);
-      const options = getIntervalOptionsForPageFilter({
-        period,
-        start: null,
-        end: null,
-        utc: null,
-      });
-      options.forEach(({value}) => {
-        const intervalInHours = parsePeriodToHours(value);
-        expect(periodInHours / intervalInHours).toBeLessThan(1000);
-      });
-    }
-  );
+  ])('returns interval options with resulting in less than 1000 buckets', period => {
+    const periodInHours = parsePeriodToHours(period);
+    const options = getIntervalOptionsForPageFilter({
+      period,
+      start: null,
+      end: null,
+      utc: null,
+    });
+    options.forEach(({value}) => {
+      const intervalInHours = parsePeriodToHours(value);
+      expect(periodInHours / intervalInHours).toBeLessThan(1000);
+    });
+  });
 });

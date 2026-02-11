@@ -12,7 +12,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event
 
 logger = logging.getLogger("sentry.events.grouping")
 

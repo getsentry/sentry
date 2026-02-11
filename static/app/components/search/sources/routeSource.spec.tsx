@@ -7,14 +7,14 @@ import RouteSource from 'sentry/components/search/sources/routeSource';
 import HookStore from 'sentry/stores/hookStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-describe('RouteSource', function () {
+describe('RouteSource', () => {
   const project = ProjectFixture();
 
   beforeEach(() => {
     ProjectsStore.loadInitialData([project]);
   });
 
-  it('can find a route', async function () {
+  it('can find a route', async () => {
     const mock = jest.fn().mockReturnValue(null);
 
     render(<RouteSource query="password">{mock}</RouteSource>);
@@ -33,7 +33,7 @@ describe('RouteSource', function () {
     });
   });
 
-  it('can load links via hooks', async function () {
+  it('can load links via hooks', async () => {
     const mock = jest.fn().mockReturnValue(null);
     HookStore.add('settings:organization-navigation-config', () => {
       return {
@@ -63,7 +63,7 @@ describe('RouteSource', function () {
     });
   });
 
-  it('does not find any form field', async function () {
+  it('does not find any form field', async () => {
     const mock = jest.fn().mockReturnValue(null);
     const {routerProps} = initializeOrg();
     render(

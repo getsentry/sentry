@@ -46,7 +46,7 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('TraceContext', function () {
+describe('TraceContext', () => {
   const location = LocationFixture();
   const organization = OrganizationFixture({
     features: ['performance-view'],
@@ -58,7 +58,7 @@ describe('TraceContext', function () {
     },
   });
 
-  it('returns values and according to the parameters', function () {
+  it('returns values and according to the parameters', () => {
     expect(
       getTraceContextData({
         data: MOCK_TRACE_CONTEXT,
@@ -80,7 +80,7 @@ describe('TraceContext', function () {
         value: TRACE_ID,
         action: {
           link: expect.objectContaining({
-            pathname: `/organizations/org-slug/traces/trace/${TRACE_ID}/`,
+            pathname: `/organizations/org-slug/explore/traces/trace/${TRACE_ID}/`,
           }),
         },
       },
@@ -142,7 +142,7 @@ describe('TraceContext', function () {
     ]);
   });
 
-  it('renders with meta annotations correctly', function () {
+  it('renders with meta annotations correctly', () => {
     const event = EventFixture({
       _meta: {contexts: {trace: MOCK_REDACTION}},
     });
@@ -150,8 +150,8 @@ describe('TraceContext', function () {
     render(
       <ContextCard
         event={event}
-        type={'default'}
-        alias={'trace'}
+        type="default"
+        alias="trace"
         value={{...MOCK_TRACE_CONTEXT, origin: ''}}
       />,
       {organization}
@@ -162,5 +162,22 @@ describe('TraceContext', function () {
     expect(screen.getByRole('link', {name: TRACE_ID})).toBeInTheDocument();
     expect(screen.getByText('Origin')).toBeInTheDocument();
     expect(screen.getByText(/redacted/)).toBeInTheDocument();
+  });
+
+  it('returns trace_id with tooltip when trace is not sampled', () => {
+    const result = getTraceContextData({
+      data: {trace_id: TRACE_ID, sampled: false},
+      event: EventFixture(),
+      organization,
+      location,
+    });
+
+    const traceItem = result.find(item => item.key === 'trace_id');
+    expect(traceItem).toMatchObject({
+      key: 'trace_id',
+      subject: 'Trace ID',
+    });
+    // When not sampled, value is a React element (Tooltip) not a string
+    expect(traceItem?.action).toBeUndefined();
   });
 });

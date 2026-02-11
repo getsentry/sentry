@@ -1,7 +1,10 @@
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {FeedbackIntegration} from 'sentry/components/feedback/widget/useFeedback';
-import * as useFeedback from 'sentry/components/feedback/widget/useFeedback';
+import type {
+  FeedbackIntegration,
+  UseFeedbackOptions,
+} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
+import * as useFeedbackSDKIntegration from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {GlobalFeedbackForm, useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
 const mockForm = {
@@ -15,24 +18,22 @@ const mockFeedback = {
   createForm: jest.fn().mockResolvedValue(mockForm),
 } as unknown as FeedbackIntegration;
 
-const defaultOptions = {
+const defaultOptions: NonNullable<UseFeedbackOptions> = {
   colorScheme: 'light' as const,
-  buttonLabel: '',
   submitButtonLabel: '',
   messagePlaceholder: '',
   formTitle: '',
-  tags: {},
 };
 
-describe('useFeedbackForm', function () {
+describe('useFeedbackForm', () => {
   beforeEach(() => {
     jest
-      .spyOn(useFeedback, 'useFeedback')
-      .mockReturnValue({feedback: mockFeedback, options: defaultOptions});
+      .spyOn(useFeedbackSDKIntegration, 'useFeedbackSDKIntegration')
+      .mockReturnValue({feedback: mockFeedback, defaultOptions});
     jest.clearAllMocks();
   });
 
-  it('can open the form using useFeedbackForm', async function () {
+  it('can open the form using useFeedbackForm', async () => {
     const {result} = renderHook(useFeedbackForm, {wrapper: GlobalFeedbackForm});
     const openForm = result.current;
 
@@ -46,7 +47,7 @@ describe('useFeedbackForm', function () {
     expect(mockForm.open).toHaveBeenCalledTimes(1);
   });
 
-  it('reuses the old form instance if same options are provided', async function () {
+  it('reuses the old form instance if same options are provided', async () => {
     const {result} = renderHook(useFeedbackForm, {wrapper: GlobalFeedbackForm});
     const openForm = result.current;
 
@@ -73,7 +74,7 @@ describe('useFeedbackForm', function () {
     expect(mockForm.open).toHaveBeenCalledTimes(2);
   });
 
-  it('creates a new form instance if different options are provided', async function () {
+  it('creates a new form instance if different options are provided', async () => {
     const {result} = renderHook(useFeedbackForm, {wrapper: GlobalFeedbackForm});
     const openForm = result.current;
 
@@ -96,7 +97,7 @@ describe('useFeedbackForm', function () {
     expect(mockForm.open).toHaveBeenCalledTimes(2);
   });
 
-  it('cleans up on unmount', async function () {
+  it('cleans up on unmount', async () => {
     const {result, unmount} = renderHook(useFeedbackForm, {wrapper: GlobalFeedbackForm});
     const openForm = result.current;
 

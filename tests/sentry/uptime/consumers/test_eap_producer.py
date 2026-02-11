@@ -9,12 +9,14 @@ from sentry.testutils.cases import TestCase
 from sentry.uptime.consumers.eap_converter import convert_uptime_result_to_trace_items
 from sentry.uptime.consumers.eap_producer import produce_eap_uptime_result
 from sentry.uptime.types import IncidentStatus
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class EAPProducerIntegrationTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.subscription = self.create_uptime_subscription(subscription_id=str(uuid.uuid4()))
+        self.subscription = self.create_uptime_subscription()
+        self.detector = self.create_uptime_detector(uptime_subscription=self.subscription)
 
     def create_check_result(self) -> CheckResult:
         """Create a sample CheckResult for testing."""
@@ -40,7 +42,9 @@ class EAPProducerIntegrationTestCase(TestCase):
 
     @patch("sentry.uptime.consumers.eap_producer._eap_items_producer")
     @patch("sentry.uptime.consumers.eap_producer.get_topic_definition")
-    def test_produce_eap_uptime_result_success(self, mock_get_topic, mock_producer):
+    def test_produce_eap_uptime_result_success(
+        self, mock_get_topic: MagicMock, mock_producer: MagicMock
+    ) -> None:
         mock_get_topic.return_value = {"real_topic_name": "test-eap-items"}
         mock_producer_instance = MagicMock()
         mock_producer.produce = mock_producer_instance
@@ -49,8 +53,7 @@ class EAPProducerIntegrationTestCase(TestCase):
         metric_tags = {"status": "success", "region": "us-east-1"}
 
         produce_eap_uptime_result(
-            uptime_subscription=self.subscription,
-            project=self.project,
+            detector=self.detector,
             result=result,
             metric_tags=metric_tags,
         )
@@ -71,13 +74,14 @@ class EAPProducerIntegrationTestCase(TestCase):
 
     @patch("sentry.uptime.consumers.eap_producer._eap_items_producer")
     @patch("sentry.uptime.consumers.eap_producer.logger")
-    def test_produce_eap_uptime_result_error_handling(self, mock_logger, mock_producer):
+    def test_produce_eap_uptime_result_error_handling(
+        self, mock_logger: MagicMock, mock_producer: MagicMock
+    ) -> None:
         mock_producer.produce.side_effect = Exception("Kafka error")
         result = self.create_check_result()
         metric_tags = {"status": "success", "region": "us-east-1"}
         produce_eap_uptime_result(
-            uptime_subscription=self.subscription,
-            project=self.project,
+            detector=self.detector,
             result=result,
             metric_tags=metric_tags,
         )
@@ -87,12 +91,11 @@ class EAPProducerIntegrationTestCase(TestCase):
 
     @patch("sentry.uptime.consumers.eap_producer.metrics")
     @patch("sentry.uptime.consumers.eap_producer._eap_items_producer")
-    def test_metrics_tracking(self, mock_producer, mock_metrics):
+    def test_metrics_tracking(self, mock_producer: MagicMock, mock_metrics: MagicMock) -> None:
         result = self.create_check_result()
         metric_tags = {"status": "success", "region": "us-east-1"}
         produce_eap_uptime_result(
-            uptime_subscription=self.subscription,
-            project=self.project,
+            detector=self.detector,
             result=result,
             metric_tags=metric_tags,
         )
@@ -104,13 +107,14 @@ class EAPProducerIntegrationTestCase(TestCase):
 
     @patch("sentry.uptime.consumers.eap_producer.metrics")
     @patch("sentry.uptime.consumers.eap_producer._eap_items_producer")
-    def test_error_metrics_tracking(self, mock_producer, mock_metrics):
+    def test_error_metrics_tracking(
+        self, mock_producer: MagicMock, mock_metrics: MagicMock
+    ) -> None:
         mock_producer.produce.side_effect = Exception("Kafka error")
         result = self.create_check_result()
         metric_tags = {"status": "success", "region": "us-east-1"}
         produce_eap_uptime_result(
-            uptime_subscription=self.subscription,
-            project=self.project,
+            detector=self.detector,
             result=result,
             metric_tags=metric_tags,
         )
@@ -119,3 +123,41 @@ class EAPProducerIntegrationTestCase(TestCase):
             sample_rate=1.0,
             tags=metric_tags,
         )
+
+    @patch("sentry.uptime.consumers.eap_producer._eap_items_producer")
+    @patch("sentry.uptime.consumers.eap_producer.get_topic_definition")
+    def test_produce_with_triggered_detector_state(
+        self, mock_get_topic: MagicMock, mock_producer: MagicMock
+    ) -> None:
+        """Test that when detector state is triggered, incident_status is IN_INCIDENT"""
+        mock_get_topic.return_value = {"real_topic_name": "test-eap-items"}
+        mock_producer_instance = MagicMock()
+        mock_producer.produce = mock_producer_instance
+
+        # Update the detector state to be triggered
+        detector_state = self.detector.detectorstate_set.first()
+        assert detector_state is not None
+        detector_state.update(
+            state=DetectorPriorityLevel.HIGH,
+            is_triggered=True,
+        )
+
+        result = self.create_check_result()
+        metric_tags = {"status": "success", "region": "us-east-1"}
+
+        produce_eap_uptime_result(
+            detector=self.detector,
+            result=result,
+            metric_tags=metric_tags,
+        )
+
+        mock_producer_instance.assert_called_once()
+        call_args = mock_producer_instance.call_args
+        topic, payload = call_args[0]
+
+        # Verify the incident status is IN_INCIDENT
+        expected_trace_items = convert_uptime_result_to_trace_items(
+            self.project, result, IncidentStatus.IN_INCIDENT
+        )
+        codec = get_topic_codec(Topic.SNUBA_ITEMS)
+        assert [codec.decode(payload.value)] == expected_trace_items

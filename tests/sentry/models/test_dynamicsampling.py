@@ -113,7 +113,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         old_rules = []
         new_rules = []
 
-        def create_rule(is_old: bool, idx: int):
+        def create_rule(is_old: bool, idx: int) -> CustomDynamicSamplingRule:
             condition = {"op": "equals", "name": "environment", "value": f"prod{idx}"}
             if is_old:
                 end_delta = -timedelta(hours=1)
@@ -287,7 +287,9 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         Tests that expired, and only expired, rules are deactivated
         """
 
-        def create_rule(env_idx: int, end: datetime, project_ids: list[int]):
+        def create_rule(
+            env_idx: int, end: datetime, project_ids: list[int]
+        ) -> CustomDynamicSamplingRule:
             condition = {"op": "equals", "name": "environment", "value": f"prod{env_idx}"}
             return CustomDynamicSamplingRule.update_or_create(
                 condition=condition,

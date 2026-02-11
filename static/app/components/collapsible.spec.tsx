@@ -1,12 +1,13 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {Button} from '@sentry/scraps/button';
+
 import Collapsible from 'sentry/components/collapsible';
-import {Button} from 'sentry/components/core/button';
 
 const items = [1, 2, 3, 4, 5, 6, 7].map(i => <div key={i}>Item {i}</div>);
 
-describe('Collapsible', function () {
-  it('collapses items', function () {
+describe('Collapsible', () => {
+  it('collapses items', () => {
     render(<Collapsible>{items}</Collapsible>);
 
     expect(screen.getAllByText(/Item/)).toHaveLength(5);
@@ -16,7 +17,7 @@ describe('Collapsible', function () {
     expect(screen.queryByLabelText('Collapse')).not.toBeInTheDocument();
   });
 
-  it('expands items', async function () {
+  it('expands items', async () => {
     render(<Collapsible>{items}</Collapsible>);
 
     // expand
@@ -30,20 +31,20 @@ describe('Collapsible', function () {
     expect(screen.getAllByText(/Item/)).toHaveLength(5);
   });
 
-  it('respects maxVisibleItems prop', function () {
+  it('respects maxVisibleItems prop', () => {
     render(<Collapsible maxVisibleItems={2}>{items}</Collapsible>);
 
     expect(screen.getAllByText(/Item/)).toHaveLength(2);
   });
 
-  it('does not collapse items below threshold', function () {
+  it('does not collapse items below threshold', () => {
     render(<Collapsible maxVisibleItems={100}>{items}</Collapsible>);
 
     expect(screen.getAllByText(/Item/)).toHaveLength(7);
     expect(screen.queryByLabelText(/hidden item/)).not.toBeInTheDocument();
   });
 
-  it('takes custom buttons', async function () {
+  it('takes custom buttons', async () => {
     render(
       <Collapsible
         collapseButton={({onCollapse}) => (

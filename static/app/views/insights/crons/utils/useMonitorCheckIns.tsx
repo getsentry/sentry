@@ -1,6 +1,7 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type {CheckIn} from 'sentry/views/insights/crons/types';
@@ -28,7 +29,16 @@ function makeMonitorCheckInsQueryKey({
   queryParams,
 }: MonitorChecksParameters): ApiQueryKey {
   return [
-    `/projects/${orgSlug}/${projectSlug}/monitors/${monitorIdOrSlug}/checkins/`,
+    getApiUrl(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/monitors/$monitorIdOrSlug/checkins/',
+      {
+        path: {
+          organizationIdOrSlug: orgSlug,
+          projectIdOrSlug: projectSlug,
+          monitorIdOrSlug,
+        },
+      }
+    ),
     {query: {per_page: limit, cursor, environment, expand, ...queryParams}},
   ];
 }

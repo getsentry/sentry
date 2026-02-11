@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fixtures.bitbucket import PUSH_EVENT_EXAMPLE
 from sentry.integrations.bitbucket.webhook import PROVIDER_NAME, is_valid_signature
@@ -115,7 +115,7 @@ class PushEventWebhookTest(WebhookBaseTest):
     method = "post"
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_simple(self, mock_record):
+    def test_simple(self, mock_record: MagicMock) -> None:
         self.create_repository()
 
         self.send_webhook()
@@ -125,7 +125,7 @@ class PushEventWebhookTest(WebhookBaseTest):
 
     @patch("sentry.integrations.bitbucket.webhook.PushEventWebhook.__call__")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_webhook_error_metric(self, mock_record, mock_event):
+    def test_webhook_error_metric(self, mock_record: MagicMock, mock_event: MagicMock) -> None:
         self.create_repository()
 
         error = Exception("error")

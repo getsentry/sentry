@@ -45,6 +45,7 @@ class SdkFrameMunger:
 def java_frame_munger(frame: EventFrame) -> str | None:
     stacktrace_path = None
     if not frame.module or not frame.abs_path:
+        logger.warning("Module or absPath is missing", extra={"frame": frame})
         return None
 
     from sentry.issues.auto_source_code_config.errors import (
@@ -231,7 +232,7 @@ def find_stack_frames(
                 threads = None
             thread = get_crashing_thread(threads)
             if thread is not None:
-                frames = get_path(thread, "stacktrace", "frames") or []
+                frames = get_path(thread, "stacktrace", "frames", filter=True) or []
         for frame in frames or ():
             consume_frame(frame)
 

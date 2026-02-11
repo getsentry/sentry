@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -10,56 +11,73 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
+import {InvoiceStatus} from 'getsentry/types';
 import type {BillingDetails, Invoice} from 'getsentry/types';
-import {InvoiceItemType, InvoiceStatus} from 'getsentry/types';
 import {getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import InvoiceDetailsActions from './actions';
 
-interface Props extends RouteComponentProps<{invoiceGuid: string}, unknown> {}
+function InvoiceDetails() {
+  const {invoiceGuid} = useParams<{invoiceGuid: string}>();
 
-function InvoiceDetails({params}: Props) {
   const organization = useOrganization();
   const {
     data: billingDetails,
     isPending: isBillingDetailsLoading,
     isError: isBillingDetailsError,
     refetch: billingDetailsRefetch,
-  } = useApiQuery<BillingDetails>([`/customers/${organization.slug}/billing-details/`], {
-    staleTime: 0,
-    placeholderData: keepPreviousData,
-  });
+  } = useApiQuery<BillingDetails>(
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/billing-details/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
+    {
+      staleTime: 0,
+      placeholderData: keepPreviousData,
+    }
+  );
   const {
     data: invoice,
     isPending: isInvoiceLoading,
     isError: isInvoiceError,
     refetch: invoiceRefetch,
   } = useApiQuery<Invoice>(
-    [`/customers/${organization.slug}/invoices/${params.invoiceGuid}/`],
-    {staleTime: Infinity}
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/invoices/$invoiceId/`, {
+        path: {organizationIdOrSlug: organization.slug, invoiceId: invoiceGuid},
+      }),
+    ],
+    {
+      staleTime: Infinity,
+    }
   );
 
   if (isBillingDetailsError || isInvoiceError) {
     return (
-      <LoadingError
-        onRetry={() => {
-          billingDetailsRefetch();
-          invoiceRefetch();
-        }}
-      />
+      <SubscriptionPageContainer background="secondary">
+        <LoadingError
+          onRetry={() => {
+            billingDetailsRefetch();
+            invoiceRefetch();
+          }}
+        />
+      </SubscriptionPageContainer>
     );
   }
 
   return (
-    <Fragment>
-      <SettingsPageHeader title={t('Invoice Details')}>
-        {t('Invoice Details')}
+    <SubscriptionPageContainer background="secondary">
+      <SettingsPageHeader title={t('Receipt Details')}>
+        {t('Receipt Details')}
       </SettingsPageHeader>
       <Panel>
         {isInvoiceLoading || isBillingDetailsLoading ? (
@@ -113,14 +131,18 @@ function InvoiceDetails({params}: Props) {
                     invoice.customer.billingInterval === 'annual'
                       ? 'year'
                       : 'month',
-                  here: <ExternalLink href="/settings/billing/cancel" />,
+                  here: (
+                    <ExternalLink
+                      href={`/settings/${organization.slug}/billing/cancel/`}
+                    />
+                  ),
                 }
               )}
             </FinePrint>
           </PanelBody>
         )}
       </Panel>
-    </Fragment>
+    </SubscriptionPageContainer>
   );
 }
 
@@ -227,7 +249,7 @@ function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
         </tfoot>
         <tbody>
           {invoice.items.map((item, i) => {
-            if (item.type === InvoiceItemType.SUBSCRIPTION) {
+            if (item.type === 'subscription') {
               return (
                 <tr key={i}>
                   <td>
@@ -298,7 +320,7 @@ const Attributes = styled('dl')`
     margin: 0 0 ${space(0.25)} ${space(1)};
   }
   dd {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.background.secondary};
     padding: ${space(1)};
     margin-bottom: ${space(2)};
   }
@@ -315,7 +337,7 @@ const InvoiceItems = styled('table')`
 
   tr th,
   tr td {
-    border-top: 1px solid ${p => p.theme.innerBorder};
+    border-top: 1px solid ${p => p.theme.tokens.border.secondary};
     padding: ${space(2)} ${space(1)};
   }
   thead tr:first-child th,
@@ -338,12 +360,12 @@ const InvoiceItems = styled('table')`
 const RefundRow = styled('tr')`
   td,
   th {
-    background: ${p => p.theme.alert.warning.backgroundLight};
+    background: ${p => p.theme.colors.yellow100};
   }
 `;
 
 const FinePrint = styled('div')`
   margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.font.size.xs};
+  color: ${p => p.theme.colors.gray400};
 `;

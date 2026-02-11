@@ -1,18 +1,22 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
-import {EapSpanSearchQueryBuilderWrapper} from 'sentry/components/performance/spanSearchQueryBuilder';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {
   EMPTY_OPTION_VALUE,
   escapeFilterValue,
@@ -22,10 +26,10 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 // TODO(release-drawer): Move InsightsLineChartWidget into separate, self-contained component
 // eslint-disable-next-line no-restricted-imports
@@ -36,8 +40,6 @@ import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {
   DataTitles,
   getDurationChartTitle,
@@ -59,6 +61,28 @@ import {
   type SpanQueryFilters,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+
+interface HTTPSamplesPanelSearchQueryBuilderProps {
+  handleSearch: (query: string) => void;
+  query: string;
+  selection: PageFilters;
+}
+
+function HTTPSamplesPanelSearchQueryBuilder({
+  query,
+  selection,
+  handleSearch,
+}: HTTPSamplesPanelSearchQueryBuilderProps) {
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    projects: selection.projects,
+    initialQuery: query,
+    onSearch: handleSearch,
+    placeholder: t('Search for span attributes'),
+    searchSource: `${ModuleName.HTTP}-sample-panel`,
+  });
+
+  return <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />;
+}
 
 export function HTTPSamplesPanel() {
   const navigate = useNavigate();
@@ -188,26 +212,28 @@ export function HTTPSamplesPanel() {
     isFetching: isDurationDataFetching,
     data: durationData,
     error: durationError,
-  } = useSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
-      search,
+      query: search,
       yAxis: [`avg(span.self_time)`],
       enabled: isPanelOpen && query.panel === 'duration',
-      transformAliasToInputFormat: true,
     },
     Referrer.SAMPLES_PANEL_DURATION_CHART
   );
+
+  const timeSeries = durationData?.timeSeries || [];
+  const durationSeries = timeSeries.find(ts => ts.yAxis === 'avg(span.self_time)');
 
   const {
     isFetching: isResponseCodeDataLoading,
     data: responseCodeData,
     error: responseCodeError,
-  } = useTopNSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
-      search,
-      fields: [SpanFields.SPAN_STATUS_CODE, 'count()'],
+      query: search,
+      groupBy: [SpanFields.SPAN_STATUS_CODE],
       yAxis: ['count()'],
-      topN: 5,
+      topEvents: 5,
       sort: {
         kind: 'desc',
         field: 'count()',
@@ -217,7 +243,22 @@ export function HTTPSamplesPanel() {
     Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART
   );
 
-  const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
+  const responseCodeTimeSeries = responseCodeData?.timeSeries || [];
+
+  const durationAxisMax = computeAxisMax([
+    durationSeries
+      ? {
+          seriesName: durationSeries.yAxis,
+          data: durationSeries.values.map(v => ({
+            name: v.timestamp,
+            value: v.value || 0,
+          })),
+        }
+      : {
+          seriesName: 'avg(span.self_time)',
+          data: [],
+        },
+  ]);
 
   const {
     data: spanSamplesData,
@@ -380,7 +421,7 @@ export function HTTPSamplesPanel() {
             </ModuleLayout.Full>
 
             <ModuleLayout.Full>
-              <PanelControls>
+              <Flex justify="between" gap="xl">
                 <SegmentedControl
                   value={query.panel}
                   onChange={handlePanelChange}
@@ -398,11 +439,14 @@ export function HTTPSamplesPanel() {
                   value={query.responseCodeClass}
                   options={HTTP_RESPONSE_CODE_CLASS_OPTIONS}
                   onChange={handleResponseCodeClassChange}
-                  triggerProps={{
-                    prefix: t('Response Code'),
-                  }}
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button
+                      {...triggerProps}
+                      prefix={t('Response Code')}
+                    />
+                  )}
                 />
-              </PanelControls>
+              </Flex>
             </ModuleLayout.Full>
 
             {query.panel === 'duration' && (
@@ -417,7 +461,7 @@ export function HTTPSamplesPanel() {
                     title={getDurationChartTitle('http')}
                     isLoading={isDurationDataFetching}
                     error={durationError}
-                    series={[durationData[`avg(span.self_time)`]]}
+                    timeSeries={durationSeries ? [durationSeries] : []}
                     samples={samplesPlottable}
                   />
                 </ModuleLayout.Full>
@@ -431,7 +475,7 @@ export function HTTPSamplesPanel() {
                     search={search}
                     referrer={Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART}
                     groupBy={[SpanFields.SPAN_STATUS_CODE]}
-                    series={Object.values(responseCodeData).filter(Boolean)}
+                    series={responseCodeTimeSeries}
                     isLoading={isResponseCodeDataLoading}
                     error={responseCodeError}
                   />
@@ -440,12 +484,10 @@ export function HTTPSamplesPanel() {
             )}
 
             <ModuleLayout.Full>
-              <EapSpanSearchQueryBuilderWrapper
-                projects={selection.projects}
-                initialQuery={query.spanSearchQuery}
-                onSearch={handleSearch}
-                placeholder={t('Search for span attributes')}
-                searchSource={`${ModuleName.HTTP}-sample-panel`}
+              <HTTPSamplesPanelSearchQueryBuilder
+                query={query.spanSearchQuery}
+                selection={selection}
+                handleSearch={handleSearch}
               />
             </ModuleLayout.Full>
 
@@ -555,9 +597,3 @@ const HTTP_RESPONSE_CODE_CLASS_OPTIONS = [
     label: t('5XXs'),
   },
 ];
-
-const PanelControls = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${space(2)};
-`;

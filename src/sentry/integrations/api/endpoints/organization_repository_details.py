@@ -14,11 +14,13 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationInte
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.repository import RepositorySerializer as RepositoryApiSerializer
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.services.integration import integration_service
 from sentry.models.commit import Commit
+from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.tasks.repository import repository_cascade_delete_on_hide
 from sentry.tasks.seer import cleanup_seer_repository_preferences
@@ -43,11 +45,21 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationIntegrationsPermission,)
 
-    def put(self, request: Request, organization, repo_id) -> Response:
+    def get(self, request: Request, organization: Organization, repo_id) -> Response:
+        try:
+            repo = Repository.objects.get(id=repo_id, organization_id=organization.id)
+        except Repository.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        expand = request.GET.getlist("expand", [])
+        return Response(serialize(repo, request.user, RepositoryApiSerializer(expand=expand)))
+
+    def put(self, request: Request, organization: Organization, repo_id) -> Response:
         if not request.user.is_authenticated:
             return Response(status=401)
 

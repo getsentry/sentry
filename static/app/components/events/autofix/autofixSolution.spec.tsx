@@ -7,8 +7,15 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {AutofixSolution} from 'sentry/components/events/autofix/autofixSolution';
-import type {AutofixSolutionTimelineEvent} from 'sentry/components/events/autofix/types';
-import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
+import {
+  AutofixStatus,
+  type AutofixData,
+  type AutofixSolutionTimelineEvent,
+} from 'sentry/components/events/autofix/types';
+import {
+  useAutofixData,
+  useAutofixRepos,
+} from 'sentry/components/events/autofix/useAutofix';
 
 jest.mock('sentry/components/events/autofix/useAutofix');
 
@@ -31,6 +38,7 @@ describe('AutofixSolution', () => {
     groupId: '123',
     runId: 'run-123',
     solutionSelected: false,
+    status: AutofixStatus.COMPLETED,
   } satisfies React.ComponentProps<typeof AutofixSolution>;
 
   beforeEach(() => {
@@ -43,6 +51,12 @@ describe('AutofixSolution', () => {
     jest.mocked(useAutofixRepos).mockReturnValue({
       repos: [],
       codebases: {},
+    });
+
+    jest.mocked(useAutofixData).mockReset();
+    jest.mocked(useAutofixData).mockReturnValue({
+      data: {} as AutofixData,
+      isPending: false,
     });
 
     MockApiClient.addMockResponse({
@@ -374,7 +388,7 @@ describe('AutofixSolution', () => {
     render(<AutofixSolution {...defaultProps} />);
 
     // Find and fill the input
-    const input = screen.getByPlaceholderText('Add more instructions...');
+    const input = screen.getByPlaceholderText('Add to the solution plan...');
     await userEvent.type(input, 'This is a custom instruction');
 
     // Enable the Add button by typing non-empty text
@@ -439,7 +453,7 @@ describe('AutofixSolution', () => {
     render(<AutofixSolution {...defaultProps} />);
 
     // Find and fill the input, then press Enter
-    const input = screen.getByPlaceholderText('Add more instructions...');
+    const input = screen.getByPlaceholderText('Add to the solution plan...');
     await userEvent.type(input, 'Enter key instruction{Enter}');
 
     // Verify the custom instruction was added

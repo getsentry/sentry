@@ -572,11 +572,17 @@ class _RemoteSiloCall:
                 response = self._fire_test_request(headers, data)
             else:
                 response = self._fire_request(headers, data)
+            tags = self._metrics_tags(status=response.status_code)
             metrics.incr(
                 "hybrid_cloud.dispatch_rpc.response_code",
-                tags=self._metrics_tags(status=response.status_code),
+                tags=tags,
             )
-
+            metrics.distribution(
+                "hybrid_cloud.dispatch_rpc.response_bytes",
+                len(response.content),
+                tags=tags,
+                unit="byte",
+            )
             if response.status_code == 200:
                 return response.json()
             self._raise_from_response_status_error(response)

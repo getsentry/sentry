@@ -1,6 +1,6 @@
 import {lazy} from 'react';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import LazyLoad from 'sentry/components/lazyLoad';
 
@@ -18,21 +18,26 @@ function BarComponent() {
 
 type ResolvedComponent = {default: React.ComponentType<TestProps>};
 
-describe('LazyLoad', function () {
+describe('LazyLoad', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
   afterEach(() => {
     jest.restoreAllMocks();
+    jest.useRealTimers();
   });
 
-  it('renders with a loading indicator when promise is not resolved yet', function () {
+  it('renders with a loading indicator when promise is not resolved yet', async () => {
     const importTest = new Promise<ResolvedComponent>(() => {});
     const getComponent = () => importTest;
     render(<LazyLoad LazyComponent={lazy(getComponent)} />);
 
-    // Should be loading
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    });
   });
 
-  it('renders when given a promise of a "foo" component', async function () {
+  it('renders when given a promise of a "foo" component', async () => {
     let doResolve: (c: ResolvedComponent) => void;
     const importFoo = new Promise<ResolvedComponent>(resolve => {
       doResolve = resolve;
@@ -41,14 +46,16 @@ describe('LazyLoad', function () {
     render(<LazyLoad LazyComponent={lazy(() => importFoo)} />);
 
     // Should be loading
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    });
 
     // resolve with foo
     doResolve!({default: FooComponent});
     expect(await screen.findByText('my foo component')).toBeInTheDocument();
   });
 
-  it('renders with error message when promise is rejected', async function () {
+  it('renders with error message when promise is rejected', async () => {
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
     const getComponent = () => Promise.reject(new Error('Could not load component'));
 
@@ -64,7 +71,7 @@ describe('LazyLoad', function () {
     expect(console.error).toHaveBeenCalled();
   });
 
-  it('refetches only when component changes', async function () {
+  it('refetches only when component changes', async () => {
     let doResolve: (c: ResolvedComponent) => void;
     const importFoo = new Promise<ResolvedComponent>(resolve => {
       doResolve = resolve;
@@ -72,7 +79,9 @@ describe('LazyLoad', function () {
 
     // First render Foo
     const {rerender} = render(<LazyLoad LazyComponent={lazy(() => importFoo)} />);
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    });
 
     // resolve with foo
     doResolve!({default: FooComponent});

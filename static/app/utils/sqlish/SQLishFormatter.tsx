@@ -47,7 +47,7 @@ export class SQLishFormatter {
 
     try {
       tokens = this.parser.parse(sql);
-    } catch (error) {
+    } catch (error: any) {
       Sentry.withScope(scope => {
         scope.setFingerprint(['sqlish-parse-error']);
         // Get the last 100 characters of the error message

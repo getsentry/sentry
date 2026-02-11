@@ -1,7 +1,8 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import useFetchCrashReport from 'sentry/components/feedback/feedbackItem/useFetchCrashReport';
@@ -43,7 +44,7 @@ export default function CrashReportSection({
 
   if (!groupData) {
     return (
-      <Alert type="warning">
+      <Alert variant="warning">
         {tct(
           'Event [id] was linked but not found in this project. The event might have been dropped or the ID may be incorrect.',
           {id: crashReportId}
@@ -61,8 +62,8 @@ export default function CrashReportSection({
 }
 
 const IssueDetailsContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   position: relative;
   padding: ${space(1.5)} ${space(1.5)} ${space(1.5)} ${space(2)};
   overflow: auto;

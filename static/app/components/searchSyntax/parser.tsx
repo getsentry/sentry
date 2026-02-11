@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/react';
-import merge from 'lodash/merge';
 import moment from 'moment-timezone';
 import type {LocationRange} from 'peggy';
 
@@ -11,7 +10,7 @@ import {
   measurementType,
 } from 'sentry/utils/discover/fields';
 
-import grammar from './grammar.pegjs';
+import {parse} from './grammar.pegjs';
 import {getKeyName} from './utils';
 
 type TextFn = () => string;
@@ -46,6 +45,7 @@ export enum Token {
   KEY_EXPLICIT_NUMBER_FLAG = 'keyExplicitNumberFlag',
   KEY_EXPLICIT_STRING_FLAG = 'keyExplicitStringFlag',
   KEY_EXPLICIT_TAG = 'keyExplicitTag',
+  KEY_EXPLICIT_BOOLEAN_TAG = 'keyExplicitBooleanTag',
   KEY_EXPLICIT_NUMBER_TAG = 'keyExplicitNumberTag',
   KEY_EXPLICIT_STRING_TAG = 'keyExplicitStringTag',
   KEY_AGGREGATE = 'keyAggregate',
@@ -76,6 +76,12 @@ export enum TermOperator {
   LESS_THAN = '<',
   EQUAL = '=',
   NOT_EQUAL = '!=',
+  CONTAINS = '\uf00dContains\uf00d',
+  DOES_NOT_CONTAIN = '\uf00dDoesNotContain\uf00d',
+  STARTS_WITH = '\uf00dStartsWith\uf00d',
+  DOES_NOT_START_WITH = '\uf00dDoesNotStartWith\uf00d',
+  ENDS_WITH = '\uf00dEndsWith\uf00d',
+  DOES_NOT_END_WITH = '\uf00dDoesNotEndWith\uf00d',
 }
 
 /**
@@ -112,43 +118,38 @@ export enum FilterType {
 }
 
 /**
- * The type of wildcard based off of positions of asterisks in the token value.
- * These can be used to determine the type of wildcard operator used in the token value,
- * and include the following:
+ * These are the wildcard operators that can be used in the search query. We use the
+ * \uf00d unicode character to isolate the wildcard operator from the rest of the string,
+ * as this gives us more flexibility down the road to add more operators.
  *
- * - `leading` (ends with): The value is prefixed with `*` e.g. `*value`
- * - `trailing` (starts with): The value is suffixed with `*` e.g. `value*`
- * - `surrounded` (contains): The value is prefixed and suffixed with `*` e.g. `*value*`
+ * Unicode Character: `\uf00d`
  */
-export enum WildcardPositions {
-  /**
-   * The value is leads with `*`, e.g. `*value`, i.e. the user is searching for values
-   * that end with `<value>`.
-   */
-  LEADING = 'leading',
-  /**
-   * The value is trails with `*`, e.g. `value*`, i.e. the user is searching for values
-   * that start with `<value>`.
-   */
-  TRAILING = 'trailing',
-  /**
-   * The value is lead and trailed with `*`, e.g. `*value*`, i.e. the user is
-   * searching for values that contain `<value>`.
-   */
-  SURROUNDED = 'surrounded',
+export enum WildcardOperators {
+  CONTAINS = '\uf00dContains\uf00d',
+  STARTS_WITH = '\uf00dStartsWith\uf00d',
+  ENDS_WITH = '\uf00dEndsWith\uf00d',
 }
 
-export const allOperators = [
-  TermOperator.DEFAULT,
+const basicOperators = [TermOperator.DEFAULT, TermOperator.NOT_EQUAL] as const;
+
+export const comparisonOperators = [
   TermOperator.GREATER_THAN_EQUAL,
   TermOperator.LESS_THAN_EQUAL,
   TermOperator.GREATER_THAN,
   TermOperator.LESS_THAN,
   TermOperator.EQUAL,
-  TermOperator.NOT_EQUAL,
 ] as const;
 
-const basicOperators = [TermOperator.DEFAULT, TermOperator.NOT_EQUAL] as const;
+export const wildcardOperators = [
+  TermOperator.CONTAINS,
+  TermOperator.DOES_NOT_CONTAIN,
+  TermOperator.STARTS_WITH,
+  TermOperator.DOES_NOT_START_WITH,
+  TermOperator.ENDS_WITH,
+  TermOperator.DOES_NOT_END_WITH,
+] as const;
+
+export type WildcardOperator = (typeof wildcardOperators)[number];
 
 /**
  * Map of certain filter types to other filter types with applicable operators
@@ -157,6 +158,14 @@ const basicOperators = [TermOperator.DEFAULT, TermOperator.NOT_EQUAL] as const;
 export const interchangeableFilterOperators = {
   [FilterType.SPECIFIC_DATE]: [FilterType.DATE],
   [FilterType.DATE]: [FilterType.SPECIFIC_DATE],
+};
+
+type InterchangeableFilterOperators = keyof typeof interchangeableFilterOperators;
+
+export const isInterchangeableFilterOperator = (
+  type: FilterType
+): type is InterchangeableFilterOperators => {
+  return type in interchangeableFilterOperators;
 };
 
 const textKeys = [
@@ -178,19 +187,19 @@ const textKeys = [
 export const filterTypeConfig = {
   [FilterType.TEXT]: {
     validKeys: textKeys,
-    validOps: basicOperators,
+    validOps: [...basicOperators, ...wildcardOperators],
     validValues: [Token.VALUE_TEXT],
     canNegate: true,
   },
   [FilterType.TEXT_IN]: {
     validKeys: textKeys,
-    validOps: basicOperators,
+    validOps: [...basicOperators, ...wildcardOperators],
     validValues: [Token.VALUE_TEXT_LIST],
     canNegate: true,
   },
   [FilterType.DATE]: {
     validKeys: [Token.KEY_SIMPLE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_ISO_8601_DATE],
     canNegate: false,
   },
@@ -208,19 +217,19 @@ export const filterTypeConfig = {
   },
   [FilterType.DURATION]: {
     validKeys: [Token.KEY_SIMPLE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_DURATION],
     canNegate: true,
   },
   [FilterType.SIZE]: {
     validKeys: [Token.KEY_SIMPLE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_SIZE],
     canNegate: true,
   },
   [FilterType.NUMERIC]: {
     validKeys: [Token.KEY_SIMPLE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_NUMBER],
     canNegate: true,
   },
@@ -238,37 +247,37 @@ export const filterTypeConfig = {
   },
   [FilterType.AGGREGATE_DURATION]: {
     validKeys: [Token.KEY_AGGREGATE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_DURATION],
     canNegate: true,
   },
   [FilterType.AGGREGATE_SIZE]: {
     validKeys: [Token.KEY_AGGREGATE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_SIZE],
     canNegate: true,
   },
   [FilterType.AGGREGATE_NUMERIC]: {
     validKeys: [Token.KEY_AGGREGATE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_NUMBER],
     canNegate: true,
   },
   [FilterType.AGGREGATE_PERCENTAGE]: {
     validKeys: [Token.KEY_AGGREGATE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_PERCENTAGE],
     canNegate: true,
   },
   [FilterType.AGGREGATE_DATE]: {
     validKeys: [Token.KEY_AGGREGATE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_ISO_8601_DATE],
     canNegate: true,
   },
   [FilterType.AGGREGATE_RELATIVE_DATE]: {
     validKeys: [Token.KEY_AGGREGATE],
-    validOps: allOperators,
+    validOps: [...basicOperators, ...comparisonOperators],
     validValues: [Token.VALUE_RELATIVE_DATE],
     canNegate: true,
   },
@@ -449,15 +458,21 @@ export class TokenConverter {
     key: FilterMap[T]['key'],
     value: FilterMap[T]['value'],
     operator: FilterMap[T]['operator'] | undefined,
-    negated: FilterMap[T]['negated']
+    negated: FilterMap[T]['negated'],
+    wildcard: FilterMap[T]['operator'] | undefined
   ) => {
+    let operatorToUse = operator ?? TermOperator.DEFAULT;
+    if (wildcard && (filter === FilterType.TEXT || filter === FilterType.TEXT_IN)) {
+      operatorToUse = wildcard;
+    }
+
     const filterToken = {
       type: Token.FILTER as const,
       filter,
       key,
       value,
       negated,
-      operator: operator ?? TermOperator.DEFAULT,
+      operator: operatorToUse,
       invalid: this.checkInvalidFilter(filter, key, value, negated),
       warning: this.checkFilterWarning(key),
     } as FilterResult;
@@ -572,6 +587,16 @@ export class TokenConverter {
   ) => ({
     ...this.defaultTokenFields,
     type: Token.KEY_EXPLICIT_NUMBER_TAG as const,
+    prefix,
+    key,
+  });
+
+  tokenKeyExplicitBooleanTag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_BOOLEAN_TAG as const,
     prefix,
     key,
   });
@@ -724,27 +749,11 @@ export class TokenConverter {
   });
 
   tokenValueText = (value: string, quoted: boolean) => {
-    // we want to ignore setting the wildcard if the value is only asterisks because the
-    // value is solely matching anything and we don't want to consider it to be any of
-    // our new operators
-    const valueSet = new Set(value);
-    const onlyAsterisks = valueSet.size === 1 && valueSet.has('*');
-
-    let wildcard: WildcardPositions | false = false;
-    if (!onlyAsterisks && value.startsWith('*') && value.endsWith('*')) {
-      wildcard = WildcardPositions.SURROUNDED;
-    } else if (!onlyAsterisks && value.endsWith('*')) {
-      wildcard = WildcardPositions.TRAILING;
-    } else if (!onlyAsterisks && value.startsWith('*')) {
-      wildcard = WildcardPositions.LEADING;
-    }
-
     return {
       ...this.defaultTokenFields,
       type: Token.VALUE_TEXT as const,
       value,
       quoted,
-      wildcard,
     };
   };
 
@@ -881,6 +890,7 @@ export class TokenConverter {
         Token.KEY_SIMPLE,
         Token.KEY_EXPLICIT_TAG,
         Token.KEY_AGGREGATE,
+        Token.KEY_EXPLICIT_BOOLEAN_TAG,
         Token.KEY_EXPLICIT_NUMBER_TAG,
         Token.KEY_EXPLICIT_STRING_TAG,
         Token.KEY_EXPLICIT_FLAG,
@@ -897,6 +907,7 @@ export class TokenConverter {
         | Token.KEY_EXPLICIT_TAG
         | Token.KEY_EXPLICIT_FLAG
         | Token.KEY_AGGREGATE
+        | Token.KEY_EXPLICIT_BOOLEAN_TAG
         | Token.KEY_EXPLICIT_NUMBER_TAG
         | Token.KEY_EXPLICIT_NUMBER_FLAG
         | Token.KEY_EXPLICIT_STRING_TAG
@@ -1505,13 +1516,11 @@ function tryParseSearch<T extends {config: SearchConfig}>(
   config: T
 ): ParseResult | null {
   try {
-    return grammar.parse(query, config);
-  } catch (e) {
-    Sentry.withScope(scope => {
-      scope.setFingerprint(['search-syntax-parse-error']);
-      scope.setExtra('message', e.message?.slice(-100));
-      scope.setExtra('found', e.found);
-      Sentry.captureException(e);
+    return parse(query, config);
+  } catch (e: any) {
+    Sentry.logger.error('Search syntax parse error', {
+      message: e.message?.slice(-100),
+      found: e.found,
     });
 
     return null;
@@ -1527,7 +1536,7 @@ export function parseSearch(
   additionalConfig?: Partial<SearchConfig>
 ): ParseResult | null {
   const config = additionalConfig
-    ? merge({...defaultConfig}, additionalConfig)
+    ? mergeSearchConfigWithDefaults(defaultConfig, additionalConfig)
     : defaultConfig;
 
   return tryParseSearch(query, {
@@ -1536,6 +1545,28 @@ export function parseSearch(
     TermOperator,
     FilterType,
   });
+}
+
+/**
+ * Applies a partial search configuration onto the default config. This is very
+ * similar to a simple `{...a, ...b}`, but it ignores any `undefined` values of
+ * `b`. This is important because `{...{key: false}, ...{key: undefined}}`
+ * results in `{key: undefined}`, which is not what we want. We want the values
+ * of the search config to override the default _only_ if they're actually
+ * defined.
+ */
+function mergeSearchConfigWithDefaults(
+  a: SearchConfig,
+  b: Partial<SearchConfig>
+): SearchConfig {
+  const newConfig: SearchConfig = {
+    ...a,
+    ...Object.fromEntries(
+      Object.entries(b).filter(([_key, value]) => value !== undefined)
+    ),
+  };
+
+  return newConfig;
 }
 
 /**

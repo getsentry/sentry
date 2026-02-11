@@ -1,5 +1,9 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {TraceShape, TraceTree} from './traceTree';
 import {makeTrace, makeTraceError, makeTransaction} from './traceTreeTestUtils';
+
+const organization = OrganizationFixture();
 
 describe('TraceTree', () => {
   it('empty trace', () => {
@@ -8,7 +12,7 @@ describe('TraceTree', () => {
         transactions: [],
         orphan_errors: [],
       }),
-      {replay: null, meta: null}
+      {replay: null, meta: null, organization}
     );
 
     expect(tree.shape).toBe(TraceShape.EMPTY_TRACE);
@@ -27,7 +31,7 @@ describe('TraceTree', () => {
         ],
         orphan_errors: [],
       }),
-      {replay: null, meta: null}
+      {replay: null, meta: null, organization}
     );
 
     expect(tree.shape).toBe(TraceShape.NO_ROOT);
@@ -44,7 +48,7 @@ describe('TraceTree', () => {
         ],
         orphan_errors: [],
       }),
-      {replay: null, meta: null}
+      {replay: null, meta: null, organization}
     );
 
     expect(tree.shape).toBe(TraceShape.ONE_ROOT);
@@ -64,7 +68,7 @@ describe('TraceTree', () => {
         ],
         orphan_errors: [],
       }),
-      {replay: null, meta: null}
+      {replay: null, meta: null, organization}
     );
 
     expect(tree.shape).toBe(TraceShape.BROKEN_SUBTRACES);
@@ -79,7 +83,7 @@ describe('TraceTree', () => {
         ],
         orphan_errors: [],
       }),
-      {replay: null, meta: null}
+      {replay: null, meta: null, organization}
     );
 
     expect(tree.shape).toBe(TraceShape.BROWSER_MULTIPLE_ROOTS);
@@ -100,7 +104,7 @@ describe('TraceTree', () => {
         ],
         orphan_errors: [],
       }),
-      {replay: null, meta: null}
+      {replay: null, meta: null, organization}
     );
 
     expect(tree.shape).toBe(TraceShape.MULTIPLE_ROOTS);
@@ -112,7 +116,7 @@ describe('TraceTree', () => {
         transactions: [],
         orphan_errors: [makeTraceError()],
       }),
-      {replay: null, meta: null}
+      {replay: null, meta: null, organization}
     );
 
     expect(tree.shape).toBe(TraceShape.ONLY_ERRORS);

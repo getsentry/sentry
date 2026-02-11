@@ -17,8 +17,7 @@
         "value": {
           "type": "valueText",
           "value": "one",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -42,8 +41,7 @@
         "value": {
           "type": "valueText",
           "value": "two",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -67,8 +65,7 @@
         "value": {
           "type": "valueText",
           "value": ">hotdog",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -92,8 +89,7 @@
         "value": {
           "type": "valueText",
           "value": ">hotdog",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -117,8 +113,7 @@
         "value": {
           "type": "valueText",
           "value": ">hotdog",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}

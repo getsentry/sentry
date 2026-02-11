@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`autogrouping parent autogrouping assigns children to tail node 1`] = `
 "
@@ -238,6 +238,14 @@ eap trace root
 `;
 
 exports[`autogrouping sibling autogrouping eap traces groups spans with the same op and description 1`] = `
+"
+eap trace root
+  http.server - redis
+    sibling autogroup (db: 5)
+"
+`;
+
+exports[`autogrouping sibling autogrouping eap traces groups spans with the same op and name if OTel UI is enabled 1`] = `
 "
 eap trace root
   http.server - redis

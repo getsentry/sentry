@@ -37,6 +37,7 @@ from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.auth.store import FLOW_LOGIN, FLOW_SETUP_PROVIDER, AuthHelperSessionStore
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.view import AuthView
+from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.locks import locks
 from sentry.models.authidentity import AuthIdentity
@@ -99,7 +100,7 @@ class AuthIdentityHandler:
         email = self.identity.get("email")
         if email:
             try:
-                user = resolve_email_to_user(email)
+                user = resolve_email_to_user(email, organization=self.organization)
             except AmbiguousUserFromEmail as e:
                 user = e.users[0]
                 self.warn_about_ambiguous_email(email, e.users, user)
@@ -132,10 +133,19 @@ class AuthIdentityHandler:
             sample_rate=1.0,
             skip_internal=False,
         )
+
+        # Use the user's original destination (from _next) for 2FA redirect,
+        # falling back to current URL if not set or invalid
+        after_2fa_url = self.request.session.get("_next")
+        if not after_2fa_url or not auth.is_valid_redirect(
+            after_2fa_url, allowed_hosts=(self.request.get_host(),)
+        ):
+            after_2fa_url = self.request.build_absolute_uri()
+
         user_was_logged_in = auth.login(
             self.request,
             user,
-            after_2fa=self.request.build_absolute_uri(),
+            after_2fa=after_2fa_url,
             organization_id=self.organization.id,
         )
         if not user_was_logged_in:
@@ -221,6 +231,19 @@ class AuthIdentityHandler:
         auth_identity: AuthIdentity,
     ) -> tuple[User, RpcOrganizationMember]:
         user = User.objects.get(id=auth_identity.user_id)
+
+        if is_demo_user(user) and not is_demo_org(organization):
+            sentry_sdk.capture_message(
+                "Demo user cannot be added to an organization that is not a demo organization.",
+                level="warning",
+                extras={
+                    "user_id": user.id,
+                    "organization_id": organization.id,
+                },
+            )
+            raise Exception(
+                "Demo user cannot be added to an organization that is not a demo organization."
+            )
 
         # If the user is either currently *pending* invite acceptance (as indicated
         # from the invite token and member id in the session) OR an existing invite exists on this
@@ -437,6 +460,9 @@ class AuthIdentityHandler:
     @property
     def _logged_in_user(self) -> User | None:
         """The user, if they have authenticated on this session."""
+        if is_demo_mode_enabled() and is_demo_user(self.request.user):
+            return None
+
         return self.request.user if self.request.user.is_authenticated else None
 
     @property
@@ -763,6 +789,21 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
         if not data:
             return self.error(ERR_INVALID_IDENTITY)
 
+        # Check for provider mismatch - user authenticated with a different provider
+        # than what the organization requires. This can happen when a user has multiple
+        # SSO sessions in different tabs and completes the wrong one.
+        provider_key = data.get("provider_key")
+        if (
+            self.state.flow == FLOW_LOGIN
+            and self.provider_model
+            and provider_key
+            and provider_key != self.provider_model.provider
+        ):
+            return self._handle_provider_mismatch(
+                provider_key=provider_key,
+                expected_provider_key=self.provider_model.provider,
+            )
+
         try:
             identity = self.provider.build_identity(data)
         except IdentityNotValid as error:
@@ -778,6 +819,49 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
             raise Exception(f"Unrecognized flow value: {self.state.flow}")
 
         return response
+
+    def _handle_provider_mismatch(
+        self,
+        provider_key: str,
+        expected_provider_key: str,
+    ) -> HttpResponseRedirect:
+        """
+        Handle when user authenticated with a different provider than required.
+
+        This happens when a user starts SSO for an org (e.g., "sentry" which requires Okta)
+        but authenticates with a different provider (e.g., Google). We redirect them back
+        to the org's login page to use the correct SSO provider.
+        """
+        logger.info(
+            "sso.provider-mismatch",
+            extra={
+                "organization_id": self.organization.id,
+                "expected_provider": expected_provider_key,
+                "actual_provider": provider_key,
+            },
+        )
+
+        metrics.incr(
+            "sso.provider_mismatch",
+            tags={
+                "expected_provider": expected_provider_key,
+                "actual_provider": provider_key,
+            },
+        )
+
+        # Clear the invalid pipeline state
+        self.clear_session()
+
+        expected_name = getattr(self.provider, "name", expected_provider_key)
+        messages.add_message(
+            self.request,
+            messages.WARNING,
+            f"This organization requires {expected_name} SSO. Please sign in with your organization's SSO provider.",
+        )
+
+        # Redirect to org-specific login to initiate correct SSO
+        redirect_uri = reverse("sentry-auth-organization", args=[self.organization.slug])
+        return HttpResponseRedirect(redirect_uri)
 
     def auth_handler(self, identity: Mapping[str, Any]) -> AuthIdentityHandler:
         assert self.provider_model is not None
@@ -955,6 +1039,7 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
                 "flow": self.state.flow,
                 "provider": self.provider.key,
                 "error_message": message,
+                "organization_id": self.organization.id if self.organization else None,
             },
         )
 

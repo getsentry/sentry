@@ -1,5 +1,7 @@
 from functools import reduce
 
+from django.db import models
+from django.db.models.functions import Cast
 from django.http import StreamingHttpResponse
 
 from sentry.constants import ObjectStatus
@@ -70,7 +72,14 @@ def org_audit_log_exists(**kwargs):
     assert kwargs
     if "organization" in kwargs:
         kwargs["organization_id"] = kwargs.pop("organization").id
-    return AuditLogEntry.objects.filter(**kwargs).exists()
+    if "data" in kwargs:
+        kwargs["data__asjsonb"] = kwargs.pop("data")
+    return (
+        # would be nice to remove this and just use JSONField but the table is too big
+        AuditLogEntry.objects.annotate(data__asjsonb=Cast("data", models.JSONField()))
+        .filter(**kwargs)
+        .exists()
+    )
 
 
 def assert_org_audit_log_exists(**kwargs):

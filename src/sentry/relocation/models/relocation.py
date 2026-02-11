@@ -90,7 +90,7 @@ class Relocation(DefaultFieldsModelExisting):
         def get_choices(cls) -> list[tuple[int, str]]:
             return [(key.value, key.name) for key in cls]
 
-        def __str__(self):
+        def __str__(self) -> str:
             if self.name == "SELF_HOSTED":
                 return "self-hosted"
             elif self.name == "SAAS_TO_SAAS":
@@ -131,7 +131,7 @@ class Relocation(DefaultFieldsModelExisting):
 
     # Schedules a pause prior to some step that has not yet occurred. Useful to perform an orderly
     # halting of the relocation. When unpausing, the unpausing process is responsible for scheduling
-    # the correct celery task so that the relocation may continue.
+    # the correct task so that the relocation may continue.
     scheduled_pause_at_step = models.SmallIntegerField(
         choices=Step.get_in_progress_choices(), null=True, default=None
     )
@@ -230,7 +230,7 @@ class RelocationFile(DefaultFieldsModelExisting):
         def get_choices(cls) -> list[tuple[int, str]]:
             return [(key.value, key.name) for key in cls]
 
-        def __str__(self):
+        def __str__(self) -> str:
             if self.name == "RAW_USER_DATA":
                 return "raw-relocation-data"
             elif self.name == "NORMALIZED_USER_DATA":

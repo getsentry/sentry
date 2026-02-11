@@ -1,9 +1,10 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {InputGroup} from '@sentry/scraps/input';
+import {Grid} from '@sentry/scraps/layout';
+
 import {
   CrumbContainer,
   EventDrawerBody,
@@ -19,10 +20,10 @@ import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSo
 import {
   FlagControlOptions,
   ORDER_BY_OPTIONS,
-  type OrderBy,
   SORT_BY_OPTIONS,
-  type SortBy,
   sortedFlags,
+  type OrderBy,
+  type SortBy,
 } from 'sentry/components/events/featureFlags/utils';
 import useFocusControl from 'sentry/components/events/useFocusControl';
 import {
@@ -69,7 +70,7 @@ export function EventFeatureFlagDrawer({
   );
 
   const actions = (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       <InputGroup>
         <SearchInput
           size="xs"
@@ -104,7 +105,7 @@ export function EventFeatureFlagDrawer({
         }}
         sortBy={sortBy}
       />
-    </ButtonBar>
+    </Grid>
   );
 
   return (
@@ -155,11 +156,11 @@ export const CardContainer = styled('div')<{numCols: number}>`
       margin-left: -${space(1)};
     }
     :not(:last-child) {
-      border-right: 1.5px solid ${p => p.theme.innerBorder};
+      border-right: 1.5px solid ${p => p.theme.tokens.border.secondary};
       padding-right: ${space(2)};
     }
     :not(:first-child) {
-      border-left: 1.5px solid ${p => p.theme.innerBorder};
+      border-left: 1.5px solid ${p => p.theme.tokens.border.secondary};
       padding-left: ${space(2)};
       padding-right: 0;
       margin-left: -1px;

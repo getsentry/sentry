@@ -2,6 +2,9 @@ import type {MouseEvent} from 'react';
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {
   addLoadingMessage,
@@ -17,11 +20,8 @@ import ResolveActions from 'sentry/components/actions/resolve';
 import {renderArchiveReason} from 'sentry/components/archivedBox';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {renderResolutionReason} from 'sentry/components/resolutionBox';
 import {
   IconCheckmark,
@@ -59,10 +59,12 @@ import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
 import SubscribeAction from 'sentry/views/issueDetails/actions/subscribeAction';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import useProjectReleaseVersionIsSemver from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
 import {
   useEnvironmentsFromUrl,
   useHasStreamlinedUI,
 } from 'sentry/views/issueDetails/utils';
+import {isVersionInfoSemver} from 'sentry/views/releases/utils';
 
 type UpdateData =
   | {isBookmarked: boolean}
@@ -93,6 +95,21 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const bookmarkKey = group.isBookmarked ? 'unbookmark' : 'bookmark';
   const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
   const hasRelease = !!project.features?.includes('releases');
+
+  const eventReleaseVersion = event?.release?.versionInfo?.version;
+
+  const projHasSemverRelease = useProjectReleaseVersionIsSemver({
+    version: project.latestRelease?.version,
+    enabled: !eventReleaseVersion,
+  });
+
+  const hasSemverRelease = eventReleaseVersion
+    ? isVersionInfoSemver(eventReleaseVersion)
+    : projHasSemverRelease;
+
+  const hasSemverReleaseFeature =
+    organization.features?.includes('resolve-in-semver-release') && hasSemverRelease;
+
   const isResolved = group.status === 'resolved';
   const isAutoResolved =
     group.status === 'resolved' ? group.statusDetails.autoResolved : undefined;
@@ -380,10 +397,10 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     onUpdate,
   });
   return (
-    <ActionWrapper>
+    <Flex align="center" gap="xs">
       {hasStreamlinedUI &&
         (isResolved || isIgnored ? (
-          <ResolvedActionWapper>
+          <Flex align="center" gap="md">
             <ResolvedWrapper>
               <IconCheckmark size="md" />
               <Flex direction="column">
@@ -426,7 +443,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                 {isResolved ? t('Unresolve') : t('Unarchive')}
               </Button>
             )}
-          </ResolvedActionWapper>
+          </Flex>
         ) : (
           <Fragment>
             {resolveCap.enabled && (
@@ -436,6 +453,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                 disableDropdown={disabled}
                 hasRelease={hasRelease}
                 latestRelease={project.latestRelease}
+                hasSemverReleaseFeature={hasSemverReleaseFeature}
                 onUpdate={onUpdate}
                 projectSlug={project.slug}
                 isResolved={isResolved}
@@ -643,6 +661,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                 <GuideAnchor target="resolve" position="bottom" offset={20}>
                   <ResolveActions
                     disableResolveInRelease={!resolveInReleaseCap.enabled}
+                    hasSemverReleaseFeature={hasSemverReleaseFeature}
                     disabled={disabled}
                     disableDropdown={disabled}
                     hasRelease={hasRelease}
@@ -660,33 +679,21 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           )}
         </Fragment>
       )}
-    </ActionWrapper>
+    </Flex>
   );
 }
-
-const ActionWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
 
 const ResolvedWrapper = styled('div')`
   display: flex;
   gap: ${space(1.5)};
   align-items: center;
-  color: ${p => p.theme.green400};
+  color: ${p => p.theme.colors.green500};
   font-weight: bold;
-  font-size: ${p => p.theme.fontSize.lg};
-`;
-
-const ResolvedActionWapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const ReasonBanner = styled('div')`
   font-weight: normal;
-  color: ${p => p.theme.green400};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.colors.green500};
+  font-size: ${p => p.theme.font.size.sm};
 `;

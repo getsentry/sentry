@@ -2,16 +2,18 @@ import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import AssigneeSelectorDropdown from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Button} from 'sentry/components/core/button';
 import {
-  type OnAssignCallback,
   useHandleAssigneeChange,
+  type OnAssignCallback,
 } from 'sentry/components/group/assigneeSelector';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
@@ -33,6 +35,7 @@ import useApi from 'sentry/utils/useApi';
 import useCommitters from 'sentry/utils/useCommitters';
 import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
 import useOrganization from 'sentry/utils/useOrganization';
+
 /**
  * example: codeowners:/issues -> [['codeowners', '/issues']]
  */
@@ -248,9 +251,9 @@ function AssignedTo({
               size={24}
             />
           ) : (
-            <IconWrapper>
+            <Flex padding="2xs">
               <IconUser size="md" />
-            </IconWrapper>
+            </Flex>
           )}
           <ActorName>{getAssignedToDisplayName(group) ?? t('No one')}</ActorName>
         </ActorWrapper>
@@ -283,7 +286,7 @@ function AssignedTo({
               }}
               aria-label={t('Create Ownership Rule')}
               icon={<IconSettings />}
-              borderless
+              priority="transparent"
               size="xs"
             />
           </GuideAnchor>
@@ -326,14 +329,13 @@ const ActorWrapper = styled('div')`
   line-height: 1;
 `;
 
-const IconWrapper = styled('div')`
-  display: flex;
-  padding: ${space(0.25)};
-`;
-
 const ActorName = styled('div')`
   line-height: 1.2;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledSidebarTitle = styled(SidebarSection.Title)`

@@ -1,6 +1,5 @@
 import {useCallback} from 'react';
 import {useBlocker} from 'react-router-dom';
-import type {useAnimation} from 'framer-motion';
 
 import {removeProject} from 'sentry/actionCreators/projects';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
@@ -8,6 +7,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -23,9 +23,7 @@ export function useBackActions({
   recentCreatedProject,
   isRecentCreatedProjectActive,
   goToStep,
-  cornerVariantControl,
 }: {
-  cornerVariantControl: ReturnType<typeof useAnimation>;
   goToStep: (step: StepDescriptor) => void;
   stepIndex: number;
   isRecentCreatedProjectActive?: boolean;
@@ -58,7 +56,10 @@ export function useBackActions({
         project_id: recentCreatedProject.id,
       });
     } catch (error) {
-      handleXhrErrorResponse('Unable to delete project in onboarding', error);
+      handleXhrErrorResponse(
+        'Unable to delete project in onboarding',
+        error as RequestError
+      );
       // we don't give the user any feedback regarding this error as this shall be silent
     }
   }, [api, organization, onboardingContext, recentCreatedProject]);
@@ -73,13 +74,6 @@ export function useBackActions({
     }) => {
       if (!prevStep || !currentStep) {
         return;
-      }
-
-      if (!browserBackButton) {
-        // this check happens in the `goToStep` function as well
-        if (currentStep.cornerVariant !== prevStep.cornerVariant) {
-          cornerVariantControl.start('none');
-        }
       }
 
       trackAnalytics('onboarding.back_button_clicked', {
@@ -121,7 +115,6 @@ export function useBackActions({
     [
       goToStep,
       organization,
-      cornerVariantControl,
       onboardingContext,
       isRecentCreatedProjectActive,
       recentCreatedProject,

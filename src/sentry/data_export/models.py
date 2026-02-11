@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timedelta
 from typing import Any
 
 import orjson
@@ -20,6 +21,14 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.models.files.file import File
+from sentry.notifications.platform.service import NotificationService
+from sentry.notifications.platform.target import GenericNotificationTarget
+from sentry.notifications.platform.templates.data_export import DataExportFailure, DataExportSuccess
+from sentry.notifications.platform.types import (
+    NotificationProviderKey,
+    NotificationTargetResourceType,
+)
 from sentry.users.services.user.service import user_service
 
 from .base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
@@ -54,7 +63,7 @@ class ExportedData(Model):
             return ExportStatus.Valid
 
     @property
-    def payload(self):
+    def payload(self) -> dict[str, Any]:
         payload = self.query_info.copy()
         payload["export_type"] = ExportQueryType.as_str(self.query_type)
         return payload
@@ -67,7 +76,7 @@ class ExportedData(Model):
         return f"{export_type}_{date}_{self.id}.csv"
 
     @staticmethod
-    def format_date(date) -> str | None:
+    def format_date(date: datetime | None) -> str | None:
         # Example: 12:21 PM on July 21, 2020 (UTC)
         return None if date is None else date.strftime("%-I:%M %p on %B %d, %Y (%Z)")
 
@@ -76,11 +85,11 @@ class ExportedData(Model):
         if file:
             file.delete()
 
-    def delete(self, *args, **kwargs):
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, Any]]:
         self.delete_file()
         return super().delete(*args, **kwargs)
 
-    def finalize_upload(self, file, expiration=DEFAULT_EXPIRATION) -> None:
+    def finalize_upload(self, file: File, expiration: timedelta = DEFAULT_EXPIRATION) -> None:
         self.delete_file()  # If a file is present, remove it
         current_time = timezone.now()
         expire_time = current_time + expiration
@@ -106,14 +115,44 @@ class ExportedData(Model):
         url = self.organization.absolute_url(
             reverse("sentry-data-export-details", args=[self.organization.slug, self.id])
         )
-        msg = MessageBuilder(
-            subject="Your data is ready.",
-            context={"url": url, "expiration": self.format_date(self.date_expired)},
-            type="organization.export-data",
-            template="sentry/emails/data-export-success.txt",
-            html_template="sentry/emails/data-export-success.html",
+
+        if not user_email:
+            return
+
+        data = DataExportSuccess(
+            export_url=url,
+            expiration_date=self.date_expired,
         )
-        if user_email is not None:
+        has_access = NotificationService.has_access(self.organization, data.source)
+        logger.info(
+            "notification.platform.data-export-success.has_access",
+            extra={
+                "organization_id": self.organization.id,
+                "data_export_id": self.id,
+                "data_source": data.source,
+                "has_access": has_access,
+                "user_email": user_email,
+            },
+        )
+
+        if has_access:
+            NotificationService(data=data).notify_async(
+                targets=[
+                    GenericNotificationTarget(
+                        provider_key=NotificationProviderKey.EMAIL,
+                        resource_type=NotificationTargetResourceType.EMAIL,
+                        resource_id=user_email,
+                    )
+                ]
+            )
+        else:
+            msg = MessageBuilder(
+                subject="Your data is ready.",
+                context={"url": url, "expiration": self.format_date(self.date_expired)},
+                type="organization.export-data",
+                template="sentry/emails/data-export-success.txt",
+                html_template="sentry/emails/data-export-success.html",
+            )
             msg.send_async([user_email])
 
     def email_failure(self, message: str) -> None:
@@ -122,26 +161,41 @@ class ExportedData(Model):
         if self.user_id is None:
             return
         user = user_service.get_user(user_id=self.user_id)
-        if user is None:
+        if user is None or not user.email:
             return
 
-        msg = MessageBuilder(
-            subject="We couldn't export your data.",
-            context={
-                "creation": self.format_date(self.date_added),
-                "error_message": message,
-                "payload": orjson.dumps(self.payload).decode(),
-            },
-            type="organization.export-data",
-            template="sentry/emails/data-export-failure.txt",
-            html_template="sentry/emails/data-export-failure.html",
+        data = DataExportFailure(
+            error_message=message,
+            error_payload=self.payload,
+            creation_date=self.date_added,
         )
-        msg.send_async([user.email])
+        if NotificationService.has_access(self.organization, data.source):
+            NotificationService(data=data).notify_async(
+                targets=[
+                    GenericNotificationTarget(
+                        provider_key=NotificationProviderKey.EMAIL,
+                        resource_type=NotificationTargetResourceType.EMAIL,
+                        resource_id=user.email,
+                    )
+                ]
+            )
+
+        else:
+            msg = MessageBuilder(
+                subject="We couldn't export your data.",
+                context={
+                    "creation": self.format_date(self.date_added),
+                    "error_message": message,
+                    "payload": orjson.dumps(self.payload).decode(),
+                },
+                type="organization.export-data",
+                template="sentry/emails/data-export-failure.txt",
+                html_template="sentry/emails/data-export-failure.html",
+            )
+            msg.send_async([user.email])
         self.delete()
 
-    def _get_file(self):
-        from sentry.models.files.file import File
-
+    def _get_file(self) -> File | None:
         if self.file_id:
             try:
                 return File.objects.get(pk=self.file_id)

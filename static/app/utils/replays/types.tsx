@@ -1,9 +1,17 @@
 import {
   EventType,
-  type eventWithTime as TEventWithTime,
   IncrementalSource,
   MouseInteractions,
+  type eventWithTime as TEventWithTime,
 } from '@sentry-internal/rrweb';
+import type {
+  ReplayBreadcrumbFrameEvent as TBreadcrumbFrameEvent,
+  ReplayOptionFrameEvent as TOptionFrameEvent,
+  ReplayBreadcrumbFrame as TRawBreadcrumbFrame,
+  ReplaySpanFrame as TRawSpanFrame,
+  ReplaySpanFrameEvent as TSpanFrameEvent,
+} from '@sentry/react';
+import invariant from 'invariant';
 
 import type {Event} from 'sentry/types/event';
 
@@ -12,15 +20,6 @@ export type {fullSnapshotEvent, incrementalSnapshotEvent} from '@sentry-internal
 
 export {NodeType} from '@sentry-internal/rrweb-snapshot';
 export {EventType, IncrementalSource} from '@sentry-internal/rrweb';
-
-import type {
-  ReplayBreadcrumbFrame as TRawBreadcrumbFrame,
-  ReplayBreadcrumbFrameEvent as TBreadcrumbFrameEvent,
-  ReplayOptionFrameEvent as TOptionFrameEvent,
-  ReplaySpanFrame as TRawSpanFrame,
-  ReplaySpanFrameEvent as TSpanFrameEvent,
-} from '@sentry/react';
-import invariant from 'invariant';
 
 export type Dimensions = {
   height: number;
@@ -135,7 +134,6 @@ export type RawBreadcrumbFrame = TRawBreadcrumbFrame | ExtraBreadcrumbTypes;
 export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
 export type RecordingFrame = TEventWithTime;
 export type OptionFrame = TOptionFrameEvent['data']['payload'];
-export type OptionFrameEvent = TOptionFrameEvent;
 export type RawSpanFrame =
   | Exclude<TRawSpanFrame, {op: ReplayWebVitalFrameOps}>
   | CompatibleReplayWebVitalFrame;
@@ -434,6 +432,14 @@ export type ResourceFrame = HydratedSpan<
   | 'resource.script'
 >;
 
+// OurLogs converted from log to frame for use with jump buttons etc.
+export type OurLogsPseudoFrame = {
+  category: 'ourlogs';
+  offsetMs: number;
+  timestampMs: number;
+  data?: undefined;
+};
+
 /**
  * This is a result of a custom discover query
  */
@@ -442,6 +448,7 @@ export type RawReplayError = {
   id: string;
   issue: string;
   ['issue.id']: number;
+  level: string;
   ['project.name']: string;
   timestamp: string;
   title: string;
@@ -457,13 +464,14 @@ export type ErrorFrame = Overwrite<
       groupShortId: string;
       label: string;
       labels: string[];
+      level: string;
       projectSlug: string;
     };
     message: string;
   }
 >;
 
-export type ReplayFrame = BreadcrumbFrame | ErrorFrame | SpanFrame;
+export type ReplayFrame = BreadcrumbFrame | ErrorFrame | SpanFrame | OurLogsPseudoFrame;
 
 interface VideoFrame {
   container: string;

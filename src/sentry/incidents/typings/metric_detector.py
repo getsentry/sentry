@@ -15,12 +15,12 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.snuba.models import QuerySubscription, SnubaQuery
-from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action, Condition, Detector
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 if TYPE_CHECKING:
     from sentry.incidents.grouptype import MetricIssueEvidenceData
+    from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 
 CONDITION_TO_ALERT_RULE_THRESHOLD_TYPE = {
     Condition.GREATER_OR_EQUAL: AlertRuleThresholdType.ABOVE,
@@ -29,14 +29,10 @@ CONDITION_TO_ALERT_RULE_THRESHOLD_TYPE = {
     Condition.LESS: AlertRuleThresholdType.BELOW,
 }
 
-PRIORITY_LEVEL_TO_DETECTOR_PRIORITY_LEVEL = {
-    PriorityLevel.LOW: DetectorPriorityLevel.LOW,
-    PriorityLevel.MEDIUM: DetectorPriorityLevel.MEDIUM,
-    PriorityLevel.HIGH: DetectorPriorityLevel.HIGH,
-}
 
-
-def fetch_threshold_type(condition: dict[str, Any]) -> AlertRuleThresholdType:
+def fetch_threshold_type(
+    condition: dict[str, Any],
+) -> AlertRuleThresholdType | AnomalyDetectionThresholdType:
     condition_type = condition["type"]
     if condition_type == Condition.ANOMALY_DETECTION:
         return condition["comparison"]["threshold_type"]
@@ -79,7 +75,7 @@ def fetch_sensitivity(condition: dict[str, Any]) -> str | None:
 class AlertContext:
     name: str
     action_identifier_id: int
-    threshold_type: AlertRuleThresholdType | None
+    threshold_type: AlertRuleThresholdType | None | AnomalyDetectionThresholdType
     detection_type: AlertRuleDetectionType
     comparison_delta: int | None
     sensitivity: str | None
@@ -90,7 +86,11 @@ class AlertContext:
     def from_alert_rule_incident(
         cls, alert_rule: AlertRule, alert_rule_threshold: float | None = None
     ) -> AlertContext:
-        resolve_threshold = alert_rule.resolve_threshold
+        resolve_threshold = (
+            alert_rule.resolve_threshold
+            if alert_rule.resolve_threshold is not None
+            else alert_rule_threshold
+        )
 
         if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
             alert_rule_threshold = 0
@@ -113,18 +113,15 @@ class AlertContext:
         detector: Detector,
         evidence_data: MetricIssueEvidenceData,
         group_status: GroupStatus,
-        priority_level: int | None,
+        detector_priority_level: DetectorPriorityLevel,
     ) -> AlertContext:
-        # This should never happen, but we need to handle it for now
-        if priority_level is None:
-            raise ValueError("Priority level is required for metric issues")
-
-        target_priority = PRIORITY_LEVEL_TO_DETECTOR_PRIORITY_LEVEL[PriorityLevel(priority_level)]
         try:
             condition = next(
                 cond
                 for cond in evidence_data.conditions
-                if cond["condition_result"] == target_priority
+                if cond["condition_result"] == detector_priority_level
+                # If the condition is an anomaly detection condition, the condition_result is just a placeholder, but that is the condition we want to use
+                or cond["type"] == Condition.ANOMALY_DETECTION
             )
             threshold_type = fetch_threshold_type(condition)
             resolve_threshold = fetch_resolve_threshold(condition, group_status)
@@ -219,11 +216,15 @@ class MetricIssueContext:
     group: Group | None
 
     @classmethod
-    def _get_new_status(cls, group: Group, priority_level: PriorityLevel) -> IncidentStatus:
+    def _get_new_status(
+        cls, group: Group, detector_priority_level: DetectorPriorityLevel
+    ) -> IncidentStatus:
         if group.status == GroupStatus.RESOLVED:
             return IncidentStatus.CLOSED
-        elif priority_level == PriorityLevel.MEDIUM:
+        elif detector_priority_level == DetectorPriorityLevel.MEDIUM:
             return IncidentStatus.WARNING
+        elif detector_priority_level == DetectorPriorityLevel.OK:
+            return IncidentStatus.CLOSED
         else:
             return IncidentStatus.CRITICAL
 
@@ -234,28 +235,30 @@ class MetricIssueContext:
 
     @classmethod
     def from_group_event(
-        cls, group: Group, evidence_data: MetricIssueEvidenceData, priority_level: int | None
+        cls,
+        group: Group,
+        evidence_data: MetricIssueEvidenceData,
+        detector_priority_level: DetectorPriorityLevel,
     ) -> MetricIssueContext:
-        if priority_level is None:
-            raise ValueError("Priority level is required for metric issues")
-
         open_period = get_latest_open_period(group)
         if open_period is None:
             raise ValueError("No open periods found for group")
 
         subscription = cls._get_subscription(evidence_data)
         snuba_query = subscription.snuba_query
+        metric_value = (
+            evidence_data.value["value"]
+            if type(evidence_data.value) is dict
+            else evidence_data.value
+        )
 
         return cls(
-            # TODO(iamrajjoshi): Replace with something once we know how we want to build the link
-            # If we store open periods in the database, we can use the id from that
-            # Otherwise, we can use the issue id
             id=group.id,
             open_period_identifier=open_period.id,
             snuba_query=snuba_query,
             subscription=subscription,
-            new_status=cls._get_new_status(group, PriorityLevel(priority_level)),
-            metric_value=evidence_data.value,
+            new_status=cls._get_new_status(group, detector_priority_level),
+            metric_value=metric_value,
             group=group,
             title=group.title,
         )

@@ -25,7 +25,7 @@ METADATA_SCHEMA: dict[str, Any] = {
 METADATA_PROPERTIES = list(METADATA_SCHEMA["properties"].keys())
 
 
-def validate_metadata_schema(instance: Any):
+def validate_metadata_schema(instance: Any) -> Any:
     v = Draft7Validator(METADATA_SCHEMA)
     if not v.is_valid(instance):
         raise best_match(v.iter_errors(instance))

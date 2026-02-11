@@ -1,8 +1,10 @@
 import styled from '@emotion/styled';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Stack} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -44,6 +46,9 @@ function SubscriptionBox({
     message = t(
       'Your organization does not have access to the error subscription resource.'
     );
+  } else if (resource === 'seer' && !features.includes('seer-webhooks')) {
+    disabled = true;
+    message = t("Your organization can't subscribe to seer events just yet.");
   }
 
   if (webhookDisabled) {
@@ -54,18 +59,19 @@ function SubscriptionBox({
     issue: `created, resolved, assigned, archived, unresolved`,
     error: 'created',
     comment: 'created, edited, deleted',
+    seer: 'root_cause_started, root_cause_completed, solution_started, solution_completed, coding_started, coding_completed, pr_created',
   };
 
   return (
     <Tooltip disabled={!disabled} title={message} key={resource}>
       <SubscriptionGridItem disabled={disabled}>
-        <SubscriptionInfo>
+        <Stack alignSelf="center">
           <SubscriptionTitle>
             {resource}
             {isNew && <FeatureBadge type="new" />}
           </SubscriptionTitle>
           <SubscriptionDescription>{DESCRIPTIONS[resource]}</SubscriptionDescription>
-        </SubscriptionInfo>
+        </Stack>
         <Checkbox
           key={`${resource}${checked}`}
           aria-label={resource}
@@ -86,31 +92,25 @@ const SubscriptionGridItem = styled('div')<{disabled: boolean}>`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   opacity: ${p => (p.disabled ? 0.6 : 1)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'auto')};
   margin: ${space(1.5)};
   padding: ${space(1.5)};
   box-sizing: border-box;
 `;
 
-const SubscriptionInfo = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-self: center;
-`;
-
 const SubscriptionDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SubscriptionTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   line-height: 1;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
   margin-bottom: ${space(0.75)};
 `;

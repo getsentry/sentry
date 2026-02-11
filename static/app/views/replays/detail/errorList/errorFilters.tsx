@@ -1,35 +1,51 @@
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
 import type useErrorFilters from 'sentry/views/replays/detail/errorList/useErrorFilters';
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 
-type Props = {
+interface Props extends ReturnType<typeof useErrorFilters> {
   errorFrames: undefined | ErrorFrame[];
-} & ReturnType<typeof useErrorFilters>;
+}
 
-function ErrorFilters({
-  getProjectOptions,
+export default function ErrorFilters({
   errorFrames,
+  getLevelOptions,
+  getProjectOptions,
   searchTerm,
   selectValue,
   setFilters,
   setSearchTerm,
 }: Props) {
   const projectOptions = getProjectOptions();
+  const levelOptions = getLevelOptions();
 
   return (
     <FiltersGrid>
       <CompactSelect
-        disabled={!projectOptions.length}
+        disabled={!projectOptions.length && !levelOptions.length}
         multiple
         onChange={setFilters as (selection: Array<SelectOption<string>>) => void}
-        options={projectOptions}
+        options={[
+          {
+            label: t('Project'),
+            options: projectOptions,
+          },
+          {
+            label: t('Level'),
+            options: levelOptions,
+          },
+        ]}
         size="sm"
-        triggerLabel={selectValue?.length === 0 ? t('Any') : null}
-        triggerProps={{prefix: t('Project')}}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps} prefix={t('Filter')}>
+            {selectValue?.length === 0 ? t('Any') : triggerProps.children}
+          </OverlayTrigger.Button>
+        )}
         value={selectValue}
       />
       <SearchBar
@@ -42,5 +58,3 @@ function ErrorFilters({
     </FiltersGrid>
   );
 }
-
-export default ErrorFilters;

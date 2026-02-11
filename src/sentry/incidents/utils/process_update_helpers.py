@@ -5,6 +5,7 @@ from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.search.eap.utils import add_start_end_conditions
+from sentry.search.events.datasets.discover import InvalidIssueSearchQuery
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -152,6 +153,17 @@ def get_aggregation_value(
         results = query_builder.run_query(referrer="subscription_processor.comparison_query")
         comparison_aggregate = list(results["data"][0].values())[0]
 
+    except InvalidIssueSearchQuery:
+        # Queries that reference non-existent issue IDs are not useful and
+        # we should help users fix them, but they're not unexpected.
+        logger.info(
+            "Comparison query references non-existent issue IDs",
+            extra={
+                "subscription_id": subscription_update.get("subscription_id"),
+                "organization_id": organization_id,
+            },
+        )
+        return None
     except Exception:
         logger.exception(
             "Failed to run comparison query",
@@ -217,3 +229,15 @@ def get_comparison_aggregation_value(
         return None
 
     return (aggregation_value / comparison_aggregate) * 100
+
+
+def calculate_event_date_from_update_date(update_date: datetime, time_window: int) -> datetime:
+    """
+    Calculates the date that an event actually happened based on the date that we
+    received the update. This takes into account time window and threshold period.
+    :return:
+    """
+    # Subscriptions label buckets by the end of the bucket, whereas discover
+    # labels them by the front. This causes us an off-by-one error with event dates,
+    # so to prevent this we subtract a bucket off of the date.
+    return update_date - timedelta(seconds=time_window)

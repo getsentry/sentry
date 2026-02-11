@@ -5,6 +5,8 @@ import {
 } from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
@@ -112,7 +114,18 @@ export function useFlagsInEvent({
     isError: isEventError,
     error: eventError,
   } = useApiQuery<Event>(
-    [`/organizations/${organization.slug}/events/${projectSlug}:${eventId}/`],
+    [
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug!,
+            eventId: eventId!,
+          },
+        }
+      ),
+    ],
     {
       staleTime: Infinity,
       enabled:
@@ -121,7 +134,8 @@ export function useFlagsInEvent({
   );
   const event = eventProp ?? eventData;
 
-  const eventFlags = event?.contexts?.flags?.values?.map(f => f.flag);
+  const eventFlags =
+    event?.contexts?.flags?.values?.map(f => f?.flag).filter(defined) ?? [];
 
   const {
     data: rawFlagData,
@@ -134,7 +148,7 @@ export function useFlagsInEvent({
       ...query,
       flag: eventFlags,
     },
-    enabled: enabled && Boolean(eventFlags?.length),
+    enabled: enabled && Boolean(eventFlags.length),
   });
 
   return {

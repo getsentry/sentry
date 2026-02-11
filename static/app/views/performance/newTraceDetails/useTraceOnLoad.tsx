@@ -6,13 +6,11 @@ import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 
 import {TraceTree} from './traceModels/traceTree';
 import type {TracePreferencesState} from './traceState/tracePreferences';
 import {useTraceState} from './traceState/traceStateProvider';
-import {isEAPTraceNode, isEAPTransactionNode, isTransactionNode} from './traceGuards';
 import type {TraceReducerState} from './traceState';
 import type {useTraceScrollToPath} from './useTraceScrollToPath';
 
@@ -26,8 +24,7 @@ async function maybeAutoExpandTrace(
     api: Client;
     organization: Organization;
     preferences: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
-  },
-  meta: TraceMetaQueryResults
+  }
 ): Promise<TraceTree> {
   const traceNode = tree.root.children[0];
 
@@ -35,31 +32,28 @@ async function maybeAutoExpandTrace(
     return tree;
   }
 
-  const spansCount = isEAPTraceNode(traceNode)
-    ? tree.eap_spans_count
-    : (meta.data?.span_count ?? 0);
-
   if (
     !(
-      tree.transactions_count < AUTO_EXPAND_TRANSACTIONS_THRESHOLD ||
-      (spansCount ?? 0) < AUTO_EXPAND_SPANS_THRESHOLD
+      tree.collapsed_nodes < AUTO_EXPAND_TRANSACTIONS_THRESHOLD ||
+      // We only collect the spans count for EAP traces atm, so we can't auto expand non-EAP traces
+      // by spans count.
+      (tree.eap_spans_count && tree.eap_spans_count < AUTO_EXPAND_SPANS_THRESHOLD)
     )
   ) {
     return tree;
   }
 
-  const transactions = TraceTree.FindAll(
-    tree.root,
-    node => isTransactionNode(node) || isEAPTransactionNode(node)
+  const collapsedNodes = tree.root.findAllChildren(
+    node => node.canFetchChildren || !node.expanded
   );
   // Expand each transaction, either by zooming (if it has spans to fetch)
   // or just expanding in place. Note that spans are always expanded by default.
   const promises: Array<Promise<any>> = [];
-  for (const transaction of transactions) {
-    if (transaction.canFetch) {
-      promises.push(tree.zoom(transaction, true, options));
+  for (const node of collapsedNodes) {
+    if (node.canFetchChildren) {
+      promises.push(tree.fetchNodeSubTree(true, node, options));
     } else {
-      tree.expand(transaction, true);
+      node.expand(true, tree);
     }
   }
 
@@ -76,7 +70,6 @@ async function maybeAutoExpandTrace(
 }
 
 type UseTraceScrollToEventOnLoadOptions = {
-  meta: TraceMetaQueryResults;
   onTraceLoad: () => void;
   pathToNodeOrEventId: ReturnType<typeof useTraceScrollToPath>['current'];
   tree: TraceTree;
@@ -87,7 +80,6 @@ export function useTraceOnLoad(
 ): 'success' | 'error' | 'pending' | 'idle' {
   const api = useApi();
   const organization = useOrganization();
-  const initializedRef = useRef<boolean>(false);
   const {tree, pathToNodeOrEventId, onTraceLoad} = options;
 
   const [status, setStatus] = useState<'success' | 'error' | 'pending' | 'idle'>('idle');
@@ -102,17 +94,12 @@ export function useTraceOnLoad(
   traceStatePreferencesRef.current = traceState.preferences;
 
   useLayoutEffect(() => {
-    if (initializedRef.current) {
-      return undefined;
-    }
-
     if (tree.type !== 'trace') {
       return undefined;
     }
 
     let cancel = false;
     setStatus('pending');
-    initializedRef.current = true;
 
     const expandOptions = {
       api,
@@ -121,7 +108,7 @@ export function useTraceOnLoad(
     };
 
     // If eligible, auto-expand the trace
-    maybeAutoExpandTrace(tree, expandOptions, options.meta)
+    maybeAutoExpandTrace(tree, expandOptions)
       .then(() => {
         if (cancel) {
           return Promise.resolve();
@@ -156,7 +143,7 @@ export function useTraceOnLoad(
     return () => {
       cancel = true;
     };
-  }, [tree, api, onTraceLoad, organization, pathToNodeOrEventId, options.meta]);
+  }, [tree, api, onTraceLoad, organization, pathToNodeOrEventId]);
 
   return status;
 }
@@ -172,7 +159,6 @@ export function useTraceIssuesOnLoad(
 ): 'success' | 'error' | 'pending' | 'idle' {
   const api = useApi();
   const organization = useOrganization();
-  const initializedRef = useRef<boolean>(false);
   const {tree, onTraceLoad} = options;
 
   const [status, setStatus] = useState<'success' | 'error' | 'pending' | 'idle'>('idle');
@@ -187,10 +173,6 @@ export function useTraceIssuesOnLoad(
   traceStatePreferencesRef.current = traceState.preferences;
 
   useLayoutEffect(() => {
-    if (initializedRef.current) {
-      return undefined;
-    }
-
     if (tree.type !== 'trace') {
       return undefined;
     }
@@ -198,7 +180,6 @@ export function useTraceIssuesOnLoad(
     let cancel = false;
 
     setStatus('pending');
-    initializedRef.current = true;
 
     const expandOptions = {
       api,

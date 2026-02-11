@@ -1,21 +1,18 @@
+import {useState} from 'react';
 import {useHover} from '@react-aria/interactions';
 import {captureException} from '@sentry/react';
 
-import {
-  type ApiQueryKey,
-  fetchDataQuery,
-  useApiQuery,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import type {Meta} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
+import useProjects from 'sentry/utils/useProjects';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
-
-export const DEFAULT_TRACE_ITEM_HOVER_TIMEOUT = 200;
 
 interface UseTraceItemDetailsProps {
   /**
@@ -45,9 +42,21 @@ interface UseTraceItemDetailsProps {
   enabled?: boolean;
 }
 
+export type TraceItemAttributeMeta = Pick<Meta, 'len' | 'rem'>;
+interface TraceItemDetailsMetaRecord {
+  meta: {
+    value: {
+      '': TraceItemAttributeMeta;
+    };
+  };
+}
+
+export type TraceItemDetailsMeta = Record<string, TraceItemDetailsMetaRecord>;
+
 export interface TraceItemDetailsResponse {
   attributes: TraceItemResponseAttribute[];
   itemId: string;
+  meta: TraceItemDetailsMeta;
   timestamp: string;
   links?: TraceItemResponseLink[];
 }
@@ -84,11 +93,12 @@ export type TraceItemResponseAttribute =
  */
 export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
   const organization = useOrganization();
+  const {fetching} = useProjects();
   const project = useProjectFromId({project_id: props.projectId});
   const enabled = (props.enabled ?? true) && !!project;
 
   // Only capture exception if the project is not found and the query is enabled.
-  if ((props.enabled ?? true) && !project) {
+  if ((props.enabled ?? true) && !project && !fetching) {
     captureException(
       new Error(`Project "${props.projectId}" not found in useTraceItemDetails`)
     );
@@ -134,12 +144,18 @@ function traceItemDetailsQueryKey({
   };
 
   return [
-    `/projects/${urlParams.organizationSlug}/${urlParams.projectSlug}/trace-items/${urlParams.traceItemId}/`,
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/trace-items/$itemId/', {
+      path: {
+        organizationIdOrSlug: urlParams.organizationSlug,
+        projectIdOrSlug: urlParams.projectSlug,
+        itemId: urlParams.traceItemId,
+      },
+    }),
     {query},
   ];
 }
 
-export function usePrefetchTraceItemDetailsOnHover({
+export function useFetchTraceItemDetailsOnHover({
   traceItemId,
   projectId,
   traceId,
@@ -147,6 +163,7 @@ export function usePrefetchTraceItemDetailsOnHover({
   referrer,
   hoverPrefetchDisabled,
   sharedHoverTimeoutRef,
+  timeout,
 }: UseTraceItemDetailsProps & {
   /**
    * A ref to a shared timeout so multiple hover events can be handled
@@ -154,13 +171,23 @@ export function usePrefetchTraceItemDetailsOnHover({
    */
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
   /**
+   * Custom timeout for the prefetched item.
+   */
+  timeout: number;
+  /**
    * Whether the hover prefetch should be disabled.
    */
   hoverPrefetchDisabled?: boolean;
 }) {
-  const organization = useOrganization();
-  const project = useProjectFromId({project_id: projectId});
-  const queryClient = useQueryClient();
+  const [timeoutReached, setTimeoutReached] = useState(false);
+  const traceItemsResult = useTraceItemDetails({
+    projectId,
+    traceItemId,
+    traceId,
+    traceItemType,
+    referrer,
+    enabled: timeoutReached,
+  });
 
   const {hoverProps} = useHover({
     onHoverStart: () => {
@@ -168,23 +195,8 @@ export function usePrefetchTraceItemDetailsOnHover({
         clearTimeout(sharedHoverTimeoutRef.current);
       }
       sharedHoverTimeoutRef.current = setTimeout(() => {
-        queryClient.prefetchQuery({
-          queryKey: traceItemDetailsQueryKey({
-            urlParams: {
-              organizationSlug: organization.slug,
-              projectSlug: project?.slug ?? '',
-              traceItemId,
-            },
-            queryParams: {
-              traceItemType,
-              referrer,
-              traceId,
-            },
-          }),
-          queryFn: fetchDataQuery,
-          staleTime: Infinity, // Prefetched items are never stale as the row is either entirely stored or not stored at all.
-        });
-      }, DEFAULT_TRACE_ITEM_HOVER_TIMEOUT);
+        setTimeoutReached(true);
+      }, timeout);
     },
     onHoverEnd: () => {
       if (sharedHoverTimeoutRef.current) {
@@ -194,5 +206,8 @@ export function usePrefetchTraceItemDetailsOnHover({
     isDisabled: hoverPrefetchDisabled,
   });
 
-  return hoverProps;
+  return {
+    hoverProps,
+    traceItemsResult,
+  };
 }

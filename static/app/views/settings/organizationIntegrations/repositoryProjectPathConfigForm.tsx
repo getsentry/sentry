@@ -1,5 +1,7 @@
-import {useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import pick from 'lodash/pick';
+
+import type {GeneralSelectValue} from '@sentry/scraps/select';
 
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import type {FormProps} from 'sentry/components/forms/form';
@@ -16,8 +18,9 @@ import type {
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
-import useApi from 'sentry/utils/useApi';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Props = {
   integration: Integration;
@@ -38,33 +41,46 @@ function RepositoryProjectPathConfigForm({
   projects,
   repos,
 }: Props) {
-  const api = useApi();
   const formRef = useRef(new FormModel());
   const repoChoices = repos.map(({name, id}) => ({value: id, label: name}));
+  const [selectedRepo, setSelectedRepo] = useState<GeneralSelectValue | null>(null);
 
   /**
-   * Automatically switch to the default branch for the repo
+   * Using the integration repo search, automatically switch to the default branch for the repo,
+   * once one is selected in the form.
    */
-  function handleRepoChange(id: string) {
-    const repo = repos.find(r => r.id === id);
-    if (!repo) {
-      return;
-    }
-
-    // Use the integration repo search to get the default branch
-    api
-      .requestPromise(
-        `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
-        {query: {search: repo.name}}
-      )
-      .then((data: {repos: IntegrationRepository[]}) => {
-        const {defaultBranch} = data.repos.find(r => r.identifier === repo.name) ?? {};
-        const isCurrentRepo = formRef.current.getValue('repositoryId') === repo.id;
-        if (defaultBranch && isCurrentRepo) {
-          formRef.current.setValue('defaultBranch', defaultBranch);
+  const {data: integrationReposData} = useApiQuery<{repos: IntegrationRepository[]}>(
+    [
+      getApiUrl(
+        `/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/`,
+        {
+          path: {organizationIdOrSlug: organization.slug, integrationId: integration.id},
         }
-      });
-  }
+      ),
+      {query: {search: selectedRepo?.label}},
+    ],
+    {
+      enabled: !!selectedRepo?.label,
+      staleTime: 1000 * 60 * 5,
+    }
+  );
+
+  // Stream-based VCS (like Perforce) use streams/codelines instead of branches
+  // and don't require a default branch to be specified
+  const isStreamBased = integration.provider.key === 'perforce';
+
+  // Effect to handle the case when integration repos data becomes available
+  useEffect(() => {
+    if (integrationReposData?.repos && selectedRepo) {
+      const {defaultBranch} =
+        integrationReposData.repos.find(r => r.identifier === selectedRepo.label) ?? {};
+      const isCurrentRepo =
+        formRef.current.getValue('repositoryId') === selectedRepo.value;
+      if (defaultBranch && isCurrentRepo) {
+        formRef.current.setValue('defaultBranch', defaultBranch);
+      }
+    }
+  }, [integrationReposData, selectedRepo]);
 
   const formFields: Field[] = [
     {
@@ -83,18 +99,24 @@ function RepositoryProjectPathConfigForm({
       url: `/organizations/${organization.slug}/repos/`,
       defaultOptions: repoChoices,
       onResults: results => results.map(sentryNameToOption),
-      onChange: handleRepoChange,
+      onChangeOption: setSelectedRepo,
     },
     {
       name: 'defaultBranch',
       type: 'string',
-      required: true,
-      label: t('Branch'),
-      placeholder: t('Type your branch'),
+      required: !isStreamBased,
+      label: isStreamBased ? t('Stream') : t('Branch'),
+      placeholder: isStreamBased
+        ? t('Type your stream (optional, e.g., main)')
+        : t('Type your branch'),
       showHelpInTooltip: true,
-      help: t(
-        'If an event does not have a release tied to a commit, we will use this branch when linking to your source code.'
-      ),
+      help: isStreamBased
+        ? t(
+            'Optional: Specify a stream/codeline (e.g., "main"). If not specified, the depot root will be used. Streams are part of the depot path in Perforce.'
+          )
+        : t(
+            'If an event does not have a release tied to a commit, we will use this branch when linking to your source code.'
+          ),
     },
     {
       name: 'stackRoot',
@@ -130,7 +152,7 @@ function RepositoryProjectPathConfigForm({
   }
 
   const initialData = {
-    defaultBranch: 'main',
+    defaultBranch: isStreamBased ? '' : 'main',
     stackRoot: '',
     sourceRoot: '',
     repositoryId: existingConfig?.repoId,

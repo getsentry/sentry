@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
@@ -14,12 +15,12 @@ type Props = {
 };
 
 function ReleaseCardStatsPeriod({location, selection}: Props) {
-  const activePeriod =
-    location.query.healthStatsPeriod || HealthStatsPeriodOption.TWENTY_FOUR_HOURS;
+  const activePeriod = location.query.healthStatsPeriod || HealthStatsPeriodOption.AUTO;
   const {pathname, query} = location;
 
   return (
     <Wrapper>
+      {/* don't show duplicate 24h options */}
       {selection.datetime.period !== HealthStatsPeriodOption.TWENTY_FOUR_HOURS && (
         <Period
           to={{
@@ -59,11 +60,13 @@ const Wrapper = styled('div')`
 `;
 
 const Period = styled(Link)<{selected: boolean}>`
-  color: ${p => (p.selected ? p.theme.textColor : p.theme.subText)};
+  color: ${p =>
+    p.selected ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
 
   &:hover,
   &:focus {
-    color: ${p => (p.selected ? p.theme.textColor : p.theme.subText)};
+    color: ${p =>
+      p.selected ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
   }
 `;
 

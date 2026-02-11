@@ -10,28 +10,21 @@ import {
 
 import ProjectDebugFiles from 'sentry/views/settings/projectDebugFiles';
 
-describe('ProjectDebugFiles', function () {
-  const {organization, project, router} = initializeOrg();
+describe('ProjectDebugFiles', () => {
+  const {organization, project} = initializeOrg();
 
-  const props = {
-    organization,
-    project,
-    params: {projectId: project.slug},
+  const endpoint = `/projects/${organization.slug}/${project.slug}/files/dsyms/`;
+
+  const initialRouterConfig = {
     location: {
-      ...router.location,
+      pathname: `/settings/${organization.slug}/projects/${project.slug}/debug-symbols/`,
       query: {
         query: '',
       },
     },
-    route: {},
-    router,
-    routes: [],
-    routeParams: {},
   };
 
-  const endpoint = `/projects/${organization.slug}/${project.slug}/files/dsyms/`;
-
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [DebugFileFixture()],
@@ -43,8 +36,12 @@ describe('ProjectDebugFiles', function () {
     });
   });
 
-  it('renders', async function () {
-    render(<ProjectDebugFiles {...props} />);
+  it('renders', async () => {
+    render(<ProjectDebugFiles />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
 
     expect(screen.getByText('Debug Information Files')).toBeInTheDocument();
 
@@ -55,13 +52,17 @@ describe('ProjectDebugFiles', function () {
     expect(screen.getByText('libS.so')).toBeInTheDocument();
   });
 
-  it('renders empty', async function () {
+  it('renders empty', async () => {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [],
     });
 
-    render(<ProjectDebugFiles {...props} />);
+    render(<ProjectDebugFiles />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
 
     // Uploaded debug files content
     expect(
@@ -69,7 +70,7 @@ describe('ProjectDebugFiles', function () {
     ).toBeInTheDocument();
   });
 
-  it('deletes the file', async function () {
+  it('deletes the file', async () => {
     const deleteMock = MockApiClient.addMockResponse({
       method: 'DELETE',
       url: `/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${
@@ -77,7 +78,11 @@ describe('ProjectDebugFiles', function () {
       }`,
     });
 
-    render(<ProjectDebugFiles {...props} />);
+    render(<ProjectDebugFiles />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
     renderGlobalModal();
 
     // Delete button
@@ -91,21 +96,25 @@ describe('ProjectDebugFiles', function () {
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('display error if request for dsyms fails', async function () {
+  it('display error if request for dsyms fails', async () => {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [DebugFileFixture()],
       statusCode: 400,
     });
 
-    render(<ProjectDebugFiles {...props} />);
+    render(<ProjectDebugFiles />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
 
     expect(await screen.findByText(/There was an error/)).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
   });
 
-  it('display error if request for symbol sources fails', async function () {
+  it('display error if request for symbol sources fails', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/builtin-symbol-sources/`,
       method: 'GET',
@@ -113,12 +122,11 @@ describe('ProjectDebugFiles', function () {
       statusCode: 400,
     });
 
-    render(
-      <ProjectDebugFiles
-        {...props}
-        organization={{...organization, features: ['symbol-sources']}}
-      />
-    );
+    render(<ProjectDebugFiles />, {
+      organization: {...organization, features: ['symbol-sources']},
+      outletContext: {project},
+      initialRouterConfig,
+    });
 
     expect(await screen.findByText(/There was an error/)).toBeInTheDocument();
 

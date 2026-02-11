@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {SIMILARITY_SCORE_COLORS} from './similarScoreCard';
@@ -55,9 +56,13 @@ const ScoreBar = styled(BaseScoreBar)`
 
   ${p =>
     p.vertical
-      ? `flex-direction: column-reverse;
-    justify-content: flex-end;`
-      : 'min-width: 80px;'};
+      ? css`
+          flex-direction: column-reverse;
+          justify-content: flex-end;
+        `
+      : css`
+          min-width: 80px;
+        `};
 `;
 
 type BarProps = {
@@ -73,7 +78,7 @@ const Bar = styled('div')<BarProps>`
   border-radius: ${p => p.radius}px;
   margin: 2px;
   /* @TODO(jonasbadalic) This used to be defined on the theme, but is component specific and had no dark mode color. */
-  background-color: ${p => (p.empty ? p.theme.gray200 : p.color)};
+  background-color: ${p => (p.empty ? p.theme.colors.gray200 : p.color)};
 
   width: ${p => (p.vertical ? p.size : p.thickness)}px;
   height: ${p => (p.vertical ? p.thickness : p.size)}px;

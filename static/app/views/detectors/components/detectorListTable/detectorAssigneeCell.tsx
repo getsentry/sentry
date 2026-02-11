@@ -1,22 +1,21 @@
 import styled from '@emotion/styled';
 
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {parseActorIdentifier} from 'sentry/utils/parseActorIdentifier';
+import {ActorAvatar} from '@sentry/scraps/avatar';
+
+import type {Actor} from 'sentry/types/core';
 
 type DetectorAssigneeCellProps = {
-  assignee: string | null;
+  assignee: Actor | null;
   className?: string;
   disabled?: boolean;
 };
 
-function AssigneeContent({assignee}: {assignee: string | null}) {
-  const actor = parseActorIdentifier(assignee);
-
-  if (!actor) {
+function AssigneeContent({assignee}: {assignee: Actor | null}) {
+  if (!assignee) {
     return '—';
   }
 
-  return <ActorAvatar actor={actor} size={24} />;
+  return <ActorAvatar actor={assignee} size={24} />;
 }
 
 export function DetectorAssigneeCell({assignee, className}: DetectorAssigneeCellProps) {
@@ -28,5 +27,5 @@ export function DetectorAssigneeCell({assignee, className}: DetectorAssigneeCell
 }
 
 const Wrapper = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

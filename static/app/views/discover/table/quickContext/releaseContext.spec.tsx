@@ -2,12 +2,10 @@ import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReleaseFixture} from 'sentry-fixture/release';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {ReleaseStatus} from 'sentry/types/release';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
 
 import ReleaseContext from './releaseContext';
 import {defaultRow, mockedCommit, mockedUser1, mockedUser2} from './testUtils';
@@ -28,15 +26,12 @@ const mockedReleaseWithHealth = ReleaseFixture({
 
 const renderReleaseContext = () => {
   const organization = OrganizationFixture();
-  render(
-    <QueryClientProvider client={makeTestQueryClient()}>
-      <ReleaseContext dataRow={defaultRow} organization={organization} />
-    </QueryClientProvider>,
-    {organization}
-  );
+  render(<ReleaseContext dataRow={defaultRow} organization={organization} />, {
+    organization,
+  });
 };
 
-describe('Quick Context Content Release Column', function () {
+describe('Quick Context Content Release Column', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/releases/${encodeURIComponent(

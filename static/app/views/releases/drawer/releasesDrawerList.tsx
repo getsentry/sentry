@@ -3,8 +3,8 @@ import type {ECharts, SeriesOption} from 'echarts';
 import type {MarkLineOption} from 'echarts/types/dist/shared';
 
 import {
-  type ChartId,
   ChartWidgetLoader,
+  type ChartId,
 } from 'sentry/components/charts/chartWidgetLoader';
 import {
   EventDrawerBody,
@@ -49,12 +49,23 @@ function createMarkLineUpdater(lineStyle: Partial<MarkLineOption['lineStyle']>) 
     callbackFn: MarkLineDataCallbackFn
   ) => {
     const opts = echartsInstance.getOption();
-    const series = (opts.series as SeriesOption[]).find(({id}) => id === seriesId);
+    if (!opts) {
+      // Chart not initialized or disposed
+      return;
+    }
+
+    const series = (opts.series as SeriesOption[] | undefined)?.find(
+      ({id}) => id === seriesId
+    );
+    if (!series?.markLine?.data) {
+      // Series or markLine not found
+      return;
+    }
 
     // We need to return all markLines (I could not get merges working on it,
     // even when I added the release version as id), otherwise the other lines
     // will be removed.
-    const updatedData = series?.markLine.data.map((d: SeriesDataUnit) => {
+    const updatedData = series.markLine.data.map((d: SeriesDataUnit) => {
       // Update the style of the lines that is currently being hovered over so
       // that it is more visible than other lines on the chart
       if (callbackFn(d)) {

@@ -9,8 +9,8 @@ function TestComponent({eventKey, eventName}: {eventKey: string; eventName: stri
   return <div>hi</div>;
 }
 
-describe('useRouteAnalyticsEventNames', function () {
-  it('disables analytics', function () {
+describe('useRouteAnalyticsEventNames', () => {
+  it('disables analytics', () => {
     const setEventNames = jest.fn();
     const getComponent = (
       eventKey: string,

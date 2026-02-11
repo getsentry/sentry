@@ -94,7 +94,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
 
         plugins.register(BitbucketPlugin)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         plugins.unregister(BitbucketPlugin)
         super().tearDown()
 
@@ -143,7 +143,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
         assert integration.metadata == self.user_metadata
 
     @mock.patch("sentry.integrations.bitbucket.integration.generate_token", return_value="0" * 64)
-    def test_installed_with_secret(self, mock_generate_token):
+    def test_installed_with_secret(self, mock_generate_token: mock.MagicMock) -> None:
         response = self.client.post(self.path, data=self.team_data_from_bitbucket)
         assert mock_generate_token.called
         assert response.status_code == 200

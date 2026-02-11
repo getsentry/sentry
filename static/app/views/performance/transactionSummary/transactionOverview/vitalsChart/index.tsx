@@ -5,7 +5,7 @@ import type {Query} from 'history';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
@@ -22,7 +22,6 @@ import Content from './content';
 type Props = ViewProps & {
   organization: OrganizationSummary;
   queryExtra: Query;
-  withoutZerofill: boolean;
   queryExtras?: Record<string, string>;
 };
 
@@ -33,7 +32,6 @@ function VitalsChart({
   query,
   statsPeriod,
   queryExtra,
-  withoutZerofill,
   start: propsStart,
   end: propsEnd,
   queryExtras,
@@ -134,8 +132,7 @@ function VitalsChart({
         includePrevious={false}
         yAxis={yAxis}
         partial
-        withoutZerofill={withoutZerofill}
-        referrer="api.performance.transaction-summary.vitals-chart"
+        referrer="api.insights.transaction-summary.vitals-chart"
         queryExtras={queryExtras}
       >
         {({results, errored, loading, reloading, timeframe: timeFrame}) => (

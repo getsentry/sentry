@@ -1,4 +1,5 @@
-import Panel from 'sentry/components/panels/panel';
+import {Container} from '@sentry/scraps/layout';
+
 import PanelBody from 'sentry/components/panels/panelBody';
 import {tct} from 'sentry/locale';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -83,7 +84,12 @@ function ManagedNote({subscription}: Props) {
     (subscription.customPrice !== null && subscription.customPrice > 0);
 
   return (
-    <Panel data-test-id="managed-note">
+    <Container
+      data-test-id="managed-note"
+      background="primary"
+      border="primary"
+      radius="md"
+    >
       <PanelBody withPadding>
         <TextBlock noMargin>
           {isSalesAccount
@@ -96,7 +102,7 @@ function ManagedNote({subscription}: Props) {
               DEFAULT_MESSAGE)}
         </TextBlock>
       </PanelBody>
-    </Panel>
+    </Container>
   );
 }
 

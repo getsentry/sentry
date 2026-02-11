@@ -1,11 +1,11 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -20,6 +20,9 @@ import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
+import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+import {areScrubbingDatasetsEnabled} from 'sentry/views/settings/components/dataScrubbing/utils';
 
 import Add from './modals/add';
 import Edit from './modals/edit';
@@ -27,7 +30,7 @@ import {convertRelayPiiConfig} from './convertRelayPiiConfig';
 import {OrganizationRules} from './organizationRules';
 import Rules from './rules';
 import submitRules from './submitRules';
-import type {Rule} from './types';
+import {AllowedDataScrubbingDatasets, type AttributeResults, type Rule} from './types';
 
 const ADVANCED_DATASCRUBBING_LINK =
   'https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/';
@@ -65,6 +68,21 @@ export function DataScrubbing({
     [onSubmitSuccess]
   );
 
+  const traceItemDatasetsEnabled = areScrubbingDatasetsEnabled(organization);
+  const traceItemAttributeStringsResult = useTraceItemAttributeKeys({
+    enabled: traceItemDatasetsEnabled,
+    type: 'string',
+    traceItemType: TraceItemDataset.LOGS,
+    projects: project ? [project] : undefined,
+  });
+  const attributeResults: AttributeResults = useMemo(
+    () => ({
+      [AllowedDataScrubbingDatasets.DEFAULT]: null,
+      [AllowedDataScrubbingDatasets.LOGS]: traceItemAttributeStringsResult,
+    }),
+    [traceItemAttributeStringsResult]
+  );
+
   const handleCloseModal = useCallback(() => {
     const path = project?.slug
       ? `/settings/${organization.slug}/projects/${project.slug}/security-and-privacy/`
@@ -92,6 +110,7 @@ export function DataScrubbing({
           api={api}
           endpoint={endpoint}
           orgSlug={organization.slug}
+          attributeResults={attributeResults}
           onSubmitSuccess={response => {
             return successfullySaved(
               response,
@@ -111,6 +130,7 @@ export function DataScrubbing({
     organization.slug,
     successfullySaved,
     handleCloseModal,
+    attributeResults,
   ]);
 
   useEffect(() => {
@@ -142,6 +162,7 @@ export function DataScrubbing({
         api={api}
         endpoint={endpoint}
         orgSlug={organization.slug}
+        attributeResults={attributeResults}
         onSubmitSuccess={response => {
           return successfullySaved(response, t('Successfully added data scrubbing rule'));
         }}
@@ -167,7 +188,7 @@ export function DataScrubbing({
       <PanelHeader>
         <div>{t('Advanced Data Scrubbing')}</div>
       </PanelHeader>
-      <PanelAlert type="info">
+      <PanelAlert variant="info">
         {additionalContext}{' '}
         {tct(
           'The new rules will only apply to upcoming events. For more details, see [linkToDocs].',
@@ -190,10 +211,9 @@ export function DataScrubbing({
             disabled={disabled}
           />
         ) : (
-          <EmptyMessage
-            icon={<IconWarning size="xl" />}
-            description={t('You have no data scrubbing rules')}
-          />
+          <EmptyMessage icon={<IconWarning />}>
+            {t('You have no data scrubbing rules')}
+          </EmptyMessage>
         )}
         <PanelAction>
           <LinkButton href={ADVANCED_DATASCRUBBING_LINK} external>
@@ -215,5 +235,5 @@ const PanelAction = styled('div')`
   gap: ${space(1)};
   grid-template-columns: auto auto;
   justify-content: flex-end;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;

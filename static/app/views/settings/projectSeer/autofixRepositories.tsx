@@ -1,28 +1,33 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
-import type {RepoSettings} from 'sentry/components/events/autofix/types';
+import type {
+  ProjectSeerPreferences,
+  RepoSettings,
+} from 'sentry/components/events/autofix/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconAdd, IconGithub} from 'sentry/icons';
+import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {AddAutofixRepoModalContent} from './addAutofixRepoModal';
+import {AddAutofixRepoModal} from './addAutofixRepoModal';
 import {AutofixRepoItem} from './autofixRepoItem';
 import {MAX_REPOS_LIMIT} from './constants';
 
@@ -44,9 +49,18 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
   const [selectedRepoIds, setSelectedRepoIds] = useState<string[]>([]);
   const [repoSettings, setRepoSettings] = useState<Record<string, RepoSettings>>({});
   const [showSaveNotice, setShowSaveNotice] = useState(false);
+
+  const getDefaultStoppingPoint =
+    useCallback((): ProjectSeerPreferences['automated_run_stopping_point'] => {
+      if (organization.features.includes('seat-based-seer-enabled')) {
+        return organization.autoOpenPrs ? 'open_pr' : 'code_changes';
+      }
+      return 'root_cause';
+    }, [organization.features, organization.autoOpenPrs]);
+
   const [automatedRunStoppingPoint, setAutomatedRunStoppingPoint] = useState<
-    'solution' | 'code_changes' | 'open_pr'
-  >('solution');
+    ProjectSeerPreferences['automated_run_stopping_point']
+  >(getDefaultStoppingPoint());
 
   useEffect(() => {
     if (repositories) {
@@ -76,7 +90,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
 
         setRepoSettings(initialSettings);
         setAutomatedRunStoppingPoint(
-          preference.automated_run_stopping_point || 'solution'
+          preference.automated_run_stopping_point || getDefaultStoppingPoint()
         );
       } else if (codeMappingRepos?.length) {
         // Set default settings using codeMappingRepos when no preferences exist
@@ -93,16 +107,22 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         });
 
         setRepoSettings(initialSettings);
-        setAutomatedRunStoppingPoint('solution');
+        setAutomatedRunStoppingPoint(getDefaultStoppingPoint());
       }
     }
-  }, [preference, repositories, codeMappingRepos, updateProjectSeerPreferences]);
+  }, [
+    preference,
+    repositories,
+    codeMappingRepos,
+    updateProjectSeerPreferences,
+    getDefaultStoppingPoint,
+  ]);
 
   const updatePreferences = useCallback(
     (
       updatedIds?: string[],
       updatedSettings?: Record<string, RepoSettings>,
-      newStoppingPoint?: 'solution' | 'code_changes' | 'open_pr'
+      newStoppingPoint?: 'root_cause' | 'solution' | 'code_changes' | 'open_pr'
     ) => {
       if (!repositories) {
         return;
@@ -121,6 +141,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         }
 
         return {
+          organization_id: parseInt(organization.id, 10),
           integration_id: repo.integrationId,
           provider,
           owner: owner || '',
@@ -138,6 +159,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
       setShowSaveNotice(true);
     },
     [
+      organization.id,
       repositories,
       selectedRepoIds,
       repoSettings,
@@ -210,16 +232,13 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
 
   const openAddRepoModal = useCallback(() => {
     openModal(deps => (
-      <AddAutofixRepoModalContent
+      <AddAutofixRepoModal
         {...deps}
-        repositories={repositories || []}
         selectedRepoIds={selectedRepoIds}
         onSave={handleSaveModalSelections}
-        isFetchingRepositories={isFetchingRepositories}
-        maxReposLimit={MAX_REPOS_LIMIT}
       />
     ));
-  }, [repositories, selectedRepoIds, handleSaveModalSelections, isFetchingRepositories]);
+  }, [selectedRepoIds, handleSaveModalSelections]);
 
   return (
     <Panel>
@@ -238,14 +257,32 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
           />
         </Flex>
         <div style={{display: 'flex', alignItems: 'center', gap: space(1)}}>
-          <LinkButton
+          <DropdownMenu
             size="sm"
-            icon={<IconGithub />}
-            to={`/settings/${organization.slug}/integrations/github/`}
-            style={{textTransform: 'none'}}
-          >
-            {t('Manage Integration')}
-          </LinkButton>
+            triggerLabel={t('Manage Integration')}
+            items={[
+              {
+                key: 'github',
+                label: (
+                  <Flex gap="sm" align="center">
+                    <PluginIcon pluginId="github" size={16} />
+                    <div>{t('GitHub')}</div>
+                  </Flex>
+                ),
+                to: `/settings/${organization.slug}/integrations/github/`,
+              },
+              {
+                key: 'github_enterprise',
+                label: (
+                  <Flex gap="sm" align="center">
+                    <PluginIcon pluginId="github_enterprise" size={16} />
+                    <div>{t('GitHub Enterprise')}</div>
+                  </Flex>
+                ),
+                to: `/settings/${organization.slug}/integrations/github_enterprise/`,
+              },
+            ]}
+          />
           <Tooltip
             isHoverable
             title={
@@ -283,17 +320,17 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
       </PanelHeader>
 
       {showSaveNotice && (
-        <Alert type="info" system>
+        <Alert variant="info" system>
           {t(
             'Changes will apply on future Seer runs. Hit "Start Over" in the Seer panel to start a new run and use your new selected repositories.'
           )}
         </Alert>
       )}
       {isFetchingRepositories || isLoadingPreferences ? (
-        <LoadingContainer>
+        <Stack justify="center" align="center" padding="3xl" gap="xl" width="100%">
           <StyledLoadingIndicator size={36} />
           <LoadingMessage>{t('Loading repositories...')}</LoadingMessage>
-        </LoadingContainer>
+        </Stack>
       ) : filteredSelectedRepositories.length === 0 ? (
         <EmptyMessage>
           {t("Seer can't see your code. Click 'Add Repos' to give Seer access.")}
@@ -330,25 +367,15 @@ const ReposContainer = styled('div')`
   flex-direction: column;
 
   & > div:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const EmptyMessage = styled('div')`
   padding: ${space(2)};
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
   text-align: center;
-  font-size: ${p => p.theme.fontSize.md};
-`;
-
-const LoadingContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: ${space(4)};
-  width: 100%;
-  flex-direction: column;
-  gap: ${space(2)};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
@@ -356,6 +383,6 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const LoadingMessage = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
 `;

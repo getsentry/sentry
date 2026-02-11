@@ -14,7 +14,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {GroupActivityType} from 'sentry/types/group';
 import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 
-describe('StreamlinedSidebar', function () {
+describe('StreamlinedSidebar', () => {
   const user = UserFixture();
   user.options.prefersIssueDetailsStreamlinedUI = true;
   ConfigStore.set('user', user);
@@ -40,7 +40,7 @@ describe('StreamlinedSidebar', function () {
   let mockFirstLastRelease: jest.Mock;
   let mockExternalIssues: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
     MockApiClient.clearMockResponses();
@@ -101,7 +101,7 @@ describe('StreamlinedSidebar', function () {
     });
   });
 
-  it('renders all the sections as expected', async function () {
+  it('renders all the sections as expected', async () => {
     render(<StreamlinedSidebar group={group} project={project} event={event} />, {
       organization,
     });

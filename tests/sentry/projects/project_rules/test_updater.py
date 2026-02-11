@@ -5,7 +5,6 @@ from sentry.models.rule import Rule
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.rules.conditions.event_frequency import EventFrequencyCondition
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.actor import Actor
 from sentry.users.models.user import User
@@ -27,7 +26,7 @@ class TestUpdater(TestCase):
         self.project = self.create_project(
             teams=[self.create_team()], name="foo", fire_project_created=True
         )
-        self.rule = self.project.rule_set.all()[0]
+        self.rule = self.create_project_rule(project=self.project)
         self.updater = ProjectRuleUpdater(rule=self.rule, project=self.project)
 
     def test_update_name(self) -> None:
@@ -55,9 +54,10 @@ class TestUpdater(TestCase):
         assert self.rule.owner_user_id is None
 
     def test_update_environment(self) -> None:
-        self.updater.environment = 3
+        new_env = self.create_environment(project=self.project)
+        self.updater.environment = new_env.id
         self.updater.run()
-        assert self.rule.environment_id == 3
+        assert self.rule.environment_id == new_env.id
 
     def test_update_environment_when_none(self) -> None:
         self.rule.environment_id = 3
@@ -120,10 +120,7 @@ class TestUpdater(TestCase):
         self.updater.run()
         assert self.rule.data["frequency"] == 5
 
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
-    def test_dual_create_workflow_engine(self) -> None:
-        IssueAlertMigrator(self.rule, user_id=self.user.id).run()
-
+    def test_dual_update_workflow_engine(self) -> None:
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -189,7 +186,6 @@ class TestUpdater(TestCase):
         action = DataConditionGroupAction.objects.get(condition_group=action_filter).action
         assert action.type == Action.Type.PLUGIN
 
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_dual_create_workflow_engine__errors_on_invalid_conditions(self) -> None:
         IssueAlertMigrator(self.rule, user_id=self.user.id).run()
 

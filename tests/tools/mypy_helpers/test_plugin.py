@@ -58,7 +58,7 @@ def call_mypy(src: str, *, plugins: list[str] | None = None) -> tuple[int, str]:
         return ret.returncode, ret.stdout
 
 
-def test_invalid_get_connection_call():
+def test_invalid_get_connection_call() -> None:
     code = """
 from django.db.transaction import get_connection
 
@@ -74,7 +74,7 @@ Found 1 error in 1 file (checked 1 source file)
     assert out == expected
 
 
-def test_ok_get_connection():
+def test_ok_get_connection() -> None:
     code = """
 from django.db.transaction import get_connection
 
@@ -85,7 +85,7 @@ with get_connection("default") as cursor:
     assert ret == 0
 
 
-def test_invalid_transaction_atomic():
+def test_invalid_transaction_atomic() -> None:
     code = """
 from django.db import transaction
 
@@ -104,7 +104,7 @@ Found 1 error in 1 file (checked 1 source file)
     assert out == expected
 
 
-def test_ok_transaction_atomic():
+def test_ok_transaction_atomic() -> None:
     code = """
 from django.db import transaction
 
@@ -115,7 +115,7 @@ with transaction.atomic("default"):
     assert ret == 0
 
 
-def test_ok_transaction_on_commit():
+def test_ok_transaction_on_commit() -> None:
     code = """
 from django.db import transaction
 
@@ -128,7 +128,7 @@ transaction.on_commit(completed, "default")
     assert ret == 0
 
 
-def test_invalid_transaction_on_commit():
+def test_invalid_transaction_on_commit() -> None:
     code = """
 from django.db import transaction
 
@@ -146,7 +146,7 @@ Found 1 error in 1 file (checked 1 source file)
     assert out == expected
 
 
-def test_invalid_transaction_set_rollback():
+def test_invalid_transaction_set_rollback() -> None:
     code = """
 from django.db import transaction
 
@@ -161,7 +161,7 @@ Found 1 error in 1 file (checked 1 source file)
     assert out == expected
 
 
-def test_ok_transaction_set_rollback():
+def test_ok_transaction_set_rollback() -> None:
     code = """
 from django.db import transaction
 
@@ -270,3 +270,43 @@ Found 2 errors in 1 file (checked 1 source file)
 
     ret, out = call_mypy(src)
     assert ret == 0
+
+
+def test_base_cache_adjusted_version_type() -> None:
+    src = """\
+from django.core.cache import cache
+
+cache.set(key='123', value='456', version='deadbeef')
+"""
+
+    expected = """\
+<string>:3: error: Argument "version" to "set" of "BaseCache" has incompatible type "str"; expected "int | None"  [arg-type]
+Found 1 error in 1 file (checked 1 source file)
+"""
+
+    ret, out = call_mypy(src, plugins=[])
+    assert ret
+    assert out == expected
+
+    ret, out = call_mypy(src)
+    assert ret == 0
+
+
+def test_base_cache_incr_decr_version_removed() -> None:
+    src = """\
+from django.core.cache import cache
+
+cache.incr_version('123')
+"""
+
+    expected = """\
+<string>:3: error: removed method  [misc]
+Found 1 error in 1 file (checked 1 source file)
+"""
+
+    ret, out = call_mypy(src, plugins=[])
+    assert ret == 0
+
+    ret, out = call_mypy(src)
+    assert ret
+    assert out == expected

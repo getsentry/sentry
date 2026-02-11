@@ -1,19 +1,15 @@
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
-import useOrganization from 'sentry/utils/useOrganization';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {hasMCPInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
-import {getIsMCPNode} from 'sentry/views/insights/mcp/utils/mcpTraceNodes';
+import {ensureAttributeObject} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {
-  isEAPSpanNode,
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
+import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
+import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
 const ARGUMENTS_KEY_PREFIX = 'mcp.request.argument.';
 
@@ -25,29 +21,19 @@ function shortenKey(key: string) {
 }
 
 function getInputAttributes(
-  node: TraceTreeNode<TraceTree.NodeValue>,
+  node: AITraceSpanNode,
   event?: EventTransaction,
   attributes?: TraceItemResponseAttribute[]
-): Array<[string, string]> {
-  if (isEAPSpanNode(node) && attributes) {
-    return attributes
-      .filter(attribute => isArgumentsKey(attribute.name))
-      .map(attribute => [shortenKey(attribute.name), attribute.value.toString()]);
+): Array<[string, string | number | boolean]> {
+  const attributeObject = ensureAttributeObject(node, event, attributes);
+
+  if (!attributeObject) {
+    return [];
   }
 
-  if (isTransactionNode(node) && event?.contexts.trace?.data) {
-    return Object.entries(event.contexts.trace.data)
-      .filter(([key]) => isArgumentsKey(key))
-      .map(([key, value]) => [shortenKey(key), value]);
-  }
-
-  if (isSpanNode(node) && node.value.data) {
-    return Object.entries(node.value.data)
-      .filter(([key]) => isArgumentsKey(key))
-      .map(([key, value]) => [shortenKey(key), value]);
-  }
-
-  return [];
+  return Object.entries(attributeObject)
+    .filter(([key]) => isArgumentsKey(key))
+    .map(([key, value]) => [shortenKey(key), value]);
 }
 
 export function MCPInputSection({
@@ -55,12 +41,11 @@ export function MCPInputSection({
   attributes,
   event,
 }: {
-  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>;
+  node: EapSpanNode | SpanNode | TransactionNode;
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {
-  const organization = useOrganization();
-  if (!hasMCPInsightsFeature(organization) && getIsMCPNode(node)) {
+  if (!getIsMCPNode(node)) {
     return null;
   }
 

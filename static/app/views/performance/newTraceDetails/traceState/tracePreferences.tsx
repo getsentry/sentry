@@ -57,7 +57,7 @@ export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     parent: true,
     sibling: true,
   },
-  missing_instrumentation: true,
+  missing_instrumentation: false,
   layout: 'drawer right',
   list: {
     width: 0.5,

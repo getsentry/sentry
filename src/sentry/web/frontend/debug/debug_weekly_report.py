@@ -11,6 +11,7 @@ from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext, Pro
 from sentry.tasks.summaries.weekly_reports import render_template_context
 from sentry.utils import loremipsum
 from sentry.utils.dates import floor_to_utc_day, to_datetime
+from sentry.web.frontend.base import internal_region_silo_view
 
 from .mail import MailPreviewView
 
@@ -20,6 +21,7 @@ def get_random(request):
     return Random(seed)
 
 
+@internal_region_silo_view
 class DebugWeeklyReportView(MailPreviewView):
     def get_context(self, request):
         organization = Organization(id=1, slug="myorg", name="MyOrg")
@@ -118,9 +120,9 @@ class DebugWeeklyReportView(MailPreviewView):
         return render_template_context(ctx, None)
 
     @property
-    def html_template(self):
+    def html_template(self) -> str:
         return "sentry/emails/reports/body.html"
 
     @property
-    def text_template(self):
+    def text_template(self) -> str:
         return "sentry/emails/reports/body.txt"

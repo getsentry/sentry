@@ -6,11 +6,12 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {OnboardingSidebarContent} from 'sentry/components/onboardingWizard/content';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import ProgressRing from 'sentry/components/progressRing';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OnboardingTask} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -64,7 +65,7 @@ function OnboardingItem({
           source: 'onboarding_sidebar',
         });
       } else {
-        SidebarPanelStore.hidePanel();
+        OnboardingDrawerStore.close();
       }
     },
   });
@@ -81,8 +82,8 @@ function OnboardingItem({
             isMobile={isMobile}
             animate
             textCss={() => css`
-              font-size: ${theme.fontSize.sm};
-              font-weight: ${theme.fontWeight.bold};
+              font-size: ${theme.font.size.sm};
+              font-weight: ${theme.font.weight.sans.medium};
               color: ${theme.tokens.content.accent};
               ${isMobile && 'display: none'};
             `}
@@ -96,7 +97,7 @@ function OnboardingItem({
               )
             }
             value={(doneTasks.length / allTasks.length) * 100}
-            backgroundColor={theme.gray200}
+            backgroundColor={theme.colors.gray200}
             progressEndcaps="round"
             progressColor={theme.tokens.content.accent}
             size={isMobile ? 14 : 26}
@@ -112,7 +113,7 @@ function OnboardingItem({
       </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
-          <OnboardingSidebarContent onClose={() => SidebarPanelStore.hidePanel()} />
+          <OnboardingSidebarContent onClose={() => OnboardingDrawerStore.close()} />
         </PrimaryButtonOverlay>
       )}
     </GuideAnchor>
@@ -120,8 +121,8 @@ function OnboardingItem({
 }
 
 export function PrimaryNavigationOnboarding() {
-  const currentPanel = useLegacyStore(SidebarPanelStore);
-  const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
+  const currentPanel = useLegacyStore(OnboardingDrawerStore);
+  const isActive = currentPanel === OnboardingDrawerKey.ONBOARDING_WIZARD;
   const organization = useOrganization();
   const [quickStartCompleted, setQuickStartCompleted] = useLocalStorageState(
     `quick-start:${organization.slug}:completed`,

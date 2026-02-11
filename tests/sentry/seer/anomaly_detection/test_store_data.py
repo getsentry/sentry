@@ -6,12 +6,13 @@ import pytest
 
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.seer.anomaly_detection.utils import fetch_historical_data, format_historical_data
-from sentry.snuba import errors, metrics_performance, spans_rpc
+from sentry.snuba import errors, metrics_performance
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
+from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.performance_issues.event_generators import get_event
+from sentry.testutils.issue_detection.event_generators import get_event
 from sentry.utils.snuba import SnubaTSResult
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 
@@ -167,7 +168,6 @@ class AnomalyDetectionStoreDataTest(
                     self.create_span({"description": "foo"}, start_ts=dt)
                     for dt in [time_1_dt, time_2_dt]
                 ],
-                is_eap=True,
             )
 
             result = fetch_historical_data(
@@ -184,7 +184,7 @@ class AnomalyDetectionStoreDataTest(
             formatted_result = format_historical_data(
                 data=result,
                 query_columns=["count(span.duration)"],
-                dataset=spans_rpc,
+                dataset=Spans,
                 organization=self.organization,
             )
 
@@ -230,7 +230,7 @@ class AnomalyDetectionStoreDataTest(
             organization=self.organization, projects=[self.project], dataset=Dataset.Transactions
         )
         snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
-        event_data = get_event("n-plus-one-in-django-index-view")
+        event_data = get_event("n-plus-one-db/n-plus-one-in-django-index-view")
         event_data["timestamp"] = self.time_1_ts
         event1 = self.create_performance_issue(event_data=make_event(**event_data))
         event_data["timestamp"] = self.time_2_ts

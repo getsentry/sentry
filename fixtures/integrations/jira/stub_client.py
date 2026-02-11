@@ -1,3 +1,5 @@
+from typing import Any
+
 from fixtures.integrations.stub_service import StubService
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -23,6 +25,9 @@ class StubJiraApiClient(StubService):
     def get_versions(self, project_id):
         return self._get_stub_data("versions_response.json")
 
+    def get_projects_paginated(self, params: dict[str, Any] | None = None):
+        return self._get_stub_data("projects_paginated.json")
+
     def get_projects_list(self, cached: bool = True):
         return self._get_stub_data("project_list_response.json")
 
@@ -44,7 +49,7 @@ class StubJiraApiClient(StubService):
     def transition_issue(self, issue_key, transition_id):
         pass
 
-    def user_id_field(self):
+    def user_id_field(self) -> str:
         return "accountId"
 
     def get_user(self, user_id):

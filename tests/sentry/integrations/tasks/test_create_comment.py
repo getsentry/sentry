@@ -7,6 +7,7 @@ from sentry.integrations.models import ExternalIssue, Integration
 from sentry.integrations.tasks import create_comment
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.activity import Activity
+from sentry.taskworker.retry import RetryTaskError
 from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
@@ -42,7 +43,9 @@ class TestCreateComment(TestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "create_comment")
-    def test_creates_comment(self, mock_create_comment, mock_record_event):
+    def test_creates_comment(
+        self, mock_create_comment: mock.MagicMock, mock_record_event: mock.MagicMock
+    ) -> None:
         mock_create_comment.return_value = {"id": "123"}
 
         external_issue = self.create_integration_external_issue(
@@ -63,7 +66,9 @@ class TestCreateComment(TestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "create_comment")
-    def test_missing_external_issue(self, mock_create_comment, mock_record_event):
+    def test_missing_external_issue(
+        self, mock_create_comment: mock.MagicMock, mock_record_event: mock.MagicMock
+    ) -> None:
         create_comment(999999, self.user.id, self.activity.id)
         mock_create_comment.assert_not_called()
 
@@ -72,7 +77,9 @@ class TestCreateComment(TestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "create_comment")
-    def test_missing_activity(self, mock_create_comment, mock_record_event):
+    def test_missing_activity(
+        self, mock_create_comment: mock.MagicMock, mock_record_event: mock.MagicMock
+    ) -> None:
         external_issue = self.create_integration_external_issue(
             group=self.group,
             key="foo-1234",
@@ -87,7 +94,9 @@ class TestCreateComment(TestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "create_comment")
-    def test_missing_integration_installation(self, mock_create_comment, mock_record_event):
+    def test_missing_integration_installation(
+        self, mock_create_comment: mock.MagicMock, mock_record_event: mock.MagicMock
+    ) -> None:
         external_issue = self.create_integration_external_issue(
             group=self.group,
             key="foo-1234",
@@ -108,7 +117,9 @@ class TestCreateComment(TestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "create_comment")
-    def test_comment_sync_disabled(self, mock_create_comment, mock_record_event):
+    def test_comment_sync_disabled(
+        self, mock_create_comment: mock.MagicMock, mock_record_event: mock.MagicMock
+    ) -> None:
         # Create integration with sync_comments disabled
         integration = self.create_integration(
             organization=self.group.organization,
@@ -135,7 +146,9 @@ class TestCreateComment(TestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "create_comment")
-    def test_create_comment_failure(self, mock_create_comment, mock_record_event):
+    def test_create_comment_failure(
+        self, mock_create_comment: mock.MagicMock, mock_record_event: mock.MagicMock
+    ) -> None:
         mock_create_comment.side_effect = raise_create_comment_exception
 
         external_issue = self.create_integration_external_issue(
@@ -144,9 +157,7 @@ class TestCreateComment(TestCase):
             integration=self.example_integration,
         )
 
-        with pytest.raises(Exception) as exc:
+        with pytest.raises(RetryTaskError):
             create_comment(external_issue.id, self.user.id, self.activity.id)
-
-        assert exc.match("Something went wrong creating comment")
 
         assert_failure_metric(mock_record_event, Exception("Something went wrong creating comment"))

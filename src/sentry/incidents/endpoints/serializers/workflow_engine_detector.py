@@ -7,6 +7,10 @@ from django.db.models import Q, Subquery
 
 from sentry.api.serializers import Serializer, serialize
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
+from sentry.incidents.endpoints.serializers.utils import (
+    get_fake_id_from_object_id,
+    get_object_id_from_fake_id,
+)
 from sentry.incidents.endpoints.serializers.workflow_engine_data_condition import (
     WorkflowEngineDataConditionSerializer,
 )
@@ -77,9 +81,13 @@ class WorkflowEngineDetectorSerializer(Serializer):
             errors = []
             alert_rule_id = serialized.get("alertRuleId")
             assert alert_rule_id
-            detector_id = AlertRuleDetector.objects.values_list("detector_id", flat=True).get(
-                alert_rule_id=alert_rule_id
-            )
+            try:
+                detector_id = AlertRuleDetector.objects.values_list("detector_id", flat=True).get(
+                    alert_rule_id=alert_rule_id
+                )
+            except AlertRuleDetector.DoesNotExist:
+                detector_id = get_object_id_from_fake_id(int(alert_rule_id))
+
             detector = detectors[int(detector_id)]
             alert_rule_triggers = result[detector].setdefault("triggers", [])
 
@@ -152,7 +160,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             if detector.created_by_id:
                 rpc_user = user_by_user_id.get(detector.created_by_id)
             if not rpc_user:
-                result[detector]["created_by"] = {}
+                result[detector]["created_by"] = None
             else:
                 created_by = dict(
                     id=rpc_user.id, name=rpc_user.get_display_name(), email=rpc_user.email
@@ -313,26 +321,31 @@ class WorkflowEngineDetectorSerializer(Serializer):
             )
             result[detector]["query"] = query_subscription.snuba_query.query
             result[detector]["aggregate"] = query_subscription.snuba_query.aggregate
-            result[detector]["timeWindow"] = query_subscription.snuba_query.time_window
-            result[detector]["resolution"] = query_subscription.snuba_query.resolution
+            result[detector]["timeWindow"] = query_subscription.snuba_query.time_window / 60
+            result[detector]["resolution"] = query_subscription.snuba_query.resolution / 60
 
         return result
 
     def serialize(self, obj: Detector, attrs, user, **kwargs) -> AlertRuleSerializerResponse:
         triggers = attrs.get("triggers", [])
-        alert_rule_detector_id = None
+        alert_rule_id = None
 
         if triggers:
-            alert_rule_detector_id = triggers[0].get("alertRuleId")
+            alert_rule_id = triggers[0].get("alertRuleId")
         else:
-            alert_rule_detector_id = AlertRuleDetector.objects.values_list(
-                "alert_rule_id", flat=True
-            ).get(detector=obj)
+            try:
+                alert_rule_id = AlertRuleDetector.objects.values_list(
+                    "alert_rule_id", flat=True
+                ).get(detector=obj)
+            except AlertRuleDetector.DoesNotExist:
+                # this detector does not have an analog in the old system,
+                # but we need to return *something*
+                alert_rule_id = get_fake_id_from_object_id(obj.id)
 
         data: AlertRuleSerializerResponse = {
-            "id": str(alert_rule_detector_id),
+            "id": str(alert_rule_id),
             "name": obj.name,
-            "organizationId": obj.project.organization_id,
+            "organizationId": str(obj.project.organization_id),
             "status": (
                 AlertRuleStatus.PENDING.value
                 if obj.enabled is True
@@ -342,7 +355,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "aggregate": attrs.get("aggregate"),
             "timeWindow": attrs.get("timeWindow"),
             "resolution": attrs.get("resolution"),
-            "thresholdPeriod": obj.config.get("thresholdPeriod"),
+            "thresholdPeriod": 1,  # unset on detectors
             "triggers": triggers,
             "projects": sorted(attrs.get("projects", [])),
             "owner": attrs.get("owner", None),
@@ -350,7 +363,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by"),
             "description": obj.description if obj.description else "",
-            "detectionType": obj.type,
+            "detectionType": obj.config.get("detection_type"),
         }
         if "latestIncident" in self.expand:
             data["latestIncident"] = attrs.get("latestIncident", None)

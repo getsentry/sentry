@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
+import {SentryAppAvatar} from '@sentry/scraps/avatar';
+
 import ConfigStore from 'sentry/stores/configStore';
 import type {SentryAppComponent} from 'sentry/types/integrations';
 
@@ -43,7 +44,7 @@ const SentryAppAvatarWrapper = styled('span')<{
   isDisabled?: boolean;
 }>`
   color: ${({isDark, isDisabled, theme}) =>
-    isDisabled ? theme.disabled : isDark ? 'white' : 'black'};
+    isDisabled ? theme.tokens.content.disabled : isDark ? 'white' : 'black'};
   filter: ${p => (p.isDark && !p.isDefault ? 'invert(1)' : 'invert(0)')};
   line-height: 0;
   flex-shrink: 0;

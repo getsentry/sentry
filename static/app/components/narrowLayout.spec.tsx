@@ -2,18 +2,18 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import NarrowLayout from 'sentry/components/narrowLayout';
 
-describe('NarrowLayout', function () {
-  it('renders without logout', function () {
+describe('NarrowLayout', () => {
+  it('renders without logout', () => {
     render(<NarrowLayout>{null}</NarrowLayout>);
     expect(screen.queryByText('Sign out')).not.toBeInTheDocument();
   });
 
-  it('renders with logout', function () {
+  it('renders with logout', () => {
     render(<NarrowLayout showLogout>{null}</NarrowLayout>);
     expect(screen.getByText('Sign out')).toBeInTheDocument();
   });
 
-  it('can logout', async function () {
+  it('can logout', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/auth/',
       method: 'DELETE',

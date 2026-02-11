@@ -24,6 +24,12 @@ class ExploreSavedQueryResponseOptional(TypedDict, total=False):
     mode: str
 
 
+class ExploreSavedQueryChangedReasonType(TypedDict):
+    orderby: list[dict[str, str]] | None
+    equations: list[dict[str, str | list[str]]] | None
+    columns: list[str]
+
+
 class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
     id: str
     name: str
@@ -37,6 +43,7 @@ class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
     starred: bool
     position: int | None
     isPrebuilt: bool
+    changedReason: ExploreSavedQueryChangedReasonType | None
 
 
 @register(ExploreSavedQuery)
@@ -111,6 +118,7 @@ class ExploreSavedQueryModelSerializer(Serializer):
             "starred": attrs.get("starred"),
             "position": attrs.get("position"),
             "isPrebuilt": obj.prebuilt_id is not None,
+            "changedReason": obj.changed_reason,
         }
 
         for key in query_keys:

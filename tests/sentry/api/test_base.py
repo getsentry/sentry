@@ -321,7 +321,7 @@ class EndpointTest(APITestCase):
         assert isinstance(token.date_last_used, datetime)
 
     @mock.patch("sentry.api.base.Endpoint.convert_args")
-    def test_method_not_allowed(self, mock_convert_args):
+    def test_method_not_allowed(self, mock_convert_args: MagicMock) -> None:
         request = self.make_request(method="POST")
         # Run this particular test in monolith mode to prevent RPC interactions
         with assume_test_silo_mode(SiloMode.MONOLITH):
@@ -563,6 +563,19 @@ class EndpointSiloLimitTest(APITestCase):
         self._test_active_on(SiloMode.REGION, SiloMode.MONOLITH, True)
         self._test_active_on(SiloMode.CONTROL, SiloMode.MONOLITH, True)
 
+    def test_internal_option(self) -> None:
+        decorator = EndpointSiloLimit(SiloMode.REGION)
+        assert decorator.modes == frozenset([SiloMode.REGION])
+        assert not decorator.internal
+
+        decorator = EndpointSiloLimit(SiloMode.REGION, internal=True)
+        assert decorator.modes == frozenset([SiloMode.REGION])
+        assert decorator.internal
+
+        decorator = EndpointSiloLimit([SiloMode.REGION, SiloMode.CONTROL], internal=True)
+        assert decorator.modes == frozenset([SiloMode.REGION, SiloMode.CONTROL])
+        assert decorator.internal
+
 
 class FunctionSiloLimitTest(APITestCase):
     def _test_active_on(self, endpoint_mode, active_mode, expect_to_be_active):
@@ -606,7 +619,9 @@ class SuperuserPermissionTest(APITestCase):
         assert response_detail["message"] == SuperuserRequired.message
 
     @mock.patch("sentry.api.permissions.is_active_superuser", return_value=True)
-    def test_superuser_or_any_no_exception_raised(self, mock_is_active_superuser):
+    def test_superuser_or_any_no_exception_raised(
+        self, mock_is_active_superuser: MagicMock
+    ) -> None:
         response = self.superuser_or_any_permission_view(self.request)
 
         assert response.status_code == 200, response.content

@@ -1,4 +1,5 @@
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
@@ -19,6 +20,8 @@ export function SimilarIssuesSidebarSection() {
           pathname: `${baseUrl}${TabPaths[Tab.SIMILAR_ISSUES]}`,
           query: location.query,
         }}
+        replace
+        preventScrollReset
       >
         {t('View')}
       </ViewButton>

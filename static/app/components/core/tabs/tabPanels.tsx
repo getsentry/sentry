@@ -8,11 +8,9 @@ import {ListCollection} from '@react-stately/list';
 import type {TabListState} from '@react-stately/tabs';
 import type {CollectionBase, Node, Orientation} from '@react-types/shared';
 
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
-
 import {TabPanelItem} from './item';
+import {TabsContext} from './tabs';
 import {tabsShouldForwardProp} from './utils';
-import {TabsContext} from '.';
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
@@ -90,24 +88,24 @@ function TabPanel({
 const TabPanelWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
   orientation: Orientation;
 }>`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 
   ${p =>
     p.orientation === 'horizontal'
       ? css`
           height: 100%;
-          padding-top: ${isChonkTheme(p.theme) ? p.theme.space.md : 0};
+          padding-top: ${p.theme.space.md};
         `
       : css`
           width: 100%;
-          padding-left: ${isChonkTheme(p.theme) ? p.theme.space.md : 0};
+          padding-left: ${p.theme.space.md};
         `};
 
   &:focus-visible {
     outline: none;
     box-shadow:
-      inset ${p => p.theme.focusBorder} 0 0 0 1px,
-      ${p => p.theme.focusBorder} 0 0 0 1px;
+      inset ${p => p.theme.tokens.focus.default} 0 0 0 1px,
+      ${p => p.theme.tokens.focus.default} 0 0 0 1px;
     z-index: 1;
   }
 `;

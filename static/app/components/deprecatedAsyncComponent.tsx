@@ -36,7 +36,7 @@ function wrapErrorHandling<T extends any[], U>(
   return (...args: T): U | null => {
     try {
       return fn(...args);
-    } catch (error) {
+    } catch (error: any) {
       // eslint-disable-next-line no-console
       console.error(error);
       window.setTimeout(() => {

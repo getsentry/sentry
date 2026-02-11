@@ -1,0 +1,56 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: "98ba9d44b8e7924ce21654996f92c2eb"
+  contributing component: exception
+  hint: None
+  root_component:
+    app*
+      exception*
+        type*
+          "*pq.Error"
+        value (ignored because stacktrace takes precedence)
+          "pq: cannot cast jsonb null to type integer"
+        stacktrace*
+          frame (marked out of app by built-in stack trace rule (path:**/go/pkg/mod/** -app))
+            module*
+              "github.com/robfig/cron/v3"
+            filename (ignored because module takes precedence)
+              "cron.go"
+            function*
+              "FuncJob.Run"
+          frame* (marked in-app by the client)
+            module*
+              "main"
+            filename (ignored because module takes precedence)
+              "main.go"
+            function*
+              "background.func2"
+--------------------------------------------------------------------------
+system:
+  hash: "6bbf86806a0ec54202e633626ae09bd4"
+  contributing component: exception
+  hint: None
+  root_component:
+    system*
+      exception*
+        type*
+          "*pq.Error"
+        value (ignored because stacktrace takes precedence)
+          "pq: cannot cast jsonb null to type integer"
+        stacktrace*
+          frame*
+            module*
+              "github.com/robfig/cron/v3"
+            filename (ignored because module takes precedence)
+              "cron.go"
+            function*
+              "FuncJob.Run"
+          frame*
+            module*
+              "main"
+            filename (ignored because module takes precedence)
+              "main.go"
+            function*
+              "background.func2"

@@ -10,6 +10,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.auth_v2.utils.session import SessionSerializer
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -27,16 +28,18 @@ class CsrfTokenEndpoint(Endpoint):
     permission_classes = ()
 
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.USER: RateLimit(limit=10, window=60),  # 10 per minute per user
-            RateLimitCategory.IP: RateLimit(limit=20, window=60),  # 20 per minute per IP
-        },
-        "PUT": {
-            RateLimitCategory.USER: RateLimit(limit=10, window=60),  # 10 per minute per user
-            RateLimitCategory.IP: RateLimit(limit=20, window=60),  # 20 per minute per IP
-        },
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.USER: RateLimit(limit=10, window=60),  # 10 per minute per user
+                RateLimitCategory.IP: RateLimit(limit=20, window=60),  # 20 per minute per IP
+            },
+            "PUT": {
+                RateLimitCategory.USER: RateLimit(limit=10, window=60),  # 10 per minute per user
+                RateLimitCategory.IP: RateLimit(limit=20, window=60),  # 20 per minute per IP
+            },
+        }
+    )
 
     @extend_schema(
         operation_id="Retrieve the CSRF token in your session",

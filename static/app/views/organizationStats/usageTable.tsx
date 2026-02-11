@@ -1,14 +1,14 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {updateProjects} from 'sentry/actionCreators/pageFilters';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import IdBadge from 'sentry/components/idBadge';
+import {updateProjects} from 'sentry/components/pageFilters/actions';
 import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
@@ -52,17 +52,18 @@ class UsageTable extends Component<Props> {
     if (errorMessage.projectStats.responseJSON.detail === 'No projects available') {
       return (
         <EmptyMessage
-          icon={<IconWarning color="gray300" legacySize="48px" />}
+          icon={<IconWarning />}
           title={t(
             "You don't have access to any projects, or your organization has no projects."
           )}
-          description={tct('Learn more about [link:Project Access]', {
+        >
+          {tct('Learn more about [link:Project Access]', {
             link: <ExternalLink href={DOCS_URL} />,
           })}
-        />
+        </EmptyMessage>
       );
     }
-    return <IconWarning color="gray300" legacySize="48px" />;
+    return <IconWarning variant="muted" legacySize="48px" />;
   };
 
   loadProject(projectId: number) {
@@ -135,7 +136,7 @@ class UsageTable extends Component<Props> {
         )}
       </CellStat>,
       <CellStat key={6}>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Button
             icon={<IconGraph type="bar" />}
             title="Go to project level stats"
@@ -154,7 +155,7 @@ class UsageTable extends Component<Props> {
             title={t('Go to project settings')}
             to={stat.projectSettingsLink}
           />
-        </ButtonBar>
+        </Grid>
       </CellStat>,
     ];
   }
@@ -205,6 +206,6 @@ const StyledIdBadge = styled(IdBadge)`
 `;
 
 const SubText = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.5)};
 `;

@@ -4,16 +4,19 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -22,12 +25,14 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {OverviewSpansTable} from 'sentry/views/performance/otlp/overviewSpansTable';
-import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import Filter, {
   filterToSearchConditions,
@@ -48,7 +53,9 @@ type Props = {
   eventsDisplayFilterName: EventsDisplayFilterName;
   location: Location;
   onChangeEventsDisplayFilter: (eventsDisplayFilterName: EventsDisplayFilterName) => void;
-  onChangeSpanOperationBreakdownFilter: (newFilter: SpanOperationBreakdownFilter) => void;
+  onChangeSpanOperationBreakdownFilter: (
+    newFilter: SpanOperationBreakdownFilter | undefined
+  ) => void;
   organization: Organization;
   projectId: string;
   projects: Project[];
@@ -110,8 +117,12 @@ function EventsContent(props: Props) {
     if (platform === ProjectPerformanceType.BACKEND) {
       const userIndex = transactionsListTitles.indexOf('user');
       if (userIndex > 0) {
-        transactionsListTitles.splice(userIndex + 1, 0, 'http.method');
-        fields.splice(userIndex + 1, 0, {field: 'http.method'});
+        if (!transactionsListTitles.includes('http.method')) {
+          transactionsListTitles.splice(userIndex + 1, 0, 'http.method');
+        }
+        if (!fields.some(f => f.field === 'http.method')) {
+          fields.splice(userIndex + 1, 0, {field: 'http.method'});
+        }
       }
     }
 
@@ -162,7 +173,7 @@ function EventsContent(props: Props) {
     webVital,
   ]);
 
-  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+  const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
 
   const table = shouldUseOTelFriendlyUI ? (
     <OverviewSpansTable
@@ -185,7 +196,7 @@ function EventsContent(props: Props) {
   );
 
   return (
-    <Layout.Main fullWidth>
+    <Layout.Main width="full">
       <Search {...props} eventView={eventView} />
       {table}
     </Layout.Main>
@@ -236,7 +247,12 @@ function Search(props: Props) {
   };
 
   const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
-  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+  const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
+
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.TRANSACTIONS],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
     <FilterActions>
@@ -251,7 +267,7 @@ function Search(props: Props) {
       )}
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
-        <DatePageFilter />
+        <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
       <StyledSearchBarWrapper>
         <TransactionSearchQueryBuilder
@@ -262,7 +278,9 @@ function Search(props: Props) {
         />
       </StyledSearchBarWrapper>
       <CompactSelect
-        triggerProps={{prefix: t('Percentile')}}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps} prefix={t('Percentile')} />
+        )}
         value={eventsDisplayFilterName}
         onChange={opt => onChangeEventsDisplayFilter(opt.value)}
         options={Object.entries(eventsFilterOptions).map(([name, filter]) => ({

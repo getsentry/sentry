@@ -8,34 +8,34 @@ import {PlanTier} from 'getsentry/types';
 
 import OnDemandDisabled from './ondemandDisabled';
 
-describe('OnDemandDisabled', function () {
+describe('OnDemandDisabled', () => {
   const organization = OrganizationFixture();
 
-  it('renders nothing when onDemandDisabled is false', function () {
+  it('renders nothing when onDemandDisabled is false', () => {
     const subscription = SubscriptionFixture({
       organization,
       onDemandDisabled: false,
       onDemandMaxSpend: 1000,
     });
 
-    render(<OnDemandDisabled subscription={subscription} />);
+    render(<OnDemandDisabled organization={organization} subscription={subscription} />);
 
     expect(screen.queryByTestId('ondemand-disabled-alert')).not.toBeInTheDocument();
   });
 
-  it('renders nothing when onDemandMaxSpend is 0', function () {
+  it('renders nothing when onDemandMaxSpend is 0', () => {
     const subscription = SubscriptionFixture({
       organization,
       onDemandDisabled: true,
       onDemandMaxSpend: 0,
     });
 
-    render(<OnDemandDisabled subscription={subscription} />);
+    render(<OnDemandDisabled organization={organization} subscription={subscription} />);
 
     expect(screen.queryByTestId('ondemand-disabled-alert')).not.toBeInTheDocument();
   });
 
-  it('renders alert for AM1 plan with on-demand terminology', function () {
+  it('renders alert for plan with on-demand terminology', () => {
     const subscription = SubscriptionFixture({
       organization,
       onDemandDisabled: true,
@@ -43,47 +43,27 @@ describe('OnDemandDisabled', function () {
       planTier: PlanTier.AM1,
     });
 
-    render(<OnDemandDisabled subscription={subscription} />);
+    render(<OnDemandDisabled organization={organization} subscription={subscription} />);
 
     expect(screen.getByTestId('ondemand-disabled-alert')).toBeInTheDocument();
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          'On-demand billing is disabled for your organization due to an unpaid on-demand invoice.'
+          'On-Demand billing is disabled for your organization due to an unpaid on-demand invoice.'
         )
       )
     ).toBeInTheDocument();
   });
 
-  it('renders alert for AM2 plan with on-demand terminology', function () {
+  it('renders alert for plan with pay-as-you-go terminology', () => {
     const subscription = SubscriptionFixture({
       organization,
       onDemandDisabled: true,
       onDemandMaxSpend: 1000,
-      planTier: PlanTier.AM2,
+      plan: 'am3_team',
     });
 
-    render(<OnDemandDisabled subscription={subscription} />);
-
-    expect(screen.getByTestId('ondemand-disabled-alert')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          'On-demand billing is disabled for your organization due to an unpaid on-demand invoice.'
-        )
-      )
-    ).toBeInTheDocument();
-  });
-
-  it('renders alert for AM3 plan with pay-as-you-go terminology', function () {
-    const subscription = SubscriptionFixture({
-      organization,
-      onDemandDisabled: true,
-      onDemandMaxSpend: 1000,
-      planTier: PlanTier.AM3,
-    });
-
-    render(<OnDemandDisabled subscription={subscription} />);
+    render(<OnDemandDisabled organization={organization} subscription={subscription} />);
 
     expect(screen.getByTestId('ondemand-disabled-alert')).toBeInTheDocument();
     expect(
@@ -95,18 +75,18 @@ describe('OnDemandDisabled', function () {
     ).toBeInTheDocument();
   });
 
-  it('includes links to receipts, support email and documentation', function () {
+  it('includes links to receipts, support email and documentation', () => {
     const subscription = SubscriptionFixture({
       organization,
       onDemandDisabled: true,
       onDemandMaxSpend: 1000,
     });
 
-    render(<OnDemandDisabled subscription={subscription} />);
+    render(<OnDemandDisabled organization={organization} subscription={subscription} />);
 
     expect(
       screen.getByRole('link', {name: 'closed/outstanding invoices'})
-    ).toHaveAttribute('href', '/settings/billing/receipts/');
+    ).toHaveAttribute('href', `/settings/${organization.slug}/billing/receipts/`);
     expect(screen.getByRole('link', {name: 'support@sentry.io'})).toHaveAttribute(
       'href',
       'mailto:support@sentry.io'

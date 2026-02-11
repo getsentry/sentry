@@ -2,15 +2,19 @@ import React, {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
@@ -18,20 +22,23 @@ import BrowserTypeSelector from 'sentry/views/insights/browser/webVitals/compone
 import {PageOverviewSidebar} from 'sentry/views/insights/browser/webVitals/components/pageOverviewSidebar';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/pageOverviewWebVitalsDetailPanel';
 import {PageSamplePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pageSamplePerformanceTable';
-import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
+import WebVitalMetersWithIssues from 'sentry/views/insights/browser/webVitals/components/webVitalMetersWithIssues';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import useHasDashboardsPlatformizedWebVitals from 'sentry/views/insights/browser/webVitals/utils/useHasDashboardsPlatformizedWebVitals';
+import {PlatformizedWebVitalsPageOverview} from 'sentry/views/insights/browser/webVitals/views/platformizedPageOverview';
 import {WebVitalMetersPlaceholder} from 'sentry/views/insights/browser/webVitals/views/webVitalsLandingPage';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import PerformanceScoreBreakdownChartWidget from 'sentry/views/insights/common/components/widgets/performanceScoreBreakdownChartWidget';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
@@ -150,21 +157,22 @@ function PageOverview() {
         module={ModuleName.VITAL}
         hideDefaultTabs
       />
-      <ModuleBodyUpsellHook moduleName={ModuleName.VITAL}>
+      <ModuleFeature moduleName={ModuleName.VITAL}>
         <Layout.Body>
           <Layout.Main>
-            <TopMenuContainer>
+            <Flex marginBottom="md" gap="xl">
               <ModulePageFilterBar moduleName={ModuleName.VITAL} />
               <BrowserTypeSelector />
-            </TopMenuContainer>
-            <Flex>
+              <SubregionSelector />
+            </Flex>
+            <Flex justify="between" gap="md" width="100%">
               <ChartContainer>
                 <PerformanceScoreBreakdownChartWidget />
               </ChartContainer>
             </Flex>
             <WebVitalMetersContainer>
               {(isPending || isProjectScoresLoading) && <WebVitalMetersPlaceholder />}
-              <WebVitalMeters
+              <WebVitalMetersWithIssues
                 projectData={pageData}
                 projectScore={projectScore}
                 onClick={webVital => {
@@ -196,34 +204,32 @@ function PageOverview() {
             />
           </Layout.Side>
         </Layout.Body>
-      </ModuleBodyUpsellHook>
+      </ModuleFeature>
     </React.Fragment>
   );
 }
 
 function PageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+
+  const hasDashboardsPlatformizedWebVitals = useHasDashboardsPlatformizedWebVitals();
+  if (hasDashboardsPlatformizedWebVitals) {
+    return <PlatformizedWebVitalsPageOverview />;
+  }
+
   return (
-    <ModulePageProviders moduleName="vital">
+    <ModulePageProviders
+      moduleName="vital"
+      maxPickableDays={maxPickableDays.maxPickableDays}
+    >
       <PageOverview />
     </ModulePageProviders>
   );
 }
 
 export default PageWithProviders;
-
-const TopMenuContainer = styled('div')`
-  margin-bottom: ${space(1)};
-  display: flex;
-  gap: ${space(2)};
-`;
-
-const Flex = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  width: 100%;
-  gap: ${space(1)};
-`;
 
 const ChartContainer = styled('div')`
   flex: 1 1 0%;

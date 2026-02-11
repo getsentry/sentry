@@ -1373,7 +1373,7 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
 
         queries = [
             ("", 8, True),
-            ("failure_count():>0", 6, True),
+            ("failure_count():>0", 7, True),
             ("failure_count():>0", 8, False),
         ]
 
@@ -2433,12 +2433,12 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         self.store_event(data, project_id=project.id)
 
         orderbys = [
-            ("failure_count()", [0, 0, 1, 1, 1, 1, 1, 2]),
-            ("failure_count()", [0, 0, 1, 1, 1, 1, 1, 2]),
-            ("-failure_count()", [2, 1, 1, 1, 1, 1, 0, 0]),
-            ("-failure_count()", [2, 1, 1, 1, 1, 1, 0, 0]),
-            ("failure_count", [0, 0, 1, 1, 1, 1, 1, 2]),
-            ("-failure_count", [2, 1, 1, 1, 1, 1, 0, 0]),
+            ("failure_count()", [0, 1, 1, 1, 1, 1, 1, 2]),
+            ("failure_count()", [0, 1, 1, 1, 1, 1, 1, 2]),
+            ("-failure_count()", [2, 1, 1, 1, 1, 1, 1, 0]),
+            ("-failure_count()", [2, 1, 1, 1, 1, 1, 1, 0]),
+            ("failure_count", [0, 1, 1, 1, 1, 1, 1, 2]),
+            ("-failure_count", [2, 1, 1, 1, 1, 1, 1, 0]),
         ]
 
         for orderby, expected in orderbys:

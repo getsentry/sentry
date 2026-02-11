@@ -1,15 +1,19 @@
-import {Badge} from 'sentry/components/core/badge';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {useTheme} from '@emotion/react';
+
+import {Badge} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+
 import {IconGithub} from 'sentry/icons';
+import * as Stories from 'sentry/stories';
 import {
   isMDXStory,
   type StoryResources as Resources,
 } from 'sentry/stories/view/useStoriesLoader';
 import {useStory} from 'sentry/stories/view/useStory';
-import {space} from 'sentry/styles/space';
 
 export function StoryResources() {
   const {story} = useStory();
+  const theme = useTheme();
 
   if (!isMDXStory(story)) {
     return null;
@@ -18,7 +22,7 @@ export function StoryResources() {
   const resources: Resources = story.exports.frontmatter?.resources ?? {};
 
   return (
-    <table style={{marginTop: space(4)}}>
+    <Stories.Table style={{marginTop: theme.space['3xl']}}>
       <thead>
         <tr>
           <th>Type</th>
@@ -35,12 +39,14 @@ export function StoryResources() {
               return <JsResource key={type} href={data} />;
             case 'a11y':
               return <A11yResource key={type} items={data} />;
+            case 'reference':
+              return <ReferenceResource key={type} items={data} />;
             default:
               return null;
           }
         })}
       </tbody>
-    </table>
+    </Stories.Table>
   );
 }
 
@@ -67,7 +73,7 @@ function FigmaResource(props: {href: string}) {
         </LinkButton>
       </td>
       <td>
-        <Badge type="new">Available</Badge>
+        <Badge variant="info">Available</Badge>
       </td>
     </tr>
   );
@@ -83,20 +89,21 @@ function JsResource(props: {href: string}) {
         </LinkButton>
       </td>
       <td>
-        <Badge type="beta">In Progress</Badge>
+        <Badge variant="warning">In Progress</Badge>
       </td>
     </tr>
   );
 }
 
 function A11yResource(props: {items: Record<string, string>}) {
+  const theme = useTheme();
   return (
     <tr>
       <td>Accessibility</td>
       <td>
         <ul style={{listStyle: 'none', padding: 0}}>
           {Object.entries(props.items).map(([text, href]) => (
-            <li style={{padding: `${space(0.5)} 0`}} key={href}>
+            <li style={{padding: `${theme.space.xs} 0`}} key={href}>
               <a target="_blank" href={href} rel="noreferrer">
                 {text}
               </a>
@@ -105,7 +112,30 @@ function A11yResource(props: {items: Record<string, string>}) {
         </ul>
       </td>
       <td>
-        <Badge type="internal">Reference</Badge>
+        <Badge variant="muted">Reference</Badge>
+      </td>
+    </tr>
+  );
+}
+
+function ReferenceResource(props: {items: Record<string, string>}) {
+  const theme = useTheme();
+  return (
+    <tr>
+      <td>Further Reading</td>
+      <td>
+        <ul style={{listStyle: 'none', padding: 0}}>
+          {Object.entries(props.items).map(([text, href]) => (
+            <li style={{padding: `${theme.space.xs} 0`}} key={href}>
+              <a target="_blank" href={href} rel="noreferrer">
+                {text}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </td>
+      <td>
+        <Badge variant="internal">Reference</Badge>
       </td>
     </tr>
   );

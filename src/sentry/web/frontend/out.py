@@ -5,8 +5,10 @@ from rest_framework.request import Request
 
 from sentry import options
 from sentry.utils.settings import is_self_hosted
+from sentry.web.frontend.base import control_silo_view
 
 
+@control_silo_view
 class OutView(View):
     def get(self, request: Request) -> HttpResponseBase:
         if not is_self_hosted():

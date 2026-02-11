@@ -2,10 +2,12 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import reduce from 'lodash/reduce';
 import {computed, makeObservable} from 'mobx';
-import {Observer} from 'mobx-react';
+import {Observer} from 'mobx-react-lite';
 
-import {Switch} from 'sentry/components/core/switch';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -123,7 +125,7 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
     const FormHeader = (
       <StyledPanelHeader>
         {t('Lambda Functions')}
-        <SwitchHolder>
+        <Flex>
           <Observer>
             {() => (
               <Tooltip
@@ -139,7 +141,7 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
               </Tooltip>
             )}
           </Observer>
-        </SwitchHolder>
+        </Flex>
       </StyledPanelHeader>
     );
 
@@ -222,10 +224,6 @@ const LoadingWrapper = styled('div')`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
-`;
-
-const SwitchHolder = styled('div')`
-  display: flex;
 `;
 
 const StyledSwitch = styled(Switch)`

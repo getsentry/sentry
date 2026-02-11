@@ -1,15 +1,19 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import Hook from 'sentry/components/hook';
 import {IconSentry, IconSentryPrideLogo} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type SentryLogoProps = SVGIconProps & {
@@ -34,24 +38,18 @@ type Props = {
 function BaseFooter({className}: Props) {
   const {isSelfHosted, version, privacyUrl, termsUrl, demoMode} =
     useLegacyStore(ConfigStore);
+
+  const {state: appState} = useFrontendVersion();
   const organization = useOrganization({allowNull: true});
 
   return (
-    <footer className={className}>
+    <Container as="footer" background="primary" className={className}>
       <LeftLinks>
         {isSelfHosted && (
           <Fragment>
             {'Sentry '}
-            {getDynamicText({
-              fixed: 'Acceptance Test',
-              value: version.current,
-            })}
-            <Build>
-              {getDynamicText({
-                fixed: 'test',
-                value: version.build.substring(0, 7),
-              })}
-            </Build>
+            {version.current}
+            <Build>{version.build.substring(0, 7)}</Build>
           </Fragment>
         )}
         {privacyUrl && <FooterLink href={privacyUrl}>{t('Privacy Policy')}</FooterLink>}
@@ -64,6 +62,19 @@ function BaseFooter({className}: Props) {
         />
       </SentryLogoLink>
       <RightLinks>
+        {appState === 'stale' && (
+          <Button
+            priority="transparent"
+            size="xs"
+            onClick={() => window.location.reload()}
+            title={t(
+              "An improved version of Sentry's Frontend Application is now available. Click to update now."
+            )}
+            aria-label={t('Reload frontend')}
+          >
+            <WaitingIndicator />
+          </Button>
+        )}
         {!isSelfHosted && (
           <FooterLink href="https://status.sentry.io/">{t('Service Status')}</FooterLink>
         )}
@@ -77,9 +88,15 @@ function BaseFooter({className}: Props) {
         )}
       </RightLinks>
       <Hook name="footer" />
-    </footer>
+    </Container>
   );
 }
+
+const WaitingIndicator = styled('div')`
+  --pulsingIndicatorRing: ${p => p.theme.tokens.border.transparent.neutral.muted};
+  ${pulsingIndicatorStyles};
+  contain: layout;
+`;
 
 const LeftLinks = styled('div')`
   display: grid;
@@ -100,10 +117,10 @@ const RightLinks = styled('div')`
 `;
 
 const FooterLink = styled(ExternalLink)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   &:focus-visible {
     outline: none;
-    box-shadow: ${p => p.theme.blue300} 0 2px 0;
+    box-shadow: ${p => p.theme.tokens.focus.default} 0 2px 0;
   }
 `;
 
@@ -111,22 +128,22 @@ const SentryLogoLink = styled(ExternalLink)`
   display: flex;
   align-items: center;
   margin: 0 auto;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Build = styled('span')`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-left: ${space(1)};
 `;
 
 const Footer = styled(BaseFooter)`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
-  border-top: 1px solid ${p => p.theme.border};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   align-content: center;
   padding: ${space(2)} ${space(4)};
   margin-top: auto; /* pushes footer to the bottom of the page when loading */

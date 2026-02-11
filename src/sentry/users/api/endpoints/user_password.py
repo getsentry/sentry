@@ -9,6 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.auth import password_validation
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.security.utils import capture_security_activity
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.api.bases.user import UserEndpoint
@@ -59,13 +60,15 @@ class UserPasswordEndpoint(UserEndpoint):
     }
 
     enforce_rate_limit = True
-    rate_limits = {
-        "PUT": {
-            RateLimitCategory.USER: RateLimit(
-                limit=5, window=60 * 60
-            ),  # 5 PUT requests per hour per user
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "PUT": {
+                RateLimitCategory.USER: RateLimit(
+                    limit=5, window=60 * 60
+                ),  # 5 PUT requests per hour per user
+            }
         }
-    }
+    )
 
     def put(self, request: Request, user: User) -> Response:
         # pass some context to serializer otherwise when we create a new serializer instance,

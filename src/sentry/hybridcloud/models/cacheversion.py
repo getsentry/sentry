@@ -1,10 +1,8 @@
 from django.db import models, router, transaction
-from django.db.models import F
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, control_silo_model, region_silo_model
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.options.rollout import in_random_rollout
 
 
 class CacheVersionBase(Model):
@@ -16,23 +14,16 @@ class CacheVersionBase(Model):
 
     @classmethod
     def incr_version(cls, key: str) -> int:
-        if in_random_rollout("sentry.hybridcloud.cacheversion.rollout"):
-            with enforce_constraints(transaction.atomic(router.db_for_write(cls))):
-                obj, created = cls.objects.select_for_update().get_or_create(
-                    key=key, defaults=dict(version=1)
-                )
-                if created:
-                    return obj.version
-
-                obj.version += 1
-                obj.save(update_fields=["version"])
+        with enforce_constraints(transaction.atomic(router.db_for_write(cls))):
+            obj, created = cls.objects.select_for_update().get_or_create(
+                key=key, defaults=dict(version=1)
+            )
+            if created:
                 return obj.version
 
-        with enforce_constraints(transaction.atomic(router.db_for_write(cls))):
-            cls.objects.create_or_update(
-                key=key, defaults=dict(version=1), values=dict(version=F("version") + 1)
-            )
-            return cls.objects.get(key=key).version
+            obj.version += 1
+            obj.save(update_fields=["version"])
+            return obj.version
 
     @classmethod
     def get_versions(cls, keys: list[str]) -> list[int]:

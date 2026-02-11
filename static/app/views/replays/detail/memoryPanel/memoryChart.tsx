@@ -1,12 +1,12 @@
 import {
-  type Dispatch,
   memo,
-  type SetStateAction,
   useCallback,
   useEffect,
   useId,
   useMemo,
   useRef,
+  type Dispatch,
+  type SetStateAction,
 } from 'react';
 import {useTheme} from '@emotion/react';
 
@@ -27,7 +27,8 @@ import formatDuration from 'sentry/utils/duration/formatDuration';
 import type {MemoryFrame} from 'sentry/utils/replays/types';
 
 interface Props
-  extends MemoryChartSeriesProps,
+  extends
+    MemoryChartSeriesProps,
     Pick<ReturnType<typeof useReplayContext>, 'currentTime' | 'setCurrentTime'> {
   currentHoverTime: undefined | number;
   setCurrentHoverTime: Dispatch<SetStateAction<number | undefined>>;
@@ -247,7 +248,11 @@ const MemoryChartSeries = memo(
             symbol: ['', ''],
             data: [],
             label: {show: false},
-            lineStyle: {type: 'solid', color: theme.purple300, width: 2},
+            lineStyle: {
+              type: 'solid',
+              color: theme.tokens.graphics.accent.vibrant,
+              width: 2,
+            },
           },
         },
         {
@@ -258,11 +263,15 @@ const MemoryChartSeries = memo(
             symbol: ['', ''],
             data: [],
             label: {show: false},
-            lineStyle: {type: 'solid', color: theme.purple200, width: 2},
+            lineStyle: {
+              type: 'solid',
+              color: theme.tokens.graphics.neutral.moderate,
+              width: 2,
+            },
           },
         },
       ],
-      [theme.purple200, theme.purple300]
+      [theme.tokens.graphics.accent.vibrant, theme.tokens.graphics.neutral.moderate]
     );
 
     const series = useMemo(

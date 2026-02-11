@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {HeaderActions} from 'sentry/components/layouts/thirds';
@@ -17,19 +18,14 @@ interface WorkflowEngineDetailLayoutProps {
 }
 
 /**
- * Precomposed 67/33 layout for Automations / Monitors detail pages.
+ * Precomposed 67/33 layout for Monitors / Alerts detail pages.
  */
 function DetailLayout({children}: WorkflowEngineDetailLayoutProps) {
   return <StyledPage>{children}</StyledPage>;
 }
 
-const ProjectContainer = styled('div')`
-  margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSize.md};
-`;
-
 const StyledPage = styled(Layout.Page)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const StyledBody = styled(Layout.Body)`
@@ -61,7 +57,7 @@ function Sidebar({children}: RequiredChildren) {
 }
 
 function Header({children}: RequiredChildren) {
-  return <Layout.Header unified>{children}</Layout.Header>;
+  return <Layout.Header>{children}</Layout.Header>;
 }
 
 function HeaderContent({children}: RequiredChildren) {
@@ -81,9 +77,9 @@ function Title({title, project}: {title: string; project?: AvatarProject}) {
     <Fragment>
       <Layout.Title>{title}</Layout.Title>
       {project && (
-        <ProjectContainer>
+        <Flex align="center" padding="md 0">
           <ProjectBadge project={project} disableLink avatarSize={16} />
-        </ProjectContainer>
+        </Flex>
       )}
     </Fragment>
   );

@@ -95,7 +95,7 @@ def test_buckets_logic() -> None:
 
 class TestDerivedCodeMappings(TestCase):
     @pytest.fixture(autouse=True)
-    def inject_fixtures(self, caplog: Any) -> None:
+    def inject_fixtures(self, caplog: pytest.LogCaptureFixture) -> None:
         self._caplog = caplog
 
     def setUp(self) -> None:
@@ -306,6 +306,13 @@ class TestDerivedCodeMappings(TestCase):
             find_roots(
                 create_frame_info({"filename": "sentry/random.py"}),
                 "nothing/something.js",
+            )
+
+    def test_find_roots_empty_source_path(self) -> None:
+        with pytest.raises(UnexpectedPathException):
+            find_roots(
+                create_frame_info({"filename": "sentry/foo.py"}),
+                "",
             )
 
     def test_find_roots_windows_path_with_spaces(self) -> None:

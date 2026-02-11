@@ -102,7 +102,7 @@ def test_merge_symbolicator_image_remove_unknown_arch() -> None:
         ),
     ],
 )
-def test_merge_symbolicator_image_errors(code_file, error):
+def test_merge_symbolicator_image_errors(code_file: str, error: EventError) -> None:
     raw_image = {"instruction_addr": 0xFEEBEE, "other": "foo", "code_file": code_file}
     sdk_info = {"sdk_name": "macos"}
     complete_image = {
@@ -132,7 +132,7 @@ def test_merge_symbolicator_image_errors(code_file, error):
 
 @django_db_all
 @mock.patch("sentry.lang.native.processing.Symbolicator")
-def test_cocoa_function_name(mock_symbolicator, default_project):
+def test_cocoa_function_name(mock_symbolicator, default_project) -> None:
 
     data = {
         "platform": "cocoa",
@@ -271,7 +271,7 @@ def test_rewrite_electron_debug_file() -> None:
 
 @django_db_all
 @mock.patch("sentry.lang.native.processing.Symbolicator")
-def test_il2cpp_symbolication(mock_symbolicator, default_project):
+def test_il2cpp_symbolication(mock_symbolicator, default_project) -> None:
 
     data = {
         "event_id": "c87700da71534177b92bd912f21a062f",

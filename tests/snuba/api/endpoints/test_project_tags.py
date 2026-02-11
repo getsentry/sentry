@@ -6,11 +6,11 @@ from sentry.testutils.helpers.datetime import before_now
 class ProjectTagsTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-project-tags"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.store_event(
             data={
                 "tags": {"foo": "oof", "bar": "rab"},
@@ -33,7 +33,7 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
         assert data["bar"]["canDelete"]
         assert data["bar"]["uniqueValues"] == 2
 
-    def test_simple_without_values_seen(self):
+    def test_simple_without_values_seen(self) -> None:
         self.store_event(
             data={
                 "tags": {"foo": "oof", "bar": "rab"},
@@ -58,7 +58,7 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
         assert data["bar"]["canDelete"]
         assert "uniqueValues" not in data["bar"]
 
-    def test_simple_flags(self):
+    def test_simple_flags(self) -> None:
         self.store_event(
             data={
                 "contexts": {
@@ -99,7 +99,7 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
         assert data["abc"]["canDelete"] is False
         assert data["abc"]["uniqueValues"] == 2
 
-    def test_simple_remove_tags_in_denylist(self):
+    def test_simple_remove_tags_in_denylist(self) -> None:
         self.store_event(
             data={
                 # "browser" and "sentry:dist" are in denylist sentry.constants.DS_DENYLIST
@@ -123,7 +123,7 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
         assert data["bar"]["canDelete"]
         assert data["bar"]["uniqueValues"] == 2
 
-    def test_simple_remove_tags_in_denylist_remove_all_tags(self):
+    def test_simple_remove_tags_in_denylist_remove_all_tags(self) -> None:
         self.store_event(
             data={
                 "tags": {deny_tag: "value_{deny_tag}" for deny_tag in DS_DENYLIST},

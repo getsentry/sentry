@@ -1,19 +1,19 @@
 import datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.seer.models import SpanInsight, SummarizeTraceResponse
 from sentry.seer.trace_summary import get_trace_summary
 from sentry.snuba.trace import SerializedSpan
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
 
 pytestmark = [requires_snuba]
 
 
-@apply_feature_flag_on_cls("organizations:single-trace-summary")
+@with_feature("organizations:single-trace-summary")
 class TraceSummaryTest(TestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -86,12 +86,12 @@ class TraceSummaryTest(TestCase, SnubaTestCase):
 
         cache.clear()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         cache.delete(f"ai-trace-summary:{self.trace_id}")
 
     @patch("sentry.features.has")
-    def test_get_trace_summary_feature_flag_disabled(self, mock_has_feature):
+    def test_get_trace_summary_feature_flag_disabled(self, mock_has_feature: MagicMock) -> None:
         mock_has_feature.return_value = False
 
         summary_data, status_code = get_trace_summary(
@@ -135,7 +135,7 @@ class TraceSummaryTest(TestCase, SnubaTestCase):
         mock_cache_set.assert_called_once()
 
     @patch("sentry.seer.trace_summary._call_seer")
-    def test_get_trace_summary_cache_hit(self, mock_call_seer):
+    def test_get_trace_summary_cache_hit(self, mock_call_seer: MagicMock) -> None:
         cached_summary = self.mock_summary_response.dict()
 
         cache.set(f"ai-trace-summary:{self.trace_id}", cached_summary, timeout=60 * 60 * 24 * 7)

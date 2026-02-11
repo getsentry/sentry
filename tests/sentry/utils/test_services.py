@@ -111,7 +111,7 @@ def register_option():
     options.unregister("feature.rollout")
 
 
-def test_make_writebehind_selector_str_key(register_option):
+def test_make_writebehind_selector_str_key(register_option) -> None:
     context = Mock()
     selector = make_writebehind_selector(
         option_name="feature.rollout",
@@ -156,7 +156,7 @@ def test_make_writebehind_selector_str_key(register_option):
         assert result == ["new", "old"]
 
 
-def test_make_writebehind_selector_int_key(register_option):
+def test_make_writebehind_selector_int_key(register_option) -> None:
     context = Mock()
     selector = make_writebehind_selector(
         option_name="feature.rollout",

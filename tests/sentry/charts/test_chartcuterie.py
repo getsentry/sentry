@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -23,7 +23,7 @@ class ChartcuterieTest(TestCase):
 
     @responses.activate
     @patch("sentry.charts.chartcuterie.uuid4")
-    def test_simple(self, mock_uuid):
+    def test_simple(self, mock_uuid: MagicMock) -> None:
         mock_uuid.return_value = self.get_mock_uuid()
 
         chart_data = {
@@ -91,7 +91,7 @@ class ChartcuterieTest(TestCase):
 
     @responses.activate
     @patch("sentry.charts.chartcuterie.uuid4")
-    def test_custom_size(self, mock_uuid):
+    def test_custom_size(self, mock_uuid: MagicMock) -> None:
         mock_uuid.return_value = self.get_mock_uuid()
 
         chart_data = {

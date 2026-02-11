@@ -2,13 +2,13 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {StatusMessage} from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
 import type {InviteStatus} from 'sentry/components/modals/inviteMembersModal/types';
 import type {MissingMemberInvite} from 'sentry/components/modals/inviteMissingMembersModal/types';
 import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
@@ -16,7 +16,7 @@ import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomi
 import PanelItem from 'sentry/components/panels/panelItem';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
-import TeamSelector from 'sentry/components/teamSelector';
+import {TeamSelector} from 'sentry/components/teamSelector';
 import {IconCheckmark, IconCommit, IconGithub, IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -109,10 +109,10 @@ export function InviteMissingMembersModal({
   const renderStatusMessage = () => {
     if (sendingInvites) {
       return (
-        <StatusMessage>
+        <Flex gap="md" align="center">
           <LoadingIndicator mini relative size={16} />
           {t('Sending organization invitations\u2026')}
-        </StatusMessage>
+        </Flex>
       );
     }
 
@@ -128,14 +128,14 @@ export function InviteMissingMembersModal({
       };
 
       return (
-        <StatusMessage status="success">
+        <Flex gap="md" align="center">
           <IconCheckmark size="sm" />
           <span>
             {errorCount > 0
               ? tct('Sent [invites], [failed] failed to send.', tctComponents)
               : tct('Sent [invites]', tctComponents)}
           </span>
-        </StatusMessage>
+        </Flex>
       );
     }
 
@@ -157,7 +157,7 @@ export function InviteMissingMembersModal({
           data,
         }
       );
-    } catch (err) {
+    } catch (err: any) {
       const errorResponse = err.responseJSON;
 
       // Use the email error message if available. This inconsistently is
@@ -221,12 +221,12 @@ export function InviteMissingMembersModal({
             checked={selectedAll}
           />,
           t('User Information'),
-          <StyledHeader key={1}>
+          <Flex gap="xs" key={1}>
             {t('Recent Commits')}
             <Tooltip title={t('Based on the last 30 days of commit data')}>
               <IconInfo size="xs" />
             </Tooltip>
-          </StyledHeader>,
+          </Flex>,
           t('Role'),
           t('Team'),
         ]}
@@ -288,9 +288,9 @@ export function InviteMissingMembersModal({
           );
         })}
       </StyledPanelTable>
-      <Footer>
+      <Flex justify="between">
         <div>{renderStatusMessage()}</div>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Button
             size="sm"
             onClick={() => {
@@ -314,8 +314,8 @@ export function InviteMissingMembersModal({
           >
             {inviteButtonLabel()}
           </Button>
-        </ButtonBar>
-      </Footer>
+        </Grid>
+      </Flex>
     </Fragment>
   );
 
@@ -336,33 +336,23 @@ const StyledPanelTable = styled(PanelTable)`
   max-height: 475px;
 `;
 
-const StyledHeader = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-`;
-
 const StyledPanelItem = styled(PanelItem)`
   flex-direction: column;
-`;
-
-const Footer = styled('div')`
-  display: flex;
-  justify-content: space-between;
 `;
 
 const ContentRow = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   gap: ${space(0.75)};
 `;
 
 const MemberEmail = styled('div')`
   display: block;
   max-width: 150px;
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
   text-overflow: ellipsis;
   overflow: hidden;
 `;

@@ -10,7 +10,6 @@ from operator import attrgetter
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from sentry import features
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
@@ -26,6 +25,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.utils import get_notification_group_title
+from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import all_silo_function, region_silo_function
 from sentry.users.models.user import User
@@ -70,7 +70,7 @@ class ResolveSyncAction(enum.Enum):
 
 
 class IssueBasicIntegration(IntegrationInstallation, ABC):
-    def should_sync(self, attribute, sync_source: AssignmentSource | None = None):
+    def should_sync(self, attribute, sync_source: AssignmentSource | None = None) -> bool:
         return False
 
     def get_group_title(self, group, event, **kwargs):

@@ -1,66 +1,72 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import ShortId, {Wrapper} from 'sentry/components/group/inboxBadges/shortId';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import TimeSince from 'sentry/components/timeSince';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
+import {tct} from 'sentry/locale';
+import type {SimpleGroup} from 'sentry/types/group';
+import {getMessage, getTitle} from 'sentry/utils/events';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type IssueCellProps = {
+  group: SimpleGroup | null;
   className?: string;
-  disabled?: boolean;
-  group?: Group;
 };
 
-export function IssueCell({group, disabled = false, className}: IssueCellProps) {
+export function IssueCell({group, className}: IssueCellProps) {
+  const organization = useOrganization();
+
   if (!group) {
     return <EmptyCell />;
   }
+
+  const {title} = getTitle(group);
+  const message = getMessage(group);
+
   return (
-    <IssueWrapper to={'/issues/' + group.id} disabled={disabled} className={className}>
-      <ShortId
-        shortId={group.shortId}
-        avatar={<ProjectAvatar project={group.project} />}
-      />
-      <LastSeenWrapper gap="xs">
-        {t('Last seen')}
-        <TimeSince
-          date={group.lastSeen}
-          liveUpdateInterval={'second'}
-          unitStyle="short"
-          disabledAbsoluteTooltip
-        />
-      </LastSeenWrapper>
+    <IssueWrapper
+      to={`/organizations/${organization.slug}/issues/${group.id}/`}
+      className={className}
+    >
+      <Grid gap="xs" columns="auto 1fr">
+        <ProjectAvatar project={group.project} />
+        <Text data-group-title ellipsis>
+          {title}
+          {message ? `: ${message}` : ''}
+        </Text>
+      </Grid>
+      <Text variant="muted">
+        {tct('Last seen [time]', {
+          time: (
+            <TimeSince
+              date={group.lastSeen}
+              liveUpdateInterval="second"
+              unitStyle="short"
+              disabledAbsoluteTooltip
+            />
+          ),
+        })}
+      </Text>
     </IssueWrapper>
   );
 }
 
-const IssueWrapper = styled(Link)<{disabled: boolean}>`
+const IssueWrapper = styled(Link)`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.sm};
   flex: 1;
+  color: ${p => p.theme.tokens.content.secondary};
 
-  ${Wrapper} {
-    color: ${p => (p.disabled ? p.theme.disabled : p.theme.textColor)};
-    font-size: ${p => p.theme.fontSize.md};
-  }
-
-  ${p =>
-    !p.disabled &&
-    css`
-      &:hover ${Wrapper} {
-        color: ${p.theme.textColor};
-        text-decoration: underline;
-      }
-    `}
-`;
-
-const LastSeenWrapper = styled(Flex)`
-  color: ${p => p.theme.subText};
+  ${p => css`
+    &:hover [data-group-title] {
+      color: ${p.theme.tokens.content.primary};
+      text-decoration: underline;
+    }
+  `}
 `;

@@ -1,6 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import IdBadge from 'sentry/components/idBadge';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TeamRoleSelect from 'sentry/components/teamRoleSelect';
@@ -34,9 +37,10 @@ function TeamMembersRow({
 
   return (
     <TeamRolesPanelItem key={member.id}>
-      <div>
+      <Flex gap="md">
         <IdBadge avatarSize={36} member={member} />
-      </div>
+        {member.pending ? <Tag variant="muted">{t('Pending')}</Tag> : null}
+      </Flex>
       <RoleSelectWrapper>
         <TeamRoleSelect
           disabled={isSelf || !hasWriteAccess}
@@ -74,7 +78,7 @@ function RemoveButton(props: {
       <Button
         size="xs"
         disabled
-        icon={<IconSubtract isCircled />}
+        icon={<IconSubtract />}
         aria-label={t('Remove')}
         title={t('You do not have permission to remove a member from this team.')}
       >
@@ -92,7 +96,7 @@ function RemoveButton(props: {
       data-test-id={`button-remove-${member.id}`}
       size="xs"
       disabled={!canRemoveMember || isIdpProvisioned}
-      icon={<IconSubtract isCircled />}
+      icon={<IconSubtract />}
       onClick={onClick}
       aria-label={buttonRemoveText}
       title={buttonHelpText}

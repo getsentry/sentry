@@ -297,8 +297,6 @@ class ActorOwned(Protocol):
 
 
 def parse_and_validate_actor(actor_identifier: str | None, organization_id: int) -> Actor | None:
-    from sentry.models.organizationmember import OrganizationMember
-    from sentry.models.team import Team
 
     if not actor_identifier:
         return None
@@ -309,6 +307,15 @@ def parse_and_validate_actor(actor_identifier: str | None, organization_id: int)
         raise serializers.ValidationError(
             "Could not parse actor. Format should be `type:id` where type is `team` or `user`."
         )
+
+    validate_actor(actor, organization_id)
+    return actor
+
+
+def validate_actor(actor: Actor, organization_id: int) -> None:
+    from sentry.models.organizationmember import OrganizationMember
+    from sentry.models.team import Team
+
     try:
         obj = actor.resolve()
     except Actor.InvalidActor:
@@ -322,5 +329,3 @@ def parse_and_validate_actor(actor_identifier: str | None, organization_id: int)
             organization_id=organization_id, user_id=obj.id
         ).exists():
             raise serializers.ValidationError("User is not a member of this organization")
-
-    return actor

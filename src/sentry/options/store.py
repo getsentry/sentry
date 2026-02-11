@@ -13,6 +13,7 @@ from sentry_sdk.integrations.logging import ignore_logger
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.options.manager import UpdateChannel
+from sentry.utils.types import Type
 
 CACHE_FETCH_ERR = "Unable to fetch option cache for %s"
 CACHE_UPDATE_ERR = "Unable to update option cache for %s"
@@ -37,7 +38,7 @@ class GroupingInfo:
 class Key:
     name: str
     default: Any
-    type: type
+    type: Type[Any]
     flags: int
     ttl: int
     grace: int
@@ -259,12 +260,9 @@ class OptionsStore:
         return self.set_cache(key, value)
 
     def set_store(self, key, value, channel: UpdateChannel):
-        from sentry.db.models.query import create_or_update
-
-        create_or_update(
-            model=self.model,
+        self.model.objects.update_or_create(
             key=key.name,
-            values={
+            defaults={
                 "value": value,
                 "last_updated": timezone.now(),
                 "last_updated_by": channel.value,

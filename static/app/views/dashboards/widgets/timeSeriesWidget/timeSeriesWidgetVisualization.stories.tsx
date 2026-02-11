@@ -1,12 +1,14 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
+import documentation from '!!type-loader!sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import shuffle from 'lodash/shuffle';
 import moment from 'moment-timezone';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import * as Storybook from 'sentry/stories';
 import type {DateString} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
@@ -31,8 +33,6 @@ import {Bars} from './plottables/bars';
 import {Line} from './plottables/line';
 import {Samples} from './plottables/samples';
 import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
-
-import types from '!!type-loader!sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
 const sampleDurationTimeSeriesP50: TimeSeries = {
   ...sampleDurationTimeSeries,
@@ -72,7 +72,7 @@ const releases = [
 ].filter(hasTimestamp);
 
 export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIReference) => {
-  APIReference(types.TimeSeriesWidgetVisualization);
+  APIReference(documentation.props?.TimeSeriesWidgetVisualization);
 
   story('Getting Started', () => {
     return (
@@ -180,13 +180,13 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
           and <code>Bars</code> most of the time. Here's a simple example:
         </p>
 
-        <CodeSnippet language="jsx">
+        <CodeBlock language="jsx">
           {`
 <TimeSeriesWidgetVisualization
   plottables={[new Line(timeSeries)]}
 />
           `}
-        </CodeSnippet>
+        </CodeBlock>
 
         <p>
           <code>Line</code>, <code>Area</code>, and <code>Bars</code> accept a{' '}
@@ -196,7 +196,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
           this format. Here's an example of a <code>TimeSeries</code>:
         </p>
 
-        <CodeSnippet language="json">
+        <CodeBlock language="json">
           {`
 {
   "field": "p99(span.duration)",
@@ -220,14 +220,14 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
   ]
 }
         `}
-        </CodeSnippet>
+        </CodeBlock>
 
         <p>
           The configuration object depends on the plottable. You will find detailed
           documentation for plottable options below.
         </p>
 
-        <CodeSnippet language="jsx">
+        <CodeBlock language="jsx">
           {`
 <TimeSeriesWidgetVisualization
   plottables={[
@@ -236,7 +236,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
   ]}
 />
           `}
-        </CodeSnippet>
+        </CodeBlock>
       </Fragment>
     );
   });
@@ -820,18 +820,18 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
         <Storybook.SideBySide>
           <SmallWidget>
             <TimeSeriesWidgetVisualization
-              plottables={[new Line(timeSeries, {color: theme.error})]}
+              plottables={[new Line(timeSeries, {color: theme.tokens.content.danger})]}
             />
           </SmallWidget>
           <SmallWidget>
             <TimeSeriesWidgetVisualization
-              plottables={[new Area(timeSeries, {color: theme.error})]}
+              plottables={[new Area(timeSeries, {color: theme.tokens.content.danger})]}
             />
           </SmallWidget>
 
           <SmallWidget>
             <TimeSeriesWidgetVisualization
-              plottables={[new Bars(timeSeries, {color: theme.error})]}
+              plottables={[new Bars(timeSeries, {color: theme.tokens.content.danger})]}
             />
           </SmallWidget>
         </Storybook.SideBySide>
@@ -1107,7 +1107,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
         component.
       </p>
 
-      <CodeSnippet language="tsx">
+      <CodeBlock language="tsx">
         {`
 // In the file static/app/views/insights/common/components/widgets/databaseLandingDurationChartWidget.tsx
 export default function DatabaseLandingDurationChartWidget(
@@ -1136,7 +1136,7 @@ export default function DatabaseLandingDurationChartWidget(
   "databaseLandingDurationChartWidget": () => import('sentry/views/insights/common/components/widgets/databaseLandingDurationChartWidget')
 }
 `}
-      </CodeSnippet>
+      </CodeBlock>
 
       <p>
         Please take a look at{' '}
@@ -1216,7 +1216,7 @@ function hasTimestamp(release: Partial<Release>): release is Release {
 }
 
 const NULL_META: TimeSeriesMeta = {
-  valueType: null,
+  valueType: 'number',
   valueUnit: null,
   interval: 0,
 };

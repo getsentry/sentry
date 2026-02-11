@@ -14,7 +14,7 @@ from arroyo.types import Commit, Message, Partition
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 
 from sentry.constants import DataCategory
-from sentry.sentry_metrics.indexer.strings import SPAN_METRICS_NAMES, TRANSACTION_METRICS_NAMES
+from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, SPAN_METRICS_NAMES
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
@@ -40,11 +40,8 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     See https://develop.sentry.dev/application-architecture/dynamic-sampling/outcomes/.
     """
 
-    #: The IDs of the metrics used to count transactions or spans
-    metric_ids = {
-        TRANSACTION_METRICS_NAMES["c:transactions/usage@none"]: DataCategory.TRANSACTION,
-        SPAN_METRICS_NAMES["c:spans/usage@none"]: DataCategory.SPAN,
-    }
+    span_metric_id = SPAN_METRICS_NAMES["c:spans/usage@none"]
+    span_is_segment_tag = str(SHARED_TAG_STRINGS["is_segment"])
 
     def __init__(self, next_step: ProcessingStrategy[Any]) -> None:
         self.__next_step = next_step
@@ -74,10 +71,12 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         return cast(GenericMetric, payload)
 
     def _count_processed_items(self, generic_metric: GenericMetric) -> Mapping[DataCategory, int]:
-        metric_id = generic_metric["metric_id"]
-        try:
-            data_category = self.metric_ids[metric_id]
-        except KeyError:
+        """
+        Solely calculates the outcome counts based on the span usage metric.
+
+        Identifies the transaction count based on the `is_segment` tag on the usage metric.
+        """
+        if generic_metric["metric_id"] != self.span_metric_id:
             return {}
 
         value = generic_metric["value"]
@@ -87,7 +86,9 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             # Unexpected value type for this metric ID, skip.
             return {}
 
-        items = {data_category: quantity}
+        items = {DataCategory.SPAN: quantity}
+        if self.has_is_segment_tag(generic_metric):
+            items[DataCategory.TRANSACTION] = quantity
 
         return items
 
@@ -124,12 +125,8 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             quantity=quantity,
         )
 
-    def _resolve(self, mapping_meta: Mapping[str, Any], indexed_value: int) -> str | None:
-        for _, inner_meta in mapping_meta.items():
-            if (string_value := inner_meta.get(str(indexed_value))) is not None:
-                return string_value
-
-        return None
+    def has_is_segment_tag(self, generic_metric: GenericMetric) -> bool:
+        return generic_metric["tags"].get(self.span_is_segment_tag) == "true"
 
     def join(self, timeout: float | None = None) -> None:
         self.__next_step.join(timeout)

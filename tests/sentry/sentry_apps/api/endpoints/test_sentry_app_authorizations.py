@@ -1,15 +1,19 @@
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
+from uuid import uuid4
 
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.response import Response
 
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.testutils.skips import requires_snuba
+from sentry.utils import jwt
 
 pytestmark = [requires_snuba]
 
@@ -41,7 +45,7 @@ class TestSentryAppAuthorizations(APITestCase):
             prevent_token_exchange=True,
         )
 
-    def get_response(self, *args, **params):
+    def get_response(self, *args: int | str, **params: int | str) -> Response:
         """Overriding `get_response` with some default data."""
         return super().get_response(
             self.install.uuid,
@@ -166,3 +170,194 @@ class TestSentryAppAuthorizations(APITestCase):
             code=None, refresh_token=refresh_token, grant_type="refresh_token", client_id=None
         )
         assert response.status_code == 401
+
+    def _create_jwt(self, client_id: str, client_secret: str, exp: datetime | None = None) -> str:
+        """Helper to create a JWT token for client_secret_jwt grant type"""
+        if exp is None:
+            exp = datetime.now(UTC) + timedelta(hours=1)
+
+        payload = {
+            "iss": client_id,  # Issuer
+            "sub": client_id,  # Subject
+            "iat": int(datetime.now(UTC).timestamp()),  # Issued at
+            "exp": int(exp.timestamp()),  # Expiration
+            "jti": str(uuid4()),  # JWT ID (unique identifier)
+        }
+        return jwt.encode(payload, client_secret, algorithm="HS256")
+
+    @with_feature("organizations:sentry-app-manual-token-refresh")
+    def test_client_secret_jwt_exchange_success(self) -> None:
+        # First exchange the grant for a token
+        self.get_success_response()
+
+        # Now use client_secret_jwt to refresh
+        jwt_token = self._create_jwt(
+            self.sentry_app.application.client_id, self.sentry_app.application.client_secret
+        )
+
+        response = self.get_success_response(
+            self.install.uuid,
+            grant_type=GrantTypes.CLIENT_SECRET_JWT,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {jwt_token}"},
+            status_code=201,
+        )
+
+        assert response.data["scopes"] == self.sentry_app.scope_list
+        assert response.data["token"] is not None
+        assert response.data["refreshToken"] is not None
+        assert response.data["expiresAt"] > timezone.now()
+
+    @with_feature("organizations:sentry-app-manual-token-refresh")
+    def test_client_secret_jwt_deletes_old_token(self) -> None:
+        # First exchange the grant for a token
+        initial_response = self.get_success_response()
+        old_token_id = initial_response.data["id"]
+
+        # Now use client_secret_jwt to refresh
+        jwt_token = self._create_jwt(
+            self.sentry_app.application.client_id, self.sentry_app.application.client_secret
+        )
+
+        response = self.get_success_response(
+            self.install.uuid,
+            grant_type=GrantTypes.CLIENT_SECRET_JWT,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {jwt_token}"},
+            status_code=201,
+        )
+
+        assert not ApiToken.objects.filter(id=old_token_id).exists()
+
+        new_token = ApiToken.objects.filter(token=response.data["token"])
+        assert new_token.exists()
+
+    @with_feature("organizations:sentry-app-manual-token-refresh")
+    def test_client_secret_jwt_missing_authorization_header(self) -> None:
+        # First exchange the grant for a token
+        self.get_success_response()
+
+        response = self.get_error_response(
+            self.install.uuid,
+            grant_type=GrantTypes.CLIENT_SECRET_JWT,
+            status_code=401,
+        )
+
+        assert "Header is in invalid form" in response.data["detail"]
+
+    @with_feature("organizations:sentry-app-manual-token-refresh")
+    def test_client_secret_jwt_expired_token(self) -> None:
+        # First exchange the grant for a token
+        self.get_success_response()
+
+        # Create an expired JWT
+        expired_time = datetime.now(UTC) - timedelta(hours=1)
+        jwt_token = self._create_jwt(
+            self.sentry_app.application.client_id,
+            self.sentry_app.application.client_secret,
+            exp=expired_time,
+        )
+
+        response = self.get_error_response(
+            self.install.uuid,
+            grant_type=GrantTypes.CLIENT_SECRET_JWT,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {jwt_token}"},
+            status_code=401,
+        )
+
+        assert "Could not validate JWT" in response.data["detail"]
+
+    @with_feature("organizations:sentry-app-manual-token-refresh")
+    def test_client_secret_jwt_invalid_signature(self) -> None:
+        # First exchange the grant for a token
+        self.get_success_response()
+
+        # Create a JWT with wrong secret
+        jwt_token = self._create_jwt(self.sentry_app.application.client_id, "wrong-secret")
+
+        response = self.get_error_response(
+            self.install.uuid,
+            grant_type=GrantTypes.CLIENT_SECRET_JWT,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {jwt_token}"},
+            status_code=401,
+        )
+
+        assert "Could not validate JWT" in response.data["detail"]
+
+    @with_feature("organizations:sentry-app-manual-token-refresh")
+    def test_client_secret_jwt_wrong_client_id(self) -> None:
+        # First exchange the grant for a token
+        self.get_success_response()
+
+        jwt_token = self._create_jwt("wrong-client-id", self.sentry_app.application.client_secret)
+
+        response = self.get_error_response(
+            self.install.uuid,
+            grant_type=GrantTypes.CLIENT_SECRET_JWT,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {jwt_token}"},
+            status_code=401,
+        )
+
+        assert "JWT is not valid for this application" in response.data["detail"]
+
+    @with_feature("organizations:sentry-app-manual-token-refresh")
+    def test_client_secret_jwt_requires_existing_token(self) -> None:
+        # CLIENT_SECRET_JWT should only be used to refresh existing tokens
+        # Attempting to use it without first exchanging the grant should fail
+        jwt_token = self._create_jwt(
+            self.sentry_app.application.client_id, self.sentry_app.application.client_secret
+        )
+
+        response = self.get_error_response(
+            self.install.uuid,
+            grant_type=GrantTypes.CLIENT_SECRET_JWT,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {jwt_token}"},
+            status_code=401,
+        )
+
+        # Should fail because there's no existing token to refresh
+        assert response.data["detail"] == "Installation does not have a token"
+
+    def test_client_secret_jwt_requires_feature_flag(self) -> None:
+        self.get_success_response()
+
+        jwt_token = self._create_jwt(
+            self.sentry_app.application.client_id, self.sentry_app.application.client_secret
+        )
+
+        response = self.get_error_response(
+            self.install.uuid,
+            grant_type=GrantTypes.CLIENT_SECRET_JWT,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {jwt_token}"},
+            status_code=403,
+        )
+
+        assert (
+            response.data["detail"] == "Manual token refresh is not enabled for this organization"
+        )
+
+    @with_feature("organizations:sentry-app-manual-token-refresh")
+    def test_client_secret_jwt_request_with_new_token(self) -> None:
+        # First exchange the grant for a token
+        self.get_success_response()
+
+        # Use client_secret_jwt to get a new token
+        jwt_token = self._create_jwt(
+            self.sentry_app.application.client_id, self.sentry_app.application.client_secret
+        )
+
+        response = self.get_success_response(
+            self.install.uuid,
+            grant_type=GrantTypes.CLIENT_SECRET_JWT,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {jwt_token}"},
+            status_code=201,
+        )
+
+        new_token = response.data["token"]
+
+        # Verify the new token works for API requests
+        url = reverse("sentry-api-0-organization-details", args=[self.organization.slug])
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {new_token}")
+
+        assert response.status_code == 200
+        assert response.data["id"] == str(self.organization.id)

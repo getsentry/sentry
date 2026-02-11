@@ -1,20 +1,20 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
+import {Stack} from '@sentry/scraps/layout';
+
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
-import {eapSeriesDataToTimeSeries} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
 type Props = {
   hasWebVitals: boolean;
@@ -25,18 +25,12 @@ const REFERRER = 'eap-sidebar-charts';
 
 export function EAPSidebarCharts({transactionName, hasWebVitals}: Props) {
   return (
-    <ChartContainer>
+    <Stack gap="md">
       {hasWebVitals && <Widget Title={t('Web Vitals')} />}
       <FailureRateWidget transactionName={transactionName} />
-    </ChartContainer>
+    </Stack>
   );
 }
-
-const ChartContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
 
 type FailureRateWidgetProps = {
   transactionName: string;
@@ -51,9 +45,9 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
     data: failureRateSeriesData,
     isPending: isFailureRateSeriesPending,
     isError: isFailureRateSeriesError,
-  } = useSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
-      search: new MutableSearch(`transaction:${transactionName}`),
+      query: new MutableSearch(`transaction:${transactionName}`),
       yAxis: ['failure_rate()'],
     },
     REFERRER
@@ -78,7 +72,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
     }
 
     return (
-      <Tag key="failure-rate-value" type="error">
+      <Tag key="failure-rate-value" variant="danger">
         {formatPercentage(failureRateValue[0]?.['failure_rate()'] ?? 0)}
       </Tag>
     );
@@ -94,8 +88,9 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
     );
   }
 
-  const timeSeries = eapSeriesDataToTimeSeries(failureRateSeriesData);
-  const plottables = timeSeries.map(series => new Line(series, {color: theme.red300}));
+  const plottables = failureRateSeriesData.timeSeries.map(
+    ts => new Line(ts, {color: theme.colors.red400})
+  );
 
   return (
     <Widget
@@ -117,5 +112,5 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
 }
 
 const SideBarWidgetTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

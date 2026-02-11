@@ -16,7 +16,6 @@ class WorkflowFireHistory(DefaultFieldsModel):
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)
     event_id = CharField(max_length=32)
     notification_uuid = UUIDField(auto_add=True, unique=True)
-    is_single_written = models.BooleanField(db_default=False, db_index=True)
 
     class Meta:
         db_table = "workflow_engine_workflowfirehistory"

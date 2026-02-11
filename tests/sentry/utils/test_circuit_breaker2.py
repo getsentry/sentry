@@ -160,7 +160,7 @@ class CircuitBreakerTest(TestCase):
         assert isinstance(breaker.redis_pipeline, Pipeline)
 
     @patch("sentry.utils.circuit_breaker2.logger")
-    def test_fixes_too_loose_recovery_limit(self, mock_logger: MagicMock):
+    def test_fixes_too_loose_recovery_limit(self, mock_logger: MagicMock) -> None:
         config: CircuitBreakerConfig = {
             **DEFAULT_CONFIG,
             "error_limit": 200,
@@ -186,7 +186,7 @@ class CircuitBreakerTest(TestCase):
             assert breaker.recovery_error_limit == 20
 
     @patch("sentry.utils.circuit_breaker2.logger")
-    def test_fixes_mismatched_state_durations(self, mock_logger: MagicMock):
+    def test_fixes_mismatched_state_durations(self, mock_logger: MagicMock) -> None:
         config: CircuitBreakerConfig = {
             **DEFAULT_CONFIG,
             "error_limit_window": 600,
@@ -261,7 +261,7 @@ class RecordErrorTest(TestCase):
         )
 
     @patch("sentry.utils.circuit_breaker2.logger")
-    def test_logs_a_warning_in_broken_state(self, mock_logger: MagicMock):
+    def test_logs_a_warning_in_broken_state(self, mock_logger: MagicMock) -> None:
         breaker = self.breaker
 
         seconds_ellapsed_since_circuit_break = 2
@@ -433,7 +433,7 @@ class ShouldAllowRequestTest(TestCase):
             mock_metrics_incr.reset_mock()
 
     @patch("sentry.utils.circuit_breaker2.metrics.incr")
-    def test_blocks_request_in_BROKEN_state(self, mock_metrics_incr: MagicMock):
+    def test_blocks_request_in_BROKEN_state(self, mock_metrics_incr: MagicMock) -> None:
         breaker = self.breaker
 
         breaker._set_breaker_state(CircuitBreakerState.BROKEN)
@@ -444,7 +444,7 @@ class ShouldAllowRequestTest(TestCase):
         )
 
     @patch("sentry.utils.circuit_breaker2.logger")
-    def test_allows_request_if_redis_call_fails(self, mock_logger: MagicMock):
+    def test_allows_request_if_redis_call_fails(self, mock_logger: MagicMock) -> None:
         breaker = self.breaker
 
         with patch(

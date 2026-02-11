@@ -1,7 +1,8 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -15,7 +16,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -38,7 +39,7 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
   const location = useLocation();
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const eventQuery = useEventQuery({groupId: group.id});
+  const eventQuery = useEventQuery();
   const eventView = useIssueDetailsEventView({group});
   const navigate = useNavigate();
   const [previouslyUsedAttachmentsTab, setPreviouslyUsedAttachmentsTab] =
@@ -151,7 +152,7 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
   };
 
   return (
-    <Wrapper>
+    <Stack gap="xl">
       {hasStreamlinedUI ? (
         <Flex justify="between">
           <Flex align="center" gap="md">
@@ -169,7 +170,7 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
         ? renderScreenshotGallery()
         : renderAttachmentsTable()}
       <NoMarginPagination pageLinks={getResponseHeader?.('Link')} />
-    </Wrapper>
+    </Stack>
   );
 }
 
@@ -196,10 +197,4 @@ const ScreenshotGrid = styled('div')`
 
 const NoMarginPagination = styled(Pagination)`
   margin: 0;
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
 `;

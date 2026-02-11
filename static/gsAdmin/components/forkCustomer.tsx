@@ -53,7 +53,7 @@ class ForkCustomerAction extends Component<Props> {
 
       browserHistory.push(`/_admin/relocations/${region?.name}/${response.uuid}/`);
       this.props.onConfirm?.({regionUrl, ...params});
-    } catch (error) {
+    } catch (error: any) {
       if (error.responseJSON) {
         this.props.onConfirm?.({error});
       }
@@ -68,10 +68,8 @@ class ForkCustomerAction extends Component<Props> {
       <Fragment>
         <SelectField
           name="regionUrl"
-          label={'Duplicate into Region'}
-          help={
-            "Choose which region to duplicate this organization's low volume metadata into. This will kick off a SAAS->SAAS relocation job, but the source organization will not be affected."
-          }
+          label="Duplicate into Region"
+          help="Choose which region to duplicate this organization's low volume metadata into. This will kick off a SAAS->SAAS relocation job, but the source organization will not be affected."
           choices={regionChoices}
           inline={false}
           stacked

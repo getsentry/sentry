@@ -1,8 +1,9 @@
 import {useMemo, useState} from 'react';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {addRepository, migrateRepository} from 'sentry/actionCreators/integrations';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {t} from 'sentry/locale';
 import RepositoryStore from 'sentry/stores/repositoryStore';
@@ -11,6 +12,7 @@ import type {
   IntegrationRepository,
   Repository,
 } from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -43,14 +45,17 @@ export function IntegrationReposAddRepository({
 
   const query = useQuery({
     queryKey: [
-      `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
-      {method: 'GET', query: {search: debouncedSearch}},
+      getApiUrl(
+        `/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/`,
+        {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
+      ),
+      {method: 'GET', query: {search: debouncedSearch, installableOnly: false}},
     ] as const,
     queryFn: async context => {
       try {
         onSearchError(null);
         return await fetchDataQuery<IntegrationRepoSearchResult>(context);
-      } catch (error) {
+      } catch (error: any) {
         onSearchError(error?.status);
         throw error;
       }
@@ -83,28 +88,22 @@ export function IntegrationReposAddRepository({
     try {
       const repo = await promise;
       onAddRepository(repo);
-      addSuccessMessage(t('Repository added'));
       RepositoryStore.resetRepositories();
-    } catch (error) {
-      addErrorMessage(t('Unable to add repository.'));
+    } catch {
+      // Error feedback is handled by addRepository/migrateRepository
     } finally {
       setAdding(false);
     }
   };
 
   const dropdownItems = useMemo(() => {
-    const repositories = new Set(
-      currentRepositories.filter(item => item.integrationId).map(i => i.externalSlug)
-    );
-    const repositoryOptions = searchResult.repos.filter(
-      repo => !repositories.has(repo.identifier)
-    );
-    return repositoryOptions.map(repo => ({
+    return searchResult.repos.map(repo => ({
       value: repo.identifier,
-      label: repo.name,
+      label: repo.isInstalled ? `${repo.name} (Already Added)` : repo.name,
       textValue: repo.name,
+      disabled: repo.isInstalled,
     }));
-  }, [currentRepositories, searchResult]);
+  }, [searchResult]);
 
   if (
     !['github', 'gitlab'].includes(integration.provider.key) &&
@@ -131,8 +130,8 @@ export function IntegrationReposAddRepository({
       options={dropdownItems}
       onChange={addRepo}
       disabled={false}
+      value={undefined}
       menuTitle={t('Repositories')}
-      triggerLabel={t('Add Repository')}
       emptyMessage={
         query.isFetching
           ? t('Searching\u2026')
@@ -146,9 +145,11 @@ export function IntegrationReposAddRepository({
       loading={query.isFetching}
       searchable
       onSearch={setSearch}
-      triggerProps={{
-        busy: adding,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} busy={adding}>
+          {t('Add Repository')}
+        </OverlayTrigger.Button>
+      )}
       disableSearchFilter
     />
   );

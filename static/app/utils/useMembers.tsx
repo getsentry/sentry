@@ -209,70 +209,67 @@ export function useMembers({ids, emails, limit}: Options = {}) {
     fetchError: null,
   });
 
-  const loadMembersByQuery = useCallback(
-    async function () {
-      if (orgId === undefined) {
-        return;
+  const loadMembersByQuery = useCallback(async () => {
+    if (orgId === undefined) {
+      return;
+    }
+
+    setState(prev => ({...prev, fetching: true}));
+    try {
+      const {results, hasMore, nextCursor} = await fetchMembers(api, orgId, {
+        ids: idsToLoad,
+        emails: emailsToLoad,
+        limit,
+      });
+
+      const memberUsers = results
+        .map(m => m.user)
+        .filter((user): user is User => user !== null);
+
+      // Unique by `id` to avoid duplicates due to renames and state store data
+      const fetchedMembers = uniqBy<User>(
+        [...memberUsers, ...store.members],
+        ({id}) => id
+      );
+
+      // Track member identifiers we couldn't load to exclude them from future requests
+      const failedIds = idsToLoad.filter(
+        id => !results.some(member => member.user?.id === id)
+      );
+      if (failedIds.length > 0) {
+        setIdsFailedToLoad(prev => new Set([...prev, ...failedIds]));
       }
 
-      setState(prev => ({...prev, fetching: true}));
-      try {
-        const {results, hasMore, nextCursor} = await fetchMembers(api, orgId, {
-          ids: idsToLoad,
-          emails: emailsToLoad,
-          limit,
-        });
-
-        const memberUsers = results
-          .map(m => m.user)
-          .filter((user): user is User => user !== null);
-
-        // Unique by `id` to avoid duplicates due to renames and state store data
-        const fetchedMembers = uniqBy<User>(
-          [...memberUsers, ...store.members],
-          ({id}) => id
-        );
-
-        // Track member identifiers we couldn't load to exclude them from future requests
-        const failedIds = idsToLoad.filter(
-          id => !results.some(member => member.user?.id === id)
-        );
-        if (failedIds.length > 0) {
-          setIdsFailedToLoad(prev => new Set([...prev, ...failedIds]));
-        }
-
-        const failedEmails = emailsToLoad.filter(
-          email => !results.some(member => member.user?.email === email)
-        );
-        if (failedEmails.length > 0) {
-          setEmailsFailedToLoad(prev => new Set([...prev, ...failedEmails]));
-        }
-
-        MemberListStore.loadInitialData(fetchedMembers);
-
-        setState(prev => ({
-          ...prev,
-          hasMore,
-          fetching: false,
-          initiallyLoaded: true,
-          nextCursor,
-        }));
-      } catch (err) {
-        console.error(err); // eslint-disable-line no-console
-
-        setState(prev => ({
-          ...prev,
-          fetching: false,
-          initiallyLoaded: true,
-          fetchError: err,
-        }));
+      const failedEmails = emailsToLoad.filter(
+        email => !results.some(member => member.user?.email === email)
+      );
+      if (failedEmails.length > 0) {
+        setEmailsFailedToLoad(prev => new Set([...prev, ...failedEmails]));
       }
-    },
-    [api, emailsToLoad, idsToLoad, limit, orgId, store.members]
-  );
+
+      MemberListStore.loadInitialData(fetchedMembers);
+
+      setState(prev => ({
+        ...prev,
+        hasMore,
+        fetching: false,
+        initiallyLoaded: true,
+        nextCursor,
+      }));
+    } catch (err) {
+      console.error(err); // eslint-disable-line no-console
+
+      setState(prev => ({
+        ...prev,
+        fetching: false,
+        initiallyLoaded: true,
+        fetchError: err as RequestError,
+      }));
+    }
+  }, [api, emailsToLoad, idsToLoad, limit, orgId, store.members]);
 
   const handleFetchAdditionalMembers = useCallback(
-    async function (search?: string) {
+    async (search?: string) => {
       const lastSearch = state.lastSearch;
       // Use the store cursor if there is no search keyword provided
       const cursor = search ? state.nextCursor : store.cursor;
@@ -324,7 +321,7 @@ export function useMembers({ids, emails, limit}: Options = {}) {
       } catch (err) {
         console.error(err); // eslint-disable-line no-console
 
-        setState(prev => ({...prev, fetching: false, fetchError: err}));
+        setState(prev => ({...prev, fetching: false, fetchError: err as RequestError}));
       }
     },
     [
@@ -340,7 +337,7 @@ export function useMembers({ids, emails, limit}: Options = {}) {
   );
 
   const handleSearch = useCallback(
-    function (search: string) {
+    (search: string) => {
       if (search !== '') {
         return handleFetchAdditionalMembers(search);
       }

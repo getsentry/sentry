@@ -2,12 +2,12 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import difference from 'lodash/difference';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
+
 import {openProjectCreationModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Select} from 'sentry/components/core/select';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
@@ -131,7 +131,7 @@ export class RenderField extends Component<RenderProps, State> {
     }));
 
     const projectOptions = [
-      {label: t('Create a Project'), value: -1, leadingItems: <IconAdd isCircled />},
+      {label: t('Create a Project'), value: -1, leadingItems: <IconAdd />},
       ...sentryProjectOptions,
     ];
 
@@ -186,7 +186,9 @@ export class RenderField extends Component<RenderProps, State> {
           <MappedItemValue>
             {mappedItem ? (
               <Fragment>
-                <IntegrationIconWrapper>{getIcon(iconType)}</IntegrationIconWrapper>
+                <Flex as="span" align="center">
+                  {getIcon(iconType)}
+                </Flex>
                 {mappedItem.label}
                 <StyledExternalLink href={mappedItem.url}>
                   <IconOpen size="xs" />
@@ -197,7 +199,7 @@ export class RenderField extends Component<RenderProps, State> {
             )}
           </MappedItemValue>
           <RightArrow size="xs" direction="right" />
-          <MappedProjectWrapper>
+          <Flex justify="between" align="center" marginRight="md" area="sentry-project">
             {project ? (
               <IdBadge
                 project={project}
@@ -208,11 +210,11 @@ export class RenderField extends Component<RenderProps, State> {
             ) : (
               t('Deleted')
             )}
-          </MappedProjectWrapper>
+          </Flex>
           <Container area="manage-project">
             <Button
               onClick={() => handleDelete(index)}
-              icon={<IconDelete color="gray300" />}
+              icon={<IconDelete variant="muted" />}
               size="sm"
               aria-label={t('Delete')}
             />
@@ -233,10 +235,10 @@ export class RenderField extends Component<RenderProps, State> {
               SingleValue: (containerProps: any) => {
                 return (
                   <components.ValueContainer {...containerProps}>
-                    <MappedValueContainer>
+                    <Flex gap="md">
                       {containerProps.data.leadingItems}
                       {containerProps.children}
-                    </MappedValueContainer>
+                    </Flex>
                   </components.ValueContainer>
                 );
               },
@@ -278,7 +280,7 @@ export class RenderField extends Component<RenderProps, State> {
           </FieldControlWrapper>
         </Item>
         {nextUrl && (
-          <NextButtonPanelAlert type="muted">
+          <NextButtonPanelAlert variant="muted">
             <NextButtonWrapper>
               {nextDescription ?? ''}
               <LinkButton
@@ -318,20 +320,12 @@ function ProjectMapperField(props: InputFieldProps) {
 
 export default ProjectMapperField;
 
-const MappedProjectWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-right: ${space(1)};
-  grid-area: sentry-project;
-`;
-
 const Item = styled('div')`
   min-height: 60px;
   padding: ${space(2)};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
   display: grid;
@@ -355,11 +349,6 @@ const RightArrow = styled(IconArrow)`
   grid-area: arrow;
 `;
 
-const IntegrationIconWrapper = styled('span')`
-  display: flex;
-  align-items: center;
-`;
-
 const StyledFormField = styled(FormField)`
   padding: 0;
 `;
@@ -376,8 +365,8 @@ const FieldControlWrapper = styled('div')`
 const NextButtonPanelAlert = styled(PanelAlert)`
   align-items: center;
   margin-bottom: -1px;
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  border-bottom-left-radius: ${p => p.theme.radius.md};
+  border-bottom-right-radius: ${p => p.theme.radius.md};
 `;
 
 const NextButtonWrapper = styled('div')`
@@ -385,9 +374,4 @@ const NextButtonWrapper = styled('div')`
   grid-template-columns: 1fr max-content;
   gap: ${space(1)};
   align-items: center;
-`;
-
-const MappedValueContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
 `;

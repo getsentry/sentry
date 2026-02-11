@@ -3,12 +3,14 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import {LinkButton} from '@sentry/scraps/button';
+
 import type {RenderProps} from 'sentry/components/charts/eventsRequest';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
@@ -24,7 +26,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
@@ -59,7 +60,7 @@ import {
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets/settings';
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
-import {RightAlignedCell} from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
+import {RightAlignedCell} from 'sentry/views/replays/selectors/deadRageSelectorCards';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -104,15 +105,11 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
   const theme = useTheme();
   const pageFilter = usePageFilters();
   const mepSetting = useMEPSettingContext();
-  const {
-    isLoading: isLoadingReleases,
-    primaryRelease,
-    secondaryRelease,
-  } = useReleaseSelection();
+  const {isLoading: isLoadingReleases, primaryRelease} = useReleaseSelection();
   const location = useLocation();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {InteractiveTitle} = props;
-  const {setPageError} = usePageAlert();
+  const {setPageDanger} = usePageAlert();
   const dataset = DiscoverDatasets.SPANS;
 
   const queryParams: Record<string, string> = {...EAP_QUERY_PARAMS};
@@ -124,7 +121,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
     () => ({
       fields: field,
       component: provided => {
-        if (isLoadingReleases || (!primaryRelease && !secondaryRelease)) {
+        if (isLoadingReleases || !primaryRelease) {
           return null;
         }
 
@@ -159,11 +156,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
         // Update query
         const mutableSearch = new MutableSearch(eventView.query);
         mutableSearch.addFilterValue(segmentOp, 'ui.load');
-        eventView.query = appendReleaseFilters(
-          mutableSearch,
-          primaryRelease,
-          secondaryRelease
-        );
+        eventView.query = appendReleaseFilters(mutableSearch, primaryRelease);
 
         return (
           <DiscoverQuery
@@ -180,7 +173,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
       transform: transformDiscoverToList,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [props.chartSetting, mepSetting.memoizationKey, primaryRelease, secondaryRelease]
+    [props.chartSetting, mepSetting.memoizationKey, primaryRelease]
   );
 
   const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
@@ -223,11 +216,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
           eventView.fields = [{field}, {field: 'release'}];
           const mutableSearch = new MutableSearch(eventView.query);
           mutableSearch.addFilterValue(segmentOp, 'ui.load');
-          eventView.query = appendReleaseFilters(
-            mutableSearch,
-            primaryRelease,
-            secondaryRelease
-          );
+          eventView.query = appendReleaseFilters(mutableSearch, primaryRelease);
           eventView.interval = getInterval(
             pageFilter.selection.datetime,
             STARFISH_CHART_INTERVAL_FIDELITY
@@ -246,7 +235,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
               query={eventView.getQueryWithAdditionalConditions()}
               interval={interval}
               hideError
-              onError={setPageError}
+              onError={setPageDanger}
               queryExtras={extraQueryParams}
               topEvents={2}
               referrer="performance-line-chart-widget"
@@ -257,13 +246,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
       };
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      props.chartSetting,
-      selectedListIndex,
-      mepSetting.memoizationKey,
-      primaryRelease,
-      secondaryRelease,
-    ]
+    [props.chartSetting, selectedListIndex, mepSetting.memoizationKey, primaryRelease]
   );
 
   const Queries = {
@@ -355,7 +338,6 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
                 project: listItem['project.id'],
                 transaction,
                 primaryRelease,
-                secondaryRelease,
                 ...normalizeDateTimeParams(location.query),
                 ...targetQueryParams,
               },
@@ -404,7 +386,6 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
               ...normalizeDateTimeParams(pageFilter),
               ...targetQueryParams,
               primaryRelease,
-              secondaryRelease,
             },
           })}
           size="sm"

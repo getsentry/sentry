@@ -1,33 +1,23 @@
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import type {Monitor} from 'sentry/views/insights/crons/types';
+import type {Project} from 'sentry/types/project';
 
 import MonitorQuickStartGuide from './monitorQuickStartGuide';
 
 interface Props {
-  monitor: Monitor;
+  monitorSlug: string;
+  project: Project;
 }
 
-export function MonitorOnboarding({monitor}: Props) {
+export function MonitorOnboarding({monitorSlug, project}: Props) {
   return (
     <OnboardingPanel noCenter>
       <h3>{t('Instrument your monitor')}</h3>
-      <p>
-        {tct(
-          'Select an integration method for your new monitor. For in-depth instructions on integrating Crons, view [docsLink:our complete documentation].',
-          {
-            docsLink: (
-              <ExternalLink href="https://docs.sentry.io/product/crons/getting-started/" />
-            ),
-          }
-        )}
-      </p>
-      <MonitorQuickStartGuide monitor={monitor} />
+      <MonitorQuickStartGuide monitorSlug={monitorSlug} project={project} />
       <WaitingNotice>
         <WaitingIndicator />
         {t('Waiting for first Check-in')}
@@ -47,13 +37,13 @@ const WaitingNotice = styled('div')`
   align-items: center;
   gap: ${space(0.25)} ${space(0.5)};
   margin-top: ${space(2)};
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.colors.pink500};
 `;
 
 const WaitingHelpText = styled('small')`
   grid-column: 2;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const WaitingIndicator = styled('div')`

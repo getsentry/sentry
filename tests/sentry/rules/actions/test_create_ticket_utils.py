@@ -16,7 +16,7 @@ class CreateTicketUtilsTest(TestCase):
         installation = MagicMock()
         installation.get_group_description.return_value = "Test description"
 
-        def generate_footer(url):
+        def generate_footer(url) -> str:
             return f"\n\nThis issue was created by a rule: {url}"
 
         description = build_description(self.event, self.rule.id, installation, generate_footer)
@@ -31,14 +31,14 @@ class CreateTicketUtilsTest(TestCase):
         installation.get_group_description.return_value = "Test description"
         workflow_id = 123
 
-        def generate_footer(url):
+        def generate_footer(url) -> str:
             return f"\n\nThis issue was created by a workflow: {url}"
 
         description = build_description_workflow_engine_ui(
             self.event, workflow_id, installation, generate_footer
         )
 
-        expected_url = f"/organizations/{self.organization.id}/issues/automations/{workflow_id}/"
+        expected_url = f"/organizations/{self.organization.slug}/monitors/alerts/{workflow_id}/"
         assert (
             description
             == f"Test description\n\nThis issue was created by a workflow: {expected_url}"

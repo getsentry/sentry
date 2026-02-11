@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
@@ -64,20 +64,20 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
         expected = [
             {
                 "error.type": [],
-                "error.value": [],
                 "id": event_id_a,
                 "issue.id": event_a.group.id,
                 "issue": event_a.group.qualified_short_id,
+                "level": "error",
                 "project.name": self.project_1.slug,
                 "timestamp": min_ago_ms.isoformat(),
                 "title": "<unlabeled event>",
             },
             {
                 "error.type": [],
-                "error.value": [],
                 "id": event_id_b,
                 "issue.id": event_b.group.id,
                 "issue": event_b.group.qualified_short_id,
+                "level": "error",
                 "project.name": self.project_2.slug,
                 "timestamp": min_ago_ms.isoformat(),
                 "title": "<unlabeled event>",
@@ -90,6 +90,8 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
     def test_rage_clicks(self) -> None:
         event_id_a = "a" * 32
 
+        min_ago_ms = self.min_ago + timedelta(milliseconds=123)
+
         _, group_info = self.process_occurrence(
             **{
                 "project_id": self.project.id,
@@ -97,13 +99,13 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
                 "fingerprint": ["c" * 32],
                 "issue_title": "Rage Click",
                 "type": ReplayRageClickType.type_id,
-                "detection_time": datetime.now().timestamp(),
+                "detection_time": min_ago_ms.timestamp(),
                 "level": "info",
             },
             event_data={
                 "platform": "javascript",
-                "timestamp": self.min_ago.isoformat(),
-                "received": self.min_ago.isoformat(),
+                "timestamp": min_ago_ms.isoformat(),
+                "received": min_ago_ms.isoformat(),
             },
         )
 
@@ -115,12 +117,12 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
         expected = [
             {
                 "error.type": "",
-                "error.value": "",
                 "id": event_id_a,
                 "issue.id": group_info.group.id,
                 "issue": group_info.group.qualified_short_id,
+                "level": "error",
                 "project.name": self.project.slug,
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": min_ago_ms.isoformat(),
                 "title": "Rage Click",
             }
         ]

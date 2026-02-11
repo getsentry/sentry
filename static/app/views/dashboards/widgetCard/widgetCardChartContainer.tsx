@@ -1,45 +1,36 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
-import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
   EChartEventHandler,
+  EChartLegendSelectChangeHandler,
   Series,
 } from 'sentry/types/echarts';
-import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
-import {useLocation} from 'sentry/utils/useLocation';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {usesTimeSeriesData, widgetFetchesOwnData} from 'sentry/views/dashboards/utils';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
 import WidgetCardChart from './chart';
-import {IssueWidgetCard} from './issueWidgetCard';
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
 type Props = {
   api: Client;
-  location: Location;
-  organization: Organization;
   selection: PageFilters;
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
   dashboardFilters?: DashboardFilters;
+  disableTableActions?: boolean;
   disableZoom?: boolean;
-  expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: number;
@@ -70,7 +61,6 @@ type Props = {
 };
 
 export function WidgetCardChartContainer({
-  organization,
   selection,
   widget,
   dashboardFilters,
@@ -81,7 +71,6 @@ export function WidgetCardChartContainer({
   onZoom,
   onLegendSelectChanged,
   legendOptions,
-  expandNumbers,
   onDataFetched,
   noPadding,
   onWidgetSplitDecision,
@@ -95,18 +84,11 @@ export function WidgetCardChartContainer({
   showLoadingText,
   onWidgetTableSort,
   onWidgetTableResizeColumn,
+  disableTableActions,
 }: Props) {
-  const location = useLocation();
-  const theme = useTheme();
-
-  function keepLegendState({
-    selected,
-  }: {
-    selected: Record<string, boolean>;
-    type: 'legendselectchanged';
-  }) {
+  const keepLegendState: EChartLegendSelectChangeHandler = ({selected}) => {
     widgetLegendState.setWidgetSelectionState(selected, widget);
-  }
+  };
 
   function getErrorOrEmptyMessage(
     errorMessage: string | undefined,
@@ -115,10 +97,10 @@ export function WidgetCardChartContainer({
     widgetType: DisplayType
   ) {
     // non-chart widgets need to look at tableResults
-    const results =
-      widgetType === DisplayType.BIG_NUMBER || widgetType === DisplayType.TABLE
-        ? tableResults
-        : timeseriesResults;
+    const results = usesTimeSeriesData(widgetType) ? timeseriesResults : tableResults;
+    if (widgetFetchesOwnData(widgetType)) {
+      return undefined;
+    }
 
     return errorMessage
       ? errorMessage
@@ -130,8 +112,8 @@ export function WidgetCardChartContainer({
   return (
     <WidgetCardDataLoader
       widget={widget}
-      dashboardFilters={dashboardFilters}
       selection={selection}
+      dashboardFilters={dashboardFilters}
       onDataFetched={onDataFetched}
       onWidgetSplitDecision={onWidgetSplitDecision}
       onDataFetchStart={onDataFetchStart}
@@ -143,6 +125,7 @@ export function WidgetCardChartContainer({
         errorMessage,
         loading,
         timeseriesResultsTypes,
+        timeseriesResultsUnits,
         confidence,
         sampleCount,
         isSampled,
@@ -160,28 +143,6 @@ export function WidgetCardChartContainer({
               widget.displayType
             );
 
-        if (widget.widgetType === WidgetType.ISSUE) {
-          return (
-            <Fragment>
-              {typeof renderErrorMessage === 'function'
-                ? renderErrorMessage(errorOrEmptyMessage)
-                : null}
-              <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
-              <IssueWidgetCard
-                tableResults={tableResults}
-                loading={loading}
-                errorMessage={errorOrEmptyMessage}
-                widget={widget}
-                location={location}
-                selection={selection}
-                theme={theme}
-                organization={organization}
-                onWidgetTableResizeColumn={onWidgetTableResizeColumn}
-              />
-            </Fragment>
-          );
-        }
-
         return (
           <Fragment>
             {typeof renderErrorMessage === 'function'
@@ -193,15 +154,13 @@ export function WidgetCardChartContainer({
               tableResults={tableResults}
               errorMessage={errorOrEmptyMessage}
               loading={loading}
-              location={location}
               widget={widget}
               selection={selection}
-              organization={organization}
               isMobile={isMobile}
               windowWidth={windowWidth}
-              expandNumbers={expandNumbers}
               onZoom={onZoom}
               timeseriesResultsTypes={timeseriesResultsTypes}
+              timeseriesResultsUnits={timeseriesResultsUnits}
               noPadding={noPadding}
               chartGroup={chartGroup}
               shouldResize={shouldResize}
@@ -220,42 +179,14 @@ export function WidgetCardChartContainer({
               minTableColumnWidth={minTableColumnWidth}
               isSampled={isSampled}
               showLoadingText={showLoadingText}
-              theme={theme}
               onWidgetTableSort={onWidgetTableSort}
               onWidgetTableResizeColumn={onWidgetTableResizeColumn}
+              disableTableActions={disableTableActions}
+              dashboardFilters={dashboardFilters}
             />
           </Fragment>
         );
       }}
     </WidgetCardDataLoader>
-  );
-}
-
-const StyledTransparentLoadingMask = styled((props: any) => (
-  <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
-))`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-  justify-content: center;
-  align-items: center;
-  pointer-events: none;
-`;
-
-function LoadingScreen({
-  loading,
-  showLoadingText,
-}: {
-  loading: boolean;
-  showLoadingText?: boolean;
-}) {
-  if (!loading) {
-    return null;
-  }
-  return (
-    <StyledTransparentLoadingMask visible={loading}>
-      <LoadingIndicator mini />
-      {showLoadingText && <p>{t('Turning data into pixels - almost ready')}</p>}
-    </StyledTransparentLoadingMask>
   );
 }

@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
@@ -15,24 +14,24 @@ jest.mock('sentry/constants', () => {
   return {
     ...sentryConstant,
 
-    get usingCustomerDomain() {
+    get USING_CUSTOMER_DOMAIN() {
       return mockUsingCustomerDomain();
     },
 
-    get customerDomain() {
+    get CUSTOMER_DOMAIN() {
       return mockCustomerDomain();
     },
   };
 });
 
-describe('withSentryRouter', function () {
+describe('withSentryRouter', () => {
   type Props = WithRouterProps<{orgId: string}>;
   function MyComponent(props: Props) {
     const {params} = props;
     return <div>Org slug: {params.orgId ?? 'no org slug'}</div>;
   }
 
-  it('injects orgId when a customer domain is being used', function () {
+  it('injects orgId when a customer domain is being used', () => {
     mockUsingCustomerDomain.mockReturnValue(true);
     mockCustomerDomain.mockReturnValue('albertos-apples');
 
@@ -41,20 +40,20 @@ describe('withSentryRouter', function () {
       features: [],
     });
 
-    const {router} = initializeOrg({
-      organization,
-    });
-
     const WrappedComponent = withSentryRouter(MyComponent);
     render(<WrappedComponent />, {
-      router,
-      deprecatedRouterMocks: true,
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/issues/',
+        },
+      },
     });
 
     expect(screen.getByText('Org slug: albertos-apples')).toBeInTheDocument();
   });
 
-  it('does not inject orgId when a customer domain is not being used', function () {
+  it('does not inject orgId when a customer domain is not being used', () => {
     mockUsingCustomerDomain.mockReturnValue(false);
     mockCustomerDomain.mockReturnValue(undefined);
 
@@ -63,20 +62,15 @@ describe('withSentryRouter', function () {
       features: [],
     });
 
-    const params = {
-      orgId: 'something-else',
-    };
-    const {router} = initializeOrg({
-      organization,
-      router: {
-        params,
-      },
-    });
-
     const WrappedComponent = withSentryRouter(MyComponent);
     render(<WrappedComponent />, {
-      router,
-      deprecatedRouterMocks: true,
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/something-else/issues/',
+        },
+        route: '/organizations/:orgId/issues/',
+      },
     });
 
     expect(screen.getByText('Org slug: something-else')).toBeInTheDocument();

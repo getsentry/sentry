@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {tct} from 'sentry/locale';
 import {InsightsAreaChartWidget} from 'sentry/views/insights/common/components/insightsAreaChartWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
@@ -16,6 +17,7 @@ export default function SessionHealthRateChartWidget(props: LoadableChartWidgetP
   const aliases = {
     healthy_session_rate: 'rate_healthy(session)',
     crashed_session_rate: 'rate_crashed(session)',
+    unhandled_session_rate: 'rate_unhandled(session)',
     errored_session_rate: 'rate_errored(session)',
     abnormal_session_rate: 'rate_abnormal(session)',
   };

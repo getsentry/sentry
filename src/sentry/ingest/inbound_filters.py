@@ -51,6 +51,8 @@ FILTER_STAT_KEYS_TO_VALUES = {
 class FilterTypes:
     ERROR_MESSAGES = "error_messages"
     RELEASES = "releases"
+    LOG_MESSAGES = "log_messages"
+    TRACE_METRIC_NAMES = "trace_metric_names"
 
 
 def get_filter_key(flt):
@@ -77,7 +79,7 @@ def get_all_filter_specs():
     return tuple(filters)  # returning tuple for backwards compatibility
 
 
-def set_filter_state(filter_id, project, state):
+def set_filter_state(filter_id, project: Project, state):
     flt = _filter_from_filter_id(filter_id)
     if flt is None:
         raise FilterNotRegistered(filter_id)
@@ -231,11 +233,11 @@ class _LegacyBrowserFilterSerializer(_FilterSerializer):
 Specifies which legacy browser filters should be active. Anything excluded from the list will be
 disabled. The options are:
 - `ie` - Internet Explorer Version 11 and lower
-- `edge` - Edge Version 18 and lower
-- `safari` - Safari Version 11 and lower
-- `firefox` - Firefox Version 66 and lower
-- `chrome` - Chrome Version 62 and lower
-- `opera` - Opera Version 50 and lower
+- `edge` - Edge Version 110 and lower
+- `safari` - Safari Version 15 and lower
+- `firefox` - Firefox Version 110 and lower
+- `chrome` - Chrome Version 110 and lower
+- `opera` - Opera Version 99 and lower
 - `android` - Android Version 3 and lower
 - `opera_mini` - Opera Mini Version 34 and lower
 
@@ -345,8 +347,13 @@ def _chunk_load_error_filter() -> RuleCondition:
     https://domain.com/_next/static/chunks/29107295-0151559bd23117ba.js)
     """
     values = [
+        # Webpack
         ("ChunkLoadError", "Loading chunk *"),
         ("*Uncaught *", "ChunkLoadError: Loading chunk *"),
+        # Turbopack
+        ("ChunkLoadError", "Failed to load chunk *"),
+        ("*Uncaught *", "ChunkLoadError: Failed to load chunk *"),
+        # Promise rejections
         ("Error", "Uncaught (in promise): ChunkLoadError*"),
     ]
 
@@ -361,14 +368,16 @@ def _hydration_error_filter() -> RuleCondition:
     418 - Hydration failed because the initial UI does not match what was rendered on the server.
     419 - The server could not finish this Suspense boundary, likely due to an error during server rendering.
         Switched to client rendering.
+    421 - This Suspense boundary received an update before it finished hydrating. This caused the boundary to switch to client rendering.
+        The usual way to fix this is to wrap the original update in startTransition.
     422 - There was an error while hydrating this Suspense boundary. Switched to client rendering.
     423 - There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire
         root will switch to client rendering.
     425 - Text content does not match server-rendered HTML.
     """
     values = [
-        (None, "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*"),
-        (None, "*https://react.dev/errors/{418,419,422,423,425}*"),
+        (None, "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,421,422,423,425}*"),
+        (None, "*https://react.dev/errors/{418,419,421,422,423,425}*"),
     ]
 
     return _error_message_condition(values)
@@ -381,7 +390,9 @@ ACTIVE_GENERIC_FILTERS: Sequence[tuple[str, Callable[[], RuleCondition]]] = [
 ]
 
 
-def get_generic_filters(project: Project) -> GenericFiltersConfig | None:
+def get_generic_filters(
+    project: Project, base_generic_filters: list[GenericFilter] | None = None
+) -> GenericFiltersConfig | None:
     """
     Computes the generic inbound filters configuration for inbound filters.
 
@@ -390,6 +401,8 @@ def get_generic_filters(project: Project) -> GenericFiltersConfig | None:
     hardcoded set of rules, specific to each type.
     """
     generic_filters: list[GenericFilter] = []
+    if base_generic_filters:
+        generic_filters.extend(base_generic_filters)
 
     for generic_filter_id, generic_filter_fn in ACTIVE_GENERIC_FILTERS:
         # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
@@ -414,4 +427,34 @@ def get_generic_filters(project: Project) -> GenericFiltersConfig | None:
     return {
         "version": GENERIC_FILTERS_VERSION,
         "filters": generic_filters,
+    }
+
+
+def get_log_messages_generic_filter(log_messages: list[str]) -> GenericFilter | None:
+    if not log_messages:
+        return None
+
+    return {
+        "id": "log-message",
+        "isEnabled": True,
+        "condition": {
+            "op": "glob",
+            "name": "log.body",
+            "value": log_messages,
+        },
+    }
+
+
+def get_trace_metric_names_generic_filter(trace_metric_names: list[str]) -> GenericFilter | None:
+    if not trace_metric_names:
+        return None
+
+    return {
+        "id": "trace-metric-name",
+        "isEnabled": True,
+        "condition": {
+            "op": "glob",
+            "name": "trace_metric.name",
+            "value": trace_metric_names,
+        },
     }

@@ -172,8 +172,16 @@ const makeEventWithThreads = (threads: Thread[]): Event => {
   return event;
 };
 
-describe('anrRootCause', function () {
-  it('displays stacktrace of the offending thread', function () {
+describe('anrRootCause', () => {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/subscriptions/org-slug/',
+      method: 'GET',
+      body: {},
+    });
+  });
+  it('displays stacktrace of the offending thread', () => {
     const event = makeEventWithThreads([
       {
         id: 7,

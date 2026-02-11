@@ -26,16 +26,16 @@ def test_conf_key() -> None:
 
 class PagerDutyPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> PagerDutyPlugin:
         return PagerDutyPlugin()
 
-    def test_is_configured(self):
+    def test_is_configured(self) -> None:
         assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("service_key", "abcdef", self.project)
         assert self.plugin.is_configured(self.project) is True
 
     @responses.activate
-    def test_simple_notification(self):
+    def test_simple_notification(self) -> None:
         responses.add(
             "GET",
             "https://events.pagerduty.com/generic/2010-04-15/create_event.json",
@@ -95,7 +95,7 @@ class PagerDutyPluginTest(PluginTestCase):
             "description": event.message,
         }
 
-    def test_no_secrets(self):
+    def test_no_secrets(self) -> None:
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")

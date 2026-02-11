@@ -2,8 +2,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProgressBar from 'sentry/components/progressBar';
 
-describe('ProgressBar', function () {
-  it('basic', function () {
+describe('ProgressBar', () => {
+  it('basic', () => {
     const progressBarValue = 50;
     render(<ProgressBar value={progressBarValue} />);
 

@@ -1,14 +1,15 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -90,13 +91,13 @@ export default function PluginConfig({
       data-test-id="plugin-config"
     >
       <PanelHeader hasButtons>
-        <PluginName>
+        <Flex align="center" flex="1">
           <StyledPluginIcon pluginId={plugin.id} />
           <span>{plugin.name}</span>
-        </PluginName>
+        </Flex>
 
         {plugin.canDisable && isEnabled && (
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             {plugin.isTestable && (
               <Button onClick={handleTestPlugin} size="xs">
                 {t('Test Plugin')}
@@ -105,18 +106,18 @@ export default function PluginConfig({
             <Button size="xs" onClick={handleDisablePlugin} disabled={!hasWriteAccess}>
               {t('Disable')}
             </Button>
-          </ButtonBar>
+          </Grid>
         )}
       </PanelHeader>
 
       {plugin.status === 'beta' && (
-        <PanelAlert type="warning">
+        <PanelAlert variant="warning">
           {t('This plugin is considered beta and may change in the future.')}
         </PanelAlert>
       )}
 
       {testResults !== '' && (
-        <PanelAlert type="info">
+        <PanelAlert variant="info">
           <strong>Test Results</strong>
           <div>{testResults}</div>
         </PanelAlert>
@@ -136,12 +137,6 @@ export default function PluginConfig({
     </Panel>
   );
 }
-
-const PluginName = styled('div')`
-  display: flex;
-  align-items: center;
-  flex: 1;
-`;
 
 const StyledPluginIcon = styled(PluginIcon)`
   margin-right: ${space(1)};

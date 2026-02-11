@@ -1,8 +1,8 @@
 import {createContext} from 'react';
 
 import type {ReducerAction} from 'sentry/types/reducerAction';
+import {makeCombinedReducers} from 'sentry/utils/makeCombinedReducer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
-import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
 import type {
   UndoableReducer,
   UndoableReducerAction,

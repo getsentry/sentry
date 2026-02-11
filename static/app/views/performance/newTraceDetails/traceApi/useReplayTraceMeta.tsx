@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import type {Location} from 'history';
 
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getTimeStampFromTableDateField, getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -9,7 +10,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
-import {type TraceMetaQueryResults, useTraceMeta} from './useTraceMeta';
+import {useTraceMeta, type TraceMetaQueryResults} from './useTraceMeta';
 
 // Fetches the meta data for all the traces in a replay and combines the results.
 export function useReplayTraceMeta(
@@ -52,7 +53,9 @@ export function useReplayTraceMeta(
     data: TableDataRow[];
   }>(
     [
-      `/organizations/${organization.slug}/events/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: eventView
           ? {

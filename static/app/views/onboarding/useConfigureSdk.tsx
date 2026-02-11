@@ -106,6 +106,7 @@ export function useConfigureSdk({
         openConsoleModal({
           organization,
           selectedPlatform,
+          origin: 'onboarding',
         });
         return;
       }
@@ -120,9 +121,8 @@ export function useConfigureSdk({
         return;
       }
 
-      const {FrameworkSuggestionModal, modalCss} = await import(
-        'sentry/components/onboarding/frameworkSuggestionModal'
-      );
+      const {FrameworkSuggestionModal, modalCss} =
+        await import('sentry/components/onboarding/frameworkSuggestionModal');
 
       openModal(
         deps => (

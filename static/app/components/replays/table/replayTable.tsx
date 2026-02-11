@@ -1,8 +1,12 @@
+import {useEffect, useRef, type RefObject} from 'react';
 import styled from '@emotion/styled';
+import type {Query} from 'history';
 
-import {Alert} from 'sentry/components/core/alert';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Alert} from '@sentry/scraps/alert';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Pagination from 'sentry/components/pagination';
 import type {ReplayTableColumn} from 'sentry/components/replays/table/replayTableColumns';
 import ReplayTableHeader from 'sentry/components/replays/table/replayTableHeader';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -10,6 +14,9 @@ import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type SortProps =
@@ -25,24 +32,38 @@ type Props = SortProps & {
   isPending: boolean;
   replays: ReplayListRecord[];
   showDropdownFilters: boolean;
+  highlightedRowIndex?: number;
+  pageLinks?: string | null;
+  query?: Query;
+  ref?: RefObject<HTMLDivElement | null>;
+  stickyHeader?: boolean;
 };
 
 export default function ReplayTable({
+  pageLinks,
+  query,
   columns,
   error,
   isPending,
   onSortClick,
+  ref,
   replays,
   showDropdownFilters,
+  highlightedRowIndex = -1,
   sort,
+  // stickyHeader only works if the table is inside a scrollable container
+  stickyHeader = false,
 }: Props) {
   const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
   const hasInteractiveColumn = columns.some(col => col.interactive);
+  const organization = useOrganization();
+  const navigate = useNavigate();
 
   if (isPending) {
     return (
       <StyledSimpleTable
         data-test-id="replay-table-loading"
+        ref={ref}
         style={{gridTemplateColumns}}
       >
         <ReplayTableHeader
@@ -50,6 +71,7 @@ export default function ReplayTable({
           replays={replays}
           onSortClick={onSortClick}
           sort={sort}
+          stickyHeader={stickyHeader}
         />
         <SimpleTable.Empty>
           <LoadingIndicator />
@@ -62,6 +84,7 @@ export default function ReplayTable({
     return (
       <StyledSimpleTable
         data-test-id="replay-table-errored"
+        ref={ref}
         style={{gridTemplateColumns}}
       >
         <ReplayTableHeader
@@ -69,10 +92,11 @@ export default function ReplayTable({
           onSortClick={onSortClick}
           replays={replays}
           sort={sort}
+          stickyHeader={stickyHeader}
         />
 
         <SimpleTable.Empty>
-          <Alert type="error">
+          <Alert variant="danger">
             {t('Sorry, the list of replays could not be loaded. ')}
             {getErrorMessage(error)}
           </Alert>
@@ -82,25 +106,39 @@ export default function ReplayTable({
   }
 
   return (
-    <StyledSimpleTable data-test-id="replay-table" style={{gridTemplateColumns}}>
+    <StyledSimpleTable
+      data-test-id="replay-table"
+      ref={ref}
+      style={{gridTemplateColumns}}
+    >
       <ReplayTableHeader
         columns={columns}
         onSortClick={onSortClick}
         replays={replays}
         sort={sort}
+        stickyHeader={stickyHeader}
       />
       {replays.length === 0 && (
         <SimpleTable.Empty>{t('No replays found')}</SimpleTable.Empty>
       )}
       {replays.map((replay, rowIndex) => (
-        <SimpleTable.Row
+        <RowWithScrollIntoView
+          scrollIntoView={highlightedRowIndex === rowIndex}
           key={replay.id}
           variant={replay.is_archived ? 'faded' : 'default'}
         >
-          {hasInteractiveColumn ? <InteractionStateLayer /> : null}
+          {hasInteractiveColumn ? (
+            <InteractionStateLayer
+              isHovered={highlightedRowIndex === rowIndex ? true : undefined}
+            />
+          ) : null}
           {columns.map((column, columnIndex) => (
             <RowCell key={`${replay.id}-${columnIndex}-${column.sortKey}`}>
               <column.Component
+                to={{
+                  pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
+                  query,
+                }}
                 columnIndex={columnIndex}
                 replay={replay}
                 rowIndex={rowIndex}
@@ -108,18 +146,56 @@ export default function ReplayTable({
               />
             </RowCell>
           ))}
-        </SimpleTable.Row>
+        </RowWithScrollIntoView>
       ))}
+      {pageLinks ? (
+        <StyledPagination
+          pageLinks={pageLinks}
+          onCursor={(cursor, path, searchQuery) => {
+            navigate({
+              pathname: path,
+              query: {...searchQuery, cursor},
+            });
+          }}
+        />
+      ) : null}
     </StyledSimpleTable>
+  );
+}
+
+function RowWithScrollIntoView({
+  children,
+  scrollIntoView,
+  ...props
+}: {
+  children: React.ReactNode;
+  scrollIntoView: boolean;
+} & React.ComponentProps<typeof SimpleTable.Row>) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (scrollIntoView) {
+      rowRef.current?.scrollIntoView({block: 'center'});
+    }
+  }, [scrollIntoView]);
+  return (
+    <SimpleTable.Row {...props} ref={rowRef}>
+      {children}
+    </SimpleTable.Row>
   );
 }
 
 const StyledSimpleTable = styled(SimpleTable)`
   overflow: auto;
+  grid-auto-rows: min-content;
 
   [data-clickable='true'] {
     cursor: pointer;
   }
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin: ${p => p.theme.space.md};
+  grid-column: 1 / -1;
 `;
 
 function getErrorMessage(fetchError: RequestError) {
@@ -141,8 +217,6 @@ function getErrorMessage(fetchError: RequestError) {
 }
 
 const RowCell = styled(SimpleTable.RowCell)`
-  overflow: auto;
-
   /* Used for cell menu items that are hidden by default */
   &:hover [data-visible-on-hover='true'] {
     opacity: 1;

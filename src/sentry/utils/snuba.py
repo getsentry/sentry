@@ -40,6 +40,7 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
+from sentry.services.eventstore.query_preprocessing import get_all_merged_group_ids
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.snuba.query_sources import QuerySource
@@ -368,6 +369,22 @@ class RateLimitExceeded(SnubaError):
     """
     Exception raised when a query cannot be executed due to rate limits.
     """
+
+    def __init__(
+        self,
+        message: str | None = None,
+        policy: str | None = None,
+        quota_unit: str | None = None,
+        storage_key: str | None = None,
+        quota_used: int | None = None,
+        rejection_threshold: int | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.policy = policy
+        self.quota_unit = quota_unit
+        self.storage_key = storage_key
+        self.quota_used = quota_used
+        self.rejection_threshold = rejection_threshold
 
 
 class SchemaValidationError(QueryExecutionError):
@@ -876,8 +893,8 @@ class SnubaQueryParams:
     def __init__(
         self,
         dataset=None,
-        start=None,
-        end=None,
+        start: datetime | None = None,
+        end: datetime | None = None,
         groupby=None,
         conditions=None,
         filter_keys=None,
@@ -905,6 +922,66 @@ class SnubaQueryParams:
         self.referrer = referrer
         self.is_grouprelease = is_grouprelease
         self.kwargs = kwargs
+
+        # Groups can be merged together, but snuba is immutable(ish). In order to
+        # account for merges, here we expand queries to include all group IDs that have
+        # been merged together.
+
+        if self.dataset in {
+            Dataset.Events,
+            Dataset.IssuePlatform,
+        }:
+            self._preprocess_group_id_redirects()
+
+    def _preprocess_group_id_redirects(self):
+        # Conditions are a series of "AND" statements. For "group_id", to dedupe,
+        # we pre-collapse these. This helps us reduce the size of queries.
+        in_groups = None
+        out_groups: set[int | str] = set()
+        if "group_id" in self.filter_keys:
+            self.filter_keys = self.filter_keys.copy()
+            in_groups = set(self.filter_keys["group_id"])
+            del self.filter_keys["group_id"]
+
+        new_conditions = []
+
+        for triple in self.conditions:
+            if triple[0] != "group_id":
+                new_conditions.append(triple)
+                continue
+
+            op = triple[1]
+            # IN statements need to intersect
+            if op == "IN":
+                new_in_groups = set(triple[2])
+                if in_groups is not None:
+                    new_in_groups = in_groups.intersection(new_in_groups)
+                in_groups = new_in_groups
+            elif op == "=":
+                new_in_groups = {triple[2]}
+                if in_groups is not None:
+                    new_in_groups = in_groups.intersection(new_in_groups)
+                in_groups = new_in_groups
+            # NOT IN statements can union and be differenced at the end
+            elif op == "NOT IN":
+                out_groups.update(triple[2])
+            elif op == "!=":
+                out_groups.add(triple[2])
+
+        out_groups = get_all_merged_group_ids(out_groups)
+        triple = None
+        # If there is an "IN" statement, we don't need a "NOT IN" statement. We can
+        # just subtract the NOT IN groups from the IN groups.
+        if in_groups is not None:
+            in_groups.difference_update(out_groups)
+            triple = ["group_id", "IN", get_all_merged_group_ids(in_groups)]
+        elif len(out_groups) > 0:
+            triple = ["group_id", "NOT IN", out_groups]
+
+        if triple is not None:
+            new_conditions.append(triple)
+
+        self.conditions = new_conditions
 
 
 def raw_query(
@@ -1206,7 +1283,7 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                         log_snuba_info("{}.err: {}".format(referrer, body["error"]))
             except ValueError:
                 if response.status != 200:
-                    logger.exception(
+                    logger.warning(
                         "snuba.query.invalid-json",
                         extra={"response.data": response.data},
                     )
@@ -1239,7 +1316,36 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                 if body.get("error"):
                     error = body["error"]
                     if response.status == 429:
+                        try:
+                            if (
+                                "quota_allowance" not in body
+                                or "summary" not in body["quota_allowance"]
+                            ):
+                                # Should not hit this - snuba gives us quota_allowance with a 429
+                                raise RateLimitExceeded(error["message"])
+                            quota_allowance_summary = body["quota_allowance"]["summary"]
+                            rejected_by = quota_allowance_summary["rejected_by"]
+                            throttled_by = quota_allowance_summary["throttled_by"]
+
+                            policy_info = rejected_by or throttled_by
+
+                            if policy_info:
+                                raise RateLimitExceeded(
+                                    error["message"],
+                                    policy=policy_info["policy"],
+                                    quota_unit=policy_info["quota_unit"],
+                                    storage_key=policy_info["storage_key"],
+                                    quota_used=policy_info["quota_used"],
+                                    rejection_threshold=policy_info["rejection_threshold"],
+                                )
+                        except KeyError:
+                            logger.warning(
+                                "Failed to parse rate limit error details from Snuba response",
+                                extra={"error": error["message"]},
+                            )
+
                         raise RateLimitExceeded(error["message"])
+
                     elif error["type"] == "schema":
                         raise SchemaValidationError(error["message"])
                     elif error["type"] == "invalid_query":
@@ -1395,8 +1501,8 @@ def _raw_snql_query(request: Request, headers: Mapping[str, str]) -> urllib3.res
 
 def query(
     dataset=None,
-    start=None,
-    end=None,
+    start: datetime | None = None,
+    end: datetime | None = None,
     groupby=None,
     conditions=None,
     filter_keys=None,
@@ -1700,6 +1806,16 @@ def aliased_query_params(
             else:
                 new_aggs.append(aggregation)
         aggregations = new_aggs
+
+    # Apply error upsampling conversion for Events dataset when project_ids are present.
+    # This mirrors the behavior in query(), ensuring aliased_query paths also convert count()
+    # to sum(sample_weight) for allowlisted projects.
+    if dataset == Dataset.Events and filter_keys and filter_keys.get("project_id") and aggregations:
+        project_filter = filter_keys.get("project_id")
+        project_ids = (
+            project_filter if isinstance(project_filter, (list, tuple)) else [project_filter]
+        )
+        _convert_count_aggregations_for_error_upsampling(aggregations, project_ids)
 
     if conditions:
         if condition_resolver:

@@ -60,10 +60,10 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 import type {UIFrameMeasurements} from 'sentry/utils/profiling/uiFrames';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
 import {
+  formatTo,
   fromNanoJoulesToWatts,
   type ProfilingFormatterUnit,
 } from 'sentry/utils/profiling/units/units';
-import {formatTo} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
@@ -79,6 +79,8 @@ import {FlamegraphChart} from './flamegraphChart';
 import {FlamegraphLayout} from './flamegraphLayout';
 import {FlamegraphSpans} from './flamegraphSpans';
 import {FlamegraphUIFrames} from './flamegraphUIFrames';
+
+const PROFILE_TYPE = 'continuous profile' as const;
 
 function collectAllSpanEntriesFromTransaction(
   transaction: EventTransaction
@@ -332,7 +334,11 @@ export function ContinuousFlamegraph(): ReactElement {
     return profileGroup.profiles.find(p => p.threadId === flamegraphProfiles.threadId);
   }, [profileGroup, flamegraphProfiles.threadId]);
 
-  const spanTree: SpanTree = useMemo(() => {
+  const spanTree: SpanTree | null = useMemo(() => {
+    if (segment.type === 'empty') {
+      return null;
+    }
+
     if (segment.type === 'resolved' && segment.data) {
       return new SpanTree(
         segment.data,
@@ -344,7 +350,7 @@ export function ContinuousFlamegraph(): ReactElement {
   }, [segment]);
 
   const spanChart = useMemo(() => {
-    if (!profile) {
+    if (!profile || !spanTree) {
       return null;
     }
 
@@ -598,7 +604,14 @@ export function ContinuousFlamegraph(): ReactElement {
           minWidth: flamegraph.profile.minFrameDuration,
           barHeight: flamegraphTheme.SIZES.BAR_HEIGHT,
           depthOffset: flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
-          configSpaceTransform: getProfileOffset(profile, configSpaceQueryParam[0]),
+          configSpaceTransform:
+            // For continuous flamegraphs, we only want to adjust when the sorting is
+            // call order. This is because we need to offset it to align with the
+            // specified start/end but when sorting by left heavy or alphabetical,
+            // we always align it at 0.
+            sorting === 'call order'
+              ? getProfileOffset(profile, configSpaceQueryParam[0])
+              : undefined,
         },
       });
 
@@ -1427,6 +1440,7 @@ export function ContinuousFlamegraph(): ReactElement {
           profileGroup={profileGroup}
           threadId={flamegraphProfiles.threadId}
           onThreadIdChange={onThreadIdChange}
+          profileType={PROFILE_TYPE}
         />
         <FlamegraphViewSelectMenu
           view={view}
@@ -1439,7 +1453,10 @@ export function ContinuousFlamegraph(): ReactElement {
           flamegraphs={flamegraphs}
           canvasPoolManager={canvasPoolManager}
         />
-        <FlamegraphOptionsMenu canvasPoolManager={canvasPoolManager} />
+        <FlamegraphOptionsMenu
+          canvasPoolManager={canvasPoolManager}
+          profileType={PROFILE_TYPE}
+        />
       </FlamegraphToolbar>
 
       <FlamegraphLayout
@@ -1573,6 +1590,7 @@ export function ContinuousFlamegraph(): ReactElement {
               setFlamegraphCanvasRef={setFlamegraphCanvasRef}
               setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
               contextMenu={FlamegraphContextMenu}
+              profileType={PROFILE_TYPE}
             />
           </Fragment>
         }

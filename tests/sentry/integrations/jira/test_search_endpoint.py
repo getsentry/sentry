@@ -6,7 +6,6 @@ from django.urls import reverse
 
 from fixtures.integrations.stub_service import StubService
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 
 
@@ -31,7 +30,7 @@ class JiraSearchEndpointTest(APITestCase):
     def test_issue_search_text(self) -> None:
         responses.add(
             responses.GET,
-            "https://example.atlassian.net/rest/api/2/search/",
+            "https://example.atlassian.net/rest/api/2/search/jql/",
             body=StubService.get_stub_json("jira", "search_response.json"),
             content_type="json",
         )
@@ -54,7 +53,7 @@ class JiraSearchEndpointTest(APITestCase):
 
         responses.add_callback(
             responses.GET,
-            "https://example.atlassian.net/rest/api/2/search/",
+            "https://example.atlassian.net/rest/api/2/search/jql/",
             callback=responder,
         )
         org = self.organization
@@ -74,7 +73,7 @@ class JiraSearchEndpointTest(APITestCase):
     def test_issue_search_error(self) -> None:
         responses.add(
             responses.GET,
-            "https://example.atlassian.net/rest/api/2/search/",
+            "https://example.atlassian.net/rest/api/2/search/jql/",
             status=500,
             body="Totally broken",
         )
@@ -86,9 +85,7 @@ class JiraSearchEndpointTest(APITestCase):
         for field in ("externalIssue", "parent"):
             resp = self.client.get(f"{path}?field={field}&query=test")
             assert resp.status_code == 400
-            assert resp.data == {
-                "detail": "Error Communicating with Jira (HTTP 500): unknown error"
-            }
+            assert resp.data == {"detail": "Something went wrong while communicating with Jira"}
 
     @responses.activate
     def test_assignee_search(self) -> None:
@@ -184,7 +181,6 @@ class JiraSearchEndpointTest(APITestCase):
         }
 
     @responses.activate
-    @with_feature("organizations:jira-paginated-projects")
     def test_project_search_with_pagination(self) -> None:
         responses.add(
             responses.GET,
@@ -210,7 +206,6 @@ class JiraSearchEndpointTest(APITestCase):
         ]
 
     @responses.activate
-    @with_feature("organizations:jira-paginated-projects")
     def test_project_search_error_with_pagination(self) -> None:
         responses.add(
             responses.GET,

@@ -1,7 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -27,7 +29,12 @@ export default function ChartPanel({
     <PanelWithNoPadding className={className}>
       <PanelBody>
         {title && (
-          <Header data-test-id="chart-panel-header">
+          <Flex
+            justify="between"
+            align="center"
+            width="100%"
+            data-test-id="chart-panel-header"
+          >
             {title && (
               <ChartLabel>
                 {typeof title === 'string' ? (
@@ -37,19 +44,19 @@ export default function ChartPanel({
                 )}
               </ChartLabel>
             )}
-            <MenuContainer>
+            <Flex as="span">
               {button}
               <Button
                 aria-label={t('Expand Insight Chart')}
-                borderless
+                priority="transparent"
                 size="xs"
                 icon={<IconExpand />}
                 onClick={() => {
                   openInsightChartModal({title, children});
                 }}
               />
-            </MenuContainer>
-          </Header>
+            </Flex>
+          </Flex>
         )}
         {subtitle && (
           <SubtitleContainer>
@@ -77,21 +84,10 @@ const SubtitleContainer = styled('div')`
 const ChartLabel = styled('div')`
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.2;
 `;
 
 const PanelBody = styled('div')`
   padding: ${space(2)};
-`;
-
-const Header = styled('div')`
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const MenuContainer = styled('span')`
-  display: flex;
 `;

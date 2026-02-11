@@ -61,7 +61,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
         }
 
     @mock.patch("sentry.api.endpoints.organization_profiling_functions.detect_breakpoints")
-    def test_min_threshold(self, mock_detect_breakpoints):
+    def test_min_threshold(self, mock_detect_breakpoints: mock.MagicMock) -> None:
         n = 25
         for i in range(n):
             self.store_functions(
@@ -142,7 +142,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
         assert [(result["package"], result["function"]) for result in results] == [("foo", "baz")]
 
     @mock.patch("sentry.api.endpoints.organization_profiling_functions.detect_breakpoints")
-    def test_regression(self, mock_detect_breakpoints):
+    def test_regression(self, mock_detect_breakpoints: mock.MagicMock) -> None:
         n = 25
         for i in range(n):
             self.store_functions(
@@ -228,7 +228,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
             assert isinstance(data["examples"], list)
 
     @mock.patch("sentry.api.endpoints.organization_profiling_functions.detect_breakpoints")
-    def test_improvement(self, mock_detect_breakpoints):
+    def test_improvement(self, mock_detect_breakpoints: mock.MagicMock) -> None:
         n = 25
         for i in range(n):
             self.store_functions(

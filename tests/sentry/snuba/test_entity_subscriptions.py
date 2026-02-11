@@ -1,4 +1,7 @@
 import pytest
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    ExtrapolationMode as ProtoExtrapolationMode,
+)
 from snuba_sdk import And, Column, Condition, Entity, Function, Join, Op, Relationship
 
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
@@ -20,7 +23,7 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.models import ExtrapolationMode, SnubaQuery
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 
@@ -391,6 +394,49 @@ class EntitySubscriptionTestCase(TestCase):
             Condition(Column("project_id", entity=g_entity), Op.IN, [self.project.id]),
         ]
 
+    def test_events_subscription_count_upsampling_toggle(self) -> None:
+        project = self.create_project(organization=self.organization)
+        sub = get_entity_subscription(
+            query_type=SnubaQuery.Type.ERROR,
+            dataset=Dataset.Events,
+            aggregate="count()",
+            time_window=60,
+        )
+
+        # Not allowlisted → expect plain count and no sample_weight
+        with self.options({"issues.client_error_sampling.project_allowlist": []}):
+            qb = sub.build_query_builder(query="", project_ids=[project.id], environment=None)
+            req = qb.get_snql_query()
+            assert len(req.query.select) == 1
+            func = req.query.select[0]
+            assert getattr(func, "alias", None) == "count"
+
+        # Allowlisted → expect full upsampled function structure
+        with self.options({"issues.client_error_sampling.project_allowlist": [project.id]}):
+            qb = sub.build_query_builder(query="", project_ids=[project.id], environment=None)
+            req = qb.get_snql_query()
+            assert len(req.query.select) == 1
+            func = req.query.select[0]
+            assert getattr(func, "alias", None) == "upsampled_count"
+            # Expect: toInt64(sum(ifNull(sample_weight, 1))) structure
+            assert isinstance(func, Function)
+            assert func.function == "toInt64"
+            assert len(func.parameters) == 1
+
+            outer_sum = func.parameters[0]
+            assert isinstance(outer_sum, Function)
+            assert outer_sum.function == "sum"
+            assert len(outer_sum.parameters) == 1
+
+            inner_ifnull = outer_sum.parameters[0]
+            assert isinstance(inner_ifnull, Function)
+            assert inner_ifnull.function == "ifNull"
+            assert len(inner_ifnull.parameters) == 2
+
+            weight_col = inner_ifnull.parameters[0]
+            assert isinstance(weight_col, Column)
+            assert weight_col.name == "sample_weight"
+
     def test_get_entity_subscription_for_eap_rpc_query(self) -> None:
         aggregate = "count(span.duration)"
         query = "span.op:http.client"
@@ -413,6 +459,38 @@ class EntitySubscriptionTestCase(TestCase):
         assert rpc_timeseries_request.granularity_secs == 3600
         assert rpc_timeseries_request.filter.comparison_filter.value.val_str == "http.client"
         assert rpc_timeseries_request.expressions[0].aggregation.label == "count(span.duration)"
+        assert (
+            rpc_timeseries_request.expressions[0].aggregation.extrapolation_mode
+            == ProtoExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
+        )
+
+    def test_get_entity_subscription_for_eap_with_extrapolation_mode(self) -> None:
+        aggregate = "count(span.duration)"
+        query = "span.op:http.client"
+
+        # Test with SERVER_WEIGHTED extrapolation mode
+        entity_subscription = get_entity_subscription(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.EventsAnalyticsPlatform,
+            aggregate=aggregate,
+            time_window=3600,
+            extra_fields={
+                "org_id": self.organization.id,
+                "extrapolation_mode": ExtrapolationMode.SERVER_WEIGHTED,
+            },
+        )
+        assert isinstance(entity_subscription, PerformanceSpansEAPRpcEntitySubscription)
+        assert entity_subscription.extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED
+
+        rpc_timeseries_request = entity_subscription.build_rpc_request(
+            query, [self.project.id], None
+        )
+
+        # Verify the extrapolation mode is passed to the RPC request
+        assert (
+            rpc_timeseries_request.expressions[0].aggregation.extrapolation_mode
+            == ProtoExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY
+        )
 
 
 class GetEntitySubscriptionFromSnubaQueryTest(TestCase):

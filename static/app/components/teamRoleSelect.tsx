@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
-import type {ControlProps} from 'sentry/components/core/select';
+import {Flex} from '@sentry/scraps/layout';
+import type {ControlProps} from '@sentry/scraps/select';
+
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import {space} from 'sentry/styles/space';
 import type {Organization, Team, TeamMember, TeamRole} from 'sentry/types/organization';
@@ -39,7 +41,7 @@ function TeamRoleSelect({
     );
 
     return (
-      <RoleName>
+      <Flex align="center">
         {effectiveTeamRole?.name || memberOrgRole?.minimumTeamRole}
         <IconWrapper>
           <RoleOverwriteIcon
@@ -48,7 +50,7 @@ function TeamRoleSelect({
             teamRoleList={teamRoleList}
           />
         </IconWrapper>
-      </RoleName>
+      </Flex>
     );
   }
 
@@ -72,10 +74,6 @@ function TeamRoleSelect({
 
 export default TeamRoleSelect;
 
-const RoleName = styled('div')`
-  display: flex;
-  align-items: center;
-`;
 const IconWrapper = styled('div')`
   height: ${space(2)};
   margin-left: ${space(1)};

@@ -1,35 +1,26 @@
-import {useRef} from 'react';
-
-import {Button} from 'sentry/components/core/button';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
-function AutofixFeedback() {
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const openForm = useFeedbackForm();
-
-  if (!openForm) {
-    return null;
-  }
-
-  return (
-    <Button
-      ref={buttonRef}
-      size="xs"
-      onClick={() =>
-        openForm({
-          formTitle: t('Give feedback to the devs'),
-          messagePlaceholder: t('How can we make Seer better for you?'),
-          tags: {
-            ['feedback.source']: 'issue_details_ai_autofix',
-            ['feedback.owner']: 'ml-ai',
-          },
-        })
-      }
-    >
-      {t('Give Us Feedback')}
-    </Button>
-  );
+interface AutofixFeedbackProps {
+  iconOnly?: boolean;
 }
 
-export default AutofixFeedback;
+export default function AutofixFeedback(
+  {iconOnly = false}: AutofixFeedbackProps = {iconOnly: false}
+) {
+  const buttonProps = {
+    size: 'xs' as const,
+    feedbackOptions: {
+      formTitle: t('Give feedback to the devs'),
+      messagePlaceholder: t('How can we make Seer better for you?'),
+      tags: {
+        ['feedback.source']: 'issue_details_ai_autofix',
+        ['feedback.owner']: 'ml-ai',
+      },
+    },
+    title: iconOnly ? t('Give feedback to the devs') : undefined,
+    ...(iconOnly && {children: null}),
+  };
+
+  return <FeedbackButton {...buttonProps} />;
+}

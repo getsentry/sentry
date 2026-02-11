@@ -65,7 +65,7 @@ class IncrementalNameTest(TestCase):
 class DashboardFavoriteUserTest(TestCase):
     def create_dashboard_favorite_user(
         self, dashboard: Dashboard, user: User, organization: Organization, position: int | None
-    ):
+    ) -> DashboardFavoriteUser:
         return DashboardFavoriteUser.objects.create(
             dashboard=dashboard, user_id=user.id, organization=organization, position=position
         )

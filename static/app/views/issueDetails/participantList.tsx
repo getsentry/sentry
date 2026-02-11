@@ -2,9 +2,9 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
+import {TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -64,13 +64,13 @@ export function ParticipantList({teams = [], users, children}: ParticipantListPr
       <ParticipantWrapper onClick={() => setIsExpanded(!isExpanded)} role="button">
         {children}
         <Button
-          borderless
+          priority="transparent"
           size="zero"
           icon={
             <IconChevron
               direction={isExpanded ? 'up' : 'down'}
               size="xs"
-              color="gray300"
+              variant="muted"
             />
           }
           aria-label={t('%s Participants', isExpanded ? t('Collapse') : t('Expand'))}
@@ -111,21 +111,21 @@ const ParticipantWrapper = styled('div')`
 const ParticipantListWrapper = styled('div')`
   max-height: 325px;
   overflow-y: auto;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
 
   & > div:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   & > div:first-child {
-    border-top-left-radius: ${p => p.theme.borderRadius};
-    border-top-right-radius: ${p => p.theme.borderRadius};
+    border-top-left-radius: ${p => p.theme.radius.md};
+    border-top-right-radius: ${p => p.theme.radius.md};
   }
 
   & > div:last-child {
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
-    border-bottom-right-radius: ${p => p.theme.borderRadius};
+    border-bottom-left-radius: ${p => p.theme.radius.md};
+    border-bottom-right-radius: ${p => p.theme.radius.md};
   }
 `;
 
@@ -133,11 +133,11 @@ const ListTitle = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(1)} ${space(1.5)};
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const UserRow = styled('div')`
@@ -146,10 +146,10 @@ const UserRow = styled('div')`
   padding: ${space(1)} ${space(1.5)};
   gap: ${space(1)};
   line-height: 1.2;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const SubText = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.xs};
 `;

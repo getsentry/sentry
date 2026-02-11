@@ -1,9 +1,11 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import {Input} from '@sentry/scraps/input';
+
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Input} from 'sentry/components/core/input';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
@@ -32,6 +34,7 @@ type Props = {
   data: ProjectKey;
   disabled: boolean;
   organization: Organization;
+  updateData: (data: ProjectKey) => void;
 } & Pick<
   RouteComponentProps<{
     keyId: string;
@@ -40,31 +43,11 @@ type Props = {
   'params'
 >;
 
-function KeyRateLimitsForm({data, disabled, organization, params}: Props) {
-  function handleChangeWindow(
-    onChange: (value: RateLimitValue, event: React.ChangeEvent<HTMLInputElement>) => void,
-    currentValueObj: RateLimitValue,
-    value: number,
-    event: React.ChangeEvent<HTMLInputElement>
-  ) {
-    if (currentValueObj.window !== value) {
-      const valueObj = {...currentValueObj, window: value};
-      onChange(valueObj, event);
-    }
-  }
+function KeyRateLimitsForm({data, disabled, organization, params, updateData}: Props) {
+  const initialRateLimit = useMemo(() => data.rateLimit, [data.rateLimit]);
 
-  function handleChangeCount(
-    onChange: (value: RateLimitValue, event: React.ChangeEvent<HTMLInputElement>) => void,
-    currentValueObj: RateLimitValue,
-    event: React.ChangeEvent<HTMLInputElement>
-  ) {
-    const value = Number(event.target.value);
-
-    if (currentValueObj.count !== value) {
-      const valueObj = {...currentValueObj, count: value};
-      onChange(valueObj, event);
-    }
-  }
+  const {keyId, projectId} = params;
+  const endpoint = `/projects/${organization.slug}/${projectId}/keys/${keyId}/`;
 
   function getAllowedRateLimitValues(currentRateLimit?: number) {
     const {rateLimit} = data;
@@ -87,8 +70,12 @@ function KeyRateLimitsForm({data, disabled, organization, params}: Props) {
     return PREDEFINED_RATE_LIMIT_VALUES;
   }
 
-  const {keyId, projectId} = params;
-  const apiEndpoint = `/projects/${organization.slug}/${projectId}/keys/${keyId}/`;
+  function hasRateLimitChanged(currentRateLimit?: Partial<RateLimitValue>) {
+    return (
+      initialRateLimit?.count !== currentRateLimit?.count ||
+      initialRateLimit?.window !== currentRateLimit?.window
+    );
+  }
 
   const disabledAlert = ({features}: any) => (
     <FeatureDisabled
@@ -99,7 +86,13 @@ function KeyRateLimitsForm({data, disabled, organization, params}: Props) {
   );
 
   return (
-    <Form saveOnBlur apiEndpoint={apiEndpoint} apiMethod="PUT" initialData={data}>
+    <Form
+      saveOnBlur
+      apiEndpoint={endpoint}
+      apiMethod="PUT"
+      initialData={data}
+      onSubmitSuccess={updateData}
+    >
       <Feature
         features="projects:rate-limits"
         hookName="feature-disabled:rate-limits"
@@ -113,7 +106,7 @@ function KeyRateLimitsForm({data, disabled, organization, params}: Props) {
             <PanelHeader>{t('Rate Limits')}</PanelHeader>
 
             <PanelBody>
-              <PanelAlert type="info">
+              <PanelAlert variant="info">
                 {t(
                   `Rate limits provide a flexible way to manage your error
                     volume. If you have a noisy project or environment you
@@ -160,7 +153,7 @@ function KeyRateLimitsForm({data, disabled, organization, params}: Props) {
                   'Apply a rate limit to this credential to cap the amount of errors accepted during a time window.'
                 )}
               >
-                {({onChange, onBlur, value}: any) => {
+                {({onChange, value, model: formModel}) => {
                   const window = typeof value === 'object' ? value.window : undefined;
                   return (
                     <RateLimitRow>
@@ -171,8 +164,22 @@ function KeyRateLimitsForm({data, disabled, organization, params}: Props) {
                         value={typeof value === 'object' ? value.count : undefined}
                         placeholder={t('Count')}
                         disabled={disabled || !hasFeature}
-                        onChange={event => handleChangeCount(onChange, value, event)}
-                        onBlur={event => handleChangeCount(onBlur, value, event)}
+                        onChange={event =>
+                          onChange({...value, count: Number(event.target.value)}, event)
+                        }
+                        onBlur={() => {
+                          if (hasRateLimitChanged(value)) {
+                            formModel.saveField('rateLimit', value);
+                          }
+                        }}
+                        onKeyDown={event => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault();
+                            if (hasRateLimitChanged(value)) {
+                              formModel.saveField('rateLimit', value);
+                            }
+                          }
+                        }}
                       />
                       <EventsIn>{t('event(s) in')}</EventsIn>
                       <RangeSlider
@@ -190,10 +197,14 @@ function KeyRateLimitsForm({data, disabled, organization, params}: Props) {
                           return undefined;
                         }}
                         disabled={disabled || !hasFeature}
-                        onBlur={e => onBlur(value, e)}
                         onChange={(rangeValue, event) =>
-                          handleChangeWindow(onChange, value, Number(rangeValue), event)
+                          onChange({...value, window: Number(rangeValue)}, event)
                         }
+                        onBlur={() => {
+                          if (hasRateLimitChanged(value)) {
+                            formModel.saveField('rateLimit', value);
+                          }
+                        }}
                       />
                     </RateLimitRow>
                   );
@@ -217,7 +228,7 @@ const RateLimitRow = styled('div')`
 `;
 
 const EventsIn = styled('small')`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.font.size.sm};
   text-align: center;
   white-space: nowrap;
 `;

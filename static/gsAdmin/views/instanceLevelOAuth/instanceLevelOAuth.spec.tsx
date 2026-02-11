@@ -2,7 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import InstanceLevelOAuth from 'admin/views/instanceLevelOAuth/instanceLevelOAuth';
 
-describe('instance level OAuth list', function () {
+describe('instance level OAuth list', () => {
   const mockClientRows = [
     {
       name: 'CodeCov',
@@ -30,7 +30,7 @@ describe('instance level OAuth list', function () {
     body: mockClientRows,
   });
 
-  it('renders a list of instance level OAuth clients', async function () {
+  it('renders a list of instance level OAuth clients', async () => {
     render(<InstanceLevelOAuth />);
     expect(screen.getByText('Instance Level OAuth Clients')).toBeInTheDocument();
     expect(screen.getByText('Name')).toBeInTheDocument();

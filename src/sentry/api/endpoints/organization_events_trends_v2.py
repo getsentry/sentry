@@ -10,10 +10,12 @@ from snuba_sdk import Column
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
-from sentry.performance_issues.detectors.utils import escape_transaction
+from sentry.issue_detection.detectors.utils import escape_transaction
+from sentry.models.organization import Organization
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.events.constants import METRICS_GRANULARITIES
 from sentry.seer.breakpoints import detect_breakpoints
 from sentry.snuba import metrics_performance
@@ -44,31 +46,33 @@ ORGANIZATION_RATE_LIMIT = 30
 
 
 @region_silo_endpoint
-class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(
-                DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
-            ),
-            RateLimitCategory.USER: RateLimit(
-                DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
-            ),
-            RateLimitCategory.ORGANIZATION: RateLimit(
-                ORGANIZATION_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, ORGANIZATION_RATE_LIMIT
-            ),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(
+                    DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
+                ),
+                RateLimitCategory.USER: RateLimit(
+                    DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
+                ),
+                RateLimitCategory.ORGANIZATION: RateLimit(
+                    ORGANIZATION_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, ORGANIZATION_RATE_LIMIT
+                ),
+            }
         }
-    }
+    )
 
     def has_feature(self, organization, request):
         return features.has(
             "organizations:performance-new-trends", organization, actor=request.user
         )
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 

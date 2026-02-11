@@ -6,15 +6,18 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectSecurityAndPrivacy from 'sentry/views/settings/projectSecurityAndPrivacy';
 
-describe('projectSecurityAndPrivacy', function () {
-  it('renders form fields', function () {
+describe('projectSecurityAndPrivacy', () => {
+  it('renders form fields', () => {
     const organization = OrganizationFixture({features: ['event-attachments']});
     const project = ProjectFixture({
       sensitiveFields: ['creditcard', 'ssn'],
       safeFields: ['business-email', 'company'],
     });
 
-    render(<ProjectSecurityAndPrivacy project={project} organization={organization} />);
+    render(<ProjectSecurityAndPrivacy />, {
+      organization,
+      outletContext: {project},
+    });
 
     // Store Minidumps As Attachments
     expect(
@@ -61,20 +64,17 @@ describe('projectSecurityAndPrivacy', function () {
     ).toHaveValue('creditcard\nssn');
   });
 
-  it('disables field when equivalent org setting is true', function () {
+  it('disables field when equivalent org setting is true', () => {
     const {organization} = initializeOrg();
     const project = ProjectFixture();
 
     organization.dataScrubber = true;
     organization.scrubIPAddresses = false;
 
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/`,
-      method: 'GET',
-      body: project,
+    render(<ProjectSecurityAndPrivacy />, {
+      organization,
+      outletContext: {project},
     });
-
-    render(<ProjectSecurityAndPrivacy project={project} organization={organization} />);
 
     expect(
       screen.getByRole('checkbox', {
@@ -97,7 +97,7 @@ describe('projectSecurityAndPrivacy', function () {
     ).toBeChecked();
   });
 
-  it('disables fields when missing project:write access', function () {
+  it('disables fields when missing project:write access', () => {
     const {organization} = initializeOrg({
       organization: {
         access: [], // Remove all access
@@ -105,7 +105,10 @@ describe('projectSecurityAndPrivacy', function () {
     });
     const project = ProjectFixture();
 
-    render(<ProjectSecurityAndPrivacy project={project} organization={organization} />);
+    render(<ProjectSecurityAndPrivacy />, {
+      organization,
+      outletContext: {project},
+    });
 
     // Check that the data scrubber toggle is disabled
     expect(

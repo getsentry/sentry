@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -51,7 +52,7 @@ const Wrapper = styled(PanelHeader)`
   align-items: center;
   justify-content: space-between;
   text-transform: none;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 export default ScreenshotPagination;

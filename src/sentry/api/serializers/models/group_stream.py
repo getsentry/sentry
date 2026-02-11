@@ -10,11 +10,8 @@ from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from sentry import features, release_health, tsdb
-from sentry.api.helpers.error_upsampling import (
-    UPSAMPLED_ERROR_AGGREGATION,
-    are_any_projects_error_upsampled,
-)
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.actor import ActorSerializerResponse
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
     GroupAnnotation,
@@ -44,7 +41,6 @@ from sentry.sentry_apps.api.serializers.platform_external_issue import (
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.snuba.dataset import Dataset
 from sentry.tsdb.base import TSDBModel
-from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
@@ -121,7 +117,6 @@ class GroupStatsMixin:
         conditions=None,
         environment_ids=None,
         user=None,
-        aggregation_override: str | None = None,
         **kwargs,
     ):
         pass
@@ -131,7 +126,6 @@ class GroupStatsMixin:
         item_list: Sequence[Group],
         user,
         stats_query_args: GroupStatsQueryArgs,
-        aggregation_override: str | None = None,
         **kwargs,
     ):
         if stats_query_args and stats_query_args.stats_period:
@@ -180,7 +174,6 @@ class GroupStatsMixin:
                 item_list,
                 query_params,
                 user=user,
-                aggregation_override=aggregation_override,
                 **kwargs,
             )
 
@@ -247,7 +240,6 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         conditions=None,
         environment_ids=None,
         user=None,
-        aggregation_override: str | None = None,
         **kwargs,
     ):
         try:
@@ -311,7 +303,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     issueCategory: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]
     numComments: NotRequired[int]
-    assignedTo: NotRequired[UserSerializerResponse]
+    assignedTo: NotRequired[ActorSerializerResponse]
     isBookmarked: NotRequired[bool]
     isSubscribed: NotRequired[bool]
     subscriptionDetails: NotRequired[SubscriptionDetails | None]
@@ -401,11 +393,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                         )
 
         if self.stats_period and not self._collapse("stats"):
-            aggregation_override = None
-            if self.project_ids:
-                if are_any_projects_error_upsampled(self.project_ids):
-                    aggregation_override = UPSAMPLED_ERROR_AGGREGATION
-
             partial_get_stats = functools.partial(
                 self.get_stats,
                 item_list=item_list,
@@ -414,7 +401,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                     self.stats_period, self.stats_period_start, self.stats_period_end
                 ),
                 environment_ids=self.environment_ids,
-                aggregation_override=aggregation_override,
             )
             stats = partial_get_stats()
             filtered_stats = (
@@ -616,7 +602,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             snuba_tsdb.get_range,
             environment_ids=environment_ids,
             tenant_ids={"organization_id": self.organization_id},
-            aggregation_override=aggregation_override,
+            project_ids=self.project_ids,
             **query_params,
         )
 

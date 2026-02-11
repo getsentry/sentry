@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import useFetchParallelPages from 'sentry/utils/api/useFetchParallelPages';
 import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -11,8 +12,9 @@ import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useFeedbackEvents from 'sentry/utils/replays/hooks/useFeedbackEvents';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
+import type {RawReplayError} from 'sentry/utils/replays/types';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Options = {
   /**
@@ -41,7 +43,7 @@ type Options = {
 interface Result {
   attachmentError: undefined | RequestError[];
   attachments: unknown[];
-  errors: ReplayError[];
+  errors: RawReplayError[];
   fetchError: undefined | RequestError;
   isError: boolean;
   isPending: boolean;
@@ -94,11 +96,21 @@ function useReplayData({
     data: replayData,
     status: fetchReplayStatus,
     error: fetchReplayError,
-  } = useApiQuery<{data: unknown}>([`/organizations/${orgSlug}/replays/${replayId}/`], {
-    enabled: enableReplayRecord,
-    retry: false,
-    staleTime: Infinity,
-  });
+  } = useApiQuery<{data: unknown}>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/replays/$replayId/', {
+        path: {
+          organizationIdOrSlug: orgSlug,
+          replayId: replayId!,
+        },
+      }),
+    ],
+    {
+      enabled: enableReplayRecord,
+      retry: false,
+      staleTime: Infinity,
+    }
+  );
   const replayRecord = useMemo(
     () => (replayData?.data ? mapResponseToReplayRecord(replayData.data) : undefined),
     [replayData?.data]
@@ -109,7 +121,16 @@ function useReplayData({
   const getAttachmentsQueryKey = useCallback(
     ({cursor, per_page}: any): ApiQueryKey => {
       return [
-        `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/recording-segments/',
+          {
+            path: {
+              organizationIdOrSlug: orgSlug,
+              projectIdOrSlug: projectSlug!,
+              replayId: replayId!,
+            },
+          }
+        ),
         {
           query: {
             download: true,
@@ -149,7 +170,9 @@ function useReplayData({
       finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
 
       return [
-        `/organizations/${orgSlug}/replays-events-meta/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/replays-events-meta/', {
+          path: {organizationIdOrSlug: orgSlug},
+        }),
         {
           query: {
             referrer: 'replay_details',
@@ -177,7 +200,9 @@ function useReplayData({
       finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
 
       return [
-        `/organizations/${orgSlug}/replays-events-meta/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/replays-events-meta/', {
+          path: {organizationIdOrSlug: orgSlug},
+        }),
         {
           query: {
             referrer: 'replay_details',
@@ -200,7 +225,7 @@ function useReplayData({
     pages: errorPages,
     status: fetchErrorsStatus,
     getLastResponseHeader: lastErrorsResponseHeader,
-  } = useFetchParallelPages<{data: ReplayError[]}>({
+  } = useFetchParallelPages<{data: RawReplayError[]}>({
     enabled: enableErrors,
     hits: replayRecord?.count_errors ?? 0,
     getQueryKey: getErrorsQueryKey,
@@ -214,7 +239,7 @@ function useReplayData({
     (!replayRecord?.count_errors || Boolean(links.next?.results)) &&
     fetchErrorsStatus === 'success';
   const {pages: extraErrorPages, status: fetchExtraErrorsStatus} =
-    useFetchSequentialPages<{data: ReplayError[]}>({
+    useFetchSequentialPages<{data: RawReplayError[]}>({
       enabled: enableExtraErrors,
       initialCursor: links.next?.cursor,
       getQueryKey: getErrorsQueryKey,
@@ -222,7 +247,7 @@ function useReplayData({
     });
 
   const {pages: platformErrorPages, status: fetchPlatformErrorsStatus} =
-    useFetchSequentialPages<{data: ReplayError[]}>({
+    useFetchSequentialPages<{data: RawReplayError[]}>({
       enabled: true,
       getQueryKey: getPlatformErrorsQueryKey,
       perPage: errorsPerPage,
@@ -258,13 +283,22 @@ function useReplayData({
   }, [errorPages, extraErrorPages, platformErrorPages]);
 
   const {
-    feedbackEvents,
+    feedbackEvents: rawFeedbackEvents,
     isPending: feedbackEventsPending,
     isError: feedbackEventsError,
   } = useFeedbackEvents({
     feedbackEventIds: feedbackEventIds ?? [],
     projectId: replayRecord?.project_id,
   });
+
+  // stabilize feedbackEvents to prevent unnecessary re-renders.
+  // we don't care about reordering and feedback events can't be updated.
+  // if a new feedback is submitted, then the length will increase, which is
+  // the only thing we care about.
+  const feedbackEvents = useMemo(() => {
+    return rawFeedbackEvents;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawFeedbackEvents?.length]);
 
   const allStatuses = [
     enableReplayRecord ? fetchReplayStatus : undefined,

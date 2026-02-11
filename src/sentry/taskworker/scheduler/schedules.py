@@ -124,7 +124,7 @@ class CrontabSchedule(Schedule):
     def is_due(self, last_run: datetime | None = None) -> bool:
         """Check if the schedule is due to run again based on last_run."""
         if last_run is None:
-            return True
+            last_run = timezone.now() - timedelta(minutes=1)
         remaining = self.remaining_seconds(last_run)
         return remaining <= 0
 
@@ -135,7 +135,7 @@ class CrontabSchedule(Schedule):
         Use the current time to find the next schedule time
         """
         if last_run is None:
-            return 0
+            last_run = timezone.now() - timedelta(minutes=1)
 
         # This could result in missed beats, or increased load on redis.
         last_run = last_run.replace(second=0, microsecond=0)

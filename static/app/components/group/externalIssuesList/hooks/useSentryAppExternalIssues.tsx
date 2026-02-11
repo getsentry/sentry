@@ -2,7 +2,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {deleteExternalIssue} from 'sentry/actionCreators/platformExternalIssues';
 import type {GroupIntegrationIssueResult} from 'sentry/components/group/externalIssuesList/hooks/types';
 import {useExternalIssues} from 'sentry/components/group/externalIssuesList/useExternalIssues';
-import {doOpenSentryAppIssueModal} from 'sentry/components/group/sentryAppExternalIssueActions';
+import {openSentryAppIssueModal} from 'sentry/components/group/sentryAppExternalIssueModal';
 import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
 import {t} from 'sentry/locale';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
@@ -57,7 +57,7 @@ export function useSentryAppExternalIssues({
     );
     if (externalIssue) {
       result.linkedIssues.push({
-        key: externalIssue.id,
+        key: `sentryapp-linked-${externalIssue.id}`,
         displayName: externalIssue.displayName,
         url: externalIssue.webUrl,
         // Some display names look like PROJ#1234
@@ -68,7 +68,7 @@ export function useSentryAppExternalIssues({
           : `${appDisplayName}: ${externalIssue.displayName}`,
         displayIcon,
         onUnlink: () => {
-          deleteExternalIssue(api, group.id, externalIssue.id)
+          deleteExternalIssue(api, organization.slug, group.id, externalIssue.id)
             .then(_data => {
               onDeleteExternalIssue(externalIssue);
               addSuccessMessage(t('Successfully unlinked issue.'));
@@ -80,7 +80,7 @@ export function useSentryAppExternalIssues({
       });
     } else {
       result.integrations.push({
-        key: component.sentryApp.slug,
+        key: `sentryapp-${component.sentryApp.slug}`,
         displayName: appDisplayName,
         displayIcon,
         disabled: Boolean(component.error),
@@ -90,13 +90,12 @@ export function useSentryAppExternalIssues({
             id: component.sentryApp.slug,
             name: 'Create Issue',
             onClick: () => {
-              doOpenSentryAppIssueModal({
+              openSentryAppIssueModal({
                 organization,
                 group,
                 event,
                 sentryAppComponent: component,
                 sentryAppInstallation: installation,
-                externalIssue,
               });
             },
           },

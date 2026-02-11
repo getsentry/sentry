@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from datetime import timedelta
 from unittest import mock
 
 import pytest
@@ -14,8 +15,8 @@ from sentry.models.repository import Repository
 from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend
 from sentry.release_health.release_monitor.metrics import MetricReleaseMonitorBackend
 from sentry.release_health.tasks import (
+    adopt_releases,
     has_been_adopted,
-    iter_adopted_releases,
     monitor_release_adoption,
     process_projects_with_sessions,
     valid_and_adopted_release,
@@ -38,6 +39,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
         backend = self.backend_class()
         self.backend = mock.patch("sentry.release_health.tasks.release_monitor", backend)
         self.backend.__enter__()
+        # no global option mocking needed
         self.project = self.create_project()
         self.project1 = self.create_project()
         self.project2 = self.create_project()
@@ -114,7 +116,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             group_id=self.event.group.id, project_id=self.project.id, release_id=self.release.id
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.backend.__exit__(None, None, None)
 
     def test_simple(self) -> None:
@@ -548,35 +550,102 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
         no_env_project.refresh_from_db()
         assert not no_env_project.flags.has_releases
 
+    def test_updates_last_seen_on_health_data(self) -> None:
+        # Set last_seen sufficiently in the past so it qualifies for an update (>60s old)
+        past = timezone.now() - timedelta(minutes=5)
+        self.rpe.update(last_seen=past)
+
+        # Ingest a session for the same project/release/environment
+        self.bulk_store_sessions(
+            [
+                self.build_session(
+                    project_id=self.project1,
+                    release=self.release,
+                    environment=self.environment,
+                )
+            ]
+        )
+
+        before_call = timezone.now()
+        # Disable flag must be False to allow updates in this test
+        # Patch sampling to ensure deterministic update during test
+        with (
+            mock.patch("sentry.release_health.tasks.LAST_SEEN_UPDATE_SAMPLE_RATE", 1.0),
+            self.options({"release-health.disable-release-last-seen-update": False}),
+        ):
+            process_projects_with_sessions(self.organization.id, [self.project1.id])
+
+        updated = ReleaseProjectEnvironment.objects.get(id=self.rpe.id)
+        assert updated.last_seen >= before_call
+
 
 class TestMetricReleaseMonitor(BaseTestReleaseMonitor, BaseMetricsTestCase):
     backend_class = MetricReleaseMonitorBackend
 
 
-def test_iter_adopted_releases() -> None:
-    """Test the totals object is flattened into a list of tuple of values."""
-    assert (
-        list(iter_adopted_releases({1: {"": {"releases": {"0.1": 1}, "total_sessions": 1}}})) == []
-    )
-
-    assert list(
-        iter_adopted_releases(
-            {
-                1: {"prod": {"releases": {"0.1": 1, "0.3": 9}, "total_sessions": 10}},
-                2: {"prod": {"releases": {"0.1": 1, "0.2": 4}, "total_sessions": 5}},
-            }
+class TestAdoptReleasesPath(TestMetricReleaseMonitor):
+    def test_adopt_releases_respects_environment_and_threshold(self) -> None:
+        # Empty environment should be ignored
+        adopt_releases(
+            self.organization.id,
+            {self.project1.id: {"": {"releases": {"0.1": 1}, "total_sessions": 1}}},
         )
-    ) == [
-        {"project_id": 1, "environment": "prod", "version": "0.1"},
-        {"project_id": 1, "environment": "prod", "version": "0.3"},
-        {"project_id": 2, "environment": "prod", "version": "0.1"},
-        {"project_id": 2, "environment": "prod", "version": "0.2"},
-    ]
 
-    assert (
-        list(iter_adopted_releases({1: {"prod": {"releases": {"0.1": 1}, "total_sessions": 100}}}))
-        == []
-    )
+        assert not ReleaseProjectEnvironment.objects.filter(
+            project_id=self.project1.id, environment__name=""
+        ).exists()
+
+        # Valid env with releases meeting 10% threshold should be adopted
+        adopt_releases(
+            self.organization.id,
+            {
+                self.project1.id: {
+                    "prod": {"releases": {"0.1": 1, "0.3": 9}, "total_sessions": 10}
+                },
+                self.project2.id: {"prod": {"releases": {"0.1": 1, "0.2": 4}, "total_sessions": 5}},
+            },
+        )
+
+        assert ReleaseProjectEnvironment.objects.filter(
+            project_id=self.project1.id,
+            release__version="0.1",
+            environment__name="prod",
+            adopted__isnull=False,
+        ).exists()
+
+        assert ReleaseProjectEnvironment.objects.filter(
+            project_id=self.project1.id,
+            release__version="0.3",
+            environment__name="prod",
+            adopted__isnull=False,
+        ).exists()
+
+        assert ReleaseProjectEnvironment.objects.filter(
+            project_id=self.project2.id,
+            release__version="0.1",
+            environment__name="prod",
+            adopted__isnull=False,
+        ).exists()
+
+        assert ReleaseProjectEnvironment.objects.filter(
+            project_id=self.project2.id,
+            release__version="0.2",
+            environment__name="prod",
+            adopted__isnull=False,
+        ).exists()
+
+        # Below threshold should not adopt
+        adopt_releases(
+            self.organization.id,
+            {self.project1.id: {"prod": {"releases": {"0.1": 1}, "total_sessions": 100}}},
+        )
+
+        assert not ReleaseProjectEnvironment.objects.filter(
+            project_id=self.project1.id,
+            release__version="0.1",
+            environment__name="prod",
+            adopted__gt=timezone.now(),
+        ).exists()
 
 
 def test_valid_environment() -> None:

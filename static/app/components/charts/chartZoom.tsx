@@ -8,9 +8,9 @@ import type {
 import moment, {type MomentInput} from 'moment-timezone';
 import * as qs from 'query-string';
 
-import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
 import ToolBox from 'sentry/components/charts/components/toolBox';
+import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import type {DateString} from 'sentry/types/core';
 import type {
   EChartChartReadyHandler,
@@ -76,6 +76,8 @@ type Props = {
  *
  * This also is very tightly coupled with the Global Selection Header. We can make it more
  * generic if need be in the future.
+ *
+ * @deprecated use useChartZoom instead
  */
 class ChartZoom extends Component<Props> {
   constructor(props: Props) {
@@ -374,4 +376,7 @@ class ChartZoom extends Component<Props> {
   }
 }
 
+/**
+ * @deprecated use useChartZoom instead
+ */
 export default withSentryRouter(ChartZoom);

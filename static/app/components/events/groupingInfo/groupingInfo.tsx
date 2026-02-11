@@ -1,42 +1,20 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import {GroupInfoSummary} from 'sentry/components/events/groupingInfo/groupingSummary';
 import {useEventGroupingInfo} from 'sentry/components/events/groupingInfo/useEventGroupingInfo';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-import {GroupingConfigSelect} from './groupingConfigSelect';
 import GroupingVariant from './groupingVariant';
-
-function GroupConfigSelect({
-  event,
-  configOverride,
-  setConfigOverride,
-}: {
-  configOverride: string | null;
-  event: Event;
-  setConfigOverride: (value: string) => void;
-}) {
-  if (!event.groupingConfig) {
-    return null;
-  }
-
-  const configId = configOverride ?? event.groupingConfig?.id;
-
-  return (
-    <GroupingConfigSelect
-      configId={configId}
-      onSelect={selection => setConfigOverride(selection.value)}
-    />
-  );
-}
 
 interface GroupingSummaryProps {
   event: Event;
@@ -51,7 +29,8 @@ export default function GroupingInfo({
   showGroupingConfig,
   group,
 }: GroupingSummaryProps) {
-  const [configOverride, setConfigOverride] = useState<string | null>(null);
+  const [showNonContributing, setShowNonContributing] = useState(false);
+
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   const {groupInfo, isPending, isError, isSuccess, hasPerformanceGrouping} =
@@ -59,14 +38,16 @@ export default function GroupingInfo({
       event,
       group,
       projectSlug,
-      query: configOverride ? {config: configOverride} : {},
     });
 
-  const variants = groupInfo
-    ? Object.values(groupInfo).sort((a, b) => {
-        // Sort variants with hashes before those without
-        if (a.hash && !b.hash) {
+  const variants = groupInfo?.variants
+    ? Object.values(groupInfo.variants).sort((a, b) => {
+        // Sort contributing variants before non-contributing ones
+        if (a.contributes && !b.contributes) {
           return -1;
+        }
+        if (b.contributes && !a.contributes) {
+          return 1;
         }
 
         // Sort by description alphabetically
@@ -76,58 +57,76 @@ export default function GroupingInfo({
       })
     : [];
 
+  const feedbackComponent = (
+    <FeatureFeedback
+      featureName="grouping"
+      feedbackTypes={[
+        t('Too eager grouping'),
+        t('Too specific grouping'),
+        t('Other grouping issue'),
+      ]}
+      buttonProps={{size: hasStreamlinedUI ? 'xs' : 'sm'}}
+    />
+  );
+
   return (
     <Fragment>
-      {hasStreamlinedUI && (
-        <GroupInfoSummary event={event} group={group} projectSlug={projectSlug} />
-      )}
-      <ConfigHeader>
-        <div>
-          {showGroupingConfig && (
-            <GroupConfigSelect
-              event={event}
-              configOverride={configOverride}
-              setConfigOverride={setConfigOverride}
-            />
-          )}
-        </div>
-        <FeatureFeedback
-          featureName="grouping"
-          feedbackTypes={[
-            t('Too eager grouping'),
-            t('Too specific grouping'),
-            t('Other grouping issue'),
-          ]}
-          buttonProps={{size: 'sm'}}
-        />
-      </ConfigHeader>
+      <Flex justify="between" marginBottom="2xs" gap="md">
+        {hasStreamlinedUI && (
+          <GroupInfoSummary
+            event={event}
+            group={group}
+            projectSlug={projectSlug}
+            showGroupingConfig={showGroupingConfig}
+          />
+        )}
+        {hasStreamlinedUI ? (
+          feedbackComponent
+        ) : (
+          <div style={{display: 'flex', justifyContent: 'flex-end', width: '100%'}}>
+            {feedbackComponent}
+          </div>
+        )}
+      </Flex>
+      <ToggleContainer>
+        <SegmentedControl
+          aria-label={t('Filter by contribution')}
+          size="xs"
+          value={showNonContributing ? 'all' : 'relevant'}
+          onChange={key => setShowNonContributing(key === 'all')}
+        >
+          <SegmentedControl.Item key="relevant">
+            {t('Contributing Values')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key="all">{t('All Values')}</SegmentedControl.Item>
+        </SegmentedControl>
+      </ToggleContainer>
       {isError ? <LoadingError message={t('Failed to fetch grouping info.')} /> : null}
       {isPending && !hasPerformanceGrouping ? <LoadingIndicator /> : null}
       {hasPerformanceGrouping || isSuccess
-        ? variants.map((variant, index) => (
-            <Fragment key={variant.key}>
-              <GroupingVariant
-                event={event}
-                variant={variant}
-                showGroupingConfig={showGroupingConfig}
-              />
-              {index < variants.length - 1 && <VariantDivider />}
-            </Fragment>
-          ))
+        ? variants
+            .filter(variant => variant.contributes || showNonContributing)
+            .map((variant, index, filteredVariants) => (
+              <Fragment key={variant.key}>
+                <GroupingVariant
+                  event={event}
+                  variant={variant}
+                  showNonContributing={showNonContributing}
+                />
+                {index < filteredVariants.length - 1 && <VariantDivider />}
+              </Fragment>
+            ))
         : null}
     </Fragment>
   );
 }
 
-const ConfigHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${space(1)};
-  margin-bottom: ${space(2)};
+const ToggleContainer = styled(Flex)`
+  justify-content: flex-start;
+  padding-bottom: ${p => p.theme.space.lg};
 `;
 
 const VariantDivider = styled('hr')`
-  padding-top: ${space(1)};
-  border-top: 1px solid ${p => p.theme.border};
+  padding-top: ${p => p.theme.space.md};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;

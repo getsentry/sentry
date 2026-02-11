@@ -29,6 +29,8 @@ class RpcProjectKey(RpcModel):
     dsn_public: str = ""
     project_id: int = -1
     status: int = ProjectKeyStatus.INACTIVE
+    public_key: str = ""
+    integration_endpoint: str = ""
 
     @property
     def is_active(self) -> bool:

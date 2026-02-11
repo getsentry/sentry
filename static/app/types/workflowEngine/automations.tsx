@@ -32,3 +32,11 @@ export type AutomationStats = {
   count: number;
   date: string;
 };
+
+/**
+ * Warning information about the status of actions in an automation.
+ */
+export type StatusWarning = {
+  color: 'danger' | 'warning';
+  message: string;
+};

@@ -32,7 +32,9 @@ function updateGhostRow({
   element.style.height = `${rowHeight}px`;
   element.style.position = 'absolute';
   element.style.backgroundColor =
-    interaction === 'clicked' ? theme.blue300 : theme.surface200;
+    interaction === 'clicked'
+      ? theme.tokens.background.accent.vibrant
+      : theme.tokens.background.secondary;
   element.style.pointerEvents = 'none';
   element.style.willChange = 'transform, opacity';
   element.style.transform = `translateY(${rowHeight * selectedNodeIndex - scrollTop}px)`;
@@ -180,6 +182,18 @@ export interface VirtualizedTreeRenderedRow<T> {
   key: number;
   ref: HTMLElement | null;
   styles: React.CSSProperties;
+}
+
+export interface VirtualizedTreeRenderedRowHandlers<T> {
+  handleExpandTreeNode: (
+    node: VirtualizedTreeNode<T>,
+    expand: boolean,
+    opts?: {expandChildren: boolean}
+  ) => void;
+  handleRowClick: (evt: React.MouseEvent<HTMLElement>) => void;
+  handleRowKeyDown: (event: React.KeyboardEvent) => void;
+  handleRowMouseEnter: (event: React.MouseEvent<HTMLElement>) => void;
+  selectedNodeIndex: number | null;
 }
 
 export function findRenderedItems<T extends TreeLike>({

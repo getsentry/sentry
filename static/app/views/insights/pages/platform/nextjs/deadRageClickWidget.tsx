@@ -1,82 +1,73 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
-import {
-  SelectorLink,
-  transformSelectorQuery,
-} from 'sentry/views/replays/deadRageClick/selectorTable';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
+import {SelectorLink} from 'sentry/views/replays/selectors/selectorLink';
+import {transformSelectorQuery} from 'sentry/views/replays/selectors/utils';
 import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
-export function DeadRageClicksWidget() {
-  const location = useLocation();
+export function DeadRageClicksWidget({visulizationOnly}: {visulizationOnly?: boolean}) {
   const organization = useOrganization();
+  const hasReplays = organization.features.includes('session-replay-ui');
   const {isLoading, error, data} = useDeadRageSelectors({
     per_page: 6,
     sort: '-count_dead_clicks',
     cursor: undefined,
     // Setting this to true just strips rage clicks from the data
     isWidgetData: false,
+    enabled: hasReplays,
   });
 
   const isEmpty = !isLoading && data.length === 0;
 
-  const visualization = (
-    <WidgetVisualizationStates
-      isLoading={isLoading}
-      error={error}
-      isEmpty={isEmpty}
-      emptyMessage={
-        <GenericWidgetEmptyStateWarning
-          message={t('Rage or dead clicks may not be listed due to the filters above')}
-        />
-      }
-      VisualizationType={DeadRageClickWidgetVisualization}
-      visualizationProps={{
-        items: data,
-      }}
-    />
+  let visualization = (
+    <FeatureWrapper>
+      <FeatureDisabled
+        features="organizations:session-replay-ui"
+        featureName={t('Replays')}
+        hideHelpToggle
+      />
+    </FeatureWrapper>
   );
 
-  const allSelectorsPath = makeReplaysPathname({
-    path: '/selectors/',
-    organization,
-  });
+  if (hasReplays) {
+    visualization = (
+      <WidgetVisualizationStates
+        isLoading={isLoading}
+        error={error}
+        isEmpty={isEmpty}
+        emptyMessage={
+          <GenericWidgetEmptyStateWarning
+            message={t('Rage or dead clicks may not be listed due to the filters above')}
+          />
+        }
+        VisualizationType={DeadRageClickWidgetVisualization}
+        visualizationProps={{
+          items: data,
+        }}
+      />
+    );
+  }
+
+  if (visulizationOnly) {
+    return visualization;
+  }
 
   return (
     <Widget
       Title={<Widget.WidgetTitle title={t('Rage & Dead Clicks')} />}
       Visualization={visualization}
-      Actions={
-        <LinkButton
-          size="xs"
-          to={{
-            pathname: allSelectorsPath,
-            query: {
-              ...location.query,
-              sort: '-count_dead_clicks',
-              query: undefined,
-              cursor: undefined,
-            },
-          }}
-        >
-          {t('View All')}
-        </LinkButton>
-      }
       noVisualizationPadding
-      revealActions="always"
     />
   );
 }
@@ -95,13 +86,13 @@ function DeadRageClickWidgetVisualization({items}: {items: DeadRageSelectorItem[
           </ClicksGridCell>
           <ClicksGridCell>
             <ClickCount>
-              <IconCursorArrow size="xs" color="yellow400" />
+              <IconCursorArrow size="xs" variant="warning" />
               {item.count_dead_clicks || 0}
             </ClickCount>
           </ClicksGridCell>
           <ClicksGridCell>
             <ClickCount>
-              <IconCursorArrow size="xs" color="red400" />
+              <IconCursorArrow size="xs" variant="danger" />
               {item.count_rage_clicks || 0}
             </ClickCount>
           </ClicksGridCell>
@@ -128,7 +119,7 @@ const ClicksGridCell = styled('div')`
   padding: ${space(1.5)} ${space(1)};
   min-width: 0;
   overflow: hidden;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   &:nth-child(${COLUMN_COUNT}n + 1) {
     padding-left: ${space(2)};
   }
@@ -138,9 +129,13 @@ const ClicksGridCell = styled('div')`
 `;
 
 const ClickCount = styled(TextOverflow)`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   display: grid;
   grid-template-columns: auto auto;
   gap: ${space(0.75)};
   align-items: center;
+`;
+
+const FeatureWrapper = styled('div')`
+  padding-top: ${p => p.theme.space.md};
 `;

@@ -1,5 +1,6 @@
-import {Button} from 'sentry/components/core/button';
-import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
+import {CompositeSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {
   getDefaultOrderBy,
   getSelectionType,
@@ -35,7 +36,7 @@ export default function FeatureFlagSort({
   return (
     <CompositeSelect
       trigger={triggerProps => (
-        <Button
+        <OverlayTrigger.IconButton
           {...triggerProps}
           aria-label={t('Sort Flags')}
           size="xs"

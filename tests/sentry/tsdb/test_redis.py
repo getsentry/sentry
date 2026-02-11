@@ -48,7 +48,7 @@ class RedisTSDBTest(TestCase):
         # the point of this test is to demonstrate behaviour with a multi-host cluster
         assert len(self.db.cluster.hosts) == 3
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         with self.db.cluster.all() as client:
             client.flushdb()
 

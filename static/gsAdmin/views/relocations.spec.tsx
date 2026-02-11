@@ -1,12 +1,12 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
+// import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Relocations from 'admin/views/relocations';
 
 jest.mock('sentry/actionCreators/indicator');
 
-describe('Relocations', function () {
-  beforeEach(function () {
+describe('Relocations', () => {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/relocations/',
       method: 'GET',
@@ -134,9 +134,8 @@ describe('Relocations', function () {
     });
   });
 
-  it('renders', async function () {
-    const {routerProps} = initializeOrg();
-    render(<Relocations {...routerProps} />);
+  it('renders', async () => {
+    render(<Relocations />);
 
     expect(await screen.findByRole('heading', {name: 'Relocations'})).toBeInTheDocument();
 

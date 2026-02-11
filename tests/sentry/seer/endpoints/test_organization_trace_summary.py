@@ -1,16 +1,16 @@
 import datetime
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, MagicMock, patch
 
 from sentry.snuba.trace import SerializedSpan
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@apply_feature_flag_on_cls("organizations:single-trace-summary")
-@apply_feature_flag_on_cls("organizations:trace-spans-format")
+@with_feature("organizations:single-trace-summary")
+@with_feature("organizations:trace-spans-format")
 class OrganizationTraceSummaryEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -77,7 +77,7 @@ class OrganizationTraceSummaryEndpointTest(APITestCase, SnubaTestCase):
 
         self.url = self._get_url()
 
-    def _get_url(self):
+    def _get_url(self) -> str:
         return f"/api/0/organizations/{self.org.slug}/trace-summary/"
 
     @patch("sentry.seer.endpoints.organization_trace_summary.get_trace_summary")
@@ -113,7 +113,7 @@ class OrganizationTraceSummaryEndpointTest(APITestCase, SnubaTestCase):
         assert response.data == {"detail": "Missing traceSlug parameter"}
 
     @patch("sentry.seer.endpoints.organization_trace_summary.OrganizationTraceEndpoint")
-    def test_endpoint_with_error_response(self, mock_trace_endpoint_class):
+    def test_endpoint_with_error_response(self, mock_trace_endpoint_class: MagicMock) -> None:
         mock_trace_endpoint_class.return_value.query_trace_data.side_effect = Exception(
             "Test exception"
         )
@@ -122,7 +122,9 @@ class OrganizationTraceSummaryEndpointTest(APITestCase, SnubaTestCase):
         assert response.data == {"detail": "Error fetching trace"}
 
     @patch("sentry.seer.endpoints.organization_trace_summary.OrganizationTraceEndpoint")
-    def test_endpoint_with_missing_trace_tree(self, mock_organization_trace_endpoint):
+    def test_endpoint_with_missing_trace_tree(
+        self, mock_organization_trace_endpoint: MagicMock
+    ) -> None:
         mock_organization_trace_endpoint.return_value.get_snuba_params.return_value = {}
         mock_organization_trace_endpoint.return_value.query_trace_data.return_value = []
         response = self.client.post(self.url, data={"traceSlug": self.trace_id}, format="json")

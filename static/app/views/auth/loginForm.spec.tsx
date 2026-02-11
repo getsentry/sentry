@@ -1,5 +1,3 @@
-import {RouterFixture} from 'sentry-fixture/routerFixture';
-
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -11,7 +9,7 @@ async function doLogin() {
   await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 }
 
-describe('LoginForm', function () {
+describe('LoginForm', () => {
   const emptyAuthConfig = {
     canRegister: false,
     githubLoginLink: '',
@@ -21,7 +19,7 @@ describe('LoginForm', function () {
     vstsLoginLink: '',
   };
 
-  it('handles errors', async function () {
+  it('handles errors', async () => {
     MockApiClient.addMockResponse({
       url: '/auth/login/',
       method: 'POST',
@@ -32,16 +30,13 @@ describe('LoginForm', function () {
       },
     });
 
-    render(<LoginForm authConfig={emptyAuthConfig} />, {
-      deprecatedRouterMocks: true,
-    });
+    render(<LoginForm authConfig={emptyAuthConfig} />);
     await doLogin();
 
     expect(await screen.findByText('Bad username password')).toBeInTheDocument();
   });
 
-  it('handles success', async function () {
-    const router = RouterFixture();
+  it('handles success', async () => {
     const userObject = {
       id: 1,
       name: 'Joe',
@@ -57,10 +52,7 @@ describe('LoginForm', function () {
       },
     });
 
-    render(<LoginForm authConfig={emptyAuthConfig} />, {
-      router,
-      deprecatedRouterMocks: true,
-    });
+    const {router} = render(<LoginForm authConfig={emptyAuthConfig} />);
     await doLogin();
 
     expect(mockRequest).toHaveBeenCalledWith(
@@ -71,19 +63,17 @@ describe('LoginForm', function () {
     );
 
     await waitFor(() => expect(ConfigStore.get('user')).toEqual(userObject));
-    expect(router.push).toHaveBeenCalledWith({pathname: '/next/'});
+    expect(router.location.pathname).toBe('/next/');
   });
 
-  it('renders login provider buttons', function () {
+  it('renders login provider buttons', () => {
     const authConfig = {
       ...emptyAuthConfig,
       vstsLoginLink: '/vstsLogin',
       githubLoginLink: '/githubLogin',
     };
 
-    render(<LoginForm authConfig={authConfig} />, {
-      deprecatedRouterMocks: true,
-    });
+    render(<LoginForm authConfig={authConfig} />);
 
     expect(screen.getByText('Sign in with GitHub')).toBeInTheDocument();
     expect(screen.getByText('Sign in with Azure DevOps')).toBeInTheDocument();

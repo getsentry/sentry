@@ -91,7 +91,7 @@ class RpcSentryApp(RpcModel):
     is_internal: bool = True
     is_publish_request_inprogress: bool = False
     status: str = ""
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(repr=False, default_factory=dict)
     avatars: list[RpcSentryAppAvatar] = Field(default_factory=list)
 
     def show_auth_info(self, access: Any) -> bool:
@@ -195,4 +195,10 @@ class SentryAppInstallationFilterArgs(TypedDict, total=False):
     uuids: list[str]
     status: int
     api_token_id: int
-    api_installation_token_id: str
+    api_installation_token_id: int
+
+
+class SentryAppUpdateArgs(TypedDict, total=False):
+    events: list[str]
+    name: str
+    # TODO add whatever else as needed

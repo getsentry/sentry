@@ -2,16 +2,18 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
+
+import {Button, LinkButton} from '@sentry/scraps/button';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons/iconAdd';
@@ -33,11 +35,7 @@ import {
 } from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
-import type {
-  AggregateField,
-  BaseAggregateField,
-  GroupBy,
-} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
+import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {
   isGroupBy,
   isVisualize,
@@ -45,18 +43,29 @@ import {
 import {
   DEFAULT_VISUALIZATION,
   updateVisualizeAggregate,
-  Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
+import type {
+  AggregateField,
+  WritableAggregateField,
+} from 'sentry/views/explore/queryParams/aggregateField';
+import {
+  isVisualizeEquation,
+  MAX_VISUALIZES,
+  Visualize,
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface AggregateColumnEditorModalProps extends ModalRenderProps {
+  booleanTags: TagCollection;
   columns: AggregateField[];
   numberTags: TagCollection;
-  onColumnsChange: (columns: BaseAggregateField[]) => void;
+  onColumnsChange: (columns: WritableAggregateField[]) => void;
   stringTags: TagCollection;
 }
 
@@ -67,6 +76,7 @@ export function AggregateColumnEditorModal({
   closeModal,
   columns,
   onColumnsChange,
+  booleanTags,
   numberTags,
   stringTags,
 }: AggregateColumnEditorModalProps) {
@@ -81,12 +91,26 @@ export function AggregateColumnEditorModal({
   }, [columns]);
 
   const handleApply = useCallback(() => {
-    onColumnsChange(tempColumns.map(col => (isVisualize(col) ? col.toJSON() : col)));
+    const newColumns: WritableAggregateField[] = [];
+
+    for (const col of tempColumns) {
+      if (isGroupBy(col)) {
+        newColumns.push(col);
+      } else if (isVisualize(col)) {
+        newColumns.push(col.serialize());
+      }
+    }
+
+    onColumnsChange(newColumns);
     closeModal();
   }, [closeModal, onColumnsChange, tempColumns]);
 
-  const canDeleteGroupBy = tempColumns.filter(isGroupBy).length > 1;
-  const canDeleteVisualize = tempColumns.filter(isVisualize).length > 1;
+  const groupByColumnss = tempColumns.filter(isGroupBy);
+  const visualizeColumns = tempColumns.filter(isVisualize);
+
+  const canDeleteGroupBy = groupByColumnss.length > 1;
+  const canDeleteVisualize = visualizeColumns.length > 1;
+  const canAddVisualize = visualizeColumns.length < MAX_VISUALIZES;
 
   return (
     <DragNDropContext columns={tempColumns} setColumns={setTempColumns}>
@@ -108,6 +132,7 @@ export function AggregateColumnEditorModal({
                   options={[]}
                   onColumnChange={c => updateColumnAtIndex(i, c)}
                   onColumnDelete={() => deleteColumnAtIndex(i)}
+                  booleanTags={booleanTags}
                   numberTags={numberTags}
                   stringTags={stringTags}
                   groupBys={groupBys}
@@ -127,7 +152,9 @@ export function AggregateColumnEditorModal({
                     key: 'add-visualize',
                     label: t('Visualize / Function'),
                     details: t('ex. p50(span.duration)'),
-                    onAction: () => insertColumn(new Visualize(DEFAULT_VISUALIZATION)),
+                    disabled: !canAddVisualize,
+                    onAction: () =>
+                      insertColumn(new VisualizeFunction(DEFAULT_VISUALIZATION)),
                   },
                   ...(organization.features.includes('visibility-explore-equations')
                     ? [
@@ -135,7 +162,9 @@ export function AggregateColumnEditorModal({
                           key: 'add-equation',
                           label: t('Equation'),
                           details: t('ex. p50(span.duration) / 2'),
-                          onAction: () => insertColumn(new Visualize(EQUATION_PREFIX)),
+                          disabled: !canAddVisualize,
+                          onAction: () =>
+                            insertColumn(new VisualizeEquation(EQUATION_PREFIX)),
                         },
                       ]
                     : []),
@@ -144,7 +173,7 @@ export function AggregateColumnEditorModal({
                   <Button
                     {...triggerProps}
                     aria-label={t('Add a Column')}
-                    icon={<IconAdd isCircled />}
+                    icon={<IconAdd />}
                   >
                     {t('Add a Column')}
                   </Button>
@@ -153,14 +182,14 @@ export function AggregateColumnEditorModal({
             </RowContainer>
           </Body>
           <Footer data-test-id="editor-footer">
-            <ButtonBar>
+            <Grid flow="column" align="center" gap="md">
               <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
                 {t('Read the Docs')}
               </LinkButton>
               <Button aria-label={t('Apply')} priority="primary" onClick={handleApply}>
                 {t('Apply')}
               </Button>
-            </ButtonBar>
+            </Grid>
           </Footer>
         </Fragment>
       )}
@@ -169,6 +198,7 @@ export function AggregateColumnEditorModal({
 }
 
 interface ColumnEditorRowProps {
+  booleanTags: TagCollection;
   canDelete: boolean;
   column: Column<AggregateField>;
   groupBys: string[];
@@ -189,6 +219,7 @@ function ColumnEditorRow({
   onColumnDelete,
   numberTags,
   stringTags,
+  booleanTags,
 }: ColumnEditorRowProps) {
   const {attributes, listeners, setNodeRef, transform, transition} = useSortable({
     id: column.id,
@@ -207,7 +238,7 @@ function ColumnEditorRow({
     >
       <StyledButton
         aria-label={t('Drag to reorder')}
-        borderless
+        priority="transparent"
         size="sm"
         icon={<IconGrabbable size="sm" />}
         {...listeners}
@@ -216,21 +247,24 @@ function ColumnEditorRow({
         <GroupBySelector
           groupBy={column.column}
           groupBys={groupBys}
+          numberTags={numberTags}
           onChange={onColumnChange}
           stringTags={stringTags}
+          booleanTags={booleanTags}
         />
       ) : (
         <VisualizeSelector
           organization={organization}
           visualize={column.column}
           onChange={onColumnChange}
+          booleanTags={booleanTags}
           numberTags={numberTags}
           stringTags={stringTags}
         />
       )}
       <StyledButton
         aria-label={t('Remove Column')}
-        borderless
+        priority="transparent"
         disabled={!canDelete}
         size="sm"
         icon={<IconDelete size="sm" />}
@@ -241,8 +275,10 @@ function ColumnEditorRow({
 }
 
 interface GroupBySelectorProps {
+  booleanTags: TagCollection;
   groupBy: GroupBy;
   groupBys: string[];
+  numberTags: TagCollection;
   onChange: (groupBy: GroupBy) => void;
   stringTags: TagCollection;
 }
@@ -250,12 +286,16 @@ interface GroupBySelectorProps {
 function GroupBySelector({
   groupBy,
   groupBys,
+  numberTags,
   onChange,
   stringTags,
+  booleanTags,
 }: GroupBySelectorProps) {
   const options: Array<SelectOption<string>> = useGroupByFields({
     groupBys,
-    tags: stringTags,
+    numberTags,
+    stringTags,
+    booleanTags,
     traceItemType: TraceItemDataset.SPANS,
   });
 
@@ -275,21 +315,26 @@ function GroupBySelector({
     <SingleWidthCompactSelect
       data-test-id="editor-groupby"
       options={options}
-      triggerLabel={label}
       value={groupBy.groupBy}
       onChange={handleChange}
       searchable
-      triggerProps={{
-        prefix: t('Group By'),
-        style: {
-          width: '100%',
-        },
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          prefix={t('Group By')}
+          style={{
+            width: '100%',
+          }}
+        >
+          {label}
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }
 
 interface VisualizeSelectorProps {
+  booleanTags: TagCollection;
   numberTags: TagCollection;
   onChange: (visualize: Visualize) => void;
   organization: Organization;
@@ -298,7 +343,7 @@ interface VisualizeSelectorProps {
 }
 
 function VisualizeSelector(props: VisualizeSelectorProps) {
-  if (props.visualize.isEquation) {
+  if (isVisualizeEquation(props.visualize)) {
     return <EquationSelector {...props} />;
   }
 
@@ -309,10 +354,15 @@ function AggregateSelector({
   onChange,
   numberTags,
   stringTags,
+  booleanTags,
   visualize,
 }: VisualizeSelectorProps) {
   const yAxis = visualize.yAxis;
   const parsedFunction = useMemo(() => parseFunction(yAxis), [yAxis]);
+  const aggregateFunc = parsedFunction?.name;
+  const aggregateDefinition = aggregateFunc
+    ? getFieldDefinition(aggregateFunc, 'span')
+    : undefined;
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
@@ -327,6 +377,7 @@ function AggregateSelector({
   const argumentOptions: Array<SelectOption<string>> = useVisualizeFields({
     numberTags,
     stringTags,
+    booleanTags,
     parsedFunction,
     traceItemType: TraceItemDataset.SPANS,
   });
@@ -336,7 +387,7 @@ function AggregateSelector({
       const newYAxis = updateVisualizeAggregate({
         newAggregate: option.value as string,
         oldAggregate: parsedFunction?.name,
-        oldArgument: parsedFunction?.arguments[0]!,
+        oldArguments: parsedFunction?.arguments,
       });
       onChange(visualize.replace({yAxis: newYAxis}));
     },
@@ -344,9 +395,17 @@ function AggregateSelector({
   );
 
   const handleArgumentChange = useCallback(
-    (option: SelectOption<SelectKey>) => {
-      const newYAxis = `${parsedFunction?.name}(${option.value})`;
-      onChange(visualize.replace({yAxis: newYAxis}));
+    (index: number, option: SelectOption<SelectKey>) => {
+      if (typeof option.value === 'string') {
+        let args = cloneDeep(parsedFunction?.arguments);
+        if (args) {
+          args[index] = option.value;
+        } else {
+          args = [option.value];
+        }
+        const newYAxis = `${parsedFunction?.name}(${args.join(',')})`;
+        onChange(visualize.replace({yAxis: newYAxis}));
+      }
     },
     [parsedFunction, onChange, visualize]
   );
@@ -359,26 +418,55 @@ function AggregateSelector({
         value={parsedFunction?.name}
         onChange={handleFunctionChange}
         searchable
-        triggerProps={{
-          prefix: t('Function'),
-          style: {
-            width: '100%',
-          },
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            prefix={t('Function')}
+            style={{
+              width: '100%',
+            }}
+          />
+        )}
       />
-      <DoubleWidthCompactSelect
-        data-test-id="editor-visualize-argument"
-        options={argumentOptions}
-        value={parsedFunction?.arguments[0] ?? ''}
-        onChange={handleArgumentChange}
-        searchable
-        disabled={argumentOptions.length === 1}
-        triggerProps={{
-          style: {
-            width: '100%',
-          },
-        }}
-      />
+      {aggregateDefinition?.parameters?.map((param, index) => {
+        return (
+          <DoubleWidthCompactSelect
+            key={param.name}
+            data-test-id="editor-visualize-argument"
+            options={argumentOptions}
+            value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
+            onChange={option => handleArgumentChange(index, option)}
+            searchable
+            disabled={argumentOptions.length === 1}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                style={{
+                  width: '100%',
+                }}
+              />
+            )}
+          />
+        );
+      })}
+      {aggregateDefinition?.parameters?.length === 0 && (
+        <DoubleWidthCompactSelect
+          data-test-id="editor-visualize-argument"
+          options={argumentOptions}
+          value={parsedFunction?.arguments[0] ?? ''}
+          onChange={option => handleArgumentChange(0, option)}
+          searchable
+          disabled
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              style={{
+                width: '100%',
+              }}
+            />
+          )}
+        />
+      )}
     </Fragment>
   );
 }
@@ -386,6 +474,7 @@ function AggregateSelector({
 function EquationSelector({
   numberTags,
   stringTags,
+  booleanTags,
   onChange,
   visualize,
 }: VisualizeSelectorProps) {
@@ -428,6 +517,7 @@ function EquationSelector({
   const getSuggestedAttribute = useExploreSuggestedAttribute({
     numberAttributes: numberTags,
     stringAttributes: stringTags,
+    booleanAttributes: booleanTags,
   });
 
   return (
@@ -470,7 +560,11 @@ const DoubleWidthCompactSelect = styled(CompactSelect)`
 `;
 
 const TriggerLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: left;
   line-height: normal;
   position: relative;

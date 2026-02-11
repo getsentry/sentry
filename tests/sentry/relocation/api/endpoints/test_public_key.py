@@ -22,15 +22,15 @@ class GetRelocationPublicKeyTest(APITestCase):
         (_, pub_key_pem) = generate_rsa_key_pair()
         self.pub_key_pem = pub_key_pem
 
-    def mock_kms_client(self, fake_kms_client: mock.Mock):
+    def mock_kms_client(self, fake_kms_client: mock.Mock) -> None:
         fake_kms_client.return_value.get_public_key.return_value = SimpleNamespace(
             pem=self.pub_key_pem.decode("utf-8")
         )
 
-    @override_options({"relocation.enabled": True})
-    def test_good_superuser_when_feature_enabled(self, fake_kms_client: mock.Mock):
-        superuser = self.create_user("superuser", is_superuser=True, is_active=True)
-        self.login_as(user=superuser, superuser=True)
+    @override_options({"relocation.enabled": True, "staff.ga-rollout": True})
+    def test_good_staff_user_when_feature_enabled(self, fake_kms_client: mock.Mock) -> None:
+        staff_user = self.create_user("staff_user", is_staff=True, is_active=True)
+        self.login_as(user=staff_user, staff=True)
         self.mock_kms_client(fake_kms_client)
         response = self.get_success_response(status_code=200)
 
@@ -38,9 +38,10 @@ class GetRelocationPublicKeyTest(APITestCase):
         assert response.data["public_key"].encode() == self.pub_key_pem
         assert fake_kms_client.return_value.get_public_key.call_count == 1
 
-    def test_good_superuser_when_feature_disabled(self, fake_kms_client: mock.Mock):
-        superuser = self.create_user("superuser", is_superuser=True, is_active=True)
-        self.login_as(user=superuser, superuser=True)
+    @override_options({"staff.ga-rollout": True})
+    def test_good_staff_user_when_feature_disabled(self, fake_kms_client: mock.Mock) -> None:
+        staff_user = self.create_user("staff_user", is_staff=True, is_active=True)
+        self.login_as(user=staff_user, staff=True)
         self.mock_kms_client(fake_kms_client)
         response = self.get_success_response(status_code=200)
 
@@ -49,7 +50,7 @@ class GetRelocationPublicKeyTest(APITestCase):
         assert fake_kms_client.return_value.get_public_key.call_count == 1
 
     @override_options({"relocation.enabled": True, "staff.ga-rollout": True})
-    def test_good_staff_when_feature_enabled(self, fake_kms_client: mock.Mock):
+    def test_good_staff_when_feature_enabled(self, fake_kms_client: mock.Mock) -> None:
         staff = self.create_user("staff", is_staff=True, is_active=True)
         self.login_as(user=staff, staff=True)
         self.mock_kms_client(fake_kms_client)
@@ -60,7 +61,7 @@ class GetRelocationPublicKeyTest(APITestCase):
         assert fake_kms_client.return_value.get_public_key.call_count == 1
 
     @override_options({"staff.ga-rollout": True})
-    def test_good_staff_when_feature_disabled(self, fake_kms_client: mock.Mock):
+    def test_good_staff_when_feature_disabled(self, fake_kms_client: mock.Mock) -> None:
         staff = self.create_user("staff", is_staff=True, is_active=True)
         self.login_as(user=staff, staff=True)
         self.mock_kms_client(fake_kms_client)
@@ -70,8 +71,8 @@ class GetRelocationPublicKeyTest(APITestCase):
         assert response.data["public_key"].encode() == self.pub_key_pem
         assert fake_kms_client.return_value.get_public_key.call_count == 1
 
-    @override_options({"relocation.enabled": True})
-    def test_good_regular_user_when_feature_enabled(self, fake_kms_client: mock.Mock):
+    @override_options({"relocation.enabled": True, "staff.ga-rollout": True})
+    def test_good_regular_user_when_feature_enabled(self, fake_kms_client: mock.Mock) -> None:
         self.login_as(user=self.user, superuser=False)
         self.mock_kms_client(fake_kms_client)
         response = self.get_success_response(status_code=200)
@@ -80,7 +81,8 @@ class GetRelocationPublicKeyTest(APITestCase):
         assert response.data["public_key"].encode() == self.pub_key_pem
         assert fake_kms_client.return_value.get_public_key.call_count == 1
 
-    def test_bad_regular_user_when_feature_disabled(self, fake_kms_client: mock.Mock):
+    @override_options({"staff.ga-rollout": True})
+    def test_bad_regular_user_when_feature_disabled(self, fake_kms_client: mock.Mock) -> None:
         self.login_as(user=self.user, superuser=False)
         self.mock_kms_client(fake_kms_client)
         response = self.get_error_response(status_code=400)
@@ -89,8 +91,8 @@ class GetRelocationPublicKeyTest(APITestCase):
         assert response.data.get("detail") == ERR_FEATURE_DISABLED
         assert fake_kms_client.return_value.get_public_key.call_count == 0
 
-    @override_options({"relocation.enabled": True})
-    def test_bad_kms_network_error(self, fake_kms_client: mock.Mock):
+    @override_options({"relocation.enabled": True, "staff.ga-rollout": True})
+    def test_bad_kms_network_error(self, fake_kms_client: mock.Mock) -> None:
         self.login_as(user=self.user, superuser=False)
         self.mock_kms_client(fake_kms_client)
         fake_kms_client.return_value.get_public_key.return_value = None
@@ -99,14 +101,17 @@ class GetRelocationPublicKeyTest(APITestCase):
 
         assert fake_kms_client.return_value.get_public_key.call_count == 1
 
-    @override_options({"relocation.enabled": True})
-    def test_bad_no_auth(self, fake_kms_client: mock.Mock):
+    @override_options({"relocation.enabled": True, "staff.ga-rollout": True})
+    def test_bad_no_auth(self, fake_kms_client: mock.Mock) -> None:
         self.mock_kms_client(fake_kms_client)
         self.get_error_response(status_code=401)
 
         assert fake_kms_client.return_value.get_public_key.call_count == 0
 
-    def test_bad_superuser_missing_cookie_when_feature_disabled(self, fake_kms_client: mock.Mock):
+    @override_options({"staff.ga-rollout": False})
+    def test_bad_superuser_missing_cookie_when_feature_disabled(
+        self, fake_kms_client: mock.Mock
+    ) -> None:
         superuser = self.create_user("superuser", is_superuser=True, is_active=True)
         self.login_as(user=superuser, staff=False)
         self.mock_kms_client(fake_kms_client)
@@ -115,7 +120,9 @@ class GetRelocationPublicKeyTest(APITestCase):
         assert fake_kms_client.return_value.get_public_key.call_count == 0
 
     @override_options({"staff.ga-rollout": True})
-    def test_bad_staff_missing_cookie_when_feature_disabled(self, fake_kms_client: mock.Mock):
+    def test_bad_staff_missing_cookie_when_feature_disabled(
+        self, fake_kms_client: mock.Mock
+    ) -> None:
         staff = self.create_user("staff", is_staff=True, is_active=True)
         self.login_as(user=staff, staff=False)
         self.mock_kms_client(fake_kms_client)

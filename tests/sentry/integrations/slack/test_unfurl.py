@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.http.request import QueryDict
@@ -15,9 +15,11 @@ from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageB
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
-from sentry.snuba import discover, errors, ourlogs, spans_rpc, transactions
+from sentry.snuba import discover, errors, transactions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQueryEventType
+from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -183,7 +185,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
         ),
     ],
 )
-def test_match_link(url, expected):
+def test_match_link(url, expected) -> None:
     assert match_link(url) == expected
 
 
@@ -200,7 +202,7 @@ class UnfurlTest(TestCase):
         self.frozen_time = freeze_time(datetime.now() - timedelta(days=1))
         self.frozen_time.start()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.frozen_time.stop()
 
     def test_unfurl_issues(self) -> None:
@@ -222,7 +224,7 @@ class UnfurlTest(TestCase):
             ),
         ]
 
-        unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.integration, links)
 
         assert unfurls[links[0].url] == SlackIssuesMessageBuilder(self.group).build()
         assert (
@@ -251,7 +253,7 @@ class UnfurlTest(TestCase):
             ),
         ]
 
-        unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.integration, links)
 
         assert unfurls[links[0].url] == SlackIssuesMessageBuilder(self.group).build()
         assert (
@@ -276,7 +278,7 @@ class UnfurlTest(TestCase):
             ),
         ]
 
-        unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.integration, links)
         assert unfurls[links[0].url]["blocks"][1]["text"]["text"] == "```" + escape_text + "```"
 
     def test_unfurl_metric_alert(self) -> None:
@@ -304,7 +306,7 @@ class UnfurlTest(TestCase):
                 },
             ),
         ]
-        unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+        unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
         assert (
             links[0].url
             == f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{incident.alert_rule.id}/?alert={incident.identifier}"
@@ -315,7 +317,7 @@ class UnfurlTest(TestCase):
         )
 
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_metric_alerts_chart(self, mock_generate_chart):
+    def test_unfurl_metric_alerts_chart(self, mock_generate_chart: MagicMock) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(
             status=2,
@@ -353,7 +355,7 @@ class UnfurlTest(TestCase):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
 
         assert (
             unfurls[links[0].url]
@@ -371,7 +373,7 @@ class UnfurlTest(TestCase):
         assert chart_data["incidents"][0]["id"] == str(incident.id)
 
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_metric_alerts_chart_transaction(self, mock_generate_chart):
+    def test_unfurl_metric_alerts_chart_transaction(self, mock_generate_chart: MagicMock) -> None:
         # Using the transactions dataset
         alert_rule = self.create_alert_rule(query="p95", dataset=Dataset.Transactions)
         incident = self.create_incident(
@@ -405,7 +407,7 @@ class UnfurlTest(TestCase):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
 
         assert (
             unfurls[links[0].url]
@@ -423,7 +425,7 @@ class UnfurlTest(TestCase):
         assert chart_data["incidents"][0]["id"] == str(incident.id)
 
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_metric_alerts_chart_eap_spans(self, mock_generate_chart):
+    def test_unfurl_metric_alerts_chart_eap_spans(self, mock_generate_chart: MagicMock) -> None:
         # Using the EventsAnalyticsPlatform dataset
         alert_rule = self.create_alert_rule(
             query="span.op:foo", dataset=Dataset.EventsAnalyticsPlatform
@@ -463,7 +465,7 @@ class UnfurlTest(TestCase):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
 
         assert (
             unfurls[links[0].url]
@@ -482,7 +484,7 @@ class UnfurlTest(TestCase):
         assert chart_data["incidents"][0]["id"] == str(incident.id)
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_metric_alerts_chart_eap_spans_events_stats_call(
@@ -523,13 +525,13 @@ class UnfurlTest(TestCase):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+            link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
 
         dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
-        assert dataset == spans_rpc
+        assert dataset == Spans
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_metric_alerts_chart_eap_ourlogs_events_stats_call(
@@ -572,13 +574,13 @@ class UnfurlTest(TestCase):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+            link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
 
         dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
-        assert dataset == ourlogs
+        assert dataset == OurLogs
 
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_metric_alerts_chart_crash_free(self, mock_generate_chart):
+    def test_unfurl_metric_alerts_chart_crash_free(self, mock_generate_chart: MagicMock) -> None:
         alert_rule = self.create_alert_rule(
             query="",
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
@@ -611,7 +613,7 @@ class UnfurlTest(TestCase):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
 
         assert (
             unfurls[links[0].url]
@@ -625,7 +627,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["incidents"]) == 0
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
             "end": 1652903400,
@@ -634,7 +636,7 @@ class UnfurlTest(TestCase):
         },
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_discover(self, mock_generate_chart, _):
+    def test_unfurl_discover(self, mock_generate_chart: MagicMock, _: MagicMock) -> None:
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)
 
@@ -646,7 +648,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -660,7 +662,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [
                 (i * INTERVAL_COUNT, [{"count": 0}]) for i in range(int(INTERVALS_PER_DAY / 6))
@@ -671,7 +673,9 @@ class UnfurlTest(TestCase):
         },
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_discover_previous_period(self, mock_generate_chart, _):
+    def test_unfurl_discover_previous_period(
+        self, mock_generate_chart: MagicMock, _: MagicMock
+    ) -> None:
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=previous&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)
 
@@ -683,7 +687,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -698,7 +702,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"]["data"]) == 48
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "count()": {
                 "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
@@ -717,7 +721,9 @@ class UnfurlTest(TestCase):
         },
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_discover_multi_y_axis(self, mock_generate_chart, _):
+    def test_unfurl_discover_multi_y_axis(
+        self, mock_generate_chart: MagicMock, _: MagicMock
+    ) -> None:
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h&yAxis=count_unique%28user%29&yAxis=count%28%29"
         link_type, args = match_link(url)
 
@@ -729,7 +735,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -744,7 +750,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"]["count_unique(user)"]["data"]) == INTERVALS_PER_DAY
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
             "end": 1652903400,
@@ -753,7 +759,9 @@ class UnfurlTest(TestCase):
         },
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_discover_html_escaped(self, mock_generate_chart, _):
+    def test_unfurl_discover_html_escaped(
+        self, mock_generate_chart: MagicMock, _: MagicMock
+    ) -> None:
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&amp;field=event.type&amp;field=project&amp;field=user.display&amp;field=timestamp&amp;name=All+Events&amp;project={self.project.id}&amp;query=&amp;sort=-timestamp&amp;statsPeriod=24h"
         link_type, args = match_link(url)
 
@@ -765,7 +773,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -779,7 +787,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "default,first,capable-hagfish,None": {
                 "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
@@ -798,7 +806,7 @@ class UnfurlTest(TestCase):
         },
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_discover_short_url(self, mock_generate_chart, _):
+    def test_unfurl_discover_short_url(self, mock_generate_chart: MagicMock, _: MagicMock) -> None:
         query = {
             "fields": ["message", "event.type", "project", "user.display", "count_unique(user)"],
             "query": "message:[first,second]",
@@ -831,7 +839,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -851,7 +859,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"][first_key]["data"]) == INTERVALS_PER_DAY
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
             "end": 1652903400,
@@ -860,7 +868,9 @@ class UnfurlTest(TestCase):
         },
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_correct_y_axis_for_saved_query(self, mock_generate_chart, _):
+    def test_unfurl_correct_y_axis_for_saved_query(
+        self, mock_generate_chart: MagicMock, _: MagicMock
+    ) -> None:
         query = {
             "fields": [
                 "message",
@@ -895,7 +905,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -911,7 +921,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "default,first": {
                 "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
@@ -930,7 +940,7 @@ class UnfurlTest(TestCase):
         },
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_top_events_url_param(self, mock_generate_chart, _):
+    def test_top_events_url_param(self, mock_generate_chart: MagicMock, _: MagicMock) -> None:
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=message&field=event.type&field=count()&name=All+Events&query=message:[first,second]&sort=-count&statsPeriod=24h&display=top5&topEvents=2"
         link_type, args = match_link(url)
 
@@ -947,7 +957,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -966,7 +976,7 @@ class UnfurlTest(TestCase):
 
     # patched return value determined by reading events stats output
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "default,second": {
                 "data": [(1212121, [{"count": 15}]), (1652659200, [{"count": 12}])],
@@ -985,7 +995,9 @@ class UnfurlTest(TestCase):
         },
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_top_daily_events_renders_bar_chart(self, mock_generate_chart, _):
+    def test_top_daily_events_renders_bar_chart(
+        self, mock_generate_chart: MagicMock, _: MagicMock
+    ) -> None:
         url = (
             f"https://sentry.io/organizations/{self.organization.slug}/discover/results/"
             "?field=message"
@@ -1013,7 +1025,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1032,7 +1044,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"][first_key]["data"]) == 2
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
             "end": 1652903400,
@@ -1041,7 +1053,9 @@ class UnfurlTest(TestCase):
         },
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_discover_short_url_without_project_ids(self, mock_generate_chart, _):
+    def test_unfurl_discover_short_url_without_project_ids(
+        self, mock_generate_chart: MagicMock, _: MagicMock
+    ) -> None:
         query = {
             "fields": ["title", "event.type", "project", "user.display", "timestamp"],
             "query": "",
@@ -1072,7 +1086,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1088,7 +1102,7 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
             "end": 1652903400,
@@ -1116,7 +1130,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1135,7 +1149,7 @@ class UnfurlTest(TestCase):
 
     # patched return value determined by reading events stats output
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "default,second": {
                 "data": [(1212121, [{"count": 15}]), (1652659200, [{"count": 12}])],
@@ -1154,7 +1168,9 @@ class UnfurlTest(TestCase):
         },
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_bar_chart_display_renders_bar_chart(self, mock_generate_chart, _):
+    def test_bar_chart_display_renders_bar_chart(
+        self, mock_generate_chart: MagicMock, _: MagicMock
+    ) -> None:
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=bar&field=title&event.type%3Aerror&sort=-count&statsPeriod=24h&yAxis=count%28%29"
 
         link_type, args = match_link(url)
@@ -1172,7 +1188,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1186,7 +1202,9 @@ class UnfurlTest(TestCase):
 
     @patch("sentry.integrations.slack.unfurl.discover.client.get")
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_bar_chart_interval_with_absolute_date(self, mock_generate_chart, api_mock):
+    def test_bar_chart_interval_with_absolute_date(
+        self, mock_generate_chart: MagicMock, api_mock: MagicMock
+    ) -> None:
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=bar&end=2022-09-16T23%3A59%3A59&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&query=&sort=-timestamp&start=2022-09-09T00%3A00%3A00&utc=true&yAxis=count%28%29"
 
         link_type, args = match_link(url)
@@ -1204,7 +1222,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1221,7 +1239,9 @@ class UnfurlTest(TestCase):
 
     @patch("sentry.integrations.slack.unfurl.discover.client.get")
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_bar_chart_interval_with_periodic_date(self, mock_generate_chart, api_mock):
+    def test_bar_chart_interval_with_periodic_date(
+        self, mock_generate_chart: MagicMock, api_mock: MagicMock
+    ) -> None:
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=bar&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&query=&sort=-timestamp&statsPeriod=90d&utc=true&yAxis=count%28%29"
 
         link_type, args = match_link(url)
@@ -1239,7 +1259,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1256,7 +1276,9 @@ class UnfurlTest(TestCase):
 
     @patch("sentry.integrations.slack.unfurl.discover.client.get")
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_saved_query_with_interval(self, mock_generate_chart, api_mock):
+    def test_saved_query_with_interval(
+        self, mock_generate_chart: MagicMock, api_mock: MagicMock
+    ) -> None:
         query = {
             "fields": ["title", "event.type", "project", "user.display", "timestamp"],
             "query": "",
@@ -1290,7 +1312,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1306,10 +1328,12 @@ class UnfurlTest(TestCase):
         assert api_mock.call_args[1]["params"]["interval"] == "10m"
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_saved_query_with_dataset(self, mock_generate_chart, mock_get_event_stats_data):
+    def test_saved_query_with_dataset(
+        self, mock_generate_chart: MagicMock, mock_get_event_stats_data: MagicMock
+    ) -> None:
         query = {
             "fields": ["title", "event.type", "project", "user.display", "timestamp"],
             "query": "",
@@ -1343,7 +1367,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1359,7 +1383,7 @@ class UnfurlTest(TestCase):
         assert dataset == transactions
 
     @patch(
-        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
             "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
             "end": 1652903400,
@@ -1368,7 +1392,9 @@ class UnfurlTest(TestCase):
         },
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_discover_homepage(self, mock_generate_chart, mock_get_event_stats_data):
+    def test_unfurl_discover_homepage(
+        self, mock_generate_chart: MagicMock, mock_get_event_stats_data: MagicMock
+    ) -> None:
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/homepage/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)
 
@@ -1380,7 +1406,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]

@@ -1,5 +1,6 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import useResizable from 'sentry/utils/useResizable';
@@ -32,11 +33,7 @@ export function SecondarySidebar() {
     SECONDARY_SIDEBAR_WIDTH
   );
 
-  const {
-    onMouseDown: handleStartResize,
-    size,
-    onDoubleClick,
-  } = useResizable({
+  const {onMouseDown: handleStartResize, size} = useResizable({
     ref: resizableContainerRef,
     initialSize: secondarySidebarWidth,
     minWidth: SECONDARY_SIDEBAR_MIN_WIDTH,
@@ -57,42 +54,45 @@ export function SecondarySidebar() {
       description={STACKED_NAVIGATION_TOUR_CONTENT[stepId].description}
       title={STACKED_NAVIGATION_TOUR_CONTENT[stepId].title}
     >
-      <ResizeWrapper
-        ref={resizableContainerRef}
-        onMouseDown={handleStartResize}
-        {...{
-          [NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
-        }}
-      >
-        <AnimatePresence mode="wait" initial={false}>
-          <MotionDiv
-            key={activeNavGroup}
-            initial={{x: -4, opacity: 0}}
-            animate={{x: 0, opacity: 1}}
-            exit={{x: 4, opacity: 0}}
-            transition={{duration: 0.06}}
-          >
-            <SecondarySidebarInner>
-              <SecondaryNavContent group={activeNavGroup} />
-            </SecondarySidebarInner>
-            <ResizeHandle
-              ref={resizeHandleRef}
-              onMouseDown={handleStartResize}
-              onDoubleClick={onDoubleClick}
-              atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
-              atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
-            />
-          </MotionDiv>
-        </AnimatePresence>
-      </ResizeWrapper>
+      {({ref, ...props}) => (
+        <ResizeWrapper
+          {...props}
+          ref={mergeRefs(resizableContainerRef, ref)}
+          {...{
+            [NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
+          }}
+        >
+          <AnimatePresence mode="popLayout" initial={false}>
+            <MotionDiv
+              key={activeNavGroup}
+              initial={{x: -6, opacity: 0}}
+              animate={{x: 0, opacity: 1}}
+              exit={{x: 6, opacity: 0}}
+              transition={{duration: 0.06}}
+            >
+              <SecondarySidebarInner>
+                <SecondaryNavContent group={activeNavGroup} />
+              </SecondarySidebarInner>
+              <ResizeHandle
+                ref={resizeHandleRef}
+                onMouseDown={handleStartResize}
+                onDoubleClick={() => {
+                  setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
+                }}
+                atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
+                atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
+              />
+            </MotionDiv>
+          </AnimatePresence>
+        </ResizeWrapper>
+      )}
     </SecondarySidebarWrapper>
   );
 }
 
 const SecondarySidebarWrapper = styled(NavTourElement)`
-  background: ${p => (p.theme.isChonk ? p.theme.background : p.theme.surface200)};
-  border-right: 1px solid
-    ${p => (p.theme.isChonk ? p.theme.border : p.theme.translucentGray200)};
+  background: ${p => p.theme.tokens.background.secondary};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
   position: relative;
   z-index: ${p => p.theme.zIndex.sidebarPanel};
   height: 100%;
@@ -126,7 +126,7 @@ const ResizeHandle = styled('div')<{atMaxWidth: boolean; atMinWidth: boolean}>`
   &:hover,
   &:active {
     &::after {
-      background: ${p => p.theme.purple400};
+      background: ${p => p.theme.tokens.graphics.accent.vibrant};
     }
   }
 

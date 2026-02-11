@@ -20,15 +20,15 @@ from snuba_sdk import (
     Storage,
 )
 
-from sentry import features, options
+from sentry import options
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
 from sentry.search.events.fields import resolve_datetime64
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
-from sentry.snuba import spans_rpc
 from sentry.snuba.dataset import Dataset, StorageKey
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.spans_rpc import Spans
 from sentry.utils.iterators import chunked
 from sentry.utils.snuba import bulk_snuba_queries
 
@@ -102,18 +102,8 @@ class FlamegraphExecutor:
         if self.data_source == "functions":
             return self.get_profile_candidates_from_functions()
         elif self.data_source == "transactions":
-            if features.has(
-                "organizations:profiling-flamegraph-use-increased-chunks-query-strategy",
-                self.snuba_params.organization,
-            ):
-                return self.get_profile_candidates_from_transactions_v2()
             return self.get_profile_candidates_from_transactions()
         elif self.data_source == "profiles":
-            if features.has(
-                "organizations:profiling-flamegraph-use-increased-chunks-query-strategy",
-                self.snuba_params.organization,
-            ):
-                return self.get_profile_candidates_from_profiles_v2()
             return self.get_profile_candidates_from_profiles()
         elif self.data_source == "spans":
             return self.get_profile_candidates_from_spans()
@@ -190,50 +180,6 @@ class FlamegraphExecutor:
 
     def get_profile_candidates_from_transactions(self) -> ProfileCandidates:
         max_profiles = options.get("profiling.flamegraph.profile-set.size")
-
-        builder = self.get_transactions_based_candidate_query(query=self.query, limit=max_profiles)
-
-        results = builder.run_query(
-            Referrer.API_PROFILING_PROFILE_FLAMEGRAPH_TRANSACTION_CANDIDATES.value,
-        )
-        results = builder.process_results(results)
-
-        transaction_profile_candidates: list[TransactionProfileCandidate] = [
-            {
-                "project_id": row["project.id"],
-                "profile_id": row["profile.id"],
-            }
-            for row in results["data"]
-            if row["profile.id"] is not None
-        ]
-
-        max_continuous_profile_candidates = max(
-            max_profiles - len(transaction_profile_candidates), 0
-        )
-
-        continuous_profile_candidates, _ = self.get_chunks_for_profilers(
-            [
-                ProfilerMeta(
-                    project_id=row["project.id"],
-                    profiler_id=row["profiler.id"],
-                    thread_id=row["thread.id"],
-                    start=row["precise.start_ts"],
-                    end=row["precise.finish_ts"],
-                    transaction_id=row["id"],
-                )
-                for row in results["data"]
-                if row["profiler.id"] is not None and row["thread.id"]
-            ],
-            max_continuous_profile_candidates,
-        )
-
-        return {
-            "transaction": transaction_profile_candidates,
-            "continuous": continuous_profile_candidates,
-        }
-
-    def get_profile_candidates_from_transactions_v2(self) -> ProfileCandidates:
-        max_profiles = options.get("profiling.flamegraph.profile-set.size")
         initial_chunk_delta_hours = options.get(
             "profiling.flamegraph.query.initial_chunk_delta.hours"
         )
@@ -247,21 +193,21 @@ class FlamegraphExecutor:
         profiler_metas: list[ProfilerMeta] = []
 
         assert self.snuba_params.start is not None and self.snuba_params.end is not None
-        original_start, original_end = self.snuba_params.start, self.snuba_params.end
+        snuba_params = self.snuba_params.copy()
 
         for chunk_start, chunk_end in split_datetime_range_exponential(
-            original_start,
-            original_end,
+            self.snuba_params.start,
+            self.snuba_params.end,
             initial_chunk_delta,
             max_chunk_delta,
             multiplier,
             reverse=True,
         ):
-            self.snuba_params.start = chunk_start
-            self.snuba_params.end = chunk_end
+            snuba_params.start = chunk_start
+            snuba_params.end = chunk_end
 
             builder = self.get_transactions_based_candidate_query(
-                query=self.query, limit=max_profiles
+                query=self.query, limit=max_profiles, snuba_params=snuba_params
             )
 
             results = builder.run_query(
@@ -298,9 +244,9 @@ class FlamegraphExecutor:
         continuous_profile_candidates: list[ContinuousProfileCandidate] = []
 
         if max_continuous_profile_candidates > 0:
+            snuba_params.end = self.snuba_params.end
             continuous_profile_candidates, _ = self.get_chunks_for_profilers(
-                profiler_metas,
-                max_continuous_profile_candidates,
+                profiler_metas, max_continuous_profile_candidates, snuba_params
             )
 
         return {
@@ -309,12 +255,15 @@ class FlamegraphExecutor:
         }
 
     def get_transactions_based_candidate_query(
-        self, query: str | None, limit: int
+        self,
+        query: str | None,
+        limit: int,
+        snuba_params: SnubaParams | None = None,
     ) -> DiscoverQueryBuilder:
         builder = DiscoverQueryBuilder(
             dataset=Dataset.Discover,
             params={},
-            snuba_params=self.snuba_params,
+            snuba_params=snuba_params or self.snuba_params,
             selected_columns=[
                 "id",
                 "project.id",
@@ -356,7 +305,10 @@ class FlamegraphExecutor:
         return builder
 
     def get_chunks_for_profilers(
-        self, profiler_metas: list[ProfilerMeta], limit: int
+        self,
+        profiler_metas: list[ProfilerMeta],
+        limit: int,
+        snuba_params: SnubaParams | None = None,
     ) -> tuple[list[ContinuousProfileCandidate], float]:
         total_duration = 0.0
 
@@ -365,7 +317,8 @@ class FlamegraphExecutor:
 
         chunk_size = options.get("profiling.continuous-profiling.chunks-query.size")
         queries = [
-            self._create_chunks_query(chunk) for chunk in chunked(profiler_metas, chunk_size)
+            self._create_chunks_query(chunk, snuba_params)
+            for chunk in chunked(profiler_metas, chunk_size)
         ]
 
         results = self._query_chunks_for_profilers(queries)
@@ -416,8 +369,11 @@ class FlamegraphExecutor:
 
         return continuous_profile_candidates, total_duration
 
-    def _create_chunks_query(self, profiler_metas: list[ProfilerMeta]) -> Query:
+    def _create_chunks_query(
+        self, profiler_metas: list[ProfilerMeta], snuba_params: SnubaParams | None = None
+    ) -> Query:
         assert profiler_metas, "profiler_metas cannot be empty"
+        snuba_params = snuba_params or self.snuba_params
 
         profiler_conditions = [profiler_meta.as_condition() for profiler_meta in profiler_metas]
 
@@ -434,10 +390,10 @@ class FlamegraphExecutor:
         start_condition = Condition(
             Column("start_timestamp"),
             Op.LT,
-            resolve_datetime64(self.snuba_params.end),
+            resolve_datetime64(snuba_params.end),
         )
         end_condition = Condition(
-            Column("end_timestamp"), Op.GTE, resolve_datetime64(self.snuba_params.start)
+            Column("end_timestamp"), Op.GTE, resolve_datetime64(snuba_params.start)
         )
 
         return Query(
@@ -494,150 +450,6 @@ class FlamegraphExecutor:
             raise ValueError("`organization` is required and cannot be `None`")
 
         max_profiles = options.get("profiling.flamegraph.profile-set.size")
-
-        referrer = Referrer.API_PROFILING_PROFILE_FLAMEGRAPH_PROFILE_CANDIDATES.value
-
-        transaction_profiles_builder = self.get_transactions_based_candidate_query(
-            query=None, limit=max_profiles
-        )
-
-        conditions = []
-
-        conditions.append(Condition(Column("project_id"), Op.IN, self.snuba_params.project_ids))
-
-        conditions.append(
-            Condition(Column("start_timestamp"), Op.LT, resolve_datetime64(self.snuba_params.end))
-        )
-
-        conditions.append(
-            Condition(Column("end_timestamp"), Op.GTE, resolve_datetime64(self.snuba_params.start))
-        )
-
-        environments = self.snuba_params.environment_names
-        if environments:
-            conditions.append(Condition(Column("environment"), Op.IN, environments))
-
-        continuous_profiles_query = Query(
-            match=Storage(StorageKey.ProfileChunks.value),
-            select=[
-                Column("project_id"),
-                Column("profiler_id"),
-                Column("chunk_id"),
-                Column("start_timestamp"),
-                Column("end_timestamp"),
-            ],
-            where=conditions,
-            orderby=[OrderBy(Column("start_timestamp"), Direction.DESC)],
-            limit=Limit(max_profiles),
-        )
-
-        all_results = bulk_snuba_queries(
-            [
-                transaction_profiles_builder.get_snql_query(),
-                Request(
-                    dataset=Dataset.Profiles.value,
-                    app_id="default",
-                    query=continuous_profiles_query,
-                    tenant_ids={
-                        "referrer": referrer,
-                        "organization_id": self.snuba_params.organization.id,
-                    },
-                ),
-            ],
-            referrer,
-        )
-
-        transaction_profile_results = transaction_profiles_builder.process_results(all_results[0])
-        continuous_profile_results = all_results[1]
-
-        transaction_profile_candidates: list[TransactionProfileCandidate] = [
-            {
-                "project_id": row["project.id"],
-                "profile_id": row["profile.id"],
-            }
-            for row in transaction_profile_results["data"]
-            if row["profile.id"] is not None
-        ]
-
-        max_continuous_profile_candidates = max(
-            max_profiles - len(transaction_profile_candidates), 0
-        )
-
-        profiler_metas = [
-            ProfilerMeta(
-                project_id=row["project.id"],
-                profiler_id=row["profiler.id"],
-                thread_id=row["thread.id"],
-                start=row["precise.start_ts"],
-                end=row["precise.finish_ts"],
-                transaction_id=row["id"],
-            )
-            for row in transaction_profile_results["data"]
-            if row["profiler.id"] is not None and row["thread.id"]
-        ]
-
-        continuous_profile_candidates: list[ContinuousProfileCandidate] = []
-        continuous_duration = 0.0
-
-        # If there are continuous profiles attached to transactions, we prefer those as
-        # the active thread id gives us more user friendly flamegraphs than without.
-        if profiler_metas:
-            continuous_profile_candidates, continuous_duration = self.get_chunks_for_profilers(
-                profiler_metas, max_continuous_profile_candidates
-            )
-
-        seen_chunks = {
-            (candidate["profiler_id"], candidate["chunk_id"])
-            for candidate in continuous_profile_candidates
-        }
-
-        always_use_direct_chunks = features.has(
-            "organizations:profiling-flamegraph-always-use-direct-chunks",
-            self.snuba_params.organization,
-            actor=self.request.user,
-        )
-
-        # If we still don't have any continuous profile candidates, we'll fall back to
-        # directly using the continuous profiling data
-        if not continuous_profile_candidates or always_use_direct_chunks:
-            total_duration = continuous_duration if always_use_direct_chunks else 0.0
-            max_duration = options.get("profiling.continuous-profiling.flamegraph.max-seconds")
-
-            for row in continuous_profile_results["data"]:
-
-                # Make sure to dedupe profile chunks so we don't reuse chunks
-                if (row["profiler_id"], row["chunk_id"]) in seen_chunks:
-                    continue
-
-                start = datetime.fromisoformat(row["start_timestamp"]).timestamp()
-                end = datetime.fromisoformat(row["end_timestamp"]).timestamp()
-
-                candidate: ContinuousProfileCandidate = {
-                    "project_id": row["project_id"],
-                    "profiler_id": row["profiler_id"],
-                    "chunk_id": row["chunk_id"],
-                    "start": str(int(start * 1e9)),
-                    "end": str(int(end * 1e9)),
-                }
-
-                continuous_profile_candidates.append(candidate)
-
-                total_duration += end - start
-
-                # can set max duration to negative to skip this check
-                if max_duration >= 0 and total_duration >= max_duration:
-                    break
-
-        return {
-            "transaction": transaction_profile_candidates,
-            "continuous": continuous_profile_candidates,
-        }
-
-    def get_profile_candidates_from_profiles_v2(self) -> ProfileCandidates:
-        if self.snuba_params.organization is None:
-            raise ValueError("`organization` is required and cannot be `None`")
-
-        max_profiles = options.get("profiling.flamegraph.profile-set.size")
         initial_chunk_delta_hours = options.get(
             "profiling.flamegraph.query.initial_chunk_delta.hours"
         )
@@ -652,21 +464,21 @@ class FlamegraphExecutor:
         profiler_metas: list[ProfilerMeta] = []
 
         assert self.snuba_params.start is not None and self.snuba_params.end is not None
-        original_start, original_end = self.snuba_params.start, self.snuba_params.end
+        snuba_params = self.snuba_params.copy()
 
         for chunk_start, chunk_end in split_datetime_range_exponential(
-            original_start,
-            original_end,
+            self.snuba_params.start,
+            self.snuba_params.end,
             initial_chunk_delta,
             max_chunk_delta,
             multiplier,
             reverse=True,
         ):
-            self.snuba_params.start = chunk_start
-            self.snuba_params.end = chunk_end
+            snuba_params.start = chunk_start
+            snuba_params.end = chunk_end
 
             builder = self.get_transactions_based_candidate_query(
-                query=self.query, limit=max_profiles
+                query=self.query, limit=max_profiles, snuba_params=snuba_params
             )
             results = builder.run_query(referrer)
             results = builder.process_results(results)
@@ -704,8 +516,9 @@ class FlamegraphExecutor:
         # If there are continuous profiles attached to transactions, we prefer those as
         # the active thread id gives us more user friendly flamegraphs than without.
         if profiler_metas and max_continuous_profile_candidates > 0:
+            snuba_params.end = self.snuba_params.end
             continuous_profile_candidates, continuous_duration = self.get_chunks_for_profilers(
-                profiler_metas, max_continuous_profile_candidates
+                profiler_metas, max_continuous_profile_candidates, snuba_params
             )
 
         seen_chunks = {
@@ -713,28 +526,21 @@ class FlamegraphExecutor:
             for candidate in continuous_profile_candidates
         }
 
-        always_use_direct_chunks = features.has(
-            "organizations:profiling-flamegraph-always-use-direct-chunks",
-            self.snuba_params.organization,
-            actor=self.request.user,
-        )
-
         # If we still don't have enough continuous profile candidates + transaction profile candidates,
         # we'll fall back to directly using the continuous profiling data
-        if (
-            len(continuous_profile_candidates) + len(transaction_profile_candidates) < max_profiles
-            and always_use_direct_chunks
-        ):
-            total_duration = continuous_duration if always_use_direct_chunks else 0.0
-            max_duration = options.get("profiling.continuous-profiling.flamegraph.max-seconds")
+        if len(continuous_profile_candidates) + len(transaction_profile_candidates) < max_profiles:
 
             conditions = []
             conditions.append(Condition(Column("project_id"), Op.IN, self.snuba_params.project_ids))
             conditions.append(
-                Condition(Column("start_timestamp"), Op.LT, resolve_datetime64(original_end))
+                Condition(
+                    Column("start_timestamp"), Op.LT, resolve_datetime64(self.snuba_params.end)
+                )
             )
             conditions.append(
-                Condition(Column("end_timestamp"), Op.GTE, resolve_datetime64(original_start))
+                Condition(
+                    Column("end_timestamp"), Op.GTE, resolve_datetime64(self.snuba_params.start)
+                )
             )
             environments = self.snuba_params.environment_names
             if environments:
@@ -790,10 +596,8 @@ class FlamegraphExecutor:
 
                 continuous_profile_candidates.append(candidate)
 
-                total_duration += end_timestamp - start_timestamp
-
                 # can set max duration to negative to skip this check
-                if (max_duration >= 0 and total_duration >= max_duration) or (
+                if (
                     len(continuous_profile_candidates) + len(transaction_profile_candidates)
                     >= max_profiles
                 ):
@@ -847,9 +651,9 @@ class FlamegraphExecutor:
             query = f"{query} and {profiling_constraint}"
         else:
             query = profiling_constraint
-        return spans_rpc.run_table_query(
-            self.snuba_params,
-            query,
+        return Spans.run_table_query(
+            params=self.snuba_params,
+            query_string=query,
             selected_columns=[
                 "id",
                 "project.id",

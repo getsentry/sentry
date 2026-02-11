@@ -1,48 +1,38 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 
-const {organization, projects, router} = initializeOrg({
-  organization: {
-    features: ['global-views', 'open-membership', 'visibility-explore-view'],
-  },
-  projects: [
-    {id: '1', slug: 'project-1', isMember: true},
-    {id: '2', slug: 'project-2', isMember: true},
-    {id: '3', slug: 'project-3', isMember: false},
-  ],
-  router: {
-    location: {
-      pathname: '/organizations/org-slug/dashboard/1/',
-      query: {project: '-1'},
-    },
-    params: {},
-  },
+const organization = OrganizationFixture({
+  features: ['open-membership', 'visibility-explore-view'],
 });
 
-describe('NewWidgetBuilder', function () {
+const projects = [
+  ProjectFixture({id: '1', slug: 'project-1', isMember: true}),
+  ProjectFixture({id: '2', slug: 'project-2', isMember: true}),
+  ProjectFixture({id: '3', slug: 'project-3', isMember: false}),
+];
+
+describe('NewWidgetBuilder', () => {
   const onCloseMock = jest.fn();
   const onSaveMock = jest.fn();
 
-  beforeEach(function () {
+  beforeEach(() => {
     OrganizationStore.init();
 
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [],
-        environments: [],
-        datetime: {start: null, end: null, period: '14d', utc: null},
-      },
-      new Set(['projects'])
-    );
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
 
     OrganizationStore.onUpdate(organization, {replace: true});
     ProjectsStore.loadInitialData(projects);
@@ -74,7 +64,14 @@ describe('NewWidgetBuilder', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: [],
+      body: {
+        data: [
+          [[1646100000], [{count: 1}]],
+          [[1646120000], [{count: 1}]],
+        ],
+        start: 1646100000,
+        end: 1646120000,
+      },
     });
 
     MockApiClient.addMockResponse({
@@ -94,26 +91,33 @@ describe('NewWidgetBuilder', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
+      body: [],
     });
   });
 
   afterEach(() => PageFiltersStore.reset());
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(
-      <WidgetBuilderV2
-        isOpen
-        onClose={onCloseMock}
-        dashboard={DashboardFixture([])}
-        dashboardFilters={{}}
-        onSave={onSaveMock}
-        openWidgetTemplates={false}
-        setOpenWidgetTemplates={jest.fn()}
-      />,
+      <PageFiltersContainer skipLoadLastUsed skipInitializeUrlParams disablePersistence>
+        <WidgetBuilderV2
+          isOpen
+          onClose={onCloseMock}
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{}}
+          onSave={onSaveMock}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </PageFiltersContainer>,
       {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
+            query: {project: '-1'},
+          },
+        },
       }
     );
 
@@ -129,12 +133,14 @@ describe('NewWidgetBuilder', function () {
     expect(await screen.findByPlaceholderText('Name')).toBeInTheDocument();
     expect(await screen.findByText('+ Add Description')).toBeInTheDocument();
 
-    expect(await screen.findByLabelText('Dataset')).toHaveAttribute('role', 'radiogroup');
-    expect(screen.getByText('Errors')).toBeInTheDocument();
-    expect(screen.getByText('Transactions')).toBeInTheDocument();
-    expect(screen.getByText('Spans')).toBeInTheDocument();
-    expect(screen.getByText('Issues')).toBeInTheDocument();
-    expect(screen.getByText('Releases')).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Errors'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Errors'}));
+    expect(await screen.findByRole('option', {name: 'Errors'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Transactions'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Spans'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Issues'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Releases'})).toBeInTheDocument();
 
     expect(screen.getByText('Table')).toBeInTheDocument();
     // ensure the dropdown input has the default value 'table'
@@ -158,15 +164,7 @@ describe('NewWidgetBuilder', function () {
     });
   });
 
-  it('render the filter alias field and add filter button on chart widgets', async function () {
-    const chartsRouter = RouterFixture({
-      ...router,
-      location: {
-        ...router.location,
-        query: {...router.location.query, displayType: 'line'},
-      },
-    });
-
+  it('render the filter alias field and add filter button on chart widgets', async () => {
     render(
       <WidgetBuilderV2
         isOpen
@@ -178,9 +176,13 @@ describe('NewWidgetBuilder', function () {
         setOpenWidgetTemplates={jest.fn()}
       />,
       {
-        router: chartsRouter,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
+            query: {project: '-1', displayType: 'line'},
+          },
+        },
       }
     );
 
@@ -195,7 +197,7 @@ describe('NewWidgetBuilder', function () {
     expect(screen.getAllByLabelText('Remove this filter')).toHaveLength(2);
   });
 
-  it('does not render the filter alias field and add filter button on other widgets', async function () {
+  it('does not render the filter alias field and add filter button on other widgets', async () => {
     render(
       <WidgetBuilderV2
         isOpen
@@ -207,9 +209,13 @@ describe('NewWidgetBuilder', function () {
         setOpenWidgetTemplates={jest.fn()}
       />,
       {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
+            query: {project: '-1'},
+          },
+        },
       }
     );
 
@@ -221,15 +227,7 @@ describe('NewWidgetBuilder', function () {
     expect(screen.queryByLabelText('Remove this filter')).not.toBeInTheDocument();
   });
 
-  it('renders the group by field on chart widgets', async function () {
-    const chartsRouter = RouterFixture({
-      ...router,
-      location: {
-        ...router.location,
-        query: {...router.location.query, displayType: 'line'},
-      },
-    });
-
+  it('renders the group by field on chart widgets', async () => {
     render(
       <WidgetBuilderV2
         isOpen
@@ -241,9 +239,13 @@ describe('NewWidgetBuilder', function () {
         setOpenWidgetTemplates={jest.fn()}
       />,
       {
-        router: chartsRouter,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
+            query: {project: '-1', displayType: 'line'},
+          },
+        },
       }
     );
 
@@ -252,7 +254,7 @@ describe('NewWidgetBuilder', function () {
     expect(await screen.findByText('+ Add Group')).toBeInTheDocument();
   });
 
-  it('renders empty widget preview when no widget selected from templates', async function () {
+  it('renders empty widget preview when no widget selected from templates', async () => {
     render(
       <WidgetBuilderV2
         isOpen
@@ -264,9 +266,13 @@ describe('NewWidgetBuilder', function () {
         setOpenWidgetTemplates={jest.fn()}
       />,
       {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
+            query: {project: '-1'},
+          },
+        },
       }
     );
 

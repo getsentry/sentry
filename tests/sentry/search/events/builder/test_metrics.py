@@ -1483,7 +1483,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert math.isnan(data["p50"])
 
     @mock.patch("sentry.search.events.builder.metrics.indexer.resolve", return_value=-1)
-    def test_multiple_references_only_resolve_index_once(self, mock_indexer):
+    def test_multiple_references_only_resolve_index_once(
+        self, mock_indexer: mock.MagicMock
+    ) -> None:
         MetricsQueryBuilder(
             self.params,
             query=f"project:{self.project.slug} transaction:foo_transaction transaction:foo_transaction",
@@ -1616,7 +1618,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         "sentry.search.events.builder.metrics.constants.METRICS_MAP",
         {"mocked_gauge": "g:mock/mocked_gauge@none"},
     )
-    def test_missing_function_implementation_for_metric_type(self, _mocked_function_converter):
+    def test_missing_function_implementation_for_metric_type(
+        self, _mocked_function_converter: mock.MagicMock
+    ) -> None:
         # Mocks count_unique to allow the mocked_gauge column
         # but the metric type does not have a gauge implementation
         with pytest.raises(IncompatibleMetricsQuery) as err:
@@ -3525,3 +3529,139 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             ],
             snql_query.select,
         )
+
+    def test_run_query_with_on_demand_deprecation_flag_enabled(self) -> None:
+        field = "count()"
+        query_s = ""
+        spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
+
+        self.store_transaction_metric(
+            value=1,
+            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            entity="metrics_counters",
+            tags={"query_hash": spec.query_hash},
+            timestamp=self.start,
+        )
+
+        with Feature("organizations:on-demand-gen-metrics-deprecation-query-prefill"):
+            query = AlertMetricsQueryBuilder(
+                self.params,
+                granularity=3600,
+                time_range_window=3600,
+                query=query_s,
+                dataset=Dataset.PerformanceMetrics,
+                selected_columns=[field],
+                config=QueryBuilderConfig(
+                    use_metrics_layer=False,
+                    on_demand_metrics_enabled=True,
+                    on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
+                    skip_time_conditions=False,
+                ),
+            )
+
+            # Verify the SNQL query structure uses on-demand metrics
+            snql_request = query.get_snql_query()
+            assert snql_request.dataset == "generic_metrics"
+            snql_query = snql_request.query
+
+            self.assertEqual(
+                [
+                    Function(
+                        "sumIf",
+                        [
+                            Column("value"),
+                            Function(
+                                "equals",
+                                [
+                                    Column("metric_id"),
+                                    indexer.resolve(
+                                        UseCaseID.TRANSACTIONS,
+                                        1,
+                                        "c:transactions/on_demand@none",
+                                    ),
+                                ],
+                            ),
+                        ],
+                        "c:transactions/on_demand@none",
+                    )
+                ],
+                snql_query.select,
+            )
+
+            result = query.run_query("test_query")
+
+            assert result["data"] == [{"c:transactions/on_demand@none": 1.0}]
+            meta = result["meta"]
+            assert len(meta) == 1
+            assert meta[0]["name"] == "c:transactions/on_demand@none"
+
+    def test_run_query_with_on_demand_deprecation_flag_disabled(self) -> None:
+        field = "count()"
+        query_s = ""
+        spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
+
+        self.store_transaction_metric(
+            value=1,
+            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            entity="metrics_counters",
+            tags={"query_hash": spec.query_hash},
+            timestamp=self.start,
+        )
+
+        self.store_transaction_metric(
+            value=1,
+            timestamp=self.start,
+        )
+
+        query = AlertMetricsQueryBuilder(
+            self.params,
+            granularity=3600,
+            time_range_window=3600,
+            query=query_s,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[field],
+            config=QueryBuilderConfig(
+                use_metrics_layer=False,
+                on_demand_metrics_enabled=True,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
+                skip_time_conditions=False,
+            ),
+        )
+
+        assert not query.use_on_demand
+        assert query._on_demand_metric_spec_map == {}
+
+        # Verify the SNQL query structure uses standard metrics
+        snql_request = query.get_snql_query()
+        assert snql_request.dataset == "generic_metrics"
+        snql_query = snql_request.query
+
+        self.assertEqual(
+            [
+                Function(
+                    "countIf",
+                    [
+                        Column("value"),
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                indexer.resolve(
+                                    UseCaseID.TRANSACTIONS,
+                                    self.organization.id,
+                                    "d:transactions/duration@millisecond",
+                                ),
+                            ],
+                        ),
+                    ],
+                    "count",
+                )
+            ],
+            snql_query.select,
+        )
+
+        result = query.run_query("test_query")
+
+        assert result["data"] == [{"count": 1}]

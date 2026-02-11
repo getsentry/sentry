@@ -1,6 +1,6 @@
 from functools import cached_property
 from typing import cast
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
@@ -8,6 +8,7 @@ from django.test import RequestFactory
 
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase, TestCase
@@ -49,7 +50,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
 
     @responses.activate
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def test_get_allowed_assignees(self, mock_get_jwt):
+    def test_get_allowed_assignees(self, mock_get_jwt: MagicMock) -> None:
         responses.add(
             responses.POST,
             f"https://{self._IP_ADDRESS}/api/v3/app/installations/installation_id/access_tokens",
@@ -81,7 +82,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
 
     @responses.activate
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def test_get_repo_labels(self, mock_get_jwt):
+    def test_get_repo_labels(self, mock_get_jwt: MagicMock) -> None:
         responses.add(
             responses.POST,
             f"https://{self._IP_ADDRESS}/api/v3/app/installations/installation_id/access_tokens",
@@ -114,7 +115,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
 
     @responses.activate
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def test_create_issue(self, mock_get_jwt):
+    def test_create_issue(self, mock_get_jwt: MagicMock) -> None:
         responses.add(
             responses.POST,
             f"https://{self._IP_ADDRESS}/api/v3/app/installations/installation_id/access_tokens",
@@ -131,6 +132,14 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
                 "html_url": f"https://{self._IP_ADDRESS}/getsentry/sentry/issues/231",
             },
         )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            Repository.objects.create(
+                name="getsentry/sentry",
+                provider="integrations:github_enterprise",
+                organization_id=self.organization.id,
+                integration_id=self.model.id,
+            )
 
         form_data = {
             "repo": "getsentry/sentry",
@@ -166,7 +175,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
 
     @responses.activate
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def test_link_issue(self, mock_get_jwt):
+    def test_link_issue(self, mock_get_jwt: MagicMock) -> None:
         issue_id = "321"
         responses.add(
             responses.POST,
@@ -184,6 +193,14 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
                 "html_url": f"https://{self._IP_ADDRESS}/getsentry/sentry/issues/231",
             },
         )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            Repository.objects.create(
+                name="getsentry/sentry",
+                provider="integrations:github_enterprise",
+                organization_id=self.organization.id,
+                integration_id=self.model.id,
+            )
 
         data = {"repo": "getsentry/sentry", "externalIssue": issue_id, "comment": "hello"}
 

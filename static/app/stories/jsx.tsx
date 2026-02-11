@@ -2,8 +2,6 @@ import type {ReactNode} from 'react';
 import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 interface JSXNodeProps {
   name: string;
   children?: ReactNode;
@@ -43,14 +41,14 @@ export function JSXNode({name, props = {}, children}: JSXNodeProps) {
 }
 
 const Code = styled('code')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   padding-inline: 0;
   & > [data-property] {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
     padding-inline: 0;
   }
   & > [data-node] {
-    padding-left: ${space(2)};
+    padding-left: ${p => p.theme.space.xl};
   }
 `;
 

@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from django.urls import reverse
 
@@ -78,7 +78,9 @@ class BranchesEndpointTest(APITestCase):
         )
 
     @patch("sentry.codecov.endpoints.branches.branches.CodecovApiClient")
-    def test_get_returns_mock_response_with_default_variables(self, mock_codecov_client_class):
+    def test_get_returns_mock_response_with_default_variables(
+        self, mock_codecov_client_class: MagicMock
+    ) -> None:
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
         mock_response.json.return_value = mock_graphql_response_populated
@@ -123,7 +125,7 @@ class BranchesEndpointTest(APITestCase):
         ), f"Response keys {response_keys} don't match serializer fields {serializer_fields}"
 
     @patch("sentry.codecov.endpoints.branches.branches.CodecovApiClient")
-    def test_get_with_query_parameters(self, mock_codecov_client_class):
+    def test_get_with_query_parameters(self, mock_codecov_client_class: MagicMock) -> None:
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
         mock_response.json.return_value = mock_graphql_response_empty
@@ -155,7 +157,7 @@ class BranchesEndpointTest(APITestCase):
         assert response.status_code == 200
 
     @patch("sentry.codecov.endpoints.branches.branches.CodecovApiClient")
-    def test_get_with_cursor_and_direction(self, mock_codecov_client_class):
+    def test_get_with_cursor_and_direction(self, mock_codecov_client_class: MagicMock) -> None:
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
         mock_response.json.return_value = mock_graphql_response_empty

@@ -1,16 +1,20 @@
-import {useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {IReactionDisposer} from 'mobx';
 import {autorun} from 'mobx';
-import {Observer} from 'mobx-react';
+import {Observer} from 'mobx-react-lite';
+
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
+import NumberField from 'sentry/components/forms/fields/numberField';
 import RangeField from 'sentry/components/forms/fields/rangeField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
@@ -19,27 +23,29 @@ import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
+import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Panel from 'sentry/components/panels/panel';
-import Text from 'sentry/components/text';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
+import type {Assertion, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
+import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
+import {mapAssertionFormErrors} from './assertionFormErrors';
 import {HTTPSnippet} from './httpSnippet';
+import {TestUptimeMonitorButton} from './testUptimeMonitorButton';
 import {UptimeHeadersField} from './uptimeHeadersField';
 
 interface Props {
-  organization: Organization;
-  project: Project;
   handleDelete?: () => void;
   rule?: UptimeRule;
 }
@@ -49,6 +55,11 @@ const HTTP_METHOD_OPTIONS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'O
 const HTTP_METHODS_NO_BODY = ['GET', 'HEAD', 'OPTIONS'];
 
 const MINUTE = 60;
+
+const DEFAULT_DOWNTIME_THRESHOLD = 3;
+const DEFAULT_RECOVERY_THRESHOLD = 1;
+const DEFAULT_TIMEOUT_MS = 5000;
+const DEFAULT_METHOD = 'GET';
 
 const VALID_INTERVALS_SEC = [
   MINUTE * 1,
@@ -76,19 +87,34 @@ function getFormDataFromRule(rule: UptimeRule) {
     timeoutMs: rule.timeoutMs,
     traceSampling: rule.traceSampling,
     owner: rule.owner ? `${rule.owner.type}:${rule.owner.id}` : null,
+    recoveryThreshold: rule.recoveryThreshold,
+    downtimeThreshold: rule.downtimeThreshold,
+    // Use empty assertion structure for null - FormField converts null to '' which
+    // we can't distinguish from "new form". Empty children signals "edit with no assertions".
+    assertion: rule.assertion ?? {root: createEmptyAssertionRoot()},
   };
 }
 
-export function UptimeAlertForm({project, handleDelete, rule}: Props) {
+export function UptimeAlertForm({handleDelete, rule}: Props) {
   const navigate = useNavigate();
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const {projects} = useProjects();
+  const {selection} = usePageFilters();
+  const hasRuntimeAssertions = organization.features.includes(
+    'uptime-runtime-assertions'
+  );
+
+  const project =
+    projects.find(p => selection.projects[0]?.toString() === p.id) ??
+    (projects.length === 1 ? projects[0] : null);
 
   const initialData = rule
     ? getFormDataFromRule(rule)
-    : {projectSlug: project.slug, method: 'GET', headers: []};
+    : {projectSlug: project?.slug, method: DEFAULT_METHOD, headers: []};
 
   const [formModel] = useState(() => new FormModel());
+  const {onFieldChange} = useFormEagerValidation(formModel);
 
   const [knownEnvironments, setEnvironments] = useState<string[]>([]);
   const [newEnvironment, setNewEnvironment] = useState<string | undefined>(undefined);
@@ -109,6 +135,24 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           : `/projects/${organization.slug}/${projectSlug}/uptime/`;
 
         function onSubmitSuccess(response: any) {
+          // Clear the cached uptime rule so subsequent edits load fresh data
+          const ruleId = response?.id ?? rule?.id;
+          if (ruleId) {
+            queryClient.invalidateQueries({
+              queryKey: [
+                `/projects/${organization.slug}/${projectSlug}/uptime/${ruleId}/`,
+              ],
+              exact: true,
+            });
+          }
+
+          if (!rule) {
+            trackAnalytics('uptime_monitor.created', {
+              organization,
+              uptime_mode: response.mode,
+            });
+          }
+
           navigate(
             makeAlertsPathname({
               path: `/rules/uptime/${projectSlug}/${response.id}/details/`,
@@ -122,7 +166,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           setEnvironments(selectedProject.environments);
         }
       }),
-    [formModel, navigate, organization, projects, rule]
+    [formModel, navigate, organization, projects, rule, queryClient]
   );
 
   // When mutating the name field manually, we'll disable automatic name
@@ -164,26 +208,58 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
       saveOnBlur={false}
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
+      mapFormErrors={mapAssertionFormErrors}
+      onFieldChange={onFieldChange}
       onPreSubmit={() => {
         if (!methodHasBody(formModel)) {
           formModel.setValue('body', null);
         }
+        // When runtime assertions are disabled, the assertions field is not mounted,
+        // so its `getValue` transform won't run. Normalize empty/sentinel assertions to null.
+        if (!hasRuntimeAssertions) {
+          const assertion = formModel.getValue<Assertion | null>('assertion');
+          if (!assertion?.root || assertion.root.children?.length === 0) {
+            formModel.setValue('assertion', null);
+          }
+        }
       }}
       extraButton={
-        rule && handleDelete ? (
-          <Confirm
-            message={t(
-              'Are you sure you want to delete "%s"? Once deleted, this alert cannot be recreated automatically.',
-              rule.name
-            )}
-            header={<h5>{t('Delete Uptime Rule?')}</h5>}
-            priority="danger"
-            confirmText={t('Delete Rule')}
-            onConfirm={handleDelete}
-          >
-            <Button priority="danger">{t('Delete Rule')}</Button>
-          </Confirm>
-        ) : undefined
+        <Flex gap="md">
+          {rule && handleDelete && (
+            <Confirm
+              message={t(
+                'Are you sure you want to delete "%s"? Once deleted, this alert cannot be recreated automatically.',
+                rule.name
+              )}
+              header={<h5>{t('Delete Uptime Rule?')}</h5>}
+              priority="danger"
+              confirmText={t('Delete Rule')}
+              onConfirm={handleDelete}
+            >
+              <Button priority="danger">{t('Delete Rule')}</Button>
+            </Confirm>
+          )}
+          {hasRuntimeAssertions && (
+            <TestUptimeMonitorButton
+              label={t('Test Rule')}
+              getFormData={() => {
+                const data = formModel.getTransformedData();
+                return {
+                  url: data.url,
+                  method: data.method ?? DEFAULT_METHOD,
+                  headers: data.headers ?? [],
+                  body: methodHasBody(formModel) ? data.body : null,
+                  timeoutMs: data.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+                  assertion: data.assertion ?? null,
+                };
+              }}
+              onValidationError={responseJson => {
+                const mapped = mapAssertionFormErrors(responseJson);
+                formModel.handleErrorResponse({responseJSON: mapped});
+              }}
+            />
+          )}
+        </Flex>
       }
     >
       <List symbol="colored-numeric">
@@ -286,7 +362,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               max={60_000}
               step={250}
               tickValues={[1_000, 10_000, 20_000, 30_000, 40_000, 50_000, 60_000]}
-              defaultValue={5_000}
+              defaultValue={DEFAULT_TIMEOUT_MS}
               showTickLabels
               formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
               flexibleControlStateSize
@@ -295,6 +371,10 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             <UptimeHeadersField
               name="headers"
               label={t('Headers')}
+              showHelpInTooltip={{isHoverable: true}}
+              help={t(
+                'Avoid adding sensitive credentials to headers as they are stored in plain text.'
+              )}
               flexibleControlStateSize
             />
             <TextareaField
@@ -324,7 +404,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             />
           </ConfigurationPanel>
           <Alert.Container>
-            <Alert type="muted">
+            <Alert variant="muted">
               {tct(
                 'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
                 {
@@ -346,6 +426,75 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               />
             )}
           </Observer>
+        </Configuration>
+        {hasRuntimeAssertions && (
+          <Fragment>
+            <AlertListItem>{t('Verification')}</AlertListItem>
+            <ListItemSubText>
+              {t(
+                'Define conditions that must be met for the check to be considered successful.'
+              )}
+            </ListItemSubText>
+            <Configuration>
+              <ConfigurationPanel>
+                <UptimeAssertionsField
+                  name="assertion"
+                  label={t('Assertions')}
+                  flexibleControlStateSize
+                />
+              </ConfigurationPanel>
+            </Configuration>
+          </Fragment>
+        )}
+        <AlertListItem>{t('Set thresholds')}</AlertListItem>
+        <ListItemSubText>
+          {t('Configure when an issue is created or resolved.')}
+        </ListItemSubText>
+        <Configuration>
+          <ConfigurationPanel>
+            <NumberField
+              name="downtimeThreshold"
+              min={1}
+              placeholder={t('Defaults to 3')}
+              help={({model}) => {
+                const intervalSeconds = Number(model.getValue('intervalSeconds'));
+                const threshold =
+                  Number(model.getValue('downtimeThreshold')) ||
+                  DEFAULT_DOWNTIME_THRESHOLD;
+                const downDuration = intervalSeconds * threshold;
+                return tct(
+                  'Issue created after [threshold] consecutive failures (after [downtime] of downtime).',
+                  {
+                    threshold: <strong>{threshold}</strong>,
+                    downtime: <strong>{getDuration(downDuration)}</strong>,
+                  }
+                );
+              }}
+              label={t('Failure Tolerance')}
+              flexibleControlStateSize
+            />
+            <NumberField
+              name="recoveryThreshold"
+              min={1}
+              placeholder={t('Defaults to 1')}
+              help={({model}) => {
+                const intervalSeconds = Number(model.getValue('intervalSeconds'));
+                const threshold =
+                  Number(model.getValue('recoveryThreshold')) ||
+                  DEFAULT_RECOVERY_THRESHOLD;
+                const upDuration = intervalSeconds * threshold;
+                return tct(
+                  'Issue resolved after [threshold] consecutive successes (after [uptime] of recovered uptime).',
+                  {
+                    threshold: <strong>{threshold}</strong>,
+                    uptime: <strong>{getDuration(upDuration)}</strong>,
+                  }
+                );
+              }}
+              label={t('Recovery Tolerance')}
+              flexibleControlStateSize
+            />
+          </ConfigurationPanel>
         </Configuration>
         <AlertListItem>{t('Establish ownership')}</AlertListItem>
         <ListItemSubText>
@@ -374,7 +523,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           <SentryMemberTeamSelectorField
             name="owner"
             label={t('Owner')}
-            menuPlacement="auto"
             inline={false}
             flexibleControlStateSize
             stacked
@@ -391,14 +539,14 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
 }
 
 const AlertListItem = styled(ListItem)`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.3;
 `;
 
 const ListItemSubText = styled(Text)`
   padding-left: ${space(4)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const FormRow = styled('div')`
@@ -424,7 +572,7 @@ const Configuration = styled('div')`
 const ConfigurationPanel = styled(Panel)`
   display: grid;
   gap: 0 ${space(2)};
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: fit-content(325px) 1fr;
   align-items: center;
 
   ${FieldWrapper} {

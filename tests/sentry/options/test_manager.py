@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from functools import cached_property
 from unittest.mock import patch
 
@@ -30,17 +31,17 @@ from sentry.utils.types import Int, String
 @all_silo_test
 class OptionsManagerTest(TestCase):
     @cached_property
-    def store(self):
+    def store(self) -> OptionsStore:
         c = LocMemCache("test", {})
         c.clear()
         return OptionsStore(cache=c)
 
     @cached_property
-    def manager(self):
+    def manager(self) -> OptionsManager:
         return OptionsManager(store=self.store)
 
     @pytest.fixture(autouse=True)
-    def register(self):
+    def register(self) -> Generator[None]:
         default_options = settings.SENTRY_DEFAULT_OPTIONS.copy()
         settings.SENTRY_DEFAULT_OPTIONS = {}
         self.store.flush_local_cache()

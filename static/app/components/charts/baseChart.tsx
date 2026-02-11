@@ -2,6 +2,7 @@ import 'echarts/lib/component/grid';
 import 'echarts/lib/component/graphic';
 import 'echarts/lib/component/toolbox';
 import 'echarts/lib/component/brush';
+import 'echarts/theme/v5.js';
 import 'zrender/lib/svg/svg';
 
 import {useId, useMemo} from 'react';
@@ -22,10 +23,10 @@ import type {
   XAXisComponentOption,
   YAXisComponentOption,
 } from 'echarts';
+import ReactEchartsCore from 'echarts-for-react/lib/core';
 import {AriaComponent} from 'echarts/components';
 import * as echarts from 'echarts/core';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
-import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {space} from 'sentry/styles/space';
@@ -37,9 +38,9 @@ import type {
   EChartClickHandler,
   EChartDataZoomHandler,
   EChartDownplayHandler,
-  EChartEventHandler,
   EChartFinishedHandler,
   EChartHighlightHandler,
+  EChartLegendSelectChangeHandler,
   EChartMouseOutHandler,
   EChartMouseOverHandler,
   EChartRenderedHandler,
@@ -47,7 +48,6 @@ import type {
   Series,
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
@@ -98,8 +98,7 @@ type Truncateable = {
 };
 
 export interface TooltipOption
-  extends Omit<TooltipComponentOption, 'valueFormatter'>,
-    Truncateable {
+  extends Omit<TooltipComponentOption, 'valueFormatter'>, Truncateable {
   filter?: (value: number, seriesParam: TooltipComponentOption['formatter']) => boolean;
   formatAxisLabel?: (
     value: number,
@@ -110,6 +109,7 @@ export interface TooltipOption
     bucketSize: number | undefined,
     seriesParamsOrParam: TooltipComponentFormatterCallbackParams
   ) => string;
+  formatter?: TooltipComponentOption['formatter'];
   markerFormatter?: (marker: string, label?: string) => string;
   nameFormatter?: (name: string, seriesParams?: CallbackDataParams) => string;
   /**
@@ -133,6 +133,10 @@ export interface BaseChartProps {
    * This is to pass series to BaseChart bypassing the wrappers like LineChart, AreaChart etc.
    */
   additionalSeries?: SeriesOption[];
+  /**
+   * Whether animations are enabled for the entire chart. If animations are enabled overall, this will cause ZRender to occasionally attempt to run animations and call `requestAnimationFrame` which might cause UI stutter.
+   */
+  animation?: boolean;
   /**
    * If true, ignores height value and auto-scales chart to fit container height.
    */
@@ -217,11 +221,7 @@ export interface BaseChartProps {
   onDownplay?: EChartDownplayHandler;
   onFinished?: EChartFinishedHandler;
   onHighlight?: EChartHighlightHandler;
-  onLegendSelectChanged?: EChartEventHandler<{
-    name: string;
-    selected: Record<string, boolean>;
-    type: 'legendselectchanged';
-  }>;
+  onLegendSelectChanged?: EChartLegendSelectChangeHandler;
   onMouseOut?: EChartMouseOutHandler;
   onMouseOver?: EChartMouseOverHandler;
   onRendered?: EChartRenderedHandler;
@@ -334,6 +334,7 @@ const DEFAULT_Y_AXIS = {};
 const DEFAULT_X_AXIS = {};
 
 function BaseChart({
+  animation,
   brush,
   colors,
   grid,
@@ -402,7 +403,7 @@ function BaseChart({
     resolveColors ||
     (series.length
       ? theme.chart.getColorPalette(series.length)
-      : theme.chart.getColorPalette(theme.chart.colors.length));
+      : theme.chart.getColorPalette('all'));
 
   const resolvedSeries = useMemo(() => {
     const previousPeriodColors =
@@ -416,7 +417,7 @@ function BaseChart({
       (hasSinglePoints && transformSinglePointToBar
         ? (series as LineSeriesOption[] | undefined)?.map(s => ({
             ...s,
-            type: 'bar',
+            type: 'bar' as const,
             barWidth: 40,
             barGap: 0,
             itemStyle: {...s.areaStyle},
@@ -424,7 +425,7 @@ function BaseChart({
         : hasSinglePoints && transformSinglePointToLine
           ? (series as LineSeriesOption[] | undefined)?.map(s => ({
               ...s,
-              type: 'line',
+              type: 'line' as const,
               itemStyle: {...s.lineStyle},
               markLine:
                 (s?.data?.[0] as any)?.[1] === undefined
@@ -451,17 +452,13 @@ function BaseChart({
           lineStyle: {
             color: previousPeriodColors
               ? previousPeriodColors[seriesIndex]
-              : isChonkTheme(theme)
-                ? theme.colors.gray400
-                : theme.gray200,
+              : theme.tokens.dataviz.semantic.neutral,
             type: 'dotted',
           },
           itemStyle: {
             color: previousPeriodColors
               ? previousPeriodColors[seriesIndex]
-              : isChonkTheme(theme)
-                ? theme.colors.gray400
-                : theme.gray200,
+              : theme.tokens.dataviz.semantic.neutral,
           },
           stack: 'previous',
           animation: false,
@@ -566,8 +563,9 @@ function BaseChart({
 
     return {
       ...options,
+      animation,
       useUTC: utc,
-      color,
+      color: color as string[],
       grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
       tooltip: tooltipOrNone,
       legend: legend ? Legend({theme, ...legend}) : undefined,
@@ -582,6 +580,7 @@ function BaseChart({
       brush,
     };
   }, [
+    animation,
     chartId,
     color,
     resolvedSeries,
@@ -690,7 +689,7 @@ function BaseChart({
         echarts={echarts}
         notMerge={notMerge}
         lazyUpdate={lazyUpdate}
-        theme={echartsTheme}
+        theme={echartsTheme ?? 'v5'}
         onChartReady={onChartReady}
         onEvents={eventsMap}
         style={chartStyles}
@@ -702,46 +701,50 @@ function BaseChart({
 }
 
 // Tooltip styles shared for regular and portalled tooltips
-export const getTooltipStyles = (p: {theme: Theme}) => css`
+const getTooltipStyles = (p: {theme: Theme}) => css`
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-footer {
-    color: ${p.theme.subText};
-    font-family: ${p.theme.text.family};
+    color: ${p.theme.tokens.content.secondary};
+    font-family: ${p.theme.font.family.sans};
     font-variant-numeric: tabular-nums;
     padding: ${space(1)} ${space(2)};
-    border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;
+    border-radius: ${p.theme.radius.md} ${p.theme.radius.md} 0 0;
     cursor: pointer;
-    font-size: ${p.theme.fontSize.sm};
+    font-size: ${p.theme.font.size.sm};
   }
   .tooltip-release.tooltip-series > div,
   .tooltip-release.tooltip-footer {
     justify-content: center;
   }
   .tooltip-release.tooltip-series {
-    color: ${p.theme.textColor};
+    color: ${p.theme.tokens.content.primary};
   }
   .tooltip-release-timerange {
-    font-size: ${p.theme.fontSize.xs};
-    color: ${p.theme.textColor};
+    font-size: ${p.theme.font.size.xs};
+    color: ${p.theme.tokens.content.primary};
   }
   .tooltip-series {
     border-bottom: none;
     max-width: calc(100vw - 2 * ${CHART_TOOLTIP_VIEWPORT_OFFSET}px);
   }
   .tooltip-series-solo {
-    border-radius: ${p.theme.borderRadius};
+    border-radius: ${p.theme.radius.md};
   }
   .tooltip-label {
     margin-right: ${space(1)};
-    ${p.theme.overflowEllipsis};
+    display: block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .tooltip-label strong {
-    font-weight: ${p.theme.fontWeight.normal};
-    color: ${p.theme.textColor};
+    font-weight: ${p.theme.font.weight.sans.regular};
+    color: ${p.theme.tokens.content.primary};
   }
   .tooltip-label-value {
-    color: ${p.theme.textColor};
+    color: ${p.theme.tokens.content.primary};
   }
   .tooltip-label-indent {
     margin-left: 18px;
@@ -759,14 +762,14 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
   .tooltip-code-no-margin {
     padding-left: 0;
     margin-left: 0;
-    color: ${p.theme.subText};
+    color: ${p.theme.tokens.content.secondary};
   }
   .tooltip-footer {
-    border-top: solid 1px ${p.theme.innerBorder};
+    border-top: solid 1px ${p.theme.tokens.border.secondary};
     text-align: center;
     position: relative;
     width: auto;
-    border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius};
+    border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md};
     display: flex;
     justify-content: space-between;
     gap: ${space(3)};
@@ -781,11 +784,12 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
     &.arrow-top {
       bottom: 100%;
       top: auto;
-      border-bottom: 8px solid ${p.theme.backgroundElevated};
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      border-bottom: 8px solid ${p.theme.tokens.background.primary};
       border-top: none;
       &:before {
         border-top: none;
-        border-bottom: 8px solid ${p.theme.translucentBorder};
+        border-bottom: 8px solid ${p.theme.tokens.border.transparent.neutral.muted};
         bottom: -7px;
         top: auto;
       }
@@ -797,12 +801,13 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
     pointer-events: none;
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
-    border-top: 8px solid ${p.theme.backgroundElevated};
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    border-top: 8px solid ${p.theme.tokens.background.primary};
     margin-left: -8px;
     &:before {
       border-left: 8px solid transparent;
       border-right: 8px solid transparent;
-      border-top: 8px solid ${p.theme.translucentBorder};
+      border-top: 8px solid ${p.theme.tokens.border.transparent.neutral.muted};
       content: '';
       display: block;
       position: absolute;
@@ -814,16 +819,16 @@ export const getTooltipStyles = (p: {theme: Theme}) => css`
 
   /* Tooltip description styling */
   .tooltip-description {
-    color: ${p.theme.white};
-    border-radius: ${p.theme.borderRadius};
+    color: ${p.theme.colors.white};
+    border-radius: ${p.theme.radius.md};
     background: #000;
     opacity: 0.9;
     padding: 5px 10px;
     position: relative;
-    font-weight: ${p.theme.fontWeight.bold};
-    font-size: ${p.theme.fontSize.sm};
+    font-weight: ${p.theme.font.weight.sans.medium};
+    font-size: ${p.theme.font.size.sm};
     line-height: 1.4;
-    font-family: ${p.theme.text.family};
+    font-family: ${p.theme.font.family.sans};
     max-width: 230px;
     min-width: 230px;
     white-space: normal;

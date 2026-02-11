@@ -3,7 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {RepositoryFixture} from 'sentry-fixture/repository';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -13,6 +12,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -25,11 +25,11 @@ import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import GroupActivity from 'sentry/views/issueDetails/groupActivity';
 
-describe('GroupActivity', function () {
+describe('GroupActivity', () => {
   let project!: Project;
   const dateCreated = '2021-10-01T15:31:38.950115Z';
 
-  beforeEach(function () {
+  beforeEach(() => {
     project = ProjectFixture();
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
@@ -66,9 +66,12 @@ describe('GroupActivity', function () {
     GroupStore.add([group]);
     // XXX: Explicitly using legacy UI since this component is not used in the new one
     const organization = OrganizationFixture({streamlineOnly: false});
-    const router = RouterFixture({
-      params: {orgId: organization.slug, groupId: group.id},
-    });
+    const initialRouterConfig: RouterConfig = {
+      location: {
+        pathname: `/organizations/${organization.slug}/issues/${group.id}/activity/`,
+      },
+      route: `/organizations/:orgId/issues/:groupId/activity/`,
+    };
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/`,
@@ -78,18 +81,17 @@ describe('GroupActivity', function () {
     TeamStore.loadInitialData([TeamFixture({id: '999', slug: 'no-team'})]);
     OrganizationStore.onUpdate(organization, {replace: true});
     render(<GroupActivity />, {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
   }
 
-  it('renders a NoteInput', async function () {
+  it('renders a NoteInput', async () => {
     createWrapper();
     expect(await screen.findByTestId('activity-note-body')).toBeInTheDocument();
   });
 
-  it('renders a marked reviewed activity', async function () {
+  it('renders a marked reviewed activity', async () => {
     const user = UserFixture({name: 'Samwise'});
     createWrapper({
       activity: [
@@ -106,7 +108,7 @@ describe('GroupActivity', function () {
     expect(screen.getByText(user.name)).toBeInTheDocument();
   });
 
-  it('renders a pr activity', async function () {
+  it('renders a pr activity', async () => {
     const user = UserFixture({name: 'Test User'});
     const repository = RepositoryFixture();
     createWrapper({
@@ -132,7 +134,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('renders a assigned to self activity', async function () {
+  it('renders a assigned to self activity', async () => {
     const user = UserFixture({id: '123', name: 'Mark'});
     createWrapper({
       activity: [
@@ -155,7 +157,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('renders an assigned via codeowners activity', async function () {
+  it('renders an assigned via codeowners activity', async () => {
     createWrapper({
       activity: [
         {
@@ -179,7 +181,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('renders an assigned via slack activity', async function () {
+  it('renders an assigned via slack activity', async () => {
     const user = UserFixture({id: '301', name: 'Mark'});
     createWrapper({
       activity: [
@@ -203,7 +205,7 @@ describe('GroupActivity', function () {
     expect(item).toHaveTextContent(/Assigned via Slack/);
   });
 
-  it('renders an assigned via suspect commit activity', async function () {
+  it('renders an assigned via suspect commit activity', async () => {
     createWrapper({
       activity: [
         {
@@ -228,7 +230,7 @@ describe('GroupActivity', function () {
     expect(activity).toHaveTextContent(/Assigned via Suspect Commit/);
   });
 
-  it('does not render undefined when integration is not recognized', async function () {
+  it('does not render undefined when integration is not recognized', async () => {
     createWrapper({
       activity: [
         // @ts-expect-error-next-line -> committing type crimes on `integration`
@@ -255,7 +257,7 @@ describe('GroupActivity', function () {
     expect(activity).not.toHaveTextContent(/Assigned via Suspect Commit/);
   });
 
-  it('resolved in commit with no releases', async function () {
+  it('resolved in commit with no releases', async () => {
     createWrapper({
       activity: [
         {
@@ -281,7 +283,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('resolved in commit with one release', async function () {
+  it('resolved in commit with one release', async () => {
     createWrapper({
       activity: [
         {
@@ -313,7 +315,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('resolved in commit with multiple releases', async function () {
+  it('resolved in commit with multiple releases', async () => {
     createWrapper({
       activity: [
         {
@@ -360,7 +362,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('requests assignees that are not in the team store', async function () {
+  it('requests assignees that are not in the team store', async () => {
     const team = TeamFixture({id: '123', name: 'workflow'});
     const teamRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/teams/`,
@@ -391,10 +393,10 @@ describe('GroupActivity', function () {
     );
   });
 
-  describe('Delete', function () {
+  describe('Delete', () => {
     let deleteMock: jest.Mock;
 
-    beforeEach(function () {
+    beforeEach(() => {
       deleteMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/1337/comments/note-1/',
         method: 'DELETE',
@@ -404,7 +406,7 @@ describe('GroupActivity', function () {
       ConfigStore.set('user', user);
     });
 
-    it('should remove remove the item from the GroupStore make a DELETE API request', async function () {
+    it('should remove remove the item from the GroupStore make a DELETE API request', async () => {
       createWrapper();
       renderGlobalModal();
 
@@ -420,7 +422,7 @@ describe('GroupActivity', function () {
     });
   });
 
-  it('renders archived until escalating', async function () {
+  it('renders archived until escalating', async () => {
     createWrapper({
       activity: [
         {
@@ -438,7 +440,7 @@ describe('GroupActivity', function () {
     expect(activity).toHaveTextContent('Foo Bar archived this issue until it escalates');
   });
 
-  it('renders escalating with forecast and plural events', async function () {
+  it('renders escalating with forecast and plural events', async () => {
     createWrapper({
       activity: [
         {
@@ -470,7 +472,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('renders escalating with forecast and singular event', async function () {
+  it('renders escalating with forecast and singular event', async () => {
     createWrapper({
       activity: [
         {
@@ -490,7 +492,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('renders issue unresvoled via jira', async function () {
+  it('renders issue unresvoled via jira', async () => {
     createWrapper({
       activity: [
         {
@@ -510,7 +512,7 @@ describe('GroupActivity', function () {
     expect(activity).toHaveTextContent('Sentry marked this issue as unresolved via Jira');
   });
 
-  it('renders issue resolved via jira', async function () {
+  it('renders issue resolved via jira', async () => {
     createWrapper({
       activity: [
         {
@@ -530,7 +532,7 @@ describe('GroupActivity', function () {
     expect(activity).toHaveTextContent('Sentry marked this issue as resolved via Jira');
   });
 
-  it('renders escalating since it happened x times in time window', async function () {
+  it('renders escalating since it happened x times in time window', async () => {
     createWrapper({
       activity: [
         {
@@ -555,7 +557,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('renders escalating since x users were affected in time window', async function () {
+  it('renders escalating since x users were affected in time window', async () => {
     createWrapper({
       activity: [
         {
@@ -580,7 +582,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('renders escalating since until date passed', async function () {
+  it('renders escalating since until date passed', async () => {
     const date = new Date('2018-10-30');
     createWrapper({
       activity: [
@@ -606,7 +608,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('renders archived forever', async function () {
+  it('renders archived forever', async () => {
     createWrapper({
       activity: [
         {
@@ -622,7 +624,7 @@ describe('GroupActivity', function () {
     expect(activity).toHaveTextContent('Foo Bar archived this issue forever');
   });
 
-  it('renders resolved in release with semver information', async function () {
+  it('renders resolved in release with semver information', async () => {
     createWrapper({
       activity: [
         {
@@ -642,7 +644,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('renders resolved in next release with semver information', async function () {
+  it('renders resolved in next release with semver information', async () => {
     createWrapper({
       activity: [
         {
@@ -662,8 +664,8 @@ describe('GroupActivity', function () {
     );
   });
 
-  describe('regression', function () {
-    it('renders basic regression', async function () {
+  describe('regression', () => {
+    it('renders basic regression', async () => {
       createWrapper({
         activity: [
           {
@@ -678,7 +680,7 @@ describe('GroupActivity', function () {
       expect(activity).toHaveTextContent('Sentry marked this issue as a regression');
     });
 
-    it('renders regression with version', async function () {
+    it('renders regression with version', async () => {
       createWrapper({
         activity: [
           {
@@ -697,7 +699,7 @@ describe('GroupActivity', function () {
       );
     });
 
-    it('renders regression with semver description', async function () {
+    it('renders regression with semver description', async () => {
       createWrapper({
         activity: [
           {
@@ -721,7 +723,7 @@ describe('GroupActivity', function () {
       );
     });
 
-    it('renders regression with non-semver description', async function () {
+    it('renders regression with non-semver description', async () => {
       createWrapper({
         activity: [
           {
@@ -745,7 +747,7 @@ describe('GroupActivity', function () {
       );
     });
 
-    it('renders a set priority activity for escalating issues', async function () {
+    it('renders a set priority activity for escalating issues', async () => {
       createWrapper({
         activity: [
           {
@@ -765,7 +767,7 @@ describe('GroupActivity', function () {
       );
     });
 
-    it('renders a set priority activity for ongoing issues', async function () {
+    it('renders a set priority activity for ongoing issues', async () => {
       createWrapper({
         activity: [
           {
@@ -785,7 +787,7 @@ describe('GroupActivity', function () {
       );
     });
 
-    it('renders a deleted attachment activity', async function () {
+    it('renders a deleted attachment activity', async () => {
       createWrapper({
         activity: [
           {

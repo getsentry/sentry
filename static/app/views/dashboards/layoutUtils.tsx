@@ -23,10 +23,6 @@ export type Position = Pick<Layout, 'x' | 'y'>;
 
 type NextPosition = [position: Position, columnDepths: number[]];
 
-export function generateWidgetId(widget: Widget, index: number) {
-  return widget.id ? `${widget.id}-index-${index}` : `index-${index}`;
-}
-
 export function constructGridItemKey(widget: {id?: string; tempId?: string}) {
   return `${WIDGET_PREFIX}-${widget.id ?? widget.tempId}`;
 }
@@ -56,7 +52,7 @@ export function getMobileLayout(desktopLayout: Layout[], widgets: Widget[]) {
     x: 0,
     y: index * 2,
     w: 2,
-    h: widget.displayType === DisplayType.BIG_NUMBER ? 1 : 2,
+    h: getDefaultWidgetHeight(widget.displayType),
   }));
 
   return mobileLayout;
@@ -84,7 +80,10 @@ export function pickDefinedStoreKeys(layout: Layout): WidgetLayout {
 }
 
 export function getDefaultWidgetHeight(displayType: DisplayType): number {
-  return displayType === DisplayType.BIG_NUMBER ? 1 : 2;
+  if (displayType === DisplayType.BIG_NUMBER || displayType === DisplayType.DETAILS) {
+    return 1;
+  }
+  return 2;
 }
 
 export function getInitialColumnDepths() {
@@ -182,24 +181,6 @@ export function assignDefaultLayout<T extends Pick<Widget, 'displayType' | 'layo
     };
   });
   return newWidgets;
-}
-
-export function enforceWidgetHeightValues(widget: Widget): Widget {
-  const {displayType, layout} = widget;
-  const nextWidget = {
-    ...widget,
-  };
-  if (!defined(layout)) {
-    return nextWidget;
-  }
-
-  const minH = getDefaultWidgetHeight(displayType);
-  const nextLayout = {
-    ...layout,
-    h: Math.max(layout?.h ?? minH, minH),
-    minH,
-  };
-  return {...nextWidget, layout: nextLayout};
 }
 
 export function generateWidgetsAfterCompaction(widgets: Widget[]) {

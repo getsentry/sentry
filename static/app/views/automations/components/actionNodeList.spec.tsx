@@ -1,14 +1,17 @@
 import {ActionFixture} from 'sentry-fixture/automations';
+import {MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ActionHandlerFixture} from 'sentry-fixture/workflowEngine';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import Form from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 import {
   ActionGroup,
-  type ActionHandler,
   ActionType,
+  type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
 import ActionNodeList from 'sentry/views/automations/components/actionNodeList';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
@@ -44,7 +47,14 @@ const actionHandlers: ActionHandler[] = [
   }),
 ];
 
-describe('ActionNodeList', function () {
+const defaultErrorContextProps = {
+  errors: {},
+  mutationErrors: undefined,
+  setErrors: jest.fn(),
+  removeError: jest.fn(),
+};
+
+describe('ActionNodeList', () => {
   const organization = OrganizationFixture({features: ['workflow-engine-ui']});
 
   const mockOnAddRow = jest.fn();
@@ -60,7 +70,7 @@ describe('ActionNodeList', function () {
     updateAction: mockUpdateAction,
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/available-actions/`,
@@ -68,11 +78,9 @@ describe('ActionNodeList', function () {
     });
   });
 
-  it('renders correct action options', async function () {
+  it('renders correct action options', async () => {
     render(
-      <AutomationBuilderErrorContext.Provider
-        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
-      >
+      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
         <ActionNodeList {...defaultProps} />
       </AutomationBuilderErrorContext.Provider>,
       {
@@ -94,11 +102,9 @@ describe('ActionNodeList', function () {
     expect(screen.getByRole('menuitemradio', {name: 'Jira'})).toBeInTheDocument();
   });
 
-  it('adds actions', async function () {
+  it('adds actions', async () => {
     render(
-      <AutomationBuilderErrorContext.Provider
-        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
-      >
+      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
         <ActionNodeList {...defaultProps} />
       </AutomationBuilderErrorContext.Provider>,
       {
@@ -111,12 +117,10 @@ describe('ActionNodeList', function () {
     expect(mockOnAddRow).toHaveBeenCalledWith(slackActionHandler);
   });
 
-  it('updates existing actions', async function () {
+  it('updates existing actions', async () => {
     const slackAction = ActionFixture();
     render(
-      <AutomationBuilderErrorContext.Provider
-        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
-      >
+      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
         <ActionNodeList {...defaultProps} actions={[slackAction]} />
       </AutomationBuilderErrorContext.Provider>,
       {
@@ -131,12 +135,10 @@ describe('ActionNodeList', function () {
     });
   });
 
-  it('deletes existing actions', async function () {
+  it('deletes existing actions', async () => {
     const slackAction = ActionFixture();
     render(
-      <AutomationBuilderErrorContext.Provider
-        value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}
-      >
+      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
         <ActionNodeList {...defaultProps} actions={[slackAction]} />
       </AutomationBuilderErrorContext.Provider>,
       {
@@ -147,5 +149,31 @@ describe('ActionNodeList', function () {
     await screen.findByText(textWithMarkupMatcher('Slack message'));
     await userEvent.click(screen.getByRole('button', {name: 'Delete row'}));
     expect(mockOnDeleteRow).toHaveBeenCalledWith(slackAction.id);
+  });
+
+  it('shows a warning message for an incompatible action', async () => {
+    const model = new FormModel();
+    model.setInitialData({
+      detectorIds: ['123'],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/`,
+      body: [MetricDetectorFixture({id: '123'})],
+    });
+    const jiraAction = ActionFixture({type: ActionType.JIRA});
+    render(
+      <Form model={model}>
+        <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+          <ActionNodeList {...defaultProps} actions={[jiraAction]} />
+        </AutomationBuilderErrorContext.Provider>
+      </Form>,
+      {
+        organization,
+      }
+    );
+
+    expect(
+      await screen.findByText('This action will not fire for metric issues.')
+    ).toBeInTheDocument();
   });
 });

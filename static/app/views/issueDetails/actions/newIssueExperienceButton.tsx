@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import issueDetailsPreview from 'sentry-images/issue_details/issue-details-preview.png';
 
+import {Button} from '@sentry/scraps/button';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {TourAction, TourGuide} from 'sentry/components/tours/components';
@@ -76,9 +77,9 @@ function useIssueDetailsPromoModal() {
               src: issueDetailsPreview,
               alt: t('Preview of the issue details experience'),
             }}
-            header={t('Welcome to Issue Details')}
+            header={t('Welcome to issue details')}
             description={t(
-              "New around here? Tour the issue experience - we promise you'll be less confused."
+              "This is where you'll come every time something breaks. It shows what happened, why it happened, and what to do next.\n\nNew here? Take a tour - we promise you'll be less confused."
             )}
             onDismissTour={() => {
               handleEndTour();
@@ -250,38 +251,42 @@ export function NewIssueExperienceButton() {
       }
       isOpen={isReminderVisible}
     >
-      <DropdownMenu
-        trigger={triggerProps => (
-          <StyledDropdownButton
-            {...triggerProps}
-            size={hasStreamlinedUI ? 'xs' : 'sm'}
-            aria-label={t('Manage issue experience')}
-          >
-            {/* Passing icon as child to avoid extra icon margin */}
-            <IconLab isSolid={hasStreamlinedUI} />
-          </StyledDropdownButton>
-        )}
-        items={items}
-        position="bottom-end"
-      />
+      {tourProps => (
+        <div {...tourProps}>
+          <DropdownMenu
+            trigger={triggerProps => (
+              <StyledDropdownButton
+                {...triggerProps}
+                size={hasStreamlinedUI ? 'xs' : 'sm'}
+                aria-label={t('Manage issue experience')}
+              >
+                {/* Passing icon as child to avoid extra icon margin */}
+                <IconLab isSolid={hasStreamlinedUI} />
+              </StyledDropdownButton>
+            )}
+            items={items}
+            position="bottom-end"
+          />
+        </div>
+      )}
     </TourGuide>
   );
 }
 
 const StyledDropdownButton = styled(DropdownButton)`
-  color: ${p => p.theme.button.primary.background};
+  color: ${p => p.theme.colors.blue400};
   :hover {
-    color: ${p => p.theme.button.primary.background};
+    color: ${p => p.theme.colors.blue400};
   }
 `;
 
 const TryNewButton = styled(Button)`
   background: linear-gradient(90deg, #3468d8, #248574);
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   &:hover,
   &:active,
   &:focus {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
   }
   ::after {
     background: linear-gradient(90deg, #3468d8, #248574);

@@ -1,5 +1,3 @@
-from typing import Union
-
 from sentry.eventtypes.base import DefaultEvent
 from sentry.eventtypes.error import ErrorEvent
 from sentry.eventtypes.feedback import FeedbackEvent
@@ -24,16 +22,3 @@ default_manager.register(FeedbackEvent)
 
 get = default_manager.get
 register = default_manager.register
-
-EventType = Union[
-    DefaultEvent,
-    ErrorEvent,
-    CspEvent,
-    NelEvent,
-    HpkpEvent,
-    ExpectCTEvent,
-    ExpectStapleEvent,
-    TransactionEvent,
-    GenericEvent,
-    FeedbackEvent,
-]

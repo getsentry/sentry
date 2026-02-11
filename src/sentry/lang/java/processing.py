@@ -1,21 +1,17 @@
 import logging
 import re
-from collections.abc import Mapping
 from typing import Any
 
-import orjson
-
-from sentry.attachments import CachedAttachment, attachment_cache
-from sentry.ingest.consumer.processors import CACHE_TIMEOUT
+from sentry.lang.java.exceptions import Exceptions
 from sentry.lang.java.utils import JAVA_PLATFORMS, get_jvm_images, get_proguard_images
+from sentry.lang.java.view_hierarchies import ViewHierarchies
 from sentry.lang.native.error import SymbolicationFailed, write_error
-from sentry.lang.native.symbolicator import Symbolicator
+from sentry.lang.native.symbolicator import FrameOrder, Symbolicator
 from sentry.models.eventerror import EventError
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils import metrics
-from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -109,16 +105,6 @@ def _normalize_frame(raw_frame: dict[str, Any], index: int) -> dict[str, Any]:
     return frame
 
 
-def _get_exceptions_for_symbolication(data: Mapping[str, Any]) -> list[dict[str, Any]]:
-    "Returns those exceptions in all_exceptions that should be symbolicated."
-
-    return [
-        exc
-        for exc in get_path(data, "exception", "values", filter=True, default=())
-        if exc.get("type", None) and exc.get("module", None)
-    ]
-
-
 def _handle_response_status(event_data: Any, response_json: dict[str, Any]) -> bool | None:
     """Checks the response from Symbolicator and reports errors.
     Returns `True` on success."""
@@ -148,76 +134,6 @@ def _get_release_package(project: Project, release_name: str | None) -> str | No
 
     release = Release.get(project=project, version=release_name)
     return release.package if release else None
-
-
-def _get_window_class_names(attachments: list[CachedAttachment]) -> list[str]:
-    """Returns the class names of all windows in all view hierarchies
-    contained in `attachments`."""
-
-    class_names = []
-    windows_to_deobfuscate = []
-
-    for attachment in attachments:
-        if attachment.type == "event.view_hierarchy":
-            view_hierarchy = orjson.loads(attachment_cache.get_data(attachment))
-            windows_to_deobfuscate.extend(view_hierarchy.get("windows"))
-
-    while windows_to_deobfuscate:
-        window = windows_to_deobfuscate.pop()
-        if window.get("type") is not None:
-            class_names.append(window["type"])
-        if children := window.get("children"):
-            windows_to_deobfuscate.extend(children)
-
-    return class_names
-
-
-def _deobfuscate_view_hierarchy(view_hierarchy: Any, class_names: dict[str, str]) -> None:
-    """Deobfuscates a view hierarchy in-place.
-
-    The `class_names` dict is used to resolve obfuscated to deobfuscated names. If
-    an obfuscated class name isn't present in `class_names`, it is left unchanged."""
-
-    windows_to_deobfuscate = [*view_hierarchy.get("windows")]
-
-    while windows_to_deobfuscate:
-        window = windows_to_deobfuscate.pop()
-        if (
-            window.get("type") is not None
-            and (mapped_type := class_names.get(window["type"])) is not None
-        ):
-            window["type"] = mapped_type
-        if children := window.get("children"):
-            windows_to_deobfuscate.extend(children)
-
-
-def _deobfuscate_view_hierarchies(
-    attachments: list[CachedAttachment], class_names: dict[str, str]
-) -> list[CachedAttachment]:
-    """Deobfuscates all view hierarchies contained in `attachments`, returning a new list of attachments.
-
-    Non-view-hierarchy attachments are unchanged.
-    """
-    new_attachments = []
-    for attachment in attachments:
-        if attachment.type == "event.view_hierarchy":
-            view_hierarchy = orjson.loads(attachment_cache.get_data(attachment))
-            _deobfuscate_view_hierarchy(view_hierarchy, class_names)
-            # Reupload to cache as a unchunked data
-            new_attachments.append(
-                CachedAttachment(
-                    type=attachment.type,
-                    id=attachment.id,
-                    name=attachment.name,
-                    content_type=attachment.content_type,
-                    data=orjson.dumps(view_hierarchy),
-                    chunks=None,
-                )
-            )
-        else:
-            new_attachments.append(attachment)
-
-    return new_attachments
 
 
 def map_symbolicator_process_jvm_errors(
@@ -266,6 +182,11 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     stacktrace_infos = find_stacktraces_in_data(data)
     stacktraces = [
         {
+            **(
+                {"exception": {"type": sinfo.exception_type, "module": sinfo.exception_module}}
+                if sinfo.exception_type and sinfo.exception_module
+                else {}
+            ),
             "frames": [
                 _normalize_frame(frame, index)
                 for index, frame in enumerate(sinfo.stacktrace.get("frames") or ())
@@ -275,10 +196,12 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         for sinfo in stacktrace_infos
     ]
 
-    processable_exceptions = _get_exceptions_for_symbolication(data)
-    cache_key = cache_key_for_event(data)
-    attachments = [*attachment_cache.get(cache_key)]
-    window_class_names = _get_window_class_names(attachments)
+    view_hierarchies = ViewHierarchies(symbolicator.project, data)
+    window_class_names = view_hierarchies.get_window_class_names()
+
+    exceptions = Exceptions(data)
+    processable_exceptions = exceptions.get_processable_exceptions()
+    exception_class_names = exceptions.get_exception_class_names()
 
     metrics.incr("proguard.symbolicator.events")
 
@@ -286,6 +209,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         not any(stacktrace["frames"] for stacktrace in stacktraces)
         and not processable_exceptions
         and not window_class_names
+        and not exception_class_names
     ):
         metrics.incr("proguard.symbolicator.events.skipped")
         return
@@ -300,7 +224,10 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         stacktraces=stacktraces,
         modules=modules,
         release_package=release_package,
-        classes=window_class_names,
+        classes=window_class_names + exception_class_names,
+        # We are sending frames in the same order in which
+        # they were stored in the event, so this has to be "caller_first".
+        frame_order=FrameOrder.caller_first,
     )
 
     if not _handle_response_status(data, response):
@@ -324,7 +251,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
                     new_frame = dict(raw_frame)
                     _merge_frame(new_frame, returned)
                     new_frames.append(new_frame)
-            else:
+            elif not _handles_frame(raw_frame, data.get("platform", "unknown")):
                 new_frames.append(raw_frame)
 
         sinfo.stacktrace["frames"] = new_frames
@@ -334,14 +261,8 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
                 "frames": raw_frames,
             }
 
-    for raw_exc, exc in zip(processable_exceptions, response["exceptions"]):
-        raw_exc["raw_module"] = raw_exc["module"]
-        raw_exc["raw_type"] = raw_exc["type"]
-        raw_exc["module"] = exc["module"]
-        raw_exc["type"] = exc["type"]
-
     classes = response.get("classes")
-    new_attachments = _deobfuscate_view_hierarchies(attachments, classes)
-    attachment_cache.set(cache_key, attachments=new_attachments, timeout=CACHE_TIMEOUT)
+    view_hierarchies.deobfuscate_and_save(classes)
+    exceptions.deobfuscate_and_save(classes, response["exceptions"])
 
     return data

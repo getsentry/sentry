@@ -138,7 +138,7 @@ class ProjectTemplateOptionTest(TestCase):
             name="test_project_template", organization=self.org
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.org.delete()
         self.project_template.delete()
 

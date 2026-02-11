@@ -4,28 +4,29 @@ import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
-import {
-  useExploreAggregateSortBys,
-  useExploreDataset,
-  useExploreGroupBys,
-  useExploreVisualizes,
-} from 'sentry/views/explore/contexts/pageParamsContext';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
-import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
-  type SpansRPCQueryExtras,
   useProgressiveQuery,
+  type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {
+  useQueryParamsAggregateSortBys,
+  useQueryParamsExtrapolate,
+  useQueryParamsGroupBys,
+  useQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
+import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {computeVisualizeSampleTotals} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface UseExploreTimeseriesOptions {
   enabled: boolean;
   query: string;
-  queryExtras?: SpansRPCQueryExtras;
+  queryExtras?: RPCQueryExtras;
 }
 
 interface UseExploreTimeseriesResults {
@@ -35,11 +36,10 @@ interface UseExploreTimeseriesResults {
 export const useExploreTimeseries = ({
   query,
   enabled,
-}: {
-  enabled: boolean;
-  query: string;
-}) => {
-  const visualizes = useExploreVisualizes();
+  queryExtras,
+}: UseExploreTimeseriesOptions) => {
+  const visualizes = useQueryParamsVisualizes();
+  const extrapolate = useQueryParamsExtrapolate();
   const topEvents = useTopEvents();
   const isTopN = topEvents ? topEvents > 0 : false;
 
@@ -52,9 +52,10 @@ export const useExploreTimeseries = ({
 
   return useProgressiveQuery<typeof useExploreTimeseriesImpl>({
     queryHookImplementation: useExploreTimeseriesImpl,
-    queryHookArgs: {query, enabled},
+    queryHookArgs: {query, enabled, queryExtras},
     queryOptions: {
       canTriggerHighAccuracy,
+      disableExtrapolation: !extrapolate,
     },
   });
 };
@@ -64,10 +65,10 @@ function useExploreTimeseriesImpl({
   query,
   queryExtras,
 }: UseExploreTimeseriesOptions): UseExploreTimeseriesResults {
-  const dataset = useExploreDataset();
-  const groupBys = useExploreGroupBys();
-  const sortBys = useExploreAggregateSortBys();
-  const visualizes = useExploreVisualizes({validate: true});
+  const dataset = useSpansDataset();
+  const groupBys = useQueryParamsGroupBys();
+  const sortBys = useQueryParamsAggregateSortBys();
+  const visualizes = useQueryParamsVisualizes({validate: true});
   const [interval] = useChartInterval();
   const topEvents = useTopEvents();
 
@@ -110,29 +111,35 @@ function useExploreTimeseriesImpl({
       enabled,
       ...queryExtras,
     };
-  }, [query, yAxes, interval, fields, orderby, topEvents, enabled, queryExtras]);
+  }, [enabled, fields, interval, orderby, query, queryExtras, topEvents, yAxes]);
 
-  const timeseriesResult = useSortedTimeSeries(options, 'api.explorer.stats', dataset);
+  const timeseriesResult = useSortedTimeSeries(
+    options,
+    `api.explore.${dataset}-timeseries`,
+    dataset
+  );
 
   return {
     result: timeseriesResult,
   };
 }
 
-function shouldTriggerHighAccuracy(
+export function shouldTriggerHighAccuracy(
   data: ReturnType<typeof useSortedTimeSeries>['data'],
-  visualizes: Visualize[],
+  visualizes: readonly Visualize[],
   isTopN: boolean
 ) {
-  const hasData = computeVisualizeSampleTotals(visualizes, data, isTopN).some(
-    total => total > 0
-  );
+  const hasData = computeVisualizeSampleTotals(
+    visualizes.map(visualize => visualize.yAxis),
+    data,
+    isTopN
+  ).some(total => total > 0);
   return !hasData && _checkCanQueryForMoreData(data, visualizes, isTopN);
 }
 
 function _checkCanQueryForMoreData(
   data: ReturnType<typeof useSortedTimeSeries>['data'],
-  visualizes: Visualize[],
+  visualizes: readonly Visualize[],
   isTopN: boolean
 ) {
   return visualizes.some(visualize => {

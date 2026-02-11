@@ -62,7 +62,7 @@ def test_normalize_value() -> None:
         ),
     ),
 )
-def test_value_matches_positive(cfg, value):
+def test_value_matches_positive(cfg, value) -> None:
     cfg = normalize_value("store.load-shed-group-creation-projects", cfg)
     assert value_matches("store.load-shed-group-creation-projects", cfg, value)
 
@@ -96,6 +96,6 @@ def test_value_matches_positive(cfg, value):
         ),
     ),
 )
-def test_value_matches_negative(cfg, value):
+def test_value_matches_negative(cfg, value) -> None:
     cfg = normalize_value("store.load-shed-group-creation-projects", cfg)
     assert not value_matches("store.load-shed-group-creation-projects", cfg, value)

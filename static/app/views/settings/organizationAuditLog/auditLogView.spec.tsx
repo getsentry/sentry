@@ -1,8 +1,8 @@
 import {AuditLogsFixture} from 'sentry-fixture/auditLogs';
 import {AuditLogsApiEventNamesFixture} from 'sentry-fixture/auditLogsApiEventNames';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   screen,
@@ -14,16 +14,11 @@ import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
 // XXX(epurkhiser): This appears to also be tested by ./index.spec.tsx
 
-describe('OrganizationAuditLog', function () {
-  const {organization, router} = initializeOrg({
-    projects: [],
-    router: {
-      params: {orgId: 'org-slug'},
-    },
-  });
+describe('OrganizationAuditLog', () => {
+  const organization = OrganizationFixture();
   const ENDPOINT = `/organizations/${organization.slug}/audit-logs/`;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -31,12 +26,13 @@ describe('OrganizationAuditLog', function () {
     });
   });
 
-  it('renders', async function () {
-    render(<OrganizationAuditLog location={router.location} />);
+  it('renders', async () => {
+    render(<OrganizationAuditLog />);
 
     expect(await screen.findByRole('heading')).toHaveTextContent('Audit Log');
-    // Check that both textboxes are present (date selector search and event selector)
-    expect(screen.getAllByRole('textbox')).toHaveLength(2);
+    // Check that both date selector search and event selector are present
+    expect(screen.getByText('All time')).toBeInTheDocument();
+    expect(screen.getByText('Select Action:')).toBeInTheDocument();
     expect(screen.getByText('Member')).toBeInTheDocument();
     expect(screen.getByText('Action')).toBeInTheDocument();
     expect(screen.getByText('IP')).toBeInTheDocument();
@@ -45,26 +41,26 @@ describe('OrganizationAuditLog', function () {
     expect(await screen.findByText('edited project ludic-science')).toBeInTheDocument();
   });
 
-  it('renders empty', async function () {
+  it('renders empty', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: {rows: [], options: AuditLogsApiEventNamesFixture()},
     });
 
-    render(<OrganizationAuditLog location={router.location} />);
+    render(<OrganizationAuditLog />);
 
     expect(await screen.findByText('No audit entries available')).toBeInTheDocument();
   });
 
   it('displays whether an action was done by a superuser', async () => {
-    render(<OrganizationAuditLog location={router.location} />);
+    render(<OrganizationAuditLog />);
 
     expect(await screen.findByText('Sentry Staff')).toBeInTheDocument();
     expect(screen.getAllByText('Foo Bar')).toHaveLength(2);
   });
 
-  it('replaces rule and alertrule audit types in dropdown', async function () {
+  it('replaces rule and alertrule audit types in dropdown', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -74,7 +70,7 @@ describe('OrganizationAuditLog', function () {
       },
     });
 
-    render(<OrganizationAuditLog location={router.location} />);
+    render(<OrganizationAuditLog />);
 
     await userEvent.click(screen.getByText('Select Action:'));
 
@@ -83,7 +79,7 @@ describe('OrganizationAuditLog', function () {
     expect(screen.getByText('member.add')).toBeInTheDocument();
   });
 
-  it('replaces text in rule and alertrule entries', async function () {
+  it('replaces text in rule and alertrule entries', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/audit-logs/`,
@@ -115,7 +111,7 @@ describe('OrganizationAuditLog', function () {
       },
     });
 
-    render(<OrganizationAuditLog location={router.location} />);
+    render(<OrganizationAuditLog />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -128,5 +124,24 @@ describe('OrganizationAuditLog', function () {
     expect(
       screen.getByText('edited metric alert rule "Failure rate too high"')
     ).toBeInTheDocument();
+  });
+
+  it('allows filtering for arbitrary custom time ranges', async () => {
+    const {router} = render(<OrganizationAuditLog />);
+
+    await userEvent.click(screen.getByTestId('page-filter-timerange-selector'));
+
+    const searchbox = screen.getByPlaceholderText(/custom range/i);
+    await userEvent.type(searchbox, '2w');
+    await userEvent.click(screen.getByText('Last 2 weeks'));
+
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        query: {statsPeriod: '2w'},
+      })
+    );
+    expect(screen.getByTestId('page-filter-timerange-selector')).toHaveTextContent(
+      'Last 2 weeks'
+    );
   });
 });

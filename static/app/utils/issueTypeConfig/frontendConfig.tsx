@@ -78,6 +78,10 @@ const frontendConfig: IssueCategoryConfigMapping = {
     issueSummary: {enabled: true},
     autofix: true,
   },
+  [IssueType.WEB_VITALS]: {
+    issueSummary: {enabled: true},
+    autofix: true,
+  },
 };
 
 export default frontendConfig;

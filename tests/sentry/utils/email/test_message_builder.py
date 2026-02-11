@@ -1,5 +1,5 @@
 import functools
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
@@ -141,7 +141,7 @@ class MessageBuilderTest(TestCase):
         assert len(mail.outbox) == 0
 
     @patch("sentry.utils.email.message_builder.make_msgid")
-    def test_message_id(self, make_msgid):
+    def test_message_id(self, make_msgid: MagicMock) -> None:
         make_msgid.return_value = "abc123"
 
         msg = MessageBuilder(
@@ -166,7 +166,7 @@ class MessageBuilderTest(TestCase):
         )
 
     @patch("sentry.utils.email.message_builder.make_msgid")
-    def test_add_groupemailthread(self, make_msgid):
+    def test_add_groupemailthread(self, make_msgid: MagicMock) -> None:
         make_msgid.return_value = "abc123"
 
         msg = MessageBuilder(
@@ -198,7 +198,7 @@ class MessageBuilderTest(TestCase):
         assert thread.group == self.group
 
     @patch("sentry.utils.email.message_builder.make_msgid")
-    def test_reply_reference(self, make_msgid):
+    def test_reply_reference(self, make_msgid: MagicMock) -> None:
         make_msgid.return_value = "abc123"
 
         msg = MessageBuilder(

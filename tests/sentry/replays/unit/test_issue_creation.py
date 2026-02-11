@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.issues.grouptype import ReplayHydrationErrorType, ReplayRageClickType
 from sentry.replays.testutils import mock_replay_event
@@ -10,7 +10,7 @@ from sentry.replays.usecases.ingest.issue_creation import (
 
 
 @patch("sentry.replays.usecases.issue.produce_occurrence_to_kafka")
-def test_report_hydration_error(produce_occurrence_to_kafka):
+def test_report_hydration_error(produce_occurrence_to_kafka: MagicMock) -> None:
     replay_event = mock_replay_event()
 
     report_hydration_error_issue_with_replay_event(
@@ -77,7 +77,7 @@ def test_report_hydration_error(produce_occurrence_to_kafka):
 
 
 @patch("sentry.replays.usecases.issue.produce_occurrence_to_kafka")
-def test_report_hydration_error_no_url(produce_occurrence_to_kafka):
+def test_report_hydration_error_no_url(produce_occurrence_to_kafka: MagicMock) -> None:
     replay_event = mock_replay_event()
 
     report_hydration_error_issue_with_replay_event(
@@ -93,7 +93,7 @@ def test_report_hydration_error_no_url(produce_occurrence_to_kafka):
 
 
 @patch("sentry.replays.usecases.issue.produce_occurrence_to_kafka")
-def test_report_rage_click_issue(produce_occurrence_to_kafka):
+def test_report_rage_click_issue(produce_occurrence_to_kafka: MagicMock) -> None:
     replay_event = mock_replay_event()
 
     node = {
@@ -185,7 +185,7 @@ def test_report_rage_click_issue(produce_occurrence_to_kafka):
 
 
 @patch("sentry.replays.usecases.issue.produce_occurrence_to_kafka")
-def test_report_rage_click_issue_no_component(produce_occurrence_to_kafka):
+def test_report_rage_click_issue_no_component(produce_occurrence_to_kafka: MagicMock) -> None:
     replay_event = mock_replay_event()
 
     node = {

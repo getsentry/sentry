@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from hashlib import md5
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django.http.request import HttpRequest
 from django.utils.functional import classproperty
@@ -21,7 +21,7 @@ logger = logging.getLogger("sentry.auth")
 
 
 class SMSRateLimitExceeded(Exception):
-    def __init__(self, phone_number: str, user_id: int | None, remote_ip) -> None:
+    def __init__(self, phone_number: str, user_id: int | None, remote_ip: str | None) -> None:
         super().__init__()
         self.phone_number = phone_number
         self.user_id = user_id
@@ -43,10 +43,10 @@ class SmsInterface(OtpMixin):
     code_ttl = 45
 
     @classproperty
-    def is_available(cls):
+    def is_available(cls) -> bool:
         return sms_available()
 
-    def generate_new_config(self):
+    def generate_new_config(self) -> dict[str, Any]:
         config = super().generate_new_config()
         config["phone_number"] = None
         return config
@@ -55,11 +55,11 @@ class SmsInterface(OtpMixin):
         return TOTP(self.config["secret"], digits=6, interval=self.code_ttl, default_window=1)
 
     @property
-    def phone_number(self):
+    def phone_number(self) -> str:
         return self.config["phone_number"]
 
     @phone_number.setter
-    def phone_number(self, value):
+    def phone_number(self, value: str) -> None:
         self.config["phone_number"] = value
 
     def activate(self, request: HttpRequest) -> ActivationMessageResult:

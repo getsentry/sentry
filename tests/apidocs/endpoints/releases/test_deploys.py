@@ -10,7 +10,7 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 
 
 class ReleaseDeploysDocs(APIDocsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         project = self.create_project(name="foo")
         release = self.create_release(project=project, version="1")
         release.add_project(project)
@@ -56,13 +56,13 @@ class ReleaseDeploysDocs(APIDocsTestCase):
 
         self.login_as(user=self.user)
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
 
         self.validate_schema(request, response)
 
-    def test_post(self):
+    def test_post(self) -> None:
         data = {
             "name": "foo",
             "environment": "production",

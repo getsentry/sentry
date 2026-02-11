@@ -4,27 +4,41 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import type {PageFilters} from 'sentry/types/core';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {DashboardFilterKeys, DisplayType} from 'sentry/views/dashboards/types';
+import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {
   DashboardsMEPContext,
   DashboardsMEPProvider,
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import type {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 
-describe('Dashboards > WidgetQueries', function () {
+describe('Dashboards > WidgetQueries', () => {
   const initialData = initializeOrg();
 
-  const renderWithProviders = (component: React.ReactNode) =>
+  beforeEach(() => {
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
+  });
+
+  const renderWithProviders = (component: React.ReactNode, options?: any) =>
     render(
       <MetricsResultsMetaProvider>
         <DashboardsMEPProvider>
-          <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
+          <MEPSettingProvider forceTransactions={false}>
+            <WidgetQueryQueueProvider>{component}</WidgetQueryQueueProvider>
+          </MEPSettingProvider>
         </DashboardsMEPProvider>
-      </MetricsResultsMetaProvider>
+      </MetricsResultsMetaProvider>,
+      options
     );
 
   const multipleQueryWidget = {
@@ -91,11 +105,11 @@ describe('Dashboards > WidgetQueries', function () {
     },
   };
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('can send multiple API requests', async function () {
+  it('can send multiple API requests', async () => {
     const errorMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
@@ -107,14 +121,10 @@ describe('Dashboards > WidgetQueries', function () {
       match: [MockApiClient.matchQuery({query: 'event.type:default'})],
     });
     renderWithProviders(
-      <WidgetQueries
-        api={new MockApiClient()}
-        widget={multipleQueryWidget}
-        organization={initialData.organization}
-        selection={selection}
-      >
+      <WidgetQueries widget={multipleQueryWidget}>
         {() => <div data-test-id="child" />}
-      </WidgetQueries>
+      </WidgetQueries>,
+      {organization: initialData.organization}
     );
 
     // Child should be rendered and 2 requests should be sent.
@@ -123,21 +133,19 @@ describe('Dashboards > WidgetQueries', function () {
     expect(defaultMock).toHaveBeenCalledTimes(1);
   });
 
-  it('appends dashboard filters to events series request', async function () {
+  it('appends dashboard filters to events series request', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
     });
     renderWithProviders(
       <WidgetQueries
-        api={new MockApiClient()}
         widget={singleQueryWidget}
-        organization={initialData.organization}
-        selection={selection}
         dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.2.0', 'abc@1.3.0']}}
       >
         {() => <div data-test-id="child" />}
-      </WidgetQueries>
+      </WidgetQueries>,
+      {organization: initialData.organization}
     );
 
     await screen.findByTestId('child');
@@ -151,21 +159,19 @@ describe('Dashboards > WidgetQueries', function () {
     );
   });
 
-  it('appends dashboard filters to events table request', async function () {
+  it('appends dashboard filters to events table request', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: [],
     });
     renderWithProviders(
       <WidgetQueries
-        api={new MockApiClient()}
         widget={tableWidget}
-        organization={initialData.organization}
-        selection={selection}
         dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.3.0']}}
       >
         {() => <div data-test-id="child" />}
-      </WidgetQueries>
+      </WidgetQueries>,
+      {organization: initialData.organization}
     );
 
     await screen.findByTestId('child');
@@ -179,7 +185,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
   });
 
-  it('sets errorMessage when the first request fails', async function () {
+  it('sets errorMessage when the first request fails', async () => {
     const okMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       match: [MockApiClient.matchQuery({query: 'event.type:error'})],
@@ -194,17 +200,13 @@ describe('Dashboards > WidgetQueries', function () {
 
     let error: string | undefined;
     renderWithProviders(
-      <WidgetQueries
-        api={new MockApiClient()}
-        widget={multipleQueryWidget}
-        organization={initialData.organization}
-        selection={selection}
-      >
+      <WidgetQueries widget={multipleQueryWidget}>
         {({errorMessage}: {errorMessage?: string}) => {
           error = errorMessage;
           return <div data-test-id="child" />;
         }}
-      </WidgetQueries>
+      </WidgetQueries>,
+      {organization: initialData.organization}
     );
 
     // Child should be rendered and 2 requests should be sent.
@@ -216,7 +218,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(failMock).toHaveBeenCalledTimes(1);
   });
 
-  it('adjusts interval based on date window', async function () {
+  it('adjusts interval based on date window', async () => {
     const errorMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
@@ -234,15 +236,12 @@ describe('Dashboards > WidgetQueries', function () {
       },
     };
 
+    // Initialize PageFiltersStore with the specific selection for this test
+    PageFiltersStore.onInitializeUrlState(longSelection);
+
     renderWithProviders(
-      <WidgetQueries
-        api={new MockApiClient()}
-        widget={widget}
-        organization={initialData.organization}
-        selection={longSelection}
-      >
-        {() => <div data-test-id="child" />}
-      </WidgetQueries>
+      <WidgetQueries widget={widget}>{() => <div data-test-id="child" />}</WidgetQueries>,
+      {organization: initialData.organization}
     );
 
     // Child should be rendered and interval bumped up.
@@ -261,7 +260,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
   });
 
-  it('adjusts interval based on date window 14d', async function () {
+  it('adjusts interval based on date window 14d', async () => {
     const errorMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
@@ -269,14 +268,8 @@ describe('Dashboards > WidgetQueries', function () {
     const widget = {...singleQueryWidget, interval: '1m'};
 
     renderWithProviders(
-      <WidgetQueries
-        api={new MockApiClient()}
-        widget={widget}
-        organization={initialData.organization}
-        selection={selection}
-      >
-        {() => <div data-test-id="child" />}
-      </WidgetQueries>
+      <WidgetQueries widget={widget}>{() => <div data-test-id="child" />}</WidgetQueries>,
+      {organization: initialData.organization}
     );
 
     // Child should be rendered and interval bumped up.
@@ -290,7 +283,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
   });
 
-  it('can send table result queries', async function () {
+  it('can send table result queries', async () => {
     const tableMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
@@ -299,19 +292,18 @@ describe('Dashboards > WidgetQueries', function () {
       },
     });
 
-    let childProps: GenericWidgetQueriesChildrenProps | undefined;
+    // Initialize PageFiltersStore with selection
+    PageFiltersStore.onInitializeUrlState(selection);
+
+    let childProps: GenericWidgetQueriesResult | undefined;
     renderWithProviders(
-      <WidgetQueries
-        api={new MockApiClient()}
-        widget={tableWidget}
-        organization={initialData.organization}
-        selection={selection}
-      >
+      <WidgetQueries widget={tableWidget}>
         {props => {
           childProps = props;
           return <div data-test-id="child" />;
         }}
-      </WidgetQueries>
+      </WidgetQueries>,
+      {organization: initialData.organization}
     );
 
     // Child should be rendered and 1 requests should be sent.
@@ -334,7 +326,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(childProps?.tableResults?.[0]!.meta).toBeDefined();
   });
 
-  it('can send multiple table queries', async function () {
+  it('can send multiple table queries', async () => {
     const firstQuery = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
@@ -376,19 +368,15 @@ describe('Dashboards > WidgetQueries', function () {
       ],
     };
 
-    let childProps: GenericWidgetQueriesChildrenProps | undefined;
+    let childProps: GenericWidgetQueriesResult | undefined;
     renderWithProviders(
-      <WidgetQueries
-        api={new MockApiClient()}
-        widget={widget}
-        organization={initialData.organization}
-        selection={selection}
-      >
+      <WidgetQueries widget={widget}>
         {props => {
           childProps = props;
           return <div data-test-id="child" />;
         }}
-      </WidgetQueries>
+      </WidgetQueries>,
+      {organization: initialData.organization}
     );
 
     // Child should be rendered and 2 requests should be sent.
@@ -401,7 +389,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(childProps?.tableResults?.[1]!.data[0]!.title).toBeDefined();
   });
 
-  it('can send big number result queries', async function () {
+  it('can send big number result queries', async () => {
     const tableMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
@@ -410,10 +398,12 @@ describe('Dashboards > WidgetQueries', function () {
       },
     });
 
-    let childProps: GenericWidgetQueriesChildrenProps | undefined;
+    // Initialize PageFiltersStore with selection
+    PageFiltersStore.onInitializeUrlState(selection);
+
+    let childProps: GenericWidgetQueriesResult | undefined;
     renderWithProviders(
       <WidgetQueries
-        api={new MockApiClient()}
         widget={{
           title: 'SDK',
           interval: '5m',
@@ -429,14 +419,13 @@ describe('Dashboards > WidgetQueries', function () {
             },
           ],
         }}
-        organization={initialData.organization}
-        selection={selection}
       >
         {props => {
           childProps = props;
           return <div data-test-id="child" />;
         }}
-      </WidgetQueries>
+      </WidgetQueries>,
+      {organization: initialData.organization}
     );
 
     // Child should be rendered and 1 requests should be sent.
@@ -460,7 +449,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(childProps?.tableResults?.[0]?.meta).toBeDefined();
   });
 
-  it('stops loading state once all queries finish even if some fail', async function () {
+  it('stops loading state once all queries finish even if some fail', async () => {
     const firstQuery = MockApiClient.addMockResponse({
       statusCode: 500,
       url: '/organizations/org-slug/events/',
@@ -500,19 +489,15 @@ describe('Dashboards > WidgetQueries', function () {
       ],
     };
 
-    let childProps: GenericWidgetQueriesChildrenProps | undefined;
+    let childProps: GenericWidgetQueriesResult | undefined;
     renderWithProviders(
-      <WidgetQueries
-        api={new MockApiClient()}
-        widget={widget}
-        organization={initialData.organization}
-        selection={selection}
-      >
+      <WidgetQueries widget={widget}>
         {props => {
           childProps = props;
           return <div data-test-id="child" />;
         }}
-      </WidgetQueries>
+      </WidgetQueries>,
+      {organization: initialData.organization}
     );
 
     // Child should be rendered and 2 requests should be sent.
@@ -523,7 +508,7 @@ describe('Dashboards > WidgetQueries', function () {
     await waitFor(() => expect(childProps?.loading).toBe(false));
   });
 
-  it('sets bar charts to 1d interval', async function () {
+  it('sets bar charts to 1d interval', async () => {
     const errorMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
@@ -536,14 +521,10 @@ describe('Dashboards > WidgetQueries', function () {
       interval: '5m',
     };
     renderWithProviders(
-      <WidgetQueries
-        api={new MockApiClient()}
-        widget={barWidget}
-        organization={initialData.organization}
-        selection={selection}
-      >
+      <WidgetQueries widget={barWidget}>
         {() => <div data-test-id="child" />}
-      </WidgetQueries>
+      </WidgetQueries>,
+      {organization: initialData.organization}
     );
 
     // Child should be rendered and 1 requests should be sent.
@@ -551,7 +532,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(errorMock).toHaveBeenCalledTimes(1);
   });
 
-  it('returns timeseriesResults in the same order as widgetQuery', async function () {
+  it('returns timeseriesResults in the same order as widgetQuery', async () => {
     MockApiClient.clearMockResponses();
     const defaultMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -598,16 +579,9 @@ describe('Dashboards > WidgetQueries', function () {
       interval: '5m',
     };
     const child = jest.fn(() => <div data-test-id="child" />);
-    renderWithProviders(
-      <WidgetQueries
-        api={new MockApiClient()}
-        widget={barWidget}
-        organization={initialData.organization}
-        selection={selection}
-      >
-        {child}
-      </WidgetQueries>
-    );
+    renderWithProviders(<WidgetQueries widget={barWidget}>{child}</WidgetQueries>, {
+      organization: initialData.organization,
+    });
 
     await screen.findByTestId('child');
     expect(defaultMock).toHaveBeenCalledTimes(1);
@@ -624,7 +598,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
   });
 
-  it('calls events-stats with 4h interval when interval buckets would exceed 66', async function () {
+  it('calls events-stats with 4h interval when interval buckets would exceed 66', async () => {
     const eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
@@ -634,23 +608,25 @@ describe('Dashboards > WidgetQueries', function () {
       displayType: DisplayType.AREA,
       interval: '5m',
     };
+
+    const longSelection = {
+      ...selection,
+      datetime: {
+        period: '90d',
+        start: null,
+        end: null,
+        utc: false,
+      },
+    };
+
+    // Initialize PageFiltersStore with longSelection
+    PageFiltersStore.onInitializeUrlState(longSelection);
+
     renderWithProviders(
-      <WidgetQueries
-        api={new MockApiClient()}
-        widget={areaWidget}
-        organization={initialData.organization}
-        selection={{
-          ...selection,
-          datetime: {
-            period: '90d',
-            start: null,
-            end: null,
-            utc: false,
-          },
-        }}
-      >
+      <WidgetQueries widget={areaWidget}>
         {() => <div data-test-id="child" />}
-      </WidgetQueries>
+      </WidgetQueries>,
+      {organization: initialData.organization}
     );
 
     // Child should be rendered and 1 requests should be sent.
@@ -662,7 +638,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
   });
 
-  it('does not re-query events and sets name in widgets', async function () {
+  it('does not re-query events and sets name in widgets', async () => {
     const eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: EventsStatsFixture(),
@@ -672,19 +648,15 @@ describe('Dashboards > WidgetQueries', function () {
       displayType: DisplayType.LINE,
       interval: '5m',
     };
-    let childProps!: GenericWidgetQueriesChildrenProps;
+    let childProps!: GenericWidgetQueriesResult;
     const {rerender} = renderWithProviders(
-      <WidgetQueries
-        api={new MockApiClient()}
-        widget={lineWidget}
-        organization={initialData.organization}
-        selection={selection}
-      >
+      <WidgetQueries widget={lineWidget}>
         {props => {
           childProps = props;
           return <div data-test-id="child" />;
         }}
-      </WidgetQueries>
+      </WidgetQueries>,
+      {organization: initialData.organization}
     );
 
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
@@ -695,29 +667,28 @@ describe('Dashboards > WidgetQueries', function () {
       <MetricsResultsMetaProvider>
         <DashboardsMEPProvider>
           <MEPSettingProvider forceTransactions={false}>
-            <WidgetQueries
-              api={new MockApiClient()}
-              widget={{
-                ...lineWidget,
-                queries: [
-                  {
-                    conditions: 'event.type:error',
-                    fields: ['count()'],
-                    aggregates: ['count()'],
-                    columns: [],
-                    name: 'this query alias changed',
-                    orderby: '',
-                  },
-                ],
-              }}
-              organization={initialData.organization}
-              selection={selection}
-            >
-              {props => {
-                childProps = props;
-                return <div data-test-id="child" />;
-              }}
-            </WidgetQueries>
+            <WidgetQueryQueueProvider>
+              <WidgetQueries
+                widget={{
+                  ...lineWidget,
+                  queries: [
+                    {
+                      conditions: 'event.type:error',
+                      fields: ['count()'],
+                      aggregates: ['count()'],
+                      columns: [],
+                      name: 'this query alias changed',
+                      orderby: '',
+                    },
+                  ],
+                }}
+              >
+                {props => {
+                  childProps = props;
+                  return <div data-test-id="child" />;
+                }}
+              </WidgetQueries>
+            </WidgetQueryQueueProvider>
           </MEPSettingProvider>
         </DashboardsMEPProvider>
       </MetricsResultsMetaProvider>
@@ -730,7 +701,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
   });
 
-  it('charts send metricsEnhanced requests', async function () {
+  it('charts send metricsEnhanced requests', async () => {
     const {organization} = initialData;
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -761,18 +732,14 @@ describe('Dashboards > WidgetQueries', function () {
           setIsMetricsData: setIsMetricsMock,
         }}
       >
-        <WidgetQueries
-          api={new MockApiClient()}
-          widget={singleQueryWidget}
-          organization={{
-            ...organization,
-            features: [...organization.features, 'dashboards-mep'],
-          }}
-          selection={selection}
-        >
-          {children}
-        </WidgetQueries>
-      </DashboardsMEPContext>
+        <WidgetQueries widget={singleQueryWidget}>{children}</WidgetQueries>
+      </DashboardsMEPContext>,
+      {
+        organization: {
+          ...organization,
+          features: [...organization.features, 'dashboards-mep'],
+        },
+      }
     );
 
     expect(mock).toHaveBeenCalledWith(
@@ -787,7 +754,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
   });
 
-  it('tables send metricsEnhanced requests', async function () {
+  it('tables send metricsEnhanced requests', async () => {
     const {organization} = initialData;
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -807,18 +774,16 @@ describe('Dashboards > WidgetQueries', function () {
           setIsMetricsData: setIsMetricsMock,
         }}
       >
-        <WidgetQueries
-          api={new MockApiClient()}
-          widget={{...singleQueryWidget, displayType: DisplayType.TABLE}}
-          organization={{
-            ...organization,
-            features: [...organization.features, 'dashboards-mep'],
-          }}
-          selection={selection}
-        >
+        <WidgetQueries widget={{...singleQueryWidget, displayType: DisplayType.TABLE}}>
           {children}
         </WidgetQueries>
-      </DashboardsMEPContext>
+      </DashboardsMEPContext>,
+      {
+        organization: {
+          ...organization,
+          features: [...organization.features, 'dashboards-mep'],
+        },
+      }
     );
 
     expect(mock).toHaveBeenCalledWith(
@@ -833,7 +798,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
   });
 
-  it('does not inject equation aliases for top N requests', async function () {
+  it('does not inject equation aliases for top N requests', async () => {
     const testData = initializeOrg({
       organization: {
         ...OrganizationFixture(),
@@ -859,14 +824,10 @@ describe('Dashboards > WidgetQueries', function () {
       ],
     };
     renderWithProviders(
-      <WidgetQueries
-        api={new MockApiClient()}
-        widget={areaWidget}
-        organization={testData.organization}
-        selection={selection}
-      >
+      <WidgetQueries widget={areaWidget}>
         {() => <div data-test-id="child" />}
-      </WidgetQueries>
+      </WidgetQueries>,
+      {organization: testData.organization}
     );
 
     // Child should be rendered and 1 requests should be sent.

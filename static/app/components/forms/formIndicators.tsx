@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addMessage,
@@ -40,9 +42,10 @@ export function addUndoableFormChangeMessage(
 
   // Hide the change text when formatMessageValue is explicitly set to false
   const showChangeText = model.getDescriptor(fieldName, 'formatMessageValue') !== false;
+  const root = <Flex align="center" />;
 
   const tctArgsSuccess = {
-    root: <MessageContainer />,
+    root,
     fieldName: <FieldName>{label}</FieldName>,
     oldValue: <FormValue>{prettifyValue(change.old)}</FormValue>,
     newValue: <FormValue>{prettifyValue(change.new)}</FormValue>,
@@ -73,7 +76,7 @@ export function addUndoableFormChangeMessage(
 
         if (!maybeSaveResultPromise) {
           const tctArgsFail = {
-            root: <MessageContainer />,
+            root,
             fieldName: <FieldName>{label}</FieldName>,
             oldValue: <FormValue>{prettifyValue(oldValue)}</FormValue>,
             newValue: <FormValue>{prettifyValue(newValue)}</FormValue>,
@@ -91,7 +94,7 @@ export function addUndoableFormChangeMessage(
         }
 
         const tctArgsRestored = {
-          root: <MessageContainer />,
+          root,
           fieldName: <FieldName>{label}</FieldName>,
           oldValue: <FormValue>{prettifyValue(oldValue)}</FormValue>,
           newValue: <FormValue>{prettifyValue(newValue)}</FormValue>,
@@ -102,7 +105,7 @@ export function addUndoableFormChangeMessage(
             showChangeText
               ? tct('Restored [fieldName] from [oldValue] to [newValue]', tctArgsRestored)
               : tct('Restored [fieldName]', tctArgsRestored),
-            'undo',
+            'success',
             {
               duration: DEFAULT_TOAST_DURATION,
             }
@@ -152,10 +155,6 @@ const FormValue = styled('em')`
   margin: 0 ${space(0.5)};
 `;
 const FieldName = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin: 0 ${space(0.5)};
-`;
-const MessageContainer = styled('div')`
-  display: flex;
-  align-items: center;
 `;

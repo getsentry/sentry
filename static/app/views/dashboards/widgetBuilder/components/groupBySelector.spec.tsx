@@ -1,6 +1,4 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -14,15 +12,15 @@ const organization = OrganizationFixture({
   features: [],
 });
 
-describe('WidgetBuilderGroupBySelector', function () {
-  beforeEach(function () {
+describe('WidgetBuilderGroupBySelector', () => {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(
       <WidgetBuilderProvider>
         <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
@@ -39,7 +37,7 @@ describe('WidgetBuilderGroupBySelector', function () {
     expect(await screen.findByText('+ Add Group')).toBeInTheDocument();
   });
 
-  it('renders the group by field and works for spans', async function () {
+  it('renders the group by field and works for spans', async () => {
     render(
       <WidgetBuilderProvider>
         <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
@@ -72,7 +70,7 @@ describe('WidgetBuilderGroupBySelector', function () {
     });
   });
 
-  it('renders the group by field and works for logs', async function () {
+  it('renders the group by field and works for logs', async () => {
     render(
       <WidgetBuilderProvider>
         <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
@@ -105,7 +103,7 @@ describe('WidgetBuilderGroupBySelector', function () {
     });
   });
 
-  it('disables group by selector when transaction widget type and discover-saved-queries-deprecation feature flag', async function () {
+  it('disables group by selector when transaction widget type and discover-saved-queries-deprecation feature flag', async () => {
     const organizationWithFeature = OrganizationFixture({
       features: ['discover-saved-queries-deprecation'],
     });
@@ -117,16 +115,17 @@ describe('WidgetBuilderGroupBySelector', function () {
         </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
-        organization: organizationWithFeature,
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          route: '/organizations/:orgId/dashboard/:dashboardId/',
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-        deprecatedRouterMocks: true,
+          },
+        },
+        organization: organizationWithFeature,
       }
     );
 
@@ -138,7 +137,7 @@ describe('WidgetBuilderGroupBySelector', function () {
     expect(selectInput).toBeDisabled();
   });
 
-  it('enables group by selector when transaction widget type but no discover-saved-queries-deprecation feature flag', async function () {
+  it('enables group by selector when transaction widget type but no discover-saved-queries-deprecation feature flag', async () => {
     const organizationWithoutFeature = OrganizationFixture({
       features: [],
     });
@@ -150,16 +149,17 @@ describe('WidgetBuilderGroupBySelector', function () {
         </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
-        organization: organizationWithoutFeature,
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          route: '/organizations/:orgId/dashboard/:dashboardId/',
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-        deprecatedRouterMocks: true,
+          },
+        },
+        organization: organizationWithoutFeature,
       }
     );
 
@@ -170,7 +170,7 @@ describe('WidgetBuilderGroupBySelector', function () {
     expect(selectInput).toBeEnabled();
   });
 
-  it('enables group by selector when discover-saved-queries-deprecation feature flag but not transaction widget type', async function () {
+  it('enables group by selector when discover-saved-queries-deprecation feature flag but not transaction widget type', async () => {
     const organizationWithFeature = OrganizationFixture({
       features: ['discover-saved-queries-deprecation'],
     });
@@ -182,16 +182,17 @@ describe('WidgetBuilderGroupBySelector', function () {
         </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
-        organization: organizationWithFeature,
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          route: '/organizations/:orgId/dashboard/:dashboardId/',
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
             query: {
               dataset: WidgetType.ERRORS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-        deprecatedRouterMocks: true,
+          },
+        },
+        organization: organizationWithFeature,
       }
     );
 
@@ -200,5 +201,45 @@ describe('WidgetBuilderGroupBySelector', function () {
 
     const selectInput = await screen.findByRole('textbox');
     expect(selectInput).toBeEnabled();
+  });
+
+  it('hides group by fields that are hidden in the trace metrics dataset', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [
+        {
+          key: 'metric.name',
+          name: 'metric.name',
+        },
+      ],
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.TRACEMETRICS} enabled>
+          <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
+        </TraceItemAttributeProvider>
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
+            query: {
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.LINE,
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByText('Group by')).toBeInTheDocument();
+    expect(await screen.findByText('Select group')).toBeInTheDocument();
+    expect(await screen.findByText('+ Add Group')).toBeInTheDocument();
+
+    await userEvent.click(await screen.findByText('Select group'));
+
+    expect(screen.queryByText('metric.name')).not.toBeInTheDocument();
   });
 });

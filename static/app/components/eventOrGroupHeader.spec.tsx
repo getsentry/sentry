@@ -1,12 +1,14 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {EventOrGroupType} from 'sentry/types/event';
+
+const organization = OrganizationFixture();
 
 const group = GroupFixture({
   level: 'error',
@@ -34,36 +36,30 @@ const event = EventFixture({
   },
 });
 
-describe('EventOrGroupHeader', function () {
+const baseIssuesPath = `/organizations/${organization.slug}/issues/`;
+
+describe('EventOrGroupHeader', () => {
   beforeEach(() => {
     jest.useRealTimers();
   });
 
-  const {router} = initializeOrg();
-
-  describe('Group', function () {
-    it('renders with `type = error`', function () {
-      render(<EventOrGroupHeader data={group} {...router} />, {
-        deprecatedRouterMocks: true,
-      });
+  describe('Group', () => {
+    it('renders with `type = error`', () => {
+      render(<EventOrGroupHeader data={group} />);
     });
 
-    it('renders with `type = csp`', function () {
+    it('renders with `type = csp`', () => {
       render(
         <EventOrGroupHeader
           data={{
             ...group,
             type: EventOrGroupType.CSP,
           }}
-          {...router}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
     });
 
-    it('renders with `type = default`', function () {
+    it('renders with `type = default`', () => {
       render(
         <EventOrGroupHeader
           data={{
@@ -74,41 +70,31 @@ describe('EventOrGroupHeader', function () {
               title: 'metadata title',
             },
           }}
-          {...router}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
     });
 
-    it('renders metadata values in message for error events', function () {
+    it('renders metadata values in message for error events', () => {
       render(
         <EventOrGroupHeader
           data={{
             ...group,
             type: EventOrGroupType.ERROR,
           }}
-          {...router}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
 
       expect(screen.getByText('metadata value')).toBeInTheDocument();
     });
 
-    it('preloads group on hover', async function () {
+    it('preloads group on hover', async () => {
       jest.useFakeTimers();
       const mockFetchGroup = MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/issues/${group.id}/`,
+        url: `/organizations/${organization.slug}/issues/${group.id}/`,
         body: group,
       });
 
-      render(<EventOrGroupHeader data={group} {...router} />, {
-        deprecatedRouterMocks: true,
-      });
+      render(<EventOrGroupHeader data={group} />);
 
       const groupLink = screen.getByRole('link');
 
@@ -122,38 +108,30 @@ describe('EventOrGroupHeader', function () {
     });
   });
 
-  describe('Event', function () {
-    it('renders with `type = error`', function () {
+  describe('Event', () => {
+    it('renders with `type = error`', () => {
       render(
         <EventOrGroupHeader
           data={EventFixture({
             ...event,
             type: EventOrGroupType.ERROR,
           })}
-          {...router}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
     });
 
-    it('renders with `type = csp`', function () {
+    it('renders with `type = csp`', () => {
       render(
         <EventOrGroupHeader
           data={{
             ...event,
             type: EventOrGroupType.CSP,
           }}
-          {...router}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
     });
 
-    it('renders with `type = default`', function () {
+    it('renders with `type = default`', () => {
       render(
         <EventOrGroupHeader
           data={{
@@ -164,15 +142,11 @@ describe('EventOrGroupHeader', function () {
               title: 'metadata title',
             },
           }}
-          {...router}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
     });
 
-    it('hides level tag', function () {
+    it('hides level tag', () => {
       render(
         <EventOrGroupHeader
           hideLevel
@@ -184,72 +158,59 @@ describe('EventOrGroupHeader', function () {
               title: 'metadata title',
             },
           }}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
     });
 
-    it('keeps sort in link when query has sort', function () {
-      render(
-        <EventOrGroupHeader
-          data={{
-            ...event,
-            type: EventOrGroupType.DEFAULT,
-          }}
-        />,
-        {
-          router: {
-            ...router,
-            location: {
-              ...router.location,
-              query: {
-                ...router.location.query,
-                sort: 'freq',
-              },
-            },
+    it('keeps sort in link when query has sort', () => {
+      const eventWithSort = EventFixture({
+        ...event,
+        type: EventOrGroupType.DEFAULT,
+      });
+
+      render(<EventOrGroupHeader data={eventWithSort} />, {
+        initialRouterConfig: {
+          location: {
+            pathname: baseIssuesPath,
+            query: {sort: 'freq'},
           },
+        },
+      });
 
-          deprecatedRouterMocks: true,
-        }
-      );
+      const href = screen.getByRole('link').getAttribute('href');
+      expect(href).toBeTruthy();
 
-      expect(screen.getByRole('link')).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/issues/groupID/events/eventID/?_allp=1&referrer=event-or-group-header&sort=freq'
+      const url = new URL(`https://example${href}`);
+      expect(url.pathname).toBe(
+        `${baseIssuesPath}${eventWithSort.groupID}/events/${eventWithSort.eventID}/`
       );
+      expect(url.searchParams.get('sort')).toBe('freq');
+      expect(url.searchParams.get('_allp')).toBe('1');
+      expect(url.searchParams.get('referrer')).toBe('event-or-group-header');
     });
 
-    it('lack of project adds all parameter', function () {
-      render(
-        <EventOrGroupHeader
-          data={{
-            ...event,
-            type: EventOrGroupType.DEFAULT,
-          }}
-        />,
-        {
-          router: {
-            ...router,
-            location: {
-              ...router.location,
-              query: {},
-            },
-          },
+    it('lack of project adds all parameter', () => {
+      const eventDefault = EventFixture({
+        ...event,
+        type: EventOrGroupType.DEFAULT,
+      });
 
-          deprecatedRouterMocks: true,
-        }
-      );
+      render(<EventOrGroupHeader data={eventDefault} />);
 
-      expect(screen.getByRole('link')).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/issues/groupID/events/eventID/?_allp=1&referrer=event-or-group-header'
+      const href = screen.getByRole('link').getAttribute('href');
+      expect(href).toBeTruthy();
+
+      const url = new URL(`https://example${href}`);
+      expect(url.pathname).toBe(
+        `${baseIssuesPath}${eventDefault.groupID}/events/${eventDefault.eventID}/`
       );
+      expect(url.searchParams.get('_allp')).toBe('1');
+      expect(url.searchParams.has('project')).toBe(false);
+      expect(url.searchParams.get('referrer')).toBe('event-or-group-header');
     });
   });
 
-  it('renders group tombstone without link to group', function () {
+  it('renders group tombstone without link to group', () => {
     render(
       <EventOrGroupHeader
         data={{
@@ -269,11 +230,7 @@ describe('EventOrGroupHeader', function () {
           isTombstone: true,
           dateAdded: '2025-06-25T00:00:00Z',
         }}
-        {...router}
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     expect(screen.queryByRole('link')).not.toBeInTheDocument();

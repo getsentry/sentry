@@ -4,13 +4,11 @@ import {
   useContext,
   useEffect,
   useLayoutEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
 import type {Interpolation, Theme} from '@emotion/react';
-import type {AnimationProps} from 'framer-motion';
-import {AnimatePresence} from 'framer-motion';
+import {AnimatePresence, type Transition} from 'framer-motion';
 import type {Location} from 'history';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -75,7 +73,7 @@ export interface DrawerOptions {
   //
   // Custom framer motion transition for the drawer
   //
-  transitionProps?: AnimationProps['transition'];
+  transitionProps?: Transition;
 }
 
 interface DrawerRenderProps {
@@ -120,14 +118,18 @@ export function GlobalDrawer({children}: any) {
 
   // If no config is set, the global drawer is closed.
   const isDrawerOpen = !!currentDrawerConfig;
+  const previousOverflowRef = useRef<string>(null);
   const openDrawer = useCallback<DrawerContextType['openDrawer']>((renderer, options) => {
+    previousOverflowRef.current ??= document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     overwriteDrawerConfig({renderer, options});
     options.onOpen?.();
   }, []);
-  const closeDrawer = useCallback<DrawerContextType['closeDrawer']>(
-    () => overwriteDrawerConfig(undefined),
-    []
-  );
+  const closeDrawer = useCallback<DrawerContextType['closeDrawer']>(() => {
+    document.body.style.overflow = previousOverflowRef.current ?? '';
+    previousOverflowRef.current = null;
+    overwriteDrawerConfig(undefined);
+  }, []);
 
   const handleClose = useCallback(() => {
     currentDrawerConfig?.options?.onClose?.();
@@ -179,20 +181,16 @@ export function GlobalDrawer({children}: any) {
   });
 
   // Close the drawer when escape is pressed and options allow it.
-  const globalDrawerHotkeys = useMemo(() => {
-    return [
-      {
-        match: 'Escape',
-        callback: () => {
-          if (currentDrawerConfig?.options?.closeOnEscapeKeypress ?? true) {
-            handleClose();
-          }
-        },
+  useHotkeys([
+    {
+      match: 'Escape',
+      callback: () => {
+        if (currentDrawerConfig?.options?.closeOnEscapeKeypress ?? true) {
+          handleClose();
+        }
       },
-    ];
-  }, [currentDrawerConfig?.options?.closeOnEscapeKeypress, handleClose]);
-
-  useHotkeys(globalDrawerHotkeys);
+    },
+  ]);
 
   const renderedChild = currentDrawerConfig?.renderer
     ? currentDrawerConfig.renderer({

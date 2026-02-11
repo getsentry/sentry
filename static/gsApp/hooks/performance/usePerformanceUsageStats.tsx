@@ -1,6 +1,7 @@
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 type PerformanceStatsGroup = {
@@ -13,7 +14,7 @@ type PerformanceStatsGroup = {
 };
 
 type PartialUsageStats = {
-  groups: PerformanceStatsGroup[];
+  groups?: PerformanceStatsGroup[];
 };
 
 export function usePerformanceUsageStats({
@@ -26,7 +27,9 @@ export function usePerformanceUsageStats({
   projectIds: PageFilters['projects'];
 }) {
   const {start, end, period} = dateRange;
-  const pathname = `/organizations/${organization.slug}/stats_v2/`;
+  const pathname = getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+    path: {organizationIdOrSlug: organization.slug},
+  });
 
   const endpointOptions = {
     query: {
@@ -49,8 +52,12 @@ export function usePerformanceUsageStats({
 
   return {
     ...results,
-    data: results.data?.groups.find(group =>
-      ['transaction_usage_exceeded', 'span_usage_exceeded'].includes(group.by.reason)
+    data: results.data?.groups?.find(group =>
+      [
+        'transaction_usage_exceeded',
+        'span_usage_exceeded',
+        'log_bytes_usage_exceeded',
+      ].includes(group.by.reason)
     ),
   };
 }

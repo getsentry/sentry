@@ -2,10 +2,10 @@ import {waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {doDiscoverQuery} from './genericDiscoverQuery';
 
-describe('doDiscoverQuery', function () {
+describe('doDiscoverQuery', () => {
   const api = new MockApiClient();
   let eventsMock: any;
-  beforeEach(function () {
+  beforeEach(() => {
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       status: 429,
@@ -13,7 +13,7 @@ describe('doDiscoverQuery', function () {
     });
   });
 
-  it('retries discover query when given retry options', async function () {
+  it('retries discover query when given retry options', async () => {
     await expect(
       doDiscoverQuery(
         api,
@@ -25,14 +25,14 @@ describe('doDiscoverQuery', function () {
     expect(eventsMock).toHaveBeenCalledTimes(3);
   });
 
-  it('fails first discover query and then passes on the retry', async function () {
+  it('fails first discover query and then passes on the retry', async () => {
     const promise = doDiscoverQuery(
       api,
       '/organizations/org-slug/events/',
       {},
       {retry: {statusCodes: [429], tries: 3, baseTimeout: 10}}
     );
-    await waitFor(function () {
+    await waitFor(() => {
       expect(eventsMock).toHaveBeenCalledTimes(1);
     });
     // update mock to be successful on second request

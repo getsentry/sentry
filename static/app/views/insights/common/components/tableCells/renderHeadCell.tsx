@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
@@ -65,7 +66,7 @@ const SORTABLE_FIELDS = new Set([
   SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME,
   'count_op(queue.publish)',
   'count_op(queue.process)',
-  'avg_if(span.duration,span.op,queue.process)',
+  'avg_if(span.duration,span.op,equals,queue.process)',
   'avg(messaging.message.receive.latency)',
   'time_spent_percentage(span.duration)',
   'transaction',
@@ -78,10 +79,13 @@ const SORTABLE_FIELDS = new Set([
   'failure_rate()',
   'performance_score(measurements.score.total)',
   'count_unique(user)',
-  'p50_if(span.duration,is_transaction,true)',
-  'p95_if(span.duration,is_transaction,true)',
-  'failure_rate_if(is_transaction,true)',
-  'sum_if(span.duration,is_transaction,true)',
+  'p50_if(span.duration,is_transaction,equals,true)',
+  'p75_if(span.duration,is_transaction,equals,true)',
+  'p90_if(span.duration,is_transaction,equals,true)',
+  'p95_if(span.duration,is_transaction,equals,true)',
+  'p99_if(span.duration,is_transaction,equals,true)',
+  'failure_rate_if(is_transaction,equals,true)',
+  'sum_if(span.duration,is_transaction,equals,true)',
   'p75(measurements.frames_slow_rate)',
   'p75(measurements.frames_frozen_rate)',
   'trace_status_rate(ok)',
@@ -117,7 +121,7 @@ export const renderHeadCell = ({column, location, sort, sortParameterName}: Opti
       align={alignment}
       canSort={Boolean(location && sort && SORTABLE_FIELDS.has(key))}
       direction={sort?.field === column.key ? sort.kind : undefined}
-      title={hasTooltip ? <TooltipHeader>{name}</TooltipHeader> : name}
+      title={name}
       generateSortLink={() => {
         return {
           ...location,
@@ -135,7 +139,7 @@ export const renderHeadCell = ({column, location, sort, sortParameterName}: Opti
 
     return (
       <AlignmentContainer>
-        <StyledTooltip isHoverable title={column.tooltip}>
+        <StyledTooltip isHoverable showUnderline title={column.tooltip}>
           {sortLink}
         </StyledTooltip>
       </AlignmentContainer>
@@ -178,8 +182,4 @@ const AlignRight = styled('span')`
 const StyledTooltip = styled(Tooltip)`
   top: 1px;
   position: relative;
-`;
-
-const TooltipHeader = styled('span')`
-  ${p => p.theme.tooltipUnderline()};
 `;

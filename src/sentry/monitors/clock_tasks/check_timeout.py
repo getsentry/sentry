@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 CHECKINS_LIMIT = 10_000
 
 
-def dispatch_check_timeout(ts: datetime):
+def dispatch_check_timeout(ts: datetime) -> None:
     """
     Given a clock tick timestamp determine which check-ins are past their
     timeout_at.

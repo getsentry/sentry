@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import {space} from 'sentry/styles/space';
 
 type Props = {
@@ -13,13 +14,13 @@ function Terminal({command}: Props) {
 
 export default Terminal;
 
-const StyledCodeSnippet = styled(CodeSnippet)`
+const StyledCodeSnippet = styled(CodeBlock)`
   padding-left: ${space(2)};
   &:before {
     content: '\0024';
     position: absolute;
     padding-top: ${space(1)};
     color: var(--prism-comment);
-    font-size: ${p => p.theme.codeFontSize};
+    font-size: ${p => p.theme.font.size.sm};
   }
 `;

@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
+import documentation from '!!type-loader!sentry/components/charts/chartWidgetLoader';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import * as Storybook from 'sentry/stories';
 
-import types from '!!type-loader!sentry/components/charts/chartWidgetLoader';
-
 export default Storybook.story('ChartWidgetLoader', (story, APIReference) => {
-  APIReference(types.ChartWidgetLoader);
+  APIReference(documentation.props?.ChartWidgetLoader);
 
   story('Getting Started', () => {
     return (
@@ -31,7 +31,7 @@ export default Storybook.story('ChartWidgetLoader', (story, APIReference) => {
           render these chart widgets).
         </p>
 
-        <CodeSnippet language="tsx">{`<ChartWidgetLoader id="chart-id" />`}</CodeSnippet>
+        <CodeBlock language="tsx">{`<ChartWidgetLoader id="chart-id" />`}</CodeBlock>
       </Fragment>
     );
   });

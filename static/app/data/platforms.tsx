@@ -115,6 +115,7 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'dotnet',
     link: 'https://docs.sentry.io/platforms/dotnet/guides/uwp/',
+    deprecated: true,
   },
   {
     id: 'dotnet-winforms',
@@ -213,6 +214,7 @@ export const platforms: PlatformIntegration[] = [
     id: 'go-martini',
     name: 'Martini',
     language: 'go',
+    deprecated: true,
   },
   {
     link: 'https://docs.sentry.io/platforms/go/guides/negroni/',
@@ -421,16 +423,6 @@ export const platforms: PlatformIntegration[] = [
     },
   },
   {
-    id: 'nintendo-switch-2',
-    name: 'Nintendo Switch 2',
-    type: 'console',
-    language: 'console',
-    link: 'https://docs.sentry.io/platforms/nintendo-switch/',
-    iconConfig: {
-      withLanguageIcon: false,
-    },
-  },
-  {
     id: 'node',
     name: 'Node.js',
     type: 'language',
@@ -492,6 +484,13 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'node',
     link: 'https://docs.sentry.io/platforms/javascript/guides/hapi/',
+  },
+  {
+    id: 'node-hono',
+    name: 'Hono',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/hono/',
   },
   {
     id: 'node-gcpfunctions',
@@ -639,6 +638,7 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'python',
     link: 'https://docs.sentry.io/platforms/python/legacy-sdk/integrations/pylons/',
+    deprecated: true,
   },
   {
     id: 'python-pymongo',
@@ -646,6 +646,7 @@ export const platforms: PlatformIntegration[] = [
     type: 'library',
     language: 'python',
     link: 'https://docs.sentry.io/platforms/python/guides/pymongo/',
+    deprecated: true,
   },
   {
     id: 'python-pyramid',

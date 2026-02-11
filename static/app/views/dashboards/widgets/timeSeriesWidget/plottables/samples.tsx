@@ -287,7 +287,7 @@ export class Samples implements Plottable {
 
           const {color} = config.baselineValue
             ? getSampleChartSymbol(value, config.baselineValue, theme)
-            : {color: theme.gray500};
+            : {color: theme.colors.gray800};
           return color;
         },
       },

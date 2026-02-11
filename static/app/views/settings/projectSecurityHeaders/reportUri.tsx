@@ -1,4 +1,5 @@
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -7,16 +8,12 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
-import getDynamicText from 'sentry/utils/getDynamicText';
 
 const DEFAULT_ENDPOINT = 'https://sentry.example.com/api/security-report/';
 
 export function getSecurityDsn(keyList: ProjectKey[]) {
   const endpoint = keyList.length ? keyList[0]!.dsn.security : DEFAULT_ENDPOINT;
-  return getDynamicText({
-    value: endpoint,
-    fixed: DEFAULT_ENDPOINT,
-  });
+  return endpoint;
 }
 
 type Props = {
@@ -30,7 +27,7 @@ export default function ReportUri({keyList, orgId, projectId}: Props) {
     <Panel>
       <PanelHeader>{t('Report URI')}</PanelHeader>
       <PanelBody>
-        <PanelAlert type="info">
+        <PanelAlert variant="info">
           {tct(
             "We've automatically pulled these credentials from your available [link:Client Keys]",
             {

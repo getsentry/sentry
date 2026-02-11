@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import useUserViewedReplays from 'sentry/components/replays/useUserViewedReplays';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -22,14 +23,14 @@ function UnmaskAlert() {
   return (
     <UnmaskAlertContainer data-test-id="unmask-alert">
       <Alert
-        type="info"
+        variant="info"
         trailingItems={
           <Button
             aria-label={t('Close Alert')}
             icon={<IconClose />}
             onClick={dismiss}
             size="zero"
-            borderless
+            priority="transparent"
           />
         }
       >

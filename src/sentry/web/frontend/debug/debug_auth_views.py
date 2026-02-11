@@ -2,9 +2,11 @@ from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
 from sentry.users.models.user import User
+from sentry.web.frontend.base import internal_region_silo_view
 from sentry.web.helpers import render_to_response
 
 
+@internal_region_silo_view
 class DebugAuthConfirmIdentity(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         auth_identity = {"id": "bar@example.com", "email": "bar@example.com"}
@@ -21,6 +23,7 @@ class DebugAuthConfirmIdentity(View):
         )
 
 
+@internal_region_silo_view
 class DebugAuthConfirmLink(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         auth_identity = {"id": "bar@example.com", "email": "test1@example.com"}

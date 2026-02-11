@@ -1,12 +1,19 @@
+import logging
 from datetime import datetime
 from typing import Any
 
-from django.db.models import Expression, F
+import psycopg2.errors
+from django.db import DataError
+from django.db.models import F
 
 from sentry.db import models
+from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.signals import buffer_incr_complete
 from sentry.tasks.process_buffer import process_incr
+from sentry.utils import metrics
 from sentry.utils.services import Service
+
+logger = logging.getLogger(__name__)
 
 BufferField = models.Model | str | int
 
@@ -30,7 +37,6 @@ class Buffer(Service):
         "incr",
         "process",
         "process_pending",
-        "process_batch",
         "validate",
         "push_to_sorted_set",
         "push_to_hash",
@@ -48,7 +54,7 @@ class Buffer(Service):
         filters: dict[str, Any],
     ) -> dict[str, int]:
         """
-        We can't fetch values from Celery, so just assume buffer values are all 0 here.
+        We can't fetch values from tasks, so just assume buffer values are all 0 here.
         """
         return {col: 0 for col in columns}
 
@@ -58,8 +64,13 @@ class Buffer(Service):
     def get_hash_length(self, model: type[models.Model], field: dict[str, BufferField]) -> int:
         raise NotImplementedError
 
-    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
+    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, float]]:
         return []
+
+    def bulk_get_sorted_set(
+        self, keys: list[str], min: float, max: float
+    ) -> dict[int, list[float]]:
+        return {}
 
     def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
         return None
@@ -90,6 +101,9 @@ class Buffer(Service):
         return None
 
     def delete_key(self, key: str, min: float, max: float) -> None:
+        return None
+
+    def delete_keys(self, keys: list[str], min: float, max: float) -> None:
         return None
 
     def incr(
@@ -140,9 +154,6 @@ class Buffer(Service):
     def process_pending(self) -> None:
         return
 
-    def process_batch(self) -> None:
-        return
-
     def process(
         self,
         model: type[models.Model] | None,
@@ -161,7 +172,7 @@ class Buffer(Service):
         created = False
 
         if not signal_only:
-            update_kwargs: dict[str, Expression] = {c: F(c) + v for c, v in columns.items()}
+            update_kwargs: dict[str, Any] = {c: F(c) + v for c, v in columns.items()}
 
             if extra:
                 # Because of the group.update() below, we need to parse
@@ -185,7 +196,50 @@ class Buffer(Service):
                     # continue
                     pass
                 else:
-                    group.update(using=None, **update_kwargs)
+                    # Skip times_seen increment if already at MAX INT, but still update other fields
+                    if (
+                        "times_seen" in update_kwargs
+                        and group.times_seen == BoundedPositiveIntegerField.MAX_VALUE
+                    ):
+                        del update_kwargs["times_seen"]
+                        metrics.incr(
+                            "buffer.times_seen_already_max",
+                            tags={"reason": "skip_increment"},
+                        )
+
+                    if update_kwargs:
+                        try:
+                            group.update(using=None, **update_kwargs)
+                        except DataError as e:
+                            # Catch NumericValueOutOfRange when times_seen exceeds 32-bit limit
+                            if (
+                                isinstance(e.__cause__, psycopg2.errors.NumericValueOutOfRange)
+                                and "times_seen" in update_kwargs
+                            ):
+                                # Cap times_seen to BoundedPositiveIntegerField.MAX_VALUE and retry the update
+                                update_kwargs["times_seen"] = BoundedPositiveIntegerField.MAX_VALUE
+                                try:
+                                    group.update(using=None, **update_kwargs)
+                                    metrics.incr(
+                                        "buffer.times_seen_capped",
+                                        tags={"reason": "integer_overflow"},
+                                    )
+                                except Exception:
+                                    # If the capped update also fails, log and skip
+                                    metrics.incr(
+                                        "buffer.times_seen_cap_failed",
+                                        tags={"reason": "retry_failed"},
+                                    )
+                                    logger.exception(
+                                        "buffer.skip_group_update_after_cap_failed",
+                                        extra={
+                                            "group_id": getattr(group, "id", None),
+                                            "filters": filters,
+                                        },
+                                    )
+                            else:
+                                # Re-raise if it's not an integer overflow error
+                                raise
                 created = False
             elif model:
                 _, created = model.objects.create_or_update(values=update_kwargs, **filters)

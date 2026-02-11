@@ -553,7 +553,7 @@ export class Client {
           // Try to get text out of the response no matter the status
           try {
             responseText = await response.text();
-          } catch (error) {
+          } catch (error: any) {
             twoHundredErrorReason = 'Failed awaiting response.text()';
             ok = false;
             if (error.name === 'AbortError') {
@@ -572,7 +572,7 @@ export class Client {
           if (status !== 204 && !isStatus3XX) {
             try {
               responseJSON = JSON.parse(responseText);
-            } catch (error) {
+            } catch (error: any) {
               twoHundredErrorReason = 'Failed trying to parse responseText';
               if (error.name === 'AbortError') {
                 ok = false;
@@ -750,7 +750,7 @@ export function resolveHostname(path: string, hostname?: string): string {
   // and prepend the URL with `/region/$name` so that webpack-devserver proxy
   // can route requests to the regions.
   if (hostname && window.__SENTRY_DEV_UI) {
-    const domainpattern = /https?\:\/\/([^.]*)\.sentry\.io/;
+    const domainpattern = /https?:\/\/([^.]*)\.sentry\.io/;
     const domainmatch = hostname.match(domainpattern);
     if (domainmatch) {
       hostname = '';

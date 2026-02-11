@@ -148,6 +148,8 @@ export default Storybook.story('Form', story => {
           columnLabels={{thing_1: 'Thing 1', thing_2: 'Thing 2'}}
           onChange={() => {}}
           addDropdown={{
+            value: undefined,
+            onChange: () => {},
             emptyMessage: 'All items mapped',
             noResultsMessage: 'No options found',
             items: [

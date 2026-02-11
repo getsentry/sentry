@@ -9,7 +9,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {CronsBillingBanner} from 'getsentry/components/crons/cronsBillingBanner';
 import {PlanTier} from 'getsentry/types';
 
-describe('CronsBillingBanner', function () {
+describe('CronsBillingBanner', () => {
   beforeEach(() => {
     const organization = OrganizationFixture();
     const billingConfig = BillingConfigFixture(PlanTier.AM2);
@@ -31,7 +31,7 @@ describe('CronsBillingBanner', function () {
     });
   });
 
-  it('Shows warning when trial is about to end', async function () {
+  it('Shows warning when trial is about to end', async () => {
     const now = moment();
     const trialEnd = now.add(5, 'days').toISOString();
     const organization = OrganizationFixture();
@@ -70,7 +70,7 @@ describe('CronsBillingBanner', function () {
     ).toBeInTheDocument();
   });
 
-  it('Shows warning when trial has ended', async function () {
+  it('Shows warning when trial has ended', async () => {
     const now = moment();
     const lastTrialEnd = now.subtract(5, 'days').toISOString();
     const organization = OrganizationFixture();
@@ -91,7 +91,7 @@ describe('CronsBillingBanner', function () {
     expect(mockApiCall).toHaveBeenCalled();
     expect(
       await screen.findByText(
-        "Your free business trial has ended. One cron job monitor is included in your current plan. If you want to monitor more than one cron job, please ask your organization's owner or billing manager to set up an on-demand budget for cron monitoring."
+        "Your free business trial has ended. One cron job monitor is included in your current plan. If you want to monitor more than one cron job, please ask your organization's owner or billing manager to set up on-demand for cron monitoring."
       )
     ).toBeInTheDocument();
 
@@ -109,7 +109,7 @@ describe('CronsBillingBanner', function () {
     ).toBeInTheDocument();
   });
 
-  it('Shows alert when monitors have been disabled due to on-demand overage', async function () {
+  it('Shows alert when monitors have been disabled due to on-demand overage', async () => {
     const organization = OrganizationFixture();
     const am2BusinessPlan = PlanDetailsLookupFixture('am2_business');
     const subscription = SubscriptionFixture({

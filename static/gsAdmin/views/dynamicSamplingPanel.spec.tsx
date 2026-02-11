@@ -31,8 +31,8 @@ function mockProjectConfigResponse(projectId: string, configs: Record<string, un
   });
 }
 
-describe('Dynamic Sampling Panel', function () {
-  it('renders dynamic sampling rules', async function () {
+describe('Dynamic Sampling Panel', () => {
+  it('renders dynamic sampling rules', async () => {
     const {project} = initializeOrg();
 
     mockProjectConfigResponse(project.id, {
@@ -57,7 +57,7 @@ describe('Dynamic Sampling Panel', function () {
     expect(screen.getByText('100%')).toBeInTheDocument();
   });
 
-  it('loads data from the region API', async function () {
+  it('loads data from the region API', async () => {
     const {project, organization} = initializeOrg();
 
     const mockGet = mockProjectConfigResponse(project.id, {
@@ -90,7 +90,7 @@ describe('Dynamic Sampling Panel', function () {
     );
   });
 
-  it('renders empty table if there is no valid config', async function () {
+  it('renders empty table if there is no valid config', async () => {
     const {project} = initializeOrg();
 
     mockProjectConfigResponse(project.id, {
@@ -105,7 +105,7 @@ describe('Dynamic Sampling Panel', function () {
     expect(emptyTableMsg).toBeInTheDocument();
   });
 
-  it('renders empty table if config does not contain dynamic sampling', async function () {
+  it('renders empty table if config does not contain dynamic sampling', async () => {
     const {project} = initializeOrg();
 
     mockProjectConfigResponse(project.id, {
@@ -120,7 +120,7 @@ describe('Dynamic Sampling Panel', function () {
     expect(emptyTableMsg).toBeInTheDocument();
   });
 
-  it('renders empty table if dynamic sampling config is empty', async function () {
+  it('renders empty table if dynamic sampling config is empty', async () => {
     const {project} = initializeOrg();
 
     mockProjectConfigResponse(project.id, {
@@ -141,7 +141,7 @@ describe('Dynamic Sampling Panel', function () {
     expect(emptyTableMsg).toBeInTheDocument();
   });
 
-  it('renders conditions like in the discover search bar', async function () {
+  it('renders conditions like in the discover search bar', async () => {
     const {project} = initializeOrg();
 
     const rule1 = {

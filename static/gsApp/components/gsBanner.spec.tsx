@@ -1,7 +1,6 @@
 import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {
   InvoicedSubscriptionFixture,
   SubscriptionFixture,
@@ -17,8 +16,6 @@ import {
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
-import ModalStore from 'sentry/stores/modalStore';
-import {DataCategory} from 'sentry/types/core';
 
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
@@ -37,7 +34,6 @@ jest.mock('sentry/stores/guideStore', () => ({
 }));
 
 function setUpTests() {
-  ModalStore.reset();
   jest.clearAllMocks();
   delete window.pendo;
 
@@ -96,12 +92,12 @@ function setUpTests() {
   });
 }
 
-describe('GSBanner', function () {
+describe('GSBanner', () => {
   beforeEach(() => {
     setUpTests();
   });
 
-  it('renders empty', async function () {
+  it('renders empty', async () => {
     const organization = OrganizationFixture();
     SubscriptionStore.set(organization.slug, {});
 
@@ -115,7 +111,7 @@ describe('GSBanner', function () {
   });
 
   // TODO(isabella): move this to addEventsCTA.spec.tsx
-  it('renders suspension modal', async function () {
+  it('renders suspension modal', async () => {
     const organization = OrganizationFixture({slug: 'suspended'});
     SubscriptionStore.set(
       organization.slug,
@@ -139,7 +135,7 @@ describe('GSBanner', function () {
     expect(screen.getByText('Contact Support')).toBeInTheDocument();
   });
 
-  it('renders usage exceeded modal', async function () {
+  it('renders usage exceeded modal', async () => {
     const organization = OrganizationFixture({slug: 'exceeded'});
     SubscriptionStore.set(
       organization.slug,
@@ -154,7 +150,7 @@ describe('GSBanner', function () {
     expect(await screen.findByTestId('modal-usage-exceeded')).toBeInTheDocument();
   });
 
-  it('renders grace period modal with billing access', async function () {
+  it('renders grace period modal with billing access', async () => {
     const organization = OrganizationFixture({
       slug: 'grace-period',
       access: ['org:billing'],
@@ -172,7 +168,7 @@ describe('GSBanner', function () {
     expect(await screen.findByTestId('modal-grace-period')).toBeInTheDocument();
   });
 
-  it('opens the trialEndingModal within 3 days of ending', async function () {
+  it('opens the trialEndingModal within 3 days of ending', async () => {
     const now = moment();
     const organization = OrganizationFixture({
       slug: 'trial-ending',
@@ -195,7 +191,7 @@ describe('GSBanner', function () {
     await waitFor(() => expect(openTrialEndingModal).toHaveBeenCalled());
   });
 
-  it('does not display trial ending modal more than 3 days', async function () {
+  it('does not display trial ending modal more than 3 days', async () => {
     const now = moment();
     const organization = OrganizationFixture();
     SubscriptionStore.set(
@@ -216,7 +212,7 @@ describe('GSBanner', function () {
     expect(openTrialEndingModal).not.toHaveBeenCalled();
   });
 
-  it('does not display trial ending modal to free plan', async function () {
+  it('does not display trial ending modal to free plan', async () => {
     const organization = OrganizationFixture();
     SubscriptionStore.set(
       organization.slug,
@@ -235,7 +231,7 @@ describe('GSBanner', function () {
     expect(openTrialEndingModal).not.toHaveBeenCalled();
   });
 
-  it('does not display trial ending modal to plan trial', async function () {
+  it('does not display trial ending modal to plan trial', async () => {
     const now = moment();
     const organization = OrganizationFixture();
     SubscriptionStore.set(
@@ -256,7 +252,7 @@ describe('GSBanner', function () {
     expect(openTrialEndingModal).not.toHaveBeenCalled();
   });
 
-  it('does not display trial ending modal to enterprise trial', async function () {
+  it('does not display trial ending modal to enterprise trial', async () => {
     const now = moment();
     const organization = OrganizationFixture({
       slug: 'trial-ending',
@@ -281,7 +277,7 @@ describe('GSBanner', function () {
     expect(openTrialEndingModal).not.toHaveBeenCalled();
   });
 
-  it('opens the partnerPlanEndingModal within 30 days of ending', async function () {
+  it('opens the partnerPlanEndingModal within 30 days of ending', async () => {
     const now = moment();
     const organization = OrganizationFixture({
       slug: 'partner-plan-ending',
@@ -314,7 +310,7 @@ describe('GSBanner', function () {
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
   });
 
-  it('opens the partnerPlanEndingModal within 7 days of ending', async function () {
+  it('opens the partnerPlanEndingModal within 7 days of ending', async () => {
     const now = moment();
     const organization = OrganizationFixture({
       slug: 'partner-plan-ending',
@@ -347,7 +343,7 @@ describe('GSBanner', function () {
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
   });
 
-  it('opens the partnerPlanEndingModal with 2 days left', async function () {
+  it('opens the partnerPlanEndingModal with 2 days left', async () => {
     const now = moment();
     const organization = OrganizationFixture({
       slug: 'partner-plan-ending',
@@ -380,7 +376,7 @@ describe('GSBanner', function () {
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
   });
 
-  it('opens the partnerPlanEndingModal on day that plan ends', async function () {
+  it('opens the partnerPlanEndingModal on day that plan ends', async () => {
     const now = moment();
     const organization = OrganizationFixture({
       slug: 'partner-plan-ending',
@@ -413,7 +409,7 @@ describe('GSBanner', function () {
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
   });
 
-  it('does not open the partnerPlanEndingModal without feature flag', async function () {
+  it('does not open the partnerPlanEndingModal without feature flag', async () => {
     const now = moment();
     const organization = OrganizationFixture({
       slug: 'partner-plan-ending',
@@ -445,7 +441,7 @@ describe('GSBanner', function () {
     await waitFor(() => expect(openPartnerPlanEndingModal).not.toHaveBeenCalled());
   });
 
-  it('does not open the partnerPlanEndingModal with pending upgrade', async function () {
+  it('does not open the partnerPlanEndingModal with pending upgrade', async () => {
     const now = moment();
     const organization = OrganizationFixture({
       slug: 'partner-plan-ending',
@@ -485,7 +481,7 @@ describe('GSBanner', function () {
     await waitFor(() => expect(openPartnerPlanEndingModal).not.toHaveBeenCalled());
   });
 
-  it('opens the partnerPlanEndingModal with pending downgrade', async function () {
+  it('opens the partnerPlanEndingModal with pending downgrade', async () => {
     const now = moment();
     const organization = OrganizationFixture({
       slug: 'partner-plan-ending',
@@ -525,7 +521,7 @@ describe('GSBanner', function () {
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
   });
 
-  it('does not open the partnerPlanEndingModal with more than 30 days before ending', async function () {
+  it('does not open the partnerPlanEndingModal with more than 30 days before ending', async () => {
     const now = moment();
     const organization = OrganizationFixture({
       slug: 'partner-plan-ending',
@@ -558,7 +554,7 @@ describe('GSBanner', function () {
     await waitFor(() => expect(openPartnerPlanEndingModal).not.toHaveBeenCalled());
   });
 
-  it('does not open the partnerPlanEndingModal if dismissed', async function () {
+  it('does not open the partnerPlanEndingModal if dismissed', async () => {
     const now = moment();
     const organization = OrganizationFixture({
       slug: 'partner-plan-ending',
@@ -601,7 +597,7 @@ describe('GSBanner', function () {
     await waitFor(() => expect(openPartnerPlanEndingModal).not.toHaveBeenCalled());
   });
 
-  it('opens partnerPlanEndingModal if dismissed in different time period', async function () {
+  it('opens partnerPlanEndingModal if dismissed in different time period', async () => {
     const now = moment();
     const organization = OrganizationFixture({
       slug: 'partner-plan-ending',
@@ -643,7 +639,7 @@ describe('GSBanner', function () {
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
   });
 
-  it('opens partnerPlanEndingModal if dismissed with 2 days left on day plan ends', async function () {
+  it('opens partnerPlanEndingModal if dismissed with 2 days left on day plan ends', async () => {
     const now = moment();
     const organization = OrganizationFixture({
       slug: 'partner-plan-ending',
@@ -685,7 +681,7 @@ describe('GSBanner', function () {
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
   });
 
-  it('does not open partnerPlanEndingModal if dismissed with two days left and logs in with one day left', async function () {
+  it('does not open partnerPlanEndingModal if dismissed with two days left and logs in with one day left', async () => {
     const now = moment();
     const organization = OrganizationFixture({
       slug: 'partner-plan-ending',
@@ -727,7 +723,7 @@ describe('GSBanner', function () {
     await waitFor(() => expect(openPartnerPlanEndingModal).not.toHaveBeenCalled());
   });
 
-  it('shows disabled member header', async function () {
+  it('shows disabled member header', async () => {
     const organization = OrganizationFixture({
       access: ['org:billing'],
     });
@@ -749,7 +745,7 @@ describe('GSBanner', function () {
     ).toBeInTheDocument();
   });
 
-  it('loads pendo', async function () {
+  it('loads pendo', async () => {
     guideMock.state.currentGuide = false;
     const organization = OrganizationFixture({
       slug: 'forced-trial',
@@ -840,7 +836,7 @@ describe('GSBanner', function () {
     delete window.pendo;
   });
 
-  it('delays pendo guides if other guides are active', async function () {
+  it('delays pendo guides if other guides are active', async () => {
     guideMock.state.currentGuide = true;
     const organization = OrganizationFixture();
     SubscriptionStore.set(
@@ -907,7 +903,7 @@ describe('GSBanner', function () {
     });
   });
 
-  it('automatically starts forced trial', async function () {
+  it('automatically starts forced trial', async () => {
     const organization = OrganizationFixture({
       access: ['org:billing'],
     });
@@ -943,7 +939,41 @@ describe('GSBanner', function () {
     expect(openForcedTrialModal).toHaveBeenCalled();
   });
 
-  it('automatically starts forced trial for restricted integration', async function () {
+  it('does not automatically start forced trial if already on a trial', async () => {
+    const organization = OrganizationFixture({
+      access: ['org:billing'],
+    });
+
+    const subscription = SubscriptionFixture({
+      plan: 'am1_f',
+      organization,
+      totalLicenses: 1,
+      usedLicenses: 2,
+      isTrial: true,
+      isForcedTrial: false,
+    });
+
+    SubscriptionStore.set(organization.slug, subscription);
+
+    const mockForceTrial = MockApiClient.addMockResponse({
+      method: 'POST',
+      url: `/organizations/${organization.slug}/over-member-limit-trial/`,
+      body: {},
+    });
+
+    const {container} = render(<GSBanner organization={organization} />, {
+      organization,
+    });
+
+    // wait for requests to finish
+    await act(tick);
+    expect(container).toBeEmptyDOMElement();
+
+    expect(mockForceTrial).not.toHaveBeenCalled();
+    expect(openForcedTrialModal).not.toHaveBeenCalled();
+  });
+
+  it('automatically starts forced trial for restricted integration', async () => {
     const organization = OrganizationFixture({
       access: ['org:billing'],
     });
@@ -980,7 +1010,7 @@ describe('GSBanner', function () {
     expect(openForcedTrialModal).toHaveBeenCalled();
   });
 
-  it('opens the forced trial modal', async function () {
+  it('opens the forced trial modal', async () => {
     const now = moment();
     const organization = OrganizationFixture({
       slug: 'forced-trial',
@@ -1004,7 +1034,7 @@ describe('GSBanner', function () {
     await waitFor(() => expect(openForcedTrialModal).toHaveBeenCalled());
   });
 
-  it('does not open forced trial modal if dismissed', async function () {
+  it('does not open forced trial modal if dismissed', async () => {
     const now = moment();
     const organization = OrganizationFixture({
       slug: 'forced-trial',
@@ -1029,7 +1059,7 @@ describe('GSBanner', function () {
     expect(openForcedTrialModal).not.toHaveBeenCalled();
   });
 
-  it('activates the first available promotion', async function () {
+  it('activates the first available promotion', async () => {
     const now = moment();
     const organization = OrganizationFixture({
       slug: 'promotion-platform',
@@ -1081,7 +1111,7 @@ describe('GSBanner', function () {
     });
   });
 
-  it("doesn't activate non auto-opt-in promos", async function () {
+  it("doesn't activate non auto-opt-in promos", async () => {
     const now = moment();
     const organization = OrganizationFixture({
       slug: 'promotion-platform',
@@ -1133,7 +1163,7 @@ describe('GSBanner', function () {
     });
   });
 
-  it('shows correct past due modal and banner for billing admins', async function () {
+  it('shows correct past due modal and banner for billing admins', async () => {
     const organization = OrganizationFixture({
       slug: 'past-due',
       access: ['org:billing'],
@@ -1187,7 +1217,7 @@ describe('GSBanner', function () {
     });
   });
 
-  it('shows past due modal and banner for non-billing users', async function () {
+  it('shows past due modal and banner for non-billing users', async () => {
     const organization = OrganizationFixture({
       slug: 'past-due-4',
       access: ['org:read'],
@@ -1210,7 +1240,7 @@ describe('GSBanner', function () {
     expect(screen.getByTestId('modal-continue-button')).toBeInTheDocument();
   });
 
-  it('does not show past due modal for users without access', async function () {
+  it('does not show past due modal for users without access', async () => {
     const organization = OrganizationFixture({
       slug: 'past-due-4',
       access: [],
@@ -1233,7 +1263,7 @@ describe('GSBanner', function () {
     expect(screen.queryByTestId('modal-continue-button')).not.toBeInTheDocument();
   });
 
-  it('does not show past due modal for enterprise orgs', async function () {
+  it('does not show past due modal for enterprise orgs', async () => {
     const organization = OrganizationFixture({
       slug: 'past-due-3',
       access: ['org:billing'],
@@ -1259,976 +1289,5 @@ describe('GSBanner', function () {
     expect(
       screen.queryByRole('button', {name: /update billing details/i})
     ).not.toBeInTheDocument();
-  });
-});
-
-describe('GSBanner Overage Alerts', function () {
-  beforeEach(() => {
-    setUpTests();
-  });
-
-  // TODO(isabella): move this to addEventsCTA.spec.tsx
-  it('shows overage notification banner and request more events btn for members', async function () {
-    const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am2_team',
-      categories: {
-        errors: MetricHistoryFixture({usageExceeded: false}),
-        transactions: MetricHistoryFixture({usageExceeded: true}),
-        replays: MetricHistoryFixture({usageExceeded: false}),
-        attachments: MetricHistoryFixture({usageExceeded: true}),
-        monitorSeats: MetricHistoryFixture({usageExceeded: false}),
-      },
-      canSelfServe: true,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    expect(
-      await screen.findByTestId('overage-banner-transaction-attachment')
-    ).toBeInTheDocument();
-
-    expect(screen.getByText('performance unit')).toBeInTheDocument();
-    expect(screen.queryByText('transaction')).not.toBeInTheDocument();
-
-    expect(screen.getByTestId('btn-request_add_events')).toBeInTheDocument();
-  });
-
-  it('does not show overage notification banner if is not self serve', async function () {
-    const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_t',
-      categories: {attachments: MetricHistoryFixture({usageExceeded: true})},
-      canSelfServe: false,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    const {container} = render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    await act(tick);
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it('does not show overage notification banner if active product trial', async function () {
-    const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am2_team',
-      categories: {replays: MetricHistoryFixture({usageExceeded: true})},
-      canSelfServe: true,
-      productTrials: [
-        {
-          category: DataCategory.REPLAYS,
-          isStarted: true,
-          reasonCode: 1001,
-          startDate: moment().utc().subtract(10, 'days').format(),
-          endDate: moment().utc().add(20, 'days').format(),
-        },
-      ],
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    const {container} = render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    await act(tick);
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it('shows overage notification banner even if other category is on active trial', async function () {
-    const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am2_team',
-      categories: {
-        attachments: MetricHistoryFixture({usageExceeded: true}),
-        replays: MetricHistoryFixture({usageExceeded: true}),
-      },
-      canSelfServe: true,
-      productTrials: [
-        {
-          category: DataCategory.REPLAYS,
-          isStarted: true,
-          reasonCode: 1001,
-          startDate: moment().utc().subtract(10, 'days').format(),
-          endDate: moment().utc().add(20, 'days').format(),
-        },
-      ],
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    expect(await screen.findByTestId('overage-banner-attachment')).toBeInTheDocument();
-    expect(screen.queryByTestId('overage-banner-replay')).not.toBeInTheDocument();
-  });
-
-  // TODO(isabella): move this to addEventsCTA.spec.tsx
-  it('shows start trial btn for billing admins if can trial', async function () {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_f',
-      categories: {
-        errors: MetricHistoryFixture({usageExceeded: false}),
-        transactions: MetricHistoryFixture({usageExceeded: true}),
-        attachments: MetricHistoryFixture({usageExceeded: true}),
-      },
-      canSelfServe: true,
-      canTrial: true,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    expect(
-      await screen.findByTestId('overage-banner-transaction-attachment')
-    ).toBeInTheDocument();
-
-    expect(screen.getByTestId('btn-start_trial')).toBeInTheDocument();
-  });
-
-  // TODO(isabella): move this to addEventsCTA.spec.tsx
-  it('shows upgrade plan btn for free plans for admins', async function () {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_f',
-      categories: {
-        errors: MetricHistoryFixture({usageExceeded: true}),
-        transactions: MetricHistoryFixture({usageExceeded: false}),
-        attachments: MetricHistoryFixture({usageExceeded: true}),
-      },
-      canSelfServe: true,
-      canTrial: false,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    expect(
-      await screen.findByTestId('overage-banner-error-attachment')
-    ).toBeInTheDocument();
-
-    expect(screen.getByRole('button', {name: /upgrade plan/i})).toBeInTheDocument();
-  });
-
-  // TODO(isabella): move this to addEventsCTA.spec.tsx
-  it('shows add quota btn for paid plans for admins', async function () {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_team',
-      categories: {
-        errors: MetricHistoryFixture({usageExceeded: true}),
-        transactions: MetricHistoryFixture({usageExceeded: true}),
-        replays: MetricHistoryFixture({usageExceeded: true}),
-        attachments: MetricHistoryFixture({usageExceeded: true}),
-        monitorSeats: MetricHistoryFixture({usageExceeded: true}),
-      },
-      canSelfServe: true,
-      canTrial: false,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    expect(
-      await screen.findByTestId(
-        'overage-banner-error-transaction-attachment-replay-monitorSeat'
-      )
-    ).toBeInTheDocument();
-
-    expect(screen.getByRole('button', {name: /setup on-demand/i})).toBeInTheDocument();
-  });
-
-  // TODO(isabella): move this to addEventsCTA.spec.tsx
-  it('shows add quota button for paid plans without active product trial', async function () {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_team',
-      categories: {
-        errors: MetricHistoryFixture({usageExceeded: false}),
-        spans: MetricHistoryFixture({usageExceeded: true}),
-        replays: MetricHistoryFixture({usageExceeded: false}),
-        attachments: MetricHistoryFixture({usageExceeded: false}),
-        monitorSeats: MetricHistoryFixture({usageExceeded: false}),
-        profileDuration: MetricHistoryFixture({usageExceeded: false}),
-        profileDurationUI: MetricHistoryFixture({usageExceeded: false}),
-      },
-      canSelfServe: true,
-      productTrials: [
-        {
-          category: DataCategory.SPANS,
-          reasonCode: 1001,
-          isStarted: false,
-          lengthDays: undefined,
-          startDate: undefined,
-          endDate: undefined,
-        },
-      ],
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    expect(
-      await screen.findByRole('button', {name: /setup pay-as-you-go/i})
-    ).toBeInTheDocument();
-  });
-
-  // TODO(isabella): move this to addEventsCTA.spec.tsx
-  it('does not show add quota button for paid plans with active product trial', async function () {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_team',
-      categories: {
-        errors: MetricHistoryFixture({usageExceeded: false}),
-        spans: MetricHistoryFixture({usageExceeded: true}),
-        replays: MetricHistoryFixture({usageExceeded: false}),
-        attachments: MetricHistoryFixture({usageExceeded: false}),
-        monitorSeats: MetricHistoryFixture({usageExceeded: false}),
-        profileDuration: MetricHistoryFixture({usageExceeded: false}),
-        profileDurationUI: MetricHistoryFixture({usageExceeded: false}),
-      },
-      canSelfServe: true,
-      productTrials: [
-        {
-          category: DataCategory.SPANS,
-          reasonCode: 1001,
-          isStarted: true,
-          lengthDays: 20,
-          startDate: moment().utc().subtract(10, 'days').format(),
-          endDate: moment().utc().add(10, 'days').format(),
-        },
-      ],
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-    await act(tick);
-    expect(
-      screen.queryByRole('button', {name: /setup pay-as-you-go/i})
-    ).not.toBeInTheDocument();
-  });
-
-  it('closes the banner when dismissed', async function () {
-    const organization = OrganizationFixture();
-
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_t',
-      categories: {
-        errors: MetricHistoryFixture({usageExceeded: true}),
-        transactions: MetricHistoryFixture({usageExceeded: true}),
-        replays: MetricHistoryFixture({usageExceeded: true}),
-        attachments: MetricHistoryFixture({usageExceeded: true}),
-        monitorSeats: MetricHistoryFixture({usageExceeded: true}),
-        spans: MetricHistoryFixture({usageExceeded: true}),
-        profileDuration: MetricHistoryFixture({usageExceeded: true}),
-      },
-      canSelfServe: true,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    const snoozeEndpoint = MockApiClient.addMockResponse({
-      method: 'PUT',
-      url: `/organizations/${organization.slug}/prompts-activity/`,
-      body: {},
-    });
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    expect(
-      await screen.findByTestId(
-        'overage-banner-error-transaction-attachment-replay-span-monitorSeat-profileDuration'
-      )
-    ).toBeInTheDocument();
-
-    expect(screen.getByTestId('btn-overage-notification-snooze')).toBeInTheDocument();
-
-    await userEvent.click(screen.getByTestId('btn-overage-notification-snooze'));
-
-    for (const feature of [
-      'errors_overage_alert',
-      'transactions_overage_alert',
-      'replays_overage_alert',
-      'attachments_overage_alert',
-      'spans_overage_alert',
-      'profile_duration_overage_alert',
-    ]) {
-      expect(snoozeEndpoint).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/prompts-activity/`,
-        expect.objectContaining({
-          data: {
-            feature,
-            organization_id: organization.id,
-            status: 'snoozed',
-          },
-        })
-      );
-    }
-
-    expect(screen.queryByTestId(/overage-banner/)).not.toBeInTheDocument();
-  });
-
-  it('does not show banner when dismissed', async function () {
-    const organization = OrganizationFixture();
-    const snoozeTime = new Date('2020-02-02');
-    snoozeTime.setHours(23, 59, 59);
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/${organization.slug}/prompts-activity/`,
-      body: {
-        features: {
-          transactions_overage_alert: {
-            snoozed_ts: snoozeTime.getTime() / 1000,
-          },
-          replays_overage_alert: {
-            snoozed_ts: snoozeTime.getTime() / 1000,
-          },
-        },
-      },
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_t',
-      categories: {
-        errors: MetricHistoryFixture({usageExceeded: false}),
-        transactions: MetricHistoryFixture({usageExceeded: true}),
-        replays: MetricHistoryFixture({usageExceeded: true}),
-        attachments: MetricHistoryFixture({usageExceeded: false}),
-        monitorSeats: MetricHistoryFixture({usageExceeded: false}),
-      },
-      canSelfServe: true,
-      onDemandPeriodEnd: '2020-02-02',
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    const {container} = render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    await act(tick);
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  // TODO(isabella): move this to addEventsCTA.spec.tsx
-  it('shows add quota btn for paid plans for admins for warnings', async function () {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-      slug: 'another-slug-1',
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_team',
-      categories: {
-        errors: MetricHistoryFixture({sentUsageWarning: true, usageExceeded: true}),
-        transactions: MetricHistoryFixture({sentUsageWarning: false}),
-        replays: MetricHistoryFixture({usageExceeded: false}),
-        attachments: MetricHistoryFixture({sentUsageWarning: false}),
-        monitorSeats: MetricHistoryFixture({sentUsageWarning: false}),
-      },
-      canSelfServe: true,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    expect(
-      await screen.findByRole('button', {name: /setup on-demand/i})
-    ).toBeInTheDocument();
-  });
-
-  // TODO(isabella): move this to addEventsCTA.spec.tsx
-  it('shows add quota button for paid plans warnings with no active product trial', async function () {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-      slug: 'another-slug-1',
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_team',
-      categories: {
-        errors: MetricHistoryFixture({sentUsageWarning: false}),
-        spans: MetricHistoryFixture({sentUsageWarning: false}),
-        replays: MetricHistoryFixture({usageExceeded: true}),
-        attachments: MetricHistoryFixture({sentUsageWarning: false}),
-        monitorSeats: MetricHistoryFixture({sentUsageWarning: false}),
-        profileDuration: MetricHistoryFixture({sentUsageWarning: false}),
-        profileDurationUI: MetricHistoryFixture({sentUsageWarning: false}),
-      },
-      canSelfServe: true,
-      productTrials: [
-        {
-          category: DataCategory.REPLAYS,
-          reasonCode: 1001,
-          isStarted: false,
-          lengthDays: undefined,
-          startDate: undefined,
-          endDate: undefined,
-        },
-      ],
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    expect(
-      await screen.findByRole('button', {name: /setup pay-as-you-go/i})
-    ).toBeInTheDocument();
-  });
-
-  it('does not show warning if on-demand is set', async function () {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-      slug: 'another-slug-1',
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_team',
-      categories: {errors: MetricHistoryFixture({sentUsageWarning: true})},
-      canSelfServe: true,
-      onDemandMaxSpend: 10,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    await act(tick);
-    expect(
-      screen.queryByRole('button', {name: /setup on-demand/i})
-    ).not.toBeInTheDocument();
-  });
-
-  it('does not show warning if active product trial', async function () {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-      slug: 'another-slug-1',
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_team',
-      categories: {monitorSeats: MetricHistoryFixture({sentUsageWarning: true})},
-      canSelfServe: true,
-      productTrials: [
-        {
-          category: DataCategory.MONITOR_SEATS,
-          isStarted: true,
-          reasonCode: 1001,
-          startDate: moment().utc().subtract(10, 'days').format(),
-          endDate: moment().utc().add(20, 'days').format(),
-        },
-      ],
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    const {container} = render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    await act(tick);
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it('shows warning even if other category is on active trial', async function () {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-      slug: 'another-slug-1',
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_team',
-      categories: {
-        errors: MetricHistoryFixture({sentUsageWarning: true}),
-        monitorSeats: MetricHistoryFixture({sentUsageWarning: true}),
-      },
-      canSelfServe: true,
-      productTrials: [
-        {
-          category: DataCategory.MONITOR_SEATS,
-          isStarted: true,
-          reasonCode: 1001,
-          startDate: moment().utc().subtract(10, 'days').format(),
-          endDate: moment().utc().add(20, 'days').format(),
-        },
-      ],
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    expect(await screen.findByTestId('overage-banner-error')).toBeInTheDocument();
-    expect(screen.queryByTestId('overage-banner-monitorSeat')).not.toBeInTheDocument();
-  });
-
-  it('does not show alert if hasOverageNotificationsDisabled is set', async function () {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-      slug: 'another-slug-2',
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_team',
-      categories: {
-        errors: MetricHistoryFixture({usageExceeded: true}),
-        transactions: MetricHistoryFixture({usageExceeded: true}),
-        replays: MetricHistoryFixture({usageExceeded: true}),
-        attachments: MetricHistoryFixture({usageExceeded: true}),
-        monitorSeats: MetricHistoryFixture({usageExceeded: true}),
-      },
-      canSelfServe: true,
-      hasOverageNotificationsDisabled: true,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    const {container} = render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    await act(tick);
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it('does not show warning if hasOverageNotificationsDisabled is set', async function () {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-      slug: 'another-slug-4',
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_team',
-      categories: {
-        errors: MetricHistoryFixture({
-          category: DataCategory.ERRORS,
-          sentUsageWarning: true,
-        }),
-        transactions: MetricHistoryFixture({
-          category: DataCategory.TRANSACTIONS,
-          sentUsageWarning: true,
-        }),
-        replays: MetricHistoryFixture({
-          category: DataCategory.REPLAYS,
-          sentUsageWarning: true,
-        }),
-        attachments: MetricHistoryFixture({
-          category: DataCategory.ATTACHMENTS,
-          sentUsageWarning: true,
-        }),
-        monitorSeats: MetricHistoryFixture({
-          category: DataCategory.MONITOR_SEATS,
-          sentUsageWarning: true,
-        }),
-      },
-      canSelfServe: true,
-      hasOverageNotificationsDisabled: true,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    const {container} = render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    await act(tick);
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it('does not render overage banner without grace period and usage exceeded', async function () {
-    const organization = OrganizationFixture({
-      slug: 'soft-cap',
-      access: ['org:billing'],
-    });
-    SubscriptionStore.set(
-      organization.slug,
-      SubscriptionFixture({
-        organization,
-        isGracePeriod: false,
-        usageExceeded: false,
-      })
-    );
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    await act(tick);
-    expect(screen.queryByTestId('grace-period-banner')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('usage-exceeded-banner')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('modal-usage-exceeded')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('modal-grace-period')).not.toBeInTheDocument();
-  });
-
-  it('shows specific banner text just for single seat-based overage', async function () {
-    const organization = OrganizationFixture({access: ['org:billing']});
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am2_team',
-      categories: {
-        errors: MetricHistoryFixture({usageExceeded: false}),
-        transactions: MetricHistoryFixture({usageExceeded: false}),
-        replays: MetricHistoryFixture({usageExceeded: false}),
-        attachments: MetricHistoryFixture({usageExceeded: false}),
-        monitorSeats: MetricHistoryFixture({usageExceeded: true}),
-        profileDuration: MetricHistoryFixture({usageExceeded: false}),
-      },
-      canSelfServe: true,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    expect(
-      await screen.findByText(
-        "We can't enable additional Cron Monitors because you don't have a sufficient on-demand budget."
-      )
-    ).toBeInTheDocument();
-
-    expect(
-      await screen.findByRole('button', {name: 'Setup On-Demand'})
-    ).toBeInTheDocument();
-  });
-
-  it('shows specific banner text just for multiple seat-based overage', async function () {
-    const organization = OrganizationFixture({access: ['org:billing']});
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am2_team',
-      categories: {
-        errors: MetricHistoryFixture({usageExceeded: false}),
-        transactions: MetricHistoryFixture({usageExceeded: false}),
-        replays: MetricHistoryFixture({usageExceeded: false}),
-        attachments: MetricHistoryFixture({usageExceeded: false}),
-        monitorSeats: MetricHistoryFixture({usageExceeded: true}),
-        profileDuration: MetricHistoryFixture({usageExceeded: false}),
-        uptime: MetricHistoryFixture({usageExceeded: true}),
-      },
-      canSelfServe: true,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    expect(
-      await screen.findByText(
-        "We can't enable additional Cron Monitors and Uptime Monitors because you don't have a sufficient on-demand budget."
-      )
-    ).toBeInTheDocument();
-
-    expect(
-      await screen.findByRole('button', {name: 'Setup On-Demand'})
-    ).toBeInTheDocument();
-  });
-
-  it('shows overage alert banner for single category', async function () {
-    const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_t',
-      categories: {
-        errors: MetricHistoryFixture({usageExceeded: true}),
-      },
-      canSelfServe: true,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    expect(await screen.findByTestId('overage-banner-error')).toBeInTheDocument();
-  });
-
-  it('shows overage alert banner for multiple categories', async function () {
-    const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_t',
-      categories: {
-        errors: MetricHistoryFixture({usageExceeded: true}),
-        transactions: MetricHistoryFixture({usageExceeded: true}),
-        spans: MetricHistoryFixture({usageExceeded: true}),
-        replays: MetricHistoryFixture({usageExceeded: false}),
-        attachments: MetricHistoryFixture({usageExceeded: true}),
-        monitorSeats: MetricHistoryFixture({usageExceeded: true}),
-        uptime: MetricHistoryFixture({usageExceeded: true}),
-        seerAutofix: MetricHistoryFixture({usageExceeded: true}),
-        seerScanner: MetricHistoryFixture({usageExceeded: true}),
-      },
-      canSelfServe: true,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    expect(
-      await screen.findByTestId(
-        'overage-banner-error-transaction-attachment-span-monitorSeat-uptime-seerAutofix-seerScanner'
-      )
-    ).toBeInTheDocument();
-  });
-
-  it('shows overage warning banner for single category', async function () {
-    const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_t',
-      categories: {
-        errors: MetricHistoryFixture({sentUsageWarning: true}),
-      },
-      canSelfServe: true,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    expect(await screen.findByTestId('overage-banner-error')).toBeInTheDocument();
-  });
-
-  it('shows overage warning banner for multiple categories', async function () {
-    const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_t',
-      categories: {
-        errors: MetricHistoryFixture({sentUsageWarning: true}),
-        transactions: MetricHistoryFixture({sentUsageWarning: true}),
-        spans: MetricHistoryFixture({sentUsageWarning: true}),
-        replays: MetricHistoryFixture({sentUsageWarning: false}),
-        attachments: MetricHistoryFixture({sentUsageWarning: true}),
-        monitorSeats: MetricHistoryFixture({sentUsageWarning: true}),
-        uptime: MetricHistoryFixture({sentUsageWarning: true}),
-        seerAutofix: MetricHistoryFixture({sentUsageWarning: true}),
-        seerScanner: MetricHistoryFixture({sentUsageWarning: true}),
-      },
-      canSelfServe: true,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    expect(
-      await screen.findByTestId(
-        'overage-banner-error-transaction-attachment-span-monitorSeat-uptime-seerAutofix-seerScanner'
-      )
-    ).toBeInTheDocument();
-  });
-
-  it('checks prompts for all billed categories on plan', async function () {
-    const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_team',
-    });
-    const promptsMock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/${organization.slug}/prompts-activity/`,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-    await act(tick);
-
-    const overagePrompts = [];
-    const warningPrompts = [];
-    const productTrialPrompts = [];
-    for (const category of [
-      'errors',
-      'attachments',
-      'replays',
-      'spans',
-      'monitor_seats',
-      'profile_duration',
-      'profile_duration_ui',
-      'uptime',
-      'seer_autofix',
-      'seer_scanner',
-    ]) {
-      overagePrompts.push(`${category}_overage_alert`);
-      warningPrompts.push(`${category}_warning_alert`);
-      if (
-        ['profile_duration', 'replays', 'spans', 'profile_duration_ui'].includes(category)
-      ) {
-        productTrialPrompts.push(`${category}_product_trial_alert`);
-      }
-    }
-
-    expect(promptsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/prompts-activity/`,
-      expect.objectContaining({
-        query: {
-          feature: [
-            'deactivated_member_alert',
-            ...overagePrompts,
-            ...warningPrompts,
-            ...productTrialPrompts,
-          ],
-          organization_id: organization.id,
-        },
-      })
-    );
-  });
-
-  it('does not show banner for non-billed categories', async function () {
-    const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_t',
-      categories: {
-        // this would never happen in practice, but we're asserting that we properly filter out non-billed categories
-        logBytes: MetricHistoryFixture({usageExceeded: true}),
-        logItems: MetricHistoryFixture({usageExceeded: true}),
-        profileChunks: MetricHistoryFixture({usageExceeded: true}),
-      },
-    });
-    subscription.planDetails.categories = [
-      ...subscription.planDetails.categories,
-      DataCategory.LOG_BYTE,
-      DataCategory.LOG_ITEM,
-      DataCategory.PROFILE_CHUNKS,
-    ];
-    SubscriptionStore.set(organization.slug, subscription);
-
-    const promptsMock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/${organization.slug}/prompts-activity/`,
-    });
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    const {container} = render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    await act(tick);
-    expect(container).toBeEmptyDOMElement();
-    const lastCall = promptsMock.mock.lastCall;
-    const nonBilledOveragePrompts = [
-      'log_bytes_overage_alert',
-      'log_items_overage_alert',
-      'profile_chunks_overage_alert',
-    ];
-    expect(
-      (lastCall[1].query.feature as string[]).some(prompt =>
-        nonBilledOveragePrompts.includes(prompt)
-      )
-    ).toBe(false);
-  });
-
-  it('shows see usage button for overages that are not strictly seat-based', async function () {
-    const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_team',
-      categories: {
-        monitorSeats: MetricHistoryFixture({usageExceeded: true}),
-        profileDuration: MetricHistoryFixture({usageExceeded: true}),
-      },
-      onDemandPeriodStart: '2025-01-01',
-      onDemandPeriodEnd: '2025-01-31',
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    const {router} = render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    expect(
-      await screen.findByTestId('overage-banner-monitorSeat-profileDuration')
-    ).toBeInTheDocument();
-
-    const seeUsageButton = await screen.findByRole('button', {name: 'See Usage'});
-    await userEvent.click(seeUsageButton);
-
-    expect(router.location).toEqual(
-      expect.objectContaining({
-        pathname: `/organizations/${organization.slug}/stats/`,
-        query: {
-          dataCategory: 'profileDuration', // doesn't use monitorSeat because it does not have a stats page
-          pageStart: '2025-01-01',
-          pageEnd: '2025-01-31',
-          pageUtc: 'true',
-        },
-      })
-    );
-  });
-
-  it('does not show see usage button for overages that are strictly seat-based', async function () {
-    const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_team',
-      categories: {
-        monitorSeats: MetricHistoryFixture({usageExceeded: true}),
-        uptime: MetricHistoryFixture({usageExceeded: true}),
-      },
-      onDemandPeriodStart: '2025-01-01',
-      onDemandPeriodEnd: '2025-01-31',
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    expect(
-      await screen.findByTestId('overage-banner-monitorSeat-uptime')
-    ).toBeInTheDocument();
-
-    expect(screen.queryByRole('button', {name: 'See Usage'})).not.toBeInTheDocument();
   });
 });

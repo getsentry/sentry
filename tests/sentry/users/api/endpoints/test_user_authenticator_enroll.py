@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import mock
 
 from django.core import mail
@@ -35,7 +36,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
         self.org = self.create_organization(owner=self.user, name="foo")
 
     @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=True)
-    def test_totp_can_enroll(self, validate_otp):
+    def test_totp_can_enroll(self, validate_otp: mock.MagicMock) -> None:
         # XXX: Pretend an unbound function exists.
         validate_otp.__func__ = None
 
@@ -85,7 +86,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
         assert interface.config == {"secret": "secret56"}
 
     @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=True)
-    def test_totp_no_verified_primary_email(self, validate_otp):
+    def test_totp_no_verified_primary_email(self, validate_otp: mock.MagicMock) -> None:
         from urllib.parse import quote
 
         user = self.create_user()
@@ -135,7 +136,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
         )
 
     @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=False)
-    def test_invalid_otp(self, validate_otp):
+    def test_invalid_otp(self, validate_otp: mock.MagicMock) -> None:
         # XXX: Pretend an unbound function exists.
         validate_otp.__func__ = None
 
@@ -157,7 +158,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
     @mock.patch("sentry.auth.authenticators.SmsInterface.validate_otp", return_value=True)
     @mock.patch("sentry.auth.authenticators.SmsInterface.send_text", return_value=True)
     @override_options({"sms.twilio-account": "twilio-account"})
-    def test_sms_can_enroll(self, send_text, validate_otp):
+    def test_sms_can_enroll(self, send_text: mock.MagicMock, validate_otp: mock.MagicMock) -> None:
         # XXX: Pretend an unbound function exists.
         validate_otp.__func__ = None
 
@@ -241,7 +242,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
     )
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll")
     @override_options({"system.url-prefix": "https://testserver"})
-    def test_rate_limited(self, try_enroll, is_limited):
+    def test_rate_limited(self, try_enroll: mock.MagicMock, is_limited: mock.MagicMock) -> None:
         self.get_success_response("me", "u2f")
         self.get_error_response(
             "me",
@@ -259,7 +260,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
 
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
     @override_options({"system.url-prefix": "https://testserver"})
-    def test_u2f_can_enroll(self, try_enroll):
+    def test_u2f_can_enroll(self, try_enroll: mock.MagicMock) -> None:
         resp = self.get_success_response("me", "u2f")
         assert resp.data["form"]
         assert "secret" not in resp.data
@@ -307,7 +308,9 @@ class UserAuthenticatorEnrollTest(APITestCase):
 
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
     @override_options({"system.url-prefix": "https://testserver"})
-    def test_u2f_superuser_and_staff_cannot_enroll_other_user(self, try_enroll):
+    def test_u2f_superuser_and_staff_cannot_enroll_other_user(
+        self, try_enroll: mock.MagicMock
+    ) -> None:
         elevated_user = self.create_user(is_superuser=True, is_staff=True)
         self.login_as(user=elevated_user, superuser=True, staff=True)
 
@@ -362,22 +365,22 @@ class AcceptOrganizationInviteTest(APITestCase):
         self.assertFalse(self.user.has_2fa())
 
     @assume_test_silo_mode(SiloMode.REGION)
-    def require_2fa_for_organization(self):
+    def require_2fa_for_organization(self) -> None:
         self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         self.assertTrue(self.organization.flags.require_2fa.is_set)
 
-    def _assert_pending_invite_details_in_session(self, om):
+    def _assert_pending_invite_details_in_session(self, om: OrganizationMember) -> None:
         assert self.client.session["invite_token"] == om.token
         assert self.client.session["invite_member_id"] == om.id
         assert self.client.session["invite_organization_id"] == om.organization_id
 
-    def create_existing_om(self):
+    def create_existing_om(self) -> None:
         with assume_test_silo_mode(SiloMode.REGION), outbox_runner():
             OrganizationMember.objects.create(
                 user_id=self.user.id, role="member", organization=self.organization
             )
 
-    def get_om_and_init_invite(self):
+    def get_om_and_init_invite(self) -> OrganizationMember:
         with assume_test_silo_mode(SiloMode.REGION), outbox_runner():
             om = OrganizationMember.objects.create(
                 email="newuser@example.com",
@@ -397,7 +400,7 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         return om
 
-    def assert_invite_accepted(self, response, member_id: int) -> None:
+    def assert_invite_accepted(self, response: Any, member_id: int) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             om = OrganizationMember.objects.get(id=member_id)
         assert om.user_id == self.user.id
@@ -418,7 +421,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         assert not self.client.session.get("invite_member_id")
 
     @override_options({"system.url-prefix": "https://testserver"})
-    def setup_u2f(self, om):
+    def setup_u2f(self, om: OrganizationMember) -> Any:
         # We have to add the invite details back in to the session
         # prior to .save_session() since this re-creates the session property
         # when under test. See here for more details:
@@ -444,7 +447,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         assert om.email == "newuser@example.com"
 
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
-    def test_accept_pending_invite__u2f_enroll(self, try_enroll):
+    def test_accept_pending_invite__u2f_enroll(self, try_enroll: mock.MagicMock) -> None:
         om = self.get_om_and_init_invite()
         resp = self.setup_u2f(om)
 
@@ -453,7 +456,9 @@ class AcceptOrganizationInviteTest(APITestCase):
     @mock.patch("sentry.auth.authenticators.SmsInterface.validate_otp", return_value=True)
     @mock.patch("sentry.auth.authenticators.SmsInterface.send_text", return_value=True)
     @override_options({"sms.twilio-account": "twilio-account"})
-    def test_accept_pending_invite__sms_enroll(self, send_text, validate_otp):
+    def test_accept_pending_invite__sms_enroll(
+        self, send_text: mock.MagicMock, validate_otp: mock.MagicMock
+    ) -> None:
         # XXX: Pretend an unbound function exists.
         validate_otp.__func__ = None
 
@@ -486,7 +491,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         self.assert_invite_accepted(resp, om.id)
 
     @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=True)
-    def test_accept_pending_invite__totp_enroll(self, validate_otp):
+    def test_accept_pending_invite__totp_enroll(self, validate_otp: mock.MagicMock) -> None:
         # XXX: Pretend an unbound function exists.
         validate_otp.__func__ = None
 
@@ -508,7 +513,7 @@ class AcceptOrganizationInviteTest(APITestCase):
 
     @mock.patch("sentry.users.api.endpoints.user_authenticator_enroll.logger")
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
-    def test_user_already_org_member(self, try_enroll, log):
+    def test_user_already_org_member(self, try_enroll: mock.MagicMock, log: mock.MagicMock) -> None:
         om = self.get_om_and_init_invite()
         self.create_existing_om()
         self.setup_u2f(om)
@@ -523,7 +528,9 @@ class AcceptOrganizationInviteTest(APITestCase):
 
     @mock.patch("sentry.users.api.endpoints.user_authenticator_enroll.logger")
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
-    def test_org_member_does_not_exist(self, try_enroll, log):
+    def test_org_member_does_not_exist(
+        self, try_enroll: mock.MagicMock, log: mock.MagicMock
+    ) -> None:
         om = self.get_om_and_init_invite()
 
         # Mutate the OrganizationMember, putting it out of sync with the
@@ -546,7 +553,7 @@ class AcceptOrganizationInviteTest(APITestCase):
 
     @mock.patch("sentry.users.api.endpoints.user_authenticator_enroll.logger")
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
-    def test_invalid_token(self, try_enroll, log):
+    def test_invalid_token(self, try_enroll: mock.MagicMock, log: mock.MagicMock) -> None:
         om = self.get_om_and_init_invite()
 
         # Mutate the OrganizationMember, putting it out of sync with the
@@ -567,7 +574,9 @@ class AcceptOrganizationInviteTest(APITestCase):
     @mock.patch("sentry.users.api.endpoints.user_authenticator_enroll.logger")
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
     @override_options({"system.url-prefix": "https://testserver"})
-    def test_enroll_without_pending_invite__no_error(self, try_enroll, log):
+    def test_enroll_without_pending_invite__no_error(
+        self, try_enroll: mock.MagicMock, log: mock.MagicMock
+    ) -> None:
         self.session["webauthn_register_state"] = "state"
         self.save_session()
         self.get_success_response(

@@ -4,7 +4,7 @@ import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
-  Attributes,
+  Attribute,
   MATCH_CHOICES,
   type MatchType,
 } from 'sentry/views/automations/components/actionFilters/constants';
@@ -38,11 +38,11 @@ function AttributeField() {
       aria-label={t('Attribute')}
       placeholder={t('attribute')}
       value={condition.comparison.attribute}
-      options={Object.values(Attributes).map(attribute => ({
+      options={Object.values(Attribute).map(attribute => ({
         value: attribute,
         label: attribute,
       }))}
-      onChange={(option: SelectValue<Attributes>) => {
+      onChange={(option: SelectValue<Attribute>) => {
         onUpdate({comparison: {...condition.comparison, attribute: option.value}});
       }}
     />

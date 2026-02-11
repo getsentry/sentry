@@ -1,145 +1,29 @@
-import {Fragment, useCallback, useContext, useRef, useState} from 'react';
+import {useCallback, useContext, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import FormContext from 'sentry/components/forms/formContext';
 import useDrawer from 'sentry/components/globalDrawer';
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {IconAdd, IconEdit} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Automation} from 'sentry/types/workflowEngine/automations';
-import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
-import {makeAutomationsQueryKey} from 'sentry/views/automations/hooks';
+import {AutomationBuilderDrawerForm} from 'sentry/views/automations/components/automationBuilderDrawerForm';
+import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connectAutomationsDrawer';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
-
-function ConnectedAutomations({
-  automationIds,
-  toggleConnected,
-}: {
-  automationIds: string[];
-  toggleConnected: (params: {automation: Automation}) => void;
-}) {
-  const [cursor, setCursor] = useState<string | undefined>(undefined);
-
-  return (
-    <Section title={t('Connected Automations')}>
-      <ConnectedAutomationsList
-        data-test-id="drawer-connected-automations-list"
-        automationIds={automationIds}
-        connectedAutomationIds={new Set(automationIds)}
-        toggleConnected={toggleConnected}
-        cursor={cursor}
-        onCursor={setCursor}
-        limit={null}
-      />
-    </Section>
-  );
-}
-
-function AllAutomations({
-  automationIds,
-  toggleConnected,
-}: {
-  automationIds: string[];
-  toggleConnected: (params: {automation: Automation}) => void;
-}) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [cursor, setCursor] = useState<string | undefined>(undefined);
-  const onSearch = useCallback((query: string) => {
-    setSearchQuery(query);
-    setCursor(undefined);
-  }, []);
-
-  return (
-    <Section title={t('All Automations')}>
-      <AutomationSearch initialQuery={searchQuery} onSearch={onSearch} />
-      <ConnectedAutomationsList
-        data-test-id="drawer-all-automations-list"
-        automationIds={null}
-        connectedAutomationIds={new Set(automationIds)}
-        toggleConnected={toggleConnected}
-        emptyMessage={t('No automations found')}
-        cursor={cursor}
-        onCursor={setCursor}
-        query={searchQuery}
-      />
-    </Section>
-  );
-}
-
-function ConnectAutomationsDrawer({
-  initialWorkflowIds,
-  setWorkflowIds,
-}: {
-  initialWorkflowIds: string[];
-  setWorkflowIds: (workflowIds: string[]) => void;
-}) {
-  const organization = useOrganization();
-  const queryClient = useQueryClient();
-
-  // Because GlobalDrawer is rendered outside of our form context, we need to duplicate the state here
-  const [localWorkflowIds, setLocalWorkflowIds] = useState(initialWorkflowIds);
-
-  const toggleConnected = ({automation}: {automation: Automation}) => {
-    const oldAutomationsData =
-      getApiQueryData<Automation[]>(
-        queryClient,
-        makeAutomationsQueryKey({
-          orgSlug: organization.slug,
-          ids: localWorkflowIds,
-        })
-      ) ?? [];
-
-    const newAutomations = (
-      oldAutomationsData.some(a => a.id === automation.id)
-        ? oldAutomationsData.filter(a => a.id !== automation.id)
-        : [...oldAutomationsData, automation]
-    ).sort((a, b) => a.id.localeCompare(b.id)); // API will return ID ascending, so this avoids re-ordering
-    const newWorkflowIds = newAutomations.map(a => a.id);
-
-    // Update the query cache to prevent the list from being fetched anew
-    setApiQueryData<Automation[]>(
-      queryClient,
-      makeAutomationsQueryKey({
-        orgSlug: organization.slug,
-        ids: newWorkflowIds,
-      }),
-      newAutomations
-    );
-
-    setLocalWorkflowIds(newWorkflowIds);
-    setWorkflowIds(newWorkflowIds);
-  };
-
-  return (
-    <Fragment>
-      <DrawerHeader hideBar />
-      <DrawerContent>
-        <ConnectedAutomations
-          automationIds={localWorkflowIds}
-          toggleConnected={toggleConnected}
-        />
-        <AllAutomations
-          automationIds={localWorkflowIds}
-          toggleConnected={toggleConnected}
-        />
-      </DrawerContent>
-    </Fragment>
-  );
-}
+import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 
 export function AutomateSection() {
   const ref = useRef<HTMLButtonElement>(null);
   const formContext = useContext(FormContext);
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
 
+  const {project} = useDetectorFormContext();
   const workflowIds = useFormField('workflowIds') as string[];
   const setWorkflowIds = useCallback(
     (newWorkflowIds: string[]) =>
@@ -161,7 +45,7 @@ export function AutomateSection() {
         />
       ),
       {
-        ariaLabel: t('Connect Automations'),
+        ariaLabel: t('Connect Alerts'),
         shouldCloseOnInteractOutside: el => {
           if (!ref.current) {
             return true;
@@ -172,24 +56,43 @@ export function AutomateSection() {
     );
   };
 
+  const openCreateDrawer = () => {
+    if (isDrawerOpen) {
+      closeDrawer();
+    }
+
+    openDrawer(
+      () => (
+        <AutomationBuilderDrawerForm
+          closeDrawer={closeDrawer}
+          onSuccess={automationId => {
+            setWorkflowIds([...workflowIds, automationId]);
+            closeDrawer();
+          }}
+        />
+      ),
+      {ariaLabel: t('Create New Alert')}
+    );
+  };
+
   if (workflowIds.length > 0) {
     return (
       <Container>
-        <Section title={t('Connected Automations')}>
+        <Section title={t('Connected Alerts')}>
           <ConnectedAutomationsList
             automationIds={workflowIds}
             cursor={undefined}
             onCursor={() => {}}
             limit={null}
+            openInNewTab
           />
         </Section>
         <ButtonWrapper justify="between">
-          {/* TODO: Implement create automation flow */}
-          <Button size="sm" icon={<IconAdd />} disabled>
-            {t('Create New Automation')}
+          <Button size="sm" icon={<IconAdd />} onClick={openCreateDrawer}>
+            {t('Create New Alert')}
           </Button>
           <Button size="sm" icon={<IconEdit />} onClick={toggleDrawer}>
-            {t('Edit Automations')}
+            {t('Edit Alerts')}
           </Button>
         </ButtonWrapper>
       </Container>
@@ -198,31 +101,45 @@ export function AutomateSection() {
 
   return (
     <Container>
-      <Section title={t('Automate')} description={t('Set up alerts or notifications.')}>
-        <Button
-          ref={ref}
-          size="sm"
-          style={{width: 'min-content'}}
-          priority="primary"
-          icon={<IconAdd />}
-          onClick={toggleDrawer}
-        >
-          {t('Connect an Automation')}
-        </Button>
+      <Section
+        title={t('Alert')}
+        description={t('Confirgure alerting on this Monitor to get notified on issues.')}
+      >
+        <ConnectedAutomationsList
+          automationIds={[]}
+          cursor={undefined}
+          onCursor={() => {}}
+          emptyMessage={
+            <Stack gap="md" align="center" maxWidth="300px">
+              <Button
+                ref={ref}
+                size="sm"
+                style={{width: 'min-content'}}
+                onClick={toggleDrawer}
+              >
+                {t('Connect Existing Alerts')}
+              </Button>
+              <Button size="sm" icon={<IconAdd />} onClick={openCreateDrawer}>
+                {t('Create New Alert')}
+              </Button>
+              <Text variant="muted" align="center">
+                {tct(
+                  'Alerts configured for all Issues in [projectName] will also apply to this Monitor.',
+                  {
+                    projectName: <strong>{project.slug}</strong>,
+                  }
+                )}
+              </Text>
+            </Stack>
+          }
+        />
       </Section>
     </Container>
   );
 }
 
-const DrawerContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-  padding: ${space(2)} ${space(3)};
-`;
-
 const ButtonWrapper = styled(Flex)`
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(2)};
   margin: -${space(2)};
 `;

@@ -190,7 +190,7 @@ class RegisterSubscriberTest(unittest.TestCase):
     def setUp(self) -> None:
         self.orig_registry = deepcopy(subscriber_registry)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         subscriber_registry.clear()
         subscriber_registry.update(self.orig_registry)
 

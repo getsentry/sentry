@@ -1,7 +1,7 @@
 import abc
 import dataclasses
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from typing import Any, Generic, cast
 from uuid import uuid4
 
@@ -9,6 +9,8 @@ from django.conf import settings
 from django.db.models import Q
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
+from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
@@ -19,8 +21,9 @@ from sentry.workflow_engine.handlers.detector.base import (
     DetectorHandler,
     DetectorOccurrence,
     EventData,
+    GroupedDetectorEvaluationResult,
 )
-from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
+from sentry.workflow_engine.models import DataPacket, DataSource, Detector, DetectorState
 from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
     process_data_condition_group,
@@ -84,7 +87,7 @@ class DetectorStateManager:
         self.counter_updates = {}
         self.state_updates = {}
 
-    def enqueue_dedupe_update(self, group_key: DetectorGroupKey, dedupe_value: int):
+    def enqueue_dedupe_update(self, group_key: DetectorGroupKey, dedupe_value: int) -> None:
         self.dedupe_updates[group_key] = dedupe_value
 
     def enqueue_counter_reset(self, group_key: DetectorGroupKey = None) -> None:
@@ -96,12 +99,12 @@ class DetectorStateManager:
 
     def enqueue_counter_update(
         self, group_key: DetectorGroupKey, counter_updates: DetectorCounters
-    ):
+    ) -> None:
         self.counter_updates[group_key] = counter_updates
 
     def enqueue_state_update(
         self, group_key: DetectorGroupKey, is_triggered: bool, priority: DetectorPriorityLevel
-    ):
+    ) -> None:
         self.state_updates[group_key] = (is_triggered, priority)
 
     def get_redis_keys_for_group_keys(
@@ -180,15 +183,15 @@ class DetectorStateManager:
 
         return key
 
-    def commit_state_updates(self):
+    def commit_state_updates(self) -> None:
         self._bulk_commit_detector_state()
         self._bulk_commit_redis_state()
 
-    def _bulk_commit_dedupe_values(self, pipeline):
+    def _bulk_commit_dedupe_values(self, pipeline: Any) -> None:
         for group_key, dedupe_value in self.dedupe_updates.items():
             pipeline.set(self.build_key(group_key, "dedupe_value"), dedupe_value, ex=REDIS_TTL)
 
-    def _bulk_commit_counter_updates(self, pipeline):
+    def _bulk_commit_counter_updates(self, pipeline: Any) -> None:
         for group_key, counter_updates in self.counter_updates.items():
             for counter_name, counter_value in counter_updates.items():
                 key_name = self.build_key(group_key, counter_name)
@@ -198,7 +201,7 @@ class DetectorStateManager:
                 else:
                     pipeline.set(key_name, counter_value, ex=REDIS_TTL)
 
-    def _bulk_commit_redis_state(self, key: DetectorGroupKey | None = None):
+    def _bulk_commit_redis_state(self, key: DetectorGroupKey | None = None) -> None:
         pipeline = get_redis_client().pipeline()
         if self.dedupe_updates:
             self._bulk_commit_dedupe_values(pipeline)
@@ -211,7 +214,7 @@ class DetectorStateManager:
         self.dedupe_updates.clear()
         self.counter_updates.clear()
 
-    def _bulk_commit_detector_state(self):
+    def _bulk_commit_detector_state(self) -> None:
         # TODO: We should already have these loaded from earlier, figure out how to cache and reuse
         detector_state_lookup = self.bulk_get_detector_state(
             [update for update in self.state_updates.keys()]
@@ -230,7 +233,10 @@ class DetectorStateManager:
                         state=priority,
                     )
                 )
-            elif is_triggered != detector_state.is_triggered or priority != detector_state.state:
+            elif (
+                is_triggered != detector_state.is_triggered
+                or priority != detector_state.priority_level
+            ):
                 detector_state.is_triggered = is_triggered
                 detector_state.state = priority
                 updated_detector_states.append(detector_state)
@@ -340,13 +346,74 @@ class StatefulDetectorHandler(
         """
         return []
 
-    def evaluate(
+    def build_detector_evidence_data(
+        self,
+        evaluation_result: ProcessedDataConditionGroup,
+        data_packet: DataPacket[DataPacketType],
+        priority: DetectorPriorityLevel,
+    ) -> dict[str, Any]:
+        """
+        Build detector-specific evidence data.
+        A detector handler can implement this to add its own evidence data in addition to the workflow engine evidence data.
+        """
+        return {}
+
+    def _build_evidence_data_sources(
         self, data_packet: DataPacket[DataPacketType]
-    ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
+    ) -> list[dict[str, Any]]:
+        try:
+            data_sources = list(
+                DataSource.objects.filter(detectors=self.detector, source_id=data_packet.source_id)
+            )
+            if not data_sources:
+                logger.warning(
+                    "Matching data source not found for detector while generating occurrence evidence data",
+                    extra={
+                        "detector_id": self.detector.id,
+                        "data_packet_source_id": data_packet.source_id,
+                    },
+                )
+                return []
+            # Serializers return camelcased keys, but evidence data should use snakecase
+            return convert_dict_key_case(serialize(data_sources), camel_to_snake_case)
+        except Exception:
+            logger.exception(
+                "Failed to serialize data source definition when building workflow engine evidence data"
+            )
+            return []
+
+    def _build_workflow_engine_evidence_data(
+        self,
+        evaluation_result: ProcessedDataConditionGroup,
+        data_packet: DataPacket[DataPacketType],
+        evaluation_value: DataPacketEvaluationType,
+    ) -> dict[str, Any]:
+        """
+        Build the workflow engine specific evidence data.
+        This is data that is common to all detectors.
+        """
+        base: dict[str, Any] = {
+            "detector_id": self.detector.id,
+            "value": evaluation_value,
+            "data_packet_source_id": str(data_packet.source_id),
+            "conditions": [
+                result.condition.get_snapshot() for result in evaluation_result.condition_results
+            ],
+            "config": self.detector.config,
+            "data_sources": self._build_evidence_data_sources(data_packet),
+        }
+
+        return base
+
+    def evaluate_impl(
+        self, data_packet: DataPacket[DataPacketType]
+    ) -> GroupedDetectorEvaluationResult:
         dedupe_value = self.extract_dedupe_value(data_packet)
         group_data_values = self._extract_value_from_packet(data_packet)
         state = self.state_manager.get_state_data(list(group_data_values.keys()))
         results: dict[DetectorGroupKey, DetectorEvaluationResult] = {}
+
+        tainted = False
 
         for group_key, data_value in group_data_values.items():
             state_data: DetectorStateData = state[group_key]
@@ -360,8 +427,12 @@ class StatefulDetectorHandler(
                 group_data_values[group_key]
             )
 
-            if condition_results is None:
+            if condition_results is not None and condition_results.logic_result.is_tainted():
+                tainted = True
+
+            if condition_results is None or condition_results.logic_result.triggered is False:
                 # Invalid condition result, nothing we can do
+                # Or if we didn't match any conditions in the evaluation
                 continue
 
             if state_data.status == evaluated_priority:
@@ -371,7 +442,7 @@ class StatefulDetectorHandler(
                 # Reset counters if any were incremented while evaluating a
                 # different priority (but not reaching thresholds)
                 if any(state_data.counter_updates.values()):
-                    self.state_manager.enqueue_counter_reset()
+                    self.state_manager.enqueue_counter_reset(group_key)
 
                 continue
 
@@ -409,7 +480,7 @@ class StatefulDetectorHandler(
             )
 
         self.state_manager.commit_state_updates()
-        return results
+        return GroupedDetectorEvaluationResult(result=results, tainted=tainted)
 
     def _create_resolve_message(
         self,
@@ -423,12 +494,18 @@ class StatefulDetectorHandler(
             self.state_manager.build_key(group_key),
         ]
 
-        evidence_data = self._build_evidence_data(
-            detector_occurrence=None,
-            evaluation_result=condition_results,
-            data_packet=data_packet,
-            evaluation_value=evaluation_value,
-        )
+        evidence_data = {
+            **self._build_workflow_engine_evidence_data(
+                evaluation_result=condition_results,
+                data_packet=data_packet,
+                evaluation_value=evaluation_value,
+            ),
+            **self.build_detector_evidence_data(
+                condition_results,
+                data_packet,
+                DetectorPriorityLevel.OK,
+            ),
+        }
 
         return StatusChangeMessage(
             fingerprint=fingerprint,
@@ -513,7 +590,7 @@ class StatefulDetectorHandler(
             event_data=event_data,
         )
 
-    def _is_detector_group_value(self, value) -> bool:
+    def _is_detector_group_value(self, value: Any) -> bool:
         """
         Check if value is dict[DetectorGroupKey, DataPacketEvaluationType]
         """
@@ -527,45 +604,8 @@ class StatefulDetectorHandler(
         return all(isinstance(key, DetectorGroupKey) for key in value.keys())
 
     def _get_configured_detector_levels(self) -> list[DetectorPriorityLevel]:
-        priority_levels: list[DetectorPriorityLevel] = [level for level in DetectorPriorityLevel]
-
-        if self.detector.workflow_condition_group is None:
-            return []
-
-        # TODO - Is this something that should be provided by the detector itself rather
-        # than having to query the db for each level?
-        condition_result_levels = self.detector.workflow_condition_group.conditions.filter(
-            condition_result__in=priority_levels
-        ).values_list("condition_result", flat=True)
-
-        return list(DetectorPriorityLevel(level) for level in condition_result_levels)
-
-    def _build_evidence_data(
-        self,
-        detector_occurrence: DetectorOccurrence | None,
-        evaluation_result: ProcessedDataConditionGroup,
-        data_packet: DataPacket[DataPacketType],
-        evaluation_value: DataPacketEvaluationType,
-    ) -> dict[str, Any]:
-
-        evidence_data: dict[str, Any] = {}
-
-        if detector_occurrence:
-            evidence_data.update(detector_occurrence.evidence_data)
-
-        evidence_data.update(
-            {
-                "detector_id": self.detector.id,
-                "value": evaluation_value,
-                "data_packet_source_id": str(data_packet.source_id),
-                "conditions": [
-                    result.condition.get_snapshot()
-                    for result in evaluation_result.condition_results
-                ],
-            }
-        )
-
-        return evidence_data
+        conditions = self.detector.get_conditions()
+        return list(DetectorPriorityLevel(condition.condition_result) for condition in conditions)
 
     def _create_decorated_issue_occurrence(
         self,
@@ -579,8 +619,7 @@ class StatefulDetectorHandler(
         """
         Decorate the issue occurrence with the data from the detector's evaluation result.
         """
-        evidence_data = self._build_evidence_data(
-            detector_occurrence,
+        evidence_data = self._build_workflow_engine_evidence_data(
             evaluation_result,
             data_packet,
             data_value,
@@ -596,7 +635,6 @@ class StatefulDetectorHandler(
             occurrence_id=str(uuid4()),
             project_id=self.detector.project_id,
             status=new_priority,
-            detection_time=datetime.now(UTC),
             additional_evidence_data=evidence_data,
         )
 
@@ -613,9 +651,19 @@ class StatefulDetectorHandler(
             metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
             return None, new_priority
 
-        condition_evaluation, _ = process_data_condition_group(self.condition_group, value)
+        condition_evaluation, remaining_slow_conditions = process_data_condition_group(
+            self.condition_group, value
+        )
+        if remaining_slow_conditions:
+            logger.warning(
+                "Slow conditions present for detector",
+                extra={
+                    "detector_id": self.detector.id,
+                    "condition_group_id": self.condition_group.id,
+                },
+            )
 
-        if condition_evaluation.logic_result:
+        if condition_evaluation.logic_result.triggered:
             validated_condition_results: list[DetectorPriorityLevel] = [
                 condition_result.result
                 for condition_result in condition_evaluation.condition_results

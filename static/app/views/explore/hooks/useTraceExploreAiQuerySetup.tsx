@@ -1,9 +1,10 @@
 import {useEffect, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
 interface UseTraceExploreAiQuerySetupArgs {
@@ -47,16 +48,14 @@ export function useTraceExploreAiQuerySetup({
 
     (async () => {
       try {
-        await client.requestPromise(
-          `/api/0/organizations/${organization.slug}/trace-explorer-ai/setup/`,
-          {
-            method: 'POST',
-            data: {
-              org_id: organization.id,
-              project_ids: selectedProjects,
-            },
-          }
-        );
+        await fetchMutation({
+          url: `/organizations/${organization.slug}/trace-explorer-ai/setup/`,
+          method: 'POST',
+          data: {
+            org_id: organization.id,
+            project_ids: selectedProjects,
+          },
+        });
       } catch (err) {
         Sentry.captureException(err);
       }

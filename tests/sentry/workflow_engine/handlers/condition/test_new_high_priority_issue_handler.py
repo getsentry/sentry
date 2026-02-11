@@ -61,10 +61,7 @@ class TestNewHighPriorityIssueCondition(ConditionTestCase):
         with pytest.raises(ValidationError):
             dc.save()
 
-    def test_with_high_priority_alerts(self) -> None:
-        self.project.flags.has_high_priority_alerts = True
-        self.project.save()
-
+    def test_applies_correctly(self) -> None:
         assert self.event_data.group_state
 
         # This will only pass for new issues
@@ -80,28 +77,4 @@ class TestNewHighPriorityIssueCondition(ConditionTestCase):
         self.assert_does_not_pass(self.dc, self.event_data)
 
         self.group_event.group.update(priority=PriorityLevel.LOW)
-        self.assert_does_not_pass(self.dc, self.event_data)
-
-    def test_without_high_priority_alerts(self) -> None:
-        self.project.flags.has_high_priority_alerts = False
-        self.project.save()
-
-        assert self.event_data.group_state
-
-        self.group_event.group.update(priority=PriorityLevel.HIGH)
-        self.event_data.group_state["is_new_group_environment"] = True
-        self.assert_passes(self.dc, self.event_data)
-        self.event_data.group_state["is_new_group_environment"] = False
-        self.assert_does_not_pass(self.dc, self.event_data)
-
-        self.group_event.group.update(priority=PriorityLevel.MEDIUM)
-        self.event_data.group_state["is_new_group_environment"] = True
-        self.assert_passes(self.dc, self.event_data)
-        self.event_data.group_state["is_new_group_environment"] = False
-        self.assert_does_not_pass(self.dc, self.event_data)
-
-        self.group_event.group.update(priority=PriorityLevel.LOW)
-        self.event_data.group_state["is_new_group_environment"] = True
-        self.assert_passes(self.dc, self.event_data)
-        self.event_data.group_state["is_new_group_environment"] = False
         self.assert_does_not_pass(self.dc, self.event_data)

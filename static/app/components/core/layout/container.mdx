@@ -1,17 +1,20 @@
 ---
 title: Container
 description: A foundational layout component that provides responsive CSS properties through props, serving as the building block for other layout components.
-source: 'sentry/components/core/layout/container'
+category: layout
+source: '@sentry/scraps/layout'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/container.tsx
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/%F0%9F%90%A6-Components?node-id=3040-309&p=f&t=fldvMEFX98yRuTH5-0
 ---
 
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
+
 import * as Storybook from 'sentry/stories';
 
-import APIReference from '!!type-loader!sentry/components/core/layout/container';
+import documentation from '!!type-loader!@sentry/scraps/layout/container';
 
-export const types = {Container: APIReference.Container};
+export {documentation};
 
 The `Container` component is a foundational layout component that extends HTML elements with responsive CSS properties through props. It serves as the building block for other layout components like `Flex` and `Grid` to provides a consistent API for spacing, sizing, positioning, and styling.
 
@@ -22,19 +25,45 @@ You can specialize the `Container` component yourself and tailor it to your use 
 The simplest usage renders a `div` element with enhanced layout properties:
 
 ```jsx
-<Container padding="md" background="secondary">
+<Container padding="md" background="primary">
   Basic container content
 </Container>
 ```
 
-## Spacing
+### Composition
+
+The `Container` implements composition via <a href="/stories/layout/composition">render prop</a> pattern.
+
+```tsx
+<Container padding="md" background="primary">
+  {props => <div {...props}>Basic container content</div>}
+</Container>
+```
+
+### Specifying the DOM Node via `as` prop
+
+The `Container` component renders a `div` element by default, but you can specify the DOM node to render by passing a `as` prop.
+
+```tsx
+<Container as="section" padding="md" background="primary">
+  Basic container content
+</Container>
+```
+
+### Spacing
 
 The `padding` prop uses the theme's spacing system with shorthand support:
 
 <Storybook.Demo>
   <Flex gap="md">
     {['xs', 'sm', 'md', 'lg', 'xl', '2xl'].map(size => (
-      <Container key={size} background="tertiary" padding={size} border="primary">
+      <Container
+        key={size}
+        background="primary"
+        padding={size}
+        border="primary"
+        radius="md"
+      >
         <strong>{size} padding</strong> -{' '}
         {size === 'xs'
           ? '4px'
@@ -63,19 +92,19 @@ Apply rounded corners using theme radius values:
 
 <Storybook.Demo>
   <Flex gap="md">
-    <Container background="secondary" padding="md" radius="sm" border="primary">
+    <Container background="primary" padding="md" radius="sm" border="primary">
       Small radius
     </Container>
-    <Container background="secondary" padding="md" radius="md" border="primary">
+    <Container background="primary" padding="md" radius="md" border="primary">
       Medium radius
     </Container>
-    <Container background="secondary" padding="md" radius="lg" border="primary">
+    <Container background="primary" padding="md" radius="lg" border="primary">
       Large radius
     </Container>
   </Flex>
 </Storybook.Demo>
 ```jsx
-<Container background="secondary" padding="md" radius="md">
+<Container background="primary" padding="md" radius="md">
   Rounded corners
 </Container>
 ```
@@ -89,7 +118,7 @@ Set positioning for absolute/relative layouts:
     <Container
       position="absolute"
       padding="xs"
-      background="tertiary"
+      background="primary"
       style={{top: '12px', right: '8px'}}
       border="primary"
     >
@@ -103,7 +132,7 @@ Set positioning for absolute/relative layouts:
   <Container
     position="absolute"
     padding="xs"
-    background="tertiary"
+    background="primary"
     style={{top: '12px', right: '8px'}}
   >
     Absolute positioned
@@ -112,19 +141,19 @@ Set positioning for absolute/relative layouts:
 </Container>
 ```
 
-## Responsive Example
+### Responsive Example
 
 <Storybook.Demo>
   <Flex
     padding={{xs: 'sm', lg: 'xl'}}
-    background={{xs: 'primary', sm: 'secondary', lg: 'tertiary'}}
+    background={{xs: 'primary', sm: 'secondary', lg: 'primary'}}
     radius={{xs: '0', sm: 'md'}}
     border="primary"
   >
     <Container padding="sm" background="primary" style={{flex: 1}} border="primary">
       Item 1
     </Container>
-    <Container padding="sm" background="secondary" style={{flex: 1}} border="primary">
+    <Container padding="sm" background="primary" style={{flex: 1}} border="primary">
       Item 2
     </Container>
   </Flex>
@@ -134,7 +163,7 @@ Set positioning for absolute/relative layouts:
   // Padding increases at lg breakpoint
   padding={{xs: 'sm', lg: 'xl'}}
   // Background changes at sm and lg breakpoints
-  background={{xs: 'primary', sm: 'secondary', lg: 'tertiary'}}
+  background={{xs: 'primary', sm: 'secondary', lg: 'primary'}}
   // Adds border="primary" radius at sm breakpoint
   radius={{xs: '0', sm: 'md'}}
 >
@@ -142,7 +171,22 @@ Set positioning for absolute/relative layouts:
 </Container>
 ```
 
-## Grid Integration
+#### 2xs breakpoint
+
+The `2xs` breakpoint is a breakpoint that applies from 0 to the smallest defined breakpoint size.
+
+<Storybook.Demo>
+  <Container display={{'2xs': 'none', sm: 'block'}}>
+    This content is hidden below the sm breakpoint
+  </Container>
+</Storybook.Demo>
+```jsx
+<Container display={{'2xs': 'none', sm: 'block'}}>
+  This content is hidden below the sm breakpoint
+</Container>
+```
+
+### Grid Integration
 
 The `area` prop supports CSS Grid integration:
 
@@ -157,13 +201,31 @@ The `area` prop supports CSS Grid integration:
       height: '200px',
     }}
   >
-    <Container area="header" background="tertiary" padding="sm" border="primary">
+    <Container
+      area="header"
+      background="primary"
+      padding="sm"
+      border="primary"
+      radius="md"
+    >
       Header
     </Container>
-    <Container area="sidebar" background="secondary" padding="sm" border="primary">
+    <Container
+      area="sidebar"
+      background="primary"
+      padding="sm"
+      border="primary"
+      radius="md"
+    >
       Sidebar
     </Container>
-    <Container area="content" background="primary" padding="sm" border="primary">
+    <Container
+      area="content"
+      background="primary"
+      padding="sm"
+      border="primary"
+      radius="md"
+    >
       Content
     </Container>
   </Container>
@@ -177,13 +239,13 @@ The `area` prop supports CSS Grid integration:
     gridTemplateRows: 'auto 1fr',
   }}
 >
-  <Container area="header" background="tertiary" padding="sm">
+  <Container area="header" background="primary" padding="sm" radius="md">
     Header
   </Container>
-  <Container area="sidebar" background="secondary" padding="sm">
+  <Container area="sidebar" background="primary" padding="sm" radius="md">
     Sidebar
   </Container>
-  <Container area="content" background="primary" padding="sm">
+  <Container area="content" background="primary" padding="sm" radius="md">
     Content
   </Container>
 </Container>

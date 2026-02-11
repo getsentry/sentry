@@ -39,7 +39,10 @@ class CommitFileChangeSerializerTest(TestCase):
             order=1,
         )
         cfc = CommitFileChange.objects.create(
-            organization_id=project.organization_id, commit=commit, filename=".gitignore", type="M"
+            organization_id=project.organization_id,
+            commit_id=commit.id,
+            filename=".gitignore",
+            type="M",
         )
         result = serialize(cfc, user)
 
@@ -71,7 +74,10 @@ class CommitFileChangeSerializerTest(TestCase):
             order=1,
         )
         cfc = CommitFileChange.objects.create(
-            organization_id=project.organization_id, commit=commit, filename=".gitignore", type="M"
+            organization_id=project.organization_id,
+            commit_id=commit.id,
+            filename=".gitignore",
+            type="M",
         )
 
         result = serialize(cfc, user)

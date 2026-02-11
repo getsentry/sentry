@@ -14,20 +14,20 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import DashboardGrid from 'sentry/views/dashboards/manage/dashboardGrid';
-import {type DashboardListItem, DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType, type DashboardListItem} from 'sentry/views/dashboards/types';
 
-describe('Dashboards - DashboardGrid', function () {
+describe('Dashboards - DashboardGrid', () => {
   let dashboards: DashboardListItem[];
   let deleteMock: jest.Mock;
   let dashboardUpdateMock: jest.Mock;
   let createMock: jest.Mock;
   const organization = OrganizationFixture({
-    features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
+    features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
 
   const {router} = initializeOrg();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -100,7 +100,7 @@ describe('Dashboards - DashboardGrid', function () {
     dashboardUpdateMock = jest.fn();
   });
 
-  it('renders an empty list', async function () {
+  it('renders an empty list', async () => {
     render(
       <DashboardGrid
         onDashboardsChange={jest.fn()}
@@ -118,7 +118,7 @@ describe('Dashboards - DashboardGrid', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders dashboard list', function () {
+  it('renders dashboard list', () => {
     render(
       <DashboardGrid
         onDashboardsChange={jest.fn()}
@@ -134,7 +134,7 @@ describe('Dashboards - DashboardGrid', function () {
     expect(screen.getByText('Dashboard 2')).toBeInTheDocument();
   });
 
-  it('returns landing page url for dashboards', function () {
+  it('returns landing page url for dashboards', () => {
     render(
       <DashboardGrid
         onDashboardsChange={jest.fn()}
@@ -156,7 +156,7 @@ describe('Dashboards - DashboardGrid', function () {
     );
   });
 
-  it('persists global selection headers', function () {
+  it('persists global selection headers', () => {
     render(
       <DashboardGrid
         onDashboardsChange={jest.fn()}
@@ -174,7 +174,7 @@ describe('Dashboards - DashboardGrid', function () {
     );
   });
 
-  it('can delete dashboards', async function () {
+  it('can delete dashboards', async () => {
     render(
       <DashboardGrid
         organization={organization}
@@ -204,7 +204,7 @@ describe('Dashboards - DashboardGrid', function () {
     expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 
-  it('cannot delete last dashboard', async function () {
+  it('cannot delete last dashboard', async () => {
     const singleDashboard = [
       DashboardListItemFixture({
         id: '1',
@@ -232,7 +232,7 @@ describe('Dashboards - DashboardGrid', function () {
     );
   });
 
-  it('can duplicate dashboards', async function () {
+  it('can duplicate dashboards', async () => {
     render(
       <DashboardGrid
         organization={organization}
@@ -262,7 +262,7 @@ describe('Dashboards - DashboardGrid', function () {
     expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 
-  it('does not throw an error if the POST fails during duplication', async function () {
+  it('does not throw an error if the POST fails during duplication', async () => {
     const postMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       method: 'POST',
@@ -299,7 +299,7 @@ describe('Dashboards - DashboardGrid', function () {
     expect(dashboardUpdateMock).not.toHaveBeenCalled();
   });
 
-  it('renders favorite and unfavorite buttons on cards', function () {
+  it('renders star and unstar buttons on cards', () => {
     dashboards = [
       DashboardListItemFixture({
         id: '1',
@@ -330,12 +330,12 @@ describe('Dashboards - DashboardGrid', function () {
       }
     );
 
-    expect(screen.queryAllByLabelText('Dashboards Favorite')).toHaveLength(2);
-    expect(screen.queryAllByLabelText('Favorite')).toHaveLength(1);
-    expect(screen.queryAllByLabelText('UnFavorite')).toHaveLength(1);
+    expect(screen.queryAllByLabelText('Starred Dashboard')).toHaveLength(1);
+    expect(screen.queryAllByLabelText('Star')).toHaveLength(1);
+    expect(screen.queryAllByLabelText('Unstar')).toHaveLength(1);
   });
 
-  it('makes PUT requests when favoriting', async function () {
+  it('makes PUT requests when favoriting', async () => {
     const putMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/2/favorite/',
       method: 'PUT',
@@ -373,14 +373,14 @@ describe('Dashboards - DashboardGrid', function () {
       }
     );
 
-    expect(screen.queryAllByLabelText('Favorite')).toHaveLength(1);
-    const favoriteButton = screen.queryAllByLabelText('Favorite')[0]!;
+    expect(screen.queryAllByLabelText('Star')).toHaveLength(1);
+    const favoriteButton = screen.queryAllByLabelText('Star')[0]!;
     await userEvent.click(favoriteButton);
 
     await waitFor(() => {
       expect(putMock).toHaveBeenCalled();
     });
 
-    expect(screen.queryAllByLabelText('Favorite')).toHaveLength(0);
+    expect(screen.queryAllByLabelText('Star')).toHaveLength(0);
   });
 });

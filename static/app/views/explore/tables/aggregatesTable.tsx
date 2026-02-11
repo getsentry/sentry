@@ -1,12 +1,13 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
@@ -14,8 +15,11 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {parseCursor} from 'sentry/utils/cursor';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {
@@ -29,23 +33,24 @@ import {
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
-import {
-  useExploreAggregateFields,
-  useExploreFields,
-  useExploreGroupBys,
-  useExploreQuery,
-  useExploreSortBys,
-  useExploreVisualizes,
-  useSetExploreSortBys,
-} from 'sentry/views/explore/contexts/pageParamsContext';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {
+  useQueryParamsAggregateCursor,
+  useQueryParamsAggregateFields,
+  useQueryParamsAggregateSortBys,
+  useQueryParamsFields,
+  useQueryParamsGroupBys,
+  useQueryParamsQuery,
+  useQueryParamsVisualizes,
+  useSetQueryParamsAggregateSortBys,
+} from 'sentry/views/explore/queryParams/context';
+import {SPANS_AGGREGATE_CURSOR} from 'sentry/views/explore/spans/spansQueryParams';
+import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
-
-import {FieldRenderer} from './fieldRenderer';
 
 interface AggregatesTableProps {
   aggregatesTableResult: AggregatesTableResult;
@@ -54,18 +59,20 @@ interface AggregatesTableProps {
 export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const theme = useTheme();
   const location = useLocation();
+  const navigate = useNavigate();
   const {projects} = useProjects();
 
   const {result, eventView} = aggregatesTableResult;
 
   const topEvents = useTopEvents();
-  const aggregateFields = useExploreAggregateFields();
-  const fields = useExploreFields();
-  const groupBys = useExploreGroupBys();
-  const visualizes = useExploreVisualizes();
-  const sorts = useExploreSortBys();
-  const setSorts = useSetExploreSortBys();
-  const query = useExploreQuery();
+  const aggregateFields = useQueryParamsAggregateFields();
+  const fields = useQueryParamsFields();
+  const groupBys = useQueryParamsGroupBys();
+  const visualizes = useQueryParamsVisualizes();
+  const sorts = useQueryParamsAggregateSortBys();
+  const setSorts = useSetQueryParamsAggregateSortBys();
+  const query = useQueryParamsQuery();
+  const aggregateCursor = useQueryParamsAggregateCursor();
 
   const visibleAggregateFields = useMemo(
     () =>
@@ -97,10 +104,17 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: booleanTags} = useTraceItemTags('boolean');
 
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
   const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
+
+  const cursorHandler = useCallback<CursorHandler>(
+    (cursor, path, q) =>
+      navigate({pathname: path, query: {...q, [SPANS_AGGREGATE_CURSOR]: cursor}}),
+    [navigate]
+  );
 
   const paginationAnalyticsEvent = usePaginationAnalytics(
     'aggregates',
@@ -137,7 +151,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
               const fieldType = meta.fields?.[field];
               const align = fieldAlignment(field, fieldType);
-              const label = prettifyField(field, stringTags, numberTags);
+              const label = prettifyField(field, stringTags, numberTags, booleanTags);
 
               const direction = sorts.find(s => s.field === field)?.kind;
 
@@ -187,7 +201,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
             </TableStatus>
           ) : result.isError ? (
             <TableStatus>
-              <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
             </TableStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
@@ -204,9 +218,11 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
               return (
                 <TableRow key={i}>
                   <TableBodyCell>
-                    {topEvents && i < topEvents && (
-                      <TopResultsIndicator color={palette[i]!} />
-                    )}
+                    {topEvents &&
+                      i < topEvents &&
+                      !parseCursor(aggregateCursor)?.offset && (
+                        <TopResultsIndicator color={palette[i]!} />
+                      )}
                     <Tooltip title={t('View Samples')} containerDisplayMode="flex">
                       <StyledLink to={target}>
                         <IconStack />
@@ -244,6 +260,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
       <Pagination
         pageLinks={result.pageLinks}
         paginationAnalyticsEvent={paginationAnalyticsEvent}
+        onCursor={cursorHandler}
       />
     </Fragment>
   );
@@ -252,14 +269,15 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 function prettifyField(
   field: string,
   stringTags: TagCollection,
-  numberTags: TagCollection
+  numberTags: TagCollection,
+  booleanTags: TagCollection
 ): string {
-  const tag = stringTags[field] ?? numberTags[field] ?? null;
+  const tag = stringTags[field] ?? numberTags[field] ?? booleanTags[field] ?? null;
   if (tag) {
     return tag.name;
   }
 
-  return prettifyAggregation(field) ?? field;
+  return prettifyAggregation(field) ?? prettifyTagKey(field);
 }
 
 const TopResultsIndicator = styled('div')<{color: string}>`

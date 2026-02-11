@@ -1,15 +1,16 @@
-import {type FormEvent, startTransition, useEffect, useRef, useState} from 'react';
+import {startTransition, useEffect, useRef, useState, type FormEvent} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Button} from '@sentry/scraps/button';
+import {TextArea} from '@sentry/scraps/textarea';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {TextArea} from 'sentry/components/core/textarea';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import {useUpdateInsightCard} from 'sentry/components/events/autofix/autofixInsightCards';
 import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {FlyingLinesEffect} from 'sentry/components/events/autofix/FlyingLinesEffect';
+import {useUpdateInsightCard} from 'sentry/components/events/autofix/hooks/useUpdateInsightCard';
 import type {AutofixData} from 'sentry/components/events/autofix/types';
 import {AutofixStepType} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
@@ -154,12 +155,12 @@ function ActiveLogDisplay({
     return (
       <ActiveLogWrapper>
         <SeerIconContainer>
-          <IconSeer variant="waiting" size="lg" />
+          <IconSeer animation="waiting" size="lg" />
         </SeerIconContainer>
         <ActiveLog>{errorMessage}</ActiveLog>
         <Button
           size="xs"
-          borderless
+          priority="transparent"
           aria-label={t('Retry step')}
           title={t('Retry step')}
           onClick={() =>
@@ -186,7 +187,7 @@ function ActiveLogDisplay({
           )}
         >
           <SeerIconContainer ref={seerIconRef}>
-            <StyledAnimatedSeerIcon variant="loading" size="lg" />
+            <StyledAnimatedSeerIcon animation="loading" size="lg" />
             {seerIconRef?.current && isInitializingRun && (
               <FlyingLinesEffect targetElement={seerIconRef.current} />
             )}
@@ -244,7 +245,7 @@ export function AutofixOutputStream({
       queryClient.invalidateQueries({
         queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
       });
-      addSuccessMessage('Thanks for the input.');
+      addSuccessMessage(t('Thanks for the input.'));
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when sending Seer your message.'));
@@ -315,7 +316,7 @@ export function AutofixOutputStream({
                 onChange={e => setMessage(e.target.value)}
                 maxLength={4096}
                 placeholder={
-                  responseRequired ? 'Please answer to continue...' : 'Interrupt me...'
+                  responseRequired ? 'Please answer to continue...' : 'Add context...'
                 }
                 onKeyDown={e => {
                   if (e.key === 'Enter' && !e.shiftKey) {
@@ -328,7 +329,7 @@ export function AutofixOutputStream({
               />
               <StyledButton
                 type="submit"
-                borderless
+                priority="transparent"
                 aria-label={t('Submit Comment')}
                 size="zero"
               >
@@ -370,9 +371,9 @@ const shimmer = keyframes`
 const Container = styled(motion.div)<{required: boolean}>`
   position: relative;
   width: 100%;
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.background};
-  border: 1px dashed ${p => p.theme.border};
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
 
   &:before {
     content: '';
@@ -381,10 +382,19 @@ const Container = styled(motion.div)<{required: boolean}>`
     background: linear-gradient(
       90deg,
       transparent,
-      ${p => (p.required ? p.theme.pink400 : p.theme.active)}20,
+      color-mix(
+        in srgb,
+        ${p =>
+            p.required
+              ? p.theme.colors.pink500
+              : p.theme.tokens.background.accent.vibrant}
+          12.5%,
+        transparent
+      ),
       transparent
     );
     background-size: 2000px 100%;
+    border-radius: ${p => p.theme.radius.md};
     animation: ${shimmer} 2s infinite linear;
     pointer-events: none;
   }
@@ -395,7 +405,7 @@ const StreamContent = styled('div')`
   padding: ${space(2)};
   white-space: pre-wrap;
   word-break: break-word;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   max-height: 35vh;
   overflow-y: auto;
   display: flex;
@@ -407,7 +417,7 @@ const ActiveLogWrapper = styled('div')`
   align-items: flex-start;
   justify-content: space-between;
   padding: ${space(1)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   gap: ${space(1)};
   overflow: visible;
 `;
@@ -421,8 +431,8 @@ const ActiveLog = styled('div')`
 const VerticalLine = styled('div')`
   width: 0;
   height: ${space(4)};
-  border-left: 2px dashed ${p => p.theme.subText};
-  margin-left: 16px;
+  border-left: 1px dashed ${p => p.theme.tokens.border.primary};
+  margin-left: 33px;
   margin-bottom: -1px;
 `;
 
@@ -434,14 +444,12 @@ const InputWrapper = styled('form')`
 
 const StyledInput = styled(TextArea)`
   flex-grow: 1;
-  background: ${p => p.theme.background}
-    linear-gradient(to left, ${p => p.theme.background}, ${p => p.theme.pink400}20);
-  border-color: ${p => p.theme.innerBorder};
+  border-color: ${p => p.theme.tokens.border.secondary};
   padding-right: ${space(4)};
   resize: none;
 
   &:hover {
-    border-color: ${p => p.theme.border};
+    border-color: ${p => p.theme.tokens.border.primary};
   }
 `;
 
@@ -453,7 +461,7 @@ const StyledButton = styled(Button)`
   height: 24px;
   width: 24px;
   margin-right: 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SeerIconContainer = styled('div')`
@@ -466,7 +474,7 @@ const StyledAnimatedSeerIcon = styled(IconSeer)`
   transition: opacity 0.2s ease;
   top: 0;
   flex-shrink: 0;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   z-index: 10000;
 `;
 

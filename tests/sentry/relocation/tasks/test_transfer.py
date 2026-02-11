@@ -1,6 +1,6 @@
 from datetime import timedelta
 from io import BytesIO
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from django.utils import timezone
@@ -56,12 +56,12 @@ def create_region_relocation_transfer(organization: Organization, **kwargs):
 @control_silo_test
 class FindRelocationTransferControlTest(TestCase):
     @patch("sentry.relocation.tasks.transfer.process_relocation_transfer_control")
-    def test_no_records(self, mock_process):
+    def test_no_records(self, mock_process: MagicMock) -> None:
         find_relocation_transfer_control()
         assert not mock_process.delay.called
 
     @patch("sentry.relocation.tasks.transfer.process_relocation_transfer_control")
-    def test_no_due_records(self, mock_process):
+    def test_no_due_records(self, mock_process: MagicMock) -> None:
         create_control_relocation_transfer(
             organization=self.organization, scheduled_for=timezone.now() + timedelta(minutes=2)
         )
@@ -69,7 +69,7 @@ class FindRelocationTransferControlTest(TestCase):
         assert not mock_process.delay.called
 
     @patch("sentry.relocation.tasks.transfer.process_relocation_transfer_control")
-    def test_due_records(self, mock_process):
+    def test_due_records(self, mock_process: MagicMock) -> None:
         transfer = create_control_relocation_transfer(
             organization=self.organization, scheduled_for=timezone.now() - timedelta(minutes=2)
         )
@@ -80,12 +80,12 @@ class FindRelocationTransferControlTest(TestCase):
         assert transfer.scheduled_for > timezone.now()
 
     @patch("sentry.relocation.tasks.transfer.process_relocation_transfer_control")
-    def test_purge_expired(self, mock_process):
+    def test_purge_expired(self, mock_process: MagicMock) -> None:
         transfer = create_control_relocation_transfer(
             organization=self.organization,
             scheduled_for=timezone.now() - timedelta(minutes=2),
         )
-        transfer.date_added = timezone.now() - timedelta(hours=1, minutes=2)
+        transfer.date_added = timezone.now() - timedelta(hours=1, minutes=22)
         transfer.save()
         find_relocation_transfer_control()
         assert not mock_process.delay.called
@@ -94,12 +94,12 @@ class FindRelocationTransferControlTest(TestCase):
 
 class FindRelocationTransferRegionTest(TestCase):
     @patch("sentry.relocation.tasks.transfer.process_relocation_transfer_region")
-    def test_no_records(self, mock_process):
+    def test_no_records(self, mock_process: MagicMock) -> None:
         find_relocation_transfer_region()
         assert not mock_process.delay.called
 
     @patch("sentry.relocation.tasks.transfer.process_relocation_transfer_region")
-    def test_no_due_records(self, mock_process):
+    def test_no_due_records(self, mock_process: MagicMock) -> None:
         create_region_relocation_transfer(
             organization=self.organization, scheduled_for=timezone.now() + timedelta(minutes=2)
         )
@@ -107,7 +107,7 @@ class FindRelocationTransferRegionTest(TestCase):
         assert not mock_process.delay.called
 
     @patch("sentry.relocation.tasks.transfer.process_relocation_transfer_region")
-    def test_due_records(self, mock_process):
+    def test_due_records(self, mock_process: MagicMock) -> None:
         transfer = create_region_relocation_transfer(
             organization=self.organization, scheduled_for=timezone.now() - timedelta(minutes=2)
         )
@@ -117,12 +117,12 @@ class FindRelocationTransferRegionTest(TestCase):
         assert transfer.scheduled_for > timezone.now()
 
     @patch("sentry.relocation.tasks.transfer.process_relocation_transfer_region")
-    def test_purge_expired(self, mock_process):
+    def test_purge_expired(self, mock_process: MagicMock) -> None:
         transfer = create_region_relocation_transfer(
             organization=self.organization,
             scheduled_for=timezone.now() - timedelta(minutes=2),
         )
-        transfer.date_added = timezone.now() - timedelta(hours=1, minutes=2)
+        transfer.date_added = timezone.now() - timedelta(hours=1, minutes=22)
         transfer.save()
 
         find_relocation_transfer_region()
@@ -137,7 +137,7 @@ class ProcessRelocationTransferControlTest(TestCase):
         assert res is None
 
     @patch("sentry.relocation.services.relocation_export.impl.fulfill_cross_region_export_request")
-    def test_transfer_request_state(self, mock_fulfill):
+    def test_transfer_request_state(self, mock_fulfill: MagicMock) -> None:
         transfer = create_control_relocation_transfer(
             organization=self.organization,
             state=RelocationTransferState.Request,
@@ -145,12 +145,12 @@ class ProcessRelocationTransferControlTest(TestCase):
         )
         process_relocation_transfer_control(transfer_id=transfer.id)
 
-        assert mock_fulfill.apply_async.called, "celery task should be spawned"
+        assert mock_fulfill.apply_async.called, "task should be spawned"
         # Should be removed on completion.
         assert not ControlRelocationTransfer.objects.filter(id=transfer.id).exists()
 
     @patch("sentry.relocation.services.relocation_export.impl.uploading_complete")
-    def test_transfer_reply_state(self, mock_uploading_complete):
+    def test_transfer_reply_state(self, mock_uploading_complete: MagicMock) -> None:
         organization = self.organization
         with assume_test_silo_mode(SiloMode.REGION):
             relocation = Relocation.objects.create(
@@ -173,7 +173,7 @@ class ProcessRelocationTransferControlTest(TestCase):
 
         process_relocation_transfer_control(transfer_id=transfer.id)
 
-        assert mock_uploading_complete.apply_async.called, "celery task should be spawned"
+        assert mock_uploading_complete.apply_async.called, "task should be spawned"
         # Should be removed on completion.
         assert not ControlRelocationTransfer.objects.filter(id=transfer.id).exists()
         # the relocation RPC call should create a file on the region

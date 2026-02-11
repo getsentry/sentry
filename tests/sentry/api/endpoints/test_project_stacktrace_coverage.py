@@ -1,5 +1,5 @@
 import logging
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -32,7 +32,7 @@ class ProjectStacktraceLinkTestCodecov(BaseProjectStacktraceLink):
         self.organization.save()
 
     @pytest.fixture(autouse=True)
-    def inject_fixtures(self, caplog):
+    def inject_fixtures(self, caplog: pytest.LogCaptureFixture) -> None:
         self._caplog = caplog
 
     @patch.object(
@@ -41,7 +41,34 @@ class ProjectStacktraceLinkTestCodecov(BaseProjectStacktraceLink):
         return_value="https://github.com/repo/blob/a67ea84967ed1ec42844720d9daf77be36ff73b0/src/path/to/file.py",
     )
     @responses.activate
-    def test_codecov_not_enabled(self, mock_integration):
+    def test_codecov_repo_name_missing_owner(self, mock_integration: MagicMock) -> None:
+        """Test that repository names without owner/repo format are rejected."""
+        # Change the repo name to not have a "/" (like some Azure DevOps repos)
+        self.repo.name = "sentry-issues-platform"
+        self.repo.save()
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": self.filepath,
+                "absPath": "abs_path",
+                "module": "module",
+                "package": "package",
+                "commitId": "a67ea84967ed1ec42844720d9daf77be36ff73b0",
+            },
+        )
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Repository name must be in owner/repo format for Codecov"
+
+    @patch.object(
+        ExampleIntegration,
+        "get_stacktrace_link",
+        return_value="https://github.com/repo/blob/a67ea84967ed1ec42844720d9daf77be36ff73b0/src/path/to/file.py",
+    )
+    @responses.activate
+    def test_codecov_not_enabled(self, mock_integration: MagicMock) -> None:
         self.organization.flags.codecov_access = False
         self.organization.save()
         response = self.get_error_response(
@@ -64,7 +91,7 @@ class ProjectStacktraceLinkTestCodecov(BaseProjectStacktraceLink):
         return_value="https://github.com/repo/blob/a67ea84967ed1ec42844720d9daf77be36ff73b0/src/path/to/file.py",
     )
     @responses.activate
-    def test_codecov_line_coverage_success(self, mock_integration):
+    def test_codecov_line_coverage_success(self, mock_integration: MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
@@ -98,7 +125,7 @@ class ProjectStacktraceLinkTestCodecov(BaseProjectStacktraceLink):
         return_value="https://github.com/repo/blob/master/src/path/to/file.py",
     )
     @responses.activate
-    def test_codecov_line_coverage_with_branch_success(self, mock_integration):
+    def test_codecov_line_coverage_with_branch_success(self, mock_integration: MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
@@ -130,7 +157,7 @@ class ProjectStacktraceLinkTestCodecov(BaseProjectStacktraceLink):
         return_value="https://github.com/repo/blob/a67ea84967ed1ec42844720d9daf77be36ff73b0/src/path/to/file.py",
     )
     @responses.activate
-    def test_codecov_line_coverage_exception(self, mock_integration):
+    def test_codecov_line_coverage_exception(self, mock_integration: MagicMock) -> None:
         self._caplog.set_level(logging.ERROR, logger="sentry")
         responses.add(
             responses.GET,

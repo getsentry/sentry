@@ -1,0 +1,5 @@
+fail-on-severity: high
+
+allow-ghsas:
+  # doesn't apply; we don't use the pure python wheel
+  - GHSA-8qvm-5x2c-j2w7

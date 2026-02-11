@@ -1,31 +1,34 @@
 from __future__ import annotations
 
-import logging
-
 import orjson
 import requests
+import sentry_sdk
 from django.conf import settings
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupAiEndpoint
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.api.helpers.deprecation import deprecated
+from sentry.constants import CELL_API_DEPRECATION_DATE, DataCategory, ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
-from sentry.seer.seer_setup import get_seer_org_acknowledgement, get_seer_user_acknowledgement
+from sentry.ratelimits.config import RateLimitConfig
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.autofix.utils import (
+    get_autofix_repos_from_project_code_mappings,
+    has_project_connected_repos,
+    is_seer_seat_based_tier_enabled,
+)
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-
-logger = logging.getLogger(__name__)
-
-from rest_framework.request import Request
 
 
 def get_autofix_integration_setup_problems(
@@ -38,7 +41,11 @@ def get_autofix_integration_setup_problems(
     If there is an issue, returns the reason.
     """
     organization_integrations = integration_service.get_organization_integrations(
-        organization_id=organization.id, providers=[IntegrationProviderSlug.GITHUB.value]
+        organization_id=organization.id,
+        providers=[
+            IntegrationProviderSlug.GITHUB.value,
+            IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+        ],
     )
 
     # Iterate through all organization integrations to find one with an active integration
@@ -65,9 +72,9 @@ def get_repos_and_access(project: Project, group_id: int) -> list[dict]:
     repos_and_access: list[dict] = []
     path = "/v1/automation/codebase/repo/check-access"
     for repo in repos:
-        # We only support github for now.
+        # We only support github and github enterprise for now.
         provider = repo.get("provider")
-        if provider != "integrations:github" and provider != IntegrationProviderSlug.GITHUB.value:
+        if provider not in SEER_SUPPORTED_SCM_PROVIDERS:
             continue
 
         body = orjson.dumps(
@@ -100,14 +107,19 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=200, window=60, concurrent_limit=20),
-            RateLimitCategory.USER: RateLimit(limit=100, window=60, concurrent_limit=10),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=1000, window=60, concurrent_limit=100),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=200, window=60, concurrent_limit=20),
+                RateLimitCategory.USER: RateLimit(limit=100, window=60, concurrent_limit=10),
+                RateLimitCategory.ORGANIZATION: RateLimit(
+                    limit=1000, window=60, concurrent_limit=100
+                ),
+            }
         }
-    }
+    )
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-autofix-setup"])
     def get(self, request: Request, group: Group) -> Response:
         """
         Checks if we are able to run Autofix on the given group.
@@ -134,14 +146,33 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 "repos": repos,
             }
 
-        user_acknowledgement = get_seer_user_acknowledgement(user_id=request.user.id, org_id=org.id)
-        org_acknowledgement = True
-        if not user_acknowledgement:  # If the user has acknowledged, the org must have too.
-            org_acknowledgement = get_seer_org_acknowledgement(org_id=org.id)
-
-        has_autofix_quota: bool = quotas.backend.has_available_reserved_budget(
+        has_autofix_quota: bool = quotas.backend.check_seer_quota(
             org_id=org.id, data_category=DataCategory.SEER_AUTOFIX
         )
+
+        seer_seat_based_tier_enabled = is_seer_seat_based_tier_enabled(org)
+
+        seer_repos_linked = False
+        # Check if org has github integration and is on seat-based tier.
+        if integration_check is None and seer_seat_based_tier_enabled:
+            try:
+                # Check if project has repos linked in Seer.
+                # Skip cache to ensure latest data from Seer API.
+                seer_repos_linked = has_project_connected_repos(
+                    org.id, group.project.id, skip_cache=True
+                )
+            except Exception as e:
+                # Default to False if we can't check if the project has repos linked in Seer.
+                sentry_sdk.capture_exception(e)
+
+        autofix_enabled = False
+        autofix_automation_tuning = group.project.get_option("sentry:autofix_automation_tuning")
+        if seer_seat_based_tier_enabled:
+            if (
+                autofix_automation_tuning
+                and autofix_automation_tuning != AutofixAutomationTuningSettings.OFF
+            ):
+                autofix_enabled = True
 
         return Response(
             {
@@ -151,11 +182,13 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 },
                 "githubWriteIntegration": write_integration_check,
                 "setupAcknowledgement": {
-                    "orgHasAcknowledged": org_acknowledgement,
-                    "userHasAcknowledged": user_acknowledgement,
+                    "orgHasAcknowledged": True,
+                    "userHasAcknowledged": True,
                 },
                 "billing": {
                     "hasAutofixQuota": has_autofix_quota,
                 },
+                "seerReposLinked": seer_repos_linked,
+                "autofixEnabled": autofix_enabled,
             }
         )

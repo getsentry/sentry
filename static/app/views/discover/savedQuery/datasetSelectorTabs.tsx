@@ -1,4 +1,5 @@
-import {TabList} from 'sentry/components/core/tabs';
+import {TabList} from '@sentry/scraps/tabs';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import type {SavedQuery} from 'sentry/types/organization';
@@ -7,8 +8,8 @@ import {
   ERROR_ONLY_FIELDS,
   explodeField,
   getAggregations,
-  type QueryFieldValue,
   TRANSACTION_ONLY_FIELDS,
+  type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {FieldKey, SpanOpBreakdown} from 'sentry/utils/fields';
@@ -25,7 +26,7 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 
 export const DATASET_PARAM = 'queryDataset';
 
-export const DATASET_LABEL_MAP = {
+const DATASET_LABEL_MAP = {
   [SavedQueryDatasets.ERRORS]: t('Errors'),
   [SavedQueryDatasets.TRANSACTIONS]: t('Transactions'),
   [SavedQueryDatasets.DISCOVER]: t('Unknown'),
@@ -126,7 +127,6 @@ export function DatasetSelectorTabs(props: Props) {
     {
       value: SavedQueryDatasets.TRANSACTIONS,
       label: DATASET_LABEL_MAP[SavedQueryDatasets.TRANSACTIONS],
-      disabled: deprecatingTransactionsDataset,
       tooltip: deprecatingTransactionsDataset
         ? {
             title: getTransactionDeprecationMessage(tracesUrl),
@@ -169,13 +169,9 @@ export function DatasetSelectorTabs(props: Props) {
         });
       }}
     >
-      <TabList hideBorder>
+      <TabList>
         {options.map(option => (
-          <TabList.Item
-            key={option.value}
-            disabled={option.disabled}
-            tooltip={option.tooltip}
-          >
+          <TabList.Item key={option.value} tooltip={option.tooltip}>
             {option.label}
           </TabList.Item>
         ))}

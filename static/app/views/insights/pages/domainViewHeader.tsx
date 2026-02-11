@@ -1,22 +1,23 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {Grid} from '@sentry/scraps/layout';
+import type {TabListItemProps} from '@sentry/scraps/tabs';
+import {TabList} from '@sentry/scraps/tabs';
+
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import type {TabListItemProps} from 'sentry/components/core/tabs';
-import {TabList} from 'sentry/components/core/tabs';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {IconBusiness} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {
-  type RoutableModuleNames,
   useModuleURLBuilder,
+  type RoutableModuleNames,
 } from 'sentry/views/insights/common/utils/useModuleURL';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
 import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
@@ -25,9 +26,9 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   isModuleConsideredNew,
   isModuleEnabled,
+  isModuleInBeta,
   isModuleVisible,
 } from 'sentry/views/insights/pages/utils';
-import FeedbackButtonTour from 'sentry/views/insights/sessions/components/tour/feedbackButtonTour';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
@@ -42,6 +43,7 @@ export type Props = {
   headerTitle?: React.ReactNode;
   hideDefaultTabs?: boolean;
   tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
+  unified?: boolean;
 };
 
 export function DomainViewHeader({
@@ -55,6 +57,7 @@ export function DomainViewHeader({
   additionalBreadCrumbs = [],
   domainBaseUrl,
   tabs,
+  unified,
 }: Props) {
   const organization = useOrganization();
   const location = useLocation();
@@ -65,7 +68,8 @@ export function DomainViewHeader({
 
   const isLaravelInsights = isLaravelInsightsAvailable && isInOverviewPage;
   const isNextJsInsights = isNextJsInsightsAvailable && isInOverviewPage;
-  const isAgentMonitoring = view === 'agents';
+  const isAgentMonitoring = view === 'ai-agents';
+  const isSessionsInsights = selectedModule === ModuleName.SESSIONS;
 
   const crumbs: Crumb[] = [
     {
@@ -106,39 +110,39 @@ export function DomainViewHeader({
       })),
   ];
 
-  const feedbackOptions =
-    isAgentMonitoring || isLaravelInsights || isNextJsInsights
-      ? {
-          tags: {
-            ['feedback.source']: isAgentMonitoring
-              ? 'agent-monitoring'
-              : isLaravelInsights
-                ? 'laravel-insights'
-                : 'nextjs-insights',
-            ['feedback.owner']: 'telemetry-experience',
-          },
-        }
-      : undefined;
+  const feedbackConfig: Array<[boolean, {owner: string; source: string}]> = [
+    [isAgentMonitoring, {owner: 'telemetry-experience', source: 'agent-monitoring'}],
+    [!!isLaravelInsights, {owner: 'performance', source: 'laravel-insights'}],
+    [isSessionsInsights, {owner: 'replay', source: 'sessions-insights'}],
+    [!!isNextJsInsights, {owner: 'performance', source: 'nextjs-insights'}],
+  ];
+
+  const activeFeedback = feedbackConfig.find(([condition]) => condition)?.[1];
+
+  const feedbackOptions = activeFeedback
+    ? {
+        tags: {
+          ['feedback.source']: activeFeedback.source,
+          ['feedback.owner']: activeFeedback.owner,
+        },
+      }
+    : undefined;
   return (
     <Fragment>
-      <Layout.Header>
+      <Layout.Header unified={unified}>
         <Layout.HeaderContent>
           {crumbs.length > 1 && <Breadcrumbs crumbs={crumbs} />}
           <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar>
-            {selectedModule === ModuleName.SESSIONS ? (
-              <FeedbackButtonTour />
-            ) : (
-              <FeedbackWidgetButton optionOverrides={feedbackOptions} />
-            )}
+          <Grid flow="column" align="center" gap="md">
+            <FeedbackButton feedbackOptions={feedbackOptions} />
             {additonalHeaderActions}
-          </ButtonBar>
+          </Grid>
         </Layout.HeaderActions>
         <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
           {!hideDefaultTabs && (
-            <TabList hideBorder>
+            <TabList>
               {tabList.map(tab => (
                 <TabList.Item {...tab} key={tab.key} />
               ))}
@@ -160,11 +164,15 @@ function TabLabel({moduleName}: TabLabelProps) {
   const organization = useOrganization();
   const showBusinessIcon = !isModuleEnabled(moduleName, organization);
 
-  if (showBusinessIcon || isModuleConsideredNew(moduleName)) {
+  const hasTrailingBadge =
+    showBusinessIcon || isModuleConsideredNew(moduleName) || isModuleInBeta(moduleName);
+
+  if (hasTrailingBadge) {
     return (
       <TabContainer>
         {moduleTitles[moduleName]}
         {isModuleConsideredNew(moduleName) && <FeatureBadge type="new" />}
+        {isModuleInBeta(moduleName) && <FeatureBadge type="beta" />}
         {showBusinessIcon && <IconBusiness />}
       </TabContainer>
     );
@@ -177,5 +185,5 @@ const TabContainer = styled('div')`
   display: inline-flex;
   align-items: center;
   text-align: left;
-  gap: ${space(0.5)};
+  gap: ${space(1)};
 `;

@@ -21,6 +21,12 @@ export type AvatarUser = {
   };
 };
 
+export enum StacktraceOrder {
+  DEFAULT = -1, // Equivalent to `MOST_RECENT_FIRST`
+  MOST_RECENT_LAST = 1,
+  MOST_RECENT_FIRST = 2,
+}
+
 export interface User extends Omit<AvatarUser, 'options'> {
   canReset2fa: boolean;
   dateJoined: string;
@@ -45,12 +51,8 @@ export interface User extends Omit<AvatarUser, 'options'> {
     clock24Hours: boolean;
     defaultIssueEvent: 'recommended' | 'latest' | 'oldest';
     language: string;
-    prefersAgentsInsightsModule: boolean;
-    prefersChonkUI: boolean;
     prefersIssueDetailsStreamlinedUI: boolean | null;
-    prefersNextjsInsightsOverview: boolean;
-    prefersStackedNavigation: boolean | null;
-    stacktraceOrder: number;
+    stacktraceOrder: StacktraceOrder;
     theme: 'system' | 'light' | 'dark';
     timezone: string;
   };
@@ -97,6 +99,12 @@ export type ApiApplication = {
   clientSecret: string | null;
   homepageUrl: string | null;
   id: string;
+  /**
+   * Whether this is a public client (no client_secret).
+   * Public clients are used for CLIs, native apps, and SPAs that
+   * cannot securely store a client secret (RFC 6749 §2.1).
+   */
+  isPublic: boolean;
   name: string;
   privacyUrl: string | null;
   redirectUris: string[];

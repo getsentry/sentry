@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {IconBusiness, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -23,8 +24,8 @@ function DisabledCustomSymbolSources({organization}: Props) {
   return (
     <Content
       data-test-id={`disabled-${FEATURE}`}
-      size="large"
-      icon={<IconLock size="xl" />}
+      size="lg"
+      icon={<IconLock />}
       title={tct('Configuring custom repositories [requiredPlan]', {
         requiredPlan: (
           <PlanFeature organization={organization} features={[FEATURE]}>
@@ -36,14 +37,8 @@ function DisabledCustomSymbolSources({organization}: Props) {
           </PlanFeature>
         ),
       })}
-      description={tct(
-        '[strong: Sentry] can download debug information files from custom repositories. This allows you to stop uploading debug files and instead configure an HTTP symbol server, Amazon S3 bucket, Google Cloud Storage bucket or an App Store Connect.',
-        {
-          strong: <strong />,
-        }
-      )}
       action={
-        <ButtonBar gap="sm">
+        <Grid flow="column" align="center" gap="sm">
           <StyledButton
             priority="primary"
             icon={<IconBusiness />}
@@ -64,9 +59,16 @@ function DisabledCustomSymbolSources({organization}: Props) {
           >
             {t('Documentation')}
           </StyledLearnMoreButton>
-        </ButtonBar>
+        </Grid>
       }
-    />
+    >
+      {tct(
+        '[strong: Sentry] can download debug information files from custom repositories. This allows you to stop uploading debug files and instead configure an HTTP symbol server, Amazon S3 bucket, Google Cloud Storage bucket or an App Store Connect.',
+        {
+          strong: <strong />,
+        }
+      )}
+    </Content>
   );
 }
 

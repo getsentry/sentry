@@ -2,15 +2,9 @@ import React from 'react';
 import {PlatformIcon} from 'platformicons';
 
 import {ellipsize} from 'sentry/utils/string/ellipsize';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {getNodeDescriptionPrefix} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
-import {
-  makeTraceNodeBarColor,
-  TraceBar,
-} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
+import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
+import {TraceBar} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
@@ -18,18 +12,16 @@ import {
   TraceRowConnectors,
   type TraceRowProps,
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
-import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 
-const NO_PROFILES: any = [];
+export function TraceSpanRow(props: TraceRowProps<SpanNode>) {
+  const spanId = props.node.id;
 
-export function TraceSpanRow(
-  props: TraceRowProps<TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>>
-) {
-  const spanId = isEAPSpanNode(props.node)
-    ? props.node.value.event_id
-    : props.node.value.span_id;
+  const icon = (
+    <PlatformIcon platform={props.projects[props.node.projectSlug ?? ''] ?? 'default'} />
+  );
 
-  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+  const isPrefetch =
+    props.node.value.data && !!props.node.value.data['http.request.prefetch'];
 
   return (
     <div
@@ -53,20 +45,22 @@ export function TraceSpanRow(
         <div className="TraceLeftColumnInner" style={props.listColumnStyle}>
           <div className={props.listColumnClassName}>
             <TraceRowConnectors node={props.node} manager={props.manager} />
-            {props.node.children.length > 0 || props.node.canFetch ? (
+            {props.node.children.length > 0 || props.node.canFetchChildren ? (
               <TraceChildrenButton
                 icon={
-                  props.node.canFetch ? (
+                  props.node.canFetchChildren ? (
                     '+'
                   ) : (
-                    <TraceIcons.Chevron direction={props.node.expanded ? 'up' : 'down'} />
+                    <TraceIcons.Chevron
+                      direction={props.node.expanded ? 'down' : 'right'}
+                    />
                   )
                 }
                 status={props.node.fetchStatus}
-                expanded={props.node.expanded || props.node.zoomedIn}
+                expanded={props.node.expanded || props.node.hasFetchedChildren}
                 onDoubleClick={props.onExpandDoubleClick}
                 onClick={e =>
-                  props.node.canFetch ? props.onZoomIn(e) : props.onExpand(e)
+                  props.node.canFetchChildren ? props.onZoomIn(e) : props.onExpand(e)
                 }
               >
                 {props.node.children.length > 0
@@ -75,33 +69,21 @@ export function TraceSpanRow(
               </TraceChildrenButton>
             ) : null}
           </div>
-          <PlatformIcon
-            platform={props.projects[props.node.metadata.project_slug ?? ''] ?? 'default'}
-          />
-          {shouldUseOTelFriendlyUI && isEAPSpanNode(props.node) ? (
-            <React.Fragment>
-              <span className="TraceName" title={props.node.value.name}>
-                {props.node.value.name
-                  ? ellipsize(props.node.value.name, 100)
-                  : (spanId ?? 'unknown')}
-              </span>
-            </React.Fragment>
-          ) : (
-            <React.Fragment>
-              {props.node.value.op && props.node.value.op !== 'default' && (
-                <React.Fragment>
-                  <span className="TraceOperation">{props.node.value.op}</span>
-                  <strong className="TraceEmDash"> — </strong>
-                </React.Fragment>
-              )}
-              <span className="TraceDescription" title={props.node.value.description}>
-                {getNodeDescriptionPrefix(props.node)}
-                {props.node.value.description
-                  ? ellipsize(props.node.value.description, 100)
-                  : (spanId ?? 'unknown')}
-              </span>
-            </React.Fragment>
-          )}
+          {icon}
+          <React.Fragment>
+            {props.node.value.op && props.node.value.op !== 'default' && (
+              <React.Fragment>
+                <span className="TraceOperation">{props.node.value.op}</span>
+                <strong className="TraceEmDash"> — </strong>
+              </React.Fragment>
+            )}
+            <span className="TraceDescription" title={props.node.description}>
+              {isPrefetch ? '(prefetch) ' : ''}
+              {props.node.description
+                ? ellipsize(props.node.description, 100)
+                : (spanId ?? 'unknown')}
+            </span>
+          </React.Fragment>
         </div>
       </div>
       <div
@@ -113,11 +95,10 @@ export function TraceSpanRow(
           node={props.node}
           virtualized_index={props.virtualized_index}
           manager={props.manager}
-          color={makeTraceNodeBarColor(props.theme, props.node)}
+          color={props.node.makeBarColor(props.theme)}
           node_space={props.node.space}
           errors={props.node.errors}
           occurrences={props.node.occurrences}
-          profiles={NO_PROFILES}
         />
         <button
           ref={props.registerSpanArrowRef}

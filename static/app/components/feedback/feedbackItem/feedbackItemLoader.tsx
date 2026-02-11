@@ -13,7 +13,11 @@ import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export default function FeedbackItemLoader() {
+interface Props {
+  onBackToList?: () => void;
+}
+
+export default function FeedbackItemLoader({onBackToList}: Props = {}) {
   const organization = useOrganization();
   const feedbackId = useCurrentFeedbackId();
   const {issueResult, issueData, eventData} = useFetchFeedbackData({feedbackId});
@@ -50,7 +54,11 @@ export default function FeedbackItemLoader() {
         <FeedbackErrorDetails error={t('Unable to load feedback')} />
       )}
     >
-      <FeedbackItem eventData={eventData} feedbackItem={issueData} />
+      <FeedbackItem
+        eventData={eventData}
+        feedbackItem={issueData}
+        onBackToList={onBackToList}
+      />
     </ErrorBoundary>
   ) : (
     <FeedbackEmptyDetails />

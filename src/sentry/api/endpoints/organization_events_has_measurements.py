@@ -9,8 +9,9 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import handle_query_errors
+from sentry.models.organization import Organization
 from sentry.snuba import discover
 from sentry.utils.hashlib import md5_text
 
@@ -49,22 +50,18 @@ class EventsHasMeasurementsQuerySerializer(serializers.Serializer):
 
 
 @region_silo_endpoint
-class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 
         with sentry_sdk.start_span(op="discover.endpoint", name="parse params"):
             try:
-                # This endpoint only allows for a single project + transaction, so no need
-                # to check `global-views`.
-                snuba_params = self.get_snuba_params(
-                    request, organization, check_global_views=False
-                )
+                snuba_params = self.get_snuba_params(request, organization)
 
                 # Once an transaction begins containing measurement data, it is unlikely
                 # it will stop. So it makes more sense to always query the latest data.

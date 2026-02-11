@@ -1,0 +1,54 @@
+{
+  "event_id": "5d6401994d7949d2ac3474f472564370",
+  "platform": "node",
+  "message": "",
+  "datetime": "2025-05-12T22:42:38.642986+00:00",
+  "breakdowns": {
+    "span_ops": {
+      "ops.db": {
+        "value": 65.715075,
+        "unit": "millisecond"
+      },
+      "total.time": {
+        "value": 67.105293,
+        "unit": "millisecond"
+      }
+    }
+  },
+  "request": {
+    "url": "http://localhost:3001/vulnerable-login",
+    "method": "POST",
+    "data": {
+      "username": "bob"
+    }
+  },
+
+  "spans": [
+    {
+      "timestamp": 1747089758.637715,
+      "start_timestamp": 1747089758.572,
+      "exclusive_time": 65.715075,
+      "op": "db",
+      "span_id": "4703181ac343f71a",
+      "parent_span_id": "91fa92ff0205967d",
+      "trace_id": "375a86eca09a4a4e91903838dd771f50",
+      "status": "ok",
+      "description": "SELECT * FROM users WHERE uid = &uid and username in ('bob')",
+      "sentry_tags": {
+        "description": "SELECT * FROM users WHERE uid = &uid and username in ('bob')"
+      },
+      "data": {
+        "db.system": "mysql",
+        "db.connection_string": "jdbc:mysql://localhost:3306/injection_test",
+        "db.name": "injection_test",
+        "db.statement": "SELECT * FROM users WHERE uid = &uid and username in ('bob')",
+        "db.user": "root",
+        "net.peer.name": "localhost",
+        "net.peer.port": 3306,
+        "otel.kind": "CLIENT",
+        "sentry.op": "db"
+      },
+      "hash": "45330ba0cafa5997"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import {type CSSProperties, Fragment, useRef} from 'react';
+import {Fragment, useRef, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
@@ -63,7 +63,7 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
   const dividerElem = useRef<HTMLDivElement>(null);
   const width = `${viewDimensions.width}px`;
 
-  const {onMouseDown} = useResizableDrawer({
+  const {onMouseDown, onDoubleClick} = useResizableDrawer({
     direction: 'left',
     initialSize: viewDimensions.width / 2,
     min: 0,
@@ -112,6 +112,7 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
           onDragHandleMouseDown?.(event);
           onMouseDown(event);
         }}
+        onDoubleClick={onDoubleClick}
       >
         <DragIndicator>
           <IconGrabbable size="sm" />
@@ -126,17 +127,17 @@ const Header = styled('div')`
   flex-direction: row;
   align-items: center;
   gap: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.2;
   justify-content: space-between;
   margin-bottom: ${space(0.5)};
 
   & > *:first-child {
-    color: ${p => p.theme.error};
+    color: ${p => p.theme.tokens.content.danger};
   }
 
   & > *:last-child {
-    color: ${p => p.theme.success};
+    color: ${p => p.theme.tokens.content.success};
   }
 `;
 
@@ -159,9 +160,9 @@ const DragIndicator = styled('div')`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   pointer-events: none;
   display: flex;
   align-items: center;
@@ -185,7 +186,7 @@ const DragHandle = styled('div')`
     top: 0;
     bottom: 0;
     width: 2px;
-    background: ${p => p.theme.border};
+    background: ${p => p.theme.tokens.background.secondary};
     left: 50%;
     transform: translateX(-50%);
   }
@@ -205,7 +206,7 @@ const DragHandle = styled('div')`
   &:hover,
   &:active {
     &::after {
-      background: ${p => p.theme.diffSliderDragHandleHover};
+      background: ${p => p.theme.tokens.graphics.accent.vibrant};
     }
   }
 
@@ -218,7 +219,7 @@ const DragHandle = styled('div')`
   }
 
   &[data-resizing]::after {
-    background: ${p => p.theme.diffSliderDragHandleHover};
+    background: ${p => p.theme.tokens.graphics.accent.vibrant};
   }
 `;
 
@@ -231,11 +232,11 @@ const Cover = styled('div')`
   left: 0px;
   top: 0px;
 
-  border-color: ${p => p.theme.success};
+  border-color: ${p => p.theme.tokens.border.success.moderate};
   & + & {
     border: ${BORDER_WIDTH}px solid;
     border-radius: ${space(0.5)} 0 0 ${space(0.5)};
-    border-color: ${p => p.theme.error};
+    border-color: ${p => p.theme.tokens.border.danger.moderate};
     border-right-width: 0;
   }
 `;

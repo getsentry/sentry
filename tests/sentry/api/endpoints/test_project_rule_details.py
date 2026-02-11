@@ -3,12 +3,17 @@ from __future__ import annotations
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 from rest_framework import status
 from slack_sdk.web.slack_response import SlackResponse
 
+from sentry.analytics.events.rule_disable_opt_out import (
+    RuleDisableOptOutEdit,
+    RuleDisableOptOutExplicit,
+)
+from sentry.analytics.events.rule_reenable import RuleReenableEdit
 from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.integrations.slack.utils.channel import strip_channel_name
@@ -20,11 +25,10 @@ from sentry.sentry_apps.utils.errors import SentryAppErrorType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
-from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import AlertRuleWorkflow
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
@@ -584,7 +588,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
 
     @patch("sentry.signals.alert_rule_edited.send_robust")
-    def test_simple(self, send_robust):
+    def test_simple(self, send_robust: MagicMock) -> None:
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -632,7 +636,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert_rule_from_payload(self.rule, payload)
 
     def test_update_owner_type(self) -> None:
-        team = self.create_team(organization=self.organization)
+        team = self.create_team(organization=self.organization, members=[self.user])
         actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
         payload = {
             "name": "hello world 2",
@@ -665,6 +669,148 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.owner_team_id is None
         assert rule.owner_user_id == self.user.id
+
+    def test_team_owner_not_member(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        team = self.create_team(organization=self.organization)
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(member_user)
+        payload = {
+            "name": "hello world",
+            "owner": f"team:{team.id}",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": self.first_seen_condition,
+        }
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            self.rule.id,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            **payload,
+        )
+        assert "owner" in response.data
+        assert str(response.data["owner"][0]) == "You can only assign teams you are a member of"
+
+    def test_team_owner_not_member_with_team_admin_scope(self) -> None:
+        """Test that users with team:admin scope can assign a team they're not a member of as the owner"""
+        team = self.create_team(organization=self.organization)
+        # Create a manager user who has team:admin scope
+        manager_user = self.create_user()
+        self.create_member(
+            user=manager_user,
+            organization=self.organization,
+            role="manager",
+            teams=[self.team],
+        )
+        self.login_as(manager_user)
+        payload = {
+            "name": "hello world",
+            "owner": f"team:{team.id}",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": self.first_seen_condition,
+        }
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            self.rule.id,
+            status_code=status.HTTP_200_OK,
+            **payload,
+        )
+        assert response.data["owner"] == f"team:{team.id}"
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.owner_team_id == team.id
+        assert rule.owner_user_id is None
+
+    def test_reassign_owner_from_own_team_to_any_team(self) -> None:
+        """Test that a user can reassign rule ownership from their team to any other team"""
+        member_team = self.create_team(organization=self.organization)
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user,
+            organization=self.organization,
+            role="member",
+            teams=[member_team],
+        )
+
+        target_team = self.create_team(organization=self.organization)
+
+        self.rule.owner_team_id = member_team.id
+        self.rule.save()
+
+        self.login_as(member_user)
+        payload = {
+            "name": "hello world",
+            "owner": f"team:{target_team.id}",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": self.first_seen_condition,
+        }
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            self.rule.id,
+            status_code=status.HTTP_200_OK,
+            **payload,
+        )
+        assert response.data["owner"] == f"team:{target_team.id}"
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.owner_team_id == target_team.id
+
+    def test_cannot_reassign_owner_from_other_team(self) -> None:
+        """Test that a user cannot reassign rule ownership from a team they don't belong to"""
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        other_team = self.create_team(organization=self.organization)
+
+        member_team = self.create_team(organization=self.organization)
+        self.project.add_team(member_team)
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user,
+            organization=self.organization,
+            role="member",
+            teams=[member_team],
+        )
+
+        target_team = self.create_team(organization=self.organization)
+
+        self.rule.owner_team_id = other_team.id
+        self.rule.save()
+
+        self.login_as(member_user)
+        payload = {
+            "name": "hello world",
+            "owner": f"team:{target_team.id}",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": self.first_seen_condition,
+        }
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            self.rule.id,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            **payload,
+        )
+        assert "owner" in response.data
+        # Rule should still be owned by other_team
+        rule = Rule.objects.get(id=self.rule.id)
+        assert rule.owner_team_id == other_team.id
 
     def test_update_name(self) -> None:
         conditions = [
@@ -734,6 +880,8 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             project=self.project,
             action_data=self.notify_issue_owners_action,
             condition_data=conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
         conditions.append(
             {
@@ -747,6 +895,8 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             project=self.project,
             action_data=self.notify_issue_owners_action,
             condition_data=conditions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
         conditions.pop(1)
         payload = {
@@ -774,11 +924,15 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             project=self.project,
             action_data=self.notify_issue_owners_action,
             condition_data=self.first_seen_condition,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
         env_rule = self.create_project_rule(
             project=self.project,
             action_data=self.notify_issue_owners_action,
             condition_data=self.first_seen_condition,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
         payload = {
             "name": "hello world",
@@ -819,12 +973,16 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             condition_data=self.first_seen_condition,
             name="rule_with_env",
             environment_id=self.environment.id,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
         rule2 = self.create_project_rule(
             project=self.project,
             action_data=self.notify_issue_owners_action,
             condition_data=self.first_seen_condition,
             name="rule_wo_env",
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
         payload = {
             "name": "hello world",
@@ -860,13 +1018,15 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         that does have one set, we consider this when determining if it's a duplicate"""
 
         # XXX(CEO): After we migrate old data so that no rules have no actions, this test won't be needed
-        Rule.objects.create(
+        self.create_project_rule(
             project=self.project,
-            data={"conditions": self.first_seen_condition, "action_match": "all"},
+            condition_data=self.first_seen_condition,
+            action_data=[],
         )
-        action_rule = Rule.objects.create(
+        action_rule = self.create_project_rule(
             project=self.project,
-            data={"conditions": self.first_seen_condition, "action_match": "all"},
+            condition_data=self.first_seen_condition,
+            action_data=[],
         )
 
         payload = {
@@ -916,17 +1076,12 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_reenable_disabled_rule(self, record_analytics):
+    def test_reenable_disabled_rule(self, record_analytics: MagicMock) -> None:
         """Test that when you edit and save a rule that was disabled, it's re-enabled as long as it passes the checks"""
-        rule = Rule.objects.create(
-            label="hello world",
-            project=self.project,
-            data={
-                "conditions": self.first_seen_condition,
-                "actions": [],
-                "action_match": "all",
-                "filter_match": "all",
-            },
+        rule = self.create_project_rule(
+            name="hello world",
+            condition_data=self.first_seen_condition,
+            action_data=[],
         )
         # disable the rule because it has no action(s)
         rule.status = ObjectStatus.DISABLED
@@ -945,28 +1100,22 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         rule = Rule.objects.get(id=rule.id)
         assert rule.status == ObjectStatus.ACTIVE
 
-        assert self.analytics_called_with_args(
+        assert_any_analytics_event(
             record_analytics,
-            "rule_reenable.edit",
-            rule_id=rule.id,
-            user_id=self.user.id,
-            organization_id=self.organization.id,
+            RuleReenableEdit(
+                rule_id=rule.id,
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+            ),
         )
 
     @patch("sentry.analytics.record")
-    def test_rule_disable_opt_out_explicit(self, record_analytics):
+    def test_rule_disable_opt_out_explicit(self, record_analytics: MagicMock) -> None:
         """Test that if a user explicitly opts out of their neglected rule being migrated
         to being disabled (by clicking a button on the front end), that we mark it as opted out.
         """
-        rule = Rule.objects.create(
-            label="hello world",
-            project=self.project,
-            data={
-                "conditions": self.first_seen_condition,
-                "actions": [],
-                "action_match": "all",
-                "filter_match": "all",
-            },
+        rule = self.create_project_rule(
+            name="hello world", condition_data=self.first_seen_condition, action_data=[]
         )
         now = datetime.now(UTC)
         NeglectedRule.objects.create(
@@ -985,30 +1134,24 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         self.get_success_response(
             self.organization.slug, self.project.slug, rule.id, status_code=200, **payload
         )
-        assert self.analytics_called_with_args(
+        assert_any_analytics_event(
             record_analytics,
-            "rule_disable_opt_out.explicit",
-            rule_id=rule.id,
-            user_id=self.user.id,
-            organization_id=self.organization.id,
+            RuleDisableOptOutExplicit(
+                rule_id=rule.id,
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+            ),
         )
         neglected_rule = NeglectedRule.objects.get(rule=rule)
         assert neglected_rule.opted_out is True
 
     @patch("sentry.analytics.record")
-    def test_rule_disable_opt_out_edit(self, record_analytics):
+    def test_rule_disable_opt_out_edit(self, record_analytics: MagicMock) -> None:
         """Test that if a user passively opts out of their neglected rule being migrated
         to being disabled (by editing the rule), that we mark it as opted out.
         """
-        rule = Rule.objects.create(
-            label="hello world",
-            project=self.project,
-            data={
-                "conditions": self.first_seen_condition,
-                "actions": [],
-                "action_match": "all",
-                "filter_match": "all",
-            },
+        rule = self.create_project_rule(
+            name="hello world", condition_data=self.first_seen_condition, action_data=[]
         )
         now = datetime.now(UTC)
         NeglectedRule.objects.create(
@@ -1027,12 +1170,13 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         self.get_success_response(
             self.organization.slug, self.project.slug, rule.id, status_code=200, **payload
         )
-        assert self.analytics_called_with_args(
+        assert_any_analytics_event(
             record_analytics,
-            "rule_disable_opt_out.edit",
-            rule_id=rule.id,
-            user_id=self.user.id,
-            organization_id=self.organization.id,
+            RuleDisableOptOutEdit(
+                rule_id=rule.id,
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+            ),
         )
         neglected_rule = NeglectedRule.objects.get(rule=rule)
         assert neglected_rule.opted_out is True
@@ -1294,7 +1438,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert error_message in response.json().get("actions")[0]
 
     @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
-    def test_update_sentry_app_action_failure_with_public_context(self, result):
+    def test_update_sentry_app_action_failure_with_public_context(self, result: MagicMock) -> None:
         error_message = "Something is totally broken :'("
         result.return_value = RpcAlertRuleActionResult(
             success=False,
@@ -1327,7 +1471,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert response.json().get("context") == {"bruh": "bruhhhh"}
 
     @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
-    def test_update_sentry_app_action_failure_sentry_error(self, result):
+    def test_update_sentry_app_action_failure_sentry_error(self, result: MagicMock) -> None:
         error_message = "Something is totally broken :'("
         result.return_value = RpcAlertRuleActionResult(
             success=False,
@@ -1366,7 +1510,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert list(response.json().keys()) == ["context", "actions"]
 
     @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
-    def test_update_sentry_app_action_failure_missing_error_type(self, result):
+    def test_update_sentry_app_action_failure_missing_error_type(self, result: MagicMock) -> None:
         error_message = "Something is totally broken :'("
         result.return_value = RpcAlertRuleActionResult(
             success=False,
@@ -1441,7 +1585,6 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             id=self.rule.id, project=self.project, status=ObjectStatus.PENDING_DELETION
         ).exists()
 
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_dual_delete_workflow_engine(self) -> None:
         rule = self.create_project_rule(
             self.project,
@@ -1456,7 +1599,6 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                 },
             ],
         )
-        IssueAlertMigrator(rule, user_id=self.user.id).run()
 
         alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
         workflow = alert_rule_workflow.workflow
@@ -1477,11 +1619,3 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert not DataConditionGroup.objects.filter(id=if_dcg.id).exists()
         assert not DataCondition.objects.filter(condition_group=when_dcg).exists()
         assert not DataCondition.objects.filter(condition_group=if_dcg).exists()
-
-    def test_dual_delete_workflow_engine_no_migrated_models(self) -> None:
-        rule = self.create_project_rule(self.project)
-        self.get_success_response(
-            self.organization.slug, rule.project.slug, rule.id, status_code=202
-        )
-
-        assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()

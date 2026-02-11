@@ -26,7 +26,7 @@ from sentry.testutils.cases import TestCase
 
 class MonitorClockTasksCheckMissingTest(TestCase):
     @mock.patch("sentry.monitors.clock_tasks.check_missed.produce_task")
-    def test_missing_checkin(self, mock_produce_task):
+    def test_missing_checkin(self, mock_produce_task: mock.MagicMock) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -100,7 +100,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         assert missed_checkin.monitor_config == monitor.config
 
     @mock.patch("sentry.monitors.clock_tasks.check_missed.produce_task")
-    def test_missing_checkin_with_timezone(self, mock_produce_task):
+    def test_missing_checkin_with_timezone(self, mock_produce_task: mock.MagicMock) -> None:
         """
         Validate that monitors configured wih a timezone correctly compute the
         next_checkin and next_checkin_latest when marking monitors as missed.
@@ -171,7 +171,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         assert monitor_environment.next_checkin_latest == ts + timedelta(days=1, minutes=1)
 
     @mock.patch("sentry.monitors.clock_tasks.check_missed.produce_task")
-    def test_missing_checkin_with_margin(self, mock_produce_task):
+    def test_missing_checkin_with_margin(self, mock_produce_task: mock.MagicMock) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -271,7 +271,9 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         assert monitor_env.next_checkin_latest == monitor_env.next_checkin + timedelta(minutes=5)
 
     @mock.patch("sentry.monitors.clock_tasks.check_missed.produce_task")
-    def test_missing_checkin_with_margin_schedule_overlap(self, mock_produce_task):
+    def test_missing_checkin_with_margin_schedule_overlap(
+        self, mock_produce_task: mock.MagicMock
+    ) -> None:
         """
         Tests the case where the checkin_margin is configured to be larger than
         the gap in the schedule.
@@ -361,7 +363,9 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         assert monitor_env.next_checkin == ts + timedelta(minutes=10)
 
     @mock.patch("sentry.monitors.clock_tasks.check_missed.produce_task")
-    def test_missing_checkin_with_skipped_clock_ticks(self, mock_produce_task):
+    def test_missing_checkin_with_skipped_clock_ticks(
+        self, mock_produce_task: mock.MagicMock
+    ) -> None:
         """
         Test that skipped dispatch_check_missing tasks does NOT cause the missed
         check-ins to fall behind, and instead that missed check-ins simply will
@@ -455,7 +459,6 @@ class MonitorClockTasksCheckMissingTest(TestCase):
                 "max_runtime": None,
             },
             status=state,
-            is_muted=is_muted,
         )
         # Expected checkin was a full minute ago, if this monitor wasn't in the
         # `state` the monitor would usually end up marked as timed out
@@ -465,7 +468,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
             next_checkin=ts - timedelta(minutes=1),
             next_checkin_latest=ts,
             status=MonitorStatus.ACTIVE,
-            is_muted=environment_is_muted,
+            is_muted=is_muted or environment_is_muted,
         )
 
         dispatch_check_missing(ts)
@@ -483,7 +486,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         self.assert_state_does_not_change_for_status(ObjectStatus.DELETION_IN_PROGRESS)
 
     @mock.patch("sentry.monitors.clock_tasks.check_missed.produce_task")
-    def test_not_missing_checkin(self, mock_produce_task):
+    def test_not_missing_checkin(self, mock_produce_task: mock.MagicMock) -> None:
         """
         Our monitor task runs once per minute, we want to test that when it
         runs within the minute we correctly do not mark missed checkins that
@@ -533,7 +536,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         assert mock_produce_task.call_count == 0
 
     @mock.patch("sentry.monitors.clock_tasks.check_missed.produce_task")
-    def test_missed_exception_handling(self, mock_produce_task):
+    def test_missed_exception_handling(self, mock_produce_task: mock.MagicMock) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -600,7 +603,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         ).exists()
 
     @mock.patch("sentry.monitors.clock_tasks.check_missed.produce_task")
-    def test_missed_checkin_backlog_handled(self, mock_produce_task):
+    def test_missed_checkin_backlog_handled(self, mock_produce_task: mock.MagicMock) -> None:
         """
         In cases where the clock ticks quickly, we may have a queue of mark
         missed tasks for the same monitor_environment_id.

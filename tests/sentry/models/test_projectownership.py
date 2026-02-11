@@ -1,8 +1,13 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
 from sentry.models.groupassignee import GroupAssignee
-from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
+from sentry.models.groupowner import (
+    PROJECT_OWNERSHIP_VERSION_KEY,
+    GroupOwner,
+    GroupOwnerType,
+    OwnerRuleType,
+)
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
@@ -12,6 +17,7 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor, ActorType
 from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.services.user.service import user_service
+from sentry.utils.cache import cache
 
 pytestmark = requires_snuba
 
@@ -414,7 +420,7 @@ class ProjectOwnershipTestCase(TestCase):
         assert assignee.user_id == self.user.id
 
     @patch("sentry.models.GroupAssignee.objects.assign")
-    def test_handle_skip_auto_assignment_same_assignee(self, mock_assign):
+    def test_handle_skip_auto_assignment_same_assignee(self, mock_assign: MagicMock) -> None:
         """Test that if an issue has already been assigned, we skip the assignment
         on a future event with auto-assignment if the assignee won't change.
         """
@@ -771,6 +777,34 @@ class ProjectOwnershipTestCase(TestCase):
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=event.group)
         assert assignee.team_id == processing_team.id
+
+    def test_post_save_sets_ownership_version(self) -> None:
+        cache.delete(PROJECT_OWNERSHIP_VERSION_KEY(self.project.id))
+        assert GroupOwner.get_project_ownership_version(self.project.id) is None
+
+        ProjectOwnership.objects.create(
+            project_id=self.project.id,
+            schema=dump_schema([Rule(Matcher("path", "*.py"), [Owner("user", self.user.email)])]),
+        )
+
+        version = GroupOwner.get_project_ownership_version(self.project.id)
+        assert version is not None
+        assert isinstance(version, float)
+
+    def test_post_delete_sets_ownership_version(self) -> None:
+        ownership = ProjectOwnership.objects.create(
+            project_id=self.project.id,
+            schema=dump_schema([Rule(Matcher("path", "*.py"), [Owner("user", self.user.email)])]),
+        )
+
+        cache.delete(PROJECT_OWNERSHIP_VERSION_KEY(self.project.id))
+        assert GroupOwner.get_project_ownership_version(self.project.id) is None
+
+        ownership.delete()
+
+        version = GroupOwner.get_project_ownership_version(self.project.id)
+        assert version is not None
+        assert isinstance(version, float)
 
 
 class ResolveActorsTestCase(TestCase):

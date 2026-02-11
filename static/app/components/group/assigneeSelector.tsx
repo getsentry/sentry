@@ -1,14 +1,13 @@
-import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import AssigneeSelectorDropdown, {
   type AssignableEntity,
   type SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
-import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
@@ -62,9 +61,8 @@ export function useHandleAssigneeChange({
       }
       onSuccess?.(updatedGroup.assignedTo);
     },
-    onError: () => {
-      addErrorMessage('Failed to update assignee');
-    },
+    // Error is already handled by GroupStore.onAssignToError which shows an alert
+    onError: () => {},
   });
 
   return {handleAssigneeChange, assigneeLoading};
@@ -82,8 +80,6 @@ export function AssigneeSelector({
   additionalMenuFooterItems,
   showLabel = false,
 }: AssigneeSelectorProps) {
-  const theme = useTheme();
-
   return (
     <AssigneeSelectorDropdown
       group={group}
@@ -95,10 +91,10 @@ export function AssigneeSelector({
       }
       onClear={() => handleAssigneeChange(null)}
       trigger={(props, isOpen) => (
-        <StyledDropdownButton
+        <StyledTrigger
           {...props}
+          showChevron={false}
           aria-label={t('Modify issue assignee')}
-          borderless={!theme.isChonk}
           size="zero"
         >
           <AssigneeBadge
@@ -113,27 +109,22 @@ export function AssigneeSelector({
             showLabel={showLabel}
             chevronDirection={isOpen ? 'up' : 'down'}
           />
-        </StyledDropdownButton>
+        </StyledTrigger>
       )}
       additionalMenuFooterItems={additionalMenuFooterItems}
     />
   );
 }
 
-const StyledDropdownButton = styled(Button)`
-  font-weight: ${p => p.theme.fontWeight.normal};
+const StyledTrigger = styled(OverlayTrigger.Button)`
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   border: none;
   padding: 0;
   height: unset;
   border-radius: 20px;
   box-shadow: none;
 
-  ${p =>
-    // Chonk tags have a smaller border radius, so we need make sure it matches.
-    p.theme.isChonk &&
-    css`
-      > span > div {
-        border-radius: 20px;
-      }
-    `}
+  > span > div {
+    border-radius: 20px;
+  }
 `;

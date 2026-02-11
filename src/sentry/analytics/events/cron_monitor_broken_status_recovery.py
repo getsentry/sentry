@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("cron_monitor_broken_status.recovery")
 class CronMonitorBrokenStatusRecovery(analytics.Event):
-    type = "cron_monitor_broken_status.recovery"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("monitor_id"),
-        analytics.Attribute("monitor_env_id"),
-    )
+    organization_id: int
+    project_id: int
+    monitor_id: int
+    monitor_env_id: int
 
 
 analytics.register(CronMonitorBrokenStatusRecovery)

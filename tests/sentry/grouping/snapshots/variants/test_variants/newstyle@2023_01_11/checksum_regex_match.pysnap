@@ -1,0 +1,6 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+checksum:
+  hash: "11212012123120120415201309082013"
+  checksum: "11212012123120120415201309082013"

@@ -3,13 +3,15 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t, tct} from 'sentry/locale';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
@@ -21,10 +23,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/insights/common/components/releaseSelector';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTTFDConfigured} from 'sentry/views/insights/common/queries/useHasTtfdConfigured';
@@ -32,27 +30,22 @@ import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseCo
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import {
-  SpanOpSelector,
-  TTID_CONTRIBUTING_SPAN_OPS,
-} from 'sentry/views/insights/mobile/screenload/components/spanOpSelector';
+import {TTID_CONTRIBUTING_SPAN_OPS} from 'sentry/views/insights/mobile/screenload/components/spanOpSelector';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
+import {useAffectsSelection} from 'sentry/views/insights/mobile/screenload/data/useAffectsSelection';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/mobile/screenload/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+import type {SpanProperty} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} = SpanFields;
+const COLUMN_RESIZE_PARAM_NAME = 'events';
 
 type Props = {
   primaryRelease?: string;
-  secondaryRelease?: string;
   transaction?: string;
 };
 
-export function ScreenLoadSpansTable({
-  transaction,
-  primaryRelease,
-  secondaryRelease,
-}: Props) {
+export function ScreenLoadSpansTable({transaction, primaryRelease}: Props) {
   const organization = useOrganization();
   const moduleURL = useModuleURL(ModuleName.MOBILE_VITALS);
   const baseURL = `${moduleURL}/details/`;
@@ -62,6 +55,7 @@ export function ScreenLoadSpansTable({
   const location = useLocation();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
+  const {value: affects} = useAffectsSelection();
 
   const spanOp = decodeScalar(location.query[SpanFields.SPAN_OP]) ?? '';
   const {hasTTFD, isPending: hasTTFDLoading} = useTTFDConfigured([
@@ -82,14 +76,23 @@ export function ScreenLoadSpansTable({
       searchQuery.addFilterValue('os.name', selectedPlatform);
     }
 
-    return appendReleaseFilters(searchQuery, primaryRelease, secondaryRelease);
+    if (affects === 'NONE') {
+      searchQuery.addFilterValue(`!${SpanFields.TTFD}`, 'ttfd');
+      searchQuery.addFilterValue(`!${SpanFields.TTID}`, 'ttid');
+    } else if (affects === 'TTFD') {
+      searchQuery.addFilterValue(SpanFields.TTFD, 'ttfd');
+    } else if (affects === 'TTID') {
+      searchQuery.addFilterValue(SpanFields.TTID, 'ttid');
+    }
+
+    return appendReleaseFilters(searchQuery, primaryRelease);
   }, [
     isProjectCrossPlatform,
     primaryRelease,
-    secondaryRelease,
     selectedPlatform,
     spanOp,
     transaction,
+    affects,
   ]);
 
   const sort = decodeSorts(location.query[QueryParameterNames.SPANS_SORT])[0] ?? {
@@ -97,43 +100,47 @@ export function ScreenLoadSpansTable({
     field: 'sum(span.self_time)',
   };
 
+  const fields: SpanProperty[] = [
+    PROJECT_ID,
+    SPAN_OP,
+    SPAN_GROUP,
+    SPAN_DESCRIPTION,
+    'ttid_contribution_rate()',
+    'ttfd_contribution_rate()',
+    'count()',
+    `sum(${SPAN_SELF_TIME})`,
+    `avg(${SPAN_SELF_TIME})`,
+  ];
+
   const {data, meta, isPending, pageLinks} = useSpans(
     {
       cursor,
       search: queryStringPrimary,
       sorts: [sort],
       limit: 25,
-      fields: [
-        PROJECT_ID,
-        SPAN_OP,
-        SPAN_GROUP,
-        SPAN_DESCRIPTION,
-        `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
-        `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
-        'ttid_contribution_rate()',
-        'ttfd_contribution_rate()',
-        'count()',
-        `sum(${SPAN_SELF_TIME})`,
-      ],
+      fields,
     },
-    'api.starfish.mobile-span-table'
+    'api.insights.mobile-span-table'
   );
 
-  const columnNameMap = {
-    [SPAN_OP]: t('Operation'),
-    [SPAN_DESCRIPTION]: t('Span Description'),
-    'count()': t('Total Count'),
-    affects: hasTTFD ? t('Affects') : t('Affects TTID'),
-    [`sum(${SPAN_SELF_TIME})`]: t('Total Time Spent'),
-    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
-      'Avg Duration (%s)',
-      PRIMARY_RELEASE_ALIAS
-    ),
-    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t(
-      'Avg Duration (%s)',
-      SECONDARY_RELEASE_ALIAS
-    ),
-  };
+  const columnHeaders: GridColumnHeader[] = [
+    {key: SPAN_OP, name: t('Operation'), width: COL_WIDTH_UNDEFINED},
+    {key: SPAN_DESCRIPTION, name: t('Span Description'), width: COL_WIDTH_UNDEFINED},
+    {
+      key: `avg(${SPAN_SELF_TIME})`,
+      name: t('Avg Duration'),
+      width: COL_WIDTH_UNDEFINED,
+    },
+  ];
+
+  if (organization.features.includes('insight-modules')) {
+    columnHeaders.push({key: 'affects', name: t('Affects'), width: COL_WIDTH_UNDEFINED});
+  }
+  columnHeaders.push({
+    key: `sum(${SPAN_SELF_TIME})`,
+    name: t('Total Time Spent'),
+    width: COL_WIDTH_UNDEFINED,
+  });
 
   function renderBodyCell(column: any, row: any): React.ReactNode {
     if (!meta?.fields) {
@@ -338,32 +345,22 @@ export function ScreenLoadSpansTable({
     });
   };
 
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: columnHeaders,
+    paramName: COLUMN_RESIZE_PARAM_NAME,
+  });
+
   return (
     <Fragment>
-      <SpanOpSelector
-        primaryRelease={primaryRelease}
-        transaction={transaction}
-        secondaryRelease={secondaryRelease}
-      />
       <GridEditable
         isLoading={isPending || hasTTFDLoading}
         data={data}
-        columnOrder={[
-          String(SPAN_OP),
-          String(SPAN_DESCRIPTION),
-          `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
-          `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
-          ...(organization.features.includes('insights-initial-modules')
-            ? ['affects']
-            : []),
-          ...['count()', `sum(${SPAN_SELF_TIME})`],
-        ].map(col => {
-          return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};
-        })}
+        columnOrder={columns}
         columnSortBy={[{key: sort.field, order: sort.kind}]}
         grid={{
           renderHeadCell: column => renderHeadCell(column, meta),
           renderBodyCell,
+          onResizeColumn: handleResizeColumn,
         }}
       />
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
@@ -372,6 +369,10 @@ export function ScreenLoadSpansTable({
 }
 
 const Container = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: right;
 `;

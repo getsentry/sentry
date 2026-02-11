@@ -143,10 +143,10 @@ class Team(ReplicatedRegionModel):
 
     __repr__ = sane_repr("name", "slug")
 
-    def class_name(self):
+    def class_name(self) -> str:
         return "Team"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} ({self.slug})"
 
     def handle_async_replication(self, shard_identifier: int) -> None:

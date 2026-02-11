@@ -1,0 +1,370 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: null
+  contributing component: null
+  hint: ignored because system exception takes precedence
+  root_component:
+    app (ignored because system exception takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+        value* (stripped event-specific values)
+          "Fatal Error: <hex> / <hex>"
+        stacktrace (ignored because it contains no in-app frames)
+          frame (marked out of app by built-in stack trace rule (package:/usr/lib/** -app))
+            function*
+              "start"
+          frame (marked out of app by built-in stack trace rule (package:/usr/lib/** -app))
+            function*
+              "start"
+          frame (non app frame)
+            function*
+              "code"
+          frame (non app frame)
+            function*
+              "code"
+          frame (non app frame)
+            function*
+              "code"
+          frame (non app frame)
+            function*
+              "code"
+          frame (non app frame)
+            function*
+              "code"
+          frame (non app frame)
+            function*
+              "code"
+          frame (marked out of app by built-in stack trace rule (category:system -app))
+            function*
+              "-[NSApplication run]"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "-[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:]"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "_DPSNextEvent"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "_BlockUntilNextEventMatchingListInModeWithFilter"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "ReceiveNextEventCommon"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "RunCurrentEventLoopInMode"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "__NSThreadPerformPerform"
+          frame (non app frame)
+            function*
+              "code"
+          frame (marked out of app by built-in stack trace rule (category:system -app))
+            function*
+              "-[NSView displayIfNeeded]"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "-[_NSOpenGLViewBackingLayer display]"
+          frame (non app frame)
+            function*
+              "code"
+          frame (non app frame)
+            function*
+              "code"
+          frame (non app frame)
+            function*
+              "CGLTexImageIOSurface2D"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "CGLDescribeRenderer"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "gliSetInteger"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "gldFlushObject"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "intelSubmitCommands"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "IntelCommandBuffer::getNew"
+          frame (non app frame)
+            function*
+              "gpusSubmitDataBuffers"
+          frame (marked out of app by built-in stack trace rule (category:telemetry -app))
+            function*
+              "gpusKillClientExt"
+          frame (marked out of app by built-in stack trace rule (category:telemetry -app))
+            function*
+              "gpusGenerateCrashLog"
+          frame (non app frame)
+            function*
+              "gpusGenerateCrashLog.cold.1"
+          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+            function*
+              "abort"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+            function*
+              "_sigtramp"
+          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+            function*
+              "code"
+          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+            function*
+              "code"
+          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+            function*
+              "code"
+          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+            function*
+              "NSRunAlertPanel"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "_NSTryRunModal"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "CA::Transaction::commit"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "CA::Context::commit_transaction"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "CA::Layer::display_if_needed"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "-[_NSOpenGLViewBackingLayer display]"
+          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+            function*
+              "code"
+          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+            function*
+              "code"
+          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+            function*
+              "CGLTexImageIOSurface2D"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "CGLDescribeRenderer"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "gliSetInteger"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "gldFlushObject"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "intelSubmitCommands"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "IntelCommandBuffer::getNew"
+          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+            function*
+              "gpusSubmitDataBuffers"
+          frame (marked out of app by built-in stack trace rule (category:telemetry -app))
+            function*
+              "gpusKillClientExt"
+          frame (marked out of app by built-in stack trace rule (category:telemetry -app))
+            function*
+              "gpusGenerateCrashLog"
+          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+            function*
+              "gpusGenerateCrashLog.cold.1"
+          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+            function*
+              "abort"
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
+            function*
+              "__pthread_kill"
+--------------------------------------------------------------------------
+system:
+  hash: "22760595718fcd37489c365e30a5e166"
+  contributing component: exception
+  hint: None
+  root_component:
+    system*
+      exception*
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
+        stacktrace*
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
+            function*
+              "start"
+          frame (ignored due to recursion)
+            function*
+              "start"
+          frame*
+            function*
+              "code"
+          frame (ignored due to recursion)
+            function*
+              "code"
+          frame (ignored due to recursion)
+            function*
+              "code"
+          frame (ignored due to recursion)
+            function*
+              "code"
+          frame (ignored due to recursion)
+            function*
+              "code"
+          frame (ignored due to recursion)
+            function*
+              "code"
+          frame*
+            function*
+              "-[NSApplication run]"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "-[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:]"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "_DPSNextEvent"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "_BlockUntilNextEventMatchingListInModeWithFilter"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "ReceiveNextEventCommon"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "RunCurrentEventLoopInMode"
+          frame
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "__NSThreadPerformPerform"
+          frame*
+            function*
+              "code"
+          frame*
+            function*
+              "-[NSView displayIfNeeded]"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "-[_NSOpenGLViewBackingLayer display]"
+          frame*
+            function*
+              "code"
+          frame (ignored due to recursion)
+            function*
+              "code"
+          frame*
+            function*
+              "CGLTexImageIOSurface2D"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "CGLDescribeRenderer"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "gliSetInteger"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "gldFlushObject"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "intelSubmitCommands"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "IntelCommandBuffer::getNew"
+          frame*
+            function*
+              "gpusSubmitDataBuffers"
+          frame (ignored by built-in stack trace rule (category:telemetry -group))
+            function*
+              "gpusKillClientExt"
+          frame (ignored by built-in stack trace rule (category:telemetry -group))
+            function*
+              "gpusGenerateCrashLog"
+          frame (ignored by built-in stack trace rule (category:indirection -group))
+            function*
+              "gpusGenerateCrashLog.cold.1"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "abort"
+          frame
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "_sigtramp"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "code"
+          frame (ignored due to recursion)
+            function*
+              "code"
+          frame (ignored due to recursion)
+            function*
+              "code"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "NSRunAlertPanel"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "_NSTryRunModal"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "CA::Transaction::commit"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "CA::Context::commit_transaction"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "CA::Layer::display_if_needed"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "-[_NSOpenGLViewBackingLayer display]"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "code"
+          frame (ignored due to recursion)
+            function*
+              "code"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "CGLTexImageIOSurface2D"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "CGLDescribeRenderer"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "gliSetInteger"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "gldFlushObject"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "intelSubmitCommands"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "IntelCommandBuffer::getNew"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "gpusSubmitDataBuffers"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "gpusKillClientExt"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "gpusGenerateCrashLog"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "gpusGenerateCrashLog.cold.1"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "abort"
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
+            function*
+              "__pthread_kill"

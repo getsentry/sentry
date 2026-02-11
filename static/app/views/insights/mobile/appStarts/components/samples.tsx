@@ -1,10 +1,10 @@
 import {useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {Flex} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
@@ -24,36 +24,21 @@ const SPANS = 'spans';
 
 export function SamplesTables({transactionName}: any) {
   const [sampleType, setSampleType] = useState<typeof EVENT | typeof SPANS>(SPANS);
-  const {primaryRelease, secondaryRelease} = useReleaseSelection();
+  const {primaryRelease} = useReleaseSelection();
   const organization = useOrganization();
 
   const content = useMemo(() => {
     if (sampleType === EVENT) {
       return (
-        <EventSplitContainer>
-          <ErrorBoundary mini>
-            <div>
-              <EventSamples
-                cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
-                sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
-                release={primaryRelease}
-                transaction={transactionName}
-                footerAlignedPagination
-              />
-            </div>
-          </ErrorBoundary>
-          <ErrorBoundary mini>
-            <div>
-              <EventSamples
-                cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
-                sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
-                release={secondaryRelease}
-                transaction={transactionName}
-                footerAlignedPagination
-              />
-            </div>
-          </ErrorBoundary>
-        </EventSplitContainer>
+        <ErrorBoundary mini>
+          <EventSamples
+            cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
+            sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
+            release={primaryRelease}
+            transaction={transactionName}
+            footerAlignedPagination
+          />
+        </ErrorBoundary>
       );
     }
 
@@ -62,21 +47,19 @@ export function SamplesTables({transactionName}: any) {
         <SpanOperationTable
           transaction={transactionName}
           primaryRelease={primaryRelease}
-          secondaryRelease={secondaryRelease}
         />
       </ErrorBoundary>
     );
-  }, [primaryRelease, sampleType, secondaryRelease, transactionName]);
+  }, [primaryRelease, sampleType, transactionName]);
 
   return (
     <div>
-      <Controls>
-        <FiltersContainer>
+      <Flex justify="between" align="center" marginBottom="md">
+        <Flex align="center" gap="md">
           {sampleType === SPANS && (
             <SpanOpSelector
               primaryRelease={primaryRelease}
               transaction={transactionName}
-              secondaryRelease={secondaryRelease}
             />
           )}
           <DeviceClassSelector
@@ -85,7 +68,7 @@ export function SamplesTables({transactionName}: any) {
             moduleName={ModuleName.APP_START}
           />
           <SubregionSelector />
-        </FiltersContainer>
+        </Flex>
         <SegmentedControl
           onChange={value => {
             trackAnalytics('insight.app_start.spans.toggle_sample_type', {
@@ -100,27 +83,8 @@ export function SamplesTables({transactionName}: any) {
           <SegmentedControl.Item key={SPANS}>{t('By Spans')}</SegmentedControl.Item>
           <SegmentedControl.Item key={EVENT}>{t('By Event')}</SegmentedControl.Item>
         </SegmentedControl>
-      </Controls>
+      </Flex>
       {content}
     </div>
   );
 }
-
-const EventSplitContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${space(1.5)};
-`;
-
-const Controls = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${space(1)};
-`;
-
-const FiltersContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;

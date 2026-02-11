@@ -6,6 +6,7 @@ import type {
   TimeSeries,
   TimeSeriesValueUnit,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesName';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 
@@ -20,6 +21,12 @@ export type ContinuousTimeSeriesConfig = {
    * Optional color. If not provided, a backfill from a common palette will be provided to `toSeries`
    */
   color?: string;
+  /**
+   * Optional name override. If not provided, the name will be computed from the `TimeSeries` yAxis and groupBy.
+   * This is used for ECharts series identification (e.g. legend/tooltip lookup). Tooltips display the `timeSeries.label`
+   * (alias or computed from `formatTimeSeriesLabel`), not this name.
+   */
+  name?: string;
   /**
    * Callback for ECharts' `onHighlight`. Called with the data point that corresponds to the highlighted point in the chart
    */
@@ -60,23 +67,14 @@ export abstract class ContinuousTimeSeries<
 
   /**
    * Continuous time series names need to be unique to disambiguate them from other series. We use both the `yAxis` and the `groupBy` to create the name. This makes it possible to pass in two different time series with the same `yAxis` as long as they have different `groupBy` information.
+   * For cases where we have multiple time series with the same `yAxis` and no `groupBy` (for example dashboards with multiple filters), we can manually set the name.
    */
   get name(): string {
-    let name = `${this.timeSeries.yAxis}`;
-
-    if (this.timeSeries.groupBy?.length) {
-      name += ` : ${this.timeSeries.groupBy
-        ?.map(groupBy => {
-          return `${groupBy.key}:${groupBy.value}`;
-        })
-        .join(',')}`;
-    }
-
-    return name;
+    return this.config?.name ?? formatTimeSeriesName(this.timeSeries);
   }
 
   get label(): string {
-    return this.config?.alias ?? formatTimeSeriesName(this.timeSeries);
+    return this.config?.alias ?? formatTimeSeriesLabel(this.timeSeries);
   }
 
   get isEmpty(): boolean {

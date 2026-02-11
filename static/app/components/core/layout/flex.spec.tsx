@@ -1,13 +1,67 @@
 import React, {createRef} from 'react';
+import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Flex} from 'sentry/components/core/layout/flex';
+import {
+  Flex,
+  type FlexProps,
+  type FlexPropsWithRenderFunction,
+} from '@sentry/scraps/layout';
+import type {Responsive} from '@sentry/scraps/layout';
 
 describe('Flex', () => {
   it('renders children', () => {
     render(<Flex>Hello</Flex>);
     expect(screen.getByText('Hello')).toBeInTheDocument();
+  });
+
+  it('implements render prop', () => {
+    render(
+      <section>
+        <Flex justify="between">{props => <p {...props}>Hello</p>}</Flex>
+      </section>
+    );
+
+    expect(screen.getByText('Hello')?.tagName).toBe('P');
+    expect(screen.getByText('Hello').parentElement?.tagName).toBe('SECTION');
+
+    expect(screen.getByText('Hello')).not.toHaveAttribute('border', 'primary');
+  });
+
+  it('render prop guards against invalid attributes', () => {
+    render(
+      // @ts-expect-error - aria-activedescendant should be set on the child element
+      <Flex justify="between" aria-activedescendant="what">
+        {/* @ts-expect-error - this should be a React.ElementType */}
+        {props => <p {...props}>Hello</p>}
+      </Flex>
+    );
+
+    expect(screen.getByText('Hello')).not.toHaveAttribute('aria-activedescendant');
+  });
+
+  it('render prop type is correctly inferred', () => {
+    // Incompatible className type - should be string
+    function Child({className}: {className: 'invalid'}) {
+      return <p className={className}>Hello</p>;
+    }
+
+    render(
+      <Flex justify="between" padding="md">
+        {/* @ts-expect-error - className is incompatible */}
+        {props => <Child {...props} />}
+      </Flex>
+    );
+  });
+
+  it('as=label props are correctly inferred', () => {
+    render(
+      <Flex as="label" htmlFor="test-id">
+        Hello World
+      </Flex>
+    );
+    expectTypeOf<FlexProps<'label'>>().toHaveProperty('htmlFor');
   });
 
   it('passes attributes to the underlying element', () => {
@@ -67,5 +121,27 @@ describe('Flex', () => {
     const paddingFirst = screen.getByText('Padding First').className;
     const paddingBottomFirst = screen.getByText('PaddingBottom First').className;
     expect(paddingFirst).toEqual(paddingBottomFirst);
+  });
+
+  describe('types', () => {
+    it('has a limited display prop', () => {
+      const props: FlexProps<any> = {};
+      expectTypeOf(props.display).toEqualTypeOf<
+        Responsive<'flex' | 'inline-flex' | 'none'> | undefined
+      >();
+    });
+
+    it('default signature limits children to React.ReactNode', () => {
+      const props: FlexProps<any> = {};
+      expectTypeOf(props.children).toEqualTypeOf<React.ReactNode | undefined>();
+    });
+    it('render prop signature limits children to (props: {className: string}) => React.ReactNode | undefined', () => {
+      const props: FlexPropsWithRenderFunction<any> = {
+        children: () => undefined,
+      };
+      expectTypeOf(props.children).toEqualTypeOf<
+        (props: {className: string}) => React.ReactNode | undefined
+      >();
+    });
   });
 });

@@ -4,43 +4,36 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import type {ChartXRangeSelectionProps} from 'sentry/components/charts/useChartXRangeSelection';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import usePrevious from 'sentry/utils/usePrevious';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
-import type {BoxSelectProps} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {prettifyAggregation} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {INGESTION_DELAY} from 'sentry/views/insights/settings';
 
-interface ChartVisualizationProps extends Partial<BoxSelectProps> {
+interface ChartVisualizationProps {
   chartInfo: ChartInfo;
   chartRef?: Ref<ReactEchartsRef>;
+  chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
   hidden?: boolean;
 }
 
 export function ChartVisualization({
-  brush,
-  onBrushEnd,
-  onBrushStart,
-  toolBox,
+  chartXRangeSelection,
   chartInfo,
   chartRef,
-  hidden = false,
 }: ChartVisualizationProps) {
   const theme = useTheme();
 
   const plottables = useMemo(() => {
-    const formattedYAxis = prettifyAggregation(chartInfo.yAxis) ?? chartInfo.yAxis;
-
     const DataPlottableConstructor =
       chartInfo.chartType === ChartType.LINE
         ? Line
@@ -56,13 +49,12 @@ export function ChartVisualization({
       // values instead of the aggregate function.
       if (s.yAxis === chartInfo.yAxis) {
         return new DataPlottableConstructor(markDelayedData(s, INGESTION_DELAY), {
-          alias: formattedYAxis ?? chartInfo.yAxis,
-          color: isTimeSeriesOther(s) ? theme.chartOther : undefined,
+          color: s.meta.isOther ? theme.tokens.content.secondary : undefined,
           stack: 'all',
         });
       }
       return new DataPlottableConstructor(markDelayedData(s, INGESTION_DELAY), {
-        color: isTimeSeriesOther(s) ? theme.chartOther : undefined,
+        color: s.meta.isOther ? theme.tokens.content.secondary : undefined,
         stack: 'all',
       });
     });
@@ -72,10 +64,6 @@ export function ChartVisualization({
     plottables,
     chartInfo.timeseriesResult.isPending
   );
-
-  if (hidden) {
-    return null;
-  }
 
   if (chartInfo.timeseriesResult.isPending) {
     if (previousPlottables.length === 0) {
@@ -98,11 +86,8 @@ export function ChartVisualization({
       <StyledTransparentLoadingMask visible>
         <TimeSeriesWidgetVisualization
           ref={chartRef}
-          brush={brush}
-          onBrushEnd={onBrushEnd}
-          onBrushStart={onBrushStart}
-          toolBox={toolBox}
           plottables={previousPlottables}
+          chartXRangeSelection={chartXRangeSelection}
         />
       </StyledTransparentLoadingMask>
     );
@@ -122,11 +107,8 @@ export function ChartVisualization({
   return (
     <TimeSeriesWidgetVisualization
       ref={chartRef}
-      brush={brush}
-      onBrushEnd={onBrushEnd}
-      onBrushStart={onBrushStart}
-      toolBox={toolBox}
       plottables={plottables}
+      chartXRangeSelection={chartXRangeSelection}
     />
   );
 }

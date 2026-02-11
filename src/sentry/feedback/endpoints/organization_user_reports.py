@@ -14,6 +14,7 @@ from sentry.api.helpers.user_reports import user_reports_filter_to_unresolved
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import UserReportWithGroupSerializer
+from sentry.models.organization import Organization
 from sentry.models.userreport import UserReport
 from sentry.utils.dates import epoch
 
@@ -30,7 +31,7 @@ class OrganizationUserReportsEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationUserReportsPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's User Feedback
         ``````````````````````````````

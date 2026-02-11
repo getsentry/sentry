@@ -2,10 +2,12 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Input} from 'sentry/components/core/input';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
 import {getFormat} from 'sentry/utils/dates';
@@ -21,7 +23,8 @@ function GenerateSpikeProjectionsForBatch() {
   const {mutate} = useMutation({
     mutationFn: () => {
       return fetchMutation({
-        url: `/_admin/queue-spike-projection-batch/`,
+        // TODO(cells): Switch from region name to cell
+        url: `/_admin/cells/${region?.name}/queue-spike-projection-batch/`,
         method: 'POST',
         data: {
           batch_id: batchId,
@@ -69,7 +72,9 @@ function GenerateSpikeProjectionsForBatch() {
           specified batch of customers in the specified region.
         </p>
         <CompactSelect
-          triggerProps={{prefix: 'Region'}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix="Region" />
+          )}
           value={region ? region.url : undefined}
           options={regions.map((r: any) => ({
             label: r.name,
@@ -86,6 +91,7 @@ function GenerateSpikeProjectionsForBatch() {
         <label htmlFor="batchId">Batch ID:</label>
         <BatchInput
           type="number"
+          id="batchId"
           name="batchId"
           value={batchId === null ? '' : batchId}
           onChange={e => {
@@ -142,7 +148,7 @@ const BatchInput = styled(Input)`
 `;
 
 const BatchRunTime = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 export default GenerateSpikeProjectionsForBatch;

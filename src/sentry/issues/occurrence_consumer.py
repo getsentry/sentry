@@ -20,7 +20,6 @@ from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
 from sentry import nodestore, options
 from sentry.event_manager import GroupInfo
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import InvalidGroupTypeError, get_group_type_by_type_id
 from sentry.issues.ingest import process_occurrence_data, save_issue_occurrence
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueOccurrence, IssueOccurrenceData
@@ -30,6 +29,7 @@ from sentry.issues.status_change_consumer import process_status_change_message
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
+from sentry.services.eventstore.models import Event
 from sentry.types.actor import parse_and_validate_actor
 from sentry.utils import metrics
 
@@ -249,7 +249,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                     "level": occurrence_data["level"],
                     "project_id": event_payload.get("project_id"),
                     "platform": event_payload.get("platform"),
-                    "received": event_payload.get("received", timezone.now()),
+                    "received": event_payload.get("received", timezone.now().isoformat()),
                     "tags": event_payload.get("tags"),
                     "timestamp": event_payload.get("timestamp"),
                 }

@@ -1,4 +1,4 @@
-import {useContext, useEffect, useRef, useState} from 'react';
+import {useContext, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -7,9 +7,13 @@ import type {Client} from 'sentry/api';
 import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
+import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
+import {Token} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -18,25 +22,28 @@ import type {Confidence, Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
+import {getFieldDefinition} from 'sentry/utils/fields';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useParams} from 'sentry/utils/useParams';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
-import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {
+  DashboardFilterKeys,
   DisplayType,
   OnDemandExtractionState,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
@@ -44,8 +51,16 @@ import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
-import {getMenuOptions, useIndexedEventsWarning} from './widgetCardContextMenu';
+import {VisualizationWidget} from './visualizationWidget';
+import {
+  getMenuOptions,
+  useDroppedColumnsWarning,
+  useIndexedEventsWarning,
+  useTransactionsDeprecationWarning,
+} from './widgetCardContextMenu';
 import {WidgetFrame} from './widgetFrame';
+
+const DAYS_TO_MS = 24 * 60 * 60 * 1000;
 
 const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
 
@@ -57,7 +72,7 @@ const SESSION_DURATION_ALERT_TEXT = tct(
 );
 
 export const SESSION_DURATION_ALERT = (
-  <PanelAlert type="warning">{SESSION_DURATION_ALERT_TEXT}</PanelAlert>
+  <PanelAlert variant="warning">{SESSION_DURATION_ALERT_TEXT}</PanelAlert>
 );
 
 type Props = WithRouterProps & {
@@ -72,6 +87,7 @@ type Props = WithRouterProps & {
   borderless?: boolean;
   dashboardFilters?: DashboardFilters;
   disableFullscreen?: boolean;
+  disableTableActions?: boolean;
   disableZoom?: boolean;
   forceDescriptionTooltip?: boolean;
   hasEditAccess?: boolean;
@@ -99,6 +115,7 @@ type Props = WithRouterProps & {
   showLoadingText?: boolean;
   showStoredAlert?: boolean;
   tableItemLimit?: number;
+  useTimeseriesVisualization?: boolean;
   windowWidth?: number;
 };
 
@@ -118,6 +135,7 @@ function WidgetCard(props: Props) {
   const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
   const navigate = useNavigate();
+  const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const onDataFetched = (newData: Data) => {
@@ -150,7 +168,6 @@ function WidgetCard(props: Props) {
     onWidgetSplitDecision,
     shouldResize,
     onLegendSelectChanged,
-    onSetTransactionsDataset,
     legendOptions,
     widgetLegendState,
     disableFullscreen,
@@ -158,9 +175,10 @@ function WidgetCard(props: Props) {
     minTableColumnWidth,
     disableZoom,
     showLoadingText,
-    router,
     onWidgetTableSort,
     onWidgetTableResizeColumn,
+    disableTableActions,
+    useTimeseriesVisualization,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -183,9 +201,17 @@ function WidgetCard(props: Props) {
   const extractionStatus = useExtractionStatus({queryKey: widget});
   const indexedEventsWarning = useIndexedEventsWarning();
   const onDemandWarning = useOnDemandWarning({widget});
-  const discoverSplitAlert = useDiscoverSplitAlert({widget, onSetTransactionsDataset});
+  const transactionsDeprecationWarning = useTransactionsDeprecationWarning({
+    widget,
+    selection,
+  });
+  const droppedColumnsWarning = useDroppedColumnsWarning(widget);
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
   const spanTimeRangeWarning = useTimeRangeWarning({widget});
+  const conflictingFilterWarning = useConflictingFilterWarning({
+    widget,
+    dashboardFilters,
+  });
 
   const onDataFetchStart = () => {
     if (timeoutRef.current) {
@@ -222,12 +248,16 @@ function WidgetCard(props: Props) {
       });
 
       navigate(
-        {
-          pathname: `${location.pathname}${
-            location.pathname.endsWith('/') ? '' : '/'
-          }widget/${props.index}/`,
-          query: location.query,
-        },
+        normalizeUrl({
+          pathname: `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`,
+          query: {
+            ...location.query,
+            sort:
+              widget.displayType === DisplayType.TABLE
+                ? widget.queries[0]?.orderby
+                : location.query.sort,
+          },
+        }),
         {preventScrollReset: true}
       );
     }
@@ -248,9 +278,11 @@ function WidgetCard(props: Props) {
 
   const warnings = [
     onDemandWarning,
-    discoverSplitAlert,
     sessionDurationWarning,
     spanTimeRangeWarning,
+    transactionsDeprecationWarning,
+    droppedColumnsWarning,
+    conflictingFilterWarning,
   ].filter(Boolean) as string[];
 
   const actionsDisabled = Boolean(props.isPreview);
@@ -268,7 +300,6 @@ function WidgetCard(props: Props) {
         props.widgetLimitReached,
         props.hasEditAccess,
         location,
-        router,
         props.onDelete,
         props.onDuplicate,
         props.onEdit
@@ -278,6 +309,56 @@ function WidgetCard(props: Props) {
   const widgetQueryError = isWidgetInvalid
     ? t('Widget query condition is invalid.')
     : undefined;
+
+  const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
+  if (canUseTimeseriesVisualization && useTimeseriesVisualization) {
+    return (
+      <ErrorBoundary
+        customComponent={() => <ErrorCard>{t('Error loading widget data')}</ErrorCard>}
+      >
+        <VisuallyCompleteWithData
+          id="DashboardList-FirstWidgetCard"
+          hasData={
+            ((data?.tableResults?.length || data?.timeseriesResults?.length) ?? 0) > 0
+          }
+          disabled={Number(props.index) !== 0}
+        >
+          <WidgetFrame
+            title={widget.title}
+            description={widget.description}
+            badgeProps={badges}
+            warnings={warnings}
+            actionsDisabled={actionsDisabled}
+            error={widgetQueryError}
+            actionsMessage={actionsMessage}
+            actions={actions}
+            noVisualizationPadding={canUseTimeseriesVisualization}
+            onFullScreenViewClick={
+              disableFullscreen
+                ? undefined
+                : currentDashboardId
+                  ? onFullScreenViewClick
+                  : undefined
+            }
+            borderless={props.borderless}
+            revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
+          >
+            <VisualizationWidget
+              widget={widget}
+              selection={selection}
+              dashboardFilters={dashboardFilters}
+              onDataFetched={onDataFetched}
+              onWidgetTableSort={onWidgetTableSort}
+              onWidgetTableResizeColumn={onWidgetTableResizeColumn}
+              renderErrorMessage={renderErrorMessage}
+              onDataFetchStart={onDataFetchStart}
+              tableItemLimit={tableItemLimit}
+            />
+          </WidgetFrame>
+        </VisuallyCompleteWithData>
+      </ErrorBoundary>
+    );
+  }
 
   return (
     <ErrorBoundary
@@ -299,15 +380,19 @@ function WidgetCard(props: Props) {
           error={widgetQueryError}
           actionsMessage={actionsMessage}
           actions={actions}
-          onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
+          onFullScreenViewClick={
+            disableFullscreen
+              ? undefined
+              : currentDashboardId
+                ? onFullScreenViewClick
+                : undefined
+          }
           borderless={props.borderless}
           revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
           noVisualizationPadding
         >
           <WidgetCardChartContainer
-            location={location}
             api={api}
-            organization={organization}
             selection={selection}
             widget={widget}
             isMobile={isMobile}
@@ -329,6 +414,7 @@ function WidgetCard(props: Props) {
             showLoadingText={showLoadingText && isLoadingTextVisible}
             onWidgetTableSort={onWidgetTableSort}
             onWidgetTableResizeColumn={onWidgetTableResizeColumn}
+            disableTableActions={disableTableActions}
           />
         </WidgetFrame>
       </VisuallyCompleteWithData>
@@ -374,21 +460,80 @@ function useOnDemandWarning(props: {widget: Widget}): string | null {
   return null;
 }
 
-function useTimeRangeWarning(props: {widget: Widget}) {
+function useTimeRangeWarning({widget}: {widget: Widget}) {
   const {
     selection: {datetime},
   } = usePageFilters();
+  const useRetentionLimit =
+    HookStore.get('react-hook:use-dashboard-dataset-retention-limit')[0] ?? (() => null);
+  const retentionLimitDays = useRetentionLimit({
+    dataset: widget.widgetType ?? WidgetType.ERRORS,
+  });
 
-  if (props.widget.widgetType !== WidgetType.SPANS) {
+  if (!retentionLimitDays) {
     return null;
   }
 
-  if (statsPeriodToDays(datetime.period, datetime.start, datetime.end) > 30) {
-    // This message applies if the user has selected a time range >30d because we truncate the
-    // snuba response to 30 days to reduce load on the system.
-    return t(
-      "Spans-based widgets have been truncated to 30 days of data. We're working on ramping this up."
+  // Number of days from now using the stats period
+  const statsPeriodDaysFromNow = statsPeriodToDays(
+    datetime.period,
+    datetime.start,
+    datetime.end
+  );
+
+  // Convert the number of days to ms so we can get an end date to check if the
+  // widget is querying more than its retention allows
+  const statsPeriodToEnd = new Date(Date.now() - statsPeriodDaysFromNow * DAYS_TO_MS);
+  const retentionLimitDate = new Date(Date.now() - retentionLimitDays * DAYS_TO_MS);
+  if (
+    (retentionLimitDate && datetime.end && retentionLimitDate > datetime.end) ||
+    (retentionLimitDate && statsPeriodToEnd && retentionLimitDate > statsPeriodToEnd)
+  ) {
+    return tct(
+      `You've selected a time range longer than the retention period for some datasets. Data older than [numDays] days may be unavailable.`,
+      {
+        numDays: retentionLimitDays,
+      }
     );
+  }
+
+  return null;
+}
+
+// Displays a warning message if there is a conflict between widget and global filters
+function useConflictingFilterWarning({
+  widget,
+  dashboardFilters,
+}: {
+  dashboardFilters: DashboardFilters | undefined;
+  widget: Widget;
+}) {
+  const conflictingFilterKeys = useMemo(() => {
+    if (!dashboardFilters) return [];
+
+    const widgetFilterKeys = widget.queries.flatMap(query => {
+      const parseResult = parseQueryBuilderValue(query.conditions, getFieldDefinition);
+      if (!parseResult) {
+        return [];
+      }
+      return parseResult
+        .filter(token => token.type === Token.FILTER)
+        .map(token => token.key.text);
+    });
+    const globalFilterKeys =
+      dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER]
+        ?.filter(filter => filter.dataset === widget.widgetType)
+        .map(filter => filter.tag.key) ?? [];
+
+    const widgetFilterKeySet = new Set(widgetFilterKeys);
+    return globalFilterKeys.filter(key => widgetFilterKeySet.has(key));
+  }, [widget.queries, widget.widgetType, dashboardFilters]);
+
+  if (conflictingFilterKeys.length > 0) {
+    return tct('[strong:Filter conflicts:] [filters]', {
+      strong: <strong />,
+      filters: conflictingFilterKeys.join(', '),
+    });
   }
 
   return null;
@@ -398,14 +543,18 @@ const ErrorCard = styled(Placeholder)`
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: ${p => p.theme.alert.error.backgroundLight};
-  border: 1px solid ${p => p.theme.alert.error.border};
-  color: ${p => p.theme.alert.error.textLight};
-  border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.colors.red100};
+  border: 1px solid ${p => p.theme.colors.red200};
+  color: ${p => p.theme.colors.red200};
+  border-radius: ${p => p.theme.radius.md};
   margin-bottom: ${space(2)};
 `;
 
 export const WidgetDescription = styled('small')`
-  ${p => p.theme.overflowEllipsis}
-  color: ${p => p.theme.subText};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: ${p => p.theme.tokens.content.secondary};
 `;

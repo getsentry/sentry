@@ -13,11 +13,12 @@ from snuba_sdk.function import Function
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.event_search import AggregateFilter
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.organization import Organization
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.datasets import function_aliases
 from sentry.search.events.fields import DateArg, parse_function
@@ -79,7 +80,7 @@ class TrendQueryBuilder(DiscoverQueryBuilder):
             return super().resolve_function(function, match, resolve_only, overwrite_alias)
 
 
-class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
+class OrganizationEventsTrendsEndpointBase(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -301,7 +302,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization, request):
         return features.has("organizations:performance-view", organization, actor=request.user)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 

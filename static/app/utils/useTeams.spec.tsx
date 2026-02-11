@@ -7,17 +7,17 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {useTeams} from 'sentry/utils/useTeams';
 
-describe('useTeams', function () {
+describe('useTeams', () => {
   const org = OrganizationFixture();
 
   const mockTeams = [TeamFixture()];
 
-  beforeEach(function () {
+  beforeEach(() => {
     TeamStore.reset();
     OrganizationStore.onUpdate(org, {replace: true});
   });
 
-  it('provides teams from the team store', function () {
+  it('provides teams from the team store', () => {
     TeamStore.loadInitialData(mockTeams);
 
     const {result} = renderHook(useTeams);
@@ -26,7 +26,7 @@ describe('useTeams', function () {
     expect(teams).toEqual(mockTeams);
   });
 
-  it('loads more teams when using onSearch', async function () {
+  it('loads more teams when using onSearch', async () => {
     TeamStore.loadInitialData(mockTeams);
     const newTeam2 = TeamFixture({id: '2', slug: 'test-team2'});
     const newTeam3 = TeamFixture({id: '3', slug: 'test-team3'});
@@ -59,7 +59,7 @@ describe('useTeams', function () {
     expect(result.current.teams).toEqual([...mockTeams, newTeam2, newTeam3]);
   });
 
-  it('provides only the users teams', function () {
+  it('provides only the users teams', () => {
     const userTeams = [TeamFixture({id: '1', isMember: true})];
     const nonUserTeams = [TeamFixture({id: '2', isMember: false})];
     TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
@@ -73,7 +73,7 @@ describe('useTeams', function () {
     expect(teams).toEqual(expect.arrayContaining(userTeams));
   });
 
-  it('provides only the specified slugs', async function () {
+  it('provides only the specified slugs', async () => {
     TeamStore.loadInitialData(mockTeams);
     const teamFoo = TeamFixture({slug: 'foo'});
     const mockRequest = MockApiClient.addMockResponse({
@@ -95,7 +95,7 @@ describe('useTeams', function () {
     expect(teams).toEqual(expect.arrayContaining([teamFoo]));
   });
 
-  it('only loads slugs when needed', function () {
+  it('only loads slugs when needed', () => {
     TeamStore.loadInitialData(mockTeams);
 
     const {result} = renderHook(useTeams, {
@@ -107,7 +107,7 @@ describe('useTeams', function () {
     expect(teams).toEqual(expect.arrayContaining(mockTeams));
   });
 
-  it('correctly returns hasMore before and after store update', async function () {
+  it('correctly returns hasMore before and after store update', async () => {
     const {result} = renderHook(useTeams);
 
     const {teams, hasMore} = result.current;

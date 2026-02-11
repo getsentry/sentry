@@ -1,12 +1,13 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   addLoadingMessage,
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {ExternalLink} from 'sentry/components/core/link';
 import {
   PROVIDER_TO_SETUP_WEBHOOK_URL,
   WebhookProviderEnum,
@@ -186,7 +187,7 @@ export default function NewProviderForm({
       >
         <TextCopyInput aria-label={t('Webhook URL')} disabled={!selectedProvider.length}>
           {selectedProvider.length
-            ? `https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/${selectedProvider.toLowerCase()}/`
+            ? `${window.location.origin}/api/0/organizations/${organization.slug}/flags/hooks/provider/${selectedProvider.toLowerCase()}/`
             : ''}
         </TextCopyInput>
       </StyledFieldGroup>

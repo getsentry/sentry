@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.db import router, transaction
@@ -37,8 +37,8 @@ class CaseMixin:
                 Organization.objects.create(name="org3")
 
             with transaction.atomic(using=router.db_for_write(User)):
-                User.objects.create(username="user2")
-                User.objects.create(username="user3")
+                User.objects.create(username="user2", email="user2.email")
+                User.objects.create(username="user3", email="user3.email")
 
         assert [(s["transaction"]) for s in queries] == [None, "default", "default", "control"]
 
@@ -198,7 +198,7 @@ class TestDelegatedByOpenTransaction(TestCase):
 @no_silo_test
 class TestDelegatedByOpenTransactionProduction(TransactionTestCase):
     @patch("sentry.hybridcloud.rpc.in_test_environment", return_value=False)
-    def test_selects_mode_in_transaction_or_default(self, patch):
+    def test_selects_mode_in_transaction_or_default(self, patch: MagicMock) -> None:
         service: Any = silo_mode_delegation(
             {
                 SiloMode.CONTROL: lambda: FakeControlService(),

@@ -1,5 +1,6 @@
 import re
 import uuid
+from typing import TypeGuard
 
 from django.utils.encoding import force_str
 
@@ -32,8 +33,15 @@ def is_event_id_or_list(value):
         return is_event_id(value)
 
 
-def is_span_id(value):
+def is_span_id(value: object) -> TypeGuard[str]:
     return bool(HEXADECIMAL_16_DIGITS.search(force_str(value)))
+
+
+def is_span_id_or_list(value):
+    if isinstance(value, list):
+        return all(is_span_id(item) for item in value)
+    else:
+        return is_span_id(value)
 
 
 def is_empty_string(value):

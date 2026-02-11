@@ -3,11 +3,11 @@ import {
   SESSIONS_FIELDS,
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
-describe('generateReleaseWidgetFieldOptions', function () {
+describe('generateReleaseWidgetFieldOptions', () => {
   const fields = Object.values(SESSIONS_FIELDS);
   const tagKeys = ['release', 'environment'];
 
-  it('generates correct field options', function () {
+  it('generates correct field options', () => {
     expect(generateReleaseWidgetFieldOptions(fields, tagKeys)).toEqual({
       'field:session': {
         label: 'session',
@@ -36,6 +36,23 @@ describe('generateReleaseWidgetFieldOptions', function () {
           meta: {
             dataType: 'string',
             name: 'user',
+          },
+        },
+      },
+      'function:abnormal_rate': {
+        label: 'abnormal_rate(…)',
+        value: {
+          kind: 'function',
+          meta: {
+            name: 'abnormal_rate',
+            parameters: [
+              {
+                columnTypes: ['integer', 'string'],
+                defaultValue: 'session',
+                kind: 'column',
+                required: true,
+              },
+            ],
           },
         },
       },
@@ -117,6 +134,23 @@ describe('generateReleaseWidgetFieldOptions', function () {
           },
         },
       },
+      'function:count_unhandled': {
+        label: 'count_unhandled(…)',
+        value: {
+          kind: 'function',
+          meta: {
+            name: 'count_unhandled',
+            parameters: [
+              {
+                columnTypes: ['integer', 'string'],
+                defaultValue: 'session',
+                kind: 'column',
+                required: true,
+              },
+            ],
+          },
+        },
+      },
       'function:count_unique': {
         label: 'count_unique(…)',
         value: {
@@ -168,6 +202,23 @@ describe('generateReleaseWidgetFieldOptions', function () {
           },
         },
       },
+      'function:errored_rate': {
+        label: 'errored_rate(…)',
+        value: {
+          kind: 'function',
+          meta: {
+            name: 'errored_rate',
+            parameters: [
+              {
+                columnTypes: ['integer', 'string'],
+                defaultValue: 'session',
+                kind: 'column',
+                required: true,
+              },
+            ],
+          },
+        },
+      },
       'function:foreground_anr_rate': {
         label: 'foreground_anr_rate(…)',
         value: {
@@ -184,6 +235,40 @@ describe('generateReleaseWidgetFieldOptions', function () {
           kind: 'function',
           meta: {
             name: 'sum',
+            parameters: [
+              {
+                columnTypes: ['integer'],
+                defaultValue: 'session',
+                kind: 'column',
+                required: true,
+              },
+            ],
+          },
+        },
+      },
+      'function:unhandled_rate': {
+        label: 'unhandled_rate(…)',
+        value: {
+          kind: 'function',
+          meta: {
+            name: 'unhandled_rate',
+            parameters: [
+              {
+                columnTypes: ['integer', 'string'],
+                defaultValue: 'session',
+                kind: 'column',
+                required: true,
+              },
+            ],
+          },
+        },
+      },
+      'function:unhealthy_rate': {
+        label: 'unhealthy_rate(…)',
+        value: {
+          kind: 'function',
+          meta: {
+            name: 'unhealthy_rate',
             parameters: [
               {
                 columnTypes: ['integer'],

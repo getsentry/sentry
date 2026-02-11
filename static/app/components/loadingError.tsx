@@ -1,5 +1,5 @@
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
+import {Alert} from '@sentry/scraps/alert';
+
 import {t} from 'sentry/locale';
 
 type Props = {
@@ -20,14 +20,14 @@ function LoadingError({
   return (
     <Alert.Container>
       <Alert
-        type="error"
+        variant="danger"
         data-test-id="loading-error"
         className={className}
         trailingItems={
           onRetry && (
-            <Button onClick={onRetry} priority="default" size="sm">
+            <Alert.Button onClick={onRetry} priority="default">
               {t('Retry')}
-            </Button>
+            </Alert.Button>
           )
         }
       >

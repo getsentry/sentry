@@ -2,22 +2,24 @@ from sentry.models.project import Project
 from sentry.testutils.asserts import assert_existing_projects_status
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 
 
 @no_silo_test
+@thread_leak_allowlist(reason="sentry sdk background worker", issue=97042)
 class CreateProjectTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=self.user)
         self.login_as(self.user)
         self.path = f"/organizations/{self.org.slug}/projects/new/"
 
-    def load_project_creation_page(self):
+    def load_project_creation_page(self) -> None:
         self.browser.get(self.path)
         self.browser.wait_until('[aria-label="Create Project"]')
 
-    def test_no_teams(self):
+    def test_no_teams(self) -> None:
         self.load_project_creation_page()
         self.browser.click(None, "//*[text()='Select a Team']")
         self.browser.click('[data-test-id="create-team-option"]')
@@ -27,14 +29,14 @@ class CreateProjectTest(AcceptanceTestCase):
         self.browser.element("[role='dialog'] form").submit()
         self.browser.wait_until(xpath='//div[text()="#new-team"]')
 
-    def test_select_correct_platform(self):
+    def test_select_correct_platform(self) -> None:
         self.create_team(organization=self.org, name="team three")
         self.load_project_creation_page()
         self.browser.click("[data-test-id='platform-javascript-react']")
         self.browser.click('[data-test-id="create-project"]')
         self.browser.wait_until(xpath="//h2[text()='Configure React SDK']")
 
-    def test_project_deletion_on_going_back(self):
+    def test_project_deletion_on_going_back(self) -> None:
         self.create_team(organization=self.org, name="team three", members=[self.user])
         self.load_project_creation_page()
         self.browser.click("[data-test-id='platform-php-laravel']")

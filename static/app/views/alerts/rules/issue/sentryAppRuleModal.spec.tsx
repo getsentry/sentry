@@ -12,7 +12,7 @@ import type {
   SchemaFormConfig,
 } from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
-describe('SentryAppRuleModal', function () {
+describe('SentryAppRuleModal', () => {
   const modalElements = {
     Header: (p: PropsWithChildren) => p.children as ReactElement,
     Body: (p: PropsWithChildren) => p.children,
@@ -21,7 +21,7 @@ describe('SentryAppRuleModal', function () {
   let sentryApp: any;
   let sentryAppInstallation: any;
 
-  beforeEach(function () {
+  beforeEach(() => {
     sentryApp = SentryAppFixture();
     sentryAppInstallation = SentryAppInstallationFixture();
   });
@@ -115,8 +115,8 @@ describe('SentryAppRuleModal', function () {
     );
   };
 
-  describe('Create UI Alert Rule', function () {
-    it('should render the Alert Rule modal with the config fields', function () {
+  describe('Create UI Alert Rule', () => {
+    it('should render the Alert Rule modal with the config fields', () => {
       createWrapper();
       const {required_fields, optional_fields} = defaultConfig;
       const allFields = [...required_fields!, ...optional_fields!];
@@ -128,7 +128,7 @@ describe('SentryAppRuleModal', function () {
       });
     });
 
-    it('submit button shall be disabled if form is incomplete', async function () {
+    it('submit button shall be disabled if form is incomplete', async () => {
       createWrapper();
       expect(screen.getByRole('button', {name: 'Save Changes'})).toBeDisabled();
       await userEvent.hover(screen.getByRole('button', {name: 'Save Changes'}));
@@ -137,7 +137,7 @@ describe('SentryAppRuleModal', function () {
       ).toBeInTheDocument();
     });
 
-    it('should submit when "Save Changes" is clicked with valid data', async function () {
+    it('should submit when "Save Changes" is clicked with valid data', async () => {
       createWrapper();
 
       const titleInput = screen.getByTestId('title');
@@ -177,7 +177,7 @@ describe('SentryAppRuleModal', function () {
 
       await submitSuccess();
     });
-    it('should load all default fields correctly', function () {
+    it('should load all default fields correctly', () => {
       const schema: SchemaFormConfig = {
         uri: '/api/sentry/issue-link/create/',
         required_fields: [
@@ -219,7 +219,7 @@ describe('SentryAppRuleModal', function () {
       expect(screen.getByText('low')).toBeInTheDocument();
       expect(screen.queryByText('poiggers')).not.toBeInTheDocument();
     });
-    it('should not make external calls until depends on fields are filled in', async function () {
+    it('should not make external calls until depends on fields are filled in', async () => {
       const mockApi = MockApiClient.addMockResponse({
         url: `/sentry-app-installations/${sentryAppInstallation.uuid}/external-requests/`,
         body: {
@@ -270,7 +270,7 @@ describe('SentryAppRuleModal', function () {
       await waitFor(() => expect(mockApi).toHaveBeenCalled());
     });
 
-    it('should load complexity options from backend when column has a default value', async function () {
+    it('should load complexity options from backend when column has a default value', async () => {
       const mockApi = MockApiClient.addMockResponse({
         url: `/sentry-app-installations/${sentryAppInstallation.uuid}/external-requests/`,
         body: {
@@ -334,7 +334,7 @@ describe('SentryAppRuleModal', function () {
       expect(screen.getByText('Medium')).toBeInTheDocument();
       expect(screen.getByText('High')).toBeInTheDocument();
     });
-    it('should populate skip_load_on fields with the default value', async function () {
+    it('should populate skip_load_on fields with the default value', async () => {
       const mockApi = MockApiClient.addMockResponse({
         url: `/sentry-app-installations/${sentryAppInstallation.uuid}/external-requests/`,
         body: {
@@ -395,7 +395,7 @@ describe('SentryAppRuleModal', function () {
       expect(screen.queryByText('Medium')).not.toBeInTheDocument();
       expect(screen.queryByText('High')).not.toBeInTheDocument();
     });
-    it('should populate dependent fields on load if the parent field is loaded with default value', async function () {
+    it('should populate dependent fields on load if the parent field is loaded with default value', async () => {
       const mockApi = MockApiClient.addMockResponse({
         url: `/sentry-app-installations/${sentryAppInstallation.uuid}/external-requests/`,
         body: {
@@ -449,7 +449,7 @@ describe('SentryAppRuleModal', function () {
       expect(screen.getByText('High')).toBeInTheDocument();
       expect(screen.getByText('YAY')).toBeInTheDocument();
     });
-    it('should populate dependent fields with skip_load_on_open if the parent field is loaded with default value', async function () {
+    it('should populate dependent fields with skip_load_on_open if the parent field is loaded with default value', async () => {
       const mockApi = MockApiClient.addMockResponse({
         url: `/sentry-app-installations/${sentryAppInstallation.uuid}/external-requests/`,
         body: {
@@ -504,7 +504,7 @@ describe('SentryAppRuleModal', function () {
       expect(screen.getByText('High')).toBeInTheDocument();
       expect(screen.getByText('YAY')).toBeInTheDocument();
     });
-    it('does not make external req for non skip on load fields that dont depend on another field', async function () {
+    it('does not make external req for non skip on load fields that dont depend on another field', async () => {
       const mockApi = MockApiClient.addMockResponse({
         url: `/sentry-app-installations/${sentryAppInstallation.uuid}/external-requests/`,
         body: {

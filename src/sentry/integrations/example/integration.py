@@ -85,7 +85,7 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
     def get_client(self):
         pass
 
-    def get_issue_url(self, key):
+    def get_issue_url(self, key) -> str:
         return f"https://example/issues/{key}"
 
     def create_comment(self, issue_id, user_id, group_note):
@@ -146,7 +146,9 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
             "description": "This is a test external issue description",
         }
 
-    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
+    def get_repositories(
+        self, query: str | None = None, page_number_limit: int | None = None
+    ) -> list[dict[str, Any]]:
         return [{"name": "repo", "identifier": "user/repo"}]
 
     def get_unmigratable_repositories(self):
@@ -173,7 +175,7 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
             should_unresolve=category != "done",
         )
 
-    def get_issue_display_name(self, external_issue):
+    def get_issue_display_name(self, external_issue) -> str:
         return f"display name: {external_issue.key}"
 
     def get_stacktrace_link(

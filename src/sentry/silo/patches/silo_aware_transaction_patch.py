@@ -87,7 +87,7 @@ def is_in_test_case_body() -> bool:
     )
 
 
-def validate_transaction_using_for_silo_mode(using: str | None):
+def validate_transaction_using_for_silo_mode(using: str | None) -> None:
     from sentry.hybridcloud.models.outbox import ControlOutbox, RegionOutbox
     from sentry.silo.base import SiloMode
 
@@ -119,7 +119,7 @@ def validate_transaction_using_for_silo_mode(using: str | None):
         )
 
 
-def patch_silo_aware_atomic():
+def patch_silo_aware_atomic() -> None:
     global _default_on_commit, _default_get_connection, _default_atomic_impl
 
     _default_atomic_impl = transaction.atomic

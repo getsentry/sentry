@@ -1,7 +1,8 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, type RouterConfig} from 'sentry-test/reactTestingLibrary';
 
 import {OnboardingLayout} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import type {
@@ -41,14 +42,16 @@ export function renderWithOnboardingLayout<
     selectedOptions = {},
   } = options;
 
-  const {organization, project, router} = initializeOrg({
-    organization: renderOptions.organization,
-    router: {
-      location: {
-        query: selectedOptions,
-      },
+  const organization = OrganizationFixture(renderOptions.organization);
+  const project = ProjectFixture({organization});
+
+  const initialRouterConfig: RouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/projects/${project.slug}/getting-started/`,
+      query: selectedOptions,
     },
-  });
+    route: `/organizations/:orgId/projects/:projectId/getting-started/`,
+  };
 
   const projectKey = 'test-project-key-id';
 
@@ -66,7 +69,7 @@ export function renderWithOnboardingLayout<
   render(
     <OnboardingLayout
       docsConfig={docsConfig}
-      projectSlug={project.slug}
+      project={project}
       dsn={{
         public: 'test-dsn',
         secret: 'test-secret',
@@ -77,17 +80,17 @@ export function renderWithOnboardingLayout<
         minidump: 'test-minidump',
         unreal: 'test-unreal',
         playstation: 'test-playstation',
+        integration: 'test-integration',
         otlp_traces: 'test-otlp_traces',
+        otlp_logs: 'test-otlp_logs',
       }}
-      platformKey="java-spring-boot"
-      projectId="test-project-id"
+      platformKey={project.platform ?? 'other'}
       activeProductSelection={selectedProducts}
       projectKeyId={projectKey}
     />,
     {
       organization,
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     }
   );
 }

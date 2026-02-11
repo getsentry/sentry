@@ -10,7 +10,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 
-describe('getIssueFieldRenderer', function () {
+describe('getIssueFieldRenderer', () => {
   let location: any,
     context: any,
     project: any,
@@ -19,10 +19,9 @@ describe('getIssueFieldRenderer', function () {
     data: any,
     user: any;
 
-  beforeEach(function () {
+  beforeEach(() => {
     context = initializeOrg({
       organization,
-      router: {},
       projects: [ProjectFixture()],
     });
     organization = context.organization;
@@ -78,7 +77,7 @@ describe('getIssueFieldRenderer', function () {
   });
 
   describe('Issue fields', () => {
-    it('can render assignee', async function () {
+    it('can render assignee', async () => {
       MemberListStore.loadInitialData([
         UserFixture({
           name: 'Test User',
@@ -113,7 +112,7 @@ describe('getIssueFieldRenderer', function () {
       expect(await screen.findByText('Assigned to Test User')).toBeInTheDocument();
     });
 
-    it('can render counts', async function () {
+    it('can render counts', async () => {
       const renderer = getIssueFieldRenderer('events', {});
 
       render(
@@ -123,16 +122,16 @@ describe('getIssueFieldRenderer', function () {
           theme,
         }) as React.ReactElement
       );
-      expect(screen.getByText('3k')).toBeInTheDocument();
-      expect(screen.getByText('6k')).toBeInTheDocument();
-      await userEvent.hover(screen.getByText('3k'));
+      expect(screen.getByText('3K')).toBeInTheDocument();
+      expect(screen.getByText('6K')).toBeInTheDocument();
+      await userEvent.hover(screen.getByText('3K'));
       expect(await screen.findByText('Total in last 7 days')).toBeInTheDocument();
       expect(screen.getByText('Matching search filters')).toBeInTheDocument();
       expect(screen.getByText('Since issue began')).toBeInTheDocument();
     });
   });
 
-  it('can render links', function () {
+  it('can render links', () => {
     const renderer = getIssueFieldRenderer('links', {});
 
     render(
@@ -145,7 +144,7 @@ describe('getIssueFieldRenderer', function () {
     expect(screen.getByText('ANNO-123')).toBeInTheDocument();
   });
 
-  it('can render multiple links', function () {
+  it('can render multiple links', () => {
     const renderer = getIssueFieldRenderer('links', {});
 
     render(

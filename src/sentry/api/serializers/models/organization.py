@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import sentry_sdk
@@ -29,14 +29,20 @@ from sentry.api.utils import generate_region_url
 from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.constants import (
-    ACCOUNT_RATE_LIMIT_DEFAULT,
     ALERTS_MEMBER_WRITE_DEFAULT,
+    ALLOW_BACKGROUND_AGENT_DELEGATION,
     ATTACHMENTS_ROLE_DEFAULT,
+    AUTO_ENABLE_CODE_REVIEW,
+    AUTO_OPEN_PRS_DEFAULT,
+    CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+    DEFAULT_CODE_REVIEW_TRIGGERS,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+    ENABLE_SEER_CODING_DEFAULT,
+    ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
     ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
@@ -46,7 +52,6 @@ from sentry.constants import (
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     METRIC_ALERTS_THREAD_DEFAULT,
-    PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
@@ -58,7 +63,6 @@ from sentry.constants import (
     ObjectStatus,
 )
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
-from sentry.dynamic_sampling.tasks.common import get_organization_volume
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.utils import (
     has_custom_dynamic_sampling,
@@ -78,6 +82,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -100,12 +105,6 @@ logger = logging.getLogger(__name__)
 # the OrganizationOption.
 OptionFeature = tuple[str, Callable[[OrganizationOption], bool]]
 ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, list[OptionFeature]] = {
-    "sentry:project-rate-limit": [
-        ("legacy-rate-limits", lambda opt: True),
-    ],
-    "sentry:account-rate-limit": [
-        ("legacy-rate-limits", lambda opt: True),
-    ],
     "quotas:new-spike-protection": [
         ("spike-projections", lambda opt: bool(opt.value)),
     ],
@@ -512,17 +511,16 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     orgRole: str
     targetSampleRate: float
     samplingMode: str
-    effectiveSampleRate: float
     planSampleRate: float
     desiredSampleRate: float
     ingestThroughTrustedRelaysOnly: bool
     enabledConsolePlatforms: list[str]
+    consoleSdkInviteQuota: int
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
 class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResponseOptional):
     experiments: Any
-    quota: Any
     isDefault: bool
     defaultRole: str  # TODO: replace with enum/literal
     availableRoles: list[Any]  # TODO: deprecated, use orgRoleList
@@ -549,10 +547,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     codecovAccess: bool
     hideAiFeatures: bool
     githubPRBot: bool
-    githubOpenPRBot: bool
     githubNudgeInvite: bool
     gitlabPRBot: bool
-    gitlabOpenPRBot: bool
     aggregatedDataConsent: bool
     genAIConsent: bool
     isDynamicallySampled: bool
@@ -564,13 +560,57 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     defaultAutofixAutomationTuning: str
     defaultSeerScannerAutomation: bool
     enablePrReviewTestGeneration: bool
+    enableSeerEnhancedAlerts: bool
+    enableSeerCoding: bool
+    allowBackgroundAgentDelegation: bool
+    autoEnableCodeReview: bool
+    autoOpenPrs: bool
+    defaultCodeReviewTriggers: list[str]
+    hasGranularReplayPermissions: bool
+    replayAccessMembers: list[int]
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
     def get_attrs(
         self, item_list: Sequence[Organization], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
-        return super().get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
+
+        replay_permissions = {}
+        has_feature = features.batch_has_for_organizations(
+            "organizations:granular-replay-permissions", item_list
+        )
+        if has_feature and any(has_feature.values()):
+            replay_permissions = {
+                opt.organization_id: opt.value
+                for opt in OrganizationOption.objects.filter(
+                    organization__in=item_list, key="sentry:granular-replay-permissions"
+                )
+            }
+
+            # Only process replay access data if replay_permissions is enabled for at least one org
+            enabled_org_ids = [org_id for org_id, enabled in replay_permissions.items() if enabled]
+            replay_access_by_org: dict[int, list[int]] = {}
+            if enabled_org_ids:
+                for org_id, user_id in OrganizationMemberReplayAccess.objects.filter(
+                    organizationmember__organization__in=enabled_org_ids
+                ).values_list("organizationmember__organization_id", "organizationmember__user_id"):
+                    if user_id is not None:
+                        replay_access_by_org.setdefault(org_id, []).append(user_id)
+
+            for item in item_list:
+                attrs[item]["replay_permissions_enabled"] = replay_permissions.get(item.id, False)
+                attrs[item]["replay_access_members"] = (
+                    replay_access_by_org.get(item.id, [])
+                    if replay_permissions.get(item.id, False)
+                    else []
+                )
+        else:
+            for item in item_list:
+                attrs[item]["replay_permissions_enabled"] = False
+                attrs[item]["replay_access_members"] = []
+
+        return attrs
 
     def serialize(  # type: ignore[override]
         self,
@@ -587,7 +627,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         base = super().serialize(
             obj, attrs, user, access=access, include_feature_flags=include_feature_flags
         )
-        max_rate = quotas.backend.get_maximum_quota(obj)
 
         is_dynamically_sampled = False
         sample_rate = None
@@ -617,24 +656,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             # TODO(epurkhiser): This can be removed once we confirm the
             # frontend does not use it
             "experiments": {},
-            "quota": {
-                "maxRate": max_rate[0],
-                "maxRateInterval": max_rate[1],
-                "accountLimit": int(
-                    OrganizationOption.objects.get_value(
-                        organization=obj,
-                        key="sentry:account-rate-limit",
-                        default=ACCOUNT_RATE_LIMIT_DEFAULT,
-                    )
-                ),
-                "projectLimit": int(
-                    OrganizationOption.objects.get_value(
-                        organization=obj,
-                        key="sentry:project-rate-limit",
-                        default=PROJECT_RATE_LIMIT_DEFAULT,
-                    )
-                ),
-            },
             "isDefault": obj.is_default,
             "defaultRole": obj.default_role,
             "availableRoles": [{"id": r.id, "name": r.name} for r in roles.get_all()],  # Deprecated
@@ -688,16 +709,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
             ),
             "githubPRBot": bool(obj.get_option("sentry:github_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)),
-            "githubOpenPRBot": bool(
-                obj.get_option("sentry:github_open_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)
-            ),
             "githubNudgeInvite": bool(
                 obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
             ),
             "gitlabPRBot": bool(obj.get_option("sentry:gitlab_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)),
-            "gitlabOpenPRBot": bool(
-                obj.get_option("sentry:gitlab_open_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)
-            ),
             "genAIConsent": bool(
                 obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
             ),
@@ -727,6 +742,39 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
                 )
             ),
+            "enableSeerEnhancedAlerts": bool(
+                obj.get_option(
+                    "sentry:enable_seer_enhanced_alerts",
+                    ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
+                )
+            ),
+            "enableSeerCoding": bool(
+                obj.get_option(
+                    "sentry:enable_seer_coding",
+                    ENABLE_SEER_CODING_DEFAULT,
+                )
+            ),
+            "autoOpenPrs": bool(
+                obj.get_option(
+                    "sentry:auto_open_prs",
+                    AUTO_OPEN_PRS_DEFAULT,
+                )
+            ),
+            "autoEnableCodeReview": bool(
+                obj.get_option(
+                    "sentry:auto_enable_code_review",
+                    AUTO_ENABLE_CODE_REVIEW,
+                )
+            ),
+            "defaultCodeReviewTriggers": obj.get_option(
+                "sentry:default_code_review_triggers", DEFAULT_CODE_REVIEW_TRIGGERS
+            ),
+            "allowBackgroundAgentDelegation": bool(
+                obj.get_option(
+                    "sentry:allow_background_agent_delegation",
+                    ALLOW_BACKGROUND_AGENT_DELEGATION,
+                )
+            ),
             "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
             "trustedRelays": [
                 # serialize trusted relays info into their external form
@@ -738,7 +786,13 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 team__organization=obj
             ).count(),
             "isDynamicallySampled": is_dynamically_sampled,
+            "hasGranularReplayPermissions": False,
+            "replayAccessMembers": [],
         }
+
+        if features.has("organizations:granular-replay-permissions", obj):
+            context["hasGranularReplayPermissions"] = bool(attrs.get("replay_permissions_enabled"))
+            context["replayAccessMembers"] = attrs.get("replay_access_members", [])
 
         if has_custom_dynamic_sampling(obj, actor=user):
             context["targetSampleRate"] = float(
@@ -754,20 +808,19 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
             )
 
-        if features.has("organizations:project-creation-games-tab", obj):
-            context["enabledConsolePlatforms"] = obj.get_option(
-                "sentry:enabled_console_platforms",
-                ENABLED_CONSOLE_PLATFORMS_DEFAULT,
-            )
+        context["enabledConsolePlatforms"] = obj.get_option(
+            "sentry:enabled_console_platforms",
+            ENABLED_CONSOLE_PLATFORMS_DEFAULT,
+        )
+
+        context["consoleSdkInviteQuota"] = obj.get_option(
+            "sentry:console_sdk_invite_quota_limit",
+            CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
+        )
 
         if access.role is not None:
             context["role"] = access.role  # Deprecated
             context["orgRole"] = access.role
-
-        if features.has("organizations:dynamic-sampling", obj):
-            org_volume = get_organization_volume(obj.id, timedelta(hours=24))
-            if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
-                context["effectiveSampleRate"] = org_volume.indexed / org_volume.total
 
         if sample_rate is not None:
             context["planSampleRate"] = sample_rate
@@ -795,6 +848,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "streamlineOnly",
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
+        "consoleSdkInviteQuota",
+        "hasGranularReplayPermissions",
+        "replayAccessMembers",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(

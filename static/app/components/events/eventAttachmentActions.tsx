@@ -1,8 +1,8 @@
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import {useRole} from 'sentry/components/acl/useRole';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {hasInlineAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {IconDelete, IconDownload, IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -32,7 +32,7 @@ function EventAttachmentActions({
   const hasPreview = hasInlineAttachmentRenderer(attachment);
 
   return (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       {withPreviewButton && (
         <Button
           size="xs"
@@ -82,7 +82,7 @@ function EventAttachmentActions({
           }
         />
       </Confirm>
-    </ButtonBar>
+    </Grid>
   );
 }
 

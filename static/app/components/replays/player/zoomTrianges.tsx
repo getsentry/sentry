@@ -59,5 +59,5 @@ const ZoomTriangleDown = styled('div')`
   height: 0;
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
-  border-top: 4px solid ${p => p.theme.gray500};
+  border-top: 4px solid ${p => p.theme.colors.gray800};
 `;

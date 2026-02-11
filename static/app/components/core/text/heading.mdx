@@ -1,7 +1,8 @@
 ---
 title: Heading
 description: Heading components display semantic heading elements with appropriate typography and styling controls.
-source: 'sentry/components/core/text'
+category: typography
+source: '@sentry/scraps/text'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/text/heading.tsx
   a11y:
@@ -14,12 +15,14 @@ resources:
     WCAG 2.4.6: https://www.w3.org/TR/WCAG22/#headings-and-labels
 ---
 
-import {Heading} from 'sentry/components/core/text';
+import {Container} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+
 import * as Storybook from 'sentry/stories';
 
-import types from '!!type-loader!sentry/components/core/text/heading';
+import documentation from '!!type-loader!@sentry/scraps/text/heading';
 
-export {types};
+export {documentation};
 
 The `<Heading>` component creates semantic heading elements with appropriate default sizes and styling. It ensures proper heading hierarchy while providing visual consistency.
 
@@ -29,7 +32,7 @@ The `<Heading>` component creates semantic heading elements with appropriate def
 <Heading as="h3">Subsection Title</Heading>
 ```
 
-### Semantic Heading Levels
+## Semantic Heading Levels
 
 Use the required `as` prop to specify the semantic heading level. Each level has a default size that follows standard typography hierarchy.
 
@@ -52,14 +55,16 @@ Use the required `as` prop to specify the semantic heading level. Each level has
 <Heading as="h6">Heading 6</Heading>
 ```
 
-### Custom Sizes
+## Custom Sizes
 
 Override the default size with the `size` prop to decouple visual appearance from semantic meaning.
 
+Heading supports up to `4xl` as opposed to [Text](/stories/core/text/) which only allows `2xl`.
+
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
-    <Heading as="h3" size="2xl">
-      H3 with 2xl size
+    <Heading as="h2" size="4xl">
+      H2 with 4xl size
     </Heading>
     <Heading as="h1" size="md">
       H1 with medium size
@@ -67,11 +72,17 @@ Override the default size with the `size` prop to decouple visual appearance fro
     <Heading as="h5" size="xl">
       H5 with extra large size
     </Heading>
+    <Heading as="h3" size="3xl">
+      H3 with 3xl size
+    </Heading>
+    <Heading as="h6" size={{md: 'xs', lg: 'xl'}}>
+      H6 with responsive size
+    </Heading>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
-<Heading as="h3" size="2xl">
-  H3 with 2xl size
+<Heading as="h2" size="4xl">
+  H2 with 4xl size
 </Heading>
 <Heading as="h1" size="md">
   H1 with medium size
@@ -79,9 +90,15 @@ Override the default size with the `size` prop to decouple visual appearance fro
 <Heading as="h5" size="xl">
   H5 with extra large size
 </Heading>
+<Heading as="h3" size="3xl">
+  H3 with 3xl size
+</Heading>
+<Heading as="h6" size={{md: 'xs', lg: 'xl'}}>
+  H6 with responsive size
+</Heading>
 ```
 
-### Variants
+## Variants
 
 Headings support various color variants: `primary` (default), `muted`, `accent`, `success`, `warning`, `danger`, and `promotion`.
 
@@ -134,9 +151,9 @@ Headings support various color variants: `primary` (default), `muted`, `accent`,
 </Heading>
 ```
 
-### Typography Features
+## Typography Features
 
-Headings support various typography options including italic, underline, strikethrough, and uppercase.
+Headings support various typography options including italic, underline and strikethrough.
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
@@ -148,9 +165,6 @@ Headings support various typography options including italic, underline, striket
     </Heading>
     <Heading as="h3" strikethrough>
       Strikethrough heading
-    </Heading>
-    <Heading as="h3" uppercase>
-      Uppercase heading
     </Heading>
     <Heading as="h3" italic underline>
       Italic underlined heading
@@ -167,15 +181,12 @@ Headings support various typography options including italic, underline, striket
 <Heading as="h3" strikethrough>
   Strikethrough heading
 </Heading>
-<Heading as="h3" uppercase>
-  Uppercase heading
-</Heading>
 <Heading as="h3" italic underline>
   Italic underlined heading
 </Heading>
 ```
 
-### Text Alignment
+## Text Alignment
 
 Control text alignment with the `align` prop: `left` (default), `center`, `right`, or `justify`.
 
@@ -210,26 +221,24 @@ Control text alignment with the `align` prop: `left` (default), `center`, `right
 </Heading>
 ```
 
-### Ellipsis Overflow
+## Ellipsis Overflow
 
 Handle text overflow with the `ellipsis` prop to truncate long headings with an ellipsis.
 
 <Storybook.Demo>
-  <div style={{width: '200px', border: '1px solid #ccc', padding: '8px'}}>
+  <Container width="200px" border="primary" padding="md">
     <Heading as="h4" ellipsis>
       This is a very long heading that will be truncated
     </Heading>
-  </div>
+  </Container>
 </Storybook.Demo>
 ```jsx
-<div style={{width: '200px'}}>
-  <Heading as="h4" ellipsis>
-    This is a very long heading that will be truncated
-  </Heading>
-</div>
+<Heading as="h4" ellipsis>
+  This is a very long heading that will be truncated
+</Heading>
 ```
 
-### Monospace
+## Monospace
 
 Use `monospace` for fixed-width headings, useful for code-related content.
 
@@ -247,3 +256,33 @@ Use `monospace` for fixed-width headings, useful for code-related content.
   API Response Format
 </Heading>
 ```
+
+## Responsive Sizes
+
+Headings support responsive sizes using breakpoint objects. Breakpoints are: `xs`, `sm`, `md`, `lg`, `xl`, `2xl`.
+
+<Storybook.Demo>
+  <Container width="400px" border="primary">
+    <Heading
+      as="h4"
+      size={{xs: 'xs', sm: 'sm', md: 'md', lg: 'lg', xl: 'xl'}}
+      align={{xs: 'left', sm: 'center', md: 'right', lg: 'justify', xl: 'left'}}
+    >
+      Responsive heading
+    </Heading>
+  </Container>
+</Storybook.Demo>
+```jsx
+<Heading
+  as="h4"
+  size={{xs: 'xs', sm: 'sm', md: 'md', lg: 'lg', xl: 'xl'}}
+  align={{xs: 'left', sm: 'center', md: 'right', lg: 'justify', xl: 'left'}}
+>
+  Responsive heading
+</Heading>
+```
+
+## See Also
+
+- [Text](/stories/core/text/) - Related component for body text
+- [Prose](/stories/core/prose/) - Related component for long-form content

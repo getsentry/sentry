@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ExceptionValue} from 'sentry/types/event';
@@ -62,7 +63,7 @@ function ExceptionLink({exception, link, onExceptionClick}: ExceptionLinkProps) 
         // Schedule the scroll event for next render because it may not be visible until expanded
         setTimeout(() => {
           const linkedElement = document.getElementById(`exception-${exceptionId}`);
-          linkedElement?.scrollIntoView?.({behavior: 'smooth'});
+          linkedElement?.scrollIntoView?.({behavior: 'smooth', block: 'center'});
         }, 0);
       }}
     >
@@ -179,10 +180,10 @@ export function RelatedExceptions({
 }
 
 const Heading = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.md};
   margin: ${space(1)} 0 ${space(0.5)} 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledPre = styled('pre')`
@@ -212,5 +213,5 @@ const Circle = styled('div')`
   border-radius: 50%;
   height: 12px;
   width: 12px;
-  border: 1px solid ${p => p.theme.textColor};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
 `;

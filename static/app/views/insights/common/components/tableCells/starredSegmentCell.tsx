@@ -1,10 +1,12 @@
-import {Button} from 'sentry/components/core/button';
+import type {Simplify} from 'type-fest';
+
+import {Button} from '@sentry/scraps/button';
+
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FlexContainer} from 'sentry/utils/discover/styles';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import type {Flatten} from 'sentry/utils/types/flatten';
 import useProjects from 'sentry/utils/useProjects';
 import {useStarredSegment} from 'sentry/views/insights/common/utils/useStarredSegment';
 import type {SpanResponse} from 'sentry/views/insights/types';
@@ -15,11 +17,11 @@ interface Props {
   segmentName: string;
 }
 
-type TableRow = Flatten<
+type TableRow = Simplify<
   Partial<SpanResponse> & Pick<SpanResponse, 'is_starred_transaction' | 'transaction'>
 >;
 
-type TableResponse = [{confidence: any; data: TableRow[]; meta: EventsMetaType}];
+type TableResponse = [{confidence: any; meta: EventsMetaType; data?: TableRow[]}];
 
 // The query key used for the starred segments table request, this key is used to reference that query and update the starred segment state
 export const STARRED_SEGMENT_TABLE_QUERY_KEY = ['starred-segment-table'];
@@ -37,22 +39,47 @@ export function StarredSegmentCell({segmentName, isStarred, projectSlug}: Props)
 
   const disabled = !project || !segmentName || isPending;
 
-  // Updates the corresponding table data with starred segments, this triggers a state update which stars the segment in the ui
   const updateTableData = (newIsStarred: boolean) => {
     queryClient.setQueriesData(
       {queryKey: STARRED_SEGMENT_TABLE_QUERY_KEY},
-      (oldResponse: TableResponse): TableResponse => {
-        const oldTableData = oldResponse[0]?.data || [];
-        const newData = oldTableData.map((row): TableRow => {
-          if (row.transaction === segmentName) {
-            return {
-              ...row,
-              is_starred_transaction: newIsStarred,
-            };
-          }
-          return row;
-        });
-        return [{...oldResponse[0], data: newData}];
+      (oldResponse: TableResponse | any): TableResponse | any => {
+        if (!oldResponse) {
+          return oldResponse;
+        }
+
+        // Handles `useSpans` format: [{confidence, meta, data}]
+        if (oldResponse?.[0]?.data && !oldResponse?.[1]) {
+          const oldTableData = oldResponse[0].data || [];
+          const newData = oldTableData.map((row: TableRow): TableRow => {
+            if (row.transaction === segmentName) {
+              return {
+                ...row,
+                is_starred_transaction: newIsStarred,
+              };
+            }
+            return row;
+          });
+          return [{...oldResponse[0], data: newData}];
+        }
+
+        // Handles `useSpansWidgetQuery` format: [responseData, headers, responseMeta]
+        // TODO: unify the format of the response data
+        if (oldResponse?.[0]?.data && oldResponse?.[1]) {
+          const responseData = oldResponse[0];
+          const oldTableData = responseData.data || [];
+          const newData = oldTableData.map((row: TableRow): TableRow => {
+            if (row.transaction === segmentName) {
+              return {
+                ...row,
+                is_starred_transaction: newIsStarred,
+              };
+            }
+            return row;
+          });
+          return [{...responseData, data: newData}, oldResponse[1], oldResponse[2]];
+        }
+
+        return oldResponse;
       }
     );
   };
@@ -67,11 +94,11 @@ export function StarredSegmentCell({segmentName, isStarred, projectSlug}: Props)
       <Button
         onClick={toggleStarredTransaction}
         disabled={disabled}
-        borderless
+        priority="transparent"
         size="zero"
         icon={
           <IconStar
-            color={isStarred ? 'yellow300' : 'gray200'}
+            variant={isStarred ? 'warning' : 'muted'}
             isSolid={isStarred}
             data-test-id="starred-transaction-column"
           />

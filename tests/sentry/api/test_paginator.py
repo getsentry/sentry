@@ -1,3 +1,4 @@
+import base64
 from datetime import UTC, datetime, timedelta
 from unittest import TestCase as SimpleTestCase
 
@@ -5,6 +6,8 @@ import pytest
 from django.db.models import DateTimeField, IntegerField, OuterRef, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.utils import timezone
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, TraceItemFilter
 from snuba_sdk import (
     Column,
     Condition,
@@ -25,6 +28,7 @@ from sentry.api.paginator import (
     CombinedQuerysetIntermediary,
     CombinedQuerysetPaginator,
     DateTimePaginator,
+    EAPPageTokenPaginator,
     GenericOffsetPaginator,
     OffsetPaginator,
     Paginator,
@@ -560,16 +564,15 @@ class GenericOffsetPaginatorTest(SimpleTestCase):
 
 class CombinedQuerysetPaginatorTest(APITestCase):
     def test_simple(self) -> None:
-        project = self.project
         Rule.objects.all().delete()
 
         alert_rule0 = self.create_alert_rule(name="alertrule0")
         alert_rule1 = self.create_alert_rule(name="alertrule1")
-        rule1 = Rule.objects.create(label="rule1", project=project)
+        rule1 = self.create_project_rule(name="rule1")
         alert_rule2 = self.create_alert_rule(name="alertrule2")
         alert_rule3 = self.create_alert_rule(name="alertrule3")
-        rule2 = Rule.objects.create(label="rule2", project=project)
-        rule3 = Rule.objects.create(label="rule3", project=project)
+        rule2 = self.create_project_rule(name="rule2")
+        rule3 = self.create_project_rule(name="rule3")
 
         alert_rule_intermediary = CombinedQuerysetIntermediary(
             AlertRule.objects.all(), ["date_added"]
@@ -650,12 +653,11 @@ class CombinedQuerysetPaginatorTest(APITestCase):
             )
 
     def test_only_issue_alert_rules(self) -> None:
-        project = self.project
         Rule.objects.all().delete()
         rule_ids = []
 
         for i in range(1, 9):
-            rule = Rule.objects.create(id=i, label=f"rule{i}", project=project)
+            rule = self.create_project_rule(name=f"rule{i}")
             rule_ids.append(rule.id)
 
         rules = Rule.objects.all()
@@ -754,7 +756,6 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         assert result == page1_results
 
     def test_issue_and_metric_alert_rules(self) -> None:
-        project = self.project
         AlertRule.objects.all().delete()
         Rule.objects.all().delete()
         alert_rule_ids = []
@@ -763,7 +764,7 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         for i in range(1, 4):
             alert_rule = self.create_alert_rule(name=f"alertrule{i}")
             alert_rule_ids.append(alert_rule.id)
-            rule = Rule.objects.create(id=i, label=f"rule{i}", project=project)
+            rule = self.create_project_rule(name=f"rule{i}")
             rule_ids.append(rule.id)
 
         metric_alert_rules = AlertRule.objects.all()
@@ -815,7 +816,7 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         result = paginator.get_result(limit=5, cursor=next_cursor)
         page2_results = list(result)
         assert len(result) == 1
-        assert page2_results[0].id == 3
+        assert page2_results[0].id == rule_ids[2]
 
         prev_cursor = result.prev
         result = list(paginator.get_result(limit=5, cursor=prev_cursor))
@@ -955,3 +956,60 @@ class CallbackPaginatorTest(APITestCase, SnubaTestCase):
         assert third_page.next.has_results is False
         assert third_page.prev.offset == 1
         assert third_page.prev.has_results
+
+
+class TestEAPPageTokenPaginator:
+    cls = EAPPageTokenPaginator
+
+    def test_first_page_empty(self) -> None:
+        def data_fn(limit, page_token):
+            return {
+                "data": [],
+                "page_token": PageToken(end_pagination=True),
+            }
+
+        paginator = self.cls(data_fn=data_fn)
+        page = paginator.get_result(limit=3, cursor=None)
+        assert page["data"] == []
+        assert page.prev.has_results is False
+        assert page.next.has_results is False
+
+    def test_first_page_all_data(self) -> None:
+        def data_fn(limit, page_token):
+            return {
+                "data": [1, 2, 3],
+                "page_token": PageToken(end_pagination=True),
+            }
+
+        paginator = self.cls(data_fn=data_fn)
+        page = paginator.get_result(limit=3, cursor=None)
+        assert page["data"] == [1, 2, 3]
+        assert page.prev.has_results is False
+        assert page.next.has_results is False
+
+    def test_first_page_partial_data(self) -> None:
+        expected_page_token = PageToken(filter_offset=TraceItemFilter(and_filter=AndFilter()))
+
+        def data_fn(limit, page_token):
+            if page_token is None:
+                return {
+                    "data": [1, 2, 3],
+                    "page_token": expected_page_token,
+                }
+
+            return {
+                "data": [4, 5],
+                "page_token": PageToken(end_pagination=True),
+            }
+
+        paginator = self.cls(data_fn=data_fn)
+        page = paginator.get_result(limit=3, cursor=None)
+        assert page["data"] == [1, 2, 3]
+        assert page.prev.has_results is False
+        assert page.next.has_results is True
+
+        actual_page_token = PageToken()
+        actual_page_token.ParseFromString(base64.b64decode(page.next.value.encode("utf-8")))
+        assert actual_page_token == expected_page_token
+
+        page = paginator.get_result(limit=3, cursor=page.next)

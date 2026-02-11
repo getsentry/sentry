@@ -5,12 +5,11 @@ from uuid import uuid4
 from django.urls import reverse
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.testutils.cases import APITestCase, BaseSpansTestCase
+from sentry.testutils.cases import APITestCase, BaseSpansTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
-class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
-    is_eap = False
+class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITestCase):
     view = "sentry-api-0-organization-spans-fields"
 
     def setUp(self) -> None:
@@ -20,6 +19,13 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
     def do_request(self, query=None, features=None, **kwargs):
         if features is None:
             features = ["organizations:performance-trace-explorer"]
+
+        if query is None:
+            query = {}
+        query["dataset"] = "spans"
+        if "type" not in query:
+            query["type"] = "string"
+
         with self.feature(features):
             return self.client.get(
                 reverse(
@@ -54,67 +60,6 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={tag: tag},
-                is_eap=self.is_eap,
-            )
-
-        for features in [
-            None,  # use the default features
-            ["organizations:performance-trace-explorer"],
-        ]:
-            response = self.do_request(features=features)
-            assert response.status_code == 200, response.data
-            assert sorted(
-                response.data,
-                key=itemgetter("key"),
-            ) == sorted(
-                [
-                    {"key": "bar", "name": "Bar"},
-                    {"key": "baz", "name": "Baz"},
-                    {"key": "foo", "name": "Foo"},
-                ],
-                key=itemgetter("key"),
-            )
-
-
-class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
-    is_eap = True
-
-    def do_request(self, query=None, features=None, **kwargs):
-        if features is None:
-            features = ["organizations:performance-trace-explorer"]
-
-        if query is None:
-            query = {}
-        query["dataset"] = "spans"
-        if "type" not in query:
-            query["type"] = "string"
-
-        with self.feature(features):
-            return self.client.get(
-                reverse(
-                    self.view,
-                    kwargs={"organization_id_or_slug": self.organization.slug},
-                ),
-                query,
-                format="json",
-                **kwargs,
-            )
-
-    def test_tags_list_str(self) -> None:
-        for tag in ["foo", "bar", "baz"]:
-            self.store_segment(
-                self.project.id,
-                uuid4().hex,
-                uuid4().hex,
-                span_id=uuid4().hex[:16],
-                organization_id=self.organization.id,
-                parent_span_id=None,
-                timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-                transaction="foo",
-                duration=100,
-                exclusive_time=100,
-                tags={tag: tag},
-                is_eap=self.is_eap,
             )
 
         for features in [
@@ -164,7 +109,6 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
                 duration=100,
                 exclusive_time=100,
                 measurements={tag: 0},
-                is_eap=self.is_eap,
             )
 
         for features in [
@@ -197,9 +141,30 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
                 {"key": "span.duration", "name": "span.duration"},
             ]
 
+    def test_boolean_attributes(self) -> None:
+        span1 = self.create_span(start_ts=before_now(days=0, minutes=10))
+        span1["data"] = {
+            "is_feature_enabled": True,
+            "is_debug": False,
+        }
+        span2 = self.create_span(start_ts=before_now(days=0, minutes=10))
+        span2["data"] = {
+            "is_feature_enabled": False,
+            "is_production": True,
+        }
+        self.store_spans([span1, span2])
+
+        response = self.do_request(
+            query={"dataset": "spans", "type": "boolean"},
+        )
+        assert response.status_code == 200, response.data
+        keys = {item["key"] for item in response.data}
+        assert "tags[is_feature_enabled,boolean]" in keys
+        assert "tags[is_debug,boolean]" in keys
+        assert "tags[is_production,boolean]" in keys
+
 
 class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
-    is_eap = False
     view = "sentry-api-0-organization-spans-fields-values"
 
     def setUp(self) -> None:
@@ -209,6 +174,12 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
     def do_request(self, key: str, query=None, features=None, **kwargs):
         if features is None:
             features = ["organizations:performance-trace-explorer"]
+
+        if query is None:
+            query = {}
+        query["dataset"] = "spans"
+        query["type"] = "string"
+
         with self.feature(features):
             return self.client.get(
                 reverse(
@@ -247,7 +218,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=self.is_eap,
             )
 
         response = self.do_request("tag")
@@ -293,7 +263,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 transaction=transaction,
                 duration=100,
                 exclusive_time=100,
-                is_eap=self.is_eap,
             )
 
         key = "transaction"
@@ -341,7 +310,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 transaction=transaction,
                 duration=100,
                 exclusive_time=100,
-                is_eap=self.is_eap,
             )
 
         key = "transaction"
@@ -381,7 +349,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 transaction=transaction,
                 duration=100,
                 exclusive_time=100,
-                is_eap=self.is_eap,
             )
 
         key = "transaction"
@@ -422,7 +389,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=self.is_eap,
             )
 
         key = "tag"
@@ -471,7 +437,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=self.is_eap,
             )
 
         key = "tag"
@@ -512,7 +477,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=self.is_eap,
             )
 
         key = "tag"
@@ -553,7 +517,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=self.is_eap,
             )
 
         for key in [
@@ -587,7 +550,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
 
         features = [
             "organizations:performance-trace-explorer",
-            "organizations:global-views",
         ]
 
         for key in ["project", "project.name"]:
@@ -706,7 +668,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 timestamp=timestamp,
                 transaction="foo",
                 status=status,
-                is_eap=self.is_eap,
             )
 
         response = self.do_request("span.status")
@@ -811,11 +772,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
         "sentry.api.endpoints.organization_spans_fields.EAPSpanFieldValuesAutocompletionExecutor.execute",
         side_effect=InvalidSearchQuery,
     )
-    @mock.patch(
-        "sentry.api.endpoints.organization_spans_fields.SpanFieldValuesAutocompletionExecutor.execute",
-        side_effect=InvalidSearchQuery,
-    )
-    def test_invalid_query(self, mock_executor_1, mock_executor_2):
+    def test_invalid_query(self, mock_executor: mock.MagicMock) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         self.store_segment(
             self.project.id,
@@ -829,38 +786,10 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             duration=100,
             exclusive_time=100,
             tags={"tag": "foo"},
-            is_eap=self.is_eap,
         )
 
         response = self.do_request("tag")
         assert response.status_code == 400, response.data
-
-
-class OrganizationEAPSpansTagKeyValuesEndpointTest(OrganizationSpansTagKeyValuesEndpointTest):
-    is_eap = True
-
-    def do_request(self, key: str, query=None, features=None, **kwargs):
-        if features is None:
-            features = ["organizations:performance-trace-explorer"]
-
-        if query is None:
-            query = {}
-        query["dataset"] = "spans"
-        query["type"] = "string"
-
-        with self.feature(features):
-            return self.client.get(
-                reverse(
-                    self.view,
-                    kwargs={
-                        "organization_id_or_slug": self.organization.slug,
-                        "key": key,
-                    },
-                ),
-                query,
-                format="json",
-                **kwargs,
-            )
 
     def test_boolean_autocomplete(self) -> None:
         keys = ["is_transaction"]

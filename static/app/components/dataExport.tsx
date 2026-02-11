@@ -1,9 +1,10 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import debounce from 'lodash/debounce';
 
+import {Button} from '@sentry/scraps/button';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -12,6 +13,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 export enum ExportQueryType {
   ISSUES_BY_TAG = 'Issues-by-Tag',
   DISCOVER = 'Discover',
+  EXPLORE = 'Explore',
 }
 
 interface DataExportPayload {
@@ -24,6 +26,9 @@ interface DataExportProps {
   children?: React.ReactNode;
   disabled?: boolean;
   icon?: React.ReactNode;
+  onClick?: () => void;
+  overrideFeatureFlags?: boolean;
+  size?: 'xs' | 'sm' | 'md';
 }
 
 export function useDataExport({
@@ -94,6 +99,9 @@ function DataExport({
   disabled,
   payload,
   icon,
+  size = 'sm',
+  overrideFeatureFlags,
+  onClick,
 }: DataExportProps): React.ReactElement {
   const unmountedRef = useRef(false);
   const [inProgress, setInProgress] = useState(false);
@@ -123,11 +131,16 @@ function DataExport({
     };
   }, []);
 
+  const handleClick = () => {
+    debounce(handleDataExport, 500)();
+    onClick?.();
+  };
+
   return (
-    <Feature features="organizations:discover-query">
+    <Feature features={overrideFeatureFlags ? [] : 'organizations:discover-query'}>
       {inProgress ? (
         <Button
-          size="sm"
+          size={size}
           priority="default"
           title={t(
             "You can get on with your life. We'll email you when your data's ready."
@@ -139,9 +152,9 @@ function DataExport({
         </Button>
       ) : (
         <Button
-          onClick={debounce(handleDataExport, 500)}
+          onClick={handleClick}
           disabled={disabled || false}
-          size="sm"
+          size={size}
           priority="default"
           title={t(
             "Put your data to work. Start your export and we'll email you when it's finished."

@@ -15,56 +15,13 @@ export default Storybook.story('Breadcrumbs', story => {
         <Breadcrumbs
           crumbs={[
             {label: 'Organization', to: '/organizations/sentry/'},
-            {label: 'Projects', to: '/organizations/sentry/projects/'},
-            {label: 'Project Settings', to: '/settings/projects/javascript/'},
-            {label: 'General', to: null},
-          ]}
-        />
-      </Storybook.SizingWindow>
-    </Fragment>
-  ));
-
-  story('With Last Item Linked', () => (
-    <Fragment>
-      <p>
-        Set <Storybook.JSXProperty name="linkLastItem" value /> to make the last
-        breadcrumb clickable.
-      </p>
-      <Storybook.SizingWindow display="block">
-        <Breadcrumbs
-          linkLastItem
-          crumbs={[
-            {label: 'Organization', to: '/organizations/sentry/'},
-            {label: 'Projects', to: '/organizations/sentry/projects/'},
-            {label: 'All Projects', to: '/organizations/sentry/projects/all/'},
-          ]}
-        />
-      </Storybook.SizingWindow>
-    </Fragment>
-  ));
-
-  story('With Dropdown', () => (
-    <Fragment>
-      <p>
-        Breadcrumbs can include dropdown menus for selecting between multiple options.
-      </p>
-      <Storybook.SizingWindow display="block" style={{minHeight: '250px'}}>
-        <Breadcrumbs
-          crumbs={[
-            {label: 'Organization', to: '/organizations/sentry/'},
+            {label: 'Projects'},
             {
-              label: 'Select Project',
-              items: [
-                {index: 0, value: 'javascript', label: 'JavaScript Project'},
-                {index: 1, value: 'python', label: 'Python Project'},
-                {index: 2, value: 'react', label: 'React Project'},
-              ],
-              onSelect: item => {
-                // eslint-disable-next-line no-console
-                console.log('Selected:', item);
-              },
+              label: 'Project Settings',
+              to: '/settings/projects/javascript/',
+              preservePageFilters: true,
             },
-            {label: 'Settings', to: null},
+            {label: 'General', to: null},
           ]}
         />
       </Storybook.SizingWindow>
@@ -115,7 +72,8 @@ export default Storybook.story('Breadcrumbs', story => {
           ],
           [
             {
-              label: 'longlonglonglonglonglonglonglonglonglonglonglonglonglonglong',
+              label:
+                'A Very Long Project Name Here That Will Be Truncated Because It Is Too Long',
               to: '/org/',
             },
             {label: 'Very Long Project Name Here', to: '/project/'},

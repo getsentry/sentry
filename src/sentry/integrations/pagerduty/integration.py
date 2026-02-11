@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
-from typing import Any
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any, TypedDict
 
 import orjson
 from django.db import router, transaction
@@ -73,6 +73,23 @@ metadata = IntegrationMetadata(
 )
 
 
+class PagerDutyOrganizationConfig(TypedDict):
+    name: str
+    type: str
+    label: str
+    help: str
+    addButtonText: str
+    columnLabels: dict[str, str]
+    columnKeys: list[str]
+    confirmDeleteMessage: str
+
+
+class PagerDutyServiceConfig(TypedDict):
+    service: str
+    integration_key: str
+    id: int
+
+
 class PagerDutyIntegration(IntegrationInstallation):
     def get_keyring_client(self, keyid: int | str) -> PagerDutyClient:
         org_integration = self.org_integration
@@ -89,11 +106,11 @@ class PagerDutyIntegration(IntegrationInstallation):
             integration_id=org_integration.integration_id, integration_key=integration_key
         )
 
-    def get_client(self):
+    def get_client(self) -> None:
         raise NotImplementedError("Use get_keyring_client instead.")
 
-    def get_organization_config(self):
-        fields = [
+    def get_organization_config(self) -> list[PagerDutyOrganizationConfig]:
+        return [
             {
                 "name": "service_table",
                 "type": "table",
@@ -106,9 +123,7 @@ class PagerDutyIntegration(IntegrationInstallation):
             }
         ]
 
-        return fields
-
-    def update_organization_config(self, data):
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
         if "service_table" in data:
             service_rows = data["service_table"]
             # validate fields
@@ -149,17 +164,20 @@ class PagerDutyIntegration(IntegrationInstallation):
                     key = row["integration_key"]
                     add_service(oi, integration_key=key, service_name=service_name)
 
-    def get_config_data(self):
+    def get_config_data(self) -> Mapping[str, list[PagerDutyServiceConfig]]:
         service_list = []
         for s in self.services:
             service_list.append(
-                {
-                    "service": s["service_name"],
-                    "integration_key": s["integration_key"],
-                    "id": s["id"],
-                }
+                PagerDutyServiceConfig(
+                    service=s["service_name"],
+                    integration_key=s["integration_key"],
+                    id=s["id"],
+                )
             )
         return {"service_table": service_list}
+
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["domain_name"]
 
     @property
     def services(self) -> list[PagerDutyServiceDict]:
@@ -194,7 +212,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
                     integration=integration, organization_id=organization.id
                 )
             except OrganizationIntegration.DoesNotExist:
-                logger.exception("The PagerDuty post_install step failed.")
+                logger.warning("The PagerDuty post_install step failed.")
                 return
 
             with transaction.atomic(router.db_for_write(OrganizationIntegration)):
@@ -220,7 +238,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
 
 
 class PagerDutyInstallationRedirect:
-    def get_app_url(self, account_name=None):
+    def get_app_url(self, account_name: str | None = None) -> str:
         if not account_name:
             account_name = "app"
 

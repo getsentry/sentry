@@ -1,9 +1,10 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {
@@ -196,7 +197,7 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
               size="xs"
               title={t('Clear password')}
               aria-label={t('Clear password')}
-              borderless
+              priority="transparent"
             />
           )}
         </FieldGroup>
@@ -262,8 +263,7 @@ const StyledSelectField = styled(SelectField)`
 `;
 
 const PasswordInput = styled(Input)`
-  padding-right: ${p =>
-    p.theme.formPadding.md.paddingRight + CLEAR_PASSWORD_BUTTON_SIZE}px;
+  padding-right: ${p => p.theme.form.md.paddingRight + CLEAR_PASSWORD_BUTTON_SIZE}px;
 `;
 
 const ClearPasswordButton = styled(Button)`
@@ -276,7 +276,7 @@ const ClearPasswordButton = styled(Button)`
   right: ${space(0.75)};
   transform: translateY(-50%);
   svg {
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.colors.gray500};
     :hover {
       color: hsl(0, 0%, 60%);
     }

@@ -5,7 +5,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class ProjectStatsDocs(APIDocsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.create_event("a", message="oh no")
         self.create_event("b", message="oh no")
 
@@ -19,7 +19,7 @@ class ProjectStatsDocs(APIDocsTestCase):
 
         self.login_as(user=self.user)
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
 

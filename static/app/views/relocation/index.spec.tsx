@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -15,8 +14,8 @@ IAxCAaGQJVsg9dhKOORjAf4XK9aXHvy/jUSyT43opj6AgNqXlKEQjb1NBA8qbJJS
 8wIDAQAB
 -----END PUBLIC KEY-----`;
 
-describe('Relocation Onboarding Container', function () {
-  beforeEach(function () {
+describe('Relocation Onboarding Container', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/publickeys/relocations/',
@@ -30,15 +29,15 @@ describe('Relocation Onboarding Container', function () {
     });
   });
 
-  it('should render if feature enabled', async function () {
-    const {routerProps, organization} = initializeOrg({
-      router: {
-        params: {step: 'get-started'},
-      },
-    });
+  it('should render if feature enabled', async () => {
     ConfigStore.set('features', new Set(['relocation:enabled']));
-    render(<RelocationOnboardingContainer {...routerProps} />, {
-      organization,
+    render(<RelocationOnboardingContainer />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/relocation/get-started/',
+        },
+        route: '/relocation/:step/',
+      },
     });
     expect(
       await screen.findByText(/Choose where to store your organization's data/)
@@ -48,15 +47,15 @@ describe('Relocation Onboarding Container', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('should not render if feature disabled', async function () {
-    const {routerProps, organization} = initializeOrg({
-      router: {
-        params: {step: 'get-started'},
-      },
-    });
+  it('should not render if feature disabled', async () => {
     ConfigStore.set('features', new Set([]));
-    render(<RelocationOnboardingContainer {...routerProps} />, {
-      organization,
+    render(<RelocationOnboardingContainer />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/relocation/get-started/',
+        },
+        route: '/relocation/:step/',
+      },
     });
     expect(
       await screen.findByText("You don't have access to this feature")

@@ -12,11 +12,11 @@ import type {
   MultiSeriesEventsStats,
   OrganizationSummary,
 } from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {LocationQuery} from 'sentry/utils/discover/eventView';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
-import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import type {
   ApiQueryKey,
   UseApiQueryOptions,
@@ -42,6 +42,7 @@ type Options = {
   end?: DateString;
   environment?: readonly string[];
   excludeOther?: boolean;
+  extrapolationMode?: string;
   field?: string[];
   generatePathname?: (org: OrganizationSummary) => string;
   includePrevious?: boolean;
@@ -51,8 +52,7 @@ type Options = {
   period?: string | null;
   project?: readonly number[];
   query?: string;
-  queryBatching?: QueryBatching;
-  queryExtras?: Record<string, string | boolean | number>;
+  queryExtras?: Record<string, string | boolean | number | string[]>;
   referrer?: string;
   sampling?: SamplingMode;
   start?: DateString;
@@ -80,7 +80,6 @@ export type EventsStatsOptions<T extends boolean> = {includeAllArgs: T} & Option
  * @param {Boolean} options.includePrevious Should request also return reqsults for previous period?
  * @param {Number} options.limit The number of rows to return
  * @param {String} options.query Search query
- * @param {QueryBatching} options.queryBatching A container for batching functions from a provider
  * @param {Record<string, string>} options.queryExtras A list of extra query parameters
  * @param {(org: OrganizationSummary) => string} options.generatePathname A function that returns an override for the pathname
  */
@@ -105,13 +104,13 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean>(
     partial,
     withoutZerofill,
     referrer,
-    queryBatching,
     generatePathname,
     queryExtras,
     excludeOther,
     includeAllArgs,
     dataset,
     sampling,
+    extrapolationMode,
   }: EventsStatsOptions<IncludeAllArgsType>
 ): IncludeAllArgsType extends true
   ? Promise<ApiResult<EventsStats | MultiSeriesEventsStats>>
@@ -139,6 +138,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean>(
       excludeOther: excludeOther ? '1' : undefined,
       dataset,
       sampling,
+      extrapolationMode,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
@@ -155,10 +155,6 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean>(
       ...queryExtras,
     },
   };
-
-  if (queryBatching?.batchRequest) {
-    return queryBatching.batchRequest(api, pathname, queryObject);
-  }
 
   return api.requestPromise<IncludeAllArgsType>(pathname, queryObject);
 };
@@ -247,7 +243,16 @@ const makeFetchEventAttachmentsQueryKey = ({
   projectSlug,
   eventId,
 }: FetchEventAttachmentParameters): ApiQueryKey => [
-  `/projects/${orgSlug}/${projectSlug}/events/${eventId}/attachments/`,
+  getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/attachments/',
+    {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        projectIdOrSlug: projectSlug!,
+        eventId,
+      },
+    }
+  ),
 ];
 
 export const useFetchEventAttachments = (
@@ -298,7 +303,17 @@ export const useDeleteEventAttachmentOptimistic = (
     ...incomingOptions,
     mutationFn: ({orgSlug, projectSlug, eventId, attachmentId}) => {
       return api.requestPromise(
-        `/projects/${orgSlug}/${projectSlug}/events/${eventId}/attachments/${attachmentId}/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/attachments/$attachmentId/',
+          {
+            path: {
+              organizationIdOrSlug: orgSlug,
+              projectIdOrSlug: projectSlug,
+              eventId,
+              attachmentId,
+            },
+          }
+        ),
         {method: 'DELETE'}
       );
     },

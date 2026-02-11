@@ -1,44 +1,44 @@
 import styled from '@emotion/styled';
 
-import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import {space} from 'sentry/styles/space';
+import {Flex, Stack, type FlexProps, type StackProps} from '@sentry/scraps/layout';
 
-export const SideBySide = styled('div')<{vertical?: boolean}>`
-  display: flex;
-  gap: ${space(2)};
-  flex-wrap: wrap;
-  align-items: flex-start;
-  flex-direction: ${p => (p.vertical ? 'column' : 'row')};
-`;
+import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+
+interface SideBySideProps extends Omit<FlexProps<any>, 'direction'> {
+  vertical?: boolean;
+}
+
+export const SideBySide = styled(({children, vertical, ...rest}: SideBySideProps) => (
+  <Flex
+    direction={vertical ? 'column' : 'row'}
+    gap="xl"
+    wrap="wrap"
+    align="start"
+    {...rest}
+  >
+    {children}
+  </Flex>
+))<SideBySideProps>``;
 
 export const Grid = styled('div')<{columns?: number}>`
   display: grid;
   grid-template-columns: ${p =>
     p.columns ? `repeat(${p.columns}, 1fr)` : 'repeat(auto-fit, minmax(300px, 1fr))'};
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   grid-auto-rows: auto;
   align-items: start;
 `;
 
 export const SizingWindow = styled(NegativeSpaceContainer)<{display?: 'block' | 'flex'}>`
-  border: 1px solid ${p => p.theme.yellow400};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.colors.yellow500};
+  border-radius: ${p => p.theme.radius.md};
 
   resize: both;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   display: ${p => (p.display === 'block' ? 'block' : 'flex')};
   overflow: ${p => (p.display === 'block' ? 'auto' : 'hidden')};
 `;
 
-export const Section = styled('section')`
-  padding-top: ${space(4)};
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
-
-export const Title = styled('h3')`
-  margin: 0;
-  scroll-margin-top: ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
-`;
+export function Section(props: Exclude<StackProps<'section'>, {as?: never}>) {
+  return <Stack as="section" paddingTop="3xl" gap="xl" minWidth="0" {...props} />;
+}

@@ -1,0 +1,115 @@
+import {useTheme} from '@emotion/react';
+
+import {Alert} from '@sentry/scraps/alert';
+
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import {decodeList} from 'sentry/utils/queryString';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {BuildCompareHeaderContent} from 'sentry/views/preprod/buildComparison/header/buildCompareHeaderContent';
+import {SizeCompareMainContent} from 'sentry/views/preprod/buildComparison/main/sizeCompareMainContent';
+import {SizeCompareSelectionContent} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectionContent';
+import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+
+export default function BuildComparison() {
+  const organization = useOrganization();
+  const theme = useTheme();
+  const {headArtifactId, baseArtifactId} = useParams<{
+    baseArtifactId?: string;
+    headArtifactId?: string;
+  }>();
+  const {project: projectIds} = useLocationQuery({fields: {project: decodeList}});
+  // TODO(EME-735): Remove this once refactoring is complete and we don't need to extract projects from the URL.
+  if (projectIds.length !== 1) {
+    throw new Error(
+      `Expected exactly one project in query string but got ${projectIds.length}`
+    );
+  }
+  const projectId = projectIds[0]!;
+
+  const headBuildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError> =
+    useApiQuery<BuildDetailsApiResponse>(
+      [
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: projectId,
+              headArtifactId: headArtifactId!,
+            },
+          }
+        ),
+      ],
+      {
+        staleTime: 0,
+        enabled: !!projectId && !!headArtifactId,
+      }
+    );
+
+  if (headBuildDetailsQuery.isLoading) {
+    return (
+      <SentryDocumentTitle title={t('Build comparison')}>
+        <Layout.Page>
+          <Layout.Header>
+            <Placeholder
+              height="20px"
+              width="200px"
+              style={{marginBottom: theme.space.md}}
+            />
+          </Layout.Header>
+
+          <Layout.Body>
+            <Layout.Main>
+              <LoadingIndicator />
+            </Layout.Main>
+          </Layout.Body>
+        </Layout.Page>
+      </SentryDocumentTitle>
+    );
+  }
+
+  if (headBuildDetailsQuery.isError || !headBuildDetailsQuery.data) {
+    return (
+      <Alert variant="danger">
+        {headBuildDetailsQuery.error?.message || t('Failed to load build details')}
+      </Alert>
+    );
+  }
+
+  let mainContent = null;
+  if (baseArtifactId) {
+    // Base artifact provided in URL, show comparison state
+    mainContent = <SizeCompareMainContent />;
+  } else {
+    // No base artifact provided in URL, show selection state
+    mainContent = (
+      <SizeCompareSelectionContent headBuildDetails={headBuildDetailsQuery.data} />
+    );
+  }
+
+  return (
+    <SentryDocumentTitle title={t('Build comparison')}>
+      <Layout.Page>
+        <Layout.Header>
+          <BuildCompareHeaderContent
+            buildDetails={headBuildDetailsQuery.data}
+            projectId={projectId}
+          />
+        </Layout.Header>
+
+        <Layout.Body>
+          <Layout.Main width="full">{mainContent}</Layout.Main>
+        </Layout.Body>
+      </Layout.Page>
+    </SentryDocumentTitle>
+  );
+}

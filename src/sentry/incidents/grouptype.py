@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
@@ -154,7 +154,7 @@ def get_alert_type_from_aggregate_dataset(
     # Special handling for EventsAnalyticsPlatform dataset
     if dataset == Dataset.EventsAnalyticsPlatform:
         if organization and features.has(
-            "organizations:performance-transaction-deprecation-alerts", organization
+            "organizations:discover-saved-queries-deprecation", organization
         ):
             return matching_alert_type if matching_alert_type else "eap_metrics"
 
@@ -164,18 +164,32 @@ def get_alert_type_from_aggregate_dataset(
 
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
+    def build_detector_evidence_data(
+        self,
+        evaluation_result: ProcessedDataConditionGroup,
+        data_packet: DataPacket[MetricUpdate],
+        priority: DetectorPriorityLevel,
+    ) -> dict[str, Any]:
+
+        try:
+            alert_rule_detector = AlertRuleDetector.objects.get(detector=self.detector)
+            return {"alert_id": alert_rule_detector.alert_rule_id}
+        except AlertRuleDetector.DoesNotExist:
+            logger.warning(
+                "No alert rule detector found for detector id %s",
+                self.detector.id,
+                extra={
+                    "detector_id": self.detector.id,
+                },
+            )
+            return {"alert_id": None}
+
     def create_occurrence(
         self,
         evaluation_result: ProcessedDataConditionGroup,
         data_packet: DataPacket[MetricUpdate],
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
-        try:
-            alert_rule_detector = AlertRuleDetector.objects.get(detector=self.detector)
-            alert_id = alert_rule_detector.alert_rule_id
-        except AlertRuleDetector.DoesNotExist:
-            alert_id = None
-
         try:
             detector_trigger = DataCondition.objects.get(
                 condition_group=self.detector.workflow_condition_group, condition_result=priority
@@ -200,10 +214,10 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
             )
 
         try:
-            assignee = parse_and_validate_actor(
-                str(self.detector.created_by_id), self.detector.project.organization_id
-            )
+            owner = self.detector.owner.identifier if self.detector.owner else None
+            assignee = parse_and_validate_actor(owner, self.detector.project.organization_id)
         except Exception:
+            logger.exception("Failed to parse assignee for detector id %s", self.detector.id)
             assignee = None
 
         return (
@@ -211,7 +225,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
                 issue_title=self.detector.name,
                 subtitle=self.construct_title(snuba_query, detector_trigger, priority),
                 evidence_data={
-                    "alert_id": alert_id,
+                    **self.build_detector_evidence_data(evaluation_result, data_packet, priority),
                 },
                 evidence_display=[],  # XXX: may need to pass more info here for the front end
                 type=MetricIssue,
@@ -304,8 +318,6 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         )
 
 
-# Example GroupType and detector handler for metric alerts. We don't create these issues yet, but we'll use something
-# like these when we're sending issues as alerts
 @dataclass(frozen=True)
 class MetricIssue(GroupType):
     type_id = 8001
@@ -318,12 +330,14 @@ class MetricIssue(GroupType):
     enable_auto_resolve = False
     enable_escalation_detection = False
     enable_status_change_workflow_notifications = False
+    enable_workflow_notifications = False
+    enable_user_status_and_priority_changes = False
     detector_settings = DetectorSettings(
         handler=MetricIssueDetectorHandler,
         validator=MetricIssueDetectorValidator,
         config_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "description": "A representation of a metric alert firing",
+            "description": "A representation of a metric detector config dict",
             "type": "object",
             "required": ["detection_type"],
             "properties": {
@@ -338,3 +352,18 @@ class MetricIssue(GroupType):
             },
         },
     )
+
+    @classmethod
+    def allow_ingest(cls, organization: Organization) -> bool:
+        return True
+
+    @classmethod
+    def allow_post_process_group(cls, organization: Organization) -> bool:
+        return True
+
+    @classmethod
+    def build_visible_feature_name(cls) -> list[str]:
+        return [
+            "organizations:workflow-engine-ui",
+            "organizations:workflow-engine-metric-issue-ui",
+        ]

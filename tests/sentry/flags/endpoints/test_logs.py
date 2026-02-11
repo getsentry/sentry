@@ -15,7 +15,7 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
         self.url = reverse(self.endpoint, args=(self.organization.id,))
 
     @property
-    def features(self):
+    def features(self) -> dict[str, bool]:
         return {}
 
     def test_get(self) -> None:
@@ -378,7 +378,7 @@ class OrganizationFlagLogDetailsEndpointTestCase(APITestCase):
         self.url = reverse(self.endpoint, args=(self.organization.id, self.flag.id))
 
     @property
-    def features(self):
+    def features(self) -> dict[str, bool]:
         return {}
 
     def test_get(self) -> None:

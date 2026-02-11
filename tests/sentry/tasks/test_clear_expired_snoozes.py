@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
@@ -16,7 +16,7 @@ class ClearExpiredSnoozesTest(TestCase):
         assert clear_expired_snoozes.name == "sentry.tasks.clear_expired_snoozes"
 
     @patch("sentry.signals.issue_unignored.send_robust")
-    def test_simple(self, send_robust):
+    def test_simple(self, send_robust: MagicMock) -> None:
         group1 = self.create_group(status=GroupStatus.IGNORED)
         snooze1 = GroupSnooze.objects.create(
             group=group1, until=timezone.now() - timedelta(minutes=1)
@@ -48,7 +48,7 @@ class ClearExpiredSnoozesTest(TestCase):
         assert send_robust.called
 
     @patch("sentry.signals.issue_unignored.send_robust")
-    def test_simple_with_escalating_issues(self, send_robust):
+    def test_simple_with_escalating_issues(self, send_robust: MagicMock) -> None:
         group1 = self.create_group(status=GroupStatus.IGNORED)
         snooze1 = GroupSnooze.objects.create(
             group=group1, until=timezone.now() - timedelta(minutes=1)

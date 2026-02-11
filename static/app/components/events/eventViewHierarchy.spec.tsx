@@ -52,10 +52,10 @@ const organization = OrganizationFixture({
 });
 const event = EventFixture();
 
-describe('Event View Hierarchy', function () {
+describe('Event View Hierarchy', () => {
   let mockAttachment!: ReturnType<typeof EventAttachmentFixture>;
   let mockProject!: ReturnType<typeof ProjectFixture>;
-  beforeEach(function () {
+  beforeEach(() => {
     mockAttachment = EventAttachmentFixture({type: 'event.view_hierarchy'});
     mockProject = ProjectFixture();
     MockApiClient.addMockResponse({
@@ -63,8 +63,9 @@ describe('Event View Hierarchy', function () {
       body: [mockAttachment],
     });
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${mockProject.slug}/events/${mockAttachment.event_id}/attachments/${mockAttachment.id}/?download`,
+      url: `/projects/${organization.slug}/${mockProject.slug}/events/${mockAttachment.event_id}/attachments/${mockAttachment.id}/`,
       body: MOCK_DATA,
+      match: [MockApiClient.matchQuery({download: true})],
     });
   });
 
@@ -88,7 +89,7 @@ describe('Event View Hierarchy', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('does not collapse all nodes when update triggers re-render', async function () {
+  it('does not collapse all nodes when update triggers re-render', async () => {
     const {rerender} = render(
       <EventViewHierarchy project={mockProject} event={event} />,
       {

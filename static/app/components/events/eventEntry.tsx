@@ -1,4 +1,5 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {EventBreadcrumbsSection} from 'sentry/components/events/eventBreadcrumbsSection';
 import {t} from 'sentry/locale';
 import type {Entry, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -10,7 +11,6 @@ import {isJavascriptPlatform} from 'sentry/utils/platform';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-import {Breadcrumbs} from './interfaces/breadcrumbs';
 import {Csp} from './interfaces/csp';
 import {DebugMeta} from './interfaces/debugMeta';
 import {Exception} from './interfaces/exception';
@@ -18,7 +18,6 @@ import {Generic} from './interfaces/generic';
 import {Message} from './interfaces/message';
 import {SpanEvidenceSection} from './interfaces/performance/spanEvidence';
 import {Request} from './interfaces/request';
-import {Spans} from './interfaces/spans';
 import {StackTrace} from './interfaces/stackTrace';
 import {Template} from './interfaces/template';
 import {Threads} from './interfaces/threads';
@@ -89,13 +88,7 @@ function EventEntryContent({
       );
 
     case EntryType.BREADCRUMBS:
-      return (
-        <Breadcrumbs
-          data={entry.data}
-          organization={organization as Organization}
-          event={event}
-        />
-      );
+      return <EventBreadcrumbsSection event={event} />;
 
     case EntryType.THREADS:
       return (
@@ -123,20 +116,18 @@ function EventEntryContent({
       );
 
     case EntryType.SPANS:
-      // XXX: We currently do not show spans in the share view,
-      if (isShare) {
+      // XXX: We currently do not show spans in the share view.
+      if (isShare || !issueTypeConfig?.spanEvidence.enabled) {
         return null;
       }
-      if (issueTypeConfig?.spanEvidence.enabled) {
-        return (
-          <SpanEvidenceSection
-            event={event as EventTransaction}
-            organization={organization as Organization}
-            projectSlug={projectSlug}
-          />
-        );
-      }
-      return <Spans event={event as EventTransaction} />;
+
+      return (
+        <SpanEvidenceSection
+          event={event as EventTransaction}
+          organization={organization as Organization}
+          projectSlug={projectSlug}
+        />
+      );
 
     // this should not happen
     default:

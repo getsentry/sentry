@@ -1,21 +1,23 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 import debounce from 'lodash/debounce';
 import pick from 'lodash/pick';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Switch} from '@sentry/scraps/switch';
+
 import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import {Switch} from 'sentry/components/core/switch';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -27,6 +29,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import localStorage from 'sentry/utils/localStorage';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -37,6 +40,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {getDashboardTemplates} from 'sentry/views/dashboards/data';
 import {useOwnedDashboards} from 'sentry/views/dashboards/hooks/useOwnedDashboards';
 import {
@@ -49,7 +53,7 @@ import OwnedDashboardsTable, {
 } from 'sentry/views/dashboards/manage/tableView/ownedDashboardsTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
+import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import RouteError from 'sentry/views/routeError';
 
 import DashboardGrid from './dashboardGrid';
@@ -135,7 +139,6 @@ function ManageDashboards() {
   const location = useLocation();
   const api = useApi();
   const dashboardGridRef = useRef<HTMLDivElement>(null);
-  const prefersStackedNav = usePrefersStackedNav();
 
   const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
     SHOW_TEMPLATES_KEY,
@@ -156,7 +159,7 @@ function ManageDashboards() {
   });
 
   const {
-    data: dashboards,
+    data: dashboardsWithoutPrebuiltConfigs,
     isLoading,
     isError,
     error,
@@ -164,7 +167,9 @@ function ManageDashboards() {
     refetch: refetchDashboards,
   } = useApiQuery<DashboardListItem[]>(
     [
-      `/organizations/${organization.slug}/dashboards/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...pick(location.query, ['cursor', 'query']),
@@ -182,6 +187,29 @@ function ManageDashboards() {
         dashboardsLayout === TABLE
       ),
     }
+  );
+
+  const dashboards = useMemo(
+    () =>
+      dashboardsWithoutPrebuiltConfigs?.map(dashboard => {
+        if (dashboard.prebuiltId && dashboard.prebuiltId in PREBUILT_DASHBOARDS) {
+          return {
+            ...dashboard,
+            widgetDisplay: PREBUILT_DASHBOARDS[dashboard.prebuiltId].widgets.map(
+              widget => widget.displayType
+            ),
+            widgetPreview: PREBUILT_DASHBOARDS[dashboard.prebuiltId].widgets.map(
+              widget => ({
+                displayType: widget.displayType,
+                layout: widget.layout ?? null,
+              })
+            ),
+            projects: [],
+          };
+        }
+        return dashboard;
+      }),
+    [dashboardsWithoutPrebuiltConfigs]
   );
 
   const ownedDashboards = useOwnedDashboards({
@@ -387,7 +415,9 @@ function ManageDashboards() {
           />
         </SegmentedControl>
         <CompactSelect
-          triggerProps={{prefix: t('Sort By')}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Sort By')} />
+          )}
           value={activeSort!.value}
           options={sortOptions}
           onChange={opt => handleSortChange(opt.value)}
@@ -402,7 +432,7 @@ function ManageDashboards() {
     return (
       <Layout.Page>
         <Alert.Container>
-          <Alert type="warning" showIcon={false}>
+          <Alert variant="warning" showIcon={false}>
             {t("You don't have access to this feature")}
           </Alert>
         </Alert.Container>
@@ -488,15 +518,10 @@ function ManageDashboards() {
 
     addLoadingMessage(t('Adding dashboard from template...'));
 
-    const newDashboard = await createDashboard(
-      api,
-      organization.slug,
-      {
-        ...dashboard,
-        widgets: assignDefaultLayout(dashboard.widgets, getInitialColumnDepths()),
-      },
-      true
-    );
+    const newDashboard = await createDashboard(api, organization.slug, {
+      ...dashboard,
+      widgets: assignDefaultLayout(dashboard.widgets, getInitialColumnDepths()),
+    });
     addSuccessMessage(`${dashboard.title} dashboard template successfully added.`);
     loadDashboard(newDashboard.id);
   }
@@ -539,8 +564,8 @@ function ManageDashboards() {
           ) : (
             <Layout.Page>
               <NoProjectMessage organization={organization}>
-                <Layout.Header unified={prefersStackedNav}>
-                  <Layout.HeaderContent unified={prefersStackedNav}>
+                <Layout.Header unified>
+                  <Layout.HeaderContent unified>
                     <Layout.Title>
                       {t('All Dashboards')}
                       <PageHeadingQuestionTooltip
@@ -552,7 +577,7 @@ function ManageDashboards() {
                     </Layout.Title>
                   </Layout.HeaderContent>
                   <Layout.HeaderActions>
-                    <ButtonBar gap="lg">
+                    <Grid flow="column" align="center" gap="lg">
                       <TemplateSwitch>
                         {t('Show Templates')}
                         <Switch
@@ -561,19 +586,34 @@ function ManageDashboards() {
                           onChange={toggleTemplates}
                         />
                       </TemplateSwitch>
-                      <FeedbackWidgetButton />
-                      <Button
-                        data-test-id="dashboard-create"
-                        onClick={event => {
-                          event.preventDefault();
-                          onCreate();
-                        }}
-                        size="sm"
-                        priority="primary"
-                        icon={<IconAdd />}
-                      >
-                        {t('Create Dashboard')}
-                      </Button>
+                      <FeedbackButton />
+                      <DashboardCreateLimitWrapper>
+                        {({
+                          hasReachedDashboardLimit,
+                          isLoading: isLoadingDashboardsLimit,
+                          limitMessage,
+                        }) => (
+                          <Button
+                            data-test-id="dashboard-create"
+                            onClick={event => {
+                              event.preventDefault();
+                              onCreate();
+                            }}
+                            size="sm"
+                            priority="primary"
+                            icon={<IconAdd />}
+                            disabled={
+                              hasReachedDashboardLimit || isLoadingDashboardsLimit
+                            }
+                            title={limitMessage}
+                            tooltipProps={{
+                              isHoverable: true,
+                            }}
+                          >
+                            {t('Create Dashboard')}
+                          </Button>
+                        )}
+                      </DashboardCreateLimitWrapper>
                       <Feature features="dashboards-import">
                         <Button
                           onClick={() => {
@@ -585,16 +625,16 @@ function ManageDashboards() {
                           }}
                           size="sm"
                           priority="primary"
-                          icon={<IconAdd isCircled />}
+                          icon={<IconAdd />}
                         >
                           {t('Import Dashboard from JSON')}
                         </Button>
                       </Feature>
-                    </ButtonBar>
+                    </Grid>
                   </Layout.HeaderActions>
                 </Layout.Header>
                 <Layout.Body>
-                  <Layout.Main fullWidth>
+                  <Layout.Main width="full">
                     {showTemplates && renderTemplates()}
                     {renderActions()}
                     <div ref={dashboardGridRef} id="dashboard-list-container">
@@ -627,8 +667,8 @@ const StyledActions = styled('div')`
 `;
 
 const TemplateSwitch = styled('label')`
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.lg};
   display: flex;
   align-items: center;
   gap: ${space(1)};

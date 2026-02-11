@@ -7,7 +7,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {InsightsDateRangeQueryLimitFooter} from 'getsentry/components/features/insightsDateRangeQueryLimitFooter';
 import {PlanTier} from 'getsentry/types';
 
-describe('InsightsUpsellPage', function () {
+describe('InsightsUpsellPage', () => {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     organization,
@@ -30,7 +30,7 @@ describe('InsightsUpsellPage', function () {
     subscription.planDetails.features = [];
   });
 
-  it('renders if plan includes feature', async function () {
+  it('renders if plan includes feature', async () => {
     subscription.planDetails.features = ['insights-query-date-range-limit'];
 
     render(
@@ -47,7 +47,7 @@ describe('InsightsUpsellPage', function () {
     ).toBeInTheDocument();
   });
 
-  it('does not render if feature is not included', function () {
+  it('does not render if feature is not included', () => {
     render(
       <InsightsDateRangeQueryLimitFooter
         organization={organization}

@@ -5,7 +5,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
 from rest_framework import serializers
 
-from sentry.constants import SentryAppStatus
+from sentry import constants
 from sentry.snuba.sessions import STATS_PERIODS
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
@@ -338,7 +338,7 @@ class IssueParams:
     DEFAULT_QUERY = OpenApiParameter(
         name="query",
         description="An optional search query for filtering issues. A default query will apply if no view/query is set. For all results use this parameter with an empty string.",
-        default="is:unresolved issue.priority:[high,medium]",
+        default="is:unresolved",
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
         required=False,
@@ -423,7 +423,7 @@ class DetectorParams:
         location="path",
         required=True,
         type=int,
-        description="The ID of the detector you'd like to query.",
+        description="The ID of the monitor you'd like to query.",
     )
 
     QUERY = OpenApiParameter(
@@ -431,7 +431,7 @@ class DetectorParams:
         location="query",
         required=False,
         type=str,
-        description="An optional search query for filtering detectors.",
+        description="An optional search query for filtering monitors.",
     )
 
     SORT = OpenApiParameter(
@@ -446,6 +446,8 @@ Available fields are:
 - `id`
 - `type`
 - `connectedWorkflows`
+- `latestGroup`
+- `openIssues`
 
 Prefix with `-` to sort in descending order.
         """,
@@ -455,8 +457,17 @@ Prefix with `-` to sort in descending order.
         location="query",
         required=False,
         type=int,
-        description="The ID of the detector you'd like to query.",
+        description="The ID of the monitor you'd like to query.",
         many=True,
+    )
+
+    TYPE = OpenApiParameter(
+        name="type",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        description="Filter by monitor type(s). Can be specified multiple times.",
     )
 
 
@@ -466,7 +477,7 @@ class WorkflowParams:
         location="path",
         required=True,
         type=int,
-        description="The ID of the workflow you'd like to query.",
+        description="The ID of the alert you'd like to query.",
     )
 
     QUERY = OpenApiParameter(
@@ -474,7 +485,7 @@ class WorkflowParams:
         location="query",
         required=False,
         type=str,
-        description="An optional search query for filtering workflows.",
+        description="An optional search query for filtering alerts.",
     )
 
     SORT_BY = OpenApiParameter(
@@ -491,6 +502,7 @@ Available fields are:
 - `dateUpdated`
 - `connectedDetectors`
 - `actions`
+- `priorityDetector`
 
 Prefix with `-` to sort in descending order.
     """,
@@ -500,7 +512,7 @@ Prefix with `-` to sort in descending order.
         location="query",
         required=False,
         type=int,
-        description="The ID of the workflow you'd like to query.",
+        description="The ID of the alert you'd like to query.",
         many=True,
     )
 
@@ -535,6 +547,16 @@ class MetricAlertParams:
     )
 
 
+class DataForwarderParams:
+    DATA_FORWARDER_ID = OpenApiParameter(
+        name="data_forwarder_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the data forwarder you'd like to query.",
+    )
+
+
 class SentryAppParams:
     SENTRY_APP_ID_OR_SLUG = OpenApiParameter(
         name="sentry_app_id_or_slug",
@@ -553,8 +575,8 @@ class SentryAppStatusParams:
         required=False,
         many=False,
         type=int,
-        description=f"The status of the custom integration, values translate to the following: {SentryAppStatus.as_choices()}",
-        enum=SentryAppStatus.as_int_choices(),
+        description=f"The status of the custom integration, values translate to the following: {constants.SentryAppStatus.as_choices()}",
+        enum=constants.SentryAppStatus.as_int_choices(),
     )
 
 
@@ -576,10 +598,11 @@ Example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
         type=str,
         many=True,
         description="""The fields, functions, or equations to request for the query. At most 20 fields can be selected per request. Each field can be one of the following types:
-- A built-in key field. See possible fields in the [properties table](/product/sentry-basics/search/searchable-properties/#properties-table), under any field that is an event property.
+- A built-in key field. See possible fields in the [properties table](/concepts/search/searchable-properties/), under any field that matches the dataset passed to the dataset parameter
     - example: `field=transaction`
-- A tag. Tags should use the `tag[]` formatting to avoid ambiguity with any fields
-    - example: `field=tag[isEnterprise]`
+- A tag. Tags should use the `tag[{name}, {type}]` formatting to avoid ambiguity with any fields,
+    - example: `field=tag[isEnterprise, string]`
+    - example: `field=tag[numberOfBytes, number]`
 - A function which will be in the format of `function_name(parameters,...)`. See possible functions in the [query builder documentation](/product/discover-queries/query-builder/#stacking-functions).
     - when a function is included, Discover will group by any tags or fields
     - example: `field=count_if(transaction.duration,greater,300)`
@@ -600,6 +623,81 @@ Example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
         required=False,
         type=int,
         description="Limit the number of rows to return in the result. Default and maximum allowed is 100.",
+    )
+    TOP_EVENTS = OpenApiParameter(
+        name="topEvents",
+        location="query",
+        required=False,
+        type=int,
+        description=f"""The number of top event results to return, must be between 1 and {constants.MAX_TOP_EVENTS}.
+When TopEvents is passed, both sort and groupBy are required parameters""",
+    )
+    COMPARISON_DELTA = OpenApiParameter(
+        name="comparisonDelta",
+        location="query",
+        required=False,
+        type=int,
+        description="The delta in seconds to return additional offset timeseries by",
+    )
+    DATASET = OpenApiParameter(
+        name="dataset",
+        location="query",
+        required=True,
+        type=str,
+        description="Which dataset to query, changing datasets changes the available fields that can be queried",
+        # Hardcoding this since our full list of datasets includes some that probably will get deprecated as more stuff
+        # moves to EAP
+        enum=["profile_functions", "logs", "spans", "uptime_results"],
+    )
+    INTERVAL = OpenApiParameter(
+        name="interval",
+        location="query",
+        required=False,
+        type=int,
+        description="""The size of the bucket for the timeseries to have, must be a value smaller than the window being
+queried. If the interval is invalid a default interval will be selected instead""",
+    )
+    GROUP_BY = OpenApiParameter(
+        name="groupBy",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        description="""List of fields to group by, *Required* for topEvents queries as this and sort determine what the
+top events are""",
+    )
+    Y_AXIS = OpenApiParameter(
+        name="yAxis",
+        location="query",
+        required=False,
+        type=str,
+        description="The aggregate field to create the timeseries for, defaults to `count()` when not included",
+    )
+    DISABLE_AGGREGATE_EXTRAPOLATION = OpenApiParameter(
+        name="disableAggregateExtrapolation",
+        location="query",
+        required=False,
+        type=str,
+        description="""Whether to disable the use of extrapolation and return the sampled values, due to sampling the
+number returned may be less than the actual values sent to Sentry""",
+        enum=["0", "1"],
+    )
+    PREVENT_METRIC_AGGREGATES = OpenApiParameter(
+        name="preventMetricAggregates",
+        location="query",
+        required=False,
+        type=str,
+        description="Whether to throw an error when aggregates are passed in the query or groupBy",
+        enum=["0", "1"],
+    )
+    EXCLUDE_OTHER = OpenApiParameter(
+        name="excludeOther",
+        location="query",
+        required=False,
+        type=str,
+        description="""Only applicable with TopEvents, whether to include the 'other' timeseries which represents all the
+events that aren't in the top groups.""",
+        enum=["0", "1"],
     )
 
 
@@ -650,7 +748,7 @@ class MonitorParams:
 
 class UptimeParams:
     UPTIME_ALERT_ID = OpenApiParameter(
-        name="uptime_subscription_id",
+        name="uptime_detector_id",
         location="path",
         required=True,
         type=int,
@@ -721,7 +819,11 @@ class EventParams:
         name="query",
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
-        description="An optional search query for filtering events.",
+        description=(
+            "An optional search query for filtering events. "
+            "See [search syntax](https://docs.sentry.io/concepts/search/) and queryable event properties at "
+            "[Sentry Search Documentation](https://docs.sentry.io/concepts/search/searchable-properties/events/) for more information. An example query might be `query=transaction:foo AND release:abc`"
+        ),
         required=False,
     )
 
@@ -1066,7 +1168,7 @@ Available fields are:
         location="query",
         required=False,
         type=str,
-        description="""The branch to search for results by. If not specified, the default is `main`.
+        description="""The branch to search for results by. If not specified, the default is all branches.
         """,
     )
     TEST_RESULTS_FILTER_BY = OpenApiParameter(
@@ -1088,14 +1190,14 @@ Available fields are:
         location="query",
         required=False,
         type=str,
-        description="""The property to sort results by. If not specified, the default is `COMMITS_WHERE_FAIL` in descending order. Use `-`
+        description="""The property to sort results by. If not specified, the default is `TOTAL_FAIL_COUNT` in descending order. Use `-`
         for descending order.
 
 Available fields are:
 - `AVG_DURATION`
 - `FLAKE_RATE`
 - `FAILURE_RATE`
-- `COMMITS_WHERE_FAIL`
+- `TOTAL_FAIL_COUNT`
 - `UPDATED_AT`
         """,
     )
@@ -1149,4 +1251,17 @@ Available fields are:
         type=str,
         many=True,
         description="""A list of test suites belonging to a repository's test results.""",
+    )
+    TOKENS_SORT_BY = OpenApiParameter(
+        name="sortBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""The property to sort results by. If not specified, the default is `COMMIT_DATE` in descending order. Use `-`
+        for descending order.
+
+Available fields are:
+- `NAME`
+- `COMMIT_DATE`
+        """,
     )

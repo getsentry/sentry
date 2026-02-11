@@ -11,6 +11,7 @@ from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks
 from sentry.models.activity import Activity
+from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
@@ -26,7 +27,6 @@ from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger(__name__)
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
-from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
@@ -142,7 +142,7 @@ def set_commit(idx, data, release):
             [
                 CommitFileChange(
                     organization_id=release.organization.id,
-                    commit=commit,
+                    commit_id=commit.id,
                     filename=patched_file["path"],
                     type=patched_file["type"],
                 )
@@ -151,7 +151,6 @@ def set_commit(idx, data, release):
             ignore_conflicts=True,
             batch_size=100,
         )
-
     try:
         with atomic_transaction(using=router.db_for_write(ReleaseCommit)):
             ReleaseCommit.objects.create(
@@ -284,8 +283,8 @@ def update_group_resolutions(release, commit_author_by_commit):
 
 
 def create_commit_authors(commit_list, release):
-    authors = {}
-
+    # Collect unique emails and their author data
+    author_data_by_email = {}
     for data in commit_list:
         author_email = data.get("author_email")
         if author_email is None and data.get("author_name"):
@@ -294,23 +293,70 @@ def create_commit_authors(commit_list, release):
             )
 
         author_email = truncatechars(author_email, 75)
+        if author_email:
+            # Lowercase to match CommitAuthorManager.get_or_create behavior
+            author_email = author_email.lower()
 
-        if not author_email:
-            author = None
-        elif author_email not in authors:
-            author_data = {"name": data.get("author_name")}
-            author, created = CommitAuthor.objects.get_or_create(
+            # Store normalized email back in data for later lookup
+            data["_normalized_email"] = author_email
+
+            if author_email not in author_data_by_email:
+                author_data_by_email[author_email] = {"name": data.get("author_name")}
+
+    if not author_data_by_email:
+        # No authors to process, set all to None
+        for data in commit_list:
+            data["author_model"] = None
+        return
+
+    # Batch fetch existing authors
+    existing_authors = {
+        author.email: author
+        for author in CommitAuthor.objects.filter(
+            organization_id=release.organization_id,
+            email__in=author_data_by_email.keys(),
+        )
+    }
+
+    # Identify authors needing creation
+    emails_to_create = set(author_data_by_email.keys()) - set(existing_authors.keys())
+
+    if emails_to_create:
+        # Batch create missing authors
+        authors_to_create = [
+            CommitAuthor(
                 organization_id=release.organization_id,
-                email=author_email,
-                defaults=author_data,
+                email=email,
+                name=author_data_by_email[email]["name"],
             )
-            if author.name != author_data["name"]:
-                author.update(name=author_data["name"])
-            authors[author_email] = author
-        else:
-            author = authors[author_email]
+            for email in emails_to_create
+        ]
+        CommitAuthor.objects.bulk_create(authors_to_create, ignore_conflicts=True)
 
-        data["author_model"] = author
+        # Re-fetch to get IDs (needed because bulk_create with ignore_conflicts
+        # doesn't populate IDs on PostgreSQL for conflicting rows)
+        newly_created = CommitAuthor.objects.filter(
+            organization_id=release.organization_id,
+            email__in=emails_to_create,
+        )
+        for author in newly_created:
+            existing_authors[author.email] = author
+
+    # Batch update names where needed
+    authors_to_update = []
+    for email, author in existing_authors.items():
+        expected_name = author_data_by_email[email]["name"]
+        if author.name != expected_name:
+            author.name = expected_name
+            authors_to_update.append(author)
+
+    if authors_to_update:
+        CommitAuthor.objects.bulk_update(authors_to_update, ["name"])
+
+    # Assign author models to commit data
+    for data in commit_list:
+        author_email = data.pop("_normalized_email", None)
+        data["author_model"] = existing_authors.get(author_email) if author_email else None
 
 
 def create_repositories(commit_list, release):

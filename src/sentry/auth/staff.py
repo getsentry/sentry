@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import enum
 import ipaddress
 import logging
+from collections.abc import Iterable
 from datetime import datetime, timedelta, timezone
+from typing import Any, Final
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.signing import BadSignature
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.utils import timezone as django_timezone
 from django.utils.crypto import constant_time_compare, get_random_string
 
@@ -34,13 +37,14 @@ COOKIE_PATH = getattr(settings, "STAFF_COOKIE_PATH", settings.SESSION_COOKIE_PAT
 COOKIE_HTTPONLY = getattr(settings, "STAFF_COOKIE_HTTPONLY", True)
 
 # the maximum time the session can stay alive
-MAX_AGE = timedelta(hours=2)
+MAX_AGE = timedelta(hours=1)
 
 ALLOWED_IPS = frozenset(getattr(settings, "STAFF_ALLOWED_IPS", settings.INTERNAL_IPS) or ())
 
 STAFF_ORG_ID = getattr(settings, "STAFF_ORG_ID", None)
 
-UNSET = object()
+_UnsetType = enum.Enum("_UnsetType", "UNSET")
+_Unset: Final = _UnsetType.UNSET
 
 
 def is_active_staff(request: HttpRequest) -> bool:
@@ -72,10 +76,12 @@ def _seconds_to_timestamp(seconds: str) -> datetime:
 class Staff(ElevatedMode):
     allowed_ips = frozenset(ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS)
 
-    def __init__(self, request, allowed_ips=UNSET) -> None:
+    def __init__(
+        self, request: HttpRequest, allowed_ips: Iterable[Any] | _UnsetType = _Unset
+    ) -> None:
         self.uid: str | None = None
         self.request = request
-        if allowed_ips is not UNSET:
+        if allowed_ips is not _Unset:
             self.allowed_ips = frozenset(
                 ipaddress.ip_network(str(v), strict=False) for v in allowed_ips or ()
             )
@@ -116,7 +122,7 @@ class Staff(ElevatedMode):
             return False, InactiveReason.INVALID_IP
         return True, InactiveReason.NONE
 
-    def get_session_data(self, current_datetime: datetime | None = None):
+    def get_session_data(self, current_datetime: datetime | None = None) -> dict[str, Any] | None:
         """
         Return the current session data, with native types coerced.
         """
@@ -127,14 +133,14 @@ class Staff(ElevatedMode):
                 key=COOKIE_NAME,
                 default=None,
                 salt=COOKIE_SALT,
-                max_age=MAX_AGE.total_seconds(),
+                max_age=int(MAX_AGE.total_seconds()),
             )
         except BadSignature:
             logger.exception(
                 "staff.bad-cookie-signature",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            return
+            return None
 
         data = request.session.get(SESSION_KEY)
         if not cookie_token:
@@ -143,13 +149,13 @@ class Staff(ElevatedMode):
                     "staff.missing-cookie-token",
                     extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
                 )
-            return
+            return None
         elif not data:
             logger.warning(
                 "staff.missing-session-data",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            return
+            return None
 
         session_token = data.get("tok")
         if not session_token:
@@ -157,14 +163,14 @@ class Staff(ElevatedMode):
                 "staff.missing-session-token",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            return
+            return None
 
         if not constant_time_compare(cookie_token, session_token):
             logger.warning(
                 "staff.invalid-token",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            return
+            return None
 
         if data["uid"] != str(request.user.id):
             logger.warning(
@@ -175,7 +181,7 @@ class Staff(ElevatedMode):
                     "expected_user_id": data["uid"],
                 },
             )
-            return
+            return None
 
         if current_datetime is None:
             current_datetime = django_timezone.now()
@@ -188,14 +194,14 @@ class Staff(ElevatedMode):
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
                 exc_info=True,
             )
-            return
+            return None
 
         if expires_date < current_datetime:
             logger.info(
                 "staff.session-expired",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            return
+            return None
 
         return data
 
@@ -203,7 +209,7 @@ class Staff(ElevatedMode):
         current_datetime = django_timezone.now()
 
         request = self.request
-        user = getattr(request, "user", None)
+        user: User | None = getattr(request, "user", None)
         if not hasattr(request, "session"):
             data = None
         elif not (user and user.is_staff):
@@ -214,6 +220,7 @@ class Staff(ElevatedMode):
         if not data:
             self._set_logged_out()
         else:
+            assert user is not None
             self._set_logged_in(
                 expires=_seconds_to_timestamp(data["exp"]), token=data["tok"], user=user
             )
@@ -237,7 +244,13 @@ class Staff(ElevatedMode):
                         },
                     )
 
-    def _set_logged_in(self, expires: datetime, token: str, user, current_datetime=None):
+    def _set_logged_in(
+        self,
+        expires: datetime,
+        token: str,
+        user: User,
+        current_datetime: datetime | None = None,
+    ) -> None:
         # we bind uid here, as if you change users in the same request
         # we wouldn't want to still support staff auth (given
         # the staff check happens right here)
@@ -272,7 +285,7 @@ class Staff(ElevatedMode):
         self.is_valid = False
         self.request.session.pop(SESSION_KEY, None)
 
-    def set_logged_in(self, user: User | AnonymousUser, current_datetime=None) -> None:
+    def set_logged_in(self, user: User, current_datetime: datetime | None = None) -> None:
         """
         Mark a session as staff-enabled.
         """
@@ -302,14 +315,14 @@ class Staff(ElevatedMode):
             extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
         )
 
-    def on_response(self, response) -> None:
+    def on_response(self, response: HttpResponse) -> None:
         request = self.request
 
         # Re-bind the cookie
         if self.is_active:
             response.set_signed_cookie(
                 COOKIE_NAME,
-                self.token,
+                self.token or "",
                 salt=COOKIE_SALT,
                 # set max_age to None, as we want this cookie to expire on browser close
                 max_age=None,

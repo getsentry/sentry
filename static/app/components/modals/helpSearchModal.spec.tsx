@@ -7,8 +7,8 @@ import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 
-describe('Docs Search Modal', function () {
-  beforeEach(function () {
+describe('Docs Search Modal', () => {
+  beforeEach(() => {
     const organization = OrganizationFixture();
 
     MockApiClient.addMockResponse({
@@ -52,7 +52,7 @@ describe('Docs Search Modal', function () {
     });
   });
 
-  it('can open help search modal', async function () {
+  it('can open help search modal', async () => {
     renderGlobalModal();
 
     // No Modal

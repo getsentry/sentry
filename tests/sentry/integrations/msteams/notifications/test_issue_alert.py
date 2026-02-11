@@ -2,7 +2,6 @@ import uuid
 from unittest.mock import MagicMock, Mock, patch
 
 from sentry.models.projectownership import ProjectOwnership
-from sentry.models.rule import Rule
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.plugins.base import Notification
@@ -13,12 +12,12 @@ pytestmark = [requires_snuba]
 
 
 @patch(
-    "sentry.integrations.msteams.MsTeamsClientABC.get_user_conversation_id",
+    "sentry.integrations.msteams.client.MsTeamsClientABC.get_user_conversation_id",
     Mock(return_value="some_conversation_id"),
 )
-@patch("sentry.integrations.msteams.MsTeamsClientABC.send_card")
+@patch("sentry.integrations.msteams.client.MsTeamsClientABC.send_card")
 class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
-    def test_issue_alert_user(self, mock_send_card: MagicMock):
+    def test_issue_alert_user(self, mock_send_card: MagicMock) -> None:
         """Test that issue alerts are sent to a MS Teams user."""
 
         event = self.store_event(
@@ -29,13 +28,9 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
             "targetType": "Member",
             "targetIdentifier": str(self.user.id),
         }
-        rule = Rule.objects.create(
-            project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+        rule = self.create_project_rule(
+            name="ja rule",
+            action_data=[action_data],
         )
 
         notification_uuid = str(uuid.uuid4())
@@ -71,7 +66,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
             == body[3]["columns"][1]["items"][0]["text"]
         )
 
-    def test_issue_alert_owners(self, mock_send_card: MagicMock):
+    def test_issue_alert_owners(self, mock_send_card: MagicMock) -> None:
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
@@ -80,13 +75,10 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
             "targetType": "IssueOwners",
             "targetIdentifier": "",
         }
-        rule = Rule.objects.create(
+        rule = self.create_project_rule(
             project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
+            name="ja rule",
+            action_data=[action_data],
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 

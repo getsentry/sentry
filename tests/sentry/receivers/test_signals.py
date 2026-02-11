@@ -1,8 +1,11 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
+from sentry.analytics.events.issue_assigned import IssueAssignedEvent
+from sentry.analytics.events.issue_priority import IssuePriorityUpdatedEvent
 from sentry.analytics.events.issue_resolved import IssueResolvedEvent
+from sentry.analytics.events.issue_unresolved import IssueUnresolvedEvent
 from sentry.models.groupassignee import GroupAssignee
 from sentry.signals import (
     issue_assigned,
@@ -26,7 +29,7 @@ class SignalsTest(TestCase, SnubaTestCase):
         self.project = self.create_project(teams=[self.team])
 
     @patch("sentry.analytics.record")
-    def test_unignored_manually(self, mock_record):
+    def test_unignored_manually(self, mock_record: MagicMock) -> None:
         issue_unignored.send(
             project=self.project,
             group=self.group,
@@ -37,7 +40,7 @@ class SignalsTest(TestCase, SnubaTestCase):
         assert mock_record.called
 
     @patch("sentry.analytics.record")
-    def test_unignored_automatically(self, mock_record):
+    def test_unignored_automatically(self, mock_record: MagicMock) -> None:
         issue_unignored.send(
             project=self.project,
             group=self.group,
@@ -48,14 +51,14 @@ class SignalsTest(TestCase, SnubaTestCase):
         assert mock_record.called
 
     @patch("sentry.analytics.record")
-    def test_mark_reviewed(self, mock_record):
+    def test_mark_reviewed(self, mock_record: MagicMock) -> None:
         issue_mark_reviewed.send(
             project=self.project, group=self.group, user=None, sender="test_mark_reviewed"
         )
         assert mock_record.called
 
     @patch("sentry.analytics.record")
-    def test_update_priority(self, mock_record):
+    def test_update_priority(self, mock_record: MagicMock) -> None:
         issue_update_priority.send(
             project=self.project,
             group=self.group,
@@ -65,21 +68,23 @@ class SignalsTest(TestCase, SnubaTestCase):
             sender="test_update_priority",
             reason="reason",
         )
-        mock_record.assert_called_once_with(
-            "issue.priority_updated",
-            group_id=self.group.id,
-            new_priority="high",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            user_id=2,
-            previous_priority="low",
-            reason="reason",
-            issue_category="error",
-            issue_type="error",
+        assert_last_analytics_event(
+            mock_record,
+            IssuePriorityUpdatedEvent(
+                group_id=self.group.id,
+                new_priority="high",
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                user_id=2,
+                previous_priority="low",
+                reason="reason",
+                issue_category="error",
+                issue_type="error",
+            ),
         )
 
     @patch("sentry.analytics.record")
-    def test_issue_resolved_with_default_owner(self, mock_record):
+    def test_issue_resolved_with_default_owner(self, mock_record: MagicMock) -> None:
         """Test analytics is called with default owner ID when no user is provided"""
 
         issue_resolved.send(
@@ -105,7 +110,7 @@ class SignalsTest(TestCase, SnubaTestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_issue_resolved_without_default_owner(self, mock_record):
+    def test_issue_resolved_without_default_owner(self, mock_record: MagicMock) -> None:
         """Test analytics is called with 'unknown' when no user or default owner exists"""
         organization = self.create_organization()
         project = self.create_project(organization=organization)
@@ -134,7 +139,7 @@ class SignalsTest(TestCase, SnubaTestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_issue_unresolved_with_default_owner(self, mock_record):
+    def test_issue_unresolved_with_default_owner(self, mock_record: MagicMock) -> None:
         """Test analytics is called with default owner ID when no user is provided"""
         issue_unresolved.send(
             project=self.project,
@@ -143,17 +148,19 @@ class SignalsTest(TestCase, SnubaTestCase):
             transition_type="manual",
             sender=type(self.project),
         )
-        mock_record.assert_called_once_with(
-            "issue.unresolved",
-            user_id=None,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            group_id=self.group.id,
-            transition_type="manual",
+        assert_last_analytics_event(
+            mock_record,
+            IssueUnresolvedEvent(
+                user_id=None,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                group_id=self.group.id,
+                transition_type="manual",
+            ),
         )
 
     @patch("sentry.analytics.record")
-    def test_issue_unresolved_without_default_owner(self, mock_record):
+    def test_issue_unresolved_without_default_owner(self, mock_record: MagicMock) -> None:
         """Test analytics is called with 'unknown' when no user or default owner exists"""
         organization = self.create_organization()
         project = self.create_project(organization=organization)
@@ -166,17 +173,19 @@ class SignalsTest(TestCase, SnubaTestCase):
             transition_type="manual",
             sender=type(project),
         )
-        mock_record.assert_called_once_with(
-            "issue.unresolved",
-            user_id=None,
-            default_user_id="unknown",
-            organization_id=organization.id,
-            group_id=group.id,
-            transition_type="manual",
+        assert_last_analytics_event(
+            mock_record,
+            IssueUnresolvedEvent(
+                user_id=None,
+                default_user_id="unknown",
+                organization_id=organization.id,
+                group_id=group.id,
+                transition_type="manual",
+            ),
         )
 
     @patch("sentry.analytics.record")
-    def test_issue_assigned_with_default_owner(self, mock_record):
+    def test_issue_assigned_with_default_owner(self, mock_record: MagicMock) -> None:
         """Test analytics is called with default owner ID when no user is provided"""
         GroupAssignee.objects.create(
             group_id=self.group.id, user_id=self.owner.id, project_id=self.project.id
@@ -188,16 +197,18 @@ class SignalsTest(TestCase, SnubaTestCase):
             transition_type="manual",
             sender=type(self.project),
         )
-        mock_record.assert_called_once_with(
-            "issue.assigned",
-            user_id=None,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            group_id=self.group.id,
+        assert_last_analytics_event(
+            mock_record,
+            IssueAssignedEvent(
+                user_id=None,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                group_id=self.group.id,
+            ),
         )
 
     @patch("sentry.analytics.record")
-    def test_issue_assigned_without_default_owner(self, mock_record):
+    def test_issue_assigned_without_default_owner(self, mock_record: MagicMock) -> None:
         """Test analytics is called with 'unknown' when no user or default owner exists"""
         organization = self.create_organization()
         project = self.create_project(organization=organization)
@@ -213,10 +224,12 @@ class SignalsTest(TestCase, SnubaTestCase):
             transition_type="manual",
             sender=type(project),
         )
-        mock_record.assert_called_once_with(
-            "issue.assigned",
-            user_id=None,
-            default_user_id="unknown",
-            organization_id=organization.id,
-            group_id=group.id,
+        assert_last_analytics_event(
+            mock_record,
+            IssueAssignedEvent(
+                user_id=None,
+                default_user_id="unknown",
+                organization_id=organization.id,
+                group_id=group.id,
+            ),
         )

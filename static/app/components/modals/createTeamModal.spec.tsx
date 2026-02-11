@@ -8,19 +8,21 @@ import {makeCloseButton} from 'sentry/components/globalModal/components';
 import CreateTeamModal from 'sentry/components/modals/createTeamModal';
 
 jest.mock('sentry/actionCreators/teams', () => ({
-  createTeam: jest.fn((...args: any[]) => new Promise(resolve => resolve(args))),
+  createTeam: jest.fn(
+    (...args: Parameters<typeof createTeam>) => new Promise(resolve => resolve(args))
+  ),
 }));
 
-describe('CreateTeamModal', function () {
+describe('CreateTeamModal', () => {
   const org = OrganizationFixture();
   const closeModal = jest.fn();
   const onClose = jest.fn();
 
-  beforeEach(function () {
-    onClose.mockReset();
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  it('calls createTeam action creator on submit', async function () {
+  it('calls createTeam action creator on submit', async () => {
     const styledWrapper = styled<any>((c: {children: React.ReactNode}) => c.children);
     render(
       <CreateTeamModal
@@ -34,7 +36,7 @@ describe('CreateTeamModal', function () {
       />
     );
 
-    await userEvent.type(screen.getByText('Team Name'), 'new-team');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Team Slug'}), 'new-team');
     await userEvent.click(screen.getByLabelText('Create Team'));
 
     await waitFor(() => expect(createTeam).toHaveBeenCalledTimes(1));

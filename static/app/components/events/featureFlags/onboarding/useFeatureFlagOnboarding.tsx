@@ -1,8 +1,9 @@
 import {useCallback, useEffect} from 'react';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -21,7 +22,7 @@ export function useFeatureFlagOnboarding({
 
   useEffect(() => {
     if (location.hash === FLAG_HASH) {
-      SidebarPanelStore.activatePanel(SidebarPanelKey.FEATURE_FLAG_ONBOARDING);
+      OnboardingDrawerStore.open(OnboardingDrawerKey.FEATURE_FLAG_ONBOARDING);
       trackAnalytics('flags.view-setup-sidebar', {
         organization,
         surface: analyticsArea,
@@ -34,7 +35,7 @@ export function useFeatureFlagOnboarding({
     (event: React.MouseEvent) => {
       event.preventDefault();
       window.location.hash = FLAG_HASH;
-      SidebarPanelStore.activatePanel(SidebarPanelKey.FEATURE_FLAG_ONBOARDING);
+      OnboardingDrawerStore.open(OnboardingDrawerKey.FEATURE_FLAG_ONBOARDING);
       trackAnalytics('flags.view-setup-sidebar', {
         organization,
         surface: analyticsArea,

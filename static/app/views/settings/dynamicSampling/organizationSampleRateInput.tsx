@@ -2,9 +2,10 @@ import type React from 'react';
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -59,7 +60,7 @@ export function OrganizationSampleRateInput({
             <Button
               title={t('Proportionally scale project rates')}
               aria-label={t('Proportionally scale project rates')}
-              borderless
+              priority="transparent"
               size="sm"
               onClick={() => onBulkEditChange?.(true)}
               icon={<IconEdit />}
@@ -101,7 +102,7 @@ export function OrganizationSampleRateInput({
 const SampleRateRow = styled('div')`
   display: flex;
   padding: ${space(1.5)} ${space(2)} ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   gap: ${space(4)};
 `;
 
@@ -118,23 +119,23 @@ const Label = styled('label')`
 `;
 
 const HelpText = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const PreviousValue = styled('span')`
-  font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.xs};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ErrorMessage = styled('span')`
-  font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.error};
+  font-size: ${p => p.theme.font.size.xs};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 const AllDataStoredMessage = styled('span')`
-  font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.success};
+  font-size: ${p => p.theme.font.size.xs};
+  color: ${p => p.theme.tokens.content.success};
 `;
 
 const InputWrapper = styled('div')`

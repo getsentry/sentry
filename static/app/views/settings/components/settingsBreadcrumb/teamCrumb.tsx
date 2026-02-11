@@ -1,7 +1,8 @@
-import debounce from 'lodash/debounce';
+import {TeamAvatar} from '@sentry/scraps/avatar';
 
 import IdBadge from 'sentry/components/idBadge';
-import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -9,7 +10,6 @@ import {useTeams} from 'sentry/utils/useTeams';
 import type {SettingsBreadcrumbProps} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
 import BreadcrumbDropdown from './breadcrumbDropdown';
-import MenuItem from './menuItem';
 import {CrumbLink} from '.';
 
 function TeamCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
@@ -19,11 +19,6 @@ function TeamCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
 
   const team = teams.find(({slug}) => slug === params.teamId);
   const hasMenu = teams.length > 1;
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onSearch(e.target.value);
-  };
-  const debouncedHandleSearch = debounce(handleSearchChange, DEFAULT_DEBOUNCE_DURATION);
 
   if (!team) {
     return null;
@@ -37,27 +32,30 @@ function TeamCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
           <IdBadge avatarSize={18} team={team} />
         </CrumbLink>
       }
-      onSelect={item => {
+      onCrumbSelect={teamSlug => {
         navigate(
           recreateRoute('', {
             routes,
-            params: {...params, teamId: item.value},
+            params: {...params, teamId: teamSlug},
           })
         );
       }}
+      onOpenChange={open => {
+        if (open) {
+          trackAnalytics('breadcrumbs.menu.opened', {organization: null});
+        }
+      }}
       hasMenu={hasMenu}
       route={route}
-      items={teams.map((teamItem, index) => ({
-        index,
+      value={team.slug}
+      searchPlaceholder={t('Search Teams')}
+      options={teams.map(teamItem => ({
         value: teamItem.slug,
-        label: (
-          <MenuItem>
-            <IdBadge team={teamItem} />
-          </MenuItem>
-        ),
+        leadingItems: <TeamAvatar team={teamItem} size={16} />,
+        label: `#${teamItem.slug}`,
       }))}
-      onChange={debouncedHandleSearch}
-      busyItemsStillVisible={fetching}
+      onSearch={onSearch}
+      loading={fetching}
       {...props}
     />
   );

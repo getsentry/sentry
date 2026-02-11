@@ -4,7 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OptionSelector from 'sentry/components/charts/optionSelector';
 
-describe('Charts > OptionSelector (Multiple)', function () {
+describe('Charts > OptionSelector (Multiple)', () => {
   const yAxisValue = ['count()', 'failure_count()'];
   const yAxisOptions = [
     {label: 'count()', value: 'count()'},
@@ -25,7 +25,7 @@ describe('Charts > OptionSelector (Multiple)', function () {
       <OptionSelector
         multiple
         isOpen
-        title={'Y-Axis'}
+        title="Y-Axis"
         selected={currentSelected}
         options={yAxisOptions}
         onChange={newSelected => {
@@ -40,7 +40,7 @@ describe('Charts > OptionSelector (Multiple)', function () {
     return render(<TestComponent />);
   };
 
-  it('renders yAxisOptions with yAxisValue selected', async function () {
+  it('renders yAxisOptions with yAxisValue selected', async () => {
     renderComponent();
     expect(await screen.findByRole('option', {name: 'count()'})).toHaveAttribute(
       'aria-selected',
@@ -56,7 +56,7 @@ describe('Charts > OptionSelector (Multiple)', function () {
     );
   });
 
-  it('calls onChange prop with new checkbox option state', async function () {
+  it('calls onChange prop with new checkbox option state', async () => {
     renderComponent();
     await userEvent.click(screen.getByRole('option', {name: 'count()'}));
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
@@ -78,7 +78,7 @@ describe('Charts > OptionSelector (Multiple)', function () {
     ]);
   });
 
-  it('does not uncheck options when clicked if only one option is currently selected', async function () {
+  it('does not uncheck options when clicked if only one option is currently selected', async () => {
     renderComponent();
     await userEvent.click(screen.getByRole('option', {name: 'count()'}));
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
@@ -86,7 +86,7 @@ describe('Charts > OptionSelector (Multiple)', function () {
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
   });
 
-  it('only allows up to 3 options to be checked at one time', async function () {
+  it('only allows up to 3 options to be checked at one time', async () => {
     renderComponent();
     await userEvent.click(screen.getByRole('option', {name: 'count_unique(user)'}));
     expect(onChangeStub).toHaveBeenCalledWith([

@@ -2,34 +2,46 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {Button} from 'sentry/components/core/button';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import type {Project} from 'sentry/types/project';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
+import {
+  ALLOWLIST_IP_ADDRESSES_DESCRIPTION,
+  AllowListIPAddresses,
+} from 'sentry/views/settings/project/tempest/allowListIPAddresses';
+import {CredentialRow} from 'sentry/views/settings/project/tempest/CredentialRow';
+import type {TempestCredentials} from 'sentry/views/settings/project/tempest/types';
 
-export default function EmptyState() {
+interface EmptyStateProps {
+  hasWriteAccess: boolean;
+  isRemoving: boolean;
+  onRemoveCredential: (data: {id: number}) => void;
+  project: Project;
+  removingCredentialId?: number;
+  tempestCredentials?: TempestCredentials[];
+}
+
+export default function EmptyState({
+  project,
+  tempestCredentials,
+  isRemoving,
+  hasWriteAccess,
+  onRemoveCredential,
+  removingCredentialId,
+}: EmptyStateProps) {
   const navigate = useNavigate();
   const location = useLocation();
-
-  const {data: ipAddresses, isPending} = useApiQuery<string>(
-    [
-      '/tempest-ips/',
-      {
-        headers: {
-          Accept: 'text/html, text/plain, */*',
-        },
-      },
-    ],
-    {
-      staleTime: Infinity,
-    }
-  );
 
   return (
     <div>
@@ -44,6 +56,13 @@ export default function EmptyState() {
       <Body>
         <Setup>
           <BodyTitle>{t('Install instructions')}</BodyTitle>
+          <Alert.Container>
+            <Alert variant="info">
+              {t(
+                "Note: You need PlayStation access to complete these instructions. Sentry admin access alone isn't sufficient."
+              )}
+            </Alert>
+          </Alert.Container>
           <GuidedSteps
             initialStep={decodeInteger(location.query.guidedStep)}
             onStepChange={step => {
@@ -65,23 +84,41 @@ export default function EmptyState() {
                   'Retrieve the Back Office Server Credentials (Client ID and Secret) for the title of interest. To avoid problems with rate limiting it is preferred to have a separate set of credentials that are only used by Sentry.'
                 )}
               </DescriptionWrapper>
+              <Flex direction="column" align="end" gap="xl">
+                <StyledPanelTable
+                  headers={[
+                    t('Client ID'),
+                    t('Status'),
+                    t('Created At'),
+                    t('Created By'),
+                    '',
+                  ]}
+                  isEmpty={!tempestCredentials?.length}
+                  emptyMessage={t('No credentials found')}
+                  emptyAction={
+                    <AddCredentialsButton project={project} origin="project-settings" />
+                  }
+                >
+                  {tempestCredentials?.map(credential => (
+                    <CredentialRow
+                      key={credential.id}
+                      credential={credential}
+                      isRemoving={isRemoving && removingCredentialId === credential.id}
+                      removeCredential={hasWriteAccess ? onRemoveCredential : undefined}
+                    />
+                  ))}
+                </StyledPanelTable>
+              </Flex>
               <GuidedSteps.StepButtons />
             </GuidedSteps.Step>
 
             <GuidedSteps.Step stepKey="step-2" title={t('Allow list our IP Addresses:')}>
               <DescriptionWrapper>
-                {t(
-                  'Allow list our Outbound IP addresses as they will be the once used for making the requests using the provided credentials'
-                )}
-                {isPending ? (
-                  <LoadingIndicator size={16} />
-                ) : (
-                  <CodeSnippetWrapper>
-                    <OnboardingCodeSnippet>{ipAddresses || ''}</OnboardingCodeSnippet>
-                  </CodeSnippetWrapper>
-                )}
+                {ALLOWLIST_IP_ADDRESSES_DESCRIPTION}
+                <CodeSnippetWrapper>
+                  <AllowListIPAddresses />
+                </CodeSnippetWrapper>
               </DescriptionWrapper>
-
               <GuidedSteps.StepButtons />
             </GuidedSteps.Step>
 
@@ -145,20 +182,25 @@ export default function EmptyState() {
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Description = styled('div')``;
 
 const HeaderWrapper = styled('div')`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(4)};
 `;
 
 const BodyTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(1)};
+`;
+
+const StyledPanelTable = styled(PanelTable)`
+  width: 100%;
+  margin-bottom: 0;
 `;
 
 const Setup = styled('div')`
@@ -184,7 +226,8 @@ const Image = styled('img')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  background: ${p => p.theme.border};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;
   margin-bottom: 0;
@@ -200,5 +243,5 @@ const DescriptionWrapper = styled('div')`
 `;
 
 const BoldText = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

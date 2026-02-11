@@ -1,13 +1,14 @@
 import type {DateString} from 'sentry/types/core';
 import type {Group, IssueAttachment} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -24,8 +25,7 @@ interface UseGroupEventAttachmentsOptions {
   };
 }
 
-interface MakeFetchGroupEventAttachmentsQueryKeyOptions
-  extends UseGroupEventAttachmentsOptions {
+interface MakeFetchGroupEventAttachmentsQueryKeyOptions extends UseGroupEventAttachmentsOptions {
   cursor: string | undefined;
   environment: string[] | string | undefined;
   orgSlug: string;
@@ -97,7 +97,12 @@ export const makeFetchGroupEventAttachmentsQueryKey = ({
     query.types = ['event.minidump', 'event.applecrashreport'];
   }
 
-  return [`/organizations/${orgSlug}/issues/${group.id}/attachments/`, {query}];
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/attachments/', {
+      path: {organizationIdOrSlug: orgSlug, issueId: group.id},
+    }),
+    {query},
+  ];
 };
 
 export function useGroupEventAttachments({
@@ -108,7 +113,7 @@ export function useGroupEventAttachments({
   const hasStreamlinedUI = useHasStreamlinedUI();
   const location = useLocation();
   const organization = useOrganization();
-  const eventQuery = useEventQuery({groupId: group.id});
+  const eventQuery = useEventQuery();
   const eventView = useIssueDetailsEventView({group});
 
   const hasSetStatsPeriod =

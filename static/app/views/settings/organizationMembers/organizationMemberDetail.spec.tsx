@@ -5,7 +5,6 @@ import {OrgRoleListFixture} from 'sentry-fixture/roleList';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -25,7 +24,7 @@ jest.mock('sentry/actionCreators/members', () => ({
   updateMember: jest.fn().mockReturnValue(new Promise(() => {})),
 }));
 
-describe('OrganizationMemberDetail', function () {
+describe('OrganizationMemberDetail', () => {
   const team = TeamFixture();
   const idpTeam = TeamFixture({
     id: '3',
@@ -102,10 +101,10 @@ describe('OrganizationMemberDetail', function () {
     TeamStore.loadInitialData(teams);
   });
 
-  describe('Can Edit', function () {
+  describe('Can Edit', () => {
     const organization = OrganizationFixture({features: ['team-roles']});
 
-    beforeEach(function () {
+    beforeEach(() => {
       TeamStore.init();
       TeamStore.loadInitialData(teams);
 
@@ -138,16 +137,15 @@ describe('OrganizationMemberDetail', function () {
       });
     });
 
-    it('changes org role to owner', async function () {
-      const {router} = initializeOrg({
-        organization,
-        router: {params: {memberId: member.id}},
-      });
-
+    it('changes org role to owner', async () => {
       render(<OrganizationMemberDetail />, {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${member.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
       });
 
       // Should have 5 roles
@@ -171,16 +169,15 @@ describe('OrganizationMemberDetail', function () {
       );
     });
 
-    it('leaves a team', async function () {
-      const {router} = initializeOrg({
-        organization,
-        router: {params: {memberId: member.id}},
-      });
-
+    it('leaves a team', async () => {
       render(<OrganizationMemberDetail />, {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${member.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
       });
 
       // Remove our one team
@@ -199,31 +196,29 @@ describe('OrganizationMemberDetail', function () {
       );
     });
 
-    it('cannot leave idp-provisioned team', async function () {
-      const {router} = initializeOrg({
-        organization,
-        router: {params: {memberId: idpTeamMember.id}},
-      });
-
+    it('cannot leave idp-provisioned team', async () => {
       render(<OrganizationMemberDetail />, {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${idpTeamMember.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
       });
 
       expect(await screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
     });
 
-    it('joins a team and assign a team-role', async function () {
-      const {router} = initializeOrg({
-        organization,
-        router: {params: {memberId: member.id}},
-      });
-
+    it('joins a team and assign a team-role', async () => {
       render(<OrganizationMemberDetail />, {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${member.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
       });
 
       // Should have one team enabled
@@ -255,16 +250,15 @@ describe('OrganizationMemberDetail', function () {
       );
     });
 
-    it('cannot join idp-provisioned team', async function () {
-      const {router} = initializeOrg({
-        organization,
-        router: {params: {memberId: member.id}},
-      });
-
+    it('cannot join idp-provisioned team', async () => {
       render(<OrganizationMemberDetail />, {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${member.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
       });
 
       await userEvent.click(await screen.findByText('Add Team'));
@@ -277,10 +271,10 @@ describe('OrganizationMemberDetail', function () {
     });
   });
 
-  describe('Cannot Edit', function () {
+  describe('Cannot Edit', () => {
     const organization = OrganizationFixture({access: ['org:read']});
 
-    beforeEach(function () {
+    beforeEach(() => {
       TeamStore.init();
       TeamStore.loadInitialData(teams);
       jest.resetAllMocks();
@@ -304,16 +298,15 @@ describe('OrganizationMemberDetail', function () {
       });
     });
 
-    it('can not change roles, teams, or save', async function () {
-      const {router} = initializeOrg({
-        organization,
-        router: {params: {memberId: member.id}},
-      });
-
+    it('can not change roles, teams, or save', async () => {
       render(<OrganizationMemberDetail />, {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${member.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
       });
 
       // Should have 4 roles
@@ -325,10 +318,10 @@ describe('OrganizationMemberDetail', function () {
     });
   });
 
-  describe('Display status', function () {
+  describe('Display status', () => {
     const organization = OrganizationFixture({access: ['org:read']});
 
-    beforeEach(function () {
+    beforeEach(() => {
       TeamStore.init();
       TeamStore.loadInitialData(teams);
       jest.resetAllMocks();
@@ -352,16 +345,15 @@ describe('OrganizationMemberDetail', function () {
       });
     });
 
-    it('display pending status', async function () {
-      const {router} = initializeOrg({
-        organization,
-        router: {params: {memberId: pendingMember.id}},
-      });
-
+    it('display pending status', async () => {
       render(<OrganizationMemberDetail />, {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${pendingMember.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
       });
 
       expect(await screen.findByTestId('member-status')).toHaveTextContent(
@@ -369,16 +361,15 @@ describe('OrganizationMemberDetail', function () {
       );
     });
 
-    it('display expired status', async function () {
-      const {router} = initializeOrg({
-        organization,
-        router: {params: {memberId: expiredMember.id}},
-      });
-
+    it('display expired status', async () => {
       render(<OrganizationMemberDetail />, {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${expiredMember.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
       });
 
       expect(await screen.findByTestId('member-status')).toHaveTextContent(
@@ -387,10 +378,10 @@ describe('OrganizationMemberDetail', function () {
     });
   });
 
-  describe('Show resend button', function () {
+  describe('Show resend button', () => {
     const organization = OrganizationFixture({access: ['org:read']});
 
-    beforeEach(function () {
+    beforeEach(() => {
       TeamStore.init();
       TeamStore.loadInitialData(teams);
       jest.resetAllMocks();
@@ -414,16 +405,15 @@ describe('OrganizationMemberDetail', function () {
       });
     });
 
-    it('shows for pending', async function () {
-      const {router} = initializeOrg({
-        organization,
-        router: {params: {memberId: pendingMember.id}},
-      });
-
+    it('shows for pending', async () => {
       render(<OrganizationMemberDetail />, {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${pendingMember.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
       });
 
       expect(
@@ -431,16 +421,15 @@ describe('OrganizationMemberDetail', function () {
       ).toBeInTheDocument();
     });
 
-    it('does not show for expired', async function () {
-      const {router} = initializeOrg({
-        organization,
-        router: {params: {memberId: expiredMember.id}},
-      });
-
+    it('does not show for expired', async () => {
       render(<OrganizationMemberDetail />, {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${expiredMember.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
       });
 
       await screen.findAllByRole('radio');
@@ -450,7 +439,7 @@ describe('OrganizationMemberDetail', function () {
     });
   });
 
-  describe('Reset member 2FA', function () {
+  describe('Reset member 2FA', () => {
     const fields = {
       roles: OrgRoleListFixture(),
       dateCreated: new Date().toISOString(),
@@ -495,7 +484,7 @@ describe('OrganizationMemberDetail', function () {
 
     const organization = OrganizationFixture();
 
-    beforeEach(function () {
+    beforeEach(() => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${pendingMember.id}/`,
@@ -546,16 +535,14 @@ describe('OrganizationMemberDetail', function () {
       expect(await screen.findByText(title)).toBeInTheDocument();
     };
 
-    it('does not show for pending member', async function () {
-      const {router} = initializeOrg({
-        organization,
-        router: {params: {memberId: pendingMember.id}},
-      });
-
+    it('does not show for pending member', async () => {
       render(<OrganizationMemberDetail />, {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${pendingMember.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
       });
 
       expect(
@@ -566,40 +553,31 @@ describe('OrganizationMemberDetail', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('shows tooltip for joined member without permission to edit', async function () {
-      const {router} = initializeOrg({
-        organization,
-        router: {params: {memberId: noAccess.id}},
-      });
-
+    it('shows tooltip for joined member without permission to edit', async () => {
       render(<OrganizationMemberDetail />, {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${noAccess.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
       });
       await expectButtonDisabled('You do not have permission to perform this action');
     });
 
-    it('shows tooltip for member without 2fa', async function () {
-      const {router} = initializeOrg({
-        organization,
-        router: {params: {memberId: no2fa.id}},
-      });
-
+    it('shows tooltip for member without 2fa', async () => {
       render(<OrganizationMemberDetail />, {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${no2fa.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
       });
       await expectButtonDisabled('Not enrolled in two-factor authentication');
     });
 
-    it('can reset member 2FA', async function () {
-      const {router} = initializeOrg({
-        organization,
-        router: {params: {memberId: has2fa.id}},
-      });
-
+    it('can reset member 2FA', async () => {
       const deleteMocks = (has2fa.user?.authenticators || []).map(auth =>
         MockApiClient.addMockResponse({
           url: `/users/${has2fa.user?.id}/authenticators/${auth.id}/`,
@@ -608,9 +586,12 @@ describe('OrganizationMemberDetail', function () {
       );
 
       render(<OrganizationMemberDetail />, {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${has2fa.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
       });
       renderGlobalModal();
 
@@ -626,37 +607,35 @@ describe('OrganizationMemberDetail', function () {
       });
     });
 
-    it('shows tooltip for member in multiple orgs', async function () {
-      const {router} = initializeOrg({
-        organization,
-        router: {params: {memberId: multipleOrgs.id}},
-      });
-
+    it('shows tooltip for member in multiple orgs', async () => {
       render(<OrganizationMemberDetail />, {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${multipleOrgs.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
       });
       await expectButtonDisabled(
         'Cannot be reset since user is in more than one organization'
       );
     });
 
-    it('shows tooltip for member in 2FA required org', async function () {
+    it('shows tooltip for member in 2FA required org', async () => {
       organization.require2FA = true;
-      const {router} = initializeOrg({
-        organization,
-        router: {params: {memberId: has2fa.id}},
-      });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${has2fa.id}/`,
         body: has2fa,
       });
 
       render(<OrganizationMemberDetail />, {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${has2fa.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
       });
       await expectButtonDisabled(
         'Cannot be reset since two-factor is required for this organization'
@@ -711,15 +690,14 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('does not overwrite team-roles for org members', async () => {
-      const {router} = initializeOrg({
-        organization,
-        router: {params: {memberId: member.id}},
-      });
-
       render(<OrganizationMemberDetail />, {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${member.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
       });
 
       // Role info box is hidden
@@ -743,14 +721,14 @@ describe('OrganizationMemberDetail', function () {
 
     it('overwrite team-roles for org admin/manager/owner', async () => {
       async function testForOrgRole(testMember: Member) {
-        const {router} = initializeOrg({
-          organization,
-          router: {params: {memberId: testMember.id}},
-        });
         const {unmount} = render(<OrganizationMemberDetail />, {
-          router,
           organization,
-          deprecatedRouterMocks: true,
+          initialRouterConfig: {
+            location: {
+              pathname: `/settings/${organization.slug}/members/${testMember.id}/`,
+            },
+            route: '/settings/:orgId/members/:memberId/',
+          },
         });
 
         // Role info box is showed
@@ -775,15 +753,14 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('overwrites when changing from member to manager', async () => {
-      const {router} = initializeOrg({
-        organization,
-        router: {params: {memberId: member.id}},
-      });
-
       render(<OrganizationMemberDetail />, {
-        router,
         organization,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${member.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
       });
 
       // Dropdown has correct value set

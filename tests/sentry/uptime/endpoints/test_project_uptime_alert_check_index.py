@@ -1,15 +1,16 @@
 import uuid
 from abc import abstractmethod
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-from sentry.testutils.cases import UptimeCheckSnubaTestCase
+from sentry.testutils.cases import UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.uptime import MOCK_ASSERTION_FAILURE_DATA
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.types import IncidentStatus
 from sentry.utils.cursors import Cursor
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
-from tests.sentry.uptime.endpoints.test_base import MOCK_DATETIME, UptimeResultEAPTestCase
+
+MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
 
 
 class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
@@ -23,9 +24,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
         self.subscription = self.create_uptime_subscription(
             url="https://santry.io", subscription_id=self.subscription_id
         )
-        self.project_uptime_subscription = self.create_project_uptime_subscription(
-            uptime_subscription=self.subscription
-        )
+        self.detector = self.create_uptime_detector(uptime_subscription=self.subscription)
 
         test_scenarios: list[dict] = [
             {"check_status": "success", "scheduled_check_time": before_now(minutes=10)},
@@ -71,13 +70,12 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                self.project_uptime_subscription.id,
+                self.detector.id,
             )
             assert response.data is not None
             assert len(response.data) == 6
             most_recent = response.data[0]
             for key in [
-                "uptimeSubscriptionId",
                 "uptimeCheckId",
                 "scheduledCheckTime",
                 "timestamp",
@@ -86,16 +84,18 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
                 "regionName",
                 "checkStatus",
                 "checkStatusReason",
+                "assertionFailureData",
                 "traceId",
+                "traceItemId",
                 "httpStatusCode",
                 "incidentStatus",
             ]:
                 assert key in most_recent, f"{key} not in {most_recent}"
 
             assert most_recent["uptimeCheckId"]
-            assert most_recent["uptimeSubscriptionId"] == self.project_uptime_subscription.id
             assert most_recent["regionName"] == "Default Region"
             assert most_recent["checkStatusReason"] == "failure"
+            assert most_recent["assertionFailureData"] == MOCK_ASSERTION_FAILURE_DATA
 
             assert any(v for v in response.data if v["checkStatus"] == "failure_incident")
             assert any(v for v in response.data if v["checkStatusReason"] is None)
@@ -107,7 +107,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                self.project_uptime_subscription.id,
+                self.detector.id,
                 qs_params={
                     "start": datetime.now() - timedelta(days=10),
                     "end": datetime.now() - timedelta(days=9),
@@ -118,7 +118,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                self.project_uptime_subscription.id,
+                self.detector.id,
                 qs_params={
                     "start": datetime.now() - timedelta(days=3),
                     "end": datetime.now(),
@@ -132,7 +132,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                self.project_uptime_subscription.id,
+                self.detector.id,
                 qs_params={"cursor": Cursor(0, 0), "per_page": 2},
             )
             assert response.data is not None
@@ -141,7 +141,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                self.project_uptime_subscription.id,
+                self.detector.id,
                 qs_params={"cursor": Cursor(0, 2), "per_page": 2},
             )
             assert response.data is not None
@@ -150,7 +150,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                self.project_uptime_subscription.id,
+                self.detector.id,
                 qs_params={"cursor": Cursor(0, 4), "per_page": 2},
             )
             assert response.data is not None
@@ -159,21 +159,8 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                self.project_uptime_subscription.id,
+                self.detector.id,
                 qs_params={"cursor": Cursor(0, 20), "per_page": 2},
-            )
-            assert response.data is not None
-            assert len(response.data) == 0
-
-    @override_options(
-        {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(seconds=1)).timestamp()}
-    )
-    def test_get_with_date_cutoff(self) -> None:
-        with self.feature(self.features):
-            response = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                self.project_uptime_subscription.id,
             )
             assert response.data is not None
             assert len(response.data) == 0
@@ -184,48 +171,14 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             subscription = self.create_uptime_subscription(
                 url="https://example.com", subscription_id=None
             )
-            project_uptime_subscription = self.create_project_uptime_subscription(
-                uptime_subscription=subscription
-            )
+            detector = self.create_uptime_detector(uptime_subscription=subscription)
 
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                project_uptime_subscription.id,
+                detector.id,
             )
             assert response.data == []
-
-
-@region_silo_test
-@freeze_time(MOCK_DATETIME)
-class ProjectUptimeAlertCheckIndexEndpoint(
-    ProjectUptimeAlertCheckIndexBaseTest, UptimeCheckSnubaTestCase
-):
-    __test__ = True
-    features = {
-        "organizations:uptime-eap-enabled": False,
-        "organizations:uptime-eap-uptime-results-query": False,
-    }
-
-    def store_uptime_data(
-        self,
-        subscription_id,
-        check_status,
-        incident_status=IncidentStatus.NO_INCIDENT,
-        scheduled_check_time=None,
-        http_status=None,
-    ):
-        # if scheduled_check_time is None:
-        #     scheduled_check_time = datetime.now(timezone.utc) - timedelta(hours=12)
-        #
-        self.store_snuba_uptime_check(
-            subscription_id=subscription_id,
-            check_status=check_status,
-            incident_status=incident_status,
-            scheduled_check_time=scheduled_check_time,
-            http_status=http_status,
-            region="default",
-        )
 
 
 @region_silo_test
@@ -234,13 +187,6 @@ class ProjectUptimeAlertCheckIndexEndpointWithEAPTests(
     ProjectUptimeAlertCheckIndexBaseTest, UptimeResultEAPTestCase
 ):
     __test__ = True
-
-    def setUp(self) -> None:
-        self.features = {
-            "organizations:uptime-eap-enabled": True,
-            "organizations:uptime-eap-uptime-results-query": True,
-        }
-        super().setUp()
 
     def store_uptime_data(
         self,
@@ -260,6 +206,9 @@ class ProjectUptimeAlertCheckIndexEndpointWithEAPTests(
             "status_reason_type": "failure" if check_status == "failure" else None,
             "region": "default",
             "http_status_code": http_status,
+            "assertion_failure_data": (
+                MOCK_ASSERTION_FAILURE_DATA if check_status == "failure" else None
+            ),
         }
         uptime_result = self.create_eap_uptime_result(**create_params)
         self.store_uptime_results([uptime_result])

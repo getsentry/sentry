@@ -1,12 +1,11 @@
-import styled from '@emotion/styled';
+import {Container} from '@sentry/scraps/layout';
 
-import {defined} from 'sentry/utils';
 import {
-  useExploreGroupBys,
-  useExploreVisualizes,
-  useSetExploreGroupBys,
-  useSetExploreVisualizes,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+  useQueryParamsGroupBys,
+  useQueryParamsVisualizes,
+  useSetQueryParamsGroupBys,
+  useSetQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
 import {ToolbarGroupBy} from 'sentry/views/explore/toolbar/toolbarGroupBy';
 import {ToolbarSaveAs} from 'sentry/views/explore/toolbar/toolbarSaveAs';
 import {ToolbarSortBy} from 'sentry/views/explore/toolbar/toolbarSortBy';
@@ -20,14 +19,17 @@ interface ExploreToolbarProps {
 }
 
 export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
-  const visualizes = useExploreVisualizes();
-  const setVisualizes = useSetExploreVisualizes();
+  const visualizes = useQueryParamsVisualizes();
+  const setVisualizes = useSetQueryParamsVisualizes();
 
-  const groupBys = useExploreGroupBys();
-  const setGroupBys = useSetExploreGroupBys();
+  const groupBys = useQueryParamsGroupBys();
+  const setGroupBys = useSetQueryParamsGroupBys();
 
   return (
-    <Container width={width}>
+    <Container
+      data-test-id="explore-span-toolbar"
+      minWidth={typeof width === 'undefined' ? undefined : `${width}px`}
+    >
       <ToolbarVisualize
         visualizes={visualizes}
         setVisualizes={setVisualizes}
@@ -39,7 +41,3 @@ export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
     </Container>
   );
 }
-
-const Container = styled('div')<{width?: number}>`
-  ${p => defined(p.width) && `min-width: ${p.width}px;`}
-`;

@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {PromoCode as PromoCodeType} from 'admin/types';
@@ -23,42 +22,36 @@ function PromoCodeFixture(params: Partial<PromoCodeType>): PromoCodeType {
   };
 }
 
-describe('PromoCodes', function () {
-  it('renders', async function () {
-    const {routerProps} = initializeOrg();
-
+describe('PromoCodes', () => {
+  it('renders', async () => {
     MockApiClient.addMockResponse({
       url: '/promocodes/',
       method: 'GET',
       body: [],
     });
-    render(<PromoCodes {...routerProps} />);
+    render(<PromoCodes />);
     expect(await screen.findByRole('heading', {name: 'Promo Codes'})).toBeInTheDocument();
   });
 
-  it('shows a promo code created by someone with an email', async function () {
-    const {routerProps} = initializeOrg();
-
+  it('shows a promo code created by someone with an email', async () => {
     MockApiClient.addMockResponse({
       url: '/promocodes/',
       method: 'GET',
       body: [PromoCodeFixture({})],
     });
-    render(<PromoCodes {...routerProps} />);
+    render(<PromoCodes />);
     expect(
       await screen.findByRole('link', {name: 'hellboy@cutecats.io'})
     ).toBeInTheDocument();
   });
 
-  it('shows a promo code created by someone without an email', async function () {
-    const {routerProps} = initializeOrg();
-
+  it('shows a promo code created by someone without an email', async () => {
     MockApiClient.addMockResponse({
       url: '/promocodes/',
       method: 'GET',
       body: [PromoCodeFixture({userEmail: null})],
     });
-    render(<PromoCodes {...routerProps} />);
+    render(<PromoCodes />);
     expect(await screen.findByRole('link', {name: 'Created By'})).toBeEmptyDOMElement();
   });
 });

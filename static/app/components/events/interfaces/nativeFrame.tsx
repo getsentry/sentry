@@ -2,10 +2,12 @@ import type {MouseEvent} from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {FRAME_TOOLTIP_MAX_WIDTH} from 'sentry/components/events/interfaces/frame/defaultTitle';
 import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
@@ -28,16 +30,18 @@ import {IconChevron} from 'sentry/icons';
 import {IconFileBroken} from 'sentry/icons/iconFileBroken';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
+import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
+import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import type {Event, Frame} from 'sentry/types/event';
 import type {
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/project';
-import {type StacktraceType, StackView} from 'sentry/types/stacktrace';
+import {StackView, type StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
@@ -45,7 +49,6 @@ import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-import type DebugImage from './debugMeta/debugImage';
 import {combineStatus} from './debugMeta/utils';
 import Context from './frame/context';
 import {SymbolicatorStatus} from './types';
@@ -57,7 +60,7 @@ type Props = {
   frame: Frame;
   frameMeta: Record<any, any>;
   hiddenFrameCount: number | undefined;
-  image: React.ComponentProps<typeof DebugImage>['image'];
+  image: ImageWithCombinedStatus;
   isFirstInAppFrame: boolean;
   /**
    * Is the stack trace being previewed in a hovercard?
@@ -99,6 +102,9 @@ function NativeFrame({
   emptySourceNotation,
   isHoverPreviewed = false,
 }: Props) {
+  const isDartAsyncSuspensionFrame =
+    frame.filename === '<asynchronous suspension>' ||
+    frame.absPath === '<asynchronous suspension>';
   const {displayOptions, stackView} = useStacktraceContext();
 
   const {sectionData} = useIssueDetails();
@@ -147,8 +153,8 @@ function NativeFrame({
   const [isHovering, setHovering] = useState(false);
 
   const contextLine = (frame?.context || []).find(l => l[0] === frame.lineNo);
-  const hasStacktraceLink = frame.inApp && !!frame.filename && (isHovering || expanded);
-  const showSentryAppStacktraceLinkInFrame = hasStacktraceLink && components.length > 0;
+  const showStacktraceLink = frame.inApp && !!frame.filename && (isHovering || expanded);
+  const showSentryAppStacktraceLinkInFrame = showStacktraceLink && components.length > 0;
 
   const handleMouseEnter = () => setHovering(true);
 
@@ -203,6 +209,11 @@ function NativeFrame({
 
   // this is the status of image that belongs to this frame
   function getStatus() {
+    // Treat Dart asynchronous suspension frames as symbolicated - these are synthetic markers set by Dart
+    if (isDartAsyncSuspensionFrame) {
+      return 'success';
+    }
+
     // If a matching debug image doesn't exist, fall back to symbolicator_status
     if (!image) {
       switch (frame.symbolicatorStatus) {
@@ -288,7 +299,7 @@ function NativeFrame({
               >
                 <IconFileBroken
                   size="sm"
-                  color="errorText"
+                  variant="danger"
                   data-test-id="symbolication-error-icon"
                 />
               </Tooltip>
@@ -300,7 +311,7 @@ function NativeFrame({
               >
                 <IconWarning
                   size="sm"
-                  color="warningText"
+                  variant="warning"
                   data-test-id="symbolication-warning-icon"
                 />
               </Tooltip>
@@ -315,18 +326,27 @@ function NativeFrame({
               </Fragment>
             )}
             <Tooltip
-              title={frame.package ?? t('Go to images loaded')}
+              title={
+                frame.package ??
+                (isDartAsyncSuspensionFrame
+                  ? t('Dart async operation')
+                  : t('Go to images loaded'))
+              }
               containerDisplayMode="inline-flex"
               delay={tooltipDelay}
               maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
               position="auto-start"
             >
               <Package>
-                {frame.package ? trimPackage(frame.package) : `<${t('unknown')}>`}
+                {frame.package
+                  ? trimPackage(frame.package)
+                  : isDartAsyncSuspensionFrame
+                    ? t('Dart async')
+                    : `<${t('unknown')}>`}
               </Package>
             </Tooltip>
           </div>
-          <GenericCellWrapper>
+          <Flex>
             <AddressCell onClick={packageClickable ? handleGoToImagesLoaded : undefined}>
               <Tooltip
                 title={addressTooltip}
@@ -337,12 +357,14 @@ function NativeFrame({
                 {!relativeAddress || absolute ? frame.instructionAddr : relativeAddress}
               </Tooltip>
             </AddressCell>
-          </GenericCellWrapper>
+          </Flex>
           <FunctionNameCell>
             {functionName ? (
               <Tooltip title={frame?.rawFunction ?? frame?.symbol} delay={tooltipDelay}>
                 <AnnotatedText value={functionName.value} meta={functionName.meta} />
               </Tooltip>
+            ) : isDartAsyncSuspensionFrame ? (
+              `${t('Dart')}`
             ) : (
               `<${t('unknown')}>`
             )}{' '}
@@ -366,7 +388,7 @@ function NativeFrame({
           <GroupingCell>
             {isUsedForGrouping && (
               <Tooltip title={t('This frame is repeated in every event of this issue')}>
-                <IconRefresh size="sm" color="textColor" />
+                <IconRefresh size="sm" variant="primary" />
               </Tooltip>
             )}
           </GroupingCell>
@@ -379,7 +401,7 @@ function NativeFrame({
                 is_frame_expanded: isShowFramesToggleExpanded,
               }}
               size="zero"
-              borderless
+              priority="transparent"
               onClick={e => {
                 onShowFramesToggle?.(e);
               }}
@@ -389,8 +411,8 @@ function NativeFrame({
                 : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
             </ShowHideButton>
           ) : null}
-          <GenericCellWrapper>
-            {hasStacktraceLink && (
+          <Flex align="center" gap="sm">
+            {showStacktraceLink && (
               <ErrorBoundary>
                 <StacktraceLink
                   frame={frame}
@@ -410,15 +432,15 @@ function NativeFrame({
               </ErrorBoundary>
             )}
             <TypeCell>
-              {frame.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
+              {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
             </TypeCell>
-          </GenericCellWrapper>
+          </Flex>
           <ExpandCell>
             {expandable && (
               <ToggleButton
                 type="button"
                 size="zero"
-                borderless
+                priority="transparent"
                 aria-label={expanded ? t('Collapse Context') : t('Expand Context')}
                 icon={<IconChevron size="sm" direction={expanded ? 'up' : 'down'} />}
               />
@@ -449,14 +471,10 @@ function NativeFrame({
 
 export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-link'});
 
-const GenericCellWrapper = styled('div')`
-  display: flex;
-`;
-
 const AddressCell = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   ${p => p.onClick && `cursor: pointer`};
-  ${p => p.onClick && `color:` + p.theme.linkColor};
+  ${p => p.onClick && `color:` + p.theme.tokens.interactive.link.accent.rest};
 `;
 
 const FunctionNameCell = styled('div')`
@@ -489,18 +507,18 @@ const ExpandCell = styled('div')`
 
 const ToggleButton = styled(Button)`
   display: block;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Registers = styled(Context)`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding: 0;
   margin: 0;
 `;
 
 const PackageNote = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.xs};
 `;
 
 const Package = styled('span')`
@@ -512,8 +530,8 @@ const Package = styled('span')`
 `;
 
 const FileName = styled('span')`
-  color: ${p => p.theme.subText};
-  border-bottom: 1px dashed ${p => p.theme.border};
+  color: ${p => p.theme.tokens.content.secondary};
+  border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;
 
 const RowHeader = styled('span')<{
@@ -530,11 +548,11 @@ const RowHeader = styled('span')<{
   column-gap: ${space(1)};
   background-color: ${p =>
     !p.isInAppFrame && p.isSubFrame
-      ? `${p.theme.surface100}`
-      : `${p.theme.bodyBackground}`};
-  font-size: ${p => p.theme.fontSize.sm};
+      ? `${p.theme.colors.surface200}`
+      : `${p.theme.tokens.background.secondary}`};
+  font-size: ${p => p.theme.font.size.sm};
   padding: ${space(1)};
-  color: ${p => (p.isInAppFrame ? '' : p.theme.subText)};
+  color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};
   font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
   ${p => p.expandable && `cursor: pointer;`};
 
@@ -548,22 +566,22 @@ const RowHeader = styled('span')<{
 const StackTraceFrame = styled('li')`
   :not(:last-child) {
     ${RowHeader} {
-      border-bottom: 1px solid ${p => p.theme.border};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     }
   }
 `;
 
 const SymbolicatorIcon = styled('div')`
-  width: ${p => p.theme.iconSizes.sm};
+  width: ${() => SvgIcon.ICON_SIZES.sm};
 `;
 
 const ShowHideButton = styled(Button)`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   font-style: italic;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   padding: ${space(0.25)} ${space(0.5)};
   &:hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;

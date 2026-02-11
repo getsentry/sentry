@@ -1,4 +1,4 @@
-import {cloneElement, Component, Fragment, isValidElement} from 'react';
+import {Component, Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -22,7 +22,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -31,16 +30,14 @@ import {
   WidgetViewerQueryField,
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types/core';
-import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization, Team} from 'sentry/types/organization';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -50,13 +47,16 @@ import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metr
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
+import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
-import withProjects from 'sentry/utils/withProjects';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import useProjects from 'sentry/utils/useProjects';
+import useRouter from 'sentry/utils/useRouter';
 import {
   cloneDashboard,
   getCurrentPageFilters,
@@ -65,11 +65,11 @@ import {
   isWidgetUsingTransactionName,
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
+import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
-import {DATA_SET_TO_WIDGET_TYPE} from 'sentry/views/dashboards/widgetBuilder/widgetBuilder';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
@@ -108,28 +108,39 @@ export const UNSAVED_FILTERS_MESSAGE = t(
 
 const HookHeader = HookOrDefault({hookName: 'component:dashboards-header'});
 
+const DATA_SET_TO_WIDGET_TYPE = {
+  [DataSet.EVENTS]: WidgetType.DISCOVER,
+  [DataSet.ISSUES]: WidgetType.ISSUE,
+  [DataSet.RELEASES]: WidgetType.RELEASE,
+  [DataSet.METRICS]: WidgetType.METRICS,
+  [DataSet.ERRORS]: WidgetType.ERRORS,
+  [DataSet.TRANSACTIONS]: WidgetType.TRANSACTIONS,
+  [DataSet.SPANS]: WidgetType.SPANS,
+  [DataSet.LOGS]: WidgetType.LOGS,
+};
+
 type RouteParams = {
   dashboardId?: string;
   templateId?: string;
-  widgetId?: number | string;
-  widgetIndex?: number;
+  widgetId?: string;
+  widgetIndex?: string;
 };
 
-type Props = RouteComponentProps<RouteParams> & {
+type Props = {
   api: Client;
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];
   initialState: DashboardState;
+  location: Location;
   navigate: ReactRouter3Navigate;
   organization: Organization;
+  params: RouteParams;
   projects: Project[];
-  route: PlainRoute;
-  selection: PageFilters;
+  router: InjectedRouter;
   theme: Theme;
   children?: React.ReactNode;
-  newWidget?: Widget;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
-  onSetNewWidget?: () => void;
+  useTimeseriesVisualization?: boolean;
 };
 
 type State = {
@@ -143,75 +154,6 @@ type State = {
   newlyAddedWidget?: Widget;
   openWidgetTemplates?: boolean;
 } & WidgetViewerContextProps;
-
-export function handleUpdateDashboardSplit({
-  widgetId,
-  splitDecision,
-  dashboard,
-  onDashboardUpdate,
-  modifiedDashboard,
-  stateSetter,
-}: {
-  dashboard: DashboardDetails;
-  modifiedDashboard: DashboardDetails | null;
-  splitDecision: WidgetType;
-  stateSetter: Component<Props, State, any>['setState'];
-  widgetId: string;
-  onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
-}) {
-  // The underlying dashboard needs to be updated with the split decision
-  // because the backend has evaluated the query and stored that value
-  const updatedDashboard = cloneDashboard(dashboard);
-  const widgetIndex = updatedDashboard.widgets.findIndex(
-    widget =>
-      (defined(widget.id) && widget.id === widgetId) ||
-      (defined(widget.tempId) && widget.tempId === widgetId)
-  );
-
-  if (widgetIndex >= 0) {
-    updatedDashboard.widgets[widgetIndex]!.widgetType = splitDecision;
-  }
-  onDashboardUpdate?.(updatedDashboard);
-
-  // The modified dashboard also needs to be updated because that dashboard
-  // is rendered instead of the original dashboard when editing
-  if (modifiedDashboard) {
-    stateSetter(state => ({
-      ...state,
-      modifiedDashboard: {
-        ...state.modifiedDashboard!,
-        widgets: state.modifiedDashboard!.widgets.map(widget =>
-          widget.id === widgetId ? {...widget, widgetType: splitDecision} : widget
-        ),
-      },
-    }));
-  }
-}
-
-/* Checks if current user has permissions to edit dashboard */
-export function checkUserHasEditAccess(
-  currentUser: User,
-  userTeams: Team[],
-  organization: Organization,
-  dashboardPermissions?: DashboardPermissions,
-  dashboardCreator?: User
-): boolean {
-  if (
-    hasEveryAccess(['org:admin'], {organization}) || // Owners
-    !dashboardPermissions ||
-    dashboardPermissions.isEditableByEveryone ||
-    dashboardCreator?.id === currentUser.id
-  ) {
-    return true;
-  }
-  if (dashboardPermissions.teamsWithEditAccess?.length) {
-    const userTeamIds = userTeams.map(team => Number(team.id));
-    return dashboardPermissions.teamsWithEditAccess.some(teamId =>
-      userTeamIds.includes(teamId)
-    );
-  }
-  return false;
-}
 
 function getDashboardLocation({
   organization,
@@ -278,6 +220,10 @@ class DashboardDetail extends Component<Props, State> {
   componentDidUpdate(prevProps: Props) {
     this.checkIfShouldMountWidgetViewerModal();
 
+    if (!this.state.isWidgetBuilderOpen && this.isWidgetBuilder()) {
+      this.setState({isWidgetBuilderOpen: true});
+    }
+
     if (prevProps.initialState !== this.props.initialState) {
       // Widget builder can toggle Edit state when saving
       this.setState({dashboardState: this.props.initialState});
@@ -285,8 +231,13 @@ class DashboardDetail extends Component<Props, State> {
 
     if (
       prevProps.organization !== this.props.organization ||
-      prevProps.location !== this.props.location ||
-      prevProps.router !== this.props.router ||
+      // The only part of `location` used by `WidgetLegendSelectionState` is
+      // `unselectedSeries`. Don't bother comparing anything else. Once this
+      // component is a functional component, we'll move the selection state
+      // into a hook, and make sure it doesn't re-render too much.
+      prevProps.location.query.unselectedSeries !==
+        this.props.location.query.unselectedSeries ||
+      prevProps.navigate !== this.props.navigate ||
       prevProps.dashboard !== this.props.dashboard
     ) {
       this.setState({
@@ -341,14 +292,6 @@ class DashboardDetail extends Component<Props, State> {
           dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
           dashboardPermissions: dashboard.permissions,
           dashboardCreator: dashboard.createdBy,
-          onMetricWidgetEdit: (updatedWidget: Widget) => {
-            const widgets = [...dashboard.widgets];
-
-            const widgetIndex = dashboard.widgets.indexOf(widget);
-            widgets[widgetIndex] = {...widgets[widgetIndex], ...updatedWidget};
-
-            this.handleUpdateWidgetList(widgets);
-          },
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
             const query = omit(location.query, Object.values(WidgetViewerQueryField));
@@ -410,6 +353,11 @@ class DashboardDetail extends Component<Props, State> {
         return null;
       }
     }
+  }
+
+  get isEmbedded() {
+    const {dashboardState} = this.state;
+    return DashboardState.EMBEDDED === dashboardState;
   }
 
   get isPreview() {
@@ -557,23 +505,20 @@ class DashboardDetail extends Component<Props, State> {
 
   handleChangeFilter = (activeFilters: DashboardFilters) => {
     const {dashboard, location} = this.props;
-    const {modifiedDashboard} = this.state;
-    const newModifiedDashboard = modifiedDashboard || dashboard;
 
-    if (
-      Object.keys(activeFilters).every(
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        key => !newModifiedDashboard.filters?.[key] && activeFilters[key].length === 0
-      )
-    ) {
-      return;
-    }
+    const filterParams: Record<string, string[]> = {};
+    filterParams[DashboardFilterKeys.RELEASE] = activeFilters[DashboardFilterKeys.RELEASE]
+      ?.length
+      ? activeFilters[DashboardFilterKeys.RELEASE]
+      : [''];
 
-    const filterParams: DashboardFilters = {};
-    Object.keys(activeFilters).forEach(key => {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      filterParams[key] = activeFilters[key].length ? activeFilters[key] : '';
-    });
+    filterParams[DashboardFilterKeys.GLOBAL_FILTER] = activeFilters[
+      DashboardFilterKeys.GLOBAL_FILTER
+    ]?.length
+      ? activeFilters[DashboardFilterKeys.GLOBAL_FILTER].map(filter =>
+          JSON.stringify(filter)
+        )
+      : [''];
 
     if (
       !isEqualWith(activeFilters, dashboard.filters, (a, b) => {
@@ -650,7 +595,7 @@ class DashboardDetail extends Component<Props, State> {
     const {dashboard} = this.props;
     const {modifiedDashboard} = this.state;
     const newModifiedDashboard = modifiedDashboard || dashboard;
-    this.onUpdateWidget([...newModifiedDashboard.widgets, widget]);
+    this.handleUpdateEditStateWidgets([...newModifiedDashboard.widgets, widget]);
   };
 
   handleScrollToNewWidgetComplete = () => {
@@ -707,6 +652,9 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onEditWidget = (widget: Widget) => {
+    // Start measuring the "onEdit" click handler duration
+    const start = performance.now();
+
     const {navigate, organization, params, location, dashboard} = this.props;
     const {modifiedDashboard} = this.state;
     const currentDashboard = modifiedDashboard ?? dashboard;
@@ -745,6 +693,17 @@ class DashboardDetail extends Component<Props, State> {
       }),
       {preventScrollReset: true}
     );
+
+    // Schedule stopping the timer for the end of the current task queue tick.
+    // This roughly corresponds to when React finishes the rendering and
+    // painting, and gives a decent idea of how long it took to open the Widget
+    // Builder
+    scheduleMicroTask(() => {
+      const duration = performance.now() - start;
+      Sentry.metrics.distribution('dashboards.widget.onEdit', duration, {
+        unit: 'millisecond',
+      });
+    });
   };
 
   handleSaveWidget = ({index, widget}: {index: number | undefined; widget: Widget}) => {
@@ -754,18 +713,24 @@ class DashboardDetail extends Component<Props, State> {
     const baseWidget = defined(index) ? currentDashboard.widgets[index] : {};
     const mergedWidget = assignTempId({...baseWidget, ...widget});
 
-    const newWidgets = defined(index)
-      ? [
-          ...currentDashboard.widgets.slice(0, index),
-          mergedWidget,
-          ...currentDashboard.widgets.slice(index + 1),
-        ]
-      : [...currentDashboard.widgets, mergedWidget];
+    // Always ensure added widgets in the save flow have a layout
+    // This sets the layout for the request, as well as the optimistic
+    // update on save
+    const newWidgets = assignDefaultLayout(
+      defined(index)
+        ? [
+            ...currentDashboard.widgets.slice(0, index),
+            mergedWidget,
+            ...currentDashboard.widgets.slice(index + 1),
+          ]
+        : [...currentDashboard.widgets, mergedWidget],
+      calculateColumnDepths(getDashboardLayout(currentDashboard.widgets))
+    );
 
     try {
       if (this.isEditingDashboard) {
         // If we're in edit mode, update the edit state
-        this.onUpdateWidget(newWidgets);
+        this.handleUpdateEditStateWidgets(newWidgets);
       } else {
         // If we're not in edit mode, send a request to update the dashboard
         addLoadingMessage(t('Saving widget'));
@@ -775,7 +740,7 @@ class DashboardDetail extends Component<Props, State> {
         newlyAddedWidget: mergedWidget,
       });
 
-      this.handleCloseWidgetBuilder();
+      this.handleCloseWidgetBuilder(newWidgets);
     } catch (error) {
       addErrorMessage(t('Failed to save widget'));
     }
@@ -800,20 +765,44 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
-  handleCloseWidgetBuilder = () => {
-    const {organization, navigate, location, params} = this.props;
+  handleCloseWidgetBuilder = (newWidgets?: Widget[]) => {
+    const {organization, navigate, location, params, dashboard} = this.props;
+    const {dashboardState, modifiedDashboard} = this.state;
 
     this.setState({
       isWidgetBuilderOpen: false,
       openWidgetTemplates: undefined,
     });
+
+    // Build the state to persist through the route change.
+    // This prevents losing data when the component remounts during navigation.
+    let navigationState: {dashboard?: DashboardDetails; widgets?: Widget[]} | undefined;
+
+    if (dashboardState === DashboardState.CREATE && defined(newWidgets)) {
+      // For new dashboards, persist the widgets
+      navigationState = {widgets: newWidgets};
+    } else if (dashboardState === DashboardState.VIEW && newWidgets) {
+      // For existing dashboards in view mode, persist the full dashboard with new widgets
+      // so it can be displayed immediately while the API update happens in the background
+      const currentDashboard = modifiedDashboard ?? dashboard;
+      navigationState = {
+        dashboard: {
+          ...currentDashboard,
+          widgets: newWidgets,
+        },
+      };
+    }
+
     navigate(
       getDashboardLocation({
         organization,
         dashboardId: params.dashboardId,
         location,
       }),
-      {preventScrollReset: true}
+      {
+        preventScrollReset: true,
+        state: navigationState,
+      }
     );
   };
 
@@ -842,12 +831,7 @@ class DashboardDetail extends Component<Props, State> {
             ...getCurrentPageFilters(location),
             filters: getDashboardFiltersFromURL(location) ?? modifiedDashboard.filters,
           };
-          createDashboard(
-            api,
-            organization.slug,
-            newModifiedDashboard,
-            this.isPreview
-          ).then(
+          createDashboard(api, organization.slug, newModifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
               trackAnalytics('dashboards2.create.complete', {organization});
@@ -942,52 +926,22 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
-  onUpdateWidget = (widgets: Widget[]) => {
-    this.setState((state: State) => ({
-      ...state,
-      widgetLimitReached: widgets.length >= MAX_WIDGETS,
-      modifiedDashboard: {
-        ...(state.modifiedDashboard || this.props.dashboard),
+  handleUpdateEditStateWidgets = (widgets: Widget[]) => {
+    this.setState(state => {
+      const modifiedDashboard = {
+        ...cloneDashboard(state.modifiedDashboard ?? this.props.dashboard),
         widgets,
-      },
-    }));
-  };
-
-  renderWidgetBuilder = () => {
-    const {children, dashboard, onDashboardUpdate} = this.props;
-    const {modifiedDashboard} = this.state;
-
-    return (
-      <Fragment>
-        {isValidElement(children)
-          ? cloneElement<any>(children, {
-              dashboard: modifiedDashboard ?? dashboard,
-              onSave: this.isEditingDashboard
-                ? this.onUpdateWidget
-                : this.handleUpdateWidgetList,
-              updateDashboardSplitDecision: (
-                widgetId: string,
-                splitDecision: WidgetType
-              ) => {
-                handleUpdateDashboardSplit({
-                  widgetId,
-                  splitDecision,
-                  dashboard,
-                  modifiedDashboard,
-                  stateSetter: this.setState.bind(this),
-                  onDashboardUpdate,
-                });
-              },
-            })
-          : children}
-      </Fragment>
-    );
+      };
+      return {
+        widgetLimitReached: widgets.length >= MAX_WIDGETS,
+        modifiedDashboard,
+      };
+    });
   };
 
   renderDefaultDashboardDetail() {
-    const {organization, dashboard, dashboards, params, router, location} = this.props;
+    const {organization, dashboard, dashboards, location} = this.props;
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
-    const {dashboardId} = params;
     return (
       <PageFiltersContainer
         disablePersistence
@@ -1028,6 +982,7 @@ class DashboardDetail extends Component<Props, State> {
                 </StyledPageHeader>
                 <HookHeader organization={organization} />
                 <FiltersBar
+                  dashboard={dashboard}
                   dashboardPermissions={dashboard.permissions}
                   dashboardCreator={dashboard.createdBy}
                   filters={{}} // Default Dashboards don't have filters set
@@ -1045,6 +1000,7 @@ class DashboardDetail extends Component<Props, State> {
                     organization={organization}
                     eventView={EventView.fromLocation(location)}
                     location={location}
+                    hideLoadingIndicator
                   >
                     {metricsDataSide => (
                       <MEPSettingProvider
@@ -1052,18 +1008,14 @@ class DashboardDetail extends Component<Props, State> {
                         forceTransactions={metricsDataSide.forceTransactionsOnly}
                       >
                         <Dashboard
-                          theme={this.props.theme}
-                          paramDashboardId={dashboardId}
                           dashboard={modifiedDashboard ?? dashboard}
-                          organization={organization}
                           isEditingDashboard={this.isEditingDashboard}
                           widgetLimitReached={widgetLimitReached}
-                          onUpdate={this.onUpdateWidget}
+                          onUpdate={this.handleUpdateEditStateWidgets}
                           handleUpdateWidgetList={this.handleUpdateWidgetList}
                           handleAddCustomWidget={this.handleAddCustomWidget}
+                          isEmbedded={this.isEmbedded}
                           isPreview={this.isPreview}
-                          router={router}
-                          location={location}
                           widgetLegendState={this.state.widgetLegendState}
                         />
                       </MEPSettingProvider>
@@ -1096,13 +1048,10 @@ class DashboardDetail extends Component<Props, State> {
       organization,
       dashboard,
       dashboards,
-      params,
-      router,
       location,
-      newWidget,
-      onSetNewWidget,
       onDashboardUpdate,
       projects,
+      useTimeseriesVisualization,
     } = this.props;
     const {
       modifiedDashboard,
@@ -1113,7 +1062,6 @@ class DashboardDetail extends Component<Props, State> {
       newlyAddedWidget,
       isCommittingChanges,
     } = this.state;
-    const {dashboardId} = params;
 
     const hasUnsavedFilters =
       dashboard.id !== 'default-overview' &&
@@ -1136,12 +1084,12 @@ class DashboardDetail extends Component<Props, State> {
             const checkDashboardRoute = (path: string) => {
               const dashboardRoutes = [
                 // Legacy routes
-                new RegExp('^\/organizations\/.+\/dashboards\/new\/'),
-                new RegExp(`^\/organizations\/.+\/dashboard\/${dashboard.id}\/`),
+                new RegExp('^/organizations/.+/dashboards/new/'),
+                new RegExp(`^/organizations/.+/dashboard/${dashboard.id}/`),
 
                 // Customer domain routes
-                new RegExp('^\/dashboards\/new\/'),
-                new RegExp(`^\/dashboard\/${dashboard.id}\/`),
+                new RegExp('^/dashboards/new/'),
+                new RegExp(`^/dashboard/${dashboard.id}/`),
               ];
 
               return dashboardRoutes.some(route => route.test(path ?? location.pathname));
@@ -1178,47 +1126,49 @@ class DashboardDetail extends Component<Props, State> {
             <OnDemandControlProvider location={location}>
               <MetricsResultsMetaProvider>
                 <NoProjectMessage organization={organization}>
-                  <Layout.Header>
-                    <Layout.HeaderContent>
-                      <Breadcrumbs
-                        crumbs={[
-                          {
-                            label: t('Dashboards'),
-                            to: `/organizations/${organization.slug}/dashboards/`,
-                          },
-                          {
-                            label: this.getBreadcrumbLabel(),
-                          },
-                        ]}
-                      />
-                      <Layout.Title>
-                        <DashboardTitle
-                          dashboard={modifiedDashboard ?? dashboard}
-                          onUpdate={this.setModifiedDashboard}
-                          isEditingDashboard={this.isEditingDashboard}
+                  {this.isEmbedded ? null : (
+                    <Layout.Header>
+                      <Layout.HeaderContent>
+                        <Breadcrumbs
+                          crumbs={[
+                            {
+                              label: t('Dashboards'),
+                              to: `/organizations/${organization.slug}/dashboards/`,
+                            },
+                            {
+                              label: this.getBreadcrumbLabel(),
+                            },
+                          ]}
                         />
-                      </Layout.Title>
-                    </Layout.HeaderContent>
-                    <Layout.HeaderActions>
-                      <Controls
-                        organization={organization}
-                        dashboards={dashboards}
-                        dashboard={dashboard}
-                        hasUnsavedFilters={hasUnsavedFilters}
-                        onEdit={this.onEdit}
-                        onCancel={this.onCancel}
-                        onCommit={this.onCommit}
-                        onAddWidget={this.onAddWidget}
-                        onDelete={this.onDelete(dashboard)}
-                        onChangeEditAccess={this.onChangeEditAccess}
-                        dashboardState={dashboardState}
-                        widgetLimitReached={widgetLimitReached}
-                        isSaving={isCommittingChanges}
-                      />
-                    </Layout.HeaderActions>
-                  </Layout.Header>
+                        <Layout.Title>
+                          <DashboardTitle
+                            dashboard={modifiedDashboard ?? dashboard}
+                            onUpdate={this.setModifiedDashboard}
+                            isEditingDashboard={this.isEditingDashboard}
+                          />
+                        </Layout.Title>
+                      </Layout.HeaderContent>
+                      <Layout.HeaderActions>
+                        <Controls
+                          organization={organization}
+                          dashboards={dashboards}
+                          dashboard={dashboard}
+                          hasUnsavedFilters={hasUnsavedFilters}
+                          onEdit={this.onEdit}
+                          onCancel={this.onCancel}
+                          onCommit={this.onCommit}
+                          onAddWidget={this.onAddWidget}
+                          onDelete={this.onDelete(dashboard)}
+                          onChangeEditAccess={this.onChangeEditAccess}
+                          dashboardState={dashboardState}
+                          widgetLimitReached={widgetLimitReached}
+                          isSaving={isCommittingChanges}
+                        />
+                      </Layout.HeaderActions>
+                    </Layout.Header>
+                  )}
                   <Layout.Body>
-                    <Layout.Main fullWidth>
+                    <Layout.Main width="full">
                       <MetricsCardinalityProvider
                         organization={organization}
                         location={location}
@@ -1227,6 +1177,7 @@ class DashboardDetail extends Component<Props, State> {
                           organization={organization}
                           eventView={eventView}
                           location={location}
+                          hideLoadingIndicator
                         >
                           {metricsDataSide => (
                             <MEPSettingProvider
@@ -1238,18 +1189,17 @@ class DashboardDetail extends Component<Props, State> {
                                   organization={organization}
                                   eventView={eventView}
                                   projects={projects}
-                                  location={location}
-                                  router={router}
                                   source={DiscoverQueryPageSource.DISCOVER}
                                   {...metricsDataSide}
                                 />
                               ) : null}
                               <FiltersBar
+                                dashboard={modifiedDashboard ?? dashboard}
                                 filters={(modifiedDashboard ?? dashboard).filters}
                                 dashboardPermissions={dashboard.permissions}
                                 dashboardCreator={dashboard.createdBy}
                                 location={location}
-                                hasUnsavedChanges={hasUnsavedFilters}
+                                hasUnsavedChanges={!this.isEmbedded && hasUnsavedFilters}
                                 isEditingDashboard={
                                   dashboardState !== DashboardState.CREATE &&
                                   this.isEditingDashboard
@@ -1257,6 +1207,7 @@ class DashboardDetail extends Component<Props, State> {
                                 isPreview={this.isPreview}
                                 onDashboardFilterChange={this.handleChangeFilter}
                                 shouldBusySaveButton={this.state.isSavingDashboardFilters}
+                                prebuiltDashboardId={dashboard.prebuiltId}
                                 onCancel={() => {
                                   resetPageFilters(dashboard, location);
                                   trackAnalytics('dashboards2.filter.cancel', {
@@ -1329,29 +1280,28 @@ class DashboardDetail extends Component<Props, State> {
 
                               <WidgetViewerContext value={{seriesData, setData}}>
                                 <Fragment>
-                                  <Dashboard
-                                    theme={this.props.theme}
-                                    paramDashboardId={dashboardId}
-                                    dashboard={modifiedDashboard ?? dashboard}
-                                    organization={organization}
-                                    isEditingDashboard={this.isEditingDashboard}
-                                    widgetLimitReached={widgetLimitReached}
-                                    onUpdate={this.onUpdateWidget}
-                                    handleUpdateWidgetList={this.handleUpdateWidgetList}
-                                    handleAddCustomWidget={this.handleAddCustomWidget}
-                                    onAddWidget={this.onAddWidget}
-                                    router={router}
-                                    location={location}
-                                    newWidget={newWidget}
-                                    onSetNewWidget={onSetNewWidget}
-                                    isPreview={this.isPreview}
-                                    widgetLegendState={this.state.widgetLegendState}
-                                    onEditWidget={this.onEditWidget}
-                                    newlyAddedWidget={newlyAddedWidget}
-                                    onNewWidgetScrollComplete={
-                                      this.handleScrollToNewWidgetComplete
-                                    }
-                                  />
+                                  <WidgetQueryQueueProvider>
+                                    <Dashboard
+                                      dashboard={modifiedDashboard ?? dashboard}
+                                      isEditingDashboard={this.isEditingDashboard}
+                                      widgetLimitReached={widgetLimitReached}
+                                      onUpdate={this.handleUpdateEditStateWidgets}
+                                      handleUpdateWidgetList={this.handleUpdateWidgetList}
+                                      handleAddCustomWidget={this.handleAddCustomWidget}
+                                      onAddWidget={this.onAddWidget}
+                                      isEmbedded={this.isEmbedded}
+                                      isPreview={this.isPreview}
+                                      widgetLegendState={this.state.widgetLegendState}
+                                      onEditWidget={this.onEditWidget}
+                                      newlyAddedWidget={newlyAddedWidget}
+                                      onNewWidgetScrollComplete={
+                                        this.handleScrollToNewWidgetComplete
+                                      }
+                                      useTimeseriesVisualization={
+                                        useTimeseriesVisualization
+                                      }
+                                    />
+                                  </WidgetQueryQueueProvider>
 
                                   <WidgetBuilderV2
                                     isOpen={this.state.isWidgetBuilderOpen}
@@ -1411,12 +1361,41 @@ const StyledPageHeader = styled('div')`
   }
 `;
 
-function DashboardDetailWithThemeAndNavigate(props: Omit<Props, 'theme' | 'navigate'>) {
+interface DashboardDetailWithInjectedPropsProps extends Omit<
+  Props,
+  | 'theme'
+  | 'navigate'
+  | 'api'
+  | 'organization'
+  | 'projects'
+  | 'location'
+  | 'params'
+  | 'router'
+> {}
+
+export default function DashboardDetailWithInjectedProps(
+  props: DashboardDetailWithInjectedPropsProps
+) {
   const theme = useTheme();
   const navigate = useNavigate();
-  return <DashboardDetail {...props} theme={theme} navigate={navigate} />;
-}
+  const api = useApi();
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const location = useLocation();
+  const params = useParams<RouteParams>();
+  const router = useRouter();
 
-export default withPageFilters(
-  withProjects(withApi(withOrganization(DashboardDetailWithThemeAndNavigate)))
-);
+  return (
+    <DashboardDetail
+      {...props}
+      theme={theme}
+      navigate={navigate}
+      api={api}
+      organization={organization}
+      projects={projects}
+      location={location}
+      params={params}
+      router={router}
+    />
+  );
+}

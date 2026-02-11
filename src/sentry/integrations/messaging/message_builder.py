@@ -4,21 +4,19 @@ from collections.abc import Iterable, Sequence
 from typing import Any, Literal, TypedDict
 
 from sentry import features
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.messaging.types import LEVEL_TO_COLOR
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.team import Team
-from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.links import create_link_to_workflow
-from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.notifications.utils.rules import get_key_from_rule_data, get_rule_or_workflow_id
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
 
@@ -109,6 +107,8 @@ def fetch_environment_name(rule_env: int) -> str | None:
 def get_rule_environment_param_from_rule(
     rule_id: int, rule_environment_id: int | None, organization: Organization, type_id: int
 ) -> dict[str, str]:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     params = {}
     if should_fire_workflow_actions(organization, type_id):
         if (
@@ -270,6 +270,8 @@ def build_attachment_replay_link(
 
 
 def build_rule_url(rule: Any, group: Group, project: Project) -> str:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     org_slug = group.organization.slug
     project_slug = project.slug
     if should_fire_workflow_actions(group.organization, group.type):
@@ -289,14 +291,12 @@ def build_footer(
 ) -> str:
     footer = f"{group.qualified_short_id}"
     if rules:
-        if features.has("organizations:workflow-engine-ui-links", group.organization):
-            rule_url = absolute_uri(
-                create_link_to_workflow(
-                    group.organization.id, get_key_from_rule_data(rules[0], "workflow_id")
-                )
-            )
-        else:
-            rule_url = build_rule_url(rules[0], group, project)
+        key, value = get_rule_or_workflow_id(rules[0])
+        match key:
+            case "workflow_id":
+                rule_url = absolute_uri(create_link_to_workflow(group.organization.slug, value))
+            case "legacy_rule_id":
+                rule_url = build_rule_url(rules[0], group, project)
 
         # If this notification is triggered via the "Send Test Notification"
         # button then the label is not defined, but the url works.
@@ -330,9 +330,5 @@ def get_color(
             color = event_for_tags.occurrence.level
         if color and color in LEVEL_TO_COLOR.keys():
             return color
-    if group.issue_category == GroupCategory.PERFORMANCE:
-        # XXX(CEO): this shouldn't be needed long term, but due to a race condition
-        # the group's latest event is not found and we end up with no event_for_tags here for perf issues
-        return "info"
 
     return "error"

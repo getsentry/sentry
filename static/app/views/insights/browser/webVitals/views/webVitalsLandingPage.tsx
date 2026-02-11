@@ -1,18 +1,20 @@
 import React, {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import BrowserTypeSelector from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {PerformanceScoreChart} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {PagePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pagePerformanceTable';
-import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import WebVitalMetersWithIssues from 'sentry/views/insights/browser/webVitals/components/webVitalMetersWithIssues';
 import {WebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/webVitalsDetailPanel';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
@@ -20,18 +22,19 @@ import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/w
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import useHasDashboardsPlatformizedWebVitals from 'sentry/views/insights/browser/webVitals/utils/useHasDashboardsPlatformizedWebVitals';
+import {PlatformizedWebVitalsOverview} from 'sentry/views/insights/browser/webVitals/views/platformizedOverview';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 const WEB_VITALS_COUNT = 5;
 
 function WebVitalsLandingPage() {
-  const organization = useOrganization();
   const location = useLocation();
 
   const [state, setState] = useState<{webVital: WebVitals | null}>({
@@ -69,27 +72,22 @@ function WebVitalsLandingPage() {
     }
   });
 
-  const useWebVitalsIssues = organization.features.includes(
-    'performance-web-vitals-issues'
-  );
-
   return (
     <React.Fragment>
-      <FrontendHeader module={ModuleName.VITAL} />
-
-      <ModuleBodyUpsellHook moduleName={ModuleName.VITAL}>
+      <ModuleFeature moduleName={ModuleName.VITAL}>
         <Layout.Body>
-          <Layout.Main fullWidth>
-            <TopMenuContainer>
+          <Layout.Main width="full">
+            <Flex gap="xl">
               <ModulePageFilterBar
                 moduleName={ModuleName.VITAL}
                 extraFilters={
                   <Fragment>
                     <BrowserTypeSelector />
+                    <SubregionSelector />
                   </Fragment>
                 }
               />
-            </TopMenuContainer>
+            </Flex>
             <MainContentContainer>
               <ModulesOnboarding moduleName={ModuleName.VITAL}>
                 <PerformanceScoreChartContainer>
@@ -101,22 +99,14 @@ function WebVitalsLandingPage() {
                 </PerformanceScoreChartContainer>
                 <WebVitalMetersContainer>
                   {(isPending || isProjectScoresLoading) && <WebVitalMetersPlaceholder />}
-                  {useWebVitalsIssues ? (
-                    <WebVitalMetersWithIssues
-                      projectData={projectData}
-                      projectScore={projectScore}
-                      onClick={webVital => setState({...state, webVital})}
-                    />
-                  ) : (
-                    <WebVitalMeters
-                      projectData={projectData}
-                      projectScore={projectScore}
-                      onClick={webVital => setState({...state, webVital})}
-                    />
-                  )}
+                  <WebVitalMetersWithIssues
+                    projectData={projectData}
+                    projectScore={projectScore}
+                    onClick={webVital => setState({...state, webVital})}
+                  />
                 </WebVitalMetersContainer>
                 <PagePerformanceTable />
-                <PagesTooltipContainer>
+                <Flex>
                   <Tooltip
                     isHoverable
                     title={
@@ -142,12 +132,12 @@ function WebVitalsLandingPage() {
                   >
                     <PagesTooltip>{t('Why are my pages not showing up?')}</PagesTooltip>
                   </Tooltip>
-                </PagesTooltipContainer>
+                </Flex>
               </ModulesOnboarding>
             </MainContentContainer>
           </Layout.Main>
         </Layout.Body>
-      </ModuleBodyUpsellHook>
+      </ModuleFeature>
     </React.Fragment>
   );
 }
@@ -163,19 +153,27 @@ export function WebVitalMetersPlaceholder() {
 }
 
 function PageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+
+  const hasDashboardsPlatformizedWebVitals = useHasDashboardsPlatformizedWebVitals();
+  if (hasDashboardsPlatformizedWebVitals) {
+    return <PlatformizedWebVitalsOverview />;
+  }
+
   return (
-    <ModulePageProviders moduleName="vital" analyticEventName="insight.page_loads.vital">
+    <ModulePageProviders
+      moduleName="vital"
+      analyticEventName="insight.page_loads.vital"
+      maxPickableDays={maxPickableDays.maxPickableDays}
+    >
       <WebVitalsLandingPage />
     </ModulePageProviders>
   );
 }
 
 export default PageWithProviders;
-
-const TopMenuContainer = styled('div')`
-  display: flex;
-  gap: ${space(2)};
-`;
 
 const PerformanceScoreChartContainer = styled('div')`
   margin-bottom: ${space(1)};
@@ -205,16 +203,12 @@ const LoadingBox = styled('div')`
   flex: 1;
   min-width: 140px;
   height: 90px;
-  background-color: ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.colors.gray100};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const PagesTooltip = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  text-decoration: underline dotted ${p => p.theme.gray300};
-`;
-
-const PagesTooltipContainer = styled('div')`
-  display: flex;
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  text-decoration: underline dotted ${p => p.theme.colors.gray400};
 `;

@@ -3,11 +3,10 @@ import type {ReactNode} from 'react';
 import type {
   SelectOptionWithKey,
   SelectSectionWithKey,
-} from 'sentry/components/core/compactSelect/types';
+} from '@sentry/scraps/compactSelect';
 
 export interface KeyItem extends SelectOptionWithKey<string> {
   description: string;
-  details: React.ReactNode;
   hideCheck: boolean;
   showDetailsInOverlay: boolean;
   textValue: string;
@@ -36,11 +35,6 @@ export interface RawSearchFilterIsValueItem extends SelectOptionWithKey<string> 
   value: string;
 }
 
-export interface RawSearchFilterHasValueItem extends SelectOptionWithKey<string> {
-  type: 'raw-search-filter-has-value';
-  value: string;
-}
-
 interface RecentFilterItem extends SelectOptionWithKey<string> {
   type: 'recent-filter';
   value: string;
@@ -58,9 +52,14 @@ export interface AskSeerItem extends SelectOptionWithKey<string> {
   value: string;
 }
 
-export interface AskSeerConsentItem extends SelectOptionWithKey<string> {
+interface AskSeerConsentItem extends SelectOptionWithKey<string> {
   type: 'ask-seer-consent';
   value: string;
+}
+
+export interface LogicFilterItem extends SelectOptionWithKey<string> {
+  type: 'logic-filter';
+  value: 'AND' | 'OR' | '(' | ')';
 }
 
 export type SearchKeyItem =
@@ -69,9 +68,9 @@ export type SearchKeyItem =
   | RawSearchItem
   | FilterValueItem
   | RawSearchFilterIsValueItem
-  | RawSearchFilterHasValueItem
   | AskSeerItem
-  | AskSeerConsentItem;
+  | AskSeerConsentItem
+  | LogicFilterItem;
 
 export type FilterKeyItem =
   | KeyItem
@@ -81,9 +80,9 @@ export type FilterKeyItem =
   | RawSearchItem
   | FilterValueItem
   | RawSearchFilterIsValueItem
-  | RawSearchFilterHasValueItem
   | AskSeerItem
-  | AskSeerConsentItem;
+  | AskSeerConsentItem
+  | LogicFilterItem;
 
 export type Section = {
   label: ReactNode;

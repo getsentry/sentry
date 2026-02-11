@@ -5,7 +5,7 @@ import re
 from collections.abc import Callable, Generator, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, overload
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
@@ -23,6 +23,7 @@ from sentry.search.events.constants import (
     SIZE_UNITS,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
+    WILDCARD_OPERATOR_MAP,
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
@@ -129,10 +130,10 @@ has_filter = negation? &"has:" search_key sep (text_key / search_value)
 is_filter = negation? &"is:" search_key sep search_value
 
 # in filter key:[val1, val2]
-text_in_filter = negation? text_key sep text_in_list
+text_in_filter = negation? text_key sep wildcard_op? text_in_list
 
 # standard key:val filter
-text_filter = negation? text_key sep operator? search_value
+text_filter = negation? text_key sep wildcard_op? operator? search_value
 
 key         = ~r"[a-zA-Z0-9_.-]+"
 escaped_key = ~r"[a-zA-Z0-9_.:-]+"
@@ -147,15 +148,16 @@ explicit_number_flag_key  = "flags" open_bracket escaped_key spaces comma spaces
 explicit_tag_key        = "tags" open_bracket escaped_key closed_bracket
 explicit_string_tag_key = "tags" open_bracket escaped_key spaces comma spaces "string" closed_bracket
 explicit_number_tag_key = "tags" open_bracket escaped_key spaces comma spaces "number" closed_bracket
+explicit_boolean_tag_key = "tags" open_bracket escaped_key spaces comma spaces "boolean" closed_bracket
 
 aggregate_key                    = key open_paren spaces function_args? spaces closed_paren
 function_args                    = aggregate_param (spaces comma spaces !comma aggregate_param?)*
 aggregate_param                  = explicit_tag_key_aggregate_param / quoted_aggregate_param / raw_aggregate_param
 raw_aggregate_param              = ~r"[^()\t\n, \"]+"
 quoted_aggregate_param           = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
-explicit_tag_key_aggregate_param = explicit_tag_key / explicit_number_tag_key / explicit_string_tag_key
+explicit_tag_key_aggregate_param = explicit_tag_key / explicit_number_tag_key / explicit_string_tag_key / explicit_boolean_tag_key
 
-search_key             = explicit_number_flag_key / explicit_number_tag_key / key / quoted_key
+search_key             = explicit_number_flag_key / explicit_number_tag_key / explicit_boolean_tag_key / key / quoted_key
 text_key               = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key / search_key
 value                  = ~r"[^()\t\n ]*"
 quoted_value           = '"' ('\\"' / ~r'[^"]')* '"'
@@ -166,6 +168,7 @@ numeric_value          = "-"? numeric numeric_unit? &(end_value / comma / closed
 boolean_value          = ~r"(true|1|false|0)"i &end_value
 text_in_list           = open_bracket text_in_value (spaces comma spaces !comma text_in_value?)* closed_bracket &end_value
 numeric_in_list        = open_bracket numeric_value (spaces comma spaces !comma numeric_value?)* closed_bracket &end_value
+wildcard_op            = wildcard_unicode (contains / starts_with / ends_with) wildcard_unicode
 
 # See: https://stackoverflow.com/a/39617181/790169
 in_value_termination = in_value_char (!in_value_end in_value_char)* in_value_end
@@ -202,6 +205,11 @@ open_bracket         = "["
 closed_bracket       = "]"
 sep                  = ":"
 negation             = "!"
+# Note: wildcard unicode is defined in src/sentry/search/events/constants.py
+wildcard_unicode     = "\uF00D"
+contains             = "Contains"
+starts_with          = "StartsWith"
+ends_with            = "EndsWith"
 comma                = ","
 spaces               = " "*
 
@@ -252,7 +260,7 @@ def translate_wildcard_as_clickhouse_pattern(pattern: str) -> str:
         i += 1
         if c == "\\" and i < n:
             c = pattern[i]
-            if c not in {"*"}:
+            if c not in {"*", "\\"}:
                 raise InvalidSearchQuery(f"Unexpected escape character: {c}")
             chars.append(c)
             i += 1
@@ -331,9 +339,9 @@ def remove_optional_nodes[T](children: list[T]) -> list[T]:
     ]
 
 
-def process_list[
-    T
-](first: T, remaining: tuple[tuple[object, object, object, object, tuple[T]], ...]) -> list[T]:
+def process_list[T](
+    first: T, remaining: tuple[tuple[object, object, object, object, tuple[T]], ...]
+) -> list[T]:
     # Empty values become blank nodes
     if any(isinstance(item[4], Node) for item in remaining):
         raise InvalidSearchQuery("Lists should not have empty values")
@@ -369,6 +377,76 @@ def get_operator_value(operator: Node | list[str] | tuple[str] | str) -> str:
         return operator[0]
     else:
         return operator
+
+
+def has_wildcard_op(node: Node | Sequence[Node]) -> bool:
+    if isinstance(node, Node):
+        return node.text in WILDCARD_OPERATOR_MAP.values()
+    if isinstance(node, Sequence) and len(node) > 0:
+        return node[0].text in WILDCARD_OPERATOR_MAP.values()
+    return False
+
+
+def get_wildcard_op(node: Node | Sequence[Node]) -> str:
+    if isinstance(node, Node):
+        return node.text
+    if isinstance(node, Sequence) and len(node) > 0:
+        return node[0].text
+    return ""
+
+
+def add_leading_wildcard(value: str) -> str:
+    if value.startswith('"') and value.endswith('"'):
+        return f"*{value[1:-1]}"
+    return f"*{value}"
+
+
+def add_trailing_wildcard(value: str) -> str:
+    if value.startswith('"') and value.endswith('"'):
+        return f"{value[1:-1]}*"
+    return f"{value}*"
+
+
+def handle_backslash(value: str) -> str:
+    # when working with one of the wildcard operators,
+    # we need to ensure we properly handle backslashes
+    # by escaping them
+
+    v = []
+    n = len(value)
+
+    i = 0
+    while i < n:
+        c = value[i]
+        if c == "\\":
+            j = i + 1
+            if j < n and value[j] in {"*", "\\"}:
+                # found an escaped * or \
+                v.append(c)
+                i += 1
+                c = value[i]
+            else:
+                # found just a \
+                v.append("\\")
+        v.append(c)
+        i += 1
+
+    return "".join(v)
+
+
+def gen_wildcard_value(value: str, wildcard_op: str) -> str:
+    if value == "" or wildcard_op == "":
+        return value
+    value = handle_backslash(value)
+    value = re.sub(r"(?<!\\)\*", r"\\*", value)
+    if wildcard_op == WILDCARD_OPERATOR_MAP["contains"]:
+        value = add_leading_wildcard(value)
+        value = add_trailing_wildcard(value)
+    elif wildcard_op == WILDCARD_OPERATOR_MAP["starts_with"]:
+        value = add_trailing_wildcard(value)
+    elif wildcard_op == WILDCARD_OPERATOR_MAP["ends_with"]:
+        value = add_leading_wildcard(value)
+    return value
 
 
 class SearchBoolean:
@@ -430,10 +508,17 @@ class SearchValue(NamedTuple):
     def value(self) -> Any:
         if self.use_raw_value:
             return self.raw_value
-        elif self.is_wildcard():
-            return translate_wildcard(cast(str, self.raw_value))
+        elif self.is_wildcard() and isinstance(self.raw_value, str):
+            return translate_wildcard(self.raw_value)
+        elif self.is_wildcard() and isinstance(self.raw_value, (list, tuple)):
+            return f"({"|".join(map(translate_wildcard, self.raw_value))})"
         elif isinstance(self.raw_value, str):
             return translate_escape_sequences(self.raw_value)
+        elif isinstance(self.raw_value, (list, tuple)):
+            # Non-wildcard lists should also have escape sequences translated
+            return [
+                translate_escape_sequences(v) if isinstance(v, str) else v for v in self.raw_value
+            ]
         return self.raw_value
 
     def to_query_string(self) -> str:
@@ -453,6 +538,10 @@ class SearchValue(NamedTuple):
         # If we're using the raw value only it'll never be a wildcard
         if self.use_raw_value:
             return False
+        if self.is_str_sequence():
+            return isinstance(self.raw_value, list) and any(
+                _is_wildcard(value) for value in self.raw_value
+            )
         return _is_wildcard(self.raw_value)
 
     def is_str_sequence(self) -> bool:
@@ -645,12 +734,10 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
 
     @overload
     @classmethod
-    def create_from[
-        TBool: (
-            Literal[True],
-            Literal[False],
-        )
-    ](
+    def create_from[TBool: (
+        Literal[True],
+        Literal[False],
+    )](
         cls: type[SearchConfig[Any]],
         search_config: SearchConfig[Any],
         *,
@@ -660,12 +747,10 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
 
     @overload
     @classmethod
-    def create_from[
-        TBool: (
-            Literal[True],
-            Literal[False],
-        )
-    ](
+    def create_from[TBool: (
+        Literal[True],
+        Literal[False],
+    )](
         cls: type[SearchConfig[Any]],
         search_config: SearchConfig[TBool],
         **overrides: Any,
@@ -1308,14 +1393,24 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             Node | tuple[Node],  # ! if present
             SearchKey,
             Node,  # :
+            Node | Sequence[Node],  # wildcard_op if present
             list[str],
         ],
     ) -> SearchFilter:
-        (negation, search_key, _, search_value_lst) = children
+        (negation, search_key, _sep, wildcard_op, search_value_lst) = children
         operator = "IN"
         search_value = SearchValue(search_value_lst)
 
         operator = handle_negation(negation, operator)
+
+        if has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, list):
+            wildcarded_values = []
+            found_wildcard_op = get_wildcard_op(wildcard_op)
+            for value in search_value.raw_value:
+                if isinstance(value, str):
+                    wildcarded_values.append(gen_wildcard_value(value, found_wildcard_op))
+
+            search_value = search_value._replace(raw_value=wildcarded_values)
 
         return self._handle_basic_filter(search_key, operator, search_value)
 
@@ -1326,16 +1421,17 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             Node | tuple[Node],  # ! if present
             SearchKey,
             Node,  # :
+            Node | Sequence[Node],  # wildcard_op if present
             Node | tuple[str],  # operator if present
             SearchValue,
         ],
     ) -> SearchFilter:
-        (negation, search_key, _, operator, search_value) = children
+        (negation, search_key, _sep, wildcard_op, operator, search_value) = children
         operator_s = get_operator_value(operator)
 
         # XXX: We check whether the text in the node itself is actually empty, so
         # we can tell the difference between an empty quoted string and no string
-        if not search_value.raw_value and not node.children[4].text:
+        if not search_value.raw_value and not node.children[5].text:
             raise InvalidSearchQuery(f"Empty string after '{search_key.name}:'")
 
         if operator_s not in ("=", "!=") and search_key.name not in self.config.text_operator_keys:
@@ -1345,6 +1441,12 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             operator_s = "="
 
         operator_s = handle_negation(negation, operator_s)
+
+        if has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, str):
+            wildcarded_value = gen_wildcard_value(
+                search_value.raw_value, get_wildcard_op(wildcard_op)
+            )
+            search_value = search_value._replace(raw_value=wildcarded_value)
 
         return self._handle_basic_filter(search_key, operator_s, search_value)
 
@@ -1402,6 +1504,22 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         ],
     ) -> SearchKey:
         return SearchKey(f"tags[{children[2]},number]")
+
+    def visit_explicit_boolean_tag_key(
+        self,
+        node: Node,
+        children: tuple[
+            Node,  # "tags"
+            str,  # '['
+            str,  # escaped_key
+            str,  # ' '
+            Node,  # ','
+            str,  # ' '
+            Node,  # "boolean"
+            str,  # ']'
+        ],
+    ) -> SearchKey:
+        return SearchKey(f"tags[{children[2]},boolean]")
 
     def visit_explicit_flag_key(
         self,
@@ -1663,6 +1781,9 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         return node
 
     def visit_negation(self, node: Node, children: object) -> Node:
+        return node
+
+    def visit_wildcard_op(self, node: Node, children: object) -> Node:
         return node
 
     def visit_comma(self, node: Node, children: object) -> Node:

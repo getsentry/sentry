@@ -5,21 +5,24 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from django.http import QueryDict
 
+from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
 from sentry.api.helpers.group_index import update_groups, validate_search_filter_permissions
 from sentry.api.helpers.group_index.delete import schedule_tasks_to_delete_groups
 from sentry.api.helpers.group_index.update import (
     get_group_list,
+    greatest_semver_release,
     handle_assigned_to,
     handle_has_seen,
     handle_is_bookmarked,
     handle_is_public,
     handle_is_subscribed,
+    most_recent_release,
 )
 from sentry.api.helpers.group_index.validators import ValidationError
-from sentry.api.issue_search import parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
+from sentry.issues.issue_search import parse_search_query
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -27,15 +30,14 @@ from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.release import ReleaseStatus
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
@@ -49,11 +51,13 @@ class ValidateSearchFilterPermissionsTest(TestCase):
         validate_search_filter_permissions(self.organization, parse_search_query(query), self.user)
 
     def assert_analytics_recorded(self, mock_record: Mock) -> None:
-        mock_record.assert_called_with(
-            "advanced_search.feature_gated",
-            user_id=self.user.id,
-            default_user_id=self.user.id,
-            organization_id=self.organization.id,
+        assert_last_analytics_event(
+            mock_record,
+            AdvancedSearchFeatureGateEvent(
+                user_id=self.user.id,
+                default_user_id=self.user.id,
+                organization_id=self.organization.id,
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -124,16 +128,10 @@ class UpdateGroupsTest(TestCase):
         assert send_unresolved.called
 
     @patch("sentry.signals.issue_resolved.send_robust")
-    @with_feature("organizations:issue-open-periods")
     def test_resolving_unresolved_group(self, send_robust: Mock) -> None:
         unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
         add_group_to_inbox(unresolved_group, GroupInboxReason.NEW)
         assert unresolved_group.status == GroupStatus.UNRESOLVED
-        open_period = GroupOpenPeriod.objects.filter(
-            group=unresolved_group, date_ended__isnull=True
-        ).first()
-        assert open_period is not None
-        assert open_period.date_ended is None
 
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
@@ -148,31 +146,6 @@ class UpdateGroupsTest(TestCase):
         assert unresolved_group.status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=unresolved_group).exists()
         assert send_robust.called
-        open_period.refresh_from_db()
-        assert open_period.date_ended is not None
-
-    @patch("sentry.signals.issue_resolved.send_robust")
-    @with_feature("organizations:issue-open-periods")
-    def test_resolving_unresolved_group_without_open_period(self, send_robust: Mock) -> None:
-        unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
-        add_group_to_inbox(unresolved_group, GroupInboxReason.NEW)
-        assert unresolved_group.status == GroupStatus.UNRESOLVED
-        GroupOpenPeriod.objects.all().delete()
-
-        request = self.make_request(user=self.user, method="GET")
-        request.user = self.user
-        request.data = {"status": "resolved", "substatus": None}
-        request.GET = QueryDict(query_string=f"id={unresolved_group.id}")
-
-        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
-        update_groups(request, group_list)
-
-        unresolved_group.refresh_from_db()
-
-        assert unresolved_group.status == GroupStatus.RESOLVED
-        assert not GroupInbox.objects.filter(group=unresolved_group).exists()
-        assert send_robust.called
-        assert GroupOpenPeriod.objects.filter(group=unresolved_group).count() == 0
 
     @patch("sentry.signals.issue_ignored.send_robust")
     @patch("sentry.issues.status_change.post_save")
@@ -309,7 +282,6 @@ class UpdateGroupsTest(TestCase):
     @patch("sentry.signals.issue_resolved.send_robust")
     def test_resolving_group_with_short_id(self, send_robust: Mock) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED)
-        assert GroupOpenPeriod.objects.filter(group=group, date_ended__isnull=True).exists()
 
         request = self.make_request(
             user=self.user,
@@ -393,10 +365,52 @@ class UpdateGroupsTest(TestCase):
         assert "inCommit" not in serialized["statusDetails"]
         assert serialized["statusDetails"] == {}
 
+    def test_resolve_in_next_release(self) -> None:
+        self.create_release(project=self.project, version="test@1.0.0.0")
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        request = self.make_request(user=self.user, method="GET")
+        request.user = self.user
+        request.data = {"status": "resolvedInNextRelease"}
+        request.GET = QueryDict(query_string=f"id={group.id}")
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
+    def test_resolve_in_next_release_ignores_archived_releases(self) -> None:
+        open_release = self.create_release(
+            project=self.project,
+            version="test@1.0.0.0",
+            date_added=datetime(2024, 1, 1, tzinfo=UTC),
+        )
+        self.create_release(
+            project=self.project,
+            version="test@2.0.0.0",
+            date_added=datetime(2024, 1, 2, tzinfo=UTC),
+            status=ReleaseStatus.ARCHIVED,
+        )
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        request = self.make_request(user=self.user, method="GET")
+        request.user = self.user
+        request.data = {"status": "resolvedInNextRelease"}
+        request.GET = QueryDict(query_string=f"id={group.id}")
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+        resolution = group.groupresolution_set.get()
+        assert resolution.release == open_release
+
 
 class MergeGroupsTest(TestCase):
     @patch("sentry.api.helpers.group_index.update.handle_merge")
-    def test_simple(self, mock_handle_merge: MagicMock):
+    def test_simple(self, mock_handle_merge: MagicMock) -> None:
         group_ids = [self.create_group().id, self.create_group().id]
         project = self.project
 
@@ -417,7 +431,7 @@ class MergeGroupsTest(TestCase):
         assert call_args[2] == self.user
 
     @patch("sentry.api.helpers.group_index.update.handle_merge")
-    def test_multiple_projects(self, mock_handle_merge: MagicMock):
+    def test_multiple_projects(self, mock_handle_merge: MagicMock) -> None:
         project1 = self.create_project()
         project2 = self.create_project()
         projects = [project1, project2]
@@ -441,7 +455,7 @@ class MergeGroupsTest(TestCase):
         assert mock_handle_merge.call_count == 0
 
     @patch("sentry.api.helpers.group_index.update.handle_merge")
-    def test_multiple_groups_same_project(self, mock_handle_merge: MagicMock):
+    def test_multiple_groups_same_project(self, mock_handle_merge: MagicMock) -> None:
         """Even if the UI calls with multiple projects, if the groups belong to the same project, we should merge them."""
         projects = [self.create_project(), self.create_project()]
         proj1 = projects[0]
@@ -468,7 +482,7 @@ class MergeGroupsTest(TestCase):
         assert call_args[2] == self.user
 
     @patch("sentry.api.helpers.group_index.update.handle_merge")
-    def test_no_project_ids_passed(self, mock_handle_merge: MagicMock):
+    def test_no_project_ids_passed(self, mock_handle_merge: MagicMock) -> None:
         """If 'All Projects' is selected in the issue stream, the UI doesn't send project ids, but
         we should be able to derive them from the given group ids."""
         group_ids = [self.create_group().id, self.create_group().id]
@@ -822,60 +836,6 @@ class TestHandleAssignedTo(TestCase):
         )
 
     @patch("sentry.analytics.record")
-    @with_feature("organizations:team-workflow-notifications")
-    def test_unassign_team_with_team_workflow_notifications_flag(self, mock_record: Mock) -> None:
-        user1 = self.create_user("foo@example.com")
-        user2 = self.create_user("bar@example.com")
-        team1 = self.create_team()
-        member1 = self.create_member(user=user1, organization=self.organization, role="member")
-        member2 = self.create_member(user=user2, organization=self.organization, role="member")
-        self.create_team_membership(team1, member1, role="admin")
-        self.create_team_membership(team1, member2, role="admin")
-
-        # first assign the issue to team1
-        assigned_to = handle_assigned_to(
-            Actor.from_identifier(f"team:{team1.id}"),
-            None,
-            None,
-            self.group_list,
-            self.project_lookup,
-            self.user,
-        )
-
-        assert GroupAssignee.objects.filter(group=self.group, team_id=team1.id).exists()
-        assert GroupSubscription.objects.filter(
-            group=self.group,
-            project=self.group.project,
-            team_id=team1.id,
-            reason=GroupSubscriptionReason.assigned,
-        ).exists()
-
-        # then unassign it
-        assigned_to = handle_assigned_to(
-            None, None, None, self.group_list, self.project_lookup, self.user
-        )
-
-        assert not GroupAssignee.objects.filter(group=self.group, team_id=team1.id).exists()
-        assert not GroupSubscription.objects.filter(
-            group=self.group,
-            project=self.group.project,
-            user_id=team1.id,
-            reason=GroupSubscriptionReason.assigned,
-        ).exists()
-
-        assert assigned_to is None
-        assert_last_analytics_event(
-            mock_record,
-            ManualIssueAssignment(
-                group_id=self.group.id,
-                organization_id=self.group.project.organization_id,
-                project_id=self.group.project_id,
-                assigned_by=None,
-                had_to_deassign=True,
-            ),
-        )
-
-    @patch("sentry.analytics.record")
     def test_reassign_user(self, mock_record: Mock) -> None:
         user2 = self.create_user(email="meow@meow.meow")
 
@@ -1076,85 +1036,6 @@ class TestHandleAssignedTo(TestCase):
             ),
         )
 
-    @patch("sentry.analytics.record")
-    @with_feature("organizations:team-workflow-notifications")
-    def test_reassign_team_with_team_workflow_notifications_flag(self, mock_record: Mock) -> None:
-        user1 = self.create_user("foo@example.com")
-        user2 = self.create_user("bar@example.com")
-        team1 = self.create_team()
-        member1 = self.create_member(user=user1, organization=self.organization, role="member")
-        member2 = self.create_member(user=user2, organization=self.organization, role="member")
-        self.create_team_membership(team1, member1, role="admin")
-        self.create_team_membership(team1, member2, role="admin")
-
-        user3 = self.create_user("baz@example.com")
-        user4 = self.create_user("boo@example.com")
-        team2 = self.create_team()
-        member3 = self.create_member(user=user3, organization=self.organization, role="member")
-        member4 = self.create_member(user=user4, organization=self.organization, role="member")
-        self.create_team_membership(team2, member3, role="admin")
-        self.create_team_membership(team2, member4, role="admin")
-
-        # first assign the issue to team1
-        assigned_to = handle_assigned_to(
-            Actor.from_identifier(f"team:{team1.id}"),
-            None,
-            None,
-            self.group_list,
-            self.project_lookup,
-            self.user,
-        )
-
-        assert GroupAssignee.objects.filter(group=self.group, team=team1.id).exists()
-        assert GroupSubscription.objects.filter(
-            group=self.group,
-            project=self.group.project,
-            team=team1,
-            reason=GroupSubscriptionReason.assigned,
-        ).exists()
-
-        # then assign it to team2
-        assigned_to = handle_assigned_to(
-            Actor.from_identifier(f"team:{team2.id}"),
-            None,
-            None,
-            self.group_list,
-            self.project_lookup,
-            self.user,
-        )
-
-        assert not GroupAssignee.objects.filter(group=self.group, team=team1.id).exists()
-        assert not GroupSubscription.objects.filter(
-            group=self.group,
-            project=self.group.project,
-            team=team1,
-            reason=GroupSubscriptionReason.assigned,
-        ).exists()
-
-        assert GroupAssignee.objects.filter(group=self.group, team=team2.id).exists()
-        assert GroupSubscription.objects.filter(
-            group=self.group,
-            project=self.group.project,
-            team=team2,
-            reason=GroupSubscriptionReason.assigned,
-        ).exists()
-
-        assert assigned_to == {
-            "id": str(team2.id),
-            "name": team2.slug,
-            "type": "team",
-        }
-        assert_last_analytics_event(
-            mock_record,
-            ManualIssueAssignment(
-                group_id=self.group.id,
-                organization_id=self.group.project.organization_id,
-                project_id=self.group.project_id,
-                assigned_by=None,
-                had_to_deassign=True,
-            ),
-        )
-
     def test_user_in_reassigned_team(self) -> None:
         """Test that the correct participants are present when re-assigning from user to team and vice versa"""
         user1 = self.create_user("foo@example.com")
@@ -1247,7 +1128,7 @@ class TestHandleAssignedTo(TestCase):
 
 class DeleteGroupsTest(TestCase):
     @patch("sentry.signals.issue_deleted.send_robust")
-    def test_delete_groups_simple(self, send_robust: Mock):
+    def test_delete_groups_simple(self, send_robust: Mock) -> None:
         groups = [self.create_group(), self.create_group()]
         group_ids = [group.id for group in groups]
         request = self.make_request(user=self.user, method="GET")
@@ -1258,7 +1139,8 @@ class DeleteGroupsTest(TestCase):
             GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])
             add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        schedule_tasks_to_delete_groups(request, [self.project], self.organization.id)
+        with self.tasks():
+            schedule_tasks_to_delete_groups(request, [self.project], self.organization.id)
 
         assert (
             len(GroupHash.objects.filter(project_id=self.project.id, group_id__in=group_ids).all())
@@ -1276,7 +1158,7 @@ class DeleteGroupsTest(TestCase):
     @patch("sentry.signals.issue_deleted.send_robust")
     def test_delete_groups_deletes_seer_records_by_hash(
         self, send_robust: Mock, mock_delete_seer_grouping_records_by_hash: MagicMock
-    ):
+    ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         groups = [self.create_group(), self.create_group()]
@@ -1289,7 +1171,8 @@ class DeleteGroupsTest(TestCase):
             GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])
             add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        schedule_tasks_to_delete_groups(request, [self.project], self.organization.id)
+        with self.tasks():
+            schedule_tasks_to_delete_groups(request, [self.project], self.organization.id)
 
         assert (
             len(GroupHash.objects.filter(project_id=self.project.id, group_id__in=group_ids).all())
@@ -1303,3 +1186,30 @@ class DeleteGroupsTest(TestCase):
         mock_delete_seer_grouping_records_by_hash.assert_called_with(
             args=[self.project.id, hashes, 0]
         )
+
+
+class TestHandleReleases(TestCase):
+    def test_excludes_archived_releases_from_helpers(self) -> None:
+        """archived releases should not be selected as the most recent release."""
+        open_release = self.create_release(
+            project=self.project,
+            version="test@1.0.0.0",
+            date_added=datetime(2024, 1, 1, tzinfo=UTC),
+        )
+        self.create_release(
+            project=self.project,
+            version="test@1.1.0.0",
+            date_added=datetime(2024, 1, 2, tzinfo=UTC),
+            status=ReleaseStatus.ARCHIVED,
+        )
+
+        assert most_recent_release(self.project) == open_release
+        assert greatest_semver_release(self.project) == open_release
+
+        new_release = self.create_release(
+            project=self.project,
+            version="test@1.2.0.0",
+            date_added=datetime(2024, 1, 3, tzinfo=UTC),
+        )
+        assert most_recent_release(self.project) == new_release
+        assert greatest_semver_release(self.project) == new_release

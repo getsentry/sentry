@@ -24,10 +24,11 @@ from sentry.apidocs.parameters import ExploreSavedQueryParams, GlobalParams
 from sentry.explore.endpoints.bases import ExploreSavedQueryPermission
 from sentry.explore.endpoints.serializers import ExploreSavedQuerySerializer
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryLastVisited
+from sentry.models.organization import Organization
 
 
 class ExploreSavedQueryBase(OrganizationEndpoint):
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.EXPLORE
     permission_classes = (ExploreSavedQueryPermission,)
 
     def convert_args(self, request: Request, organization_id_or_slug, id, *args, **kwargs):
@@ -95,7 +96,7 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         },
         examples=ExploreExamples.EXPLORE_SAVED_QUERY_GET_RESPONSE,
     )
-    def put(self, request: Request, organization, query) -> Response:
+    def put(self, request: Request, organization: Organization, query) -> Response:
         """
         Modify a saved query.
         """
@@ -127,6 +128,8 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
             organization=organization,
             name=data["name"],
             query=data["query"],
+            dataset=data["dataset"],
+            changed_reason=None,
         )
 
         query.set_projects(data["project_ids"])

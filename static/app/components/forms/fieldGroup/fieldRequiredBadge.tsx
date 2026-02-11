@@ -4,7 +4,7 @@ import {space} from 'sentry/styles/space';
 
 export const FieldRequiredBadge = styled('div')`
   display: inline-block;
-  background: ${p => p.theme.red300};
+  background: ${p => p.theme.colors.red400};
   opacity: 0.6;
   width: 5px;
   height: 5px;

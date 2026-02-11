@@ -13,6 +13,9 @@ from django.test import override_settings
 from google.cloud.devtools.cloudbuild_v1 import Build
 from google_crc32c import value as crc32c
 
+from sentry.analytics.events.relocation_organization_imported import (
+    RelocationOrganizationImportedEvent,
+)
 from sentry.backup.crypto import (
     EncryptorDecryptorPair,
     LocalFileDecryptor,
@@ -88,6 +91,7 @@ from sentry.relocation.utils import (
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.helpers.task_runner import BurstTaskRunner, BurstTaskRunnerRetryError
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
@@ -121,12 +125,12 @@ class RelocationTaskTestCase(TestCase):
         self.owner = self.create_user(
             email="owner@example.com", is_superuser=False, is_staff=False, is_active=True
         )
-        self.superuser = self.create_user(
-            email="superuser@example.com", is_superuser=True, is_staff=True, is_active=True
+        self.staff_user = self.create_user(
+            email="staff_user@example.com", is_staff=True, is_active=True
         )
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         self.relocation: Relocation = Relocation.objects.create(
-            creator_id=self.superuser.id,
+            creator_id=self.staff_user.id,
             owner_id=self.owner.id,
             want_org_slugs=[self.requested_org_slug],
             step=Relocation.Step.UPLOADING.value,
@@ -225,10 +229,10 @@ class UploadingStartTest(RelocationTaskTestCase):
         self.owner = self.create_user(
             email="owner@example.com", is_superuser=False, is_staff=False, is_active=True
         )
-        self.superuser = self.create_user(
+        self.staff_superuser = self.create_user(
             email="superuser@example.com", is_superuser=True, is_staff=True, is_active=True
         )
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_superuser, staff=True)
 
         with assume_test_silo_mode(SiloMode.REGION, region_name=EXPORTING_TEST_REGION):
             self.requested_org_slug = "testing"
@@ -244,7 +248,7 @@ class UploadingStartTest(RelocationTaskTestCase):
 
         with assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION):
             self.relocation: Relocation = Relocation.objects.create(
-                creator_id=self.superuser.id,
+                creator_id=self.staff_superuser.id,
                 owner_id=self.owner.id,
                 want_org_slugs=[self.requested_org_slug],
                 step=Relocation.Step.UPLOADING.value,
@@ -327,7 +331,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             fake_kms_client.return_value.get_public_key.side_effect = Exception("Test")
             with (
@@ -371,7 +375,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_superuser.email]
         )
 
         assert uploading_complete_mock.call_count == 0
@@ -446,7 +450,7 @@ class UploadingStartTest(RelocationTaskTestCase):
             assert fake_message_builder.call_count == 1
             assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
             fake_message_builder.return_value.send_async.assert_called_once_with(
-                to=[self.owner.email, self.superuser.email]
+                to=[self.owner.email, self.staff_superuser.email]
             )
 
         assert fake_kms_client.return_value.get_public_key.call_count == 1
@@ -484,7 +488,7 @@ class UploadingCompleteTest(RelocationTaskTestCase):
         RelocationFile.objects.filter(relocation=self.relocation).delete()
         self.mock_message_builder(fake_message_builder)
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             uploading_complete(self.uuid)
 
@@ -512,7 +516,7 @@ class UploadingCompleteTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_scan_mock.call_count == 0
@@ -546,7 +550,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.started"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_transfer_mock.call_count == 1
@@ -611,7 +615,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             preprocessing_scan(self.uuid)
 
@@ -644,7 +648,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_transfer_mock.call_count == 0
@@ -668,7 +672,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_transfer_mock.call_count == 0
@@ -698,7 +702,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 1
@@ -722,7 +726,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_transfer_mock.call_count == 0
@@ -745,7 +749,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_transfer_mock.call_count == 0
@@ -767,7 +771,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_transfer_mock.call_count == 0
@@ -790,7 +794,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_transfer_mock.call_count == 0
@@ -814,7 +818,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_transfer_mock.call_count == 0
@@ -839,7 +843,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_transfer_mock.call_count == 0
@@ -866,7 +870,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_transfer_mock.call_count == 0
@@ -899,7 +903,7 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
         RelocationFile.objects.filter(relocation=self.relocation).delete()
         self.mock_message_builder(fake_message_builder)
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             preprocessing_transfer(self.uuid)
 
@@ -928,7 +932,7 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_baseline_config_mock.call_count == 0
@@ -976,10 +980,10 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
             )
         assert len(json_models) > 0
 
-        # Only user `superuser` is an admin, so only they should be exported.
+        # Only user `staff_user` is an admin, so only they should be exported.
         for json_model in json_models:
             if NormalizedModelName(json_model["model"]) == get_model_name(User):
-                assert json_model["fields"]["username"] in "superuser@example.com"
+                assert json_model["fields"]["username"] in "staff_user@example.com"
 
     def test_retry_if_attempts_left(
         self,
@@ -991,7 +995,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
         self.mock_kms_client(fake_kms_client)
         RelocationFile.objects.filter(relocation=self.relocation).delete()
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             fake_kms_client.return_value.get_public_key.side_effect = Exception("Test")
 
@@ -1031,7 +1035,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_colliding_users_mock.call_count == 0
@@ -1094,7 +1098,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             fake_kms_client.return_value.get_public_key.side_effect = Exception("Test")
 
@@ -1131,7 +1135,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert preprocessing_complete_mock.call_count == 0
@@ -1186,7 +1190,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         self.relocation_storage.delete(f"runs/{self.uuid}/conf/cloudbuild.yaml")
         self.mock_message_builder(fake_message_builder)
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             preprocessing_complete(self.uuid)
 
@@ -1215,7 +1219,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert validating_start_mock.call_count == 0
@@ -1233,7 +1237,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         self.relocation_storage.delete(f"runs/{self.uuid}/conf/cloudbuild.zip")
         self.mock_message_builder(fake_message_builder)
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             preprocessing_complete(self.uuid)
 
@@ -1253,7 +1257,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         self.relocation_storage.delete(f"runs/{self.uuid}/in/filter-usernames.txt")
         self.mock_message_builder(fake_message_builder)
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             preprocessing_complete(self.uuid)
 
@@ -1273,7 +1277,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         self.relocation_storage.delete(f"runs/{self.uuid}/in/kms-config.json")
         self.mock_message_builder(fake_message_builder)
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             preprocessing_complete(self.uuid)
 
@@ -1359,7 +1363,7 @@ class ValidatingStartTest(RelocationTaskTestCase):
         self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(Build.Status.QUEUED))
         self.mock_message_builder(fake_message_builder)
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             fake_cloudbuild_client.return_value.create_build.side_effect = Exception("Test")
 
@@ -1591,7 +1595,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
         self.mock_message_builder(fake_message_builder)
         fake_cloudbuild_client.return_value.get_build.side_effect = Exception("Test")
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             validating_poll(self.uuid, str(self.relocation_validation_attempt.build_id))
 
@@ -1627,7 +1631,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert validating_poll_mock.call_count == 0
@@ -1736,7 +1740,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert importing_mock.call_count == 0
@@ -1765,7 +1769,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 0
         assert importing_mock.call_count == 0
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             validating_complete(self.uuid, str(self.relocation_validation_attempt.build_id))
 
@@ -1791,7 +1795,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert importing_mock.call_count == 0
@@ -1813,7 +1817,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
         self.relocation.save()
         self.storage = get_relocation_storage()
 
-    def test_success_self_hosted(self, postprocessing_mock: Mock, fake_kms_client: Mock):
+    def test_success_self_hosted(self, postprocessing_mock: Mock, fake_kms_client: Mock) -> None:
         self.mock_kms_client(fake_kms_client)
         org_count = Organization.objects.filter(slug__startswith="testing").count()
 
@@ -1848,7 +1852,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
                 "sentry.useremail",
             ]
 
-    def test_success_saas_to_saas(self, postprocessing_mock: Mock, fake_kms_client: Mock):
+    def test_success_saas_to_saas(self, postprocessing_mock: Mock, fake_kms_client: Mock) -> None:
         org_count = Organization.objects.filter(slug__startswith="testing").count()
         with assume_test_silo_mode(SiloMode.CONTROL):
             user_count = User.objects.all().count()
@@ -1944,7 +1948,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
                 # We don't overwrite `sentry.useremail`, retaining the existing value instead.
             ]
 
-    def test_pause(self, postprocessing_mock: Mock, fake_kms_client: Mock):
+    def test_pause(self, postprocessing_mock: Mock, fake_kms_client: Mock) -> None:
         self.mock_kms_client(fake_kms_client)
         self.relocation.scheduled_pause_at_step = Relocation.Step.IMPORTING.value
         self.relocation.save()
@@ -2050,12 +2054,14 @@ class PostprocessingTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
 
-        analytics_record_mock.assert_called_with(
-            "relocation.organization_imported",
-            organization_id=self.imported_org_id,
-            relocation_uuid=str(relocation.uuid),
-            slug=self.imported_org_slug,
-            owner_id=self.owner.id,
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationOrganizationImportedEvent(
+                organization_id=self.imported_org_id,
+                relocation_uuid=str(relocation.uuid),
+                slug=self.imported_org_slug,
+                owner_id=self.owner.id,
+            ),
         )
 
         imported_org = Organization.objects.get(slug=self.imported_org_slug)
@@ -2108,7 +2114,7 @@ class PostprocessingTest(RelocationTaskTestCase):
         ]
         self.relocation.save()
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             postprocessing(self.uuid)
 
@@ -2148,7 +2154,7 @@ class PostprocessingTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert relocated_signal_mock.call_count == 1
@@ -2350,7 +2356,7 @@ class NotifyingUsersTest(RelocationTaskTestCase):
         self.relocation.want_usernames = ["doesnotexist"]
         self.relocation.save()
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             notifying_users(self.uuid)
 
@@ -2379,7 +2385,7 @@ class NotifyingUsersTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
         assert notifying_owner_mock.call_count == 0
 
@@ -2424,7 +2430,7 @@ class NotifyingOwnerTest(RelocationTaskTestCase):
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.succeeded"
         assert fake_message_builder.call_args.kwargs["context"]["orgs"] == self.imported_orgs
         fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
+            to=[self.owner.email, self.staff_user.email]
         )
 
         assert completed_mock.call_count == 1
@@ -2461,7 +2467,7 @@ class NotifyingOwnerTest(RelocationTaskTestCase):
         self.mock_message_builder(fake_message_builder)
         fake_message_builder.return_value.send_async.side_effect = Exception("Test")
 
-        # An exception being raised will trigger a retry in celery.
+        # An exception being raised will trigger a retry task.
         with pytest.raises(Exception):
             notifying_owner(self.uuid)
 
@@ -2611,12 +2617,14 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         imported_org_id: int = next(iter(imported_orgs.inserted_map.values()))
         imported_org_slug: str = next(iter(imported_orgs.inserted_identifiers.values()))
 
-        analytics_record_mock.assert_called_with(
-            "relocation.organization_imported",
-            organization_id=imported_org_id,
-            relocation_uuid=self.uuid,
-            slug=imported_org_slug,
-            owner_id=self.owner.id,
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationOrganizationImportedEvent(
+                organization_id=imported_org_id,
+                relocation_uuid=self.uuid,
+                slug=imported_org_slug,
+                owner_id=self.owner.id,
+            ),
         )
 
     def test_valid_no_retries(

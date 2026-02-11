@@ -12,18 +12,37 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
-import ModalStore from 'sentry/stores/modalStore';
 import {ImageStatus} from 'sentry/types/debugImage';
 
-describe('DebugMeta', function () {
+jest.mock('@tanstack/react-virtual', () => {
+  return {
+    useVirtualizer: jest.fn(({count}: {count: number}) => {
+      const virtualItems = Array.from({length: count}, (_, index) => ({
+        key: index,
+        index,
+        start: index * 60,
+        size: 60,
+      }));
+
+      return {
+        getVirtualItems: jest.fn(() => virtualItems),
+        getTotalSize: jest.fn(() => count * 60),
+        measureElement: jest.fn(),
+        measure: jest.fn(),
+      };
+    }),
+  };
+});
+
+describe('DebugMeta', () => {
   const {organization, project} = initializeOrg();
+  const groupId = undefined;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
   });
 
-  it('opens details modal', async function () {
+  it('opens details modal', async () => {
     const eventEntryDebugMeta = EntryDebugMetaFixture();
     const event = EventFixture({entries: [eventEntryDebugMeta]});
     const image = eventEntryDebugMeta.data.images![0];
@@ -41,6 +60,7 @@ describe('DebugMeta', function () {
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
+        groupId={groupId}
       />,
       {organization}
     );
@@ -68,7 +88,7 @@ describe('DebugMeta', function () {
     expect(mockGetDebug).toHaveBeenCalled();
   });
 
-  it('can open debug modal when debug id and code id are missing', async function () {
+  it('can open debug modal when debug id and code id are missing', async () => {
     const eventEntryDebugMeta = EntryDebugMetaFixture();
     eventEntryDebugMeta.data.images![0] = {
       // Missing both debug_id and code_id
@@ -91,6 +111,7 @@ describe('DebugMeta', function () {
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
+        groupId={groupId}
       />,
       {organization}
     );
@@ -106,7 +127,7 @@ describe('DebugMeta', function () {
     ).toBeInTheDocument();
   });
 
-  it('searches image contents', async function () {
+  it('searches image contents', async () => {
     const eventEntryDebugMeta = EntryDebugMetaFixture();
     const event = EventFixture({entries: [eventEntryDebugMeta]});
     const image = eventEntryDebugMeta.data.images![0];
@@ -116,6 +137,7 @@ describe('DebugMeta', function () {
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
+        groupId={groupId}
       />,
       {organization}
     );
@@ -136,7 +158,7 @@ describe('DebugMeta', function () {
     expect(screen.getByText(imageName)).toBeInTheDocument();
   });
 
-  it('filters images', async function () {
+  it('filters images', async () => {
     const firstImage = ImageFixture();
     const secondImage = {
       ...ImageFixture(),
@@ -158,6 +180,7 @@ describe('DebugMeta', function () {
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
+        groupId={groupId}
       />,
       {organization}
     );
@@ -174,7 +197,7 @@ describe('DebugMeta', function () {
     expect(screen.queryByText(secondImage?.debug_file)).not.toBeInTheDocument();
   });
 
-  it('skips section when only sdk__info is present', function () {
+  it('skips section when only sdk__info is present', () => {
     const eventEntryDebugMeta = EntryDebugMetaFixture();
     eventEntryDebugMeta.data.images = undefined;
     eventEntryDebugMeta.data.sdk_info = {
@@ -190,6 +213,7 @@ describe('DebugMeta', function () {
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
+        groupId={groupId}
       />,
       {organization}
     );

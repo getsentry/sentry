@@ -79,6 +79,7 @@ export type Fingerprint = {
   latestEvent: Event;
   label?: string;
   lastSeen?: string;
+  mergedBySeer?: boolean;
   parentId?: string;
   parentLabel?: string;
   state?: string;
@@ -266,11 +267,10 @@ const storeConfig: GroupingStoreDefinition = {
     this.triggerFetchState();
 
     const promises = toFetchArray.map(
-      ({endpoint, queryParams, dataKey}) =>
+      ({endpoint, dataKey}) =>
         new Promise((resolve, reject) => {
           this.api.request(endpoint, {
             method: 'GET',
-            data: queryParams,
             success: (data, _, resp) => {
               resolve({
                 dataKey,
@@ -280,6 +280,7 @@ const storeConfig: GroupingStoreDefinition = {
             },
             error: err => {
               const error = err.responseJSON?.detail || true;
+              // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
               reject(error);
             },
           });
@@ -407,10 +408,12 @@ const storeConfig: GroupingStoreDefinition = {
 
         this.state = {...this.state, loading: false, error: false};
         this.triggerFetchState();
+        return resultsArray;
       },
       () => {
         this.state = {...this.state, loading: false, error: true};
         this.triggerFetchState();
+        return [];
       }
     );
   },

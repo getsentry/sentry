@@ -1,7 +1,8 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {Polarity} from 'sentry/components/percentChange';
 import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -18,7 +19,7 @@ import type {
   Thresholds,
 } from 'sentry/views/dashboards/widgets/common/types';
 
-import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
+import {DEEMPHASIS_VARIANT, LOADING_PLACEHOLDER} from './settings';
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
 interface BigNumberWidgetVisualizationProps {
@@ -173,7 +174,7 @@ const AutoResizeParent = styled('div')`
   position: absolute;
   inset: 0;
 
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
 
   container-type: size;
   container-name: auto-resize-parent;
@@ -201,8 +202,8 @@ const NumberContainerOverride = styled('div')`
 `;
 
 const LoadingPlaceholder = styled('span')`
-  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
-  font-size: ${p => p.theme.fontSize.lg};
+  color: ${p => p.theme.tokens.content[DEEMPHASIS_VARIANT]};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 BigNumberWidgetVisualization.LoadingPlaceholder = function () {
