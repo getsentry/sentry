@@ -21,7 +21,7 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             return ApiToken.objects.create(user=self.user, scope_list=[scope])
 
-    def _post_with_token(self, token: ApiToken, query: str = "is:unresolved") -> object:
+    def _post_with_token(self, token: ApiToken, query: str = "is:unresolved"):
         return self.client.post(
             self.url,
             data={"query": query},
