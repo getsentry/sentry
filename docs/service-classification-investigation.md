@@ -1915,10 +1915,16 @@ This is the first fully green run with per-worker databases. The approach elimin
 ### Context
 
 With per-worker Snuba databases working (22/22 green), the remaining serial bottleneck is
-`tests/relay_integration/` (~72 tests across 2 serial shards, ~6 min each). Each test restarts
+`tests/relay_integration/` (~75 tests across 2 serial shards, ~6 min each). Each test restarts
 a Docker container for Relay, costing ~10s per test in container lifecycle overhead.
 
-### Experiment A: Class-Scoped Relay Container (FAILED)
+Three approaches were investigated independently, each on its own Git worktree:
+
+- **Option 1:** Class-scoped Relay container (reduce container restarts)
+- **Option 2:** Native Relay binary (eliminate Docker overhead entirely)
+- **Option 3:** Per-worker Relay for xdist (enable parallel execution)
+
+### Experiment A (v1): Class-Scoped Relay Container — FAILED
 
 **Branch:** `mchen/relay-class-scope` (deleted)
 
@@ -1938,16 +1944,48 @@ class. The first test passes (fresh container), but subsequent tests get:
 Unauthorized: /api/0/relays/projectconfigs/ (status_code=401)
 ```
 
-**Root cause:** Relay's in-memory auth and project config cache persists across tests. When
-Django resets the database between tests (new projects, new keys), the running Relay container
-still has the previous test's auth state cached. It can't re-authenticate to fetch new configs.
-Clearing Redis doesn't help because the auth failure happens before Redis is consulted.
+**Initial root cause analysis (WRONG):** Relay's in-memory auth and project config cache
+persists across tests. Clearing Redis doesn't help because the auth failure happens before
+Redis is consulted. Conclusion at the time: container restart is the only isolation primitive.
 
-**Conclusion:** Container restart is the **only** isolation primitive available for Relay tests.
-This is fundamentally due to Relay's architecture — it caches credentials and project configs
-in memory with no admin API to flush them.
+### Experiment A (v2): Class-Scoped Relay + Relay Model Re-insertion — SUCCEEDED
 
-### Experiment B: Native Relay Binary (IN PROGRESS)
+**Branch:** `mchen/relay-class-scope-v2` (worktree at `sentry-relay-class-v2`)
+
+**Corrected root cause:** The 401 was NOT caused by Relay's in-memory cache. It was caused by
+`TransactionTestCase` flushing the entire database between tests, which **deletes the `Relay`
+model row** from the `sentry_relay` table. When the next test starts, the Relay container tries
+to authenticate with Sentry, but Sentry can't find the relay_id in the database → 401.
+
+This is a critical distinction: the problem was on the **Sentry side** (missing DB row), not
+on the **Relay side** (in-memory cache). The Relay container's cached credentials were still
+valid — it's Sentry that couldn't verify them.
+
+**Fix:** Add `_ensure_relay_in_db()` — a function that calls `Relay.objects.get_or_create()`
+before each test to re-insert the Relay model if it was flushed:
+
+```python
+_RELAY_ID = "88888888-4444-4444-8444-cccccccccccc"
+_RELAY_PUBLIC_KEY = "SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"
+
+def _ensure_relay_in_db():
+    from sentry.models.relay import Relay
+    Relay.objects.get_or_create(
+        relay_id=_RELAY_ID,
+        defaults={"public_key": _RELAY_PUBLIC_KEY, "is_internal": True},
+    )
+```
+
+**Fixture architecture (final):**
+- `relay_server_setup` (module-scoped): generates config, reserves port, prepares Docker options
+- `_relay_container` (class-scoped): starts Docker container, waits for health, cleans up at
+  class end — one container start per test class instead of per test
+- `relay_server` (function-scoped): calls `adjust_settings_for_relay_tests()` and
+  `_ensure_relay_in_db()`, then yields the container URL
+
+**Result: ALL 75 tests pass** across 3 shards with `-n 2` xdist workers.
+
+### Experiment B (v1): Native Relay Binary from GitHub Releases — FAILED
 
 **Branch:** `mchen/relay-native-binary` (worktree at `sentry-relay-native-binary`)
 
@@ -1962,11 +2000,129 @@ from ~10s (Docker) to <1s (process fork). Relay's own test suite already uses th
 - Templated Kafka port in `config.yml` (`${KAFKA_PORT}`)
 - CI workflow downloads binary from GitHub releases
 
-**Status:** Binary exits with code 1 and empty stderr. Debug step added to manually test the
-binary with a generated config to identify the crash reason. Run in progress.
+**Result: FAILED** — Binary exits immediately with code 1 and empty stderr.
 
-### Key Takeaway
+**Root cause:** The Relay binary downloaded from GitHub Releases is the **lightweight** build
+that does NOT include the `processing` compile-time feature. The `processing` feature is what
+enables Relay to forward events to Kafka (which is essential for integration tests). Without it,
+Relay can't start in processing mode and crashes silently.
 
-Relay's function-scoped container restart is non-negotiable due to in-memory state caching.
-The only viable optimization path is reducing the cost of each restart — either through a
-native binary (no Docker overhead) or by accepting the cost and optimizing shard distribution.
+### Experiment B (v2): Native Relay Binary from Docker Image — SUCCEEDED
+
+**Branch:** `mchen/relay-native-binary-v2` (worktree at `sentry-relay-native-v2`)
+
+**Fix:** Extract the Relay binary from the official Docker image (`ghcr.io/getsentry/relay:nightly`)
+instead of downloading from GitHub Releases. The Docker image contains the **processing-enabled**
+binary since it's built for production use.
+
+```yaml
+- name: Extract Relay binary from Docker image
+  run: |
+    docker create --name relay-extract "$RELAY_TEST_IMAGE"
+    docker cp relay-extract:/bin/relay /tmp/relay
+    docker rm relay-extract
+    chmod +x /tmp/relay
+    /tmp/relay --version
+```
+
+**Result: 4/4 smoke tests pass** with native binary + `-n 2` xdist workers.
+
+### Experiment C: Per-Worker Relay for xdist — SUCCEEDED
+
+**Branch:** `mchen/relay-per-worker-xdist` (worktree at `sentry-relay-per-worker`)
+
+**Implementation:** Give each xdist worker its own isolated Relay instance:
+
+1. **Per-worker container names:** `_relay_server_container_name()` appends the worker ID
+   (e.g., `relay-sentry-test-gw0`, `relay-sentry-test-gw1`)
+2. **Per-worker Kafka topics:** `_get_xdist_kafka_topic("ingest-events")` returns
+   `ingest-events-gw0`, `ingest-events-gw1`, etc. Templated into Relay's `config.yml`
+3. **Per-worker Kafka consumers:** `session_ingest_consumer` fixture uses worker-specific
+   topic names and consumer group IDs to avoid cross-contamination
+4. **`FORCE_SERIAL_DIRS = ()`:** With full per-worker isolation, no tests need serial execution
+
+**Result: 4/4 smoke tests pass** with `-n 2` xdist workers.
+
+### Combined Approach: Class-Scoped + Per-Worker xdist — SUCCEEDED
+
+**Branch:** `mchen/relay-class-scope-v2` (combines Option 1 v2 + Option 3)
+
+The class-scoped container approach (Option 1 v2) was combined with per-worker xdist isolation
+(Option 3) on the same branch. This gives:
+
+- **Class-scoped containers:** One Docker container per test class per worker (not per test)
+- **Relay model re-insertion:** `_ensure_relay_in_db()` before each test
+- **Per-worker Kafka topics:** Each worker writes to its own topics
+- **Per-worker Snuba databases:** Each worker has its own ClickHouse database
+
+**Full suite result: ALL 75 relay_integration tests pass** across 3 shards with `-n 2` and
+then with `-n 4` xdist workers.
+
+**Impact on tiered CI:** The `tier2-serial` tier (2 shards running relay tests single-threaded)
+is eliminated entirely. Relay tests are folded into `tier2` alongside all other Snuba-dependent
+tests, all running with xdist parallelism. The `--xdist-group=serial` filter selects zero tests
+since `FORCE_SERIAL_DIRS = ()`.
+
+### Decision: Native Binary Not Worth the Complexity
+
+After all three approaches were validated individually, the decision was made to **NOT** add
+the native binary approach to the combined solution. Reasoning:
+
+1. **Class-scoped containers already amortize Docker startup.** With ~10 test classes, we go
+   from 75 container starts to ~10 — eliminating ~650s of overhead. Native binary would reduce
+   the remaining ~100s to ~5s, a marginal improvement.
+2. **The real win is xdist parallelism, not startup time.** Going from serial to `-n 3` across
+   18 shards gives ~54x throughput. Whether each Relay starts in 10s or 0.5s is noise.
+3. **Native binary adds maintenance cost:** extracting from Docker image, different networking
+   model (localhost vs Docker network), two code paths in the fixture, fragile if image layout
+   changes.
+4. **Diminishing returns:** Optimizing something that's no longer the bottleneck.
+
+### Key Learnings — Relay
+
+1. **The 401 Unauthorized was a Sentry-side problem, not a Relay-side problem.** The initial
+   diagnosis ("Relay's in-memory cache prevents class-scoped containers") was wrong. The real
+   issue was `TransactionTestCase` flushing the `sentry_relay` table between tests. Re-inserting
+   the `Relay` model row via `get_or_create()` before each test is sufficient — no container
+   restart needed. This mistake cost several days of investigation and almost led to abandoning
+   class-scoped containers entirely.
+
+2. **Always check the database before blaming in-memory state.** When an API returns 401, the
+   first debugging step should be verifying the auth lookup source (database row) still exists,
+   not assuming the client's cached credentials are stale.
+
+3. **GitHub Releases Relay binary ≠ Docker image Relay binary.** The releases binary is the
+   lightweight build without `processing` support. The Docker image binary includes `processing`
+   because it's built for production. If you need processing-enabled Relay for tests, extract
+   from the Docker image.
+
+4. **Relay's credentials are static and hardcoded in `credentials.json`.** The relay_id and
+   public_key are always `88888888-4444-4444-8444-cccccccccccc` and
+   `SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8`. These are set at container/process creation
+   time via the config template, and Relay registers itself with Sentry on first startup. The
+   `Relay` model row must match these exact values.
+
+5. **Per-worker Kafka topic isolation is essential for parallel Relay tests.** Without it,
+   events from worker A's Relay land on worker B's consumer, causing test pollution. The fix
+   is simple: template the topic names in `config.yml` with the worker ID suffix, and use
+   matching consumer group IDs.
+
+6. **`ScopeMismatch` errors when changing fixture scopes.** When you make a fixture class-scoped,
+   any function-scoped fixture that depends on it must use an intermediate function-scoped fixture
+   that yields from the class-scoped one. You can't directly use a class-scoped fixture from a
+   function-scoped test without an adapter.
+
+7. **Module-scoped `relay_server_setup` + class-scoped `_relay_container` + function-scoped
+   `relay_server` is the correct layering.** Config generation (module) → container lifecycle
+   (class) → per-test DB setup (function). This matches the natural lifecycle boundaries and
+   avoids fixture scope conflicts.
+
+### Files Changed (Relay optimization)
+
+| File | Change |
+| ---- | ------ |
+| `relay.py` | Split into 3-tier fixture architecture (module/class/function). Added `_ensure_relay_in_db()`, `_RELAY_ID`/`_RELAY_PUBLIC_KEY` constants. Container names include worker ID. |
+| `sentry.py` | Added `_get_xdist_kafka_topic()` helper. Set `FORCE_SERIAL_DIRS = ()` to allow all tests parallel. |
+| `kafka.py` | Consumer fixtures use per-worker topic names and group IDs via `_get_xdist_kafka_topic()`. |
+| `template/config.yml` | Kafka topic names templated (`${KAFKA_TOPIC_EVENTS}`, `${KAFKA_TOPIC_OUTCOMES}`). |
+| `backend-xdist-split-poc.yml` | Removed `tier2-serial` job. Relay tests folded into `tier2` (now 18 shards, all parallel with `-n 3`). |
