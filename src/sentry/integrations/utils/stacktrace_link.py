@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 from sentry.constants import ObjectStatus
@@ -10,7 +11,6 @@ from sentry.integrations.source_code_management.repository import RepositoryInte
 from sentry.issues.auto_source_code_config.code_mapping import (
     convert_stacktrace_frame_path_to_source_path,
 )
-from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import EventFrame
@@ -82,9 +82,7 @@ class StacktraceLinkOutcome(TypedDict):
 
 
 def get_stacktrace_config(
-    configs: list[RepositoryProjectPathConfig],
-    ctx: StacktraceLinkContext,
-    organization: Organization | None = None,
+    configs: Sequence[RepositoryProjectPathConfig], ctx: StacktraceLinkContext
 ) -> StacktraceLinkOutcome:
     result: StacktraceLinkOutcome = {
         "source_url": None,

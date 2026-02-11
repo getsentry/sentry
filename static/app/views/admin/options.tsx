@@ -1,6 +1,7 @@
 import keyBy from 'lodash/keyBy';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import EmailField from 'sentry/components/forms/fields/emailField';
 import RadioField from 'sentry/components/forms/fields/radioField';
@@ -87,14 +88,6 @@ const definitions: Field[] = [
     // TODO(dcramer): this should not be hardcoded to a component
     component: EmailField,
     defaultValue: () => ConfigStore.get('user').email,
-  },
-  {
-    key: 'system.rate-limit',
-    label: t('Rate Limit'),
-    placeholder: 'e.g. 500',
-    help: t(
-      'The maximum number of events the system should accept per minute. A value of 0 will disable the default rate limit.'
-    ),
   },
   {
     key: 'auth.allow-registration',

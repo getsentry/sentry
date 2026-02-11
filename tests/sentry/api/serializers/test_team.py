@@ -12,7 +12,7 @@ TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
 
 
 class TeamSerializerTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user(username="foo")
         organization = self.create_organization()
         team = self.create_team(organization=organization)
@@ -34,7 +34,7 @@ class TeamSerializerTest(TestCase):
             "memberCount": 0,
         }
 
-    def test_member_count(self):
+    def test_member_count(self) -> None:
         user = self.create_user(username="foo")
         other_user = self.create_user(username="bar")
         third_user = self.create_user(username="baz")
@@ -50,7 +50,7 @@ class TeamSerializerTest(TestCase):
         result = serialize(team, user)
         assert result["memberCount"] == 3
 
-    def test_member_count_does_not_include_invite_requests(self):
+    def test_member_count_does_not_include_invite_requests(self) -> None:
         org = self.create_organization(owner=self.user)
         team = self.create_team(organization=org)
         self.create_member(user=self.create_user(), organization=org, teams=[team])  # member
@@ -76,7 +76,7 @@ class TeamSerializerTest(TestCase):
         result = serialize(team, self.user)
         assert result["memberCount"] == 2
 
-    def test_member(self):
+    def test_member(self) -> None:
         user = self.create_user(username="foo")
         organization = self.create_organization()
         team = self.create_team(organization=organization)
@@ -105,7 +105,7 @@ class TeamSerializerTest(TestCase):
         assert result["isMember"] is True
         assert result["teamRole"] == TEAM_CONTRIBUTOR["id"]
 
-    def test_member_with_team_role(self):
+    def test_member_with_team_role(self) -> None:
         user = self.create_user(username="foo")
         organization = self.create_organization()
         team = self.create_team(organization=organization)
@@ -134,7 +134,7 @@ class TeamSerializerTest(TestCase):
         assert result["isMember"] is True
         assert result["teamRole"] == TEAM_ADMIN["id"]
 
-    def test_admin(self):
+    def test_admin(self) -> None:
         user = self.create_user(username="foo")
         organization = self.create_organization()
         team = self.create_team(organization=organization)
@@ -163,7 +163,7 @@ class TeamSerializerTest(TestCase):
         assert result["isMember"] is True
         assert result["teamRole"] == TEAM_ADMIN["id"]
 
-    def test_manager(self):
+    def test_manager(self) -> None:
         user = self.create_user(username="foo")
         organization = self.create_organization()
         self.create_member(user=user, organization=organization, role="manager")
@@ -192,7 +192,7 @@ class TeamSerializerTest(TestCase):
         assert result["isMember"] is True
         assert result["teamRole"] == TEAM_ADMIN["id"]
 
-    def test_owner(self):
+    def test_owner(self) -> None:
         user = self.create_user(username="foo")
         organization = self.create_organization()
         self.create_member(user=user, organization=organization, role="owner")
@@ -221,7 +221,7 @@ class TeamSerializerTest(TestCase):
         assert result["isMember"] is True
         assert result["teamRole"] == TEAM_ADMIN["id"]
 
-    def test_superuser(self):
+    def test_superuser(self) -> None:
         user = self.create_user(username="foo", is_superuser=True)
         organization = self.create_organization()
         team = self.create_team(organization=organization)
@@ -248,7 +248,7 @@ class TeamSerializerTest(TestCase):
 
 
 class TeamWithProjectsSerializerTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user(username="foo")
         organization = self.create_organization()
         team = self.create_team(organization=organization)
@@ -279,7 +279,7 @@ class TeamWithProjectsSerializerTest(TestCase):
 
 
 class TeamSCIMSerializerTest(TestCase):
-    def test_simple_with_members(self):
+    def test_simple_with_members(self) -> None:
         user = self.create_user(username="foo")
         user2 = self.create_user(username="bar")
         organization = self.create_organization()
@@ -299,7 +299,7 @@ class TeamSCIMSerializerTest(TestCase):
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
         }
 
-    def test_excluded_members(self):
+    def test_excluded_members(self) -> None:
         user = self.create_user(username="foo")
         organization = self.create_organization(owner=user)
         team = self.create_team(organization=organization, members=[user])

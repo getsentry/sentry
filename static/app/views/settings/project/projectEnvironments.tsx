@@ -1,11 +1,13 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/core/button';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -21,9 +23,14 @@ import type {Organization} from 'sentry/types/organization';
 import type {Environment, Project} from 'sentry/types/project';
 import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 type Props = {
   api: Client;
@@ -240,7 +247,7 @@ function EnvironmentRow({
 }: RowProps) {
   return (
     <EnvironmentItem>
-      <Name>{isSystemRow ? t('All Environments') : name}</Name>
+      <Flex align="center">{isSystemRow ? t('All Environments') : name}</Flex>
       <Access access={['project:write']} project={project}>
         {({hasAccess}) => (
           <Fragment>
@@ -269,13 +276,29 @@ const TabsContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const Name = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
 const EnvironmentButton = styled(Button)`
   margin-left: ${space(0.5)};
 `;
 
-export default withApi(ProjectEnvironments);
+export default function ProjectEnvironmentsWrapper() {
+  const api = useApi();
+  const location = useLocation();
+  const params = useParams<{projectId: string}>();
+  const routes = useRoutes();
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
+
+  return (
+    <ProjectEnvironments
+      api={api}
+      location={location}
+      params={params}
+      routes={routes}
+      organization={organization}
+      project={project}
+      router={undefined as any}
+      route={undefined as any}
+      routeParams={undefined as any}
+    />
+  );
+}

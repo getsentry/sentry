@@ -1,0 +1,50 @@
+import type {Theme} from '@emotion/react';
+
+import type {HeadingSize, TextSize} from 'sentry/utils/theme';
+
+import type {HeadingProps} from './heading';
+import type {TextProps} from './text';
+
+export function getTextDecoration(p: TextProps<any> | HeadingProps) {
+  const decorations: string[] = [];
+  if (p.strikethrough) {
+    decorations.push('line-through');
+  }
+  if (p.underline) {
+    decorations.push('underline');
+
+    if (p.underline === 'dotted') {
+      decorations.push('dotted');
+    }
+  }
+  return decorations.join(' ');
+}
+
+export function getLineHeight(
+  density: 'compressed' | 'comfortable' | undefined,
+  theme: Theme
+): string | undefined {
+  if (density === undefined) {
+    return undefined;
+  }
+
+  switch (density) {
+    case 'compressed':
+      return theme.font.lineHeight.compressed.toString();
+    case 'comfortable':
+      return theme.font.lineHeight.comfortable.toString();
+    default:
+      return undefined;
+  }
+}
+
+export function getFontSize(
+  size: TextSize | HeadingSize | undefined,
+  theme: Theme
+): string | undefined {
+  if (size === undefined) {
+    return undefined;
+  }
+
+  return theme.font.size[size];
+}

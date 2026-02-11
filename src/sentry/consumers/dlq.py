@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 
 from arroyo.backends.abstract import ProducerFuture
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_producer_configuration
 from arroyo.dlq import InvalidMessage, KafkaDlqProducer
 from arroyo.processing.strategies.abstract import (
     MessageRejected,
@@ -66,8 +66,12 @@ def _get_dlq_producer(topic: Topic | None) -> KafkaDlqProducer | None:
 
     topic_defn = get_topic_definition(topic)
     config = get_kafka_producer_cluster_options(topic_defn["cluster"])
+    config["client.id"] = f"sentry.consumers.dlq.{topic.value}"
     real_topic = topic_defn["real_topic_name"]
-    return KafkaDlqProducer(KafkaProducer(config), ArroyoTopic(real_topic))
+    return KafkaDlqProducer(
+        KafkaProducer(build_kafka_producer_configuration(default_config=config)),
+        ArroyoTopic(real_topic),
+    )
 
 
 def maybe_build_dlq_producer(

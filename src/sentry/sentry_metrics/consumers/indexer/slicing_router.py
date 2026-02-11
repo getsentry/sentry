@@ -20,6 +20,7 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import (
     RoutingPayload,
 )
 from sentry.utils import kafka_config
+from sentry.utils.confluent_producer import get_confluent_producer
 
 
 class SlicingConfigurationException(Exception):
@@ -106,10 +107,15 @@ class SlicingRouter(MessageRouter):
             current_sliceable,
             current_slice_id,
         ), configuration in settings.SLICED_KAFKA_TOPICS.items():
+            producer_config = kafka_config.get_kafka_producer_cluster_options(
+                configuration["cluster"]
+            )
+            producer_config["client.id"] = (
+                f"sentry.sentry_metrics.slicing_router.{current_sliceable}.{current_slice_id}"
+            )
+            producer = get_confluent_producer(producer_config)
             self.__slice_to_producer[current_slice_id] = MessageRoute(
-                producer=Producer(
-                    kafka_config.get_kafka_producer_cluster_options(configuration["cluster"])
-                ),
+                producer=producer,
                 topic=Topic(configuration["topic"]),
             )
         # All logical partitions should be routed to a slice ID that's present in the slice

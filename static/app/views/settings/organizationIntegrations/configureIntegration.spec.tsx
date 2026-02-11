@@ -1,7 +1,6 @@
 import {OpsgenieIntegrationFixture} from 'sentry-fixture/opsgenieIntegration';
 import {OpsgenieIntegrationProviderFixture} from 'sentry-fixture/opsgenieIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {
   render,
@@ -12,12 +11,12 @@ import {
 
 import ConfigureIntegration from 'sentry/views/settings/organizationIntegrations/configureIntegration';
 
-describe('OpsgenieMigrationButton', function () {
+describe('OpsgenieMigrationButton', () => {
   const org = OrganizationFixture({
     access: ['org:integrations', 'org:write'],
   });
   const integrationId = '1';
-  it('Migrate Plugin button hits migration endpoint', async function () {
+  it('Migrate Plugin button hits migration endpoint', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/`,
       body: {
@@ -56,13 +55,16 @@ describe('OpsgenieMigrationButton', function () {
       method: 'PUT',
     });
 
-    render(
-      <ConfigureIntegration
-        {...RouteComponentPropsFixture()}
-        params={{integrationId, providerKey: 'opsgenie'}}
-      />,
-      {organization: org}
-    );
+    render(<ConfigureIntegration />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${org.slug}/integrations/opsgenie/${integrationId}/`,
+          query: {},
+        },
+        route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+      },
+    });
     renderGlobalModal();
     expect(await screen.findByRole('button', {name: 'Migrate Plugin'})).toBeEnabled();
 

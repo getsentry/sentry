@@ -10,6 +10,7 @@ from django.db.models import QuerySet
 from django.utils import timezone
 from rest_framework.request import Request
 
+from sentry import options
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
@@ -25,38 +26,19 @@ from sentry.db.models import (
     control_silo_model,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.apiscopes import HasApiScopes
+from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION
 from sentry.types.region import find_all_region_names, find_regions_for_sentry_app
 from sentry.utils import metrics
-
-# When a developer selects to receive "<Resource> Webhooks" it really means
-# listening to a list of specific events. This is a mapping of what those
-# specific events are for each resource.
-EVENT_EXPANSION = {
-    "issue": [
-        "issue.assigned",
-        "issue.created",
-        "issue.ignored",
-        "issue.resolved",
-        "issue.unresolved",
-    ],
-    "error": ["error.created"],
-    "comment": ["comment.created", "comment.deleted", "comment.updated"],
-}
-
-# We present Webhook Subscriptions per-resource (Issue, Project, etc.), not
-# per-event-type (issue.created, project.deleted, etc.). These are valid
-# resources a Sentry App may subscribe to.
-VALID_EVENT_RESOURCES = ("issue", "error", "comment")
 
 REQUIRED_EVENT_PERMISSIONS = {
     "issue": "event:read",
     "error": "event:read",
+    "seer": "event:read",
     "project": "project:read",
     "member": "member:read",
     "organization": "org:read",
@@ -144,7 +126,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     events = ArrayField(models.TextField(), default=list)
 
     overview = models.TextField(null=True)
-    schema = JSONField(default=dict)
+    schema = models.JSONField(default=dict)
 
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)
@@ -156,7 +138,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     creator_label = models.TextField(null=True)
 
     popularity = models.PositiveSmallIntegerField(null=True, default=1)
-    metadata = JSONField(default=dict)
+    metadata = models.JSONField(default=dict)
 
     objects: ClassVar[SentryAppManager] = SentryAppManager()
 
@@ -214,13 +196,19 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     def build_signature(self, body):
         assert self.application is not None
         secret = self.application.client_secret
+        # SentryApps always have a client_secret (they are confidential clients)
+        assert secret is not None
         return hmac.new(
             key=secret.encode("utf-8"), msg=body.encode("utf-8"), digestmod=sha256
         ).hexdigest()
 
     def show_auth_info(self, access):
+        from sentry.conf.server import SENTRY_TOKEN_ONLY_SCOPES
+
         encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
-        return set(self.scope_list).issubset(encoded_scopes)
+        # Exclude token-only scopes from the check since users don't have them in their roles
+        integration_scopes = set(self.scope_list) - SENTRY_TOKEN_ONLY_SCOPES
+        return integration_scopes.issubset(encoded_scopes)
 
     def outboxes_for_update(self) -> list[ControlOutbox]:
         return [
@@ -230,6 +218,19 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
                 object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_UPDATE,
                 region_name=region_name,
+            )
+            for region_name in find_all_region_names()
+        ]
+
+    def outboxes_for_delete(self) -> list[ControlOutbox]:
+        return [
+            ControlOutbox(
+                shard_scope=OutboxScope.APP_SCOPE,
+                shard_identifier=self.id,
+                object_identifier=self.id,
+                category=OutboxCategory.SENTRY_APP_DELETE,
+                region_name=region_name,
+                payload={"slug": self.slug},
             )
             for region_name in find_all_region_names()
         ]
@@ -244,8 +245,16 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
             for outbox in self.outboxes_for_update():
                 outbox.save()
 
-        SentryAppAvatar.objects.filter(sentry_app=self).delete()
-        return super().delete(*args, **kwargs)
+            for outbox in self.outboxes_for_delete():
+                outbox.save()
+
+            SentryAppAvatar.objects.filter(sentry_app=self).delete()
+
+            if options.get("sentry-apps.hard-delete"):
+                # actually delete the object. we need to delete all soft-deleted objects before removing ParanoidModel
+                return super(Model, self).delete(*args, **kwargs)
+
+            return super().delete(*args, **kwargs)
 
     def _disable(self):
         self.events = []

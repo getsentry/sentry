@@ -1,18 +1,22 @@
 import {ConfigFixture} from 'sentry-fixture/config';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
-import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import * as useMedia from 'sentry/utils/useMedia';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
 
 describe('GroupEventCarousel', () => {
-  const router = RouterFixture();
+  const group = GroupFixture({id: 'group-id'});
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/org-slug/issues/${group.id}/events/recommended/`,
+    },
+    route: `/organizations/:orgId/issues/:groupId/events/:eventId/`,
+  };
 
   const testEvent = EventFixture({
     id: 'event-id',
@@ -29,7 +33,7 @@ describe('GroupEventCarousel', () => {
 
   const defaultProps = {
     event: testEvent,
-    group: GroupFixture({id: 'group-id'}),
+    group,
     projectSlug: 'project-slug',
   };
 
@@ -68,61 +72,80 @@ describe('GroupEventCarousel', () => {
     it('can navigate to the oldest event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...defaultProps} />, {
-        router,
-        deprecatedRouterMocks: true,
+      const {router} = render(<GroupEventCarousel {...defaultProps} />, {
+        initialRouterConfig,
       });
 
       await userEvent.click(screen.getByRole('button', {name: /recommended/i}));
       await userEvent.click(screen.getByRole('option', {name: /oldest/i}));
 
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/issues/group-id/events/oldest/',
-        query: {referrer: 'oldest-event'},
+      await waitFor(() => {
+        expect(router.location).toEqual(
+          expect.objectContaining({
+            pathname: '/organizations/org-slug/issues/group-id/events/oldest/',
+            query: expect.objectContaining({
+              referrer: 'oldest-event',
+            }),
+          })
+        );
       });
     });
 
     it('can navigate to the latest event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...defaultProps} />, {
-        router,
-        deprecatedRouterMocks: true,
+      const {router} = render(<GroupEventCarousel {...defaultProps} />, {
+        initialRouterConfig,
       });
 
       await userEvent.click(screen.getByRole('button', {name: /recommended/i}));
       await userEvent.click(screen.getByRole('option', {name: /latest/i}));
 
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/issues/group-id/events/latest/',
-        query: {referrer: 'latest-event'},
+      await waitFor(() => {
+        expect(router.location).toEqual(
+          expect.objectContaining({
+            pathname: '/organizations/org-slug/issues/group-id/events/latest/',
+            query: expect.objectContaining({
+              referrer: 'latest-event',
+            }),
+          })
+        );
       });
     });
 
     it('can navigate to the recommended event', async () => {
-      const newRouter = RouterFixture({params: {eventId: 'latest'}});
+      const latestRouterConfig = {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          pathname: `/organizations/org-slug/issues/${group.id}/events/latest/`,
+        },
+      };
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...defaultProps} />, {
-        router: newRouter,
-        deprecatedRouterMocks: true,
+      const {router} = render(<GroupEventCarousel {...defaultProps} />, {
+        initialRouterConfig: latestRouterConfig,
       });
 
       await userEvent.click(screen.getByRole('button', {name: /latest/i}));
       await userEvent.click(screen.getByRole('option', {name: /recommended/i}));
 
-      expect(newRouter.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/issues/group-id/events/recommended/',
-        query: {referrer: 'recommended-event'},
+      await waitFor(() => {
+        expect(router.location).toEqual(
+          expect.objectContaining({
+            pathname: '/organizations/org-slug/issues/group-id/events/recommended/',
+            query: expect.objectContaining({
+              referrer: 'recommended-event',
+            }),
+          })
+        );
       });
     });
 
     it('will disable the dropdown if there is only one event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...singleEventProps} />, {
-        deprecatedRouterMocks: true,
-      });
+      render(<GroupEventCarousel {...singleEventProps} />);
 
       expect(await screen.findByRole('button', {name: 'Recommended'})).toBeDisabled();
     });
@@ -131,9 +154,7 @@ describe('GroupEventCarousel', () => {
       ConfigStore.loadInitialData(ConfigFixture({user: recommendedUser}));
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...singleEventProps} />, {
-        deprecatedRouterMocks: true,
-      });
+      render(<GroupEventCarousel {...singleEventProps} />);
 
       expect(
         await screen.findByRole('button', {name: 'Recommended'})
@@ -144,9 +165,7 @@ describe('GroupEventCarousel', () => {
       ConfigStore.loadInitialData(ConfigFixture({user: latestUser}));
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...singleEventProps} />, {
-        deprecatedRouterMocks: true,
-      });
+      render(<GroupEventCarousel {...singleEventProps} />);
 
       expect(await screen.findByRole('button', {name: 'Latest'})).toBeInTheDocument();
     });
@@ -155,17 +174,22 @@ describe('GroupEventCarousel', () => {
       ConfigStore.loadInitialData(ConfigFixture({user: oldestUser}));
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...singleEventProps} />, {
-        deprecatedRouterMocks: true,
-      });
+      render(<GroupEventCarousel {...singleEventProps} />);
 
       expect(await screen.findByRole('button', {name: 'Oldest'})).toBeInTheDocument();
     });
   });
 
   it('can navigate next/previous events', () => {
+    const eventIdRouterConfig = {
+      ...initialRouterConfig,
+      location: {
+        ...initialRouterConfig.location,
+        pathname: `/organizations/org-slug/issues/${group.id}/events/event-id/`,
+      },
+    };
     render(<GroupEventCarousel {...defaultProps} />, {
-      deprecatedRouterMocks: true,
+      initialRouterConfig: eventIdRouterConfig,
     });
 
     expect(screen.getByLabelText(/Previous Event/)).toHaveAttribute(
@@ -179,8 +203,15 @@ describe('GroupEventCarousel', () => {
   });
 
   it('can copy event ID', async () => {
+    const eventIdRouterConfig = {
+      ...initialRouterConfig,
+      location: {
+        ...initialRouterConfig.location,
+        pathname: `/organizations/org-slug/issues/${group.id}/events/event-id/`,
+      },
+    };
     render(<GroupEventCarousel {...defaultProps} />, {
-      deprecatedRouterMocks: true,
+      initialRouterConfig: eventIdRouterConfig,
     });
 
     await userEvent.click(screen.getByText(testEvent.id));
@@ -189,8 +220,15 @@ describe('GroupEventCarousel', () => {
   });
 
   it('can copy event link', async () => {
+    const eventIdRouterConfig = {
+      ...initialRouterConfig,
+      location: {
+        ...initialRouterConfig.location,
+        pathname: `/organizations/org-slug/issues/${group.id}/events/event-id/`,
+      },
+    };
     render(<GroupEventCarousel {...defaultProps} />, {
-      deprecatedRouterMocks: true,
+      initialRouterConfig: eventIdRouterConfig,
     });
 
     await userEvent.click(screen.getByRole('button', {name: /event actions/i}));
@@ -201,22 +239,16 @@ describe('GroupEventCarousel', () => {
     );
   });
 
-  it('links to full event details when org has discover', async () => {
-    render(<GroupEventCarousel {...defaultProps} />, {
-      organization: OrganizationFixture({features: ['discover-basic']}),
-      deprecatedRouterMocks: true,
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: /event actions/i}));
-
-    expect(
-      screen.getByRole('menuitemradio', {name: /full event details/i})
-    ).toHaveAttribute('href', `/organizations/org-slug/discover/project-slug:event-id/`);
-  });
-
   it('can open event JSON', async () => {
+    const eventIdRouterConfig = {
+      ...initialRouterConfig,
+      location: {
+        ...initialRouterConfig.location,
+        pathname: `/organizations/org-slug/issues/${group.id}/events/event-id/`,
+      },
+    };
     render(<GroupEventCarousel {...defaultProps} />, {
-      deprecatedRouterMocks: true,
+      initialRouterConfig: eventIdRouterConfig,
     });
 
     await userEvent.click(screen.getByRole('button', {name: /event actions/i}));

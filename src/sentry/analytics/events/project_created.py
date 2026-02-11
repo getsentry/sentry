@@ -1,17 +1,14 @@
 from sentry import analytics
 
 
+@analytics.eventclass("project.created")
 class ProjectCreatedEvent(analytics.Event):
-    type = "project.created"
-
-    attributes = (
-        analytics.Attribute("user_id", required=False),
-        analytics.Attribute("default_user_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("origin", required=False),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("platform", required=False),
-    )
+    user_id: int | None = None
+    default_user_id: int | str | None = None
+    organization_id: int
+    origin: str | None = None
+    project_id: int
+    platform: str | None = None
 
 
 analytics.register(ProjectCreatedEvent)

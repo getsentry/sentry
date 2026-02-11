@@ -10,7 +10,6 @@ from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_model, sane_repr
-from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.option import OptionManager
 
@@ -60,7 +59,7 @@ class UserOptionManager(OptionManager["UserOption"]):
         """
         This isn't implemented for user-organization scoped options yet, because it hasn't been needed.
         """
-        self.filter(user=user, project=project, key=key).delete()
+        self.filter(user=user, project_id=project.id, key=key).delete()
 
         if not hasattr(self, "_metadata"):
             return
@@ -110,7 +109,7 @@ class UserOptionManager(OptionManager["UserOption"]):
         if organization and project:
             raise NotImplementedError(option_scope_error)
 
-        uid = user.id if user and not isinstance(user, int) else user
+        uid = user if isinstance(user, int) else user.id
         metakey = self._make_key(user, project=project, organization=organization)
         project_id: int | None = project.id if isinstance(project, Model) else project
         organization_id: int | None = (
@@ -165,14 +164,6 @@ class UserOption(Model):
         - unused
      - prefers_issue_details_streamlined_ui
         - Whether the user prefers the new issue details experience (boolean)
-     - prefers_stacked_navigation
-        - Whether the user prefers the new stacked navigation experience (boolean)
-    - prefers_nextjs_insights_overview
-        - Whether the user prefers the new NextJS insights overview experience (boolean)
-    - prefers_agents_insights_module
-        - Whether the user prefers the new Agents insights module experience (boolean)
-     - prefers_chonk_ui
-        - Whether the user prefers the new Chonk UI experience (boolean)
      - language
         - which language to display the app in
      - mail:email
@@ -186,7 +177,7 @@ class UserOption(Model):
      - self_notifications
         - "Notify Me About My Own Activity"
      - stacktrace_order
-        - default, most recent first, most recent last
+        - default, most recent first, most recent last (see `StacktraceOrder` enum)
      - subscribe_by_default
         - "Only On Issues I Subscribe To", "Only On Deploys With My Commits"
      - subscribe_notes
@@ -207,7 +198,7 @@ class UserOption(Model):
     project_id = HybridCloudForeignKey("sentry.Project", null=True, on_delete="CASCADE")
     organization_id = HybridCloudForeignKey("sentry.Organization", null=True, on_delete="CASCADE")
     key = models.CharField(max_length=64)
-    value = PickledObjectField(null=True)
+    value = models.JSONField(null=True)
 
     objects: ClassVar[UserOptionManager] = UserOptionManager()
 
@@ -219,7 +210,7 @@ class UserOption(Model):
     __repr__ = sane_repr("user_id", "project_id", "organization_id", "key", "value")
 
     @classmethod
-    def get_relocation_ordinal_fields(self, json_model: Any) -> list[str] | None:
+    def get_relocation_ordinal_fields(cls, json_model: Any) -> list[str] | None:
         # "global" user options (those with no organization and/or project scope) get a custom
         # ordinal; non-global ones use the default ordering.
         org_id = json_model["fields"].get("organization_id", None)

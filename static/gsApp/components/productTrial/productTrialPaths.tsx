@@ -64,7 +64,14 @@ const PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES: Record<Path, Product> = {
   },
   '/profiling/': {
     product: DataCategory.PROFILES,
-    categories: [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI],
+    // The trials that should be started here are for
+    // - DataCategory.PROFILE_DURATION
+    // - DataCategory.PROFILE_DURATION_UI
+    // But we force this to be an empty list of categories to avoid
+    // showing the product trial banners for profiling on AM3 plans
+    // as the onboarding steps below already have a banner to ask the
+    // user to start a product trial
+    categories: [],
   },
   '/traces/': {
     product: DataCategory.SPANS,

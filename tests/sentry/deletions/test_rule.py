@@ -9,7 +9,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class DeleteRuleTest(HybridCloudTestMixin, BaseWorkflowTest):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project()
         rule = self.create_project_rule(project)
         rule_fire_history = RuleFireHistory.objects.create(

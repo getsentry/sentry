@@ -4,12 +4,12 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import RelayAuthentication
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, internal_region_silo_endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.models.relay import Relay
 
 
-@region_silo_endpoint
+@internal_region_silo_endpoint
 class RelayPublicKeysEndpoint(Endpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
@@ -21,8 +21,8 @@ class RelayPublicKeysEndpoint(Endpoint):
 
     def post(self, request: Request) -> Response:
         calling_relay = request.relay
-
         relay_ids = request.relay_request_data.get("relay_ids") or ()
+
         legacy_public_keys = dict.fromkeys(relay_ids)
         public_keys = dict.fromkeys(relay_ids)
 

@@ -8,7 +8,7 @@ pytestmark = [requires_snuba]
 class EveryEventConditionTest(RuleTestCase):
     rule_cls = EveryEventCondition
 
-    def test_applies_correctly(self):
+    def test_applies_correctly(self) -> None:
         rule = self.get_rule()
 
         self.assertPasses(rule, self.event, is_new=True)

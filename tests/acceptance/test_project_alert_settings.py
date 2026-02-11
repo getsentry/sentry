@@ -5,7 +5,7 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class ProjectAlertSettingsTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
@@ -37,9 +37,7 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
 
         Rule.objects.filter(project=self.project).delete()
 
-        Rule.objects.create(
-            project=self.project, data={"conditions": condition_data, "actions": action_data}
-        )
+        self.create_project_rule(condition_data=condition_data, action_data=action_data)
 
         self.login_as(self.user)
         self.path1 = f"/settings/{self.org.slug}/projects/{self.project.slug}/alerts/"

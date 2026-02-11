@@ -1,12 +1,12 @@
-import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {IconMail} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 import ResultGrid from 'admin/components/resultGrid';
 
@@ -16,7 +16,7 @@ type Props = {
 
 const getRow = (row: any) => [
   <td key="name">
-    <UserName>
+    <Flex align="center" gap="md">
       <UserAvatar user={row} size={18} />
       <LinkButton
         external
@@ -24,15 +24,15 @@ const getRow = (row: any) => [
         href={`mailto:${row.email}`}
         icon={<IconMail size="xs" />}
         title="Send email"
-        aria-label={'Send email'}
+        aria-label="Send email"
       />
       {row.user ? (
         <Link to={`/_admin/users/${row.user.id}/`}>{row.email}</Link>
       ) : (
         <span>{row.email}</span>
       )}
-      {row.pending && <Tag type="warning">Invite Pending</Tag>}
-    </UserName>
+      {row.pending && <Tag variant="warning">Invite Pending</Tag>}
+    </Flex>
   </td>,
   <td key="role" style={{textAlign: 'center'}}>
     {row.roleName}
@@ -77,11 +77,5 @@ function CustomerMembers({orgId}: Props) {
     />
   );
 }
-
-const UserName = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
 
 export default CustomerMembers;

@@ -23,22 +23,34 @@ export function getSpanBarColors(
 ): SpanBarColors {
   switch (spanBarType) {
     case SpanBarType.GAP:
-      return {primary: '#dedae3', alternate: '#f4f2f7', insetTextColor: theme.gray300};
+      return {
+        primary: '#dedae3',
+        alternate: '#f4f2f7',
+        insetTextColor: theme.tokens.content.primary,
+      };
     case SpanBarType.AFFECTED:
-      return {primary: '#f55459', alternate: '#faa9ac', insetTextColor: theme.white};
+      return {
+        primary: '#f55459',
+        alternate: '#faa9ac',
+        insetTextColor: theme.tokens.content.onVibrant.light,
+      };
     case SpanBarType.AUTOGROUPED:
       return {
-        primary: theme.blue300,
+        primary: theme.tokens.background.accent.vibrant,
         alternate: '#d1dff9',
-        insetTextColor: theme.gray300,
+        insetTextColor: theme.tokens.content.primary,
       };
     case SpanBarType.AUTOGROUPED_AND_AFFECTED:
       return {
         primary: '#f55459',
         alternate: '#faa9ac',
-        insetTextColor: theme.white,
+        insetTextColor: theme.tokens.content.onVibrant.light,
       };
     default:
-      return {primary: '', alternate: '', insetTextColor: theme.white};
+      return {
+        primary: '',
+        alternate: '',
+        insetTextColor: theme.tokens.content.onVibrant.light,
+      };
   }
 }

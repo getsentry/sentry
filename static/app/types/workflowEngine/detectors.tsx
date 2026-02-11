@@ -1,18 +1,23 @@
+import type {Actor} from 'sentry/types/core';
+import type {SimpleGroup} from 'sentry/types/group';
 import type {
-  DataCondition,
-  DataConditionGroup,
+  DataConditionGroupLogicType,
+  DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
   Dataset,
   EventTypes,
+  ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
+import type {Assertion, UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
+import type {Monitor, MonitorConfig} from 'sentry/views/insights/crons/types';
 
 /**
  * See SnubaQuerySerializer
  */
-interface SnubaQuery {
+export interface SnubaQuery {
   aggregate: string;
   dataset: Dataset;
   eventTypes: EventTypes[];
@@ -23,6 +28,7 @@ interface SnubaQuery {
    */
   timeWindow: number;
   environment?: string;
+  extrapolationMode?: ExtrapolationMode;
 }
 
 /**
@@ -32,7 +38,7 @@ interface BaseDataSource {
   id: string;
   organizationId: string;
   sourceId: string;
-  type: 'snuba_query_subscription' | 'uptime_subscription';
+  type: 'snuba_query_subscription' | 'uptime_subscription' | 'cron_monitor';
 }
 
 export interface SnubaQueryDataSource extends BaseDataSource {
@@ -44,7 +50,7 @@ export interface SnubaQueryDataSource extends BaseDataSource {
     snubaQuery: SnubaQuery;
     status: number;
     subscription: string;
-  } | null;
+  };
   type: 'snuba_query_subscription';
 }
 
@@ -53,6 +59,7 @@ export interface UptimeSubscriptionDataSource extends BaseDataSource {
    * See UptimeSubscriptionSerializer
    */
   queryObj: {
+    assertion: Assertion | null;
     body: string | null;
     headers: Array<[string, string]>;
     intervalSeconds: number;
@@ -64,27 +71,29 @@ export interface UptimeSubscriptionDataSource extends BaseDataSource {
   type: 'uptime_subscription';
 }
 
+export interface CronMonitorDataSource extends BaseDataSource {
+  queryObj: Omit<Monitor, 'alertRule'>;
+  type: 'cron_monitor';
+}
+
 export type DetectorType =
   | 'error'
   | 'metric_issue'
-  | 'uptime_subscription'
-  | 'uptime_domain_failure';
-
-interface BaseMetricDetectorConfig {
-  thresholdPeriod: number;
-}
+  | 'monitor_check_in_failure'
+  | 'uptime_domain_failure'
+  | 'issue_stream';
 
 /**
  * Configuration for static/threshold-based detection
  */
-interface MetricDetectorConfigStatic extends BaseMetricDetectorConfig {
+interface MetricDetectorConfigStatic {
   detectionType: 'static';
 }
 
 /**
  * Configuration for percentage-based change detection
  */
-interface MetricDetectorConfigPercent extends BaseMetricDetectorConfig {
+interface MetricDetectorConfigPercent {
   comparisonDelta: number;
   detectionType: 'percent';
 }
@@ -92,11 +101,8 @@ interface MetricDetectorConfigPercent extends BaseMetricDetectorConfig {
 /**
  * Configuration for dynamic/anomaly detection
  */
-interface MetricDetectorConfigDynamic extends BaseMetricDetectorConfig {
+interface MetricDetectorConfigDynamic {
   detectionType: 'dynamic';
-  seasonality?: 'auto' | 'daily' | 'weekly' | 'monthly';
-  sensitivity?: AlertRuleSensitivity;
-  thresholdType?: AlertRuleThresholdType;
 }
 
 export type MetricDetectorConfig =
@@ -105,25 +111,31 @@ export type MetricDetectorConfig =
   | MetricDetectorConfigDynamic;
 
 interface UptimeDetectorConfig {
-  environment: string;
+  downtimeThreshold: number;
+  environment: string | null;
+  mode: UptimeMonitorMode;
+  recoveryThreshold: number;
 }
 
 type BaseDetector = Readonly<{
   createdBy: string | null;
   dateCreated: string;
   dateUpdated: string;
-  disabled: boolean;
+  description: string | null;
+  enabled: boolean;
   id: string;
   lastTriggered: string;
+  latestGroup: SimpleGroup | null;
   name: string;
-  owner: string | null;
+  owner: Actor | null;
   projectId: string;
   type: DetectorType;
   workflowIds: string[];
 }>;
 
 export interface MetricDetector extends BaseDetector {
-  readonly conditionGroup: DataConditionGroup | null;
+  readonly alertRuleId: number | null;
+  readonly conditionGroup: MetricConditionGroup | null;
   readonly config: MetricDetectorConfig;
   readonly dataSources: [SnubaQueryDataSource];
   readonly type: 'metric_issue';
@@ -135,9 +147,9 @@ export interface UptimeDetector extends BaseDetector {
   readonly type: 'uptime_domain_failure';
 }
 
-interface CronDetector extends BaseDetector {
-  // TODO: Add cron detector type fields
-  readonly type: 'uptime_subscription';
+export interface CronDetector extends BaseDetector {
+  readonly dataSources: [CronMonitorDataSource];
+  readonly type: 'monitor_check_in_failure';
 }
 
 export interface ErrorDetector extends BaseDetector {
@@ -145,11 +157,21 @@ export interface ErrorDetector extends BaseDetector {
   readonly type: 'error';
 }
 
-export type Detector = MetricDetector | UptimeDetector | CronDetector | ErrorDetector;
+export interface IssueStreamDetector extends BaseDetector {
+  // TODO: Add issue stream detector type fields
+  readonly type: 'issue_stream';
+}
+
+export type Detector =
+  | MetricDetector
+  | UptimeDetector
+  | CronDetector
+  | ErrorDetector
+  | IssueStreamDetector;
 
 interface UpdateConditionGroupPayload {
-  conditions: Array<Omit<DataCondition, 'id'>>;
-  logicType: DataConditionGroup['logicType'];
+  conditions: Array<Omit<MetricCondition, 'id'>>;
+  logicType: MetricConditionGroup['logicType'];
 }
 
 interface UpdateSnubaDataSourcePayload {
@@ -160,6 +182,7 @@ interface UpdateSnubaDataSourcePayload {
   query: string;
   queryType: number;
   timeWindow: number;
+  extrapolationMode?: string;
 }
 
 interface UpdateUptimeDataSourcePayload {
@@ -168,23 +191,70 @@ interface UpdateUptimeDataSourcePayload {
   timeoutMs: number;
   traceSampling: boolean;
   url: string;
+  assertion?: Assertion | null;
+  body?: string | null;
+  headers?: Array<[string, string]>;
 }
 
 export interface BaseDetectorUpdatePayload {
   name: string;
-  owner: Detector['owner'];
+  owner: string | null;
   projectId: Detector['projectId'];
+  type: Detector['type'];
   workflowIds: string[];
+  description?: string | null;
+  enabled?: boolean;
 }
 
 export interface UptimeDetectorUpdatePayload extends BaseDetectorUpdatePayload {
-  dataSource: UpdateUptimeDataSourcePayload;
+  config: UptimeDetectorConfig;
+  dataSources: UpdateUptimeDataSourcePayload[];
   type: 'uptime_domain_failure';
 }
 
 export interface MetricDetectorUpdatePayload extends BaseDetectorUpdatePayload {
   conditionGroup: UpdateConditionGroupPayload;
   config: MetricDetectorConfig;
-  dataSource: UpdateSnubaDataSourcePayload;
+  dataSources: UpdateSnubaDataSourcePayload[];
   type: 'metric_issue';
 }
+
+export interface CronDetectorUpdatePayload extends BaseDetectorUpdatePayload {
+  dataSources: Array<{
+    config: MonitorConfig;
+    name: string;
+  }>;
+  type: 'monitor_check_in_failure';
+}
+
+export interface MetricConditionGroup {
+  conditions: MetricCondition[];
+  id: string;
+  logicType: DataConditionGroupLogicType;
+}
+
+export interface MetricCondition {
+  comparison: MetricDataCondition;
+  id: string;
+  type: DataConditionType;
+  conditionResult?: any;
+}
+
+/**
+ * See AnomalyDetectionHandler
+ */
+export interface AnomalyDetectionComparison {
+  seasonality:
+    | 'auto'
+    | 'hourly'
+    | 'daily'
+    | 'weekly'
+    | 'hourly_daily'
+    | 'hourly_weekly'
+    | 'hourly_daily_weekly'
+    | 'daily_weekly';
+  sensitivity: AlertRuleSensitivity;
+  thresholdType: AlertRuleThresholdType;
+}
+
+type MetricDataCondition = AnomalyDetectionComparison | number;

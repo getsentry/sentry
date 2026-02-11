@@ -12,8 +12,8 @@ export const CONSUMER_QUERY_FILTER = 'span.op:queue.process';
 export const PRODUCER_QUERY_FILTER = 'span.op:queue.publish';
 
 export const FIELD_ALIASES = {
-  'epm() span.op:queue.publish': t('Published'),
-  'epm() span.op:queue.process': t('Processed'),
+  'epm() : span.op : queue.publish': t('Published'),
+  'epm() : span.op : queue.process': t('Processed'),
   'avg(messaging.message.receive.latency)': t('Average Time in Queue'),
   'avg(span.duration)': t('Average Processing Time'),
 };
@@ -50,4 +50,4 @@ export const MODULE_DOC_LINK =
 
 export const TABLE_ROWS_LIMIT = 25;
 
-export const MODULE_FEATURES = ['insights-addon-modules'];
+export const MODULE_FEATURES = ['insight-modules'];

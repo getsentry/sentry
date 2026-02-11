@@ -5,6 +5,8 @@ errors: null
 tags:
 - - os
   - Windows 7
+- - os.build
+  - '7601'
 - - os.name
   - Windows
 to_json:

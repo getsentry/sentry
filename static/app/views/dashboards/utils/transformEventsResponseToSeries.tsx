@@ -6,15 +6,14 @@ import type {
 } from 'sentry/types/organization';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 
-import {transformEventsStatsToSeries} from './transformEventsStatsToSeries';
-
-type SeriesWithOrdering = [order: number, series: Series];
-
 import {
   isEventsStats,
   isGroupedMultiSeriesEventsStats,
   isMultiSeriesEventsStats,
 } from './isEventsStats';
+import {transformEventsStatsToSeries} from './transformEventsStatsToSeries';
+
+type SeriesWithOrdering = [order: number, series: Series];
 
 export function transformEventsResponseToSeries(
   data: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,

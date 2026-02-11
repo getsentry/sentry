@@ -1,9 +1,10 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
@@ -13,14 +14,15 @@ import {updateVisualizeAggregate} from 'sentry/views/explore/contexts/pageParams
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
-  type ReadableExploreQueryParts,
   useUpdateQueryAtIndex,
+  type ReadableExploreQueryParts,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   Section,
   SectionHeader,
   SectionLabel,
 } from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 type Props = {
   index: number;
@@ -30,13 +32,16 @@ type Props = {
 export function VisualizeSection({query, index}: Props) {
   const {tags: stringTags} = useTraceItemTags('string');
   const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: booleanTags} = useTraceItemTags('boolean');
 
   const parsedFunction = findFirstFunction(query.yAxes);
 
   const options: Array<SelectOption<string>> = useVisualizeFields({
     numberTags,
     stringTags,
+    booleanTags,
     parsedFunction,
+    traceItemType: TraceItemDataset.SPANS,
   });
 
   const updateYAxis = useUpdateQueryAtIndex(index);
@@ -71,7 +76,7 @@ export function VisualizeSection({query, index}: Props) {
               const newYAxis = updateVisualizeAggregate({
                 newAggregate: newAggregate.value,
                 oldAggregate: parsedFunction!.name,
-                oldArgument: parsedFunction!.arguments[0]!,
+                oldArguments: parsedFunction!.arguments,
               });
               updateYAxis({yAxes: [newYAxis]});
             }}

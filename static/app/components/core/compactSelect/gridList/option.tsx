@@ -7,9 +7,10 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {CheckWrap} from 'sentry/components/core/compactSelect/styles';
-import {InnerWrap, MenuListItem} from 'sentry/components/core/menuListItem';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {LeadWrap} from '@sentry/scraps/compactSelect';
+import {InnerWrap, MenuListItem} from '@sentry/scraps/menuListItem';
+
 import {IconCheckmark} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
@@ -54,14 +55,17 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
   } = useGridListSelectionCheckbox({key: node.key}, listState);
 
   // Move focus to this item on hover
-  const {hoverProps} = useHover({onHoverStart: () => ref.current?.focus()});
+  const {hoverProps} = useHover({
+    // We rely on these props for styling the focus and hover effect
+    onHoverStart: () => ref.current?.focus({preventScroll: true}),
+  });
 
   // Show focus effect when document focus is on or inside the item
   const [isFocusWithin, setFocusWithin] = useState(false);
   const {focusWithinProps} = useFocusWithin({onFocusWithinChange: setFocusWithin});
 
   const rowPropsMemo = useMemo(
-    () => mergeProps(rowProps, focusWithinProps, hoverProps),
+    () => mergeProps(rowProps, hoverProps, focusWithinProps),
     // Only update optionProps when a relevant state (selection/focus/disable) changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [isSelected, isDisabled]
@@ -81,34 +85,35 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 
-    if (hideCheck && !leadingItems) {
-      return null;
+    const leading =
+      typeof leadingItems === 'function'
+        ? leadingItems({disabled: isDisabled, isFocused, isSelected})
+        : leadingItems;
+
+    if (hideCheck) {
+      return leading;
     }
 
     return (
       <Fragment>
-        {!hideCheck && (
-          <CheckWrap multiple={multiple} isSelected={isSelected} role="presentation">
-            {multiple ? (
-              <Checkbox
-                {...checkboxProps}
-                size={checkboxSize}
-                checked={isSelected}
-                disabled={isDisabled}
-                readOnly
-              />
-            ) : (
-              isSelected && <IconCheckmark size={checkboxSize} {...checkboxProps} />
-            )}
-          </CheckWrap>
-        )}
-        {typeof leadingItems === 'function'
-          ? leadingItems({disabled: isDisabled, isFocused, isSelected})
-          : leadingItems}
+        <LeadWrap role="presentation">
+          {multiple ? (
+            <Checkbox
+              {...checkboxProps}
+              size={checkboxSize}
+              checked={isSelected}
+              disabled={isDisabled}
+              readOnly
+            />
+          ) : (
+            isSelected && <IconCheckmark size={checkboxSize} {...checkboxProps} />
+          )}
+        </LeadWrap>
+        {leading ? <LeadWrap role="presentation">{leading}</LeadWrap> : null}
       </Fragment>
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [multiple, isSelected, isDisabled, size, leadingItems, hideCheck]);
+  }, [multiple, isSelected, isDisabled, isFocused, size, leadingItems, hideCheck]);
 
   return (
     <StyledMenuListItem

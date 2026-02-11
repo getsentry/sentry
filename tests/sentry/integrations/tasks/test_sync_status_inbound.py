@@ -10,6 +10,7 @@ from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.models import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.tasks.sync_status_inbound import sync_status_inbound
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
@@ -35,7 +36,7 @@ fake_activity_data = {
 
 
 class TestSyncStatusInbound(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.create_user())
         self.project = self.create_project(organization=self.organization)
         self.group = self.create_group(
@@ -118,7 +119,7 @@ class TestSyncStatusInbound(TestCase):
         assert activity_count == 0
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
-    def test_resolve_default(self, mock_get_resolve_sync_action):
+    def test_resolve_default(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
         mock_get_resolve_sync_action.return_value = ResolveSyncAction.RESOLVE
 
         sync_status_inbound(
@@ -132,7 +133,7 @@ class TestSyncStatusInbound(TestCase):
         self._assert_resolve_activity_created()
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
-    def test_unresolve(self, mock_get_resolve_sync_action):
+    def test_unresolve(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
         self.group.update(status=GroupStatus.RESOLVED)
 
         mock_get_resolve_sync_action.return_value = ResolveSyncAction.UNRESOLVE
@@ -148,7 +149,7 @@ class TestSyncStatusInbound(TestCase):
         self._assert_unresolve_activity_created()
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
-    def test_noop(self, mock_get_resolve_sync_action):
+    def test_noop(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
         original_status = self.group.status
         mock_get_resolve_sync_action.return_value = ResolveSyncAction.NOOP
 
@@ -162,7 +163,7 @@ class TestSyncStatusInbound(TestCase):
         self.group.refresh_from_db()
         assert self.group.status == original_status
 
-    def test_integration_not_found(self):
+    def test_integration_not_found(self) -> None:
         with pytest.raises(Integration.DoesNotExist):
             sync_status_inbound(
                 integration_id=99999,
@@ -171,7 +172,7 @@ class TestSyncStatusInbound(TestCase):
                 data=fake_data,
             )
 
-    def test_integration_inactive(self):
+    def test_integration_inactive(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="example",
@@ -187,7 +188,7 @@ class TestSyncStatusInbound(TestCase):
         )
         self._assert_group_unresolved(self.group.id)
 
-    def test_organization_not_found(self):
+    def test_organization_not_found(self) -> None:
         sync_status_inbound(
             integration_id=self.integration.id,
             organization_id=99999,
@@ -197,7 +198,7 @@ class TestSyncStatusInbound(TestCase):
         self.group.refresh_from_db()
         assert self.group.status == GroupStatus.UNRESOLVED
 
-    def test_no_affected_groups(self):
+    def test_no_affected_groups(self) -> None:
         sync_status_inbound(
             integration_id=self.integration.id,
             organization_id=self.organization.id,
@@ -208,7 +209,7 @@ class TestSyncStatusInbound(TestCase):
         self._assert_group_unresolved(self.group.id)
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
-    def test_resolve_next_release(self, mock_get_resolve_sync_action):
+    def test_resolve_next_release(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
         mock_get_resolve_sync_action.return_value = ResolveSyncAction.RESOLVE
 
         self.create_release(project=self.project, version="1.0.0")
@@ -240,8 +241,20 @@ class TestSyncStatusInbound(TestCase):
         self._assert_group_resolved(self.group.id)
         self._assert_resolve_in_release_activity_created(in_next_release=True)
 
+        # Verify the activity is linked to GroupResolution via ident
+        resolution = GroupResolution.objects.get(group=self.group)
+        activity = (
+            Activity.objects.filter(
+                group=self.group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+            )
+            .order_by("-datetime")
+            .first()
+        )
+        assert activity is not None
+        assert activity.ident == str(resolution.id)
+
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
-    def test_resolve_current_release(self, mock_get_resolve_sync_action):
+    def test_resolve_current_release(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
         mock_get_resolve_sync_action.return_value = ResolveSyncAction.RESOLVE
 
         self.create_release(project=self.project, version="1.0.0")
@@ -272,8 +285,20 @@ class TestSyncStatusInbound(TestCase):
         self._assert_group_resolved(self.group.id)
         self._assert_resolve_in_release_activity_created(in_next_release=False)
 
+        # Verify the activity is linked to GroupResolution via ident
+        resolution = GroupResolution.objects.get(group=self.group)
+        activity = (
+            Activity.objects.filter(
+                group=self.group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+            )
+            .order_by("-datetime")
+            .first()
+        )
+        assert activity is not None
+        assert activity.ident == str(resolution.id)
+
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
-    def test_resolve_no_releases(self, mock_get_resolve_sync_action):
+    def test_resolve_no_releases(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
         mock_get_resolve_sync_action.return_value = ResolveSyncAction.RESOLVE
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -303,7 +328,7 @@ class TestSyncStatusInbound(TestCase):
         self._assert_resolve_activity_created()
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
-    def test_recently_resolved_skip(self, mock_get_resolve_sync_action):
+    def test_recently_resolved_skip(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
         mock_get_resolve_sync_action.return_value = ResolveSyncAction.RESOLVE
 
         release = self.create_release(project=self.project, version="1.0.0")
@@ -326,7 +351,7 @@ class TestSyncStatusInbound(TestCase):
         self._assert_no_resolve_activity()
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
-    def test_multiple_groups(self, mock_get_resolve_sync_action):
+    def test_multiple_groups(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
         mock_get_resolve_sync_action.return_value = ResolveSyncAction.RESOLVE
 
         group2 = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
@@ -349,7 +374,7 @@ class TestSyncStatusInbound(TestCase):
         self._assert_group_resolved(group2.id)
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
-    def test_api_error(self, mock_get_resolve_sync_action):
+    def test_api_error(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
         mock_get_resolve_sync_action.side_effect = Exception("API Error")
 
         sync_status_inbound(
@@ -362,7 +387,7 @@ class TestSyncStatusInbound(TestCase):
         self._assert_group_unresolved(self.group.id)
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
-    def test_resolve_ignored_group(self, mock_get_resolve_sync_action):
+    def test_resolve_ignored_group(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
         mock_get_resolve_sync_action.return_value = ResolveSyncAction.RESOLVE
         self.group.update(status=GroupStatus.IGNORED)
 

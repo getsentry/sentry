@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useQuery} from 'sentry/utils/queryClient';
 
 import {useStory} from './useStory';
@@ -31,7 +31,7 @@ export function StorySourceLinks() {
   const committerDate = data?.[0]?.commit.committer.date;
 
   return (
-    <Flex align="center" justify="space-between" gap={space(1)}>
+    <Flex align="center" justify="between" gap="md">
       <LinkButton
         priority="transparent"
         href={`https://github.com/getsentry/sentry/edit/master/static/${story.filename}`}
@@ -52,6 +52,6 @@ export function StorySourceLinks() {
 }
 
 const LastEdited = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.tokens.content.muted};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

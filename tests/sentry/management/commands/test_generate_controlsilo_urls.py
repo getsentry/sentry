@@ -14,34 +14,39 @@ class TestGenerateControlsiloUrls(TestCase):
         call_command("generate_controlsilo_urls", *args, stdout=out, stderr=StringIO(), **kwargs)
         return out.getvalue()
 
-    def test_skip_includes(self):
+    def test_skip_includes(self) -> None:
         result = self.call_command(format="js")
         # Shouldn't contain patterns for urls
         # that include more urls.
         assert "new RegExp('^api/0/$')" not in result
 
-    def test_render_text(self):
+    def test_render_text(self) -> None:
         result = self.call_command(format="text")
         assert "^api/0/users/$" in result
 
-    def test_render_code(self):
+    def test_render_code(self) -> None:
         result = self.call_command(format="js")
         assert "new RegExp('^api/0/users/$')," in result
         assert "new RegExp('^api/0/internal/integration-proxy/$')," in result
         assert "const patterns" in result
         assert "export default patterns;" in result
 
-    def test_write_file(self):
+    def test_write_file(self) -> None:
         with tempfile.NamedTemporaryFile() as tf:
             self.call_command(format="js", output=tf.name)
             tf.seek(0)
             result = tf.read().decode("utf8")
         assert "This is generated code" in result
-        assert "new RegExp('^api/0/users/$')," in result
         assert "const patterns" in result
         assert "export default patterns;" in result
+        assert "new RegExp('^api/0/users/$')," in result
+        # Wizard is an HTML view that gets POST from UI code.
+        assert "new RegExp('^account/settings/wizard/[^/]+/$')," in result
+        # Views that render react application (like /dashboards)
+        # are not be used by UI code, and shouldn't be in the URL list
+        assert "new RegExp('^dashboards" not in result
 
-    def test_no_missing_urls(self):
+    def test_no_missing_urls(self) -> None:
         pattern_file = "static/app/data/controlsiloUrlPatterns.ts"
         project_root = os.path.dirname(os.path.dirname(MODULE_ROOT))
         pattern_filepath = os.path.join(project_root, pattern_file)

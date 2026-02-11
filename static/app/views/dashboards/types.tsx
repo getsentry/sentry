@@ -1,10 +1,15 @@
 import type {Layout} from 'react-grid-layout';
 
 import {t} from 'sentry/locale';
+import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
-import {type DatasetSource, SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
+import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import type {TimeSeriesMeta} from 'sentry/views/dashboards/widgets/common/types';
 
-import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
+
+export type LegendType = 'default' | 'breakdown';
 
 // Max widgets per dashboard we are currently willing
 // to allow to limit the load on snuba from the
@@ -22,7 +27,12 @@ export enum DisplayType {
   LINE = 'line',
   TABLE = 'table',
   BIG_NUMBER = 'big_number',
+  DETAILS = 'details',
+  SERVER_TREE = 'server_tree',
+  RAGE_AND_DEAD_CLICKS = 'rage_and_dead_clicks',
   TOP_N = 'top_n',
+  WHEEL = 'wheel',
+  CATEGORICAL_BAR = 'categorical_bar',
 }
 
 export enum WidgetType {
@@ -34,6 +44,8 @@ export enum WidgetType {
   TRANSACTIONS = 'transaction-like',
   SPANS = 'spans',
   LOGS = 'logs',
+  TRACEMETRICS = 'tracemetrics',
+  PREPROD_APP_SIZE = 'preprod-app-size',
 }
 
 // These only pertain to on-demand warnings at this point in time
@@ -69,6 +81,17 @@ interface WidgetQueryOnDemand {
   extractionState: OnDemandExtractionState;
 }
 
+export type LinkedDashboard = {
+  // The destination dashboard id, set this to '-1' for prebuilt dashboards that link to other prebuilt dashboards
+  dashboardId: string;
+  field: string;
+  // List of additional datasets to apply new dashboard filters to.
+  // Typically we only apply filters to the same dataset as the widget, but this allows us to apply to other datasets when needed.
+  additionalGlobalFilterDatasetTargets?: WidgetType[];
+  // Used for static dashboards that are not saved to the database
+  staticDashboardId?: PrebuiltDashboardId;
+};
+
 /**
  * A widget query is one or more aggregates and a single filter string (conditions.)
  * Widgets can have multiple widget queries, and they all combine into a unified timeseries view (for example)
@@ -82,15 +105,34 @@ export type WidgetQuery = {
   // Table column alias.
   // We may want to have alias for y-axis in the future too
   fieldAliases?: string[];
+  // Used to define the units of the fields in the widget queries, currently not saved
+  fieldMeta?: Array<Pick<TimeSeriesMeta, 'valueType' | 'valueUnit'> | null>;
   // Fields is replaced with aggregates + columns. It
   // is currently used to track column order on table
   // widgets.
   fields?: string[];
   isHidden?: boolean | null;
+  linkedDashboards?: LinkedDashboard[];
   // Contains the on-demand entries for the widget query.
   onDemand?: WidgetQueryOnDemand[];
   // Aggregate selected for the Big Number widget builder
   selectedAggregate?: number;
+  // Links the widget query to a slide out panel if exists.
+  // TODO: currently not stored in the backend, only used
+  // by prebuilt dashboards in the frontend.
+  slideOutId?: SlideoutId;
+};
+
+type WidgetChangedReason = {
+  equations: Array<{
+    equation: string;
+    reason: string | string[];
+  }> | null;
+  orderby: Array<{
+    orderby: string;
+    reason: string | string[];
+  }> | null;
+  selected_columns: string[];
 };
 
 export type Widget = {
@@ -98,11 +140,14 @@ export type Widget = {
   interval: string;
   queries: WidgetQuery[];
   title: string;
+  changedReason?: WidgetChangedReason[];
   dashboardId?: string;
   datasetSource?: DatasetSource;
   description?: string;
+  exploreUrls?: null | string[];
   id?: string;
   layout?: WidgetLayout | null;
+  legendType?: LegendType;
   // Used to define 'topEvents' when fetching time-series data for a widget
   limit?: number;
   // Used for table widget column widths, currently is not saved
@@ -143,14 +188,27 @@ export type DashboardListItem = {
   isFavorited?: boolean;
   lastVisited?: string;
   permissions?: DashboardPermissions;
+  prebuiltId?: PrebuiltDashboardId;
 };
 
 export enum DashboardFilterKeys {
   RELEASE = 'release',
+  GLOBAL_FILTER = 'globalFilter',
 }
 
 export type DashboardFilters = {
   [DashboardFilterKeys.RELEASE]?: string[];
+  [DashboardFilterKeys.GLOBAL_FILTER]?: GlobalFilter[];
+};
+
+export type GlobalFilter = {
+  // Dataset the global filter will be applied to
+  dataset: WidgetType;
+  // The tag being filtered
+  tag: Tag;
+  // The raw filter condition string (e.g. 'tagKey:[values,...]')
+  value: string;
+  isTemporary?: boolean;
 };
 
 /**
@@ -169,6 +227,7 @@ export type DashboardDetails = {
   isFavorited?: boolean;
   period?: string;
   permissions?: DashboardPermissions;
+  prebuiltId?: PrebuiltDashboardId;
   start?: string;
   utc?: boolean;
 };
@@ -180,6 +239,7 @@ export enum DashboardState {
   CREATE = 'create',
   PENDING_DELETE = 'pending_delete',
   PREVIEW = 'preview',
+  EMBEDDED = 'embedded',
 }
 
 // where we launch the dashboard widget from
@@ -189,4 +249,20 @@ export enum DashboardWidgetSource {
   LIBRARY = 'library',
   ISSUE_DETAILS = 'issueDetail',
   TRACE_EXPLORER = 'traceExplorer',
+  LOGS = 'logs',
+  INSIGHTS = 'insights',
+  TRACEMETRICS = 'traceMetrics',
+}
+
+export enum SlideoutId {
+  LCP = 'lcp',
+  FCP = 'fcp',
+  INP = 'inp',
+  CLS = 'cls',
+  TTFB = 'ttfb',
+  LCP_SUMMARY = 'lcp-summary',
+  FCP_SUMMARY = 'fcp-summary',
+  INP_SUMMARY = 'inp-summary',
+  CLS_SUMMARY = 'cls-summary',
+  TTFB_SUMMARY = 'ttfb-summary',
 }

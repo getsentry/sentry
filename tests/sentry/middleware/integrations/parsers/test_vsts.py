@@ -19,7 +19,7 @@ class VstsRequestParserTest(TestCase):
     shared_secret = "1234567890"
     path = f"{IntegrationClassification.integration_prefix}vsts/issue-updated/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
@@ -39,7 +39,7 @@ class VstsRequestParserTest(TestCase):
         return HttpResponse(status=200, content="passthrough")
 
     @responses.activate
-    def test_routing_work_item_webhook(self):
+    def test_routing_work_item_webhook(self) -> None:
         # No integration found for request...
         data = deepcopy(WORK_ITEM_UPDATED)
         data["resourceContainers"]["collection"]["id"] = "non-existant"
@@ -75,7 +75,7 @@ class VstsRequestParserTest(TestCase):
         )
 
     @responses.activate
-    def test_routing_control_paths(self):
+    def test_routing_control_paths(self) -> None:
         config_request = self.factory.get(
             reverse("vsts-extension-configuration"),
             data={"targetId": "1", "targetName": "foo"},
@@ -100,7 +100,7 @@ class VstsRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
 
-    def test_get_integration_from_request(self):
+    def test_get_integration_from_request(self) -> None:
         region_silo_payloads = [WORK_ITEM_UNASSIGNED, WORK_ITEM_UPDATED, WORK_ITEM_UPDATED_STATUS]
 
         for payload in region_silo_payloads:
@@ -125,7 +125,7 @@ class VstsRequestParserTest(TestCase):
         integration = parser.get_integration_from_request()
         assert integration is None
 
-    def test_webhook_outbox_creation(self):
+    def test_webhook_outbox_creation(self) -> None:
         request = self.factory.post(
             self.path,
             data=WORK_ITEM_UPDATED,

@@ -42,7 +42,7 @@ def test_redis_cluster_cluster_returns_some_usage() -> None:
 
 
 @use_redis_cluster(high_watermark=100)
-def test_redis_health():
+def test_redis_health() -> None:
     services = load_service_definitions()
     assert isinstance(services["redis"], Redis)
 
@@ -61,7 +61,7 @@ def test_redis_health():
 
 
 @use_redis_cluster(high_watermark=0)
-def test_redis_unhealthy_state():
+def test_redis_unhealthy_state() -> None:
     services = load_service_definitions()
     assert isinstance(services["redis"], Redis)
 

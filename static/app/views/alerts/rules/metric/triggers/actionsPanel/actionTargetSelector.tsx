@@ -1,7 +1,8 @@
-import {Input} from 'sentry/components/core/input';
-import {Select} from 'sentry/components/core/select';
+import {Input} from '@sentry/scraps/input';
+import {Select} from '@sentry/scraps/select';
+
 import SelectMembers from 'sentry/components/selectMembers';
-import TeamSelector from 'sentry/components/teamSelector';
+import {TeamSelector} from 'sentry/components/teamSelector';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -91,6 +92,8 @@ export default function ActionTargetSelector(props: Props) {
           value={action.targetIdentifier || ''}
           onChange={handleChangeSpecificTargetIdentifier}
           placeholder={getPlaceholderForType(action.type)}
+          // Disable 1Password autocomplete
+          data-1p-ignore
         />
       );
 

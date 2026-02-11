@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import {AutomationBuilderNumberInput} from 'sentry/components/workflowEngine/form/automationBuilderNumberInput';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
@@ -18,7 +20,7 @@ export function CountBranch() {
 
 export function PercentBranch() {
   return tct('[value] higher [interval] compared to [comparison_interval]', {
-    value: <ValueField />,
+    value: <PercentValueField />,
     interval: <IntervalField />,
     comparison_interval: <ComparisonIntervalField />,
   });
@@ -40,6 +42,14 @@ function ValueField() {
         removeError(condition.id);
       }}
     />
+  );
+}
+
+function PercentValueField() {
+  return (
+    <PercentWrapper>
+      <ValueField />%
+    </PercentWrapper>
   );
 }
 
@@ -67,16 +77,22 @@ function ComparisonIntervalField() {
 
   return (
     <AutomationBuilderSelect
-      name={`${condition_id}.comparison.comparison_interval`}
+      name={`${condition_id}.comparison.comparisonInterval`}
       aria-label={t('Comparison interval')}
-      value={condition.comparison.comparison_interval}
+      value={condition.comparison.comparisonInterval}
       options={COMPARISON_INTERVAL_CHOICES}
       onChange={(option: SelectValue<string>) => {
         onUpdate({
-          comparison: {...condition.comparison, comparison_interval: option.value},
+          comparison: {...condition.comparison, comparisonInterval: option.value},
         });
         removeError(condition.id);
       }}
     />
   );
 }
+
+const PercentWrapper = styled('div')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+`;

@@ -96,7 +96,7 @@ class ArtifactLookupTest(APITestCase):
 
         return (update_artifact_index(self.release, dist, file_), buffer.getvalue())
 
-    def test_query_by_debug_ids(self):
+    def test_query_by_debug_ids(self) -> None:
         debug_id_a = "aaaaaaaa-0000-0000-0000-000000000000"
         debug_id_b = "bbbbbbbb-0000-0000-0000-000000000000"
         file_ab = make_compressed_zip_file(
@@ -167,7 +167,7 @@ class ArtifactLookupTest(APITestCase):
         assert response[0]["type"] == "bundle"
         self.assert_download_matches_file(response[0]["url"], file_c)
 
-    def test_query_by_url(self):
+    def test_query_by_url(self) -> None:
         debug_id_a = "aaaaaaaa-0000-0000-0000-000000000000"
         dist = self.release.add_dist("whatever")
 
@@ -231,7 +231,7 @@ class ArtifactLookupTest(APITestCase):
         assert response[0]["type"] == "bundle"
         self.assert_download_matches_file(response[0]["url"], file_a)
 
-    def test_query_by_url_from_releasefiles(self):
+    def test_query_by_url_from_releasefiles(self) -> None:
         file_headers = {"Sourcemap": "application.js.map"}
         file = make_file("application.js", b"wat", "release.file", file_headers)
         ReleaseFile.objects.create(
@@ -261,7 +261,7 @@ class ArtifactLookupTest(APITestCase):
         assert response[0]["headers"] == file_headers
         self.assert_download_matches_file(response[0]["url"], b"wat")
 
-    def test_query_by_url_from_legacy_bundle(self):
+    def test_query_by_url_from_legacy_bundle(self) -> None:
         self.login_as(user=self.user)
 
         url = reverse(
@@ -351,7 +351,7 @@ class ArtifactLookupTest(APITestCase):
         assert response[1]["type"] == "bundle"
         self.assert_download_matches_file(response[1]["url"], archive2_file)
 
-    def test_query_by_url_and_dist_from_legacy_bundle(self):
+    def test_query_by_url_and_dist_from_legacy_bundle(self) -> None:
         self.login_as(user=self.user)
 
         url = reverse(
@@ -454,7 +454,7 @@ class ArtifactLookupTest(APITestCase):
         self.assert_download_matches_file(response[1]["url"], archive2_file)
 
     @freeze_time("2023-05-23 10:00:00")
-    def test_renewal_with_debug_id(self):
+    def test_renewal_with_debug_id(self) -> None:
         for days_before, expected_date_added, debug_id in (
             (
                 2,
@@ -526,7 +526,7 @@ class ArtifactLookupTest(APITestCase):
             )
 
     @freeze_time("2023-05-23 10:00:00")
-    def test_renewal_with_url(self):
+    def test_renewal_with_url(self) -> None:
         file_zip = make_compressed_zip_file(
             {
                 "path/in/zip/c": {
@@ -596,7 +596,7 @@ class ArtifactLookupTest(APITestCase):
                 == expected_date_added
             )
 
-    def test_renewal_of_releasefiles(self):
+    def test_renewal_of_releasefiles(self) -> None:
         old_timestamp = datetime.now(tz=timezone.utc) - timedelta(days=45)
 
         file_headers = {"Sourcemap": "application.js.map"}
@@ -640,7 +640,7 @@ class ArtifactLookupTest(APITestCase):
         assert ReleaseFile.objects.get(id=releasefile.id).date_accessed > old_timestamp
         assert ReleaseFile.objects.get(id=archive1.id).date_accessed > old_timestamp
 
-    def test_access_control(self):
+    def test_access_control(self) -> None:
         # release file
         file_a = make_file("application.js", b"wat", "release.file", {})
         release_file = ReleaseFile.objects.create(
@@ -714,7 +714,7 @@ class ArtifactLookupTest(APITestCase):
         response = self.client.get(f"{url}?download=artifact_bundle/{artifact_bundle.id}")
         assert response.status_code == 404
 
-    def test_download_invalid_id(self):
+    def test_download_invalid_id(self) -> None:
         self.login_as(user=self.user)
 
         url = reverse(

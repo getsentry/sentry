@@ -6,14 +6,16 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import GroupEndpoint
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
+from sentry.constants import CELL_API_DEPRECATION_DATE
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
+from sentry.services import eventstore
 from sentry.tasks.unmerge import unmerge
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -24,6 +26,7 @@ from sentry.utils.snuba import raw_query
 class GroupHashesResult(TypedDict):
     id: str
     latestEvent: Any
+    mergedBySeer: bool
 
 
 @region_silo_endpoint
@@ -33,6 +36,7 @@ class GroupHashesEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-hashes"])
     def get(self, request: Request, group: Group) -> Response:
         """
         List an Issue's Hashes
@@ -70,6 +74,7 @@ class GroupHashesEndpoint(GroupEndpoint):
             paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-hashes"])
     def put(self, request: Request, group: Group) -> Response:
         """
         Perform an unmerge by reassigning events with hash values corresponding to the given
@@ -113,8 +118,19 @@ class GroupHashesEndpoint(GroupEndpoint):
         full: str | bool,
         results: Sequence[dict[str, str]],
     ) -> list[GroupHashesResult]:
+        primary_hashes = [result["primary_hash"] for result in results]
+        grouphashes = {
+            grouphash.hash: grouphash
+            for grouphash in GroupHash.objects.filter(
+                project_id=project_id, group_id=group_id, hash__in=primary_hashes
+            ).select_related("_metadata")
+        }
+
         return [
-            self.__handle_result(user, project_id, group_id, full, result) for result in results
+            self.__handle_result(
+                user, project_id, group_id, full, result, grouphashes.get(result["primary_hash"])
+            )
+            for result in results
         ]
 
     def __handle_result(
@@ -124,11 +140,18 @@ class GroupHashesEndpoint(GroupEndpoint):
         group_id: int,
         full: str | bool,
         result: dict[str, str],
+        grouphash: GroupHash | None = None,
     ) -> GroupHashesResult:
         event = eventstore.backend.get_event_by_id(project_id, result["event_id"])
+        merged_by_seer = bool(
+            grouphash and grouphash.metadata and grouphash.metadata.seer_matched_grouphash
+        )
 
         serializer = EventSerializer if full else SimpleEventSerializer
-        return {
+        response: GroupHashesResult = {
             "id": result["primary_hash"],
             "latestEvent": serialize(event, user, serializer()),
+            "mergedBySeer": merged_by_seer,
         }
+
+        return response

@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
-class CodeownersAssignment(analytics.Event):
-    type = "codeowners.assignment"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("group_id"),
-        analytics.Attribute("updated_assignment"),
-    )
+@analytics.eventclass("codeowners.assignment")
+class CodeOwnersAssignment(analytics.Event):
+    organization_id: int
+    project_id: int
+    group_id: int
+    updated_assignment: bool
 
 
-analytics.register(CodeownersAssignment)
+analytics.register(CodeOwnersAssignment)

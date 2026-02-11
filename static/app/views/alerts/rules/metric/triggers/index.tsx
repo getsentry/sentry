@@ -11,8 +11,8 @@ import AnomalyDetectionFormField from 'sentry/views/alerts/rules/metric/triggers
 import DynamicAlertsFeedbackButton from 'sentry/views/alerts/rules/metric/triggers/dynamicAlertsFeedbackButton';
 import TriggerForm from 'sentry/views/alerts/rules/metric/triggers/form';
 import {
-  type Action,
   AlertRuleComparisonType,
+  type Action,
   type AlertRuleSensitivity,
   type AlertRuleThresholdType,
   type MetricActionTemplate,

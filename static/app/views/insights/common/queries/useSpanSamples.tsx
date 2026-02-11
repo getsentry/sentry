@@ -1,19 +1,18 @@
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
-  EAPSpanProperty,
-  EAPSpanResponse,
+  SpanProperty,
   SpanQueryFilters,
+  SpanResponse,
   SubregionCode,
 } from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -32,7 +31,7 @@ type Options<Fields extends NonDefaultSpanSampleFields[]> = {
 };
 
 export type SpanSample = Pick<
-  EAPSpanResponse,
+  SpanResponse,
   | SpanFields.SPAN_SELF_TIME
   | SpanFields.TRANSACTION_SPAN_ID
   | SpanFields.PROJECT
@@ -51,10 +50,7 @@ export type DefaultSpanSampleFields =
   | SpanFields.PROFILEID
   | SpanFields.SPAN_SELF_TIME;
 
-export type NonDefaultSpanSampleFields = Exclude<
-  EAPSpanProperty,
-  DefaultSpanSampleFields
->;
+export type NonDefaultSpanSampleFields = Exclude<SpanProperty, DefaultSpanSampleFields>;
 
 export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
   options: Options<Fields>
@@ -71,7 +67,6 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
     additionalFields = [],
   } = options;
   const location = useLocation();
-  const useEap = useInsightsEap();
 
   const query = spanSearch === undefined ? new MutableSearch([]) : spanSearch.copy();
   query.addFilterValue(SPAN_GROUP, groupId);
@@ -99,26 +94,40 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
 
   const dateConditions = getDateConditions(pageFilter.selection);
 
-  const {isPending: isLoadingSeries, data: spanMetricsSeriesData} = useSpanSeries(
-    {
-      search: MutableSearch.fromQueryObject({'span.group': groupId, ...filters}),
-      yAxis: [`avg(${SPAN_SELF_TIME})`],
-      enabled: Object.values({'span.group': groupId, ...filters}).every(value =>
-        Boolean(value)
-      ),
-    },
-    'api.starfish.sidebar-span-metrics'
-  );
+  const {isPending: isLoadingSeries, data: spanMetricsSeriesData} =
+    useFetchSpanTimeSeries(
+      {
+        query: MutableSearch.fromQueryObject({'span.group': groupId, ...filters}),
+        yAxis: [`avg(${SPAN_SELF_TIME})`],
+        enabled: Object.values({'span.group': groupId, ...filters}).every(value =>
+          Boolean(value)
+        ),
+      },
+      'api.insights.sidebar-span-metrics'
+    );
+
+  const timeSeries = spanMetricsSeriesData?.timeSeries || [];
+  const avgSelfTimeSeries = timeSeries.find(ts => ts.yAxis === `avg(${SPAN_SELF_TIME})`);
 
   const min = 0;
-  const max = computeAxisMax([spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]);
+  const max = computeAxisMax([
+    avgSelfTimeSeries
+      ? {
+          data: avgSelfTimeSeries.values.map(v => ({
+            name: v.timestamp,
+            value: v.value || 0,
+          })),
+          seriesName: avgSelfTimeSeries.yAxis,
+        }
+      : {data: [], seriesName: `avg(${SPAN_SELF_TIME})`},
+  ]);
 
   const enabled = Boolean(
     groupId && transactionName && !isLoadingSeries && pageFilter.isReady
   );
 
   type DataRow = Pick<
-    EAPSpanResponse,
+    SpanResponse,
     Fields[number] | DefaultSpanSampleFields // These fields are returned by default
   >;
 
@@ -144,8 +153,8 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
             SpanFields.TRANSACTION_SPAN_ID, // TODO: transaction.span_id should be a default from the backend
             ...additionalFields,
           ],
-          sampling: useEap ? SAMPLING_MODE.NORMAL : undefined,
-          dataset: useEap ? DiscoverDatasets.SPANS_EAP : undefined,
+          sampling: SAMPLING_MODE.NORMAL,
+          dataset: DiscoverDatasets.SPANS,
           sort: `-${SPAN_SELF_TIME}`,
         },
       },

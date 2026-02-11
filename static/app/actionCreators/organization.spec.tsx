@@ -8,7 +8,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 
-describe('OrganizationActionCreator', function () {
+describe('OrganizationActionCreator', () => {
   const org = OrganizationFixture();
 
   const teams = [TeamFixture()];
@@ -16,7 +16,7 @@ describe('OrganizationActionCreator', function () {
 
   const api = new MockApiClient();
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.spyOn(TeamStore, 'loadInitialData');
     jest.spyOn(ProjectsStore, 'loadInitialData');
     jest.spyOn(OrganizationStore, 'onUpdate');
@@ -24,12 +24,12 @@ describe('OrganizationActionCreator', function () {
     jest.spyOn(OrganizationsActionCreator, 'setActiveOrganization');
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
   });
 
-  it('fetches organization details', async function () {
+  it('fetches organization details', async () => {
     const getOrgMock = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/`,
       body: org,
@@ -65,7 +65,7 @@ describe('OrganizationActionCreator', function () {
     expect(ProjectsStore.loadInitialData).toHaveBeenCalledWith(projects);
   });
 
-  it('errors out correctly', async function () {
+  it('errors out correctly', async () => {
     const getOrgMock = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/`,
       statusCode: 400,

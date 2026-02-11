@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("plugin.enabled")
 class PluginEnabledEvent(analytics.Event):
-    type = "plugin.enabled"
-
-    attributes = (
-        analytics.Attribute("user_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("plugin"),
-    )
+    user_id: int | None
+    organization_id: int
+    project_id: int
+    plugin: str
 
 
 analytics.register(PluginEnabledEvent)

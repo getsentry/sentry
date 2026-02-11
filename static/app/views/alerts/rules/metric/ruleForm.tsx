@@ -3,6 +3,12 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
+
 import type {Indicator} from 'sentry/actionCreators/indicator';
 import {
   addErrorMessage,
@@ -14,8 +20,6 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
@@ -23,8 +27,10 @@ import FormModel from 'sentry/components/forms/model';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
+import {pulse} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {
@@ -46,6 +52,7 @@ import {
 } from 'sentry/utils/onDemandMetrics/features';
 import withProjects from 'sentry/utils/withProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
 import {OnDemandThresholdChecker} from 'sentry/views/alerts/rules/metric/onDemandThresholdChecker';
 import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerForm';
@@ -57,7 +64,7 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
-import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
+import {getBackendAlertType, isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
@@ -87,13 +94,6 @@ import {
   getTimeWindowOptions,
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
-import type {
-  EventTypes,
-  MetricActionTemplate,
-  MetricRule,
-  Trigger,
-  UnsavedMetricRule,
-} from './types';
 import {
   AlertRuleComparisonType,
   AlertRuleSeasonality,
@@ -101,7 +101,13 @@ import {
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Dataset,
+  ExtrapolationMode,
   TimeWindow,
+  type EventTypes,
+  type MetricActionTemplate,
+  type MetricRule,
+  type Trigger,
+  type UnsavedMetricRule,
 } from './types';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
@@ -158,7 +164,9 @@ type State = {
   chartErrorMessage?: string;
   comparisonDelta?: number;
   confidence?: Confidence;
+  extrapolationMode?: ExtrapolationMode;
   isExtrapolatedChartData?: boolean;
+  isMetricLoading?: boolean;
   seasonality?: AlertRuleSeasonality;
   seriesSamplingInfo?: SeriesSamplingInfo;
 } & DeprecatedAsyncComponent['state'];
@@ -259,6 +267,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       metricExtractionRules: null,
       triggers: triggersClone,
       resolveThreshold: rule.resolveThreshold,
+      extrapolationMode: rule.extrapolationMode,
       sensitivity: rule.sensitivity ?? undefined,
       seasonality: rule.seasonality ?? undefined,
       thresholdType: rule.thresholdType,
@@ -363,6 +372,15 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       }
       if (alertRule) {
         addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
+
+        if (!ruleId) {
+          trackAnalytics('metric_alert_rule.created', {
+            organization,
+            aggregate: alertRule.aggregate,
+            dataset: alertRule.dataset,
+          });
+        }
+
         if (onSubmitSuccess) {
           onSubmitSuccess(alertRule, model);
         }
@@ -578,8 +596,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         alertType: value as MetricAlertType,
         dataset: this.checkOnDemandMetricsDataset(dataset, this.state.query),
         timeWindow:
-          ['span_metrics'].includes(value as string) &&
-          timeWindow === TimeWindow.ONE_MINUTE
+          isEapAlertType(value as MetricAlertType) && timeWindow === TimeWindow.ONE_MINUTE
             ? TimeWindow.FIVE_MINUTES
             : timeWindow,
       }));
@@ -596,6 +613,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         },
         () => {
           this.reloadData();
+          fetchOrganizationTags(this.api, this.props.organization.slug, [
+            this.state.project.id,
+          ]);
         }
       );
     }
@@ -747,6 +767,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       sensitivity,
       seasonality,
       comparisonType,
+      extrapolationMode,
     } = this.state;
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
@@ -783,14 +804,21 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         const detectionType = detectionTypes.get(comparisonType) ?? '';
         const dataset = this.determinePerformanceDataset();
         this.setState({loading: true});
+        const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
         // Add or update is just the PUT/POST to the org alert-rules api
         // we're splatting the full rule in, then overwriting all the data?
+        // Get transformed form data and convert frontend-only alert types to backend equivalents
+        const formData = model.getTransformedData();
+        if (formData.alertType) {
+          formData.alertType = getBackendAlertType(formData.alertType);
+        }
+
         const [data, , resp] = await addOrUpdateRule(
           this.api,
           organization.slug,
           {
             ...rule, // existing rule
-            ...model.getTransformedData(), // form data
+            ...formData, // form data
             projects: [project.slug],
             triggers: sanitizedTriggers,
             resolveThreshold:
@@ -811,6 +839,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             sensitivity: sensitivity ?? null,
             seasonality: seasonality ?? null,
             detectionType,
+            // We want to change the extrapolation mode to sample weighted once a migrated alert rule is edited
+            extrapolationMode: this.isDuplicateRule
+              ? undefined
+              : getIsMigratedExtrapolationMode(extrapolationMode, dataset, traceItemType)
+                ? ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED
+                : extrapolationMode,
           },
           {
             duplicateRule: this.isDuplicateRule ? 'true' : 'false',
@@ -832,11 +866,20 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           IndicatorStore.remove(loadingIndicator);
           this.setState({loading: false});
           addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
+
+          if (!ruleId) {
+            trackAnalytics('metric_alert_rule.created', {
+              organization,
+              aggregate: data.aggregate,
+              dataset: data.dataset,
+            });
+          }
+
           if (onSubmitSuccess) {
             onSubmitSuccess(data, model);
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         IndicatorStore.remove(loadingIndicator);
         this.setState({loading: false});
         const errors = err?.responseJSON
@@ -970,6 +1013,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     this.setState({...updateState, chartError: false, chartErrorMessage: undefined}, () =>
       this.fetchAnomalies()
     );
+  };
+
+  handleMetricLoadingChange = (isLoading: boolean) => {
+    this.setState({isMetricLoading: isLoading});
   };
 
   handleDeleteRule = async () => {
@@ -1127,7 +1174,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         {method: 'POST', data: params}
       );
       this.setState({anomalies});
-    } catch (e) {
+    } catch (e: any) {
       let chartErrorMessage: string | undefined;
       if (e.responseJSON) {
         if (typeof e.responseJSON === 'object' && e.responseJSON.detail) {
@@ -1204,6 +1251,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       chartErrorMessage,
       confidence,
       seriesSamplingInfo,
+      extrapolationMode,
     } = this.state;
 
     const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
@@ -1218,6 +1266,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         />
       );
     }
+
     const isOnDemand = isOnDemandMetricAlert(dataset, aggregate, query);
 
     let formattedAggregate = aggregate;
@@ -1225,6 +1274,18 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const func = parseFunction(aggregate);
     if (func && isEapAlertType(alertType)) {
       formattedAggregate = prettifyParsedFunction(func);
+    }
+
+    // For trace_item_metrics, show loading until:
+    // - a metric name is selected, OR
+    // - the metric options query finished loading (isMetricLoading === false)
+    // Aggregate format: aggregate(value,metric_name,metric_type,unit)
+    let isPreloading = false;
+    if (alertType === 'trace_item_metrics' && func) {
+      const metricName = func.arguments?.[1] ?? '';
+      const hasMetricSelected = Boolean(metricName);
+      const isMetricQueryDone = this.state.isMetricLoading === false;
+      isPreloading = !hasMetricSelected && !isMetricQueryDone;
     }
 
     const chartProps: ComponentProps<typeof TriggersChart> = {
@@ -1254,6 +1315,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       confidence,
       seriesSamplingInfo,
       traceItemType: traceItemType ?? undefined,
+      extrapolationMode,
+      isPreloading,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
@@ -1311,6 +1374,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       alertType,
       isExtrapolatedChartData,
       triggersHaveChanged,
+      extrapolationMode,
     } = this.state;
 
     const wizardBuilderChart = this.renderTriggerChart();
@@ -1365,9 +1429,17 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const showErrorMigrationWarning =
       !!ruleId && isMigration && ruleNeedsErrorMigration(rule);
 
+    const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
+
+    const showExtrapolationModeChangeWarning = getIsMigratedExtrapolationMode(
+      extrapolationMode,
+      dataset,
+      traceItemType
+    );
+
     // Rendering the main form body
     return (
-      <Main fullWidth>
+      <Main width="full">
         <ProjectPermissionAlert access={['alerts:write']} project={project} />
 
         {eventView && <IncompatibleAlertQuery eventView={eventView} />}
@@ -1462,12 +1534,40 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                     thresholdChart={wizardBuilderChart}
                     timeWindow={timeWindow}
                     eventTypes={eventTypes}
+                    extrapolationMode={extrapolationMode}
+                    onMetricLoadingChange={this.handleMetricLoadingChange}
                   />
-                  <AlertListItem>{t('Set thresholds')}</AlertListItem>
+
+                  <AlertListItem>
+                    {
+                      <Flex align="center" gap="sm">
+                        {t('Set thresholds')}
+                        {showExtrapolationModeChangeWarning && (
+                          <WarningIcon
+                            tooltipProps={{
+                              title: tct(
+                                'Your thresholds may need to be adjusted to take into account [samplingLink:sampling].',
+                                {
+                                  samplingLink: (
+                                    <ExternalLink
+                                      href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
+                                      openInNewTab
+                                    />
+                                  ),
+                                }
+                              ),
+                              isHoverable: true,
+                            }}
+                            id="thresholds-warning-icon"
+                          />
+                        )}
+                      </Flex>
+                    }
+                  </AlertListItem>
                   {thresholdTypeForm(formDisabled)}
                   {showErrorMigrationWarning && (
                     <Alert.Container>
-                      <Alert type="warning">
+                      <Alert variant="warning">
                         {tct(
                           "We've added [code:is:unresolved] to your events filter; please make sure the current thresholds are still valid as this alert is now filtering out resolved and archived errors.",
                           {
@@ -1518,13 +1618,21 @@ function getTimeWindowFromDataset(
   return defaultWindow;
 }
 
+function WarningIcon({tooltipProps, id}: {id: string; tooltipProps?: TooltipProps}) {
+  return (
+    <Tooltip {...tooltipProps} title={tooltipProps?.title} skipWrapper>
+      <StyledIconWarning id={id} size="md" variant="warning" />
+    </Tooltip>
+  );
+}
+
 const Main = styled(Layout.Main)`
   max-width: 1000px;
 `;
 
 const AlertListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-top: 0;
 `;
 
@@ -1538,20 +1646,24 @@ const AlertName = styled(HeaderTitleLegend)`
 `;
 
 const AlertInfo = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  font-family: ${p => p.theme.text.family};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.font.size.sm};
+  font-family: ${p => p.theme.font.family.sans};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const StyledCircleIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.subText};
+  background: ${p => p.theme.tokens.graphics.neutral.vibrant};
   height: ${space(1)};
   margin-right: ${space(0.5)};
 `;
 
 const Aggregate = styled('span')`
   margin-right: ${space(1)};
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  animation: ${() => pulse(1.15)} 1s ease infinite;
 `;
 
 export default withProjects(RuleFormContainer);

@@ -1,41 +1,69 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+
 import {t} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
-import {FieldKind} from 'sentry/utils/fields';
+import type {Tag, TagCollection} from 'sentry/types/group';
+import {FieldKind, prettifyTagKey} from 'sentry/utils/fields';
 import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {UNGROUPED} from 'sentry/views/explore/contexts/pageParamsContext/groupBys';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface UseGroupByFieldsProps {
+  booleanTags: TagCollection;
   /**
    * All the group bys that are in use. They will be injected if
    * they dont exist already.
    */
-  groupBys: string[];
-  tags: TagCollection;
+  groupBys: readonly string[];
+  numberTags: TagCollection;
+  stringTags: TagCollection;
+  traceItemType: TraceItemDataset;
   hideEmptyOption?: boolean;
 }
 
 export function useGroupByFields({
-  tags,
+  numberTags,
+  stringTags,
+  booleanTags,
   groupBys,
+  traceItemType,
   hideEmptyOption,
-}: UseGroupByFieldsProps) {
-  const options: Array<SelectOption<string>> = useMemo(() => {
-    const potentialOptions = [
-      ...Object.keys(tags).filter(key => !DISALLOWED_GROUP_BY_FIELDS.has(key)),
-
-      // These options aren't known to exist on this project but it was inserted into
-      // the group bys somehow so it should be a valid options in the group bys.
-      //
-      // One place this may come from is when switching projects/environment/date range,
-      // a tag may disappear based on the selection.
-      ...groupBys.filter(groupBy => groupBy && !tags.hasOwnProperty(groupBy)),
+}: UseGroupByFieldsProps): Array<SelectOption<string>> {
+  return useMemo(() => {
+    const options = [
+      ...Object.entries(numberTags)
+        .filter(([key, _]) => !DISALLOWED_GROUP_BY_FIELDS.has(key))
+        .map(([_, tag]) => optionFromTag(tag, traceItemType)),
+      ...Object.entries(stringTags)
+        .filter(([key, _]) => !DISALLOWED_GROUP_BY_FIELDS.has(key))
+        .map(([_, tag]) => optionFromTag(tag, traceItemType)),
+      ...Object.entries(booleanTags)
+        .filter(([key, _]) => !DISALLOWED_GROUP_BY_FIELDS.has(key))
+        .map(([_, tag]) => optionFromTag(tag, traceItemType)),
+      ...groupBys
+        .filter(
+          groupBy =>
+            groupBy &&
+            !(groupBy in numberTags) &&
+            !(groupBy in stringTags) &&
+            !(groupBy in booleanTags)
+        )
+        .map(groupBy =>
+          optionFromTag(
+            {key: groupBy, name: prettifyTagKey(groupBy), kind: FieldKind.TAG},
+            traceItemType
+          )
+        ),
     ];
-    potentialOptions.sort();
+
+    options.sort((a, b) => {
+      const aLabel = a.label || '';
+      const bLabel = b.label || '';
+      return aLabel.localeCompare(bLabel);
+    });
 
     return [
       // hard code in an empty option
@@ -48,21 +76,27 @@ export function useGroupByFields({
               textValue: t('\u2014'),
             },
           ]),
-      ...potentialOptions.map(key => {
-        const kind = FieldKind.TAG;
-        return {
-          label: key,
-          value: key,
-          textValue: key,
-          trailingItems: <TypeBadge kind={kind} />,
-          showDetailsInOverlay: true,
-          details: <AttributeDetails column={key} kind={kind} label={key} type="span" />,
-        };
-      }),
+      ...options,
     ];
-  }, [tags, groupBys, hideEmptyOption]);
+  }, [booleanTags, groupBys, hideEmptyOption, numberTags, stringTags, traceItemType]);
+}
 
-  return options;
+function optionFromTag(tag: Tag, traceItemType: TraceItemDataset) {
+  return {
+    label: tag.name,
+    value: tag.key,
+    textValue: tag.key,
+    trailingItems: <TypeBadge kind={tag.kind} />,
+    showDetailsInOverlay: true,
+    details: (
+      <AttributeDetails
+        column={tag.key}
+        kind={tag.kind}
+        label={tag.key}
+        traceItemType={traceItemType}
+      />
+    ),
+  };
 }
 
 // Some fields don't make sense to allow users to group by as they create
@@ -70,5 +104,5 @@ export function useGroupByFields({
 const DISALLOWED_GROUP_BY_FIELDS = new Set(['id', 'timestamp']);
 
 const Disabled = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

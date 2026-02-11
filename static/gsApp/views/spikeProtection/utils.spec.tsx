@@ -3,7 +3,7 @@ import {DataCategoryExact} from 'sentry/types/core';
 import type {SpikeDetails} from 'getsentry/views/spikeProtection/types';
 import {getSpikeDetailsFromSeries} from 'getsentry/views/spikeProtection/utils';
 
-describe('getSpikeDetailsFromSeries', function () {
+describe('getSpikeDetailsFromSeries', () => {
   function validateResults(
     actual: any,
     expectedStoredSpikes: Array<Partial<SpikeDetails>> = []
@@ -16,7 +16,7 @@ describe('getSpikeDetailsFromSeries', function () {
     );
   }
 
-  it('returns empty on error or no result', function () {
+  it('returns empty on error or no result', () => {
     expect(
       getSpikeDetailsFromSeries({
         dataCategory: DataCategoryExact.ERROR,
@@ -25,7 +25,7 @@ describe('getSpikeDetailsFromSeries', function () {
     ).toHaveLength(0);
   });
 
-  it('returns valid results from stored spikes', function () {
+  it('returns valid results from stored spikes', () => {
     const storedSpikes = [
       {
         billingMetric: 1,
@@ -69,7 +69,7 @@ describe('getSpikeDetailsFromSeries', function () {
     validateResults(result, expectedStoredSpikes);
   });
 
-  it('returns stored spikes and overwrites calculated ones', function () {
+  it('returns stored spikes and overwrites calculated ones', () => {
     const storedSpikes = [
       {
         billingMetric: 1,

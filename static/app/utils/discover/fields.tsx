@@ -187,6 +187,23 @@ export enum SizeUnit {
   EXABYTE = 'exabyte',
 }
 
+// NOTE: These units are treated as base 10 (SI) vs. base 2 (IEC). That
+// intuitively makes sense for units like "kilobyte" (vs. kibibyte) where the
+// unit itself indicates its base. If this list contains "byte" (the default
+// unit for size data in Sentry), "byte" becomes a base 10 unit everywhere. That
+// will force effectively all tables and chart to format size data multipliers
+// using base 10. This is not a problem, it's just an important implication to
+// be aware of.
+export const ABYTE_UNITS = [
+  'byte',
+  'kilobyte',
+  'megabyte',
+  'gigabyte',
+  'terabyte',
+  'petabyte',
+  'exabyte',
+];
+
 // Sizes normalized to byte unit
 export const SIZE_UNIT_MULTIPLIERS: Record<SizeUnit, number> = {
   bit: 1 / 8,
@@ -296,7 +313,7 @@ export const AGGREGATIONS = {
       {
         kind: 'column',
         columnTypes: validateDenyListColumns(
-          ['string', 'duration', 'number'],
+          ['string', 'duration', 'number', 'integer'],
           ['id', 'issue', 'user.display']
         ),
         defaultValue: 'transaction.duration',
@@ -623,7 +640,15 @@ export type AggregationKeyWithAlias = `${AggregationKey}` | keyof typeof ALIASES
 
 export type AggregationOutputType = Extract<
   ColumnType,
-  'number' | 'integer' | 'date' | 'duration' | 'percentage' | 'string' | 'size' | 'rate'
+  | 'number'
+  | 'integer'
+  | 'date'
+  | 'duration'
+  | 'percentage'
+  | 'string'
+  | 'size'
+  | 'rate'
+  | 'score'
 >;
 
 export type PlotType = 'bar' | 'line' | 'area';
@@ -725,7 +750,7 @@ export function getAggregations(dataset: DiscoverDatasets) {
         {
           kind: 'column',
           columnTypes: validateDenyListColumns(
-            ['string', 'duration', 'number'],
+            ['string', 'duration', 'number', 'integer'],
             ['id', 'issue', 'user.display']
           ),
           defaultValue:
@@ -900,7 +925,7 @@ export function getMeasurementSlug(field: string): string | null {
 
 const AGGREGATE_PATTERN = /^(\w+)\((.*)?\)$/;
 // Identical to AGGREGATE_PATTERN, but without the $ for newline, or ^ for start of line
-const AGGREGATE_BASE = /(\w+)\((.*)?\)/g;
+export const AGGREGATE_BASE = /(\w+)\((.*)?\)/g;
 
 export function getAggregateArg(field: string): string | null {
   // only returns the first argument if field is an aggregate
@@ -1190,36 +1215,6 @@ export function getColumnsAndAggregates(fields: string[]): {
   const aggregates = getAggregateFields(fields);
   const columns = fields.filter(field => !aggregates.includes(field));
   return {columns, aggregates};
-}
-
-export function getColumnsAndAggregatesAsStrings(fields: QueryFieldValue[]): {
-  aggregates: string[];
-  columns: string[];
-  fieldAliases: string[];
-} {
-  // TODO(dam): distinguish between metrics, derived metrics and tags
-  const aggregateFields: string[] = [];
-  const nonAggregateFields: string[] = [];
-  const fieldAliases: string[] = [];
-
-  for (const field of fields) {
-    const fieldString = generateFieldAsString(field);
-    if (field.kind === 'function' || field.kind === 'calculatedField') {
-      aggregateFields.push(fieldString);
-    } else if (field.kind === 'equation') {
-      if (isAggregateEquation(fieldString)) {
-        aggregateFields.push(fieldString);
-      } else {
-        nonAggregateFields.push(fieldString);
-      }
-    } else {
-      nonAggregateFields.push(fieldString);
-    }
-
-    fieldAliases.push(field.alias ?? '');
-  }
-
-  return {aggregates: aggregateFields, columns: nonAggregateFields, fieldAliases};
 }
 
 /**
@@ -1692,6 +1687,13 @@ export function prettifyParsedFunction(func: ParsedFunction) {
     func.arguments[0] === 'message'
   ) {
     return 'count(logs)';
+  }
+
+  // special case for trace metrics format: function(value,metricName,metricType,unit)
+  // display as function(metricName)
+  if (func.arguments.length === 4 && func.arguments[0] === 'value') {
+    const metricName = func.arguments[1];
+    return `${func.name}(${prettifyTagKey(metricName ?? '')})`;
   }
 
   const args = func.arguments.map(prettifyTagKey);

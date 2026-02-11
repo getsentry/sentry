@@ -32,10 +32,10 @@ class End2EndTest(APITestCase):
     endpoint = "test-endpoint"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
-    def test_as_superuser(self):
+    def test_as_superuser(self) -> None:
         self.login_as(self.create_user(is_staff=True), staff=True)
 
         response = self.get_success_response(status=200)
@@ -43,7 +43,7 @@ class End2EndTest(APITestCase):
         # cookie name is not set when testing
         assert "staff" in response.cookies
 
-    def test_not_superuser(self):
+    def test_not_superuser(self) -> None:
         self.login_as(self.create_user(is_staff=False))
 
         response = self.get_success_response(status=200)

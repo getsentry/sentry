@@ -4,7 +4,6 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -18,6 +17,8 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.ratelimits.config import RateLimitConfig
+from sentry.services import eventstore
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
@@ -38,13 +39,15 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=1, window=1),
-            RateLimitCategory.USER: RateLimit(limit=1, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=1, window=1),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=1, window=1),
+                RateLimitCategory.USER: RateLimit(limit=1, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=1, window=1),
+            }
         }
-    }
+    )
 
     @extend_schema(
         operation_id="Resolve an Event ID",

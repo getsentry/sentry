@@ -16,7 +16,7 @@ from sentry.utils.outcomes import Outcome
 class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
     _now = datetime.now(UTC).replace(hour=12, minute=27, second=28, microsecond=0)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.login_as(user=self.user)
@@ -99,18 +99,18 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         )
         return self.client.get(url, query, format="json")
 
-    def test_empty_request(self):
+    def test_empty_request(self) -> None:
         response = self.do_request({})
         assert response.status_code == 400, response.content
         assert response.data == {"detail": 'At least one "field" is required.'}
 
-    def test_inaccessible_project(self):
+    def test_inaccessible_project(self) -> None:
         response = self.do_request({"project": [self.project3.id]})
 
         assert response.status_code == 403, response.content
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
-    def test_no_projects_available(self):
+    def test_no_projects_available(self) -> None:
         response = self.do_request(
             {
                 "groupBy": ["project"],
@@ -128,7 +128,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             "detail": "No projects available",
         }
 
-    def test_unknown_field(self):
+    def test_unknown_field(self) -> None:
         response = self.do_request(
             {
                 "field": ["summ(qarntenty)"],
@@ -142,7 +142,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             "detail": 'Invalid field: "summ(qarntenty)"',
         }
 
-    def test_no_end_param(self):
+    def test_no_end_param(self) -> None:
         response = self.do_request(
             {
                 "field": ["sum(quantity)"],
@@ -155,7 +155,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         assert response.data == {"detail": "start and end are both required"}
 
     @freeze_time(_now)
-    def test_future_request(self):
+    def test_future_request(self) -> None:
         response = self.do_request(
             {
                 "field": ["sum(quantity)"],
@@ -172,7 +172,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             "projects": [],
         }
 
-    def test_unknown_category(self):
+    def test_unknown_category(self) -> None:
         response = self.do_request(
             {
                 "field": ["sum(quantity)"],
@@ -187,7 +187,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             "detail": 'Invalid category: "scoobydoo"',
         }
 
-    def test_unknown_outcome(self):
+    def test_unknown_outcome(self) -> None:
         response = self.do_request(
             {
                 "field": ["sum(quantity)"],
@@ -203,7 +203,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             "detail": 'Invalid outcome: "scoobydoo"',
         }
 
-    def test_resolution_invalid(self):
+    def test_resolution_invalid(self) -> None:
         self.login_as(user=self.user)
         make_request = functools.partial(
             self.client.get,
@@ -219,7 +219,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         assert response.status_code == 400, response.content
 
     @freeze_time(_now)
-    def test_attachment_filter_only(self):
+    def test_attachment_filter_only(self) -> None:
         response = self.do_request(
             {
                 "project": [-1],
@@ -236,7 +236,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         }
 
     @freeze_time(_now)
-    def test_user_all_accessible(self):
+    def test_user_all_accessible(self) -> None:
         response = self.do_request(
             {
                 "project": self.project.id,
@@ -268,7 +268,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         }
 
     @freeze_time(_now)
-    def test_no_project_access(self):
+    def test_no_project_access(self) -> None:
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.organization, role="member", teams=[])
 
@@ -288,7 +288,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
     @freeze_time(_now)
-    def test_open_membership_semantics(self):
+    def test_open_membership_semantics(self) -> None:
         self.org.flags.allow_joinleave = True
         self.org.save()
         response = self.do_request(
@@ -350,7 +350,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         }
 
     @freeze_time(_now)
-    def test_org_simple(self):
+    def test_org_simple(self) -> None:
         make_request = functools.partial(
             self.client.get,
             reverse("sentry-api-0-organization-stats-summary", args=[self.org.slug]),
@@ -423,7 +423,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         }
 
     @freeze_time(_now)
-    def test_org_multiple_fields(self):
+    def test_org_multiple_fields(self) -> None:
         make_request = functools.partial(
             self.client.get,
             reverse("sentry-api-0-organization-stats-summary", args=[self.org.slug]),
@@ -500,7 +500,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         }
 
     @freeze_time(_now)
-    def test_org_project_totals_per_project(self):
+    def test_org_project_totals_per_project(self) -> None:
         make_request = functools.partial(
             self.client.get,
             reverse("sentry-api-0-organization-stats-summary", args=[self.org.slug]),
@@ -563,7 +563,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         }
 
     @freeze_time(_now)
-    def test_project_filter(self):
+    def test_project_filter(self) -> None:
         make_request = functools.partial(
             self.client.get,
             reverse("sentry-api-0-organization-stats-summary", args=[self.org.slug]),
@@ -606,7 +606,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         }
 
     @freeze_time(_now)
-    def test_reason_filter(self):
+    def test_reason_filter(self) -> None:
         make_request = functools.partial(
             self.client.get,
             reverse("sentry-api-0-organization-stats-summary", args=[self.org.slug]),
@@ -670,7 +670,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         }
 
     @freeze_time(_now)
-    def test_outcome_filter(self):
+    def test_outcome_filter(self) -> None:
         make_request = functools.partial(
             self.client.get,
             reverse("sentry-api-0-organization-stats-summary", args=[self.org.slug]),
@@ -706,7 +706,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         }
 
     @freeze_time(_now)
-    def test_category_filter(self):
+    def test_category_filter(self) -> None:
         make_request = functools.partial(
             self.client.get,
             reverse("sentry-api-0-organization-stats-summary", args=[self.org.slug]),
@@ -746,7 +746,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             ],
         }
 
-    def test_download(self):
+    def test_download(self) -> None:
         req: dict[str, Any] = {
             "statsPeriod": "2d",
             "interval": "1d",

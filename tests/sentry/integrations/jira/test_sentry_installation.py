@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from jwt import ExpiredSignatureError
 
@@ -14,7 +14,7 @@ CLICK_TO_FINISH = b"Finish Installation in Sentry"
 
 @control_silo_test
 class JiraSentryInstallationViewTestCase(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.path = absolute_uri("extensions/jira/ui-hook/") + "?xdm_e=base_url"
 
@@ -30,7 +30,7 @@ class JiraSentryInstallationViewErrorsTest(JiraSentryInstallationViewTestCase):
         "sentry.integrations.jira.views.sentry_installation.get_integration_from_request",
         side_effect=ExpiredSignatureError(),
     )
-    def test_expired_signature_error(self, mock_get_integration_from_request):
+    def test_expired_signature_error(self, mock_get_integration_from_request: MagicMock) -> None:
         response = self.client.get(self.path)
         assert response.status_code == 200
         assert REFRESH_REQUIRED in response.content
@@ -39,7 +39,9 @@ class JiraSentryInstallationViewErrorsTest(JiraSentryInstallationViewTestCase):
         "sentry.integrations.jira.views.sentry_installation.get_integration_from_request",
         side_effect=AtlassianConnectValidationError(),
     )
-    def test_expired_invalid_installation_error(self, mock_get_integration_from_request):
+    def test_expired_invalid_installation_error(
+        self, mock_get_integration_from_request: MagicMock
+    ) -> None:
         response = self.client.get(self.path)
         assert response.status_code == 200
         assert UNABLE_TO_VERIFY_INSTALLATION.encode() in response.content
@@ -47,7 +49,7 @@ class JiraSentryInstallationViewErrorsTest(JiraSentryInstallationViewTestCase):
 
 @control_silo_test
 class JiraSentryInstallationViewTest(JiraSentryInstallationViewTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -56,7 +58,7 @@ class JiraSentryInstallationViewTest(JiraSentryInstallationViewTestCase):
         assert UNABLE_TO_VERIFY_INSTALLATION.encode() not in response.content
 
     @patch("sentry.integrations.jira.views.sentry_installation.get_integration_from_request")
-    def test_simple_get(self, mock_get_integration_from_request):
+    def test_simple_get(self, mock_get_integration_from_request: MagicMock) -> None:
         mock_get_integration_from_request.return_value = self.integration
         response = self.client.get(self.path)
         assert response.status_code == 200

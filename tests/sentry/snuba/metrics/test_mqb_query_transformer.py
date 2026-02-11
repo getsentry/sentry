@@ -1608,7 +1608,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
     "input, output",
     VALID_QUERIES_INTEGRATION_TEST_CASES,
 )
-def test_mqb_to_metrics_query_transformer(input, output):
+def test_mqb_to_metrics_query_transformer(input, output) -> None:
     assert transform_mqb_query_to_metrics_query(input) == output
 
 
@@ -1957,6 +1957,6 @@ INVALID_QUERIES_INTEGRATION_TEST_CASES = [
     "input, error_message",
     INVALID_QUERIES_INTEGRATION_TEST_CASES,
 )
-def test_invalid_mqb_queries(input, error_message):
+def test_invalid_mqb_queries(input, error_message) -> None:
     with pytest.raises(MQBQueryTransformationException, match=re.escape(error_message)):
         transform_mqb_query_to_metrics_query(input)

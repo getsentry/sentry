@@ -26,7 +26,7 @@ class DummyLockBackend(LockBackend):
 
 
 class TestMigrationLockBackend(TestCase):
-    def test_build_from_configs(self):
+    def test_build_from_configs(self) -> None:
         backend = MigrationLockBackend(
             backend_new_config={
                 "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
@@ -39,7 +39,7 @@ class TestMigrationLockBackend(TestCase):
         assert isinstance(backend.backend_new, RedisLockBackend)
         assert isinstance(backend.backend_old, DummyLockBackend)
 
-    def test_acquire_check_old_backend(self):
+    def test_acquire_check_old_backend(self) -> None:
         # default selector function always returns new backend
         backend = MigrationLockBackend(
             backend_new_config={"path": DummyLockBackend.path},
@@ -52,7 +52,7 @@ class TestMigrationLockBackend(TestCase):
         backend.backend_old.release(lk)
         backend.acquire(lk, 10)
 
-    def test_lock_check_both_backends(self):
+    def test_lock_check_both_backends(self) -> None:
         backend = MigrationLockBackend(
             backend_new_config={"path": DummyLockBackend.path},
             backend_old_config={"path": DummyLockBackend.path},
@@ -72,7 +72,7 @@ class TestMigrationLockBackend(TestCase):
         backend.backend_new.acquire(lk, 10)
         assert backend.locked(lk)
 
-    def test_release_both_backends(self):
+    def test_release_both_backends(self) -> None:
         backend = MigrationLockBackend(
             backend_new_config={"path": DummyLockBackend.path},
             backend_old_config={"path": DummyLockBackend.path},

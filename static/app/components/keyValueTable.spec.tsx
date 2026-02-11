@@ -2,8 +2,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 
-describe('KeyValueTable', function () {
-  it('basic', function () {
+describe('KeyValueTable', () => {
+  it('basic', () => {
     render(
       <KeyValueTable>
         <KeyValueTableRow keyName="Coffee" value="Black hot drink" />

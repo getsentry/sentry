@@ -2,11 +2,11 @@ import styled from '@emotion/styled';
 import asana from 'sentry-logos/logo-asana.svg';
 import auth0 from 'sentry-logos/logo-auth0.svg';
 import vsts from 'sentry-logos/logo-azure.svg';
-import bitbucket from 'sentry-logos/logo-bitbucket.svg';
 import bitbucketserver from 'sentry-logos/logo-bitbucket-server.svg';
+import bitbucket from 'sentry-logos/logo-bitbucket.svg';
 import placeholder from 'sentry-logos/logo-default.svg';
-import github from 'sentry-logos/logo-github.svg';
 import githubEnterprise from 'sentry-logos/logo-github-enterprise.svg';
+import github from 'sentry-logos/logo-github.svg';
 import gitlab from 'sentry-logos/logo-gitlab.svg';
 import google from 'sentry-logos/logo-google.svg';
 import jiraserver from 'sentry-logos/logo-jira-server.svg';
@@ -27,6 +27,7 @@ const IDENTITY_ICONS = {
   bitbucket,
   bitbucket_server: bitbucketserver,
   github,
+  github_copilot: github,
   github_enterprise: githubEnterprise,
   gitlab,
   google,
@@ -65,7 +66,7 @@ export function IdentityIcon({providerId, size = 36, ref}: IdentityIconProps) {
 const StyledIdentityIconContainer = styled('div')<{size: number}>`
   height: ${p => p.size}px;
   width: ${p => p.size}px;
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.colors.white};
   border-radius: 2px;
   display: flex;
   align-items: center;

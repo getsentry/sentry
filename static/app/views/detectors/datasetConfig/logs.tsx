@@ -1,21 +1,19 @@
-import type {EventsStats} from 'sentry/types/organization';
+import {t} from 'sentry/locale';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {LogsConfig} from 'sentry/views/dashboards/datasetConfig/logs';
-import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
-import {
-  getDiscoverSeriesQueryOptions,
-  transformEventsStatsToSeries,
-} from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
+import {createEapDetectorConfig} from 'sentry/views/detectors/datasetConfig/eapBase';
 
-import type {DetectorDatasetConfig} from './base';
-
-type LogsSeriesRepsonse = EventsStats;
-
-export const DetectorLogsConfig: DetectorDatasetConfig<LogsSeriesRepsonse> = {
+export const DetectorLogsConfig = createEapDetectorConfig({
+  name: t('Logs'),
+  defaultEventTypes: [EventTypes.TRACE_ITEM_LOG],
   defaultField: LogsConfig.defaultField,
   getAggregateOptions: LogsConfig.getTableFieldOptions,
-  SearchBar: TraceSearchBar,
-  getSeriesQueryOptions: getDiscoverSeriesQueryOptions,
-  transformSeriesQueryData: (data, aggregate) => {
-    return [transformEventsStatsToSeries(data, aggregate)];
+  discoverDataset: DiscoverDatasets.OURLOGS,
+  formatAggregateForTitle: aggregate => {
+    if (aggregate === 'count()') {
+      return t('Number of logs');
+    }
+    return aggregate;
   },
-};
+});

@@ -1,5 +1,7 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
+import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -8,14 +10,17 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
+import {WidgetType, type DashboardFilters} from 'sentry/views/dashboards/types';
 
 const theme = ThemeFixture();
 
-describe('getFieldRenderer', function () {
+describe('getFieldRenderer', () => {
   let location: any, context: any, project: any, organization: any, data: any, user: any;
 
-  beforeEach(function () {
-    context = initializeOrg();
+  beforeEach(() => {
+    context = initializeOrg({
+      organization: OrganizationFixture({features: ['dashboards-drilldown-flow']}),
+    });
     organization = context.organization;
     project = context.project;
     act(() => ProjectsStore.loadInitialData([project]));
@@ -53,6 +58,7 @@ describe('getFieldRenderer', function () {
       filteredCount: 3000,
       count: 6000,
       selectionDateString: 'last 7 days',
+      'opportunity_score(measurements.score.total)': 0.0345,
     };
 
     MockApiClient.addMockResponse({
@@ -76,7 +82,7 @@ describe('getFieldRenderer', function () {
     });
   });
 
-  it('can render string fields', function () {
+  it('can render string fields', () => {
     const renderer = getFieldRenderer('url', {url: 'string'});
     render(
       renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
@@ -85,7 +91,7 @@ describe('getFieldRenderer', function () {
     expect(screen.getByText(data.url)).toBeInTheDocument();
   });
 
-  it('can render empty string fields', function () {
+  it('can render empty string fields', () => {
     const renderer = getFieldRenderer('url', {url: 'string'});
     data.url = '';
     render(
@@ -95,7 +101,7 @@ describe('getFieldRenderer', function () {
     expect(screen.getByText('(empty string)')).toBeInTheDocument();
   });
 
-  it('can render boolean fields', function () {
+  it('can render boolean fields', () => {
     const renderer = getFieldRenderer('boolValue', {boolValue: 'boolean'});
     render(
       renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
@@ -104,7 +110,7 @@ describe('getFieldRenderer', function () {
     expect(screen.getByText('true')).toBeInTheDocument();
   });
 
-  it('can render integer fields', function () {
+  it('can render integer fields', () => {
     const renderer = getFieldRenderer('numeric', {numeric: 'integer'});
     render(
       renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
@@ -113,8 +119,145 @@ describe('getFieldRenderer', function () {
     expect(screen.getByText(data.numeric)).toBeInTheDocument();
   });
 
-  describe('percentage', function () {
-    it('can render percentage fields', function () {
+  it('can render dashboard links', () => {
+    const widget = WidgetFixture({
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          linkedDashboards: [{dashboardId: '123', field: 'transaction'}],
+          aggregates: [],
+          columns: [],
+          conditions: '',
+          name: '',
+          orderby: '',
+        },
+      ],
+    });
+    const dashboardFilters: DashboardFilters = {};
+
+    const renderer = getFieldRenderer(
+      'transaction',
+      {transaction: 'string'},
+      undefined,
+      widget,
+      dashboardFilters
+    );
+
+    render(
+      renderer(data, {
+        location,
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboard/123/?globalFilter=%7B%22dataset%22%3A%22spans%22%2C%22tag%22%3A%7B%22key%22%3A%22transaction%22%2C%22name%22%3A%22transaction%22%2C%22kind%22%3A%22tag%22%7D%2C%22value%22%3A%22transaction%3A%5Bapi.do_things%5D%22%2C%22isTemporary%22%3Atrue%7D'
+    );
+  });
+
+  it('can render dashboard links to additional datasets', () => {
+    const widget = WidgetFixture({
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          linkedDashboards: [
+            {
+              dashboardId: '123',
+              field: 'transaction',
+              additionalGlobalFilterDatasetTargets: [WidgetType.ISSUE],
+            },
+          ],
+          aggregates: [],
+          columns: [],
+          conditions: '',
+          name: '',
+          orderby: '',
+        },
+      ],
+    });
+    const dashboardFilters: DashboardFilters = {};
+
+    const renderer = getFieldRenderer(
+      'transaction',
+      {transaction: 'string'},
+      undefined,
+      widget,
+      dashboardFilters
+    );
+
+    render(
+      renderer(data, {
+        location,
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboard/123/?globalFilter=%7B%22dataset%22%3A%22spans%22%2C%22tag%22%3A%7B%22key%22%3A%22transaction%22%2C%22name%22%3A%22transaction%22%2C%22kind%22%3A%22tag%22%7D%2C%22value%22%3A%22transaction%3A%5Bapi.do_things%5D%22%2C%22isTemporary%22%3Atrue%7D&globalFilter=%7B%22dataset%22%3A%22issue%22%2C%22tag%22%3A%7B%22key%22%3A%22transaction%22%2C%22name%22%3A%22transaction%22%2C%22kind%22%3A%22tag%22%7D%2C%22value%22%3A%22transaction%3A%5Bapi.do_things%5D%22%2C%22isTemporary%22%3Atrue%7D'
+    );
+  });
+  describe('rate', () => {
+    it('can render null rate', () => {
+      const renderer = getFieldRenderer(
+        'per_second(value)',
+        {
+          'per_second(value)': 'rate',
+        },
+        false
+      );
+
+      render(
+        renderer(
+          {'per_second(value)': null},
+          {location, organization, theme}
+        ) as React.ReactElement<any, any>
+      );
+      expect(screen.getByText('(no value)')).toBeInTheDocument();
+    });
+
+    it('can render low rate', () => {
+      const renderer = getFieldRenderer(
+        'per_second(value)',
+        {
+          'per_second(value)': 'rate',
+        },
+        false
+      );
+
+      render(
+        renderer(
+          {'per_second(value)': 0.0001},
+          {location, organization, theme}
+        ) as React.ReactElement<any, any>
+      );
+      expect(screen.getByText('<0.01/s')).toBeInTheDocument();
+    });
+
+    it('can render high rate', () => {
+      const renderer = getFieldRenderer(
+        'per_second(value)',
+        {
+          'per_second(value)': 'rate',
+        },
+        false
+      );
+
+      render(
+        renderer(
+          {'per_second(value)': 10},
+          {location, organization, theme}
+        ) as React.ReactElement<any, any>
+      );
+      expect(screen.getByText('10.0/s')).toBeInTheDocument();
+    });
+  });
+
+  describe('percentage', () => {
+    it('can render percentage fields', () => {
       const renderer = getFieldRenderer(
         'http_response_rate(3)',
         {
@@ -129,7 +272,7 @@ describe('getFieldRenderer', function () {
       expect(screen.getByText('1.2%')).toBeInTheDocument();
     });
 
-    it('can render very small percentages', function () {
+    it('can render very small percentages', () => {
       const renderer = getFieldRenderer(
         'http_response_rate(5)',
         {
@@ -145,8 +288,8 @@ describe('getFieldRenderer', function () {
     });
   });
 
-  describe('date', function () {
-    it('can render date fields', async function () {
+  describe('date', () => {
+    it('can render date fields', async () => {
       const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
       render(
         renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
@@ -155,7 +298,7 @@ describe('getFieldRenderer', function () {
       await screen.findByText('Oct 3, 2019 4:13:14 PM UTC');
     });
 
-    it('can render date fields using utc when query string has utc set to true', async function () {
+    it('can render date fields using utc when query string has utc set to true', async () => {
       const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
       render(
         renderer(data, {
@@ -169,7 +312,7 @@ describe('getFieldRenderer', function () {
     });
   });
 
-  it('can render null date fields', function () {
+  it('can render null date fields', () => {
     const renderer = getFieldRenderer('nope', {nope: 'date'});
     render(
       renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
@@ -178,7 +321,7 @@ describe('getFieldRenderer', function () {
     expect(screen.getByText('(no value)')).toBeInTheDocument();
   });
 
-  it('can render timestamp.to_day', function () {
+  it('can render timestamp.to_day', () => {
     const renderer = getFieldRenderer('timestamp.to_day', {'timestamp.to_day': 'date'});
     render(
       renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
@@ -187,7 +330,7 @@ describe('getFieldRenderer', function () {
     expect(screen.getByText('Sep 5, 2021')).toBeInTheDocument();
   });
 
-  it('can render error.handled values', function () {
+  it('can render error.handled values', () => {
     const renderer = getFieldRenderer('error.handled', {'error.handled': 'boolean'});
 
     function validate(value: any, expectText: any) {
@@ -220,7 +363,7 @@ describe('getFieldRenderer', function () {
     validate(null, '(no value)');
   });
 
-  it('can render user fields with aliased user', function () {
+  it('can render user fields with aliased user', () => {
     const renderer = getFieldRenderer('user', {user: 'string'});
 
     render(
@@ -231,7 +374,7 @@ describe('getFieldRenderer', function () {
     expect(screen.getByText('text@example.com')).toBeInTheDocument();
   });
 
-  it('can render null user fields', function () {
+  it('can render null user fields', () => {
     const renderer = getFieldRenderer('user', {user: 'string'});
 
     delete data.user;
@@ -243,7 +386,7 @@ describe('getFieldRenderer', function () {
     expect(screen.getByText('(no value)')).toBeInTheDocument();
   });
 
-  it('can render null release fields', function () {
+  it('can render null release fields', () => {
     const renderer = getFieldRenderer('release', {release: 'string'});
 
     delete data.release;
@@ -254,7 +397,7 @@ describe('getFieldRenderer', function () {
     expect(screen.getByText('(no value)')).toBeInTheDocument();
   });
 
-  it('renders release version with hyperlink', function () {
+  it('renders release version with hyperlink', () => {
     const renderer = getFieldRenderer('release', {release: 'string'});
 
     render(
@@ -268,7 +411,7 @@ describe('getFieldRenderer', function () {
     expect(screen.getByText('F2520C43515B')).toBeInTheDocument();
   });
 
-  it('renders issue hyperlink', function () {
+  it('renders issue hyperlink', () => {
     const renderer = getFieldRenderer('issue', {issue: 'string'});
 
     render(
@@ -282,7 +425,7 @@ describe('getFieldRenderer', function () {
     expect(screen.getByText('SENTRY-T6P')).toBeInTheDocument();
   });
 
-  it('can render project as an avatar', function () {
+  it('can render project as an avatar', () => {
     const renderer = getFieldRenderer('project', {project: 'string'});
 
     render(
@@ -293,7 +436,7 @@ describe('getFieldRenderer', function () {
     expect(screen.getByText(project.slug)).toBeInTheDocument();
   });
 
-  it('can render project id as an avatar', function () {
+  it('can render project id as an avatar', () => {
     const renderer = getFieldRenderer('project', {project: 'number'});
 
     data = {...data, project: parseInt(project.id, 10)};
@@ -306,7 +449,7 @@ describe('getFieldRenderer', function () {
     expect(screen.getByText(project.slug)).toBeInTheDocument();
   });
 
-  it('can render team key transaction as a star with the dropdown', async function () {
+  it('can render team key transaction as a star with the dropdown', async () => {
     const renderer = getFieldRenderer('team_key_transaction', {
       team_key_transaction: 'boolean',
     });
@@ -322,7 +465,7 @@ describe('getFieldRenderer', function () {
     await waitFor(() => expect(star).toBeEnabled());
   });
 
-  it('can render team key transaction as a star without the dropdown', function () {
+  it('can render team key transaction as a star without the dropdown', () => {
     const renderer = getFieldRenderer('team_key_transaction', {
       team_key_transaction: 'boolean',
     });
@@ -344,7 +487,7 @@ describe('getFieldRenderer', function () {
         node => (node as HTMLElement).style.width
       );
 
-    it('can render operation breakdowns', function () {
+    it('can render operation breakdowns', () => {
       const renderer = getFieldRenderer(SPAN_OP_RELATIVE_BREAKDOWN_FIELD, {
         [SPAN_OP_RELATIVE_BREAKDOWN_FIELD]: 'string',
       });
@@ -356,7 +499,7 @@ describe('getFieldRenderer', function () {
       expect(getWidths()).toEqual(['13.333%', '40%', '20%', '26.667%', '0%']);
     });
 
-    it('renders operation breakdowns in sorted order when a sort field is provided', function () {
+    it('renders operation breakdowns in sorted order when a sort field is provided', () => {
       const renderer = getFieldRenderer(SPAN_OP_RELATIVE_BREAKDOWN_FIELD, {
         [SPAN_OP_RELATIVE_BREAKDOWN_FIELD]: 'string',
       });
@@ -387,5 +530,17 @@ describe('getFieldRenderer', function () {
 
       expect(getWidths()).toEqual(['40%', '13.333%', '20%', '26.667%', '0%']);
     });
+  });
+
+  it('renders opportunity score', () => {
+    const renderer = getFieldRenderer('opportunity_score(measurements.score.total)', {
+      'opportunity_score(measurements.score.total)': 'score',
+    });
+
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByText('3.45')).toBeInTheDocument();
   });
 });

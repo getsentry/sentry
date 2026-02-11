@@ -1,40 +1,71 @@
-import {useTheme} from '@emotion/react';
+import {Badge} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Badge} from 'sentry/components/core/badge';
-import {Flex} from 'sentry/components/core/layout';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import useMailboxCounts from 'sentry/components/feedback/list/useMailboxCounts';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import type {Mailbox} from 'sentry/components/feedback/useMailbox';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import useOrganization from 'sentry/utils/useOrganization';
-
-type Mailbox = ReturnType<typeof decodeMailbox>;
 
 interface Props {
   onChange: (next: Mailbox) => void;
   value: Mailbox;
 }
 
-const MAILBOXES = [
-  {key: 'unresolved', label: t('Inbox')},
-  {key: 'resolved', label: t('Resolved')},
-  {key: 'ignored', label: t('Spam')},
-];
-
 export default function MailboxPicker({onChange, value}: Props) {
   const organization = useOrganization();
   const {data} = useMailboxCounts({organization});
-  const theme = useTheme();
+  const {isSelfHosted} = useLegacyStore(ConfigStore);
+
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
+  const hasSpamFeature = organization.features.includes('user-feedback-spam-ingest');
+
+  const getSpamTooltip = () => {
+    if (!hasSpamFeature || isSelfHosted) {
+      return undefined;
+    }
+
+    if (!areAiFeaturesAllowed) {
+      return tct(
+        'Generative AI Features are required for auto spam detection. Check that [linkGenAI:Generative AI Features] are toggled on.',
+        {
+          linkGenAI: (
+            <Link
+              to={{
+                pathname: `/settings/${organization.slug}/`,
+                hash: 'hideAiFeatures',
+              }}
+            />
+          ),
+        }
+      );
+    }
+
+    return undefined;
+  };
+
+  const MAILBOXES = [
+    {key: 'unresolved', label: t('Inbox')},
+    {key: 'resolved', label: t('Resolved')},
+    {
+      key: 'ignored',
+      label: t('Spam'),
+      tooltip: getSpamTooltip(),
+    },
+  ];
 
   const filteredMailboxes = MAILBOXES;
 
   return (
-    <Flex justify="flex-end" flex="1 0 auto">
+    <Flex justify="end" flex="1 0 auto">
       <SegmentedControl
         size="xs"
-        aria-label={t('Filter feedbacks')}
+        aria-label={t('Filter feedback')}
         value={value}
         onChange={onChange}
       >
@@ -47,9 +78,15 @@ export default function MailboxPicker({onChange, value}: Props) {
           return (
             <SegmentedControl.Item key={mailbox.key} aria-label={mailbox.label}>
               <Tooltip disabled={!count} title={title}>
-                <Flex align="center" gap={theme.isChonk ? space(0.75) : 0}>
-                  {mailbox.label}
-                  {display ? <Badge type="default">{display}</Badge> : null}
+                <Flex align="center" gap="sm">
+                  {mailbox.tooltip ? (
+                    <Tooltip isHoverable title={mailbox.tooltip}>
+                      {mailbox.label}
+                    </Tooltip>
+                  ) : (
+                    mailbox.label
+                  )}
+                  {display ? <Badge variant="muted">{display}</Badge> : null}
                 </Flex>
               </Tooltip>
             </SegmentedControl.Item>

@@ -6,6 +6,8 @@ import Console from 'sentry/views/replays/detail/console';
 import ErrorList from 'sentry/views/replays/detail/errorList/index';
 import MemoryPanel from 'sentry/views/replays/detail/memoryPanel/index';
 import NetworkList from 'sentry/views/replays/detail/network';
+import OurLogs from 'sentry/views/replays/detail/ourlogs';
+import Playlist from 'sentry/views/replays/detail/playlist';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
 import TraceFeature from 'sentry/views/replays/detail/trace/index';
 
@@ -49,10 +51,22 @@ export default function FocusArea({isVideoReplay}: {isVideoReplay?: boolean}) {
           <Console />
         </AnalyticsArea>
       );
+    case TabKey.LOGS:
+      return (
+        <AnalyticsArea name="logs_tab">
+          <OurLogs />
+        </AnalyticsArea>
+      );
     case TabKey.TAGS:
       return (
         <AnalyticsArea name="tags_tab">
           <TagPanel />
+        </AnalyticsArea>
+      );
+    case TabKey.PLAYLIST:
+      return (
+        <AnalyticsArea name="playlist_tab">
+          <Playlist />
         </AnalyticsArea>
       );
     case TabKey.BREADCRUMBS:

@@ -1,40 +1,39 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import WebVitalsLandingPage from 'sentry/views/insights/browser/webVitals/views/webVitalsLandingPage';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
-
-describe('WebVitalsLandingPage', function () {
+describe('WebVitalsLandingPage', () => {
   const organization = OrganizationFixture({
-    features: ['insights-initial-modules'],
+    features: ['insight-modules'],
   });
+
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/insights/frontend/pageloads/`,
+      query: {},
+    },
+    route: `/organizations/:orgId/insights/frontend/pageloads/`,
+  };
 
   let eventsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {period: '14d', start: null, end: null, utc: null},
+    });
+
     ProjectsStore.loadInitialData([
       ProjectFixture({hasInsightsVitals: true, firstTransactionEvent: true}),
     ]);
-
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
-
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -49,28 +48,57 @@ describe('WebVitalsLandingPage', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       body: {
-        'performance_score(measurements.score.lcp)': {
-          data: [[1743348600, [{count: 0.6106921965623204}]]],
-        },
-        'performance_score(measurements.score.fcp)': {
-          data: [[1743435000, [{count: 0.7397871866098699}]]],
-        },
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'performance_score(measurements.score.lcp)',
+            values: [
+              {
+                timestamp: 1743348600000,
+                value: 0.6106921965623204,
+              },
+            ],
+          }),
+          TimeSeriesFixture({
+            yAxis: 'performance_score(measurements.score.fcp)',
+            values: [
+              {
+                timestamp: 1743348600000,
+                value: 0.7397871866098699,
+              },
+            ],
+          }),
+        ],
       },
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.resetAllMocks();
   });
 
   it('renders', async () => {
-    render(<WebVitalsLandingPage />, {organization, deprecatedRouterMocks: true});
+    render(<WebVitalsLandingPage />, {
+      organization,
+      initialRouterConfig,
+    });
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
-    // Table query
+    // geo subregion query
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'spans',
+          field: ['user.geo.subregion', 'count()'],
+          query: 'has:user.geo.subregion',
+        }),
+      })
+    );
+    // Table query
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      2,
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
@@ -95,13 +123,13 @@ describe('WebVitalsLandingPage', function () {
             'count_scores(measurements.score.total)',
           ],
           query:
-            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] avg(measurements.score.total):>=0',
         }),
       })
     );
     // Raw web vital metric tile queries
     expect(eventsMock).toHaveBeenNthCalledWith(
-      2,
+      3,
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
@@ -115,13 +143,13 @@ describe('WebVitalsLandingPage', function () {
             'count()',
           ],
           query:
-            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>"',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""]',
         }),
       })
     );
     // Project performance score ring query
     expect(eventsMock).toHaveBeenNthCalledWith(
-      3,
+      4,
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
@@ -147,7 +175,7 @@ describe('WebVitalsLandingPage', function () {
             `count_scores(measurements.score.inp)`,
           ],
           query:
-            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>"',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""]',
         }),
       })
     );

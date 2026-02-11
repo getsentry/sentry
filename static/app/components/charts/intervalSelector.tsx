@@ -1,7 +1,9 @@
 import {useState} from 'react';
 
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {getInterval} from 'sentry/components/charts/utils';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {
   _timeRangeAutoCompleteFilter,
   makeItem,
@@ -143,13 +145,6 @@ function bindInterval(
   return intervalHours < intervalOption.min || intervalHours > optionMax;
 }
 
-type Item = {
-  label: React.ReactNode;
-  textValue: string;
-  value: string;
-  searchKey?: string;
-};
-
 export default function IntervalSelector({
   displayMode,
   eventView,
@@ -176,10 +171,9 @@ export default function IntervalSelector({
     }
   }
 
-  const [items, setItems] = useState<Item[]>(() =>
+  const [items, setItems] = useState<Array<SelectOption<string>>>(() =>
     intervalOption.options.map(option => ({
       value: option,
-      searchKey: option,
       textValue: option,
       label: option,
     }))
@@ -205,12 +199,7 @@ export default function IntervalSelector({
     if (newItem) {
       const [amount, unit] = formatHoursToInterval(newItem);
       filteredResults.push(
-        makeItem(
-          amount,
-          unit,
-          SUPPORTED_RELATIVE_PERIOD_UNITS[unit]!.label,
-          results.length + 1
-        )
+        makeItem(amount, unit, SUPPORTED_RELATIVE_PERIOD_UNITS[unit]!.label)
       );
     }
 
@@ -238,12 +227,16 @@ export default function IntervalSelector({
       size="sm"
       position="bottom-end"
       menuWidth={200}
-      triggerProps={{
-        prefix: t('Interval'),
-        borderless: true,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          prefix={t('Interval')}
+          priority="transparent"
+        >
+          {interval}
+        </OverlayTrigger.Button>
+      )}
       disabled={false}
-      triggerLabel={interval}
     />
   );
 }

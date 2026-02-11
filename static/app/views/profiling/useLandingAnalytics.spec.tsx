@@ -1,6 +1,6 @@
 import {deriveFinalDataState} from './useLandingAnalytics';
 
-describe('deriveFinalDataState', function () {
+describe('deriveFinalDataState', () => {
   it.each([
     {
       flamegraphData: 'populated' as const,
@@ -26,7 +26,7 @@ describe('deriveFinalDataState', function () {
       widget1Data: 'pending' as const,
       widget2Data: 'populated' as const,
     },
-  ])('any populated %s', function (dataLoaded) {
+  ])('any populated %s', dataLoaded => {
     const dataState = deriveFinalDataState(dataLoaded);
     expect(dataState).toBe('populated');
   });
@@ -62,12 +62,12 @@ describe('deriveFinalDataState', function () {
       widget1Data: 'errored' as const,
       widget2Data: 'loading' as const,
     },
-  ])('none populated but some loading %s', function (dataLoaded) {
+  ])('none populated but some loading %s', dataLoaded => {
     const dataState = deriveFinalDataState(dataLoaded);
     expect(dataState).toBe('loading');
   });
 
-  it('all pending', function () {
+  it('all pending', () => {
     const dataState = deriveFinalDataState({
       flamegraphData: 'pending' as const,
       transactionsTableData: 'pending' as const,
@@ -77,7 +77,7 @@ describe('deriveFinalDataState', function () {
     expect(dataState).toBe('pending');
   });
 
-  it('all errored', function () {
+  it('all errored', () => {
     const dataState = deriveFinalDataState({
       flamegraphData: 'errored' as const,
       transactionsTableData: 'errored' as const,
@@ -118,7 +118,7 @@ describe('deriveFinalDataState', function () {
       widget1Data: 'empty' as const,
       widget2Data: 'errored' as const,
     },
-  ])('all empty or errored', function (dataLoaded) {
+  ])('all empty or errored', dataLoaded => {
     const dataState = deriveFinalDataState(dataLoaded);
     expect(dataState).toBe('empty');
   });

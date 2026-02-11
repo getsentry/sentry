@@ -16,8 +16,10 @@ import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {
+  fetchMutation,
   setApiQueryData,
   useApiQuery,
   useMutation,
@@ -33,7 +35,6 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import addBillingMetricUsage from 'admin/components/addBillingMetricUsage';
 import addGiftBudgetAction from 'admin/components/addGiftBudgetAction';
 import AddGiftEventsAction from 'admin/components/addGiftEventsAction';
-import {triggerAM2CompatibilityCheck} from 'admin/components/am2CompatibilityCheckModal';
 import CancelSubscriptionAction from 'admin/components/cancelSubscriptionAction';
 import triggerChangeBalanceModal from 'admin/components/changeBalanceAction';
 import triggerChangeDatesModal from 'admin/components/changeDatesAction';
@@ -42,6 +43,7 @@ import triggerChangePlanAction from 'admin/components/changePlanAction';
 import CloseAccountInfo from 'admin/components/closeAccountInfo';
 import CustomerCharges from 'admin/components/customers/customerCharges';
 import CustomerHistory from 'admin/components/customers/customerHistory';
+import CustomerIntegrationDebugDetails from 'admin/components/customers/customerIntegrationDebugDetails';
 import CustomerIntegrations from 'admin/components/customers/customerIntegrations';
 import CustomerInvoices from 'admin/components/customers/customerInvoices';
 import CustomerMembers from 'admin/components/customers/customerMembers';
@@ -54,6 +56,7 @@ import {CustomerStats} from 'admin/components/customers/customerStats';
 import {CustomerStatsFilters} from 'admin/components/customers/customerStatsFilters';
 import OrganizationStatus from 'admin/components/customers/organizationStatus';
 import PendingChanges from 'admin/components/customers/pendingChanges';
+import openUpdateRetentionSettingsModal from 'admin/components/customers/updateRetentionSettingsModal';
 import deleteBillingMetricHistory from 'admin/components/deleteBillingMetricHistory';
 import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
 import DetailsPage from 'admin/components/detailsPage';
@@ -69,7 +72,7 @@ import {openToggleConsolePlatformsModal} from 'admin/components/toggleConsolePla
 import toggleSpendAllocationModal from 'admin/components/toggleSpendAllocationModal';
 import TrialSubscriptionAction from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import type {BillingConfig, Subscription} from 'getsentry/types';
+import type {BilledDataCategoryInfo, BillingConfig, Subscription} from 'getsentry/types';
 import {
   hasActiveVCFeature,
   isBizPlanFamily,
@@ -83,11 +86,20 @@ import {
 const DEFAULT_ERROR_MESSAGE = 'Unable to update the customer account';
 
 function makeSubscriptionQueryKey(orgId: string): ApiQueryKey {
-  return [`/customers/${orgId}/`];
+  return [
+    getApiUrl(`/customers/$organizationIdOrSlug/`, {
+      path: {organizationIdOrSlug: orgId},
+    }),
+  ];
 }
 
 function makeOrganizationQueryKey(orgId: string): ApiQueryKey {
-  return [`/organizations/${orgId}/`, {query: {detailed: 0, include_feature_flags: 1}}];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/`, {
+      path: {organizationIdOrSlug: orgId},
+    }),
+    {query: {detailed: 0, include_feature_flags: 1}},
+  ];
 }
 
 function makeBillingConfigQueryKey(orgId: string): ApiQueryKey {
@@ -162,6 +174,20 @@ export default function CustomerDetails() {
     },
   });
 
+  const onGenerateSpikeProjectionsMutation = useMutation({
+    mutationFn: () =>
+      fetchMutation({
+        url: `/_admin/${orgId}/queue-spike-projection/`,
+        method: 'POST',
+      }),
+    onSuccess: () => {
+      addSuccessMessage('Queued spike projection generation task.');
+    },
+    onError: (error: RequestError) => {
+      addErrorMessage(error.message);
+    },
+  });
+
   const reloadData = () => {
     refetchSubscription();
     refetchOrganization();
@@ -191,7 +217,18 @@ export default function CustomerDetails() {
 
   const isPolicyAdmin = !!userPermissions?.has?.('policies.admin');
 
-  const giftCategories = () => {
+  const giftCategories = (): Partial<
+    Record<
+      DataCategory,
+      {
+        categoryInfo: BilledDataCategoryInfo;
+        disabled: boolean;
+        displayName: string;
+        isReservedBudgetQuota: boolean;
+        isUnlimited: boolean;
+      }
+    >
+  > => {
     if (!subscription?.planDetails) {
       return {};
     }
@@ -200,11 +237,10 @@ export default function CustomerDetails() {
     // Categories that are not giftable in any state for the subscription are excluded (ie. plan does not include category).
     return Object.fromEntries(
       subscription.planDetails.categories
-        .filter(
-          category =>
-            subscription.planDetails.checkoutCategories.includes(category) ||
-            subscription.planDetails.onDemandCategories.includes(category)
-        )
+        .filter(category => {
+          const categoryInfo = getCategoryInfoFromPlural(category);
+          return categoryInfo?.maxAdminGift && categoryInfo.freeEventsMultiple;
+        })
         .map(category => {
           const reserved = subscription.categories?.[category]?.reserved;
           const isUnlimited = isUnlimitedReserved(reserved);
@@ -214,14 +250,10 @@ export default function CustomerDetails() {
           const categoryNotExists = !subscription.categories?.[category];
           const categoryInfo = getCategoryInfoFromPlural(category);
 
-          const isGiftable =
-            categoryInfo?.maxAdminGift && categoryInfo.freeEventsMultiple;
-
           return [
             category,
             {
-              disabled:
-                categoryNotExists || isUnlimited || isReservedBudgetQuota || !isGiftable,
+              disabled: categoryNotExists || isUnlimited || isReservedBudgetQuota,
               displayName: getPlanCategoryName({
                 plan: subscription.planDetails,
                 category,
@@ -294,11 +326,10 @@ export default function CustomerDetails() {
   const region = regionMap[organization?.links.regionUrl || 'unknown'] ?? 'unknown';
 
   const badges: BadgeItem[] = [
-    {name: 'Grace Period', level: 'warning', visible: subscription.isGracePeriod},
     {name: 'Capacity Limit', level: 'warning', visible: subscription.usageExceeded},
     {
       name: 'Suspended',
-      level: 'error',
+      level: 'danger',
       help: subscription.suspensionReason,
       visible: subscription.isSuspended,
     },
@@ -413,15 +444,6 @@ export default function CustomerDetails() {
               ),
             },
             onAction: params => onUpdateMutation.mutate({...params}),
-          },
-          {
-            key: 'allowGrace',
-            name: 'Allow Grace Period',
-            help: 'Allow this account to enter a grace period upon next overage.',
-            disabled: subscription.canGracePeriod,
-            disabledReason: 'Account may already be in a grace period',
-            onAction: params =>
-              onUpdateMutation.mutate({...params, canGracePeriod: true}),
           },
           {
             key: 'clearPendingChanges',
@@ -569,6 +591,7 @@ export default function CustomerDetails() {
           {
             key: 'changeDates',
             name: 'Change Dates',
+            // TODO(billing): Should we start calling On-Demand periods "Pay-as-you-go" periods?
             help: 'Change the contract and on-demand period dates.',
             skipConfirmModal: true,
             visible: hasAdminTestFeatures,
@@ -613,13 +636,6 @@ export default function CustomerDetails() {
                   : null,
                 onSuccess: reloadData,
               }),
-          },
-          {
-            key: 'checkAM2',
-            name: 'Check AM2 Compatibility',
-            help: 'Check if this account can be switched to AM2',
-            skipConfirmModal: true,
-            onAction: () => triggerAM2CompatibilityCheck({organization}),
           },
           {
             key: 'closeAccount',
@@ -691,6 +707,13 @@ export default function CustomerDetails() {
                 spendAllocationEnabled: subscription.spendAllocationEnabled,
                 onUpdated: onToggleSpendAllocation,
               }),
+          },
+          {
+            key: 'generateSpikeProjections',
+            name: 'Generate Spike Projections',
+            help: 'Generate spike projections for all eligible SKUs for all projects for the next 7 days.',
+            disabled: !isBillingAdmin,
+            onAction: () => onGenerateSpikeProjectionsMutation.mutate(),
           },
           {
             key: 'changeGoogleDomain',
@@ -813,6 +836,19 @@ export default function CustomerDetails() {
               openToggleConsolePlatformsModal({organization, onSuccess: reloadData});
             },
           },
+          {
+            key: 'updateRetentions',
+            name: 'Update Retentions',
+            help: 'Change the retention policy settings for a specific data category.',
+            skipConfirmModal: true,
+            onAction: () => {
+              openUpdateRetentionSettingsModal({
+                organization,
+                subscription,
+                onSuccess: reloadData,
+              });
+            },
+          },
         ]}
         sections={[
           {
@@ -866,6 +902,10 @@ export default function CustomerDetails() {
           {
             noPanel: true,
             content: <CustomerProjects orgId={orgId} />,
+          },
+          {
+            noPanel: true,
+            content: <CustomerIntegrationDebugDetails orgId={orgId} />,
           },
           {
             noPanel: true,

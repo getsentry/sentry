@@ -1,10 +1,8 @@
-import {RouterFixture} from 'sentry-fixture/routerFixture';
-
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import SsoForm from 'sentry/views/auth/ssoForm';
 
-describe('SsoForm', function () {
+describe('SsoForm', () => {
   const emptyAuthConfig = {
     canRegister: false,
     githubLoginLink: '',
@@ -27,20 +25,18 @@ describe('SsoForm', function () {
     );
   }
 
-  it('renders', function () {
+  it('renders', () => {
     const authConfig = {
       ...emptyAuthConfig,
       serverHostname: 'testserver',
     };
 
-    render(<SsoForm authConfig={authConfig} />, {
-      deprecatedRouterMocks: true,
-    });
+    render(<SsoForm authConfig={authConfig} />);
 
     expect(screen.getByLabelText('Organization ID')).toBeInTheDocument();
   });
 
-  it('handles errors', async function () {
+  it('handles errors', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/auth/sso-locate/',
       method: 'POST',
@@ -50,16 +46,13 @@ describe('SsoForm', function () {
       },
     });
 
-    render(<SsoForm authConfig={emptyAuthConfig} />, {
-      deprecatedRouterMocks: true,
-    });
+    render(<SsoForm authConfig={emptyAuthConfig} />);
     await doSso(mockRequest);
 
     expect(await screen.findByText('Invalid org name')).toBeInTheDocument();
   });
 
-  it('handles success', async function () {
-    const router = RouterFixture();
+  it('handles success', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/auth/sso-locate/',
       method: 'POST',
@@ -69,12 +62,15 @@ describe('SsoForm', function () {
       },
     });
 
-    render(<SsoForm authConfig={emptyAuthConfig} />, {
-      router,
-      deprecatedRouterMocks: true,
-    });
+    const {router} = render(<SsoForm authConfig={emptyAuthConfig} />);
     await doSso(mockRequest);
 
-    await waitFor(() => expect(router.push).toHaveBeenCalledWith({pathname: '/next/'}));
+    await waitFor(() =>
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: '/next/',
+        })
+      )
+    );
   });
 });

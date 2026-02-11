@@ -1,15 +1,15 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import type {SearchBarProps} from 'sentry/components/events/searchBar';
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {WidgetBuilderSearchBarProps} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 
 interface Props {
-  onClose: SearchBarProps['onClose'];
+  onClose: WidgetBuilderSearchBarProps['onClose'];
   widgetQuery: WidgetQuery;
   portalTarget?: HTMLElement | null;
 }

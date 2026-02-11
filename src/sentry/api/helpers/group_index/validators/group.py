@@ -4,10 +4,10 @@ from typing import Any
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
-from sentry.api.fields import ActorField
+from sentry.api.fields.actor import OwnerActorField
 from sentry.api.helpers.group_index.validators.inbox_details import InboxDetailsValidator
 from sentry.api.helpers.group_index.validators.status_details import StatusDetailsValidator
-from sentry.models.group import STATUS_UPDATE_CHOICES
+from sentry.models.group import STATUS_UPDATE_CHOICES, Group
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
 
@@ -23,7 +23,7 @@ from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
         "snoozeDuration",
     ]
 )
-class GroupValidator(serializers.Serializer):
+class GroupValidator(serializers.Serializer[Group]):
     inbox = serializers.BooleanField(
         help_text="If true, marks the issue as reviewed by the requestor."
     )
@@ -53,7 +53,7 @@ class GroupValidator(serializers.Serializer):
     discard = serializers.BooleanField(
         help_text="If true, discards the issues instead of updating them."
     )
-    assignedTo = ActorField(
+    assignedTo = OwnerActorField(
         help_text="The user or team that should be assigned to the issues. Values take the form of `<user_id>`, `user:<user_id>`, `<username>`, `<user_primary_email>`, or `team:<team_id>`."
     )
     priority = serializers.ChoiceField(

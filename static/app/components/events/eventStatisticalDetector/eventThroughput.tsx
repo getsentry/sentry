@@ -113,7 +113,7 @@ function EventThroughputInner({event, group}: EventThroughputProps) {
       ],
       label: {show: false},
       lineStyle: {
-        color: theme.red300,
+        color: theme.colors.red400,
         type: 'solid',
         width: 2,
       },
@@ -143,7 +143,7 @@ function EventThroughputInner({event, group}: EventThroughputProps) {
       xAxis: {show: false, type: 'time'},
       yAxis: {
         axisLabel: {
-          color: theme.chartLabel,
+          color: theme.tokens.content.secondary,
           formatter: (value: number) =>
             axisLabelFormatter(value, 'rate', true, undefined, RateUnit.PER_SECOND),
         },
@@ -373,14 +373,14 @@ function getStatsType(group: Group): 'transactions' | 'functions' | null {
 }
 
 const CurrentLabel = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const CompareLabel = styled('div')<{change?: 'increase' | 'decrease'}>`
   color: ${p =>
     p.change === 'increase'
-      ? p.theme.red300
+      ? p.theme.colors.red400
       : p.change === 'decrease'
-        ? p.theme.green300
-        : p.theme.subText};
+        ? p.theme.colors.green400
+        : p.theme.tokens.content.secondary};
 `;

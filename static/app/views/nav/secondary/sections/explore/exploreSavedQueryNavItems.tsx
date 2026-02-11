@@ -2,8 +2,10 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Reorder, useDragControls} from 'framer-motion';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -11,9 +13,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
-import type {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {type SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useReorderStarredSavedQueries} from 'sentry/views/explore/hooks/useReorderStarredSavedQueries';
-import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
+import {getSavedQueryTraceItemUrl} from 'sentry/views/explore/utils';
 import ProjectIcon from 'sentry/views/nav/projectIcon';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 
@@ -30,6 +32,7 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
   // Any time the queries prop changes (e.g. when the user stars or unstars a query),
   // we need to reset the savedQueries state.
   useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setSavedQueries(queries);
   }, [queries]);
 
@@ -84,7 +87,7 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
         >
           <StyledSecondaryNavItem
             leadingItems={
-              <LeadingItemsWrapper>
+              <Flex justify="center" align="center" position="relative">
                 <GrabHandleWrapper
                   data-test-id={`grab-handle-${query.id}`}
                   data-drag-icon
@@ -99,18 +102,19 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
                   }}
                 >
                   <StyledInteractionStateLayer isPressed={isDragging === query.id} />
-                  <IconGrabbable color="gray300" />
+                  <IconGrabbable variant="muted" />
                 </GrabHandleWrapper>
                 <ProjectIcon
                   projectPlatforms={projects
                     .filter(p => query.projects.map(String).includes(p.id))
                     .map(p => p.platform)
                     .filter(defined)}
+                  allProjects={query.projects.length === 1 && query.projects[0] === -1}
                 />
-              </LeadingItemsWrapper>
+              </Flex>
             }
             key={query.id}
-            to={getExploreUrlFromSavedQueryUrl({savedQuery: query, organization})}
+            to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
             analyticsItemName="explore_starred_item"
             isActive={id === query.id.toString()}
           >
@@ -146,8 +150,8 @@ const StyledReorderItem = styled(Reorder.Item, {
   shouldForwardProp: prop => prop !== 'grabbing',
 })<{grabbing: boolean}>`
   position: relative;
-  background-color: ${p => (p.grabbing ? p.theme.translucentSurface200 : 'transparent')};
-  border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => (p.grabbing ? p.theme.colors.surface200 : 'transparent')};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const GrabHandleWrapper = styled('div')`
@@ -169,13 +173,10 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)`
   border-radius: 4px;
 `;
 
-const LeadingItemsWrapper = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
 const TruncatedTitle = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

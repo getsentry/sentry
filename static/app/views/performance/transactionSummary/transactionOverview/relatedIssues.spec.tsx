@@ -6,7 +6,7 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 
 import RelatedIssues from 'sentry/views/performance/transactionSummary/transactionOverview/relatedIssues';
 
-describe('RelatedIssues', function () {
+describe('RelatedIssues', () => {
   const organization = OrganizationFixture();
   const issues = GroupsFixture();
   const transaction = 'test-transaction';
@@ -25,9 +25,8 @@ describe('RelatedIssues', function () {
   });
 
   beforeEach(() => {
-    // NOTE: This mock is jank. `GroupList` concatenates the query string with the URL. This means we have to mock the full URL including the parameters. There are a few other tests that have to do the same.
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?limit=5&project=1&query=is%3Aunresolved%20transaction%3Atest-transaction&sort=trends&statsPeriod=14d',
+      url: '/organizations/org-slug/issues/',
       method: 'GET',
       body: issues,
     });
@@ -38,11 +37,11 @@ describe('RelatedIssues', function () {
     });
   });
 
-  afterAll(function () {
+  afterAll(() => {
     jest.resetAllMocks();
   });
 
-  it('renders the issues list and "Open in Issues" link', async function () {
+  it('renders the issues list and "Open in Issues" link', async () => {
     render(
       <RelatedIssues
         organization={organization}
@@ -67,9 +66,9 @@ describe('RelatedIssues', function () {
     expect(screen.getByText(/ReferenceError/)).toBeInTheDocument();
   });
 
-  it('shows empty state when no issues are found', async function () {
+  it('shows empty state when no issues are found', async () => {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?limit=5&project=1&query=is%3Aunresolved%20transaction%3Atest-transaction&sort=trends&statsPeriod=14d',
+      url: '/organizations/org-slug/issues/',
       method: 'GET',
       body: [],
     });

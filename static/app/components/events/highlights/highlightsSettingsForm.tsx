@@ -1,6 +1,7 @@
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {ExternalLink} from 'sentry/components/core/link';
 import {CONTEXT_DOCS_LINK} from 'sentry/components/events/contexts/utils';
 import Form, {type FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -8,11 +9,11 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
-} from 'sentry/utils/useDetailedProject';
+} from 'sentry/utils/project/useDetailedProject';
+import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -77,8 +78,8 @@ export default function HighlightsSettingsForm({
             placeholder: t('environment, release, my-tag'),
             label: t('Highlighted Tags'),
             help: t('Separate tag keys with a newline.'),
-            getValue: val => extractMultilineFields(val),
-            setValue: val => convertMultilineFieldValue(val),
+            getValue: extractMultilineFields,
+            setValue: convertMultilineFieldValue,
           },
           {
             name: 'highlightContext',

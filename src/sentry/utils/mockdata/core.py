@@ -79,7 +79,7 @@ LEVELS = itertools.cycle(["error", "error", "error", "fatal", "warning"])
 
 ENVIRONMENTS = itertools.cycle(["production", "production", "staging", "alpha", "beta", ""])
 
-MONITOR_NAMES = itertools.cycle(settings.CELERYBEAT_SCHEDULE.keys())
+MONITOR_NAMES = itertools.cycle(settings.TASKWORKER_SCHEDULES.keys())
 
 MONITOR_SCHEDULES = itertools.cycle(["* * * * *", "0 * * * *", "0 0 * * *"])
 
@@ -534,7 +534,7 @@ def populate_release(
 
             CommitFileChange.objects.get_or_create(
                 organization_id=project.organization_id,
-                commit=commit,
+                commit_id=commit.id,
                 filename=file[0],
                 type=file[1],
             )
@@ -1313,7 +1313,7 @@ def create_mock_user_feedback(project, has_attachment=True):
     if release:
         event["release"] = release.version
 
-    create_feedback_issue(event, project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+    create_feedback_issue(event, project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     if has_attachment:
         create_mock_attachment(event["event_id"], project)

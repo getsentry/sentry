@@ -12,7 +12,7 @@ from sentry.users.models.user_merge_verification_code import TOKEN_MINUTES_VALID
 @control_silo_test
 class TestUserMergeVerificationCode(TestCase):
     @freeze_time()
-    def test_regenerate_token(self):
+    def test_regenerate_token(self) -> None:
         code = UserMergeVerificationCode(user=self.user)
         token = code.token
         code.expires_at = datetime(2025, 3, 14, 5, 32, 21, tzinfo=UTC)
@@ -23,7 +23,7 @@ class TestUserMergeVerificationCode(TestCase):
         assert code.expires_at == datetime.now(UTC) + timedelta(minutes=TOKEN_MINUTES_VALID)
 
     @freeze_time()
-    def test_expires_at(self):
+    def test_expires_at(self) -> None:
         code = UserMergeVerificationCode(user=self.user)
         code.expires_at = datetime(2025, 3, 14, 5, 32, 21, tzinfo=UTC)
         code.save()
@@ -33,7 +33,7 @@ class TestUserMergeVerificationCode(TestCase):
         code.regenerate_token()
         assert code.is_valid()
 
-    def test_send_email(self):
+    def test_send_email(self) -> None:
         code = UserMergeVerificationCode(user=self.user)
         with self.options({"system.url-prefix": "http://testserver"}), self.tasks():
             code.send_email()

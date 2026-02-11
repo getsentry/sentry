@@ -3,23 +3,24 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import type {EAPSpanResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
@@ -61,7 +62,7 @@ function SampleImages({groupId, projectId}: Props) {
         ...(filters[SPAN_OP] ? [`${SPAN_OP}:${filters[SPAN_OP]}`] : []),
       ].join(' '),
     },
-    'api.performance.resources.sample-images'
+    'api.insights.resources.sample-images'
   );
 
   const uniqueResources = new Set();
@@ -97,7 +98,7 @@ function SampleImages({groupId, projectId}: Props) {
 }
 
 type ImageSpan = Pick<
-  EAPSpanResponse,
+  SpanResponse,
   | 'span.group'
   | 'raw_domain'
   | 'span.description'
@@ -268,7 +269,7 @@ export function MissingImage() {
   return (
     <div
       style={{
-        background: theme.gray100,
+        background: theme.colors.gray100,
         width: imageWidth,
         height: imageHeight,
         position: 'relative',

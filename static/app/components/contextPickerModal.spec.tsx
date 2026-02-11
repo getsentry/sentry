@@ -19,7 +19,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-describe('ContextPickerModal', function () {
+describe('ContextPickerModal', () => {
   let project!: Project;
   let project2!: Project;
   let project4!: Project;
@@ -27,7 +27,7 @@ describe('ContextPickerModal', function () {
   let org2!: Organization;
   const onFinish = jest.fn();
 
-  beforeEach(function () {
+  beforeEach(() => {
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
 
@@ -46,7 +46,9 @@ describe('ContextPickerModal', function () {
     jest.clearAllMocks();
   });
 
-  const getComponent = (props = {}) => (
+  const getComponent = (
+    props: Partial<React.ComponentProps<typeof ContextPickerModal>> = {}
+  ) => (
     <ContextPickerModal
       Header={() => <div />}
       Body={ModalBody}
@@ -61,7 +63,7 @@ describe('ContextPickerModal', function () {
     />
   );
 
-  it('renders with only org selector when no org is selected', function () {
+  it('renders with only org selector when no org is selected', () => {
     render(getComponent());
 
     expect(screen.getByText('Select an Organization')).toBeInTheDocument();
@@ -69,7 +71,7 @@ describe('ContextPickerModal', function () {
     expect(screen.queryByText('Select a Project to continue')).not.toBeInTheDocument();
   });
 
-  it('calls onFinish, if project id is not needed, and only 1 org', async function () {
+  it('calls onFinish, if project id is not needed, and only 1 org', async () => {
     OrganizationsStore.load([org2]);
     OrganizationStore.onUpdate(org2);
     MockApiClient.addMockResponse({
@@ -84,7 +86,7 @@ describe('ContextPickerModal', function () {
     });
   });
 
-  it('calls onFinish if there is only 1 org and 1 project', async function () {
+  it('calls onFinish if there is only 1 org and 1 project', async () => {
     OrganizationsStore.load([org2]);
     OrganizationStore.onUpdate(org2);
 
@@ -107,7 +109,7 @@ describe('ContextPickerModal', function () {
     expect(onFinish).toHaveBeenLastCalledWith('/test/org2/path/project2/');
   });
 
-  it('selects an org and calls `onFinish` with URL with organization slug', async function () {
+  it('selects an org and calls `onFinish` with URL with organization slug', async () => {
     OrganizationsStore.load([org]);
     render(getComponent());
     MockApiClient.addMockResponse({
@@ -122,7 +124,7 @@ describe('ContextPickerModal', function () {
     });
   });
 
-  it('renders with project selector and org selector selected when org is already selected', async function () {
+  it('renders with project selector and org selector selected when org is already selected', async () => {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
     const fetchProjectsForOrg = MockApiClient.addMockResponse({
@@ -145,15 +147,18 @@ describe('ContextPickerModal', function () {
     // Should see 1 selected, and 1 as an option
     expect(screen.getAllByText('org-slug')).toHaveLength(2);
 
-    expect(screen.getByRole('textbox')).toHaveFocus();
+    // Wait for projects to load before checking focus
     expect(await screen.findByText('My Projects')).toBeInTheDocument();
+    // Project selector should have focus (there are two textboxes: org and project)
+    const textboxes = screen.getAllByRole('textbox');
+    expect(textboxes[1]).toHaveFocus();
     expect(screen.getByText(project.slug)).toBeInTheDocument();
     expect(screen.getByText(project2.slug)).toBeInTheDocument();
     expect(screen.getByText('All Projects')).toBeInTheDocument();
     expect(screen.getByText(project4.slug)).toBeInTheDocument();
   });
 
-  it('can select org and project', async function () {
+  it('can select org and project', async () => {
     const organizations = [
       {
         ...org,
@@ -176,7 +181,6 @@ describe('ContextPickerModal', function () {
         needOrg: true,
         needProject: true,
         nextPath: '/test/:orgId/path/:projectId/',
-        organizations,
       })
     );
 
@@ -200,7 +204,7 @@ describe('ContextPickerModal', function () {
     expect(onFinish).toHaveBeenCalledWith('/test/org2/path/project3/');
   });
 
-  it('isSuperUser and selects an integrationConfig and calls `onFinish` with URL to that configuration', async function () {
+  it('isSuperUser and selects an integrationConfig and calls `onFinish` with URL to that configuration', async () => {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
     ConfigStore.set('user', UserFixture({isSuperuser: true}));
@@ -244,7 +248,7 @@ describe('ContextPickerModal', function () {
     );
   });
 
-  it('not superUser and cannot select an integrationConfig and calls `onFinish` with URL to integration overview page', async function () {
+  it('not superUser and cannot select an integrationConfig and calls `onFinish` with URL to integration overview page', async () => {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
     ConfigStore.set('user', UserFixture({isSuperuser: false}));
@@ -276,7 +280,7 @@ describe('ContextPickerModal', function () {
     });
   });
 
-  it('is superUser and no integration configurations and calls `onFinish` with URL to integration overview page', async function () {
+  it('is superUser and no integration configurations and calls `onFinish` with URL to integration overview page', async () => {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
     ConfigStore.set('user', UserFixture({isSuperuser: false}));
@@ -310,7 +314,7 @@ describe('ContextPickerModal', function () {
     expect(onFinish).toHaveBeenCalledWith(`/settings/${org.slug}/integrations/github/`);
   });
 
-  it('preserves path object query parameters', async function () {
+  it('preserves path object query parameters', async () => {
     OrganizationsStore.load([org2]);
     OrganizationStore.onUpdate(org2);
 

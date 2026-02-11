@@ -107,9 +107,7 @@ export type TeamInsightsEventParameters = {
   'issue_details.attachment_tab.screenshot_modal_deleted': Record<string, unknown>;
   'issue_details.attachment_tab.screenshot_modal_download': Record<string, unknown>;
   'issue_details.attachment_tab.screenshot_modal_opened': Record<string, unknown>;
-  'issue_details.attachment_tab.screenshot_title_clicked': Record<string, unknown>;
   'issue_details.event_json_clicked': {group_id: number; streamline: boolean};
-  'issue_details.event_navigation_clicked': {button: string; project_id: number};
   'issue_details.issue_tab.screenshot_dropdown_deleted': Record<string, unknown>;
   'issue_details.issue_tab.screenshot_dropdown_download': Record<string, unknown>;
   'issue_details.issue_tab.screenshot_modal_deleted': Record<string, unknown>;
@@ -134,6 +132,16 @@ export type TeamInsightsEventParameters = {
     group_id: string | undefined;
     resource: string;
   };
+  'issue_details.seer_opened': {
+    autofix_exists: boolean;
+    autofix_step_type: string | null;
+    has_coded_solution: boolean;
+    has_pr: boolean;
+    has_root_cause: boolean;
+    has_solution: boolean;
+    has_streamlined_ui: boolean;
+    has_summary: boolean;
+  };
   'issue_details.suspect_commits.commit_clicked': IssueDetailsWithAlert & {
     has_pull_request: boolean;
     suspect_commit_calculation: string;
@@ -150,6 +158,7 @@ export type TeamInsightsEventParameters = {
   'issue_stream.updated_empty_state_viewed': {platform: string};
   'project_creation_page.created': {
     issue_alert: 'Default' | 'Custom' | 'No Rule';
+    notification_rule_created: boolean;
     platform: string;
     project_id: string;
     rule_ids: string[];
@@ -165,6 +174,11 @@ export type TeamInsightsEventParameters = {
   'release_detail.pagination': {direction: string};
   'releases_list.click_add_release_health': {
     project_id: number;
+  };
+  'suspect_commit.feedback_submitted': {
+    choice_selected: boolean;
+    group_owner_id: number;
+    user_id: string;
   };
   trace_timeline_clicked: {
     area: string;
@@ -195,8 +209,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'edit_alert_rule.notification_test': 'Edit Alert Rule: Notification Test',
   'issue_alert_rule_details.edit_clicked': 'Issue Alert Rule Details: Edit Clicked',
   'issue_details.action_clicked': 'Issue Details: Action Clicked',
-  'issue_details.attachment_tab.screenshot_title_clicked':
-    'Attachment Tab: Screenshot title clicked',
   'issue_details.attachment_tab.screenshot_modal_deleted':
     'Attachment Tab: Screenshot deleted from modal',
   'issue_details.attachment_tab.screenshot_modal_download':
@@ -204,7 +216,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'issue_details.attachment_tab.screenshot_modal_opened':
     'Attachment Tab: Screenshot modal opened',
   'issue_details.event_json_clicked': 'Issue Details: Event JSON Clicked',
-  'issue_details.event_navigation_clicked': 'Issue Details: Event Navigation Clicked',
   'issue_details.issue_tab.screenshot_dropdown_deleted':
     'Issue Details: Screenshot deleted from dropdown',
   'issue_details.issue_tab.screenshot_dropdown_download':
@@ -220,6 +231,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'issue_details.issue_tab.trace_timeline_more_events_clicked':
     'Issue Details: Trace Timeline More Events Clicked',
   'issue_details.resources_link_clicked': 'Issue Details: Resources Link Clicked',
+  'issue_details.seer_opened': 'Issue Details: Seer Opened',
   'issue_details.suspect_commits.commit_clicked': 'Issue Details: Suspect Commit Clicked',
   'issue_details.suspect_commits.pull_request_clicked':
     'Issue Details: Suspect Pull Request Clicked',
@@ -241,4 +253,5 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'releases_list.click_add_release_health': 'Releases List: Click Add Release Health',
   trace_timeline_clicked: 'Trace Timeline Clicked',
   trace_timeline_more_events_clicked: 'Trace Timeline More Events Clicked',
+  'suspect_commit.feedback_submitted': 'Suspect Commit Feedback Submitted',
 };

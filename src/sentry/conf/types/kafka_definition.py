@@ -27,8 +27,6 @@ class Topic(Enum):
     TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
     GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-results"
     METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
-    EAP_SPANS_SUBSCRIPTIONS_RESULTS = "eap-spans-subscription-results"
-    EAP_ITEMS_SUBSCRIPTIONS_RESULTS = "subscription-results-eap-items"
     INGEST_EVENTS = "ingest-events"
     INGEST_EVENTS_DLQ = "ingest-events-dlq"
     INGEST_EVENTS_BACKLOG = "ingest-events-backlog"
@@ -60,14 +58,12 @@ class Topic(Enum):
     MONITORS_CLOCK_TASKS = "monitors-clock-tasks"
     MONITORS_INCIDENT_OCCURRENCES = "monitors-incident-occurrences"
     UPTIME_RESULTS = "uptime-results"
-    SNUBA_UPTIME_RESULTS = "snuba-uptime-results"
     EVENTSTREAM_GENERIC = "generic-events"
     GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
     GROUP_ATTRIBUTES = "group-attributes"
     SHARED_RESOURCES_USAGE = "shared-resources-usage"
-    SNUBA_SPANS = "snuba-spans"
-    SNUBA_OURLOGS = "snuba-ourlogs"
     SNUBA_ITEMS = "snuba-items"
+    EAP_ITEMS_SUBSCRIPTIONS_RESULTS = "subscription-results-eap-items"
     BUFFERED_SEGMENTS = "buffered-segments"
     BUFFERED_SEGMENTS_DLQ = "buffered-segments-dlq"
 
@@ -80,6 +76,8 @@ class Topic(Enum):
     TASKWORKER_BUFFER_DLQ = "taskworker-buffer-dlq"
     TASKWORKER_CONTROL = "taskworker-control"
     TASKWORKER_CONTROL_DLQ = "taskworker-control-dlq"
+    TASKWORKER_CONTROL_LIMITED = "taskworker-control-limited"
+    TASKWORKER_CONTROL_LIMITED_DLQ = "taskworker-control-limited-dlq"
     TASKWORKER_CUTOVER = "taskworker-cutover"
     TASKWORKER_EMAIL = "taskworker-email"
     TASKWORKER_EMAIL_DLQ = "taskworker-email-dlq"
@@ -87,6 +85,8 @@ class Topic(Enum):
     TASKWORKER_INGEST_DLQ = "taskworker-ingest-dlq"
     TASKWORKER_INGEST_ERRORS = "taskworker-ingest-errors"
     TASKWORKER_INGEST_ERRORS_DLQ = "taskworker-ingest-errors-dlq"
+    TASKWORKER_INGEST_ERRORS_POSTPROCESS = "taskworker-ingest-errors-postprocess"
+    TASKWORKER_INGEST_ERRORS_POSTPROCESS_DLQ = "taskworker-ingest-errors-postprocess-dlq"
     TASKWORKER_INGEST_TRANSACTIONS = "taskworker-ingest-transactions"
     TASKWORKER_INGEST_TRANSACTIONS_DLQ = "taskworker-ingest-transactions-dlq"
     TASKWORKER_INGEST_ATTACHMENTS = "taskworker-ingest-attachments"
@@ -107,10 +107,11 @@ class Topic(Enum):
     TASKWORKER_SYMBOLICATION_DLQ = "taskworker-symbolication-dlq"
     TASKWORKER_USAGE = "taskworker-usage"
     TASKWORKER_USAGE_DLQ = "taskworker-usage-dlq"
+    TASKWORKER_WORKFLOWS_ENGINE = "taskworker-workflows-engine"
+    TASKWORKER_WORKFLOWS_ENGINE_DLQ = "taskworker-workflows-engine-dlq"
 
 
 class ConsumerDefinition(TypedDict, total=False):
-
     # Default topic
     topic: Required[Topic]
 
@@ -126,8 +127,9 @@ class ConsumerDefinition(TypedDict, total=False):
     # Hardcoded additional kwargs for strategy_factory
     static_args: Mapping[str, Any]
 
-    # Pass the consumer group ID to the strategy factory as 'consumer_group' kwarg
+    # Pass optional kwargs to the strategy factory
     pass_consumer_group: bool
+    pass_kafka_slice_id: bool
 
     require_synchronization: bool
     synchronize_commit_group_default: str

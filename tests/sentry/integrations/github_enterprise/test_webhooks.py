@@ -1,15 +1,20 @@
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import responses
 
 from fixtures.github_enterprise import (
+    ISSUES_ASSIGNED_EVENT_EXAMPLE,
+    ISSUES_CLOSED_EVENT_EXAMPLE,
+    ISSUES_REOPENED_EVENT_EXAMPLE,
+    ISSUES_UNASSIGNED_EVENT_EXAMPLE,
     PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
     PULL_REQUEST_EDITED_EVENT_EXAMPLE,
     PULL_REQUEST_OPENED_EVENT_EXAMPLE,
     PUSH_EVENT_EXAMPLE_INSTALLATION,
 )
+from sentry.integrations.services.integration import integration_service
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import PullRequest
@@ -17,10 +22,11 @@ from sentry.models.repository import Repository
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.features import with_feature
 
 
 class WebhookTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = "/extensions/github-enterprise/webhook/"
         self.metadata = {
             "url": "35.232.149.196",
@@ -31,11 +37,11 @@ class WebhookTest(APITestCase):
             "verify_ssl": True,
         }
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         assert response.status_code == 405
 
-    def test_unknown_host_event(self):
+    def test_unknown_host_event(self) -> None:
         # No integration defined in the database, so event should be rejected
         # because we can't find metadata and secret for it
         response = self.client.post(
@@ -48,7 +54,7 @@ class WebhookTest(APITestCase):
         )
         assert response.status_code == 400
 
-    def test_unregistered_event(self):
+    def test_unregistered_event(self) -> None:
         response = self.client.post(
             path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
@@ -61,7 +67,7 @@ class WebhookTest(APITestCase):
         assert response.status_code == 204
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_missing_payload(self, mock_installation):
+    def test_missing_payload(self, mock_installation: MagicMock) -> None:
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -76,7 +82,7 @@ class WebhookTest(APITestCase):
         assert b"Webhook payload not found" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_missing_github_event_header(self, mock_installation):
+    def test_missing_github_event_header(self, mock_installation: MagicMock) -> None:
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -91,7 +97,7 @@ class WebhookTest(APITestCase):
         assert b"Missing X-GitHub-Event header" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_invalid_json(self, mock_installation):
+    def test_invalid_json(self, mock_installation: MagicMock) -> None:
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -105,7 +111,7 @@ class WebhookTest(APITestCase):
         assert response.status_code == 400
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_invalid_signature_event(self, mock_installation):
+    def test_invalid_signature_event(self, mock_installation: MagicMock) -> None:
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -121,7 +127,7 @@ class WebhookTest(APITestCase):
         assert b"Provided signature does not match the computed body signature" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_malformed_signature_too_short_sha1(self, mock_installation):
+    def test_malformed_signature_too_short_sha1(self, mock_installation: MagicMock) -> None:
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -137,7 +143,7 @@ class WebhookTest(APITestCase):
         assert b"Signature value does not match the expected format" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_malformed_signature_no_value_sha1(self, mock_installation):
+    def test_malformed_signature_no_value_sha1(self, mock_installation: MagicMock) -> None:
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -153,7 +159,7 @@ class WebhookTest(APITestCase):
         assert b"Signature value does not match the expected format" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_malformed_signature_too_short_sha256(self, mock_installation):
+    def test_malformed_signature_too_short_sha256(self, mock_installation: MagicMock) -> None:
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -169,7 +175,7 @@ class WebhookTest(APITestCase):
         assert b"Signature value does not match the expected format" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_malformed_signature_no_value_sha256(self, mock_installation):
+    def test_malformed_signature_no_value_sha256(self, mock_installation: MagicMock) -> None:
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -185,7 +191,7 @@ class WebhookTest(APITestCase):
         assert b"Signature value does not match the expected format" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_sha256_signature_ok(self, mock_installation):
+    def test_sha256_signature_ok(self, mock_installation: MagicMock) -> None:
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -200,7 +206,7 @@ class WebhookTest(APITestCase):
         assert response.status_code == 204
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_sha256_signature_invalid(self, mock_installation):
+    def test_sha256_signature_invalid(self, mock_installation: MagicMock) -> None:
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -217,7 +223,7 @@ class WebhookTest(APITestCase):
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     @override_options({"github-enterprise-app.allowed-hosts-legacy-webhooks": ["35.232.149.196"]})
-    def test_missing_signature_ok(self, mock_installation):
+    def test_missing_signature_ok(self, mock_installation: MagicMock) -> None:
         # Old Github:e doesn't send a signature, so we have to accept that, but only for specific hosts.
         mock_installation.return_value = self.metadata
 
@@ -232,7 +238,7 @@ class WebhookTest(APITestCase):
         assert response.status_code == 204
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_missing_signature_fail_without_option_set(self, mock_installation):
+    def test_missing_signature_fail_without_option_set(self, mock_installation: MagicMock) -> None:
         # Old Github:e doesn't send a signature, so we have to accept that, but only for specific hosts.
         mock_installation.return_value = self.metadata
 
@@ -251,7 +257,7 @@ class WebhookTest(APITestCase):
 @patch("sentry.integrations.github_enterprise.client.get_jwt")
 @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
 class PushEventWebhookTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = "/extensions/github-enterprise/webhook/"
         self.metadata = {
             "url": "35.232.149.196",
@@ -270,7 +276,12 @@ class PushEventWebhookTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_simple(self, mock_record, mock_get_installation_metadata, mock_get_jwt):
+    def test_simple(
+        self,
+        mock_record: MagicMock,
+        mock_get_installation_metadata: MagicMock,
+        mock_get_jwt: MagicMock,
+    ) -> None:
         responses.add(
             responses.POST,
             "https://35.232.149.196/extensions/github-enterprise/webhook/",
@@ -386,7 +397,9 @@ class PushEventWebhookTest(APITestCase):
 
         assert_failure_metric(mock_record, error)
 
-    def test_anonymous_lookup(self, mock_get_installation_metadata, mock_get_jwt):
+    def test_anonymous_lookup(
+        self, mock_get_installation_metadata: MagicMock, mock_get_jwt: MagicMock
+    ) -> None:
         mock_get_installation_metadata.return_value = self.metadata
 
         self.create_integration(
@@ -451,7 +464,9 @@ class PushEventWebhookTest(APITestCase):
         assert commit.date_added == datetime(2015, 5, 5, 23, 40, 15, tzinfo=timezone.utc)
 
     @responses.activate
-    def test_multiple_orgs(self, mock_get_installation_metadata, mock_get_jwt):
+    def test_multiple_orgs(
+        self, mock_get_installation_metadata: MagicMock, mock_get_jwt: MagicMock
+    ) -> None:
         responses.add(
             responses.POST,
             "https://35.232.149.196/extensions/github-enterprise/webhook/",
@@ -531,7 +546,7 @@ class PushEventWebhookTest(APITestCase):
 
 @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
 class PullRequestEventWebhook(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = "/extensions/github-enterprise/webhook/"
         self.metadata = {
             "url": "35.232.149.196",
@@ -563,7 +578,9 @@ class PullRequestEventWebhook(APITestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_opened(self, mock_record, mock_get_installation_metadata):
+    def test_opened(
+        self, mock_record: MagicMock, mock_get_installation_metadata: MagicMock
+    ) -> None:
         mock_get_installation_metadata.return_value = self.metadata
 
         response = self.client.post(
@@ -572,7 +589,7 @@ class PullRequestEventWebhook(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
-            HTTP_X_HUB_SIGNATURE="sha1=aa5b11bc52b9fac082cb59f9ee8667cb222c3aff",
+            HTTP_X_HUB_SIGNATURE="sha1=0b16e932708e7bbf258794307969f2c68d09b32b",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -596,7 +613,12 @@ class PullRequestEventWebhook(APITestCase):
 
     @patch("sentry.integrations.github.webhook.PullRequestEventWebhook.__call__")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_webhook_error_metric(self, mock_record, mock_event, mock_get_installation_metadata):
+    def test_webhook_error_metric(
+        self,
+        mock_record: MagicMock,
+        mock_event: MagicMock,
+        mock_get_installation_metadata: MagicMock,
+    ) -> None:
         mock_get_installation_metadata.return_value = self.metadata
         error = Exception("error")
         mock_event.side_effect = error
@@ -607,7 +629,7 @@ class PullRequestEventWebhook(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
-            HTTP_X_HUB_SIGNATURE="sha1=aa5b11bc52b9fac082cb59f9ee8667cb222c3aff",
+            HTTP_X_HUB_SIGNATURE="sha1=0b16e932708e7bbf258794307969f2c68d09b32b",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -615,7 +637,7 @@ class PullRequestEventWebhook(APITestCase):
 
         assert_failure_metric(mock_record, error)
 
-    def test_edited(self, mock_get_installation_metadata):
+    def test_edited(self, mock_get_installation_metadata: MagicMock) -> None:
         mock_get_installation_metadata.return_value = self.metadata
 
         pr = PullRequest.objects.create(
@@ -630,7 +652,7 @@ class PullRequestEventWebhook(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
-            HTTP_X_HUB_SIGNATURE="sha1=b50a13afd33b514e8e62e603827ea62530f0690e",
+            HTTP_X_HUB_SIGNATURE="sha1=55d94c05694c3580c54ce82fc9479836447d8e4a",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -644,7 +666,7 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
 
-    def test_closed(self, mock_get_installation_metadata):
+    def test_closed(self, mock_get_installation_metadata: MagicMock) -> None:
         mock_get_installation_metadata.return_value = self.metadata
 
         response = self.client.post(
@@ -653,7 +675,7 @@ class PullRequestEventWebhook(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
-            HTTP_X_HUB_SIGNATURE="sha1=dff1c803cf1e48c1b9aefe4a17952ea132758806",
+            HTTP_X_HUB_SIGNATURE="sha1=a1b0cbbffebca2bf8db704804a4825f54ec66183",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -673,3 +695,198 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
         assert pr.merge_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
+
+    @patch("sentry.seer.code_review.webhooks.handlers.CodeReviewPreflightService")
+    @patch(
+        "sentry.integrations.github_enterprise.webhook.GitHubEnterprisePullRequestEventWebhook._handle"
+    )
+    def test_code_review_skipped_for_github_enterprise(
+        self,
+        mock_handle: MagicMock,
+        mock_preflight: MagicMock,
+        mock_get_installation_metadata: MagicMock,
+    ) -> None:
+        mock_get_installation_metadata.return_value = self.metadata
+
+        response = self.client.post(
+            path=self.url,
+            data=PULL_REQUEST_OPENED_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="pull_request",
+            HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+            HTTP_X_HUB_SIGNATURE="sha1=0b16e932708e7bbf258794307969f2c68d09b32b",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 204
+
+        mock_handle.assert_called()
+        mock_preflight.assert_not_called()
+
+
+@with_feature("organizations:integrations-github-project-management")
+@patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+class IssuesEventWebhookTest(APITestCase):
+    def setUp(self) -> None:
+        self.url = "/extensions/github-enterprise/webhook/"
+        self.metadata = {
+            "url": "35.232.149.196",
+            "id": "2",
+            "name": "test-app",
+            "webhook_secret": "b3002c3e321d4b7880360d397db2ccfd",
+            "private_key": "private_key",
+            "verify_ssl": True,
+        }
+        self.integration = self.create_integration(
+            external_id="35.232.149.196:234",
+            organization=self.project.organization,
+            provider="github_enterprise",
+            name="octocat",
+            metadata={
+                "domain_name": "35.232.149.196/baxterthehacker",
+                "installation": {
+                    "id": "2",
+                    "private_key": "private_key",
+                    "verify_ssl": True,
+                },
+            },
+        )
+
+    @patch("sentry.integrations.github.webhook.sync_group_assignee_inbound_by_external_actor")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_assigned_issue(
+        self,
+        mock_record: MagicMock,
+        mock_sync: MagicMock,
+        mock_get_installation_metadata: MagicMock,
+    ) -> None:
+        mock_get_installation_metadata.return_value = self.metadata
+
+        Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="35129377",
+            provider="integrations:github_enterprise",
+            name="baxterthehacker/public-repo",
+        )
+
+        response = self.client.post(
+            path=self.url,
+            data=ISSUES_ASSIGNED_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="issues",
+            HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+            HTTP_X_HUB_SIGNATURE="sha1=1033c96829b844b688b0a3743e66f897b9fba6c8",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 204
+
+        rpc_integration = integration_service.get_integration(integration_id=self.integration.id)
+
+        mock_sync.assert_called_once_with(
+            integration=rpc_integration,
+            external_user_name="@octocat",
+            external_issue_key="baxterthehacker/public-repo#2",
+            assign=True,
+        )
+
+        assert_success_metric(mock_record)
+
+    @patch("sentry.integrations.github.webhook.sync_group_assignee_inbound_by_external_actor")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_unassigned_issue(
+        self,
+        mock_record: MagicMock,
+        mock_sync: MagicMock,
+        mock_get_installation_metadata: MagicMock,
+    ) -> None:
+        mock_get_installation_metadata.return_value = self.metadata
+
+        Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="35129377",
+            provider="integrations:github_enterprise",
+            name="baxterthehacker/public-repo",
+        )
+
+        response = self.client.post(
+            path=self.url,
+            data=ISSUES_UNASSIGNED_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="issues",
+            HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+            HTTP_X_HUB_SIGNATURE="sha1=87ef6deea220a8d08099334680738c9825971fc0",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 204
+
+        rpc_integration = integration_service.get_integration(integration_id=self.integration.id)
+
+        mock_sync.assert_called_once_with(
+            integration=rpc_integration,
+            external_user_name="",
+            external_issue_key="baxterthehacker/public-repo#2",
+            assign=False,
+        )
+
+        assert_success_metric(mock_record)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_closed_issue(
+        self, mock_record: MagicMock, mock_get_installation_metadata: MagicMock
+    ) -> None:
+        mock_get_installation_metadata.return_value = self.metadata
+
+        self.create_integration_external_issue(
+            group=self.group,
+            integration=self.integration,
+            key="baxterthehacker/public-repo#2",
+        )
+
+        with patch(
+            "sentry.integrations.github_enterprise.integration.GitHubEnterpriseIntegration.sync_status_inbound"
+        ) as mock_sync:
+            response = self.client.post(
+                path=self.url,
+                data=ISSUES_CLOSED_EVENT_EXAMPLE,
+                content_type="application/json",
+                HTTP_X_GITHUB_EVENT="issues",
+                HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+                HTTP_X_HUB_SIGNATURE="sha1=a8c4cc7514292e126df2d72119b95822e802bc2b",
+                HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+            )
+
+            assert response.status_code == 204
+            mock_sync.assert_called_once()
+
+        assert_success_metric(mock_record)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_reopened_issue(
+        self, mock_record: MagicMock, mock_get_installation_metadata: MagicMock
+    ) -> None:
+        mock_get_installation_metadata.return_value = self.metadata
+
+        self.create_integration_external_issue(
+            group=self.group,
+            integration=self.integration,
+            key="baxterthehacker/public-repo#2",
+        )
+
+        with patch(
+            "sentry.integrations.github_enterprise.integration.GitHubEnterpriseIntegration.sync_status_inbound"
+        ) as mock_sync:
+            response = self.client.post(
+                path=self.url,
+                data=ISSUES_REOPENED_EVENT_EXAMPLE,
+                content_type="application/json",
+                HTTP_X_GITHUB_EVENT="issues",
+                HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+                HTTP_X_HUB_SIGNATURE="sha1=78d2bc40ff0a54e43b0b8339e6d4416fc3f65e1a",
+                HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+            )
+
+            assert response.status_code == 204
+            mock_sync.assert_called_once()
+
+        assert_success_metric(mock_record)

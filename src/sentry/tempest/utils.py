@@ -1,12 +1,9 @@
-from django.contrib.auth.models import AnonymousUser
-
-from sentry import features
 from sentry.models.organization import Organization
-from sentry.users.models.user import User
-from sentry.users.services.user import RpcUser
+from sentry.utils.console_platforms import organization_has_console_platform_access
 
 
-def has_tempest_access(
-    organization: Organization | None, actor: User | RpcUser | AnonymousUser | None = None
-) -> bool:
-    return features.has("organizations:tempest-access", organization, actor=actor)
+def has_tempest_access(organization: Organization | None) -> bool:
+    if not organization:
+        return False
+
+    return organization_has_console_platform_access(organization, "playstation")

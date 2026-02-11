@@ -34,7 +34,7 @@ class DiscordUninstallTest(APITestCase):
         user: RpcUser | User,
         guild_id: str = GUILD_ID,
         **kwargs: Any,
-    ):
+    ) -> Integration:
         integration = Factories.create_integration(
             provider="discord",
             name="Cool server",
@@ -45,7 +45,7 @@ class DiscordUninstallTest(APITestCase):
 
         return integration
 
-    def uninstall(self):
+    def uninstall(self) -> None:
         org_integration = OrganizationIntegration.objects.get(
             integration=self.integration, organization_id=self.organization.id
         )
@@ -66,38 +66,38 @@ class DiscordUninstallTest(APITestCase):
             object_id=org_integration.id,
         ).exists()
 
-    def mock_discord_guild_leave(self, status: int = 204):
+    def mock_discord_guild_leave(self, status: int = 204) -> None:
         responses.add(
             responses.DELETE,
             url=f"{DiscordClient.base_url}{USERS_GUILD_URL.format(guild_id=GUILD_ID)}",
             status=status,
         )
 
-    def assert_leave_guild_api_call_count(self, count: int):
+    def assert_leave_guild_api_call_count(self, count: int) -> None:
         assert responses.assert_call_count(count=count, url=LEAVE_GUILD_URL)
 
     @responses.activate
-    def test_uninstall(self):
+    def test_uninstall(self) -> None:
         self.mock_discord_guild_leave()
         self.uninstall()
         self.assert_leave_guild_api_call_count(1)
 
     @responses.activate
-    def test_uninstall_bot_already_left_guild(self):
+    def test_uninstall_bot_already_left_guild(self) -> None:
         self.mock_discord_guild_leave(status=404)
         self.uninstall()
         self.assert_leave_guild_api_call_count(1)
 
     @responses.activate
-    @mock.patch("sentry.integrations.discord.integration.logger.error")
-    def test_uninstall_unexpected_failure(self, mock_log_error):
+    @mock.patch("sentry.integrations.discord.integration.logger.warning")
+    def test_uninstall_unexpected_failure(self, mock_log_warning: mock.MagicMock) -> None:
         self.mock_discord_guild_leave(status=500)
         self.uninstall()
         self.assert_leave_guild_api_call_count(1)
-        assert mock_log_error.call_count == 1
+        assert mock_log_warning.call_count == 1
 
     @responses.activate
-    def test_uninstall_multiple_orgs(self):
+    def test_uninstall_multiple_orgs(self) -> None:
         self.mock_discord_guild_leave()
 
         other_org = self.create_organization(owner=self.user)

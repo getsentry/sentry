@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {Field} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -24,7 +25,7 @@ export const fields = {
     inline: false,
     maxRows: 20,
     saveOnBlur: false,
-    saveMessageAlertType: 'info',
+    saveMessageAlertVariant: 'info',
     saveMessage: t(
       'Changing fingerprint rules will apply to future events only (can take up to a minute).'
     ),
@@ -67,7 +68,7 @@ stack.function:malloc -> memory-allocation-error`}
     inline: false,
     maxRows: 20,
     saveOnBlur: false,
-    saveMessageAlertType: 'info',
+    saveMessageAlertVariant: 'info',
     saveMessage: t(
       'Changing stack trace rules will apply to future events only (can take up to a minute).'
     ),
@@ -109,7 +110,7 @@ stack.function:mylibrary_* +app`}
     inline: false,
     maxRows: 20,
     saveOnBlur: false,
-    saveMessageAlertType: 'info',
+    saveMessageAlertVariant: 'info',
     saveMessage: '',
     formatMessageValue: false,
     help: () => (

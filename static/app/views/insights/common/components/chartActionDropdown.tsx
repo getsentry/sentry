@@ -1,20 +1,26 @@
+import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import Feature from 'sentry/components/acl/feature';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {getIntervalForTimeSeriesQuery} from 'sentry/utils/timeSeries/getIntervalForTimeSeriesQuery';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+import {
+  useAddToSpanDashboard,
+  type AddToSpanDashboardOptions,
+} from 'sentry/views/insights/common/utils/useAddToSpanDashboard';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {SpanFields} from 'sentry/views/insights/types';
 
 type Props = {
@@ -23,6 +29,7 @@ type Props = {
   yAxes: string[];
   aliases?: Record<string, string>;
   groupBy?: SpanFields[];
+  interval?: string;
   search?: MutableSearch;
   title?: string;
 };
@@ -35,10 +42,14 @@ export function ChartActionDropdown({
   title,
   aliases,
   referrer,
+  interval,
 }: Props) {
   const organization = useOrganization();
   const project = useAlertsProject();
   const {selection} = usePageFilters();
+
+  const queryInterval =
+    interval ?? getIntervalForTimeSeriesQuery(yAxes, selection.datetime);
 
   const exploreUrl = getExploreUrl({
     selection,
@@ -54,6 +65,7 @@ export function ChartActionDropdown({
     query: search?.formatString(),
     sort: undefined,
     groupBy,
+    interval: queryInterval,
     referrer,
   });
 
@@ -70,14 +82,24 @@ export function ChartActionDropdown({
         aggregate: yAxis,
         organization,
         referrer,
+        interval: queryInterval,
       }),
     };
   });
+
+  const addToDashboardOptions: AddToSpanDashboardOptions = {
+    chartType,
+    yAxes,
+    widgetName: title,
+    groupBy,
+    search,
+  };
 
   return (
     <BaseChartActionDropdown
       alertMenuOptions={alertsUrls}
       exploreUrl={exploreUrl}
+      addToDashboardOptions={addToDashboardOptions}
       referrer={referrer}
     />
   );
@@ -87,17 +109,18 @@ type BaseProps = {
   alertMenuOptions: MenuItemProps[];
   exploreUrl: LocationDescriptor;
   referrer: string;
+  addToDashboardOptions?: AddToSpanDashboardOptions | AddToSpanDashboardOptions[];
 };
 
 export function BaseChartActionDropdown({
   alertMenuOptions,
   exploreUrl,
   referrer,
+  addToDashboardOptions,
 }: BaseProps) {
   const organization = useOrganization();
-  const useEap = useInsightsEap();
-  const hasChartActionsEnabled =
-    organization.features.includes('insights-chart-actions') && useEap;
+  const hasDashboardEdit = organization.features.includes('dashboards-edit');
+  const {addToSpanDashboard} = useAddToSpanDashboard();
 
   const menuOptions: MenuItemProps[] = [
     {
@@ -113,10 +136,47 @@ export function BaseChartActionDropdown({
     },
   ];
 
+  if (addToDashboardOptions) {
+    const menuOption: MenuItemProps = {
+      key: 'add-to-dashboard',
+      label: (
+        <Feature
+          hookName="feature-disabled:dashboards-edit"
+          features="organizations:dashboards-edit"
+          renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
+        >
+          {t('Add to Dashboard')}
+        </Feature>
+      ),
+      textValue: t('Add to Dashboard'),
+      disabled: !hasDashboardEdit,
+    };
+    if (Array.isArray(addToDashboardOptions)) {
+      menuOption.isSubmenu = true;
+      menuOption.children = addToDashboardOptions.map((option, idx) => ({
+        key: `${option.chartType}-${idx}-${option.yAxes}`,
+        label: option.widgetName,
+        onAction: () => {
+          addToSpanDashboard(option);
+        },
+      }));
+    } else {
+      menuOption.isSubmenu = false;
+      menuOption.onAction = () => {
+        addToSpanDashboard(addToDashboardOptions);
+      };
+    }
+    menuOptions.push(menuOption);
+  }
+
+  const newAlertLabel = organization.features.includes('workflow-engine-ui')
+    ? t('Create a Monitor for')
+    : t('Create an Alert for');
+
   if (alertMenuOptions.length > 0) {
     menuOptions.push({
       key: 'create-alert',
-      label: t('Create Alert for'),
+      label: newAlertLabel,
       isSubmenu: true,
       children: alertMenuOptions.map(option => ({
         ...option,
@@ -131,17 +191,13 @@ export function BaseChartActionDropdown({
     });
   }
 
-  if (!hasChartActionsEnabled) {
-    return null;
-  }
-
   return (
     <DropdownMenu
       items={menuOptions}
       triggerProps={{
         'aria-label': t('Widget actions'),
         size: 'xs',
-        borderless: true,
+        priority: 'transparent',
         showChevron: false,
         icon: <IconEllipsis direction="down" size="sm" />,
       }}
@@ -149,3 +205,7 @@ export function BaseChartActionDropdown({
     />
   );
 }
+
+const DisabledText = styled('span')`
+  color: ${p => p.theme.tokens.content.disabled};
+`;

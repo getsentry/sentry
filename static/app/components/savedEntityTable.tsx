@@ -2,17 +2,18 @@ import type {ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
-import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {ProjectList} from 'sentry/components/projectList';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {getAbsoluteSummary} from 'sentry/components/timeRangeSelector/utils';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis, IconStar} from 'sentry/icons';
@@ -62,111 +63,54 @@ export function SavedEntityTable({
   'data-test-id': dataTestId,
 }: SavedEntityTableProps) {
   return (
-    <StyledPanelTable className={className} data-test-id={dataTestId}>
+    <SimpleTable className={className} data-test-id={dataTestId}>
       {header}
-      {isError && <LoadingError />}
+      {isError && (
+        <SimpleTable.Empty>
+          <LoadingError />
+        </SimpleTable.Empty>
+      )}
       {isLoading && <LoadingSkeleton pageSize={pageSize} />}
       {!isError && !isLoading && isEmpty && (
-        <EmptyContainer>
+        <SimpleTable.Empty>
           <EmptyStateWarning small>{emptyMessage}</EmptyStateWarning>
-        </EmptyContainer>
+        </SimpleTable.Empty>
       )}
       {children}
-    </StyledPanelTable>
+    </SimpleTable>
   );
 }
 
-SavedEntityTable.Header = styled('div')`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1/-1;
+SavedEntityTable.Header = SimpleTable.Header;
 
-  height: 36px;
-  background-color: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
-`;
+SavedEntityTable.HeaderCell = SimpleTable.HeaderCell;
 
-SavedEntityTable.HeaderCell = styled('div')<{
-  gridArea?: string;
-  noBorder?: boolean;
+SavedEntityTable.Row = styled(SimpleTable.Row, {
+  shouldForwardProp: prop => prop !== 'isFirst' && prop !== 'disableHover',
+})<{
+  isFirst: boolean;
+  disableHover?: boolean;
 }>`
-  display: flex;
-  align-items: center;
-  padding: 0 ${space(1.5)};
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  border-width: 0 1px 0 0;
-  border-style: solid;
-  border-image: linear-gradient(
-      to bottom,
-      transparent,
-      transparent 30%,
-      ${p => p.theme.border} 30%,
-      ${p => p.theme.border} 70%,
-      transparent 70%,
-      transparent
-    )
-    1;
-
-  &:last-child,
-  &:empty {
-    border: 0;
-  }
-
-  ${p =>
-    p.noBorder &&
-    css`
-      border: 0;
-    `}
-
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
-
-  ${p =>
-    p.gridArea &&
-    css`
-      grid-area: ${p.gridArea};
-    `}
-`;
-
-SavedEntityTable.Row = styled('div')<{isFirst: boolean; disableHover?: boolean}>`
-  display: grid;
-  position: relative;
-  grid-template-columns: subgrid;
-  grid-column: 1/-1;
   height: 40px;
 
-  ${p =>
-    p.isFirst &&
-    css`
-      border-top: 1px solid ${p.theme.border};
-    `}
-
-  &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
-  }
-
   &:last-child {
-    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   }
 
   ${p =>
     !p.disableHover &&
     css`
       &:hover {
-        background-color: ${p.theme.backgroundSecondary};
+        background-color: ${p.theme.tokens.background.secondary};
       }
     `}
 `;
 
-SavedEntityTable.Cell = styled('div')<{
-  'data-column'?: string;
-  gridArea?: string;
+SavedEntityTable.Cell = styled(SimpleTable.RowCell, {
+  shouldForwardProp: prop => prop !== 'hasButton',
+})<{
   hasButton?: boolean;
 }>`
-  display: flex;
-  align-items: center;
-  padding: ${space(1)} ${space(1.5)};
   height: 40px;
 
   /* Buttons already provide some padding */
@@ -174,12 +118,6 @@ SavedEntityTable.Cell = styled('div')<{
     p.hasButton &&
     css`
       padding: 0 ${space(0.5)};
-    `}
-
-  ${p =>
-    p.gridArea &&
-    css`
-      grid-area: ${p['data-column']};
     `}
 `;
 
@@ -193,8 +131,8 @@ SavedEntityTable.CellStar = function CellStar({
   return (
     <Button
       aria-label={isStarred ? t('Unstar') : t('Star')}
-      borderless
-      icon={<IconStar isSolid={isStarred} color={isStarred ? 'yellow300' : 'subText'} />}
+      priority="transparent"
+      icon={<IconStar isSolid={isStarred} variant={isStarred ? 'warning' : 'muted'} />}
       size="sm"
       onClick={onClick}
     />
@@ -202,10 +140,15 @@ SavedEntityTable.CellStar = function CellStar({
 };
 
 const StyledLink = styled(Link)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   text-decoration: underline;
-  text-decoration-color: ${p => p.theme.border};
-  ${p => p.theme.overflowEllipsis};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  text-decoration-color: ${p => p.theme.tokens.border.primary};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 SavedEntityTable.CellName = function CellName({
@@ -266,14 +209,15 @@ SavedEntityTable.CellActions = function CellActions({items}: {items: MenuItemPro
           {...triggerProps}
           aria-label={t('More options')}
           size="sm"
-          borderless
-          icon={<IconEllipsis compact />}
+          priority="transparent"
+          icon={<IconEllipsis />}
           data-test-id="menu-trigger"
         />
       )}
       items={items}
       position="bottom-end"
       size="sm"
+      strategy="fixed"
     />
   );
 };
@@ -333,7 +277,14 @@ SavedEntityTable.CellTimeSince = function CellTimeSince({date}: {date: string | 
   return <TimeSince date={date} unitStyle="short" />;
 };
 
-SavedEntityTable.CellUser = function CellUser({user}: {user: AvatarUser}) {
+SavedEntityTable.CellUser = function CellUser({user}: {user: AvatarUser | null}) {
+  if (!user) {
+    return (
+      <SavedEntityTable.CellTextContent>
+        {t('Unknown User')}
+      </SavedEntityTable.CellTextContent>
+    );
+  }
   return <UserAvatar user={user} size={20} hasTooltip />;
 };
 
@@ -349,19 +300,6 @@ const LoadingCell = styled(SavedEntityTable.Cell)`
   grid-column: 1/-1;
 `;
 
-const StyledPanelTable = styled(Panel)`
-  display: grid;
-  white-space: nowrap;
-  font-size: ${p => p.theme.fontSize.md};
-`;
-
-const EmptyContainer = styled('div')`
-  grid-column: 1/-1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
 const FormattedQueryNoWrap = styled(ProvidedFormattedQuery)`
   flex-wrap: nowrap;
   overflow: hidden;
@@ -372,5 +310,9 @@ const FormattedQueryNoWrap = styled(ProvidedFormattedQuery)`
 `;
 
 const OverflowEllipsis = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

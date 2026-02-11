@@ -1,9 +1,10 @@
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -184,7 +185,7 @@ class PluginSettings<
       return (
         <div className="m-b-1">
           <Alert.Container>
-            <Alert type="warning" showIcon={false}>
+            <Alert variant="warning" showIcon={false}>
               {data.config_error}
             </Alert>
           </Alert.Container>
@@ -198,7 +199,7 @@ class PluginSettings<
     if (this.state.state === FormState.ERROR && !this.state.fieldList) {
       return (
         <Alert.Container>
-          <Alert type="error" showIcon={false}>
+          <Alert variant="danger" showIcon={false}>
             {tct(
               'An unknown error occurred. Need help with this? [link:Contact support]',
               {
@@ -223,9 +224,9 @@ class PluginSettings<
         onSubmit={this.onSubmit}
         submitDisabled={isSaving || !hasChanges}
       >
-        <Flex>
+        <Stack>
           {this.state.errors.__all__ && (
-            <Alert type="error" showIcon={false}>
+            <Alert variant="danger" showIcon={false}>
               <ul>
                 <li>{this.state.errors.__all__}</li>
               </ul>
@@ -239,15 +240,10 @@ class PluginSettings<
               onChange: this.changeField.bind(this, f.name),
             })
           )}
-        </Flex>
+        </Stack>
       </Form>
     );
   }
 }
-
-const Flex = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
 
 export default PluginSettings;

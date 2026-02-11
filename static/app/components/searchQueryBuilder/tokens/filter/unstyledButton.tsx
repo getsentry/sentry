@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 export function UnstyledButton({
   children,
   ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+}: React.ComponentPropsWithRef<'button'>) {
   return (
     <RemovedStylesButton type="button" {...props}>
       {children}

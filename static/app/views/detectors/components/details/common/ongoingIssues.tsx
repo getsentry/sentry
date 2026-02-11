@@ -1,19 +1,53 @@
+import {LinkButton} from '@sentry/scraps/button';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import GroupList from 'sentry/components/issues/groupList';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {getUtcDateString} from 'sentry/utils/dates';
+import useOrganization from 'sentry/utils/useOrganization';
 
-export function DetectorDetailsOngoingIssues() {
+type DetectorDetailsOngoingIssuesProps = {
+  detector: Detector;
+};
+
+export function DetectorDetailsOngoingIssues({
+  detector,
+}: DetectorDetailsOngoingIssuesProps) {
+  const organization = useOrganization();
+  const query = `is:unresolved detector:${detector.id}`;
+  const {selection} = usePageFilters();
+  const queryParams = {
+    query,
+    project: detector.projectId,
+    start: selection.datetime.start
+      ? getUtcDateString(selection.datetime.start)
+      : undefined,
+    end: selection.datetime.end ? getUtcDateString(selection.datetime.end) : undefined,
+    statsPeriod: selection.datetime.period ?? undefined,
+  };
+
   return (
-    <Section title={t('Ongoing Issues')}>
-      {/* TODO: Implement fetching and replace with GroupList */}
+    <Section
+      title={t('Ongoing Issues')}
+      trailingItems={
+        <LinkButton
+          size="xs"
+          to={{
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: queryParams,
+          }}
+        >
+          {t('View All')}
+        </LinkButton>
+      }
+    >
       <ErrorBoundary mini>
-        <SimpleTable>
-          <SimpleTable.Header>
-            <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
-          </SimpleTable.Header>
-          <SimpleTable.Empty>{t('Not yet implemented')}</SimpleTable.Empty>
-        </SimpleTable>
+        <div>
+          <GroupList numPlaceholderRows={5} queryParams={{...queryParams, limit: 5}} />
+        </div>
       </ErrorBoundary>
     </Section>
   );

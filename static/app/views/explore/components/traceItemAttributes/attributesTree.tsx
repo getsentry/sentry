@@ -68,8 +68,9 @@ export interface AttributesFieldRender<RendererExtra extends RenderFunctionBagga
   >;
 }
 
-interface AttributesTreeProps<RendererExtra extends RenderFunctionBaggage>
-  extends AttributesFieldRender<RendererExtra> {
+interface AttributesTreeProps<
+  RendererExtra extends RenderFunctionBaggage,
+> extends AttributesFieldRender<RendererExtra> {
   /**
    * The attributes to show in the attribute tree. If you need to hide any attributes, filter them out before passing them here. If you need extra attribute information for rendering but you don't want to show those attributes, pass that information in the `rendererExtra` prop.
    */
@@ -81,8 +82,9 @@ interface AttributesTreeProps<RendererExtra extends RenderFunctionBaggage>
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
 }
 
-interface AttributesTreeColumnsProps<RendererExtra extends RenderFunctionBaggage>
-  extends AttributesTreeProps<RendererExtra> {
+interface AttributesTreeColumnsProps<
+  RendererExtra extends RenderFunctionBaggage,
+> extends AttributesTreeProps<RendererExtra> {
   columnCount: number;
 }
 
@@ -95,8 +97,9 @@ export interface AttributesTreeRowConfig {
   disableRichValue?: boolean;
 }
 
-interface AttributesTreeRowProps<RendererExtra extends RenderFunctionBaggage>
-  extends AttributesFieldRender<RendererExtra> {
+interface AttributesTreeRowProps<
+  RendererExtra extends RenderFunctionBaggage,
+> extends AttributesFieldRender<RendererExtra> {
   attributeKey: string;
   content: AttributesTreeContent;
   config?: AttributesTreeRowConfig;
@@ -126,7 +129,7 @@ function addToAttributeTree(
   if (hasInvalidBranchCount || hasInvalidBranchSequence) {
     tree[attribute.attribute_key] = {
       value: attribute.attribute_value,
-      subtree: {},
+      subtree: tree[attribute.attribute_key]?.subtree ?? {},
       meta,
       originalAttribute,
     };
@@ -395,9 +398,7 @@ function AttributesTreeRowDropdown({
   content: AttributesTreeContent;
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
 }) {
-  const {onClick: handleCopy} = useCopyToClipboard({
-    text: String(content.value),
-  });
+  const {copy} = useCopyToClipboard();
   const [isVisible, setIsVisible] = useState(false);
 
   let customActions: MenuItemProps[] = [];
@@ -410,7 +411,10 @@ function AttributesTreeRowDropdown({
     {
       key: 'copy-value',
       label: t('Copy attribute value to clipboard'),
-      onAction: handleCopy,
+      onAction: () =>
+        copy(String(content.value), {
+          successMessage: t('Attribute value copied to clipboard'),
+        }),
     },
   ];
 
@@ -477,16 +481,13 @@ const TreeColumn = styled('div')`
   display: grid;
   grid-template-columns: minmax(min-content, max-content) auto;
   grid-column-gap: ${space(3)};
-  &:first-child {
-    margin-left: -${space(1)};
-  }
   &:not(:first-child) {
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
     padding-left: ${space(2)};
     margin-left: -1px;
   }
   &:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.innerBorder};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
     padding-right: ${space(2)};
   }
 `;
@@ -502,7 +503,7 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
   grid-template-columns: subgrid;
   :nth-child(odd) {
     background-color: ${p =>
-      p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.backgroundSecondary};
+      p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.secondary};
   }
   .invisible {
     visibility: hidden;
@@ -513,24 +514,26 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
       visibility: visible;
     }
   }
-  color: ${p => (p.hasErrors ? p.theme.alert.error.color : p.theme.subText)};
+  color: ${p => (p.hasErrors ? p.theme.colors.red500 : p.theme.tokens.content.secondary)};
   background-color: ${p =>
-    p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.background};
+    p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.primary};
   box-shadow: inset 0 0 0 1px
-    ${p => (p.hasErrors ? p.theme.alert.error.border : 'transparent')};
+    ${p => (p.hasErrors ? p.theme.colors.red200 : 'transparent')};
 `;
 
 const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
   grid-column: span 1;
   /* Allows TreeBranchIcons to appear connected vertically */
-  border-right: 1px solid ${p => (p.hasStem ? p.theme.border : 'transparent')};
+  border-right: 1px solid
+    ${p => (p.hasStem ? p.theme.tokens.border.primary : 'transparent')};
   margin-right: -1px;
   height: 100%;
   width: ${p => (p.spacerCount - 1) * 20 + 3}px;
 `;
 
 const TreeBranchIcon = styled('div')<{hasErrors: boolean}>`
-  border: 1px solid ${p => (p.hasErrors ? p.theme.alert.error.border : p.theme.border)};
+  border: 1px solid
+    ${p => (p.hasErrors ? p.theme.colors.red200 : p.theme.tokens.border.primary)};
   border-width: 0 0 1px 1px;
   border-radius: 0 0 0 5px;
   grid-column: span 1;
@@ -560,15 +563,15 @@ const TreeValueTrunk = styled('div')`
 const TreeValue = styled('div')<{hasErrors?: boolean}>`
   padding: ${space(0.25)} 0;
   align-self: start;
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   word-break: break-word;
   grid-column: span 1;
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
+  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.primary)};
 `;
 
 const TreeKey = styled(TreeValue)<{hasErrors?: boolean}>`
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.subText)};
+  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.secondary)};
 `;
 
 /**

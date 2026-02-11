@@ -138,10 +138,7 @@ export class ContinuousProfile extends Profile {
       child.lock();
     }
 
-    node.frame.selfWeight += duration;
-
     for (const stackNode of framesInStack) {
-      stackNode.frame.totalWeight += duration;
       stackNode.count++;
     }
 

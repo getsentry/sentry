@@ -166,7 +166,7 @@ export default function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
         fetchData();
       }
     } catch (error) {
-      onError?.(error);
+      onError?.(error as Error);
     }
   }, [bufferLimit, cache, cacheKey, getQueryKey, key, onError, queryClient]);
 

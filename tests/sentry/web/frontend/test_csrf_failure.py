@@ -1,12 +1,12 @@
 from django.urls import reverse
 
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import all_silo_test
 
 
-@control_silo_test
+@all_silo_test
 class CsrfFailureTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         path = reverse("error-403-csrf-failure")
 
         resp = self.client.get(path)

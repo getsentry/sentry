@@ -36,7 +36,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import attachments_tasks
 from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
@@ -231,12 +230,9 @@ def delete_assemble_status(task, scope, checksum):
 
 @instrumented_task(
     name="sentry.tasks.assemble.assemble_dif",
-    queue="assemble",
+    namespace=attachments_tasks,
+    processing_deadline_duration=60 * 3,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=attachments_tasks,
-        processing_deadline_duration=60 * 3,
-    ),
 )
 def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     """
@@ -377,9 +373,9 @@ class ArtifactBundlePostAssembler:
         self.release = self.release or self.archive.manifest.get("release")
         self.dist = self.dist or self.archive.manifest.get("dist")
 
-        # In case we have a release bundle migration, we are fetching *all*
-        # the projects associated with a release, which can be quite a lot.
-        # We rather use the `project` of the bundle manifest instead.
+        # In case we have a release bundle migration, we are fetching *all* the projects associated with a release,
+        # which can be quite a lot. We rather use the `project` of the bundle manifest instead, but ONLY if that
+        # project is already in the authorized project_ids list to prevent an IDOR.
         if len(self.project_ids) > 2 and self.is_release_bundle_migration:
             if project_in_manifest := self.archive.manifest.get("project"):
                 project_ids = list(
@@ -387,6 +383,7 @@ class ArtifactBundlePostAssembler:
                         organization=self.organization,
                         status=ObjectStatus.ACTIVE,
                         slug=project_in_manifest,
+                        id__in=self.project_ids,
                     ).values_list("id", flat=True)
                 )
                 if len(project_ids) > 0:
@@ -610,12 +607,9 @@ class ArtifactBundlePostAssembler:
 
 @instrumented_task(
     name="sentry.tasks.assemble.assemble_artifacts",
-    queue="assemble",
+    namespace=attachments_tasks,
+    processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=attachments_tasks,
-        processing_deadline_duration=30,
-    ),
 )
 def assemble_artifacts(
     org_id,

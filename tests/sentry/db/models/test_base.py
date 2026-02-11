@@ -24,7 +24,7 @@ from sentry.relocation.models.relocation import (
     RelocationValidationAttempt,
 )
 from sentry.sentry_apps.models import SentryAppInstallationForProvider
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
+from sentry.uptime.models import UptimeSubscription
 
 
 class PreventDefaultFieldsModelExistingUseTest(TestCase):
@@ -33,7 +33,7 @@ class PreventDefaultFieldsModelExistingUseTest(TestCase):
             [s for c in cls.__subclasses__() for s in self.all_subclasses(c)]
         )
 
-    def test(self):
+    def test(self) -> None:
         assert self.all_subclasses(DefaultFieldsModelExisting) == {
             BaseImportChunk,
             ControlImportChunk,
@@ -46,7 +46,6 @@ class PreventDefaultFieldsModelExistingUseTest(TestCase):
             ProjectTemplate,
             ProjectTransactionThreshold,
             ProjectTransactionThresholdOverride,
-            ProjectUptimeSubscription,
             RegionImportChunk,
             Relocation,
             RelocationFile,

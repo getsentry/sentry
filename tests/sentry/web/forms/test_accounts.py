@@ -31,7 +31,7 @@ def test_sets_user_timezone_when_present() -> None:
 
 @no_silo_test
 @django_db_all
-def test_registration_form_without_timezone():
+def test_registration_form_without_timezone() -> None:
     form_data = {
         "username": "a@b.com",
         "name": "Test",

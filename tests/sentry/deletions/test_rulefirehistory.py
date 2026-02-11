@@ -7,7 +7,7 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 
 
 class DeleteRuleFireHistoryTest(TestCase, HybridCloudTestMixin):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project()
         rule = self.create_project_rule(project)
         rule_fire_history = RuleFireHistory.objects.create(

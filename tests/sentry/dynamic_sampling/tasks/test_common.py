@@ -7,13 +7,10 @@ from sentry.dynamic_sampling.tasks.common import (
     GetActiveOrgs,
     GetActiveOrgsVolumes,
     OrganizationDataVolume,
-    TimedIterator,
-    TimeoutException,
     get_organization_volume,
-    timed_function,
 )
-from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.dynamic_sampling.types import SamplingMeasure
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -22,92 +19,9 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 )
 
 
-def test_timeout_exception():
-    """
-    Test creation of exception
-    """
-
-    context = TaskContext("my_context", 3)
-    # test we can create an exception (with additional args)
-    ex = TimeoutException(context, 23)
-    assert ex.task_context == context
-    ex = TimeoutException(task_context=context)
-    assert ex.task_context == context
-
-
-class FakeContextIterator:
-    def __init__(self, frozen_time, tick_seconds):
-        self.count = 0
-        self.frozen_time = frozen_time
-        self.tick_seconds = tick_seconds
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if self.count < 2:
-            self.count += 1
-            self.frozen_time.shift(self.tick_seconds)
-            return self.count
-        raise StopIteration()
-
-    def get_current_state(self):
-        return DynamicSamplingLogState(num_iterations=self.count)
-
-    def set_current_state(self, state: DynamicSamplingLogState):
-        self.count = state.num_iterations
-
-
-def test_timed_iterator_no_timout():
-
-    with freeze_time("2023-07-12 10:00:00") as frozen_time:
-        context = TaskContext("my_context", 3)
-        it = TimedIterator(context, FakeContextIterator(frozen_time, 1), "ti1")
-        # should iterate while there is no timeout
-        assert (next(it)) == 1
-        assert context.get_function_state("ti1") == DynamicSamplingLogState(
-            num_rows_total=0,
-            num_db_calls=0,
-            num_iterations=1,
-            num_projects=0,
-            num_orgs=0,
-            execution_time=1.0,
-        )
-        assert (next(it)) == 2
-        assert context.get_function_state("ti1") == DynamicSamplingLogState(
-            num_rows_total=0,
-            num_db_calls=0,
-            num_iterations=2,
-            num_projects=0,
-            num_orgs=0,
-            execution_time=2.0,
-        )
-        with pytest.raises(StopIteration):
-            next(it)
-
-
-def test_timed_iterator_with_timeout():
-    with freeze_time("2023-07-12 10:00:00") as frozen_time:
-        context = TaskContext("my_context", 3)
-        it = TimedIterator(context, FakeContextIterator(frozen_time, 4), "ti1")
-        # should iterate while there is no timeout
-        assert (next(it)) == 1
-        assert context.get_function_state("ti1") == DynamicSamplingLogState(
-            num_rows_total=0,
-            num_db_calls=0,
-            num_iterations=1,
-            num_projects=0,
-            num_orgs=0,
-            execution_time=4.0,
-        )
-        # the next iteration will be at 4 seconds which is over time and should raise
-        with pytest.raises(TimeoutException):
-            next(it)
-
-
 @freeze_time(MOCK_DATETIME)
 class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
 
         # create 10 orgs each with 10 transactions
         for i in range(10):
@@ -127,7 +41,7 @@ class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     def now(self):
         return MOCK_DATETIME
 
-    def test_get_active_orgs_no_max_projects(self):
+    def test_get_active_orgs_no_max_projects(self) -> None:
         total_orgs = 0
         for idx, orgs in enumerate(GetActiveOrgs(3)):
             num_orgs = len(orgs)
@@ -138,7 +52,7 @@ class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
                 assert num_orgs == 1  # second should contain the remaining 3
         assert total_orgs == 10
 
-    def test_get_active_orgs_with_max_projects(self):
+    def test_get_active_orgs_with_max_projects(self) -> None:
         total_orgs = 0
         for orgs in GetActiveOrgs(3, 18):
             # we ask for max 18 proj (that's 2 org per request since one org has 10 )
@@ -148,87 +62,12 @@ class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
         assert total_orgs == 10
 
 
-def test_timed_function_decorator_updates_state():
-    """
-    Tests that the decorator correctly extracts the state
-    and passes it to the inner function.
-
-    At the end the Context should be properly updated for the wrapped function
-    It works with the default function name and also with custom names
-
-    """
-    context = TaskContext(name="TC", num_seconds=60.0)
-
-    @timed_function()
-    def f1(state: DynamicSamplingLogState, x: int, y: str):
-        state.num_iterations = 1
-
-    @timed_function("f2x")
-    def f2(state: DynamicSamplingLogState, x: int, y: str):
-        state.num_iterations = 2
-
-    f1(context, 1, "x")
-    f2(context, 1, "x")
-
-    f1_state = context.get_function_state("f1")
-    assert f1_state is not None
-    assert f1_state.num_iterations == 1
-
-    f2_state = context.get_function_state("f2x")
-    assert f2_state is not None
-    assert f2_state.num_iterations == 2
-
-
-def test_timed_function_correctly_times_inner_function():
-    with freeze_time("2023-07-14 10:00:00") as frozen_time:
-        context = TaskContext(name="TC", num_seconds=60.0)
-
-        @timed_function()
-        def f1(state: DynamicSamplingLogState, x: int, y: str):
-            state.num_iterations = 1
-            frozen_time.shift(1)
-
-        f1(context, 1, "x")
-        frozen_time.shift(1)
-        f1(context, 1, "x")
-
-        # two seconds passed inside f1 ( one for each call)
-        t = context.get_timer("f1")
-        assert t.current() == 2.0
-
-
-def test_timed_function_correctly_raises_when_task_expires():
-    with freeze_time("2023-07-14 10:00:00") as frozen_time:
-        context = TaskContext(name="TC", num_seconds=2.0)
-
-        @timed_function()
-        def f1(state: DynamicSamplingLogState, x: int, y: str):
-            state.num_iterations = 1
-            frozen_time.shift(1)
-
-        f1(context, 1, "x")
-        t = context.get_timer("f1")
-        assert t.current() == 1.0
-        frozen_time.shift(1)
-        assert t.current() == 1.0  # timer should not be moving ouside the function
-        f1(context, 1, "x")
-
-        # two seconds passed inside f1 ( one for each call)
-        assert t.current() == 2.0
-
-        with pytest.raises(TimeoutException):
-            f1(context, 1, "x")
-
-        # the tick should not advance ( the function should not have been called)
-        assert t.current() == 2.0
-
-
 NOW_ISH = timezone.now().replace(second=0, microsecond=0)
 
 
 @freeze_time(MOCK_DATETIME)
 class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.orgs = []
         # create 12 orgs each and some transactions with a 2/1 drop/keep rate
         for i in range(12):
@@ -249,7 +88,7 @@ class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase
     def now(self):
         return MOCK_DATETIME
 
-    def test_get_active_orgs_volumes_exact_batch_match(self):
+    def test_get_active_orgs_volumes_exact_batch_match(self) -> None:
         """
         gets active org volumes, with a batch size multiple of
         number of elements
@@ -264,7 +103,7 @@ class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase
                 assert org.indexed == 1
         assert total_orgs == 12
 
-    def test_get_active_orgs_volumes(self):
+    def test_get_active_orgs_volumes(self) -> None:
         """
         gets active org volumes, with a batch size that is not a multiple
         of the number of elements in the DB
@@ -285,7 +124,7 @@ class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase
 
         assert total_orgs == 12
 
-    def test_get_organization_volume_existing_org(self):
+    def test_get_organization_volume_existing_org(self) -> None:
         """
         gets the volume of one existing organization
         """
@@ -293,10 +132,330 @@ class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase
         org_volume = get_organization_volume(org.id)
         assert org_volume == OrganizationDataVolume(org_id=org.id, total=3, indexed=1)
 
-    def test_get_organization_volume_missing_org(self):
+    def test_get_organization_volume_missing_org(self) -> None:
         """
         calls get_organization_volume for a missing org (should return None)
         """
         org_id = 99999999  # can we do better, an id we know for sure is not in the DB?
         org_volume = get_organization_volume(org_id)
         assert org_volume is None
+
+
+@freeze_time(MOCK_DATETIME)
+class TestGetActiveOrgsMeasureFiltering(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+    """
+    Tests that TRANSACTIONS and SEGMENTS measures filter metrics correctly.
+    Both measures should behave equivalently when the appropriate metrics are emitted.
+    """
+
+    @property
+    def now(self):
+        return MOCK_DATETIME
+
+    def test_transactions_measure_only_counts_transaction_metrics(self) -> None:
+        """
+        Test that TRANSACTIONS measure only counts TransactionMRI metrics, not SpanMRI.
+        """
+        org1 = self.create_organization("test-org-1")
+        project1 = self.create_project(organization=org1)
+        org2 = self.create_organization("test-org-2")
+        project2 = self.create_project(organization=org2)
+
+        # Store transaction metric (should be counted by TRANSACTIONS measure)
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep"},
+            minutes_before_now=30,
+            value=1,
+            project_id=project1.id,
+            org_id=org1.id,
+        )
+
+        # Store span metric with is_segment=true (should NOT be counted by TRANSACTIONS measure)
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "bar", "decision": "keep", "is_segment": "true"},
+            minutes_before_now=30,
+            value=100,
+            project_id=project2.id,
+            org_id=org2.id,
+        )
+
+        found_orgs = []
+        for orgs in GetActiveOrgs(max_orgs=10, measure=SamplingMeasure.TRANSACTIONS):
+            found_orgs.extend(orgs)
+
+        assert org1.id in found_orgs
+        assert org2.id not in found_orgs
+
+    def test_segments_measure_only_counts_segment_spans(self) -> None:
+        """
+        Test that SEGMENTS measure only counts SpanMRI with is_segment=true, not TransactionMRI.
+        """
+        org1 = self.create_organization("test-org-1")
+        project1 = self.create_project(organization=org1)
+        org2 = self.create_organization("test-org-2")
+        project2 = self.create_project(organization=org2)
+
+        # Store span metric with is_segment=true (should be counted by SEGMENTS measure)
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
+            minutes_before_now=30,
+            value=1,
+            project_id=project1.id,
+            org_id=org1.id,
+        )
+
+        # Store transaction metric (should NOT be counted by SEGMENTS measure)
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "bar", "decision": "keep"},
+            minutes_before_now=30,
+            value=100,
+            project_id=project2.id,
+            org_id=org2.id,
+        )
+
+        found_orgs = []
+        for orgs in GetActiveOrgs(max_orgs=10, measure=SamplingMeasure.SEGMENTS):
+            found_orgs.extend(orgs)
+
+        assert org1.id in found_orgs
+        assert org2.id not in found_orgs
+
+    def test_segments_measure_excludes_non_segment_spans(self) -> None:
+        """
+        Test that SEGMENTS measure excludes SpanMRI without is_segment=true.
+        """
+        org1 = self.create_organization("test-org-1")
+        project1 = self.create_project(organization=org1)
+        org2 = self.create_organization("test-org-2")
+        project2 = self.create_project(organization=org2)
+
+        # Store span metric with is_segment=true (should be counted)
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
+            minutes_before_now=30,
+            value=1,
+            project_id=project1.id,
+            org_id=org1.id,
+        )
+
+        # Store span metric without is_segment (should NOT be counted)
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "bar", "decision": "keep"},
+            minutes_before_now=30,
+            value=100,
+            project_id=project2.id,
+            org_id=org2.id,
+        )
+
+        found_orgs = []
+        for orgs in GetActiveOrgs(max_orgs=10, measure=SamplingMeasure.SEGMENTS):
+            found_orgs.extend(orgs)
+
+        assert org1.id in found_orgs
+        assert org2.id not in found_orgs
+
+    def test_transactions_measure_multiple_orgs(self) -> None:
+        """
+        Test GetActiveOrgs with TRANSACTIONS measure for multiple organizations.
+        """
+        created_org_ids = []
+        for i in range(5):
+            org = self.create_organization(f"tx-org-{i}")
+            created_org_ids.append(org.id)
+            project = self.create_project(organization=org)
+            self.store_performance_metric(
+                name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+                tags={"transaction": "tx", "decision": "keep"},
+                minutes_before_now=30,
+                value=1,
+                project_id=project.id,
+                org_id=org.id,
+            )
+
+        found_orgs = []
+        for orgs in GetActiveOrgs(max_orgs=10, measure=SamplingMeasure.TRANSACTIONS):
+            found_orgs.extend(orgs)
+
+        for org_id in created_org_ids:
+            assert org_id in found_orgs
+
+    def test_segments_measure_multiple_orgs(self) -> None:
+        """
+        Test GetActiveOrgs with SEGMENTS measure for multiple organizations.
+        """
+        created_org_ids = []
+        for i in range(5):
+            org = self.create_organization(f"segment-org-{i}")
+            created_org_ids.append(org.id)
+            project = self.create_project(organization=org)
+            self.store_performance_metric(
+                name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+                tags={"transaction": "tx", "decision": "keep", "is_segment": "true"},
+                minutes_before_now=30,
+                value=1,
+                project_id=project.id,
+                org_id=org.id,
+            )
+
+        found_orgs = []
+        for orgs in GetActiveOrgs(max_orgs=10, measure=SamplingMeasure.SEGMENTS):
+            found_orgs.extend(orgs)
+
+        for org_id in created_org_ids:
+            assert org_id in found_orgs
+
+
+@freeze_time(MOCK_DATETIME)
+class TestGetActiveOrgsVolumesMeasureFiltering(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+    """
+    Tests that TRANSACTIONS and SEGMENTS measures filter volumes correctly.
+    Both measures should behave equivalently when the appropriate metrics are emitted.
+    """
+
+    @property
+    def now(self):
+        return MOCK_DATETIME
+
+    def test_transactions_measure_volumes(self) -> None:
+        """
+        Test that GetActiveOrgsVolumes correctly queries TRANSACTIONS measure.
+        """
+        org = self.create_organization("test-org")
+        project = self.create_project(organization=org)
+
+        # Store transaction metrics
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep"},
+            minutes_before_now=1,
+            value=5,
+            project_id=project.id,
+            org_id=org.id,
+        )
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "drop"},
+            minutes_before_now=1,
+            value=10,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        # Store span metrics (should NOT be counted by TRANSACTIONS measure)
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "bar", "decision": "keep", "is_segment": "true"},
+            minutes_before_now=1,
+            value=100,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        found_volumes = []
+        for volumes in GetActiveOrgsVolumes(max_orgs=10, measure=SamplingMeasure.TRANSACTIONS):
+            found_volumes.extend(volumes)
+
+        # Should only find the transaction metrics
+        assert len(found_volumes) == 1
+        assert found_volumes[0].org_id == org.id
+        assert found_volumes[0].total == 15  # 5 + 10
+        assert found_volumes[0].indexed == 5  # only keep
+
+    def test_segments_measure_volumes(self) -> None:
+        """
+        Test that GetActiveOrgsVolumes correctly queries SEGMENTS measure.
+        """
+        org = self.create_organization("test-org")
+        project = self.create_project(organization=org)
+
+        # Store span metrics with is_segment=true
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
+            minutes_before_now=1,
+            value=5,
+            project_id=project.id,
+            org_id=org.id,
+        )
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "drop", "is_segment": "true"},
+            minutes_before_now=1,
+            value=10,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        # Store transaction metrics (should NOT be counted by SEGMENTS measure)
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "bar", "decision": "keep"},
+            minutes_before_now=1,
+            value=100,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        found_volumes = []
+        for volumes in GetActiveOrgsVolumes(max_orgs=10, measure=SamplingMeasure.SEGMENTS):
+            found_volumes.extend(volumes)
+
+        # Should only find the is_segment=true span metrics
+        assert len(found_volumes) == 1
+        assert found_volumes[0].org_id == org.id
+        assert found_volumes[0].total == 15  # 5 + 10
+        assert found_volumes[0].indexed == 5  # only keep
+
+    def test_segments_measure_excludes_non_segment_spans(self) -> None:
+        """
+        Test that non-segment spans are excluded from SEGMENTS volume calculation.
+        """
+        org = self.create_organization("test-org")
+        project = self.create_project(organization=org)
+
+        # Only store non-segment spans
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep"},
+            minutes_before_now=1,
+            value=100,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        found_volumes = []
+        for volumes in GetActiveOrgsVolumes(max_orgs=10, measure=SamplingMeasure.SEGMENTS):
+            found_volumes.extend(volumes)
+
+        # Should find no volumes since there are no is_segment=true spans
+        assert len(found_volumes) == 0
+
+    def test_transactions_measure_excludes_span_metrics(self) -> None:
+        """
+        Test that span metrics are excluded from TRANSACTIONS volume calculation.
+        """
+        org = self.create_organization("test-org")
+        project = self.create_project(organization=org)
+
+        # Only store span metrics (even with is_segment=true)
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
+            minutes_before_now=1,
+            value=100,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        found_volumes = []
+        for volumes in GetActiveOrgsVolumes(max_orgs=10, measure=SamplingMeasure.TRANSACTIONS):
+            found_volumes.extend(volumes)
+
+        # Should find no volumes since there are no transaction metrics
+        assert len(found_volumes) == 0

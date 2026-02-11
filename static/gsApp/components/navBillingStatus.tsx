@@ -1,35 +1,30 @@
+import type React from 'react';
 import {Fragment, useCallback, useEffect, useRef} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion, type MotionProps} from 'framer-motion';
 import snakeCase from 'lodash/snakeCase';
 import moment from 'moment-timezone';
 
+import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {usePrompts} from 'sentry/actionCreators/prompts';
-import {Checkbox} from 'sentry/components/core/checkbox';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import type {Color} from 'sentry/utils/theme';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import {SidebarButton} from 'sentry/views/nav/primary/components';
 import {
   PrimaryButtonOverlay,
   usePrimaryButtonOverlay,
 } from 'sentry/views/nav/primary/primaryButtonOverlay';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import useSubscription from 'getsentry/hooks/useSubscription';
 import {
-  type BillingMetricHistory,
   OnDemandBudgetMode,
+  type BillingMetricHistory,
   type Subscription,
 } from 'getsentry/types';
 import {
@@ -40,46 +35,253 @@ import {
 } from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
-const ANIMATE_PROPS: MotionProps = {
-  animate: {
-    rotate: [0, -15, 15, -15, 15, -15, 0],
-    scale: [1, 1.25, 1.25, 1.25, 1.25, 1.25, 1],
-  },
-  transition: {
-    duration: 0.7,
-    repeat: Infinity,
-    repeatType: 'loop',
-    type: 'easeOut',
-    delay: 2,
-    repeatDelay: 1,
-  },
+const COMMON_BUTTON_PROPS: Partial<ButtonProps> = {
+  size: 'xs',
 };
+
+/**
+ * Categories that are ineligible for PAYG (pay-as-you-go/on-demand) billing.
+ * These require special handling with a "Contact Sales" CTA instead of the
+ * standard AddEventsCTA, as customers cannot purchase additional quota
+ * through self-serve.
+ *
+ * Currently includes: SIZE_ANALYSIS, INSTALLABLE_BUILD
+ */
+const PAYG_INELIGIBLE_CATEGORIES = [
+  DataCategory.SIZE_ANALYSIS,
+  DataCategory.INSTALLABLE_BUILD,
+] as const;
+
+function isPaygIneligibleCategory(category: DataCategory): boolean {
+  return PAYG_INELIGIBLE_CATEGORIES.includes(
+    category as (typeof PAYG_INELIGIBLE_CATEGORIES)[number]
+  );
+}
+
+function getPaygIneligibleSubheader(
+  paygIneligibleCategories: DataCategory[],
+  subscription: Subscription
+): React.ReactNode {
+  const paygIneligibleCategoryList = listDisplayNames({
+    plan: subscription.planDetails,
+    categories: paygIneligibleCategories,
+    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+    shouldTitleCase: true,
+  });
+  return tct('[categories] - Quota Exceeded', {categories: paygIneligibleCategoryList});
+}
+
+function getPaygIneligibleBodyCopy(
+  paygIneligibleCategories: DataCategory[],
+  subscription: Subscription
+): React.ReactNode {
+  const paygIneligibleCategoryList = listDisplayNames({
+    plan: subscription.planDetails,
+    categories: paygIneligibleCategories,
+    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+  });
+  return tct(
+    'Your organization has used your full quota of [categories] this billing period. Your quota will reset when the next billing period begins. For an unlimited quota, you can contact sales to discuss custom pricing available on the Enterprise plan:',
+    {categories: paygIneligibleCategoryList}
+  );
+}
 
 function QuotaExceededContent({
   exceededCategories,
   subscription,
   organization,
-  onCheck,
+  onClick,
   isDismissed,
 }: {
   exceededCategories: DataCategory[];
   isDismissed: boolean;
-  onCheck: ({
-    checked,
+  onClick: ({
+    categories,
     eventTypes,
     isManual,
   }: {
-    checked: boolean;
+    categories: DataCategory[];
     eventTypes: EventType[];
     isManual?: boolean;
   }) => void;
   organization: Organization;
   subscription: Subscription;
 }) {
-  const eventTypes: EventType[] = exceededCategories.map(category => {
+  // Separate PAYG-ineligible categories from other categories
+  const paygIneligibleCategories = exceededCategories.filter(isPaygIneligibleCategory);
+  const otherCategories = exceededCategories.filter(
+    cat => !isPaygIneligibleCategory(cat)
+  );
+
+  const seatCategories: DataCategory[] = [];
+  const usageCategories: DataCategory[] = [];
+  const eventTypes: EventType[] = otherCategories.map(category => {
+    const categoryInfo = getCategoryInfoFromPlural(category);
+    if (categoryInfo?.tallyType === 'seat') {
+      seatCategories.push(category);
+    } else {
+      usageCategories.push(category);
+    }
+    return (categoryInfo?.name ?? category) as EventType;
+  });
+
+  // Get event types for PAYG-ineligible categories (for analytics/dismiss)
+  const paygIneligibleEventTypes: EventType[] = paygIneligibleCategories.map(category => {
     const categoryInfo = getCategoryInfoFromPlural(category);
     return (categoryInfo?.name ?? category) as EventType;
   });
+
+  const allEventTypes = [...eventTypes, ...paygIneligibleEventTypes];
+
+  const usageCategoryList = listDisplayNames({
+    plan: subscription.planDetails,
+    categories: usageCategories,
+    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+  });
+  const seatCategoryList = listDisplayNames({
+    plan: subscription.planDetails,
+    categories: seatCategories,
+    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+  });
+
+  // If ONLY PAYG-ineligible categories are exceeded, show Contact Sales content
+  if (paygIneligibleCategories.length > 0 && otherCategories.length === 0) {
+    return (
+      <Container>
+        <Header>
+          <HeaderTitle>{t('Billing Status')}</HeaderTitle>
+        </Header>
+        <Body>
+          <Title>
+            {getPaygIneligibleSubheader(paygIneligibleCategories, subscription)}
+          </Title>
+          <Description>
+            {getPaygIneligibleBodyCopy(paygIneligibleCategories, subscription)}
+          </Description>
+          <Flex justify="between" align="center">
+            <LinkButton
+              priority="primary"
+              href="mailto:sales@sentry.io"
+              external
+              size="xs"
+            >
+              {t('Contact Sales')}
+            </LinkButton>
+            {!isDismissed && (
+              <Button
+                aria-label={t('Dismiss alert for the rest of the billing cycle')}
+                onClick={() =>
+                  onClick({
+                    eventTypes: paygIneligibleEventTypes,
+                    categories: paygIneligibleCategories,
+                    isManual: true,
+                  })
+                }
+                {...COMMON_BUTTON_PROPS}
+              >
+                {t('Dismiss')}
+              </Button>
+            )}
+          </Flex>
+        </Body>
+      </Container>
+    );
+  }
+
+  // If BOTH PAYG-ineligible and other categories are exceeded, show both sections
+  if (paygIneligibleCategories.length > 0 && otherCategories.length > 0) {
+    return (
+      <Container>
+        <Header>
+          <HeaderTitle>{t('Billing Status')}</HeaderTitle>
+        </Header>
+        <Body>
+          {/* PAYG-ineligible categories section */}
+          <Title>
+            {getPaygIneligibleSubheader(paygIneligibleCategories, subscription)}
+          </Title>
+          <Description>
+            {getPaygIneligibleBodyCopy(paygIneligibleCategories, subscription)}
+          </Description>
+          <Flex justify="start" align="center">
+            <LinkButton
+              priority="primary"
+              href="mailto:sales@sentry.io"
+              external
+              size="xs"
+            >
+              {t('Contact Sales')}
+            </LinkButton>
+          </Flex>
+
+          {/* Standard categories section */}
+          <Title>
+            {otherCategories.length === 1
+              ? tct('[category] Quota Exceeded', {
+                  category: getSingularCategoryName({
+                    plan: subscription.planDetails,
+                    category: otherCategories[0]!,
+                    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+                    title: true,
+                  }),
+                })
+              : t('Additional Quotas Exceeded')}
+          </Title>
+          {usageCategories.length > 0 && (
+            <Description>
+              {tct(
+                'You have used up your quota for [usageCategoryList]. Monitoring and new data [descriptor]are paused until your quota resets.',
+                {
+                  usageCategoryList,
+                  descriptor: usageCategories.length > 1 ? t('for these features ') : '',
+                }
+              )}
+            </Description>
+          )}
+          {seatCategories.length > 0 && (
+            <Description>
+              {tct(
+                '[prefix] reached your quota for [seatCategoryList]. Existing monitors remain active, but you cannot add new ones until your quota resets.',
+                {
+                  prefix: usageCategories.length > 0 ? t('You have also') : t('You have'),
+                  seatCategoryList,
+                }
+              )}
+            </Description>
+          )}
+          <Flex justify="between" align="center">
+            <AddEventsCTA
+              organization={organization}
+              subscription={subscription}
+              buttonProps={COMMON_BUTTON_PROPS}
+              eventTypes={eventTypes}
+              notificationType="overage_critical"
+              referrer={`overage-alert-${eventTypes.join('-')}`}
+              source="nav-quota-overage"
+              handleRequestSent={() => onClick({eventTypes, categories: otherCategories})}
+            />
+            {!isDismissed && (
+              <Button
+                aria-label={t('Dismiss alert for the rest of the billing cycle')}
+                onClick={() =>
+                  onClick({
+                    eventTypes: allEventTypes,
+                    categories: exceededCategories,
+                    isManual: true,
+                  })
+                }
+                {...COMMON_BUTTON_PROPS}
+              >
+                {t('Dismiss')}
+              </Button>
+            )}
+          </Flex>
+        </Body>
+      </Container>
+    );
+  }
+
+  // Standard content for PAYG-eligible categories only
   return (
     <Container>
       <Header>
@@ -98,44 +300,57 @@ function QuotaExceededContent({
               })
             : t('Quotas Exceeded')}
         </Title>
-        <Description>
-          {tct(
-            'You’ve run out of [exceededCategories] for this billing cycle. This means we are no longer monitoring or ingesting events and showing them in Sentry.',
-            {
-              exceededCategories: listDisplayNames({
-                plan: subscription.planDetails,
-                categories: exceededCategories,
-                hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-              }),
-            }
-          )}
-        </Description>
-        <ActionContainer>
+        {usageCategories.length > 0 && (
+          <Description>
+            {tct(
+              'You have used up your quota for [usageCategoryList]. Monitoring and new data [descriptor]are paused until your quota resets.',
+              {
+                usageCategoryList,
+                descriptor: usageCategories.length > 1 ? t('for these features ') : '',
+              }
+            )}
+          </Description>
+        )}
+        {seatCategories.length > 0 && (
+          <Description>
+            {tct(
+              '[prefix] reached your quota for [seatCategoryList]. Existing monitors remain active, but you cannot add new ones until your quota resets.',
+              {
+                prefix: usageCategories.length > 0 ? t('You have also') : t('You have'),
+                seatCategoryList,
+              }
+            )}
+          </Description>
+        )}
+        <Flex justify="between" align="center">
           <AddEventsCTA
             organization={organization}
             subscription={subscription}
-            buttonProps={{
-              size: 'xs',
-            }}
+            buttonProps={COMMON_BUTTON_PROPS}
             eventTypes={eventTypes}
             notificationType="overage_critical"
             referrer={`overage-alert-${eventTypes.join('-')}`}
             source="nav-quota-overage"
-            handleRequestSent={() => onCheck({checked: true, eventTypes})}
+            handleRequestSent={() =>
+              onClick({eventTypes, categories: exceededCategories})
+            }
           />
-          <DismissContainer>
-            <CheckboxLabel>
-              <Checkbox
-                name="dismiss"
-                checked={isDismissed}
-                onChange={e => {
-                  onCheck({checked: e.target.checked, eventTypes, isManual: true});
-                }}
-              />
-              <span>{t("Don't annoy me again")}</span>
-            </CheckboxLabel>
-          </DismissContainer>
-        </ActionContainer>
+          {!isDismissed && (
+            <Button
+              aria-label={t('Dismiss alert for the rest of the billing cycle')}
+              onClick={() =>
+                onClick({
+                  eventTypes,
+                  categories: exceededCategories,
+                  isManual: true,
+                })
+              }
+              {...COMMON_BUTTON_PROPS}
+            >
+              {t('Dismiss')}
+            </Button>
+          )}
+        </Flex>
       </Body>
     </Container>
   );
@@ -197,14 +412,12 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     );
   };
 
-  const {isLoading, isError, isPromptDismissed, snoozePrompt, showPrompt} = usePrompts({
+  const {isLoading, isError, isPromptDismissed, snoozePrompt} = usePrompts({
     features: promptsToCheck,
     organization,
     daysToSnooze:
       -1 *
-      getDaysSinceDate(
-        subscription?.onDemandPeriodEnd ?? moment().utc().toDate().toDateString()
-      ),
+      getDaysSinceDate(subscription?.onDemandPeriodEnd ?? moment().utc().toISOString()),
     isDismissed: isSnoozedForCurrentPeriod,
     options: {
       enabled: promptsToCheck.length > 0,
@@ -217,10 +430,6 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     overlayProps,
     state: overlayState,
   } = usePrimaryButtonOverlay({});
-  const prefersStackedNav = usePrefersStackedNav();
-  const theme = useTheme();
-  const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
-  const iconColor = prefersDarkMode ? theme.background : theme.textColor;
 
   const hasSnoozedAllPrompts = useCallback(() => {
     return Object.values(isPromptDismissed).every(Boolean);
@@ -258,7 +467,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
       );
       localStorage.setItem(
         `billing-status-last-shown-date-${organization.id}`,
-        moment().utc().toDate().toDateString()
+        moment().utc().toISOString()
       );
     }
   }, [
@@ -270,7 +479,6 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
   ]);
 
   const shouldShow =
-    prefersStackedNav &&
     exceededCategories.length > 0 &&
     subscription &&
     subscription.canSelfServe &&
@@ -279,26 +487,26 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     return null;
   }
 
-  const onCheckboxChange = ({
-    checked,
+  const onDismiss = ({
+    categories,
     eventTypes,
     isManual = false,
   }: {
-    checked: boolean;
+    categories: DataCategory[];
     eventTypes: EventType[];
     isManual?: boolean;
   }) => {
-    promptsToCheck.forEach(prompt => {
-      if (checked) {
+    // Only snooze prompts for the specific categories passed, not all prompts
+    const promptsToSnooze = categories.map(
+      category => `${snakeCase(category)}_overage_alert`
+    );
+    promptsToSnooze.forEach(prompt => {
+      if (promptsToCheck.includes(prompt)) {
         snoozePrompt(prompt);
-      } else {
-        showPrompt(prompt);
       }
     });
     if (isManual) {
-      const analyticsEvent = checked
-        ? 'quota_alert.clicked_snooze'
-        : 'quota_alert.clicked_unsnooze';
+      const analyticsEvent = 'quota_alert.clicked_snooze';
       trackGetsentryAnalytics(analyticsEvent, {
         organization,
         subscription,
@@ -307,6 +515,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
         source: 'nav-quota-overage',
       });
     }
+    overlayState.close();
   };
 
   return (
@@ -314,21 +523,11 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
       <SidebarButton
         analyticsKey="billingStatus"
         label={t('Billing Status')}
-        // @ts-expect-error Warning variant is only available in Chonk
         buttonProps={{
           ...overlayTriggerProps,
-          ...(isChonkTheme(theme)
-            ? {priority: 'warning'}
-            : {style: {backgroundColor: theme.warning}}),
         }}
       >
-        <motion.div
-          {...(isOpen || hasSnoozedAllPrompts()
-            ? {style: {display: 'flex', alignItems: 'center', justifyContent: 'center'}}
-            : ANIMATE_PROPS)}
-        >
-          <IconWarning color={iconColor as Color} />
-        </motion.div>
+        <IconWarning />
       </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
@@ -337,7 +536,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
             subscription={subscription}
             organization={organization}
             isDismissed={hasSnoozedAllPrompts()}
-            onCheck={onCheckboxChange}
+            onClick={onDismiss}
           />
         </PrimaryButtonOverlay>
       )}
@@ -348,56 +547,33 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
 export default PrimaryNavigationQuotaExceeded;
 
 const Container = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const Header = styled('div')`
-  background: ${p => p.theme.background};
-  padding: ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.tokens.background.primary};
+  padding: ${p => p.theme.space.xl};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const HeaderTitle = styled('h1')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: 0;
 `;
 
 const Title = styled('h2')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   margin-bottom: 0;
 `;
 
 const Body = styled('div')`
-  margin: ${space(2)};
-  font-size: ${p => p.theme.fontSize.md};
+  margin: ${p => p.theme.space.xl};
+  font-size: ${p => p.theme.font.size.md};
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const Description = styled('div')`
   text-wrap: pretty;
-`;
-const ActionContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const DismissContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-`;
-
-const CheckboxLabel = styled('label')`
-  display: flex;
-  align-items: center;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  cursor: pointer;
-
-  > span {
-    margin-left: ${space(1)};
-  }
 `;

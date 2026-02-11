@@ -2,11 +2,12 @@ import {useState} from 'react';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 
-describe('GuidedSteps', function () {
-  it('can navigate through steps and shows previous ones as completed', async function () {
+describe('GuidedSteps', () => {
+  it('can navigate through steps and shows previous ones as completed', async () => {
     render(
       <GuidedSteps>
         <GuidedSteps.Step stepKey="step-1" title="Step 1 Title">
@@ -40,7 +41,7 @@ describe('GuidedSteps', function () {
     ).toBeInTheDocument();
   });
 
-  it('starts at the first incomplete step', function () {
+  it('starts at the first incomplete step', () => {
     render(
       <GuidedSteps>
         <GuidedSteps.Step stepKey="step-1" title="Step 1 Title" isCompleted>
@@ -69,7 +70,7 @@ describe('GuidedSteps', function () {
     expect(screen.queryByText('This is the third step.')).not.toBeInTheDocument();
   });
 
-  it('advances to the next step when the current one is completed', async function () {
+  it('advances to the next step when the current one is completed', async () => {
     function Comp() {
       const [isCompleted, setIsCompleted] = useState(false);
 
@@ -115,7 +116,7 @@ describe('GuidedSteps', function () {
     ).toBeInTheDocument();
   });
 
-  it('custom current step on load', function () {
+  it('custom current step on load', () => {
     render(
       <GuidedSteps initialStep={2}>
         <GuidedSteps.Step stepKey="step-1" title="Step 1 Title">

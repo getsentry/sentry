@@ -1,7 +1,6 @@
 import {InstallWizardFixture} from 'sentry-fixture/installWizard';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import AlertStore from 'sentry/stores/alertStore';
@@ -20,11 +19,25 @@ function HookWrapper(props: any) {
   );
 }
 
-describe('App', function () {
-  const configState = ConfigStore.getState();
-  const {routerProps} = initializeOrg();
+function PlaceholderContent() {
+  return <div>placeholder content</div>;
+}
 
-  beforeEach(function () {
+const defaultRouterConfig = {
+  location: {pathname: '/organizations/org-slug/'},
+  children: [
+    {
+      index: true,
+      element: <PlaceholderContent />,
+    },
+  ],
+  route: '/organizations/:orgSlug/',
+};
+
+describe('App', () => {
+  const configState = ConfigStore.getState();
+
+  beforeEach(() => {
     const organization = OrganizationFixture();
 
     ConfigStore.init();
@@ -63,31 +76,23 @@ describe('App', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
-  it('renders', async function () {
-    render(
-      <App {...routerProps}>
-        <div>placeholder content</div>
-      </App>
-    );
+  it('renders', async () => {
+    render(<App />, {initialRouterConfig: defaultRouterConfig});
 
     await waitFor(() => OrganizationsStore.getAll().length === 1);
     expect(screen.getByText('placeholder content')).toBeInTheDocument();
     expect(testableWindowLocation.replace).not.toHaveBeenCalled();
   });
 
-  it('renders NewsletterConsent', async function () {
+  it('renders NewsletterConsent', async () => {
     const user = ConfigStore.get('user');
     user.flags.newsletter_consent_prompt = true;
 
-    render(
-      <App {...routerProps}>
-        <div>placeholder content</div>
-      </App>
-    );
+    render(<App />, {initialRouterConfig: defaultRouterConfig});
 
     await waitFor(() => OrganizationsStore.getAll().length === 1);
 
@@ -101,7 +106,7 @@ describe('App', function () {
     user.flags.newsletter_consent_prompt = false;
   });
 
-  it('renders BeaconConsent', async function () {
+  it('renders BeaconConsent', async () => {
     ConfigStore.set('shouldShowBeaconConsentPrompt', true);
     ConfigStore.get('user').isSuperuser = true;
     ConfigStore.set('isSelfHosted', true);
@@ -113,11 +118,7 @@ describe('App', function () {
       },
     });
 
-    render(
-      <App {...routerProps}>
-        <div>placeholder content</div>
-      </App>
-    );
+    render(<App />, {initialRouterConfig: defaultRouterConfig});
 
     await waitFor(() => OrganizationsStore.getAll().length === 1);
 
@@ -129,38 +130,30 @@ describe('App', function () {
     expect(beaconConsentText).toBeInTheDocument();
   });
 
-  it('renders PartnershipAgreement', async function () {
+  it('renders PartnershipAgreement', async () => {
     ConfigStore.set('partnershipAgreementPrompt', {
       partnerDisplayName: 'Foo',
       agreements: ['standard', 'partner_presence'],
     });
     HookStore.add('component:partnership-agreement', () => <HookWrapper key={0} />);
-    render(
-      <App {...routerProps}>
-        <div>placeholder content</div>
-      </App>
-    );
+    render(<App />, {initialRouterConfig: defaultRouterConfig});
 
     await waitFor(() => OrganizationsStore.getAll().length === 1);
     expect(HookStore.get('component:partnership-agreement')).toHaveLength(1);
     expect(screen.getByTestId('hook-wrapper')).toBeInTheDocument();
   });
 
-  it('does not render PartnerAgreement for non-partnered orgs', async function () {
+  it('does not render PartnerAgreement for non-partnered orgs', async () => {
     ConfigStore.set('partnershipAgreementPrompt', null);
     HookStore.add('component:partnership-agreement', () => <HookWrapper key={0} />);
-    render(
-      <App {...routerProps}>
-        <div>placeholder content</div>
-      </App>
-    );
+    render(<App />, {initialRouterConfig: defaultRouterConfig});
 
     await waitFor(() => OrganizationsStore.getAll().length === 1);
     expect(screen.getByText('placeholder content')).toBeInTheDocument();
     expect(screen.queryByTestId('hook-wrapper')).not.toBeInTheDocument();
   });
 
-  it('renders InstallWizard for self-hosted', async function () {
+  it('renders InstallWizard for self-hosted', async () => {
     ConfigStore.get('user').isSuperuser = true;
     ConfigStore.set('needsUpgrade', true);
     ConfigStore.set('isSelfHosted', true);
@@ -172,11 +165,7 @@ describe('App', function () {
       },
     });
 
-    render(
-      <App {...routerProps}>
-        <div>placeholder content</div>
-      </App>
-    );
+    render(<App />, {initialRouterConfig: defaultRouterConfig});
 
     await waitFor(() => OrganizationsStore.getAll().length === 1);
 
@@ -186,38 +175,44 @@ describe('App', function () {
     expect(completeSetup).toBeInTheDocument();
   });
 
-  it('does not render InstallWizard for non-self-hosted', async function () {
+  it('does not render InstallWizard for non-self-hosted', async () => {
     ConfigStore.get('user').isSuperuser = true;
     ConfigStore.set('needsUpgrade', true);
     ConfigStore.set('isSelfHosted', false);
 
-    render(
-      <App {...routerProps}>
-        <div>placeholder content</div>
-      </App>
-    );
+    render(<App />, {initialRouterConfig: defaultRouterConfig});
 
     await waitFor(() => OrganizationsStore.getAll().length === 1);
     expect(screen.getByText('placeholder content')).toBeInTheDocument();
     expect(testableWindowLocation.replace).not.toHaveBeenCalled();
   });
 
-  it('redirects to sentryUrl on invalid org slug', async function () {
+  it('redirects to sentryUrl on invalid org slug', async () => {
     const {sentryUrl} = ConfigStore.get('links');
-    render(
-      <App {...routerProps} params={{orgId: 'albertos%2fapples'}}>
-        <div>placeholder content</div>
-      </App>
-    );
+    // Avoid mounting OrganizationContextProvider and related preloads which
+    // would issue org-specific requests for the invalid slug
+    ConfigStore.set('shouldPreloadData', false);
+    render(<App />, {
+      initialRouterConfig: {
+        location: {pathname: '/organizations/albertos%2fapples/'},
+        route: '/organizations/:orgId/',
+        children: [
+          {
+            index: true,
+            element: <PlaceholderContent />,
+          },
+        ],
+      },
+    });
 
-    await waitFor(() => OrganizationsStore.getAll().length === 1);
+    await waitFor(() => expect(testableWindowLocation.replace).toHaveBeenCalled());
     expect(screen.queryByText('placeholder content')).not.toBeInTheDocument();
     expect(sentryUrl).toBe('https://sentry.io');
     expect(testableWindowLocation.replace).toHaveBeenCalledWith('https://sentry.io');
     expect(testableWindowLocation.replace).toHaveBeenCalledTimes(1);
   });
 
-  it('adds health issues to alertstore', async function () {
+  it('adds health issues to alertstore', async () => {
     const getMock = MockApiClient.addMockResponse({
       url: '/internal/health/',
       body: {
@@ -234,11 +229,7 @@ describe('App', function () {
     const restore = ConfigStore.get('isSelfHosted');
     ConfigStore.set('isSelfHosted', true);
 
-    render(
-      <App {...routerProps}>
-        <div>placeholder content</div>
-      </App>
-    );
+    render(<App />, {initialRouterConfig: defaultRouterConfig});
     act(() => ConfigStore.set('isSelfHosted', restore));
 
     await waitFor(() => OrganizationsStore.getAll().length === 1);
@@ -251,7 +242,7 @@ describe('App', function () {
           id: 'abc123',
           message: 'Celery workers have not checked in',
           opaque: true,
-          type: 'error',
+          variant: 'danger',
         }),
       ]);
     });

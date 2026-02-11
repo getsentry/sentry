@@ -3,18 +3,18 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import queryString from 'query-string';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import useCurrentFeedbackProject from 'sentry/components/feedback/useCurrentFeedbackProject';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
+import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 
 interface Props {
   feedbackItem: FeedbackIssue;
@@ -57,30 +57,11 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
       },
     });
 
-  const {onClick: handleCopyUrl} = useCopyToClipboard({
-    successMessage: t('Copied Feedback URL to clipboard'),
-    text: feedbackUrl,
-  });
-
-  const {onClick: handleCopyShortId} = useCopyToClipboard({
-    successMessage: t('Copied Short-ID to clipboard'),
-    text: feedbackItem.shortId,
-  });
-
-  const {onClick: handleCopyMarkdown} = useCopyToClipboard({
-    text: `[${feedbackItem.shortId}](${feedbackUrl})`,
-    successMessage: t('Copied Markdown Feedback Link to clipboard'),
-  });
+  const {copy} = useCopyToClipboard();
 
   return (
-    <Flex
-      gap={space(1)}
-      align="center"
-      className={className}
-      style={style}
-      css={hideDropdown}
-    >
-      <Flex gap={space(0.75)} align="center">
+    <Flex gap="md" align="center" className={className} style={style} css={hideDropdown}>
+      <Flex gap="sm" align="center">
         {feedbackItem.project ? (
           <ProjectBadge
             project={feedbackItem.project}
@@ -96,7 +77,7 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
           'aria-label': t('Short-ID copy actions'),
           icon: <IconChevron direction="down" size="xs" />,
           size: 'zero',
-          borderless: true,
+          priority: 'transparent',
           showChevron: false,
         }}
         position="bottom"
@@ -105,17 +86,26 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
           {
             key: 'copy-url',
             label: t('Copy Feedback URL'),
-            onAction: handleCopyUrl,
+            onAction: () =>
+              copy(feedbackUrl, {
+                successMessage: t('Copied Feedback URL to clipboard'),
+              }),
           },
           {
             key: 'copy-short-id',
             label: t('Copy Short-ID'),
-            onAction: handleCopyShortId,
+            onAction: () =>
+              copy(feedbackItem.shortId, {
+                successMessage: t('Copied Short-ID to clipboard'),
+              }),
           },
           {
             key: 'copy-markdown-link',
             label: t('Copy Markdown Link'),
-            onAction: handleCopyMarkdown,
+            onAction: () =>
+              copy(`[${feedbackItem.shortId}](${feedbackUrl})`, {
+                successMessage: t('Copied Markdown Feedback Link to clipboard'),
+              }),
           },
         ]}
       />
@@ -124,6 +114,6 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
 }
 
 const ShortId = styled(TextOverflow)`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;

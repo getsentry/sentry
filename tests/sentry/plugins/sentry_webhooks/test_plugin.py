@@ -4,7 +4,6 @@ import pytest
 import responses
 
 from sentry.exceptions import PluginError
-from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.plugins.sentry_webhooks.plugin import WebHooksOptionsForm, WebHooksPlugin, validate_urls
 from sentry.testutils.cases import TestCase
@@ -16,19 +15,19 @@ pytestmark = [requires_snuba]
 
 class WebHooksPluginTest(TestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> WebHooksPlugin:
         return WebHooksPlugin()
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.event = self.store_event(
             data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
         )
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(name="my rule")
         self.notification = Notification(event=self.event, rule=rule)
         self.project.update_option("webhooks:urls", "http://example.com")
 
     @responses.activate
-    def test_simple_notification(self):
+    def test_simple_notification(self) -> None:
         responses.add(responses.POST, "http://example.com")
 
         self.plugin.notify(self.notification)
@@ -43,7 +42,7 @@ class WebHooksPluginTest(TestCase):
         assert payload["triggering_rules"] == ["my rule"]
 
     @responses.activate
-    def test_unsupported_text_response(self):
+    def test_unsupported_text_response(self) -> None:
         """Test that a response of just text doesn't raise an error"""
         responses.add(
             responses.POST,
@@ -58,7 +57,7 @@ class WebHooksPluginTest(TestCase):
         assert responses.calls[0].response.status_code == 200
 
     @responses.activate
-    def test_unsupported_null_response(self):
+    def test_unsupported_null_response(self) -> None:
         """Test that a response of null doesn't raise an error"""
         responses.add(
             responses.POST, "http://example.com", body="null", content_type="application/json"
@@ -70,7 +69,7 @@ class WebHooksPluginTest(TestCase):
         assert responses.calls[0].response.status_code == 200
 
     @responses.activate
-    def test_unsupported_int_response(self):
+    def test_unsupported_int_response(self) -> None:
         """Test that a response of an integer doesn't raise an error"""
         responses.add(
             responses.POST, "http://example.com", body="1", content_type="application/json"
@@ -81,7 +80,7 @@ class WebHooksPluginTest(TestCase):
         assert len(responses.calls) == 1
         assert responses.calls[0].response.status_code == 200
 
-    def test_webhook_validation(self):
+    def test_webhook_validation(self) -> None:
         # Test that you can't sneak a bad domain into the list of webhooks
         # without it being validated by delimiting with \r instead of \n
         bad_urls = "http://example.com\rftp://baddomain.com"
@@ -92,7 +91,7 @@ class WebHooksPluginTest(TestCase):
             validate_urls(form.cleaned_data["urls"])
 
     @responses.activate
-    def test_moved_permanently(self):
+    def test_moved_permanently(self) -> None:
         """Test that we do not raise an error for 301s"""
 
         responses.add(responses.POST, "http://example.com", body="<moved permanently", status=301)

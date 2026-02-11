@@ -1,4 +1,4 @@
-import {type ReactNode, useMemo} from 'react';
+import {useMemo, type ReactNode} from 'react';
 import type Fuse from 'fuse.js';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -7,17 +7,19 @@ import type {
   SearchKeyItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {
-  createAskSeerConsentItem,
   createAskSeerItem,
   createFilterValueItem,
   createItem,
-  createRawSearchFilterValueItem,
+  createLogicFilterItem,
+  createRawSearchFilterContainsValueItem,
+  createRawSearchFilterIsValueItem,
+  createRawSearchFuzzyFilterItem,
   createRawSearchItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {FieldKey} from 'sentry/utils/fields';
+import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -25,7 +27,7 @@ type FilterKeySearchItem = {
   description: string;
   item: Tag;
   keywords: string[];
-  type: 'value' | 'key';
+  type: 'value' | 'key' | 'logic';
   key?: string;
   value?: string;
 };
@@ -43,6 +45,35 @@ const FUZZY_SEARCH_OPTIONS: Fuse.IFuseOptions<FilterKeySearchItem> = {
   includeScore: true,
   distance: 1000,
 };
+
+// Note: we don't need to add in the parentheses because when typed they are
+// automatically handled by the parser and tokens created.
+const LOGIC_FILTER_ITEMS: FilterKeySearchItem[] = [
+  {
+    key: 'AND',
+    type: 'logic',
+    description: 'AND logical operator',
+    keywords: [],
+    item: {
+      key: 'AND',
+      name: 'AND',
+      kind: FieldKind.FIELD,
+      secondaryAliases: [],
+    },
+  },
+  {
+    key: 'OR',
+    type: 'logic',
+    description: 'OR logical operator',
+    keywords: [],
+    item: {
+      key: 'OR',
+      name: 'OR',
+      kind: FieldKind.FIELD,
+      secondaryAliases: [],
+    },
+  },
+];
 
 function isQuoted(inputValue: string) {
   return inputValue.startsWith('"') && inputValue.endsWith('"');
@@ -137,13 +168,13 @@ export function useSortedFilterKeyItems({
     filterKeySections,
     disallowFreeText,
     replaceRawSearchKeys,
+    matchKeySuggestions,
     enableAISearch,
-    gaveSeerConsent,
   } = useSearchQueryBuilder();
-  const organization = useOrganization();
 
-  const hasRawSearchReplacement = organization.features.includes(
-    'search-query-builder-raw-search-replacement'
+  const organization = useOrganization();
+  const hasConditionalsInCombobox = organization.features.includes(
+    'search-query-builder-conditionals-combobox-menus'
   );
 
   const flatKeys = useMemo(() => Object.values(filterKeys), [filterKeys]);
@@ -165,11 +196,12 @@ export function useSortedFilterKeyItems({
       return [
         ...searchKeyItems,
         ...getFilterSearchValues(flatKeys, {getFieldDefinition}),
+        ...(hasConditionalsInCombobox ? LOGIC_FILTER_ITEMS : []),
       ];
     }
 
-    return searchKeyItems;
-  }, [flatKeys, getFieldDefinition, includeSuggestions]);
+    return [...searchKeyItems, ...(hasConditionalsInCombobox ? LOGIC_FILTER_ITEMS : [])];
+  }, [flatKeys, getFieldDefinition, hasConditionalsInCombobox, includeSuggestions]);
 
   const search = useFuzzySearch(searchableItems, FUZZY_SEARCH_OPTIONS);
 
@@ -194,11 +226,32 @@ export function useSortedFilterKeyItems({
     const searched = search.search(filterValue);
 
     const keyItems = searched
-      .map(({item}) => item)
-      .filter(item => item.type === 'key' && filterKeys[item.item.key])
-      .map(({item}) => {
-        return createItem(filterKeys[item.key]!, getFieldDefinition(item.key));
+      .map(({item: filterSearchKeyItem}) => filterSearchKeyItem)
+      .filter(
+        filterSearchKeyItem =>
+          (filterSearchKeyItem.type === 'key' &&
+            filterKeys[filterSearchKeyItem.item.key]) ||
+          filterSearchKeyItem.type === 'logic'
+      )
+      .map(filterSearchKeyItem => {
+        if (
+          filterSearchKeyItem.type === 'logic' &&
+          (filterSearchKeyItem.key === 'AND' ||
+            filterSearchKeyItem.key === 'OR' ||
+            filterSearchKeyItem.key === '(' ||
+            filterSearchKeyItem.key === ')')
+        ) {
+          return createLogicFilterItem({value: filterSearchKeyItem.key});
+        }
+
+        const {key} = filterSearchKeyItem.item;
+        return createItem(filterKeys[key]!, getFieldDefinition(key));
       });
+
+    const askSeerItem = [];
+    if (enableAISearch) {
+      askSeerItem.push(createAskSeerItem());
+    }
 
     if (includeSuggestions) {
       const rawSearchSection: KeySectionItem = {
@@ -214,20 +267,28 @@ export function useSortedFilterKeyItems({
         inputValue &&
         !isQuoted(inputValue) &&
         (!keyItems.length || inputValue.trim().includes(' ')) &&
-        (!replaceRawSearchKeys?.length || !hasRawSearchReplacement);
+        !replaceRawSearchKeys?.length;
+
+      const rawSearchFilterIsValueItems =
+        replaceRawSearchKeys?.flatMap(key => {
+          const value = inputValue?.includes(' ')
+            ? `"${inputValue.replace(/"/g, '')}"`
+            : inputValue;
+
+          return [
+            createRawSearchFilterContainsValueItem(key, value),
+            createRawSearchFilterIsValueItem(key, value),
+            ...(/\w \w/.test(inputValue)
+              ? [createRawSearchFuzzyFilterItem(key, inputValue)]
+              : []),
+          ];
+        }) ?? [];
 
       const rawSearchReplacements: KeySectionItem = {
         key: 'raw-search-filter-values',
         value: 'raw-search-filter-values',
         label: '',
-        options:
-          replaceRawSearchKeys?.map(key => {
-            const value = inputValue?.includes(' ')
-              ? `"${inputValue.replace(/"/g, '')}"`
-              : inputValue;
-
-            return createRawSearchFilterValueItem(key, value);
-          }) ?? [],
+        options: [...rawSearchFilterIsValueItems],
         type: 'section',
       };
 
@@ -236,8 +297,7 @@ export function useSortedFilterKeyItems({
         inputValue &&
         !isQuoted(inputValue) &&
         (!keyItems.length || inputValue.trim().includes(' ')) &&
-        !!replaceRawSearchKeys?.length &&
-        hasRawSearchReplacement;
+        !!replaceRawSearchKeys?.length;
 
       const keyItemsSection: KeySectionItem = {
         key: 'key-items',
@@ -247,17 +307,34 @@ export function useSortedFilterKeyItems({
         type: 'section',
       };
 
-      const askSeerItem = [];
-      if (enableAISearch) {
-        askSeerItem.push(
-          gaveSeerConsent ? createAskSeerItem() : createAskSeerConsentItem()
-        );
+      const shouldShowMatchKeySuggestions =
+        !disallowFreeText &&
+        inputValue &&
+        !isQuoted(inputValue) &&
+        (!keyItems.length || inputValue.trim().includes(' ')) &&
+        !!matchKeySuggestions?.length &&
+        matchKeySuggestions.some(suggestion => suggestion.valuePattern.test(inputValue));
+
+      let matchKeySuggestionsOptions: SearchKeyItem[] = [];
+      if (shouldShowMatchKeySuggestions && matchKeySuggestions) {
+        matchKeySuggestionsOptions = matchKeySuggestions
+          ?.filter(suggestion => suggestion.valuePattern.test(inputValue))
+          .map(suggestion => createFilterValueItem(suggestion.key, inputValue));
       }
+
+      const matchKeySuggestionsSection: KeySectionItem = {
+        key: 'key-matched-suggestions',
+        value: 'key-matched-suggestions',
+        label: '',
+        options: matchKeySuggestionsOptions,
+        type: 'section',
+      };
 
       const {shouldShowAtTop, suggestedFiltersSection} =
         getValueSuggestionsFromSearchResult(searched);
 
       return [
+        ...(shouldShowMatchKeySuggestions ? [matchKeySuggestionsSection] : []),
         ...(shouldShowAtTop && suggestedFiltersSection ? [suggestedFiltersSection] : []),
         ...(shouldReplaceRawSearch ? [rawSearchReplacements] : []),
         ...(shouldIncludeRawSearch ? [rawSearchSection] : []),
@@ -267,7 +344,7 @@ export function useSortedFilterKeyItems({
       ];
     }
 
-    return keyItems;
+    return [...keyItems, ...askSeerItem];
   }, [
     disallowFreeText,
     enableAISearch,
@@ -275,11 +352,10 @@ export function useSortedFilterKeyItems({
     filterKeys,
     filterValue,
     flatKeys,
-    gaveSeerConsent,
     getFieldDefinition,
-    hasRawSearchReplacement,
     includeSuggestions,
     inputValue,
+    matchKeySuggestions,
     replaceRawSearchKeys,
     search,
   ]);

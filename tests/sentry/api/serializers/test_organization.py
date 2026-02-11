@@ -23,12 +23,13 @@ from sentry.models.organizationonboardingtask import (
     OrganizationOnboardingTask,
 )
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
-non_default_owner_scopes = ["org:ci", "openid", "email", "profile"]
+non_default_owner_scopes = ["org:ci", "openid", "email", "profile", "project:distribution"]
 default_owner_scopes = frozenset(
     filter(lambda scope: scope not in non_default_owner_scopes, settings.SENTRY_SCOPES)
 )
@@ -54,7 +55,7 @@ mock_options_as_features = {
 
 
 class OrganizationSerializerTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user()
         organization = self.create_organization(owner=user)
 
@@ -63,7 +64,6 @@ class OrganizationSerializerTest(TestCase):
         assert result["id"] == str(organization.id)
         assert result["features"] == [
             "advanced-search",
-            "anomaly-detection-rollout",
             "change-alerts",
             "crash-rate-alerts",
             "custom-symbol-sources",
@@ -73,6 +73,7 @@ class OrganizationSerializerTest(TestCase):
             "discover-basic",
             "discover-query",
             "event-attachments",
+            "insight-modules",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
             "integrations-codeowners",
@@ -89,9 +90,8 @@ class OrganizationSerializerTest(TestCase):
             "integrations-vercel",
             "invite-members",
             "minute-resolution-sessions",
-            "new-page-filter",
             "open-membership",
-            "performance-tracing-without-performance",
+            "project-creation-games-tab",
             "relay",
             "session-replay-ui",
             "shared-issues",
@@ -104,7 +104,7 @@ class OrganizationSerializerTest(TestCase):
         ]
 
     @mock.patch("sentry.features.batch_has")
-    def test_organization_batch_has(self, mock_batch):
+    def test_organization_batch_has(self, mock_batch: mock.MagicMock) -> None:
         user = self.create_user()
         organization = self.create_organization(owner=user)
 
@@ -122,7 +122,7 @@ class OrganizationSerializerTest(TestCase):
         assert "disabled-feature" not in result["features"]
 
     @mock.patch.dict(ORGANIZATION_OPTIONS_AS_FEATURES, mock_options_as_features)
-    def test_organization_options_as_features(self):
+    def test_organization_options_as_features(self) -> None:
         user = self.create_user()
         organization = self.create_organization(owner=user)
 
@@ -147,7 +147,7 @@ class OrganizationSerializerTest(TestCase):
 
 
 class DetailedOrganizationSerializerTest(TestCase):
-    def test_detailed(self):
+    def test_detailed(self) -> None:
         user = self.create_user()
         organization = self.create_organization(owner=user)
         acc = access.from_user(user, organization)
@@ -163,9 +163,96 @@ class DetailedOrganizationSerializerTest(TestCase):
         assert isinstance(result["teamRoleList"], list)
         assert result["requiresSso"] == acc.requires_sso
 
+    def test_granular_replay_permissions_disabled_without_feature(self) -> None:
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        acc = access.from_user(user, organization)
+
+        serializer = DetailedOrganizationSerializer()
+        result = serialize(organization, user, serializer, access=acc)
+
+        assert result["hasGranularReplayPermissions"] is False
+        assert result["replayAccessMembers"] == []
+
+    def test_granular_replay_permissions_flag_with_feature(self) -> None:
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        acc = access.from_user(user, organization)
+
+        with self.feature("organizations:granular-replay-permissions"):
+            serializer = DetailedOrganizationSerializer()
+            result = serialize(organization, user, serializer, access=acc)
+            assert result["hasGranularReplayPermissions"] is False
+            assert result["replayAccessMembers"] == []
+
+            OrganizationOption.objects.set_value(
+                organization=organization,
+                key="sentry:granular-replay-permissions",
+                value=True,
+            )
+
+            result = serialize(organization, user, serializer, access=acc)
+            assert result["hasGranularReplayPermissions"] is True
+            assert result["replayAccessMembers"] == []
+
+    def test_replay_access_members_serialized(self) -> None:
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        member1 = self.create_member(
+            organization=organization, user=self.create_user(), role="member"
+        )
+        member2 = self.create_member(
+            organization=organization, user=self.create_user(), role="member"
+        )
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member1)
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member2)
+        acc = access.from_user(user, organization)
+
+        with self.feature("organizations:granular-replay-permissions"):
+            serializer = DetailedOrganizationSerializer()
+            result = serialize(organization, user, serializer, access=acc)
+            assert set(result["replayAccessMembers"]) == set()
+
+    def test_replay_access_members_serialized_with_option_enabled(self) -> None:
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        member1 = self.create_member(
+            organization=organization, user=self.create_user(), role="member"
+        )
+        member2 = self.create_member(
+            organization=organization, user=self.create_user(), role="member"
+        )
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member1)
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member2)
+        acc = access.from_user(user, organization)
+
+        with self.feature("organizations:granular-replay-permissions"):
+            # Set the org option to enable granular replay permissions
+            OrganizationOption.objects.set_value(
+                organization=organization,
+                key="sentry:granular-replay-permissions",
+                value=True,
+            )
+
+            serializer = DetailedOrganizationSerializer()
+            result = serialize(organization, user, serializer, access=acc)
+            assert result["hasGranularReplayPermissions"] is True
+            assert set(result["replayAccessMembers"]) == {member1.user_id, member2.user_id}
+
+    def test_replay_access_members_empty_when_none_set(self) -> None:
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        acc = access.from_user(user, organization)
+
+        with self.feature("organizations:granular-replay-permissions"):
+            serializer = DetailedOrganizationSerializer()
+            result = serialize(organization, user, serializer, access=acc)
+
+            assert result["replayAccessMembers"] == []
+
 
 class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
-    def test_detailed_org_projs_teams(self):
+    def test_detailed_org_projs_teams(self) -> None:
         # access the test fixtures so they're initialized
         self.team
         self.project
@@ -180,7 +267,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
         assert len(result["teams"]) == 1
         assert len(result["projects"]) == 1
 
-    def test_disable_last_deploys_killswitch(self):
+    def test_disable_last_deploys_killswitch(self) -> None:
         self.team
         self.project
         self.release = self.create_release(self.project)
@@ -221,7 +308,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
 
 
 class OnboardingTasksSerializerTest(TestCase):
-    def test_onboarding_tasks_serializer(self):
+    def test_onboarding_tasks_serializer(self) -> None:
         completion_seen = timezone.now()
         serializer = OnboardingTasksSerializer()
         task = OrganizationOnboardingTask.objects.create(
@@ -240,7 +327,7 @@ class OnboardingTasksSerializerTest(TestCase):
 
 
 class TrustedRelaySerializer(TestCase):
-    def test_trusted_relay_serializer(self):
+    def test_trusted_relay_serializer(self) -> None:
         completion_seen = timezone.now()
         serializer = OnboardingTasksSerializer()
         task = OrganizationOnboardingTask.objects.create(

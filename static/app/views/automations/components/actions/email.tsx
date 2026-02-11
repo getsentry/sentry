@@ -1,7 +1,7 @@
-import styled from '@emotion/styled';
+import {Container} from '@sentry/scraps/layout';
 
 import SelectMembers from 'sentry/components/selectMembers';
-import TeamSelector from 'sentry/components/teamSelector';
+import {TeamSelector} from 'sentry/components/teamSelector';
 import {
   AutomationBuilderSelect,
   selectControlStyles,
@@ -35,9 +35,9 @@ const FALLTHROUGH_CHOICES = [
 ];
 
 export function EmailDetails({action}: {action: Action}) {
-  const {target_type, target_identifier} = action.config;
+  const {targetType, targetIdentifier} = action.config;
 
-  if (target_type === ActionTarget.ISSUE_OWNERS) {
+  if (targetType === ActionTarget.ISSUE_OWNERS) {
     return tct('Notify Suggested Assignees and, if none found, notify [fallthrough]', {
       fallthrough:
         FALLTHROUGH_CHOICES.find(choice => choice.value === action.data.fallthroughType)
@@ -45,11 +45,11 @@ export function EmailDetails({action}: {action: Action}) {
     });
   }
 
-  if (target_type === ActionTarget.TEAM && target_identifier) {
-    return <AssignedToTeam teamId={target_identifier} />;
+  if (targetType === ActionTarget.TEAM && targetIdentifier) {
+    return <AssignedToTeam teamId={targetIdentifier} />;
   }
-  if (target_type === ActionTarget.USER && target_identifier) {
-    return <AssignedToMember memberId={parseInt(target_identifier, 10)} />;
+  if (targetType === ActionTarget.USER && targetIdentifier) {
+    return <AssignedToMember memberId={parseInt(targetIdentifier, 10)} />;
   }
 
   return t('Notify on preferred channel');
@@ -63,7 +63,7 @@ function AssignedToTeam({teamId}: {teamId: string}) {
 
 function AssignedToMember({memberId}: {memberId: number}) {
   const {data: user} = useUserFromId({id: memberId});
-  return t('Notify member %s', `${user?.email ?? 'unknown'}`);
+  return t('Notify %s', `${user?.name ?? user?.email ?? 'unknown'}`);
 }
 
 export function EmailNode() {
@@ -78,15 +78,15 @@ function TargetTypeField() {
   return (
     <AutomationBuilderSelect
       aria-label={t('Notification target type')}
-      name={`${actionId}.config.target_type`}
-      value={action.config.target_type}
+      name={`${actionId}.config.targetType`}
+      value={action.config.targetType}
       options={TARGET_TYPE_CHOICES}
       onChange={(option: SelectValue<ActionTarget>) => {
         onUpdate({
           config: {
             ...action.config,
-            target_type: option.value,
-            target_identifier: undefined,
+            targetType: option.value,
+            targetIdentifier: undefined,
           },
           ...(option.value === ActionTarget.ISSUE_OWNERS
             ? {data: {fallthroughType: FallthroughChoiceType.ACTIVE_MEMBERS}}
@@ -102,16 +102,20 @@ function IdentifierField() {
   const {removeError} = useAutomationBuilderErrorContext();
   const organization = useOrganization();
 
-  if (action.config.target_type === ActionTarget.TEAM) {
+  if (action.config.targetType === ActionTarget.TEAM) {
     return (
-      <SelectWrapper>
+      <Container width="200px">
         <TeamSelector
           aria-label={t('Team')}
-          name={`${actionId}.config.target_identifier`}
-          value={action.config.target_identifier}
+          name={`${actionId}.config.targetIdentifier`}
+          value={action.config.targetIdentifier}
           onChange={(value: any) => {
             onUpdate({
-              config: {...action.config, target_identifier: value.actor.id},
+              config: {
+                ...action.config,
+                targetIdentifier: value.actor.id,
+                targetDisplay: value.actor.name,
+              },
               data: {},
             });
             removeError(action.id);
@@ -119,27 +123,31 @@ function IdentifierField() {
           useId
           styles={selectControlStyles}
         />
-      </SelectWrapper>
+      </Container>
     );
   }
-  if (action.config.target_type === ActionTarget.USER) {
+  if (action.config.targetType === ActionTarget.USER) {
     return (
-      <SelectWrapper>
+      <Container width="200px">
         <SelectMembers
-          aria-label={t('User')}
+          ariaLabel={t('User')}
           organization={organization}
-          key={`${actionId}.config.target_identifier`}
-          value={action.config.target_identifier}
+          key={`${actionId}.config.targetIdentifier`}
+          value={action.config.targetIdentifier}
           onChange={(value: any) => {
             onUpdate({
-              config: {...action.config, target_identifier: value.actor.id},
+              config: {
+                ...action.config,
+                targetIdentifier: value.actor.id,
+                targetDisplay: value.actor.name ?? value.actor.email,
+              },
               data: {},
             });
             removeError(action.id);
           }}
           styles={selectControlStyles}
         />
-      </SelectWrapper>
+      </Container>
     );
   }
   return tct('and, if none found, notify [fallthrough]', {
@@ -163,30 +171,20 @@ function FallthroughField() {
 }
 
 export function validateEmailAction(action: Action): string | undefined {
-  if (!action.config.target_type) {
+  if (!action.config.targetType) {
     return t('You must notification target type.');
   }
   if (
-    action.config.target_type === ActionTarget.ISSUE_OWNERS &&
+    action.config.targetType === ActionTarget.ISSUE_OWNERS &&
     !action.data.fallthroughType
   ) {
     return t('You must specify a fallthrough type.');
   }
-  if (
-    action.config.target_type === ActionTarget.TEAM &&
-    !action.config.target_identifier
-  ) {
+  if (action.config.targetType === ActionTarget.TEAM && !action.config.targetIdentifier) {
     return t('You must specify a team.');
   }
-  if (
-    action.config.target_type === ActionTarget.USER &&
-    !action.config.target_identifier
-  ) {
+  if (action.config.targetType === ActionTarget.USER && !action.config.targetIdentifier) {
     return t('You must specify a member.');
   }
   return undefined;
 }
-
-const SelectWrapper = styled('div')`
-  width: 200px;
-`;

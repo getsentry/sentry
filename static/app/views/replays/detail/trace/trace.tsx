@@ -1,6 +1,8 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import Loading from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSad} from 'sentry/icons';
@@ -16,8 +18,7 @@ import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetai
 import {getInitialTracePreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
-import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
-import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
+import useTraceStateAnalytics from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
 import EmptyState from 'sentry/views/replays/detail/emptyState';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
@@ -95,20 +96,21 @@ function NewTraceViewImpl({replay}: {replay: undefined | HydratedReplayRecord}) 
   const meta = useReplayTraceMeta(replay);
   const tree = useTraceTree({
     trace,
-    meta,
     replay: replay ?? null,
   });
+
+  useTraceStateAnalytics({
+    trace,
+    meta,
+    organization,
+    traceTreeSource: 'replay_details',
+    tree,
+  });
+
   const rootEvent = useTraceRootEvent({
     tree,
     logs: undefined,
     traceId: firstTrace?.traceSlug ?? '',
-  });
-
-  const traceWaterfallModels = useTraceWaterfallModels();
-  const traceWaterfallScroll = useTraceWaterfallScroll({
-    organization,
-    tree,
-    viewManager: traceWaterfallModels.viewManager,
   });
 
   const otherReplayTraces = useMemo(() => {
@@ -149,7 +151,7 @@ function NewTraceViewImpl({replay}: {replay: undefined | HydratedReplayRecord}) 
   }
 
   return (
-    <TraceViewWaterfallWrapper>
+    <Stack height="100%">
       <TraceWaterfall
         traceSlug={firstTrace.traceSlug}
         trace={trace}
@@ -161,27 +163,19 @@ function NewTraceViewImpl({replay}: {replay: undefined | HydratedReplayRecord}) 
         meta={meta}
         source="replay"
         replay={replay}
-        traceWaterfallScrollHandlers={traceWaterfallScroll}
-        traceWaterfallModels={traceWaterfallModels}
       />
-    </TraceViewWaterfallWrapper>
+    </Stack>
   );
 }
 
 // This has the gray background, to match other loaders on Replay Details
 const StyledPlaceholder = styled(Placeholder)`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 // White background, to match the loaded component
 const BorderedSection = styled(FluidHeight)`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const TraceViewWaterfallWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
 `;

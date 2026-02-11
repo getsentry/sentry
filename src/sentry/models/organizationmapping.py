@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from django.db import models
+from django.db.models.functions import Now
 from django.utils import timezone
 
 from sentry import roles
@@ -52,6 +53,8 @@ class OrganizationMapping(Model):
     disable_member_project_creation = models.BooleanField(default=False, db_default=False)
     prevent_superuser_access = models.BooleanField(default=False, db_default=False)
     disable_member_invite = models.BooleanField(default=False, db_default=False)
+
+    date_updated = models.DateTimeField(db_default=Now(), auto_now=True, db_index=True)
 
     class Meta:
         app_label = "sentry"

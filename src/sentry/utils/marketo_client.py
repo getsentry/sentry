@@ -21,7 +21,7 @@ class MarketoError(Exception):
         self.code = error["code"]
         self.message = error["message"]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"MarketoError: {self.code} - {self.message}"
 
 

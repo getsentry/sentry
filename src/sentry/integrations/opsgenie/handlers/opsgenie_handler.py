@@ -1,3 +1,5 @@
+from typing import override
+
 from sentry.integrations.opsgenie.utils import OPSGENIE_CUSTOM_PRIORITIES
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.notification_action.action_handler_registry.base import (
@@ -7,9 +9,10 @@ from sentry.notifications.notification_action.action_handler_registry.common imp
     ONCALL_ACTION_CONFIG_SCHEMA,
 )
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
-from sentry.workflow_engine.models import Action, Detector
+from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
+from sentry.workflow_engine.transformers import TargetTypeConfigTransformer
+from sentry.workflow_engine.types import ActionHandler, ActionInvocation, ConfigTransformer
 
 
 @action_handler_registry.register(Action.Type.OPSGENIE)
@@ -32,9 +35,10 @@ class OpsgenieActionHandler(IntegrationActionHandler):
     }
 
     @staticmethod
-    def execute(
-        job: WorkflowEventData,
-        action: Action,
-        detector: Detector,
-    ) -> None:
-        execute_via_group_type_registry(job, action, detector)
+    def get_config_transformer() -> ConfigTransformer | None:
+        return TargetTypeConfigTransformer.from_config_schema(OpsgenieActionHandler.config_schema)
+
+    @staticmethod
+    @override
+    def execute(invocation: ActionInvocation) -> None:
+        execute_via_group_type_registry(invocation)

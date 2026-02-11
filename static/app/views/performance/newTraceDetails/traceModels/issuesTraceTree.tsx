@@ -2,19 +2,13 @@ import type {Client} from 'sentry/api';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
-import {
-  isEAPErrorNode,
-  isEAPSpanNode,
-  isTraceErrorNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {CollapsedNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceCollapsedNode';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
+import type {BaseNode} from './traceTreeNode/baseNode';
+import {CollapsedNode} from './traceTreeNode/collapsedNode';
 import {makeExampleTrace} from './makeExampleTrace';
-import type {TraceTreeNode} from './traceTreeNode';
 
 export class IssuesTraceTree extends TraceTree {
   static Empty() {
@@ -23,8 +17,11 @@ export class IssuesTraceTree extends TraceTree {
     return tree;
   }
 
-  static Loading(metadata: TraceTree.Metadata): IssuesTraceTree {
-    const t = makeExampleTrace(metadata);
+  static Loading(
+    metadata: TraceTree.Metadata,
+    organization: Organization
+  ): IssuesTraceTree {
+    const t = makeExampleTrace(metadata, organization);
     const tree = new IssuesTraceTree();
     tree.root = t.root;
     tree.type = 'loading';
@@ -32,8 +29,11 @@ export class IssuesTraceTree extends TraceTree {
     return tree;
   }
 
-  static Error(metadata: TraceTree.Metadata): IssuesTraceTree {
-    const t = makeExampleTrace(metadata);
+  static Error(
+    metadata: TraceTree.Metadata,
+    organization: Organization
+  ): IssuesTraceTree {
+    const t = makeExampleTrace(metadata, organization);
     const tree = new IssuesTraceTree();
     tree.root = t.root;
     tree.type = 'error';
@@ -45,13 +45,16 @@ export class IssuesTraceTree extends TraceTree {
     trace: TraceTree.Trace,
     options: {
       meta: TraceMetaQueryResults['data'] | null;
+      organization: Organization;
       replay: HydratedReplayRecord | null;
       preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
     }
   ): IssuesTraceTree {
-    const tree = super.FromTrace(trace, options);
+    const baseTree = super.FromTrace(trace, options);
     const issuesTree = new IssuesTraceTree();
-    issuesTree.root = tree.root;
+
+    Object.assign(issuesTree, baseTree);
+
     return issuesTree;
   }
 
@@ -64,42 +67,15 @@ export class IssuesTraceTree extends TraceTree {
       preferences: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
     }
   ): Promise<void> {
-    const node = TraceTree.Find(tree.root, n => {
-      if (isTraceErrorNode(n) || isEAPErrorNode(n)) {
-        return n.value.event_id === event.eventID;
-      }
-      if (isTransactionNode(n) || isEAPSpanNode(n)) {
-        if (n.value.event_id === event.eventID) {
-          return true;
-        }
-
-        for (const e of n.errors) {
-          if (e.event_id === event.eventID) {
-            return true;
-          }
-        }
-
-        for (const o of n.occurrences) {
-          if (isTransactionNode(n)) {
-            if (o.event_id === event.eventID) {
-              return true;
-            }
-          } else if (o.event_id === event.occurrence?.id) {
-            return true;
-          }
-        }
-      }
-      return false;
+    const node = tree.root.findChild(n => {
+      return n.matchById(event.eventID);
     });
 
     if (node) {
-      if (isTransactionNode(node)) {
-        return tree.zoom(node, true, options).then(() => {});
+      if (node.canFetchChildren) {
+        return node.fetchChildren(true, tree, options).then(() => {});
       }
-
-      if (isEAPSpanNode(node)) {
-        tree.expand(node, true);
-      }
+      node.expand(true, tree);
     }
 
     return Promise.resolve();
@@ -111,7 +87,7 @@ export class IssuesTraceTree extends TraceTree {
    * @param numSurroundingNodes - The number of surrounding nodes to preserve.
    */
   collapseList(
-    preserveLeafNodes: TraceTreeNode[],
+    preserveLeafNodes: BaseNode[],
     numSurroundingNodes: number,
     minShownNodes: number
   ) {
@@ -119,9 +95,7 @@ export class IssuesTraceTree extends TraceTree {
     const preserveNodes = new Set(preserveLeafNodes);
 
     for (const node of preserveLeafNodes) {
-      const parentTransaction = isEAPSpanNode(node)
-        ? TraceTree.ParentEAPTransaction(node)
-        : TraceTree.ParentTransaction(node);
+      const parentTransaction = node.findClosestParentTransaction();
       if (parentTransaction) {
         preserveNodes.add(parentTransaction);
       }
@@ -178,7 +152,7 @@ export class IssuesTraceTree extends TraceTree {
         const collapsedNode = new CollapsedNode(
           this.list[start]!.parent!,
           {type: 'collapsed'},
-          this.list[start]!.metadata
+          null
         );
 
         const removed = this.list.splice(start, i - start, collapsedNode);

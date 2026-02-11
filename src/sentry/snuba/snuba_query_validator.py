@@ -15,6 +15,7 @@ from sentry.exceptions import (
     InvalidSearchQuery,
     UnsupportedQuerySubscription,
 )
+from sentry.explore.utils import is_logs_enabled, is_trace_metrics_alerts_enabled
 from sentry.incidents.logic import (
     check_aggregate_column_support,
     get_column_from_aggregate,
@@ -22,6 +23,7 @@ from sentry.incidents.logic import (
     translate_aggregate_field,
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -30,6 +32,7 @@ from sentry.snuba.entity_subscription import (
 )
 from sentry.snuba.metrics.naming_layer.mri import is_mri
 from sentry.snuba.models import (
+    ExtrapolationMode,
     QuerySubscription,
     QuerySubscriptionDataSourceHandler,
     SnubaQuery,
@@ -66,6 +69,7 @@ QUERY_TYPE_VALID_EVENT_TYPES = {
         SnubaQueryEventType.EventType.TRANSACTION,
         SnubaQueryEventType.EventType.TRACE_ITEM_LOG,
         SnubaQueryEventType.EventType.TRACE_ITEM_SPAN,
+        SnubaQueryEventType.EventType.TRACE_ITEM_METRIC,
     },
 }
 
@@ -80,6 +84,12 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
     event_types = serializers.ListField(
         child=serializers.CharField(),
     )
+    group_by = serializers.ListField(
+        child=serializers.CharField(allow_blank=False, max_length=200),
+        required=False,
+        allow_empty=False,
+    )
+    extrapolation_mode = serializers.CharField(required=False, allow_null=True)
 
     class Meta:
         model = QuerySubscription
@@ -91,6 +101,8 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             "time_window",
             "environment",
             "event_types",
+            "group_by",
+            "extrapolation_mode",
         ]
 
     data_source_type_handler = QuerySubscriptionDataSourceHandler
@@ -101,6 +113,18 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         # if false, time_window is interpreted as minutes.
         # TODO: only accept time_window in seconds once AlertRuleSerializer is removed
         self.time_window_seconds = timeWindowSeconds
+
+    def validate_aggregate(self, aggregate: str) -> str:
+        """
+        Reject upsampled_count() as user input. This function is reserved for internal use
+        and will be applied automatically when appropriate. Users should specify count().
+        """
+        if aggregate == "upsampled_count()":
+            raise serializers.ValidationError(
+                "upsampled_count() is not allowed as user input. Use count() instead - "
+                "it will be automatically converted to upsampled_count() when appropriate."
+            )
+        return aggregate
 
     def validate_query_type(self, value: int) -> SnubaQuery.Type:
         try:
@@ -138,19 +162,47 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 % [item.name.lower() for item in SnubaQueryEventType.EventType]
             )
 
-        if not features.has(
-            "organizations:ourlogs-alerts",
-            self.context["organization"],
-            actor=self.context.get("user", None),
+        if not is_logs_enabled(
+            self.context["organization"], actor=self.context.get("user", None)
         ) and any([v for v in validated if v == SnubaQueryEventType.EventType.TRACE_ITEM_LOG]):
             raise serializers.ValidationError("You do not have access to the log alerts feature.")
 
+        if not is_trace_metrics_alerts_enabled(
+            self.context["organization"], actor=self.context.get("user", None)
+        ) and any([v for v in validated if v == SnubaQueryEventType.EventType.TRACE_ITEM_METRIC]):
+            raise serializers.ValidationError(
+                "You do not have access to the metrics alerts feature."
+            )
+
         return validated
+
+    def _validate_extrapolation_mode(self, data: dict) -> ExtrapolationMode | None:
+        extrapolation_mode = data.get("extrapolation_mode")
+        if extrapolation_mode is not None:
+            extrapolation_mode_enum = ExtrapolationMode.from_str(extrapolation_mode)
+            if extrapolation_mode_enum is None:
+                raise serializers.ValidationError(
+                    f"Invalid extrapolation mode: {extrapolation_mode}"
+                )
+            if data.get("dataset") == Dataset.EventsAnalyticsPlatform:
+                if extrapolation_mode_enum in [
+                    ExtrapolationMode.SERVER_WEIGHTED,
+                    ExtrapolationMode.NONE,
+                ]:
+                    raise serializers.ValidationError(
+                        f"Invalid extrapolation mode for this alert type: {extrapolation_mode}. Allowed modes are: client_and_server_weighted, unknown."
+                    )
+            return extrapolation_mode_enum
+        return None
 
     def validate(self, data):
         data = super().validate(data)
         self._validate_aggregate(data)
         self._validate_query(data)
+
+        data["group_by"] = self._validate_group_by(data.get("group_by"))
+
+        data["extrapolation_mode"] = self._validate_extrapolation_mode(data)
 
         query_type = data["query_type"]
         if query_type == SnubaQuery.Type.CRASH_RATE:
@@ -176,6 +228,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
     def _validate_aggregate(self, data):
         dataset = data.setdefault("dataset", Dataset.Events)
         aggregate = data.get("aggregate")
+        event_types = data.get("event_types", [])
         allow_mri = features.has(
             "organizations:custom-metrics",
             self.context["organization"],
@@ -186,21 +239,31 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             actor=self.context.get("user", None),
         )
         allow_eap = dataset == Dataset.EventsAnalyticsPlatform
-        try:
-            if not check_aggregate_column_support(
-                aggregate,
-                allow_mri=allow_mri,
-                allow_eap=allow_eap,
-            ):
-                raise serializers.ValidationError(
-                    {"aggregate": _("Invalid Metric: We do not currently support this field.")}
-                )
-        except InvalidSearchQuery as e:
-            raise serializers.ValidationError({"aggregate": _(f"Invalid Metric: {e}")})
 
-        data["aggregate"] = translate_aggregate_field(
-            aggregate, allow_mri=allow_mri, allow_eap=allow_eap
+        # Check if this is a trace metrics query
+        is_trace_metrics = (
+            dataset == Dataset.EventsAnalyticsPlatform
+            and event_types
+            and SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in event_types
         )
+
+        if is_trace_metrics:
+            validate_trace_metrics_aggregate(aggregate)
+        else:
+            try:
+                if not check_aggregate_column_support(
+                    aggregate,
+                    allow_mri=allow_mri,
+                    allow_eap=allow_eap,
+                ):
+                    raise serializers.ValidationError(
+                        {"aggregate": _("Invalid Metric: We do not currently support this field.")}
+                    )
+            except InvalidSearchQuery as e:
+                raise serializers.ValidationError({"aggregate": _(f"Invalid Metric: {e}")})
+            data["aggregate"] = translate_aggregate_field(
+                aggregate, allow_mri=allow_mri, allow_eap=allow_eap
+            )
 
     def _validate_query(self, data):
         dataset = data.setdefault("dataset", Dataset.Events)
@@ -262,6 +325,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 extra_fields={
                     "org_id": projects[0].organization_id,
                     "event_types": data.get("event_types"),
+                    "extrapolation_mode": data.get("extrapolation_mode"),
                 },
             )
         except UnsupportedQuerySubscription as e:
@@ -325,6 +389,11 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                     "Invalid Time Window: Allowed time windows for crash rate alerts are: "
                     "30min, 1h, 2h, 4h, 12h and 24h"
                 )
+        if dataset == Dataset.EventsAnalyticsPlatform:
+            if time_window_seconds < 300:
+                raise serializers.ValidationError(
+                    "Invalid Time Window: Time window for this alert type must be at least 5 minutes."
+                )
         return time_window_seconds
 
     def _validate_performance_dataset(self, dataset):
@@ -351,6 +420,31 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
         return dataset
 
+    def _validate_group_by(self, value: Sequence[str] | None) -> Sequence[str] | None:
+        if value is None:
+            return None
+
+        if not features.has(
+            "organizations:workflow-engine-metric-alert-group-by-creation",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        ):
+            raise serializers.ValidationError(
+                "Group by Metric Alerts feature must be enabled to use this field"
+            )
+
+        if len(value) > 100:
+            raise serializers.ValidationError("Group by must be 100 or fewer items")
+
+        # group by has to be unique list of strings
+        if len(value) != len(set(value)):
+            raise serializers.ValidationError("Group by must be a unique list of strings")
+
+        # TODO:
+        # validate that group by is a valid snql / EAP column?
+
+        return value
+
     @override
     def create_source(self, validated_data) -> QuerySubscription:
         snuba_query = create_snuba_query(
@@ -362,6 +456,8 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             resolution=timedelta(minutes=1),
             environment=validated_data["environment"],
             event_types=validated_data["event_types"],
+            group_by=validated_data.get("group_by"),
+            extrapolation_mode=validated_data.get("extrapolation_mode"),
         )
         return create_snuba_subscription(
             project=self.context["project"],

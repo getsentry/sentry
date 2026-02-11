@@ -1,19 +1,24 @@
 from __future__ import annotations
 
 import functools
+from collections import defaultdict
 from collections.abc import Sequence
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from time import sleep
+from typing import Any
 from unittest.mock import MagicMock, Mock, call, patch
 from uuid import uuid4
 
 from django.db.utils import OperationalError
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.response import Response
 
 from sentry import options
+from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
+from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.grouptype import (
@@ -37,7 +42,6 @@ from sentry.models.groupinbox import (
     remove_group_from_inbox,
 )
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import GroupOpenPeriod, get_latest_open_period
 from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
@@ -45,6 +49,7 @@ from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.savedsearch import SavedSearch, Visibility
@@ -59,6 +64,7 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import Feature, with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -66,6 +72,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.users.models.user_option import UserOption
 from sentry.utils import json
+from sentry.utils.snuba import SnubaQueryParams
 from tests.sentry.feedback import mock_feedback_event
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -85,7 +92,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             attrs["href"] = url
         return links
 
-    def get_response(self, *args, **kwargs):
+    def get_response(self, *args: Organization, **kwargs: Any) -> Response:
         if not args:
             org = self.project.organization.slug
         else:
@@ -333,33 +340,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(event.group.id)
 
-    def test_feature_gate(self) -> None:
-        # ensure there are two or more projects
-        self.create_project(organization=self.project.organization)
-        self.login_as(user=self.user)
-
-        response = self.get_response()
-        assert response.status_code == 400
-        assert response.data["detail"] == "You do not have the multi project stream feature enabled"
-
-        with self.feature("organizations:global-views"):
-            response = self.get_response()
-            assert response.status_code == 200
-
-    def test_replay_feature_gate(self) -> None:
-        # allow replays to query for backend
-        self.create_project(organization=self.project.organization)
-        self.login_as(user=self.user)
-        self.get_success_response(extra_headers={"HTTP_X-Sentry-Replay-Request": "1"})
-
     def test_with_all_projects(self) -> None:
         # ensure there are two or more projects
         self.create_project(organization=self.project.organization)
         self.login_as(user=self.user)
 
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(project_id=[-1])
-            assert response.status_code == 200
+        response = self.get_success_response(project_id=[-1])
+        assert response.status_code == 200
 
     def test_boolean_search_feature_flag(self) -> None:
         self.login_as(user=self.user)
@@ -524,6 +511,29 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             assert len(response.data) == 1
             assert response.data[0]["id"] == str(perf_group.id)
 
+    def test_has_seer_last_run(self) -> None:
+        """Test filtering issues by whether they have seer_autofix_last_triggered set."""
+        # Create two groups - one with seer_autofix_last_triggered and one without
+        group_with_seer = self.create_group()
+        group_with_seer.update(seer_autofix_last_triggered=timezone.now())
+        group_without_seer = self.create_group()
+
+        self.login_as(user=self.user)
+        with self.feature(
+            {
+                "organizations:issue-search-allow-postgres-only-search": True,
+            }
+        ):
+            # Query for issues that have seer_autofix_last_triggered set
+            response = self.get_success_response(query="has:issue.seer_last_run")
+            assert len(response.data) == 1
+            assert response.data[0]["id"] == str(group_with_seer.id)
+
+            # Query for issues that do NOT have seer_autofix_last_triggered set
+            response = self.get_success_response(query="!has:issue.seer_last_run")
+            assert len(response.data) == 1
+            assert response.data[0]["id"] == str(group_without_seer.id)
+
     def test_lookup_by_event_id(self) -> None:
         project = self.project
         project.update_option("sentry:resolve_age", 1)
@@ -541,7 +551,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["id"] == str(event.group.id)
         assert response.data[0]["matchingEventId"] == event_id
 
-    def test_lookup_by_event_id_incorrect_project_id(self):
+    def test_lookup_by_event_id_incorrect_project_id(self) -> None:
         self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
@@ -557,8 +567,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.create_member(organization=self.organization, teams=[self.team], user=user)
         self.login_as(user=user)
 
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(query=event_id, project=[other_project.id])
+        response = self.get_success_response(query=event_id, project=[other_project.id])
         assert response["X-Sentry-Direct-Hit"] == "1"
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(event.group.id)
@@ -624,19 +633,17 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(seconds=1).isoformat()},
             project_id=project2.id,
         )
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(
-                query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]",
-                shortIdLookup=1,
-            )
+        response = self.get_success_response(
+            query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]",
+            shortIdLookup=1,
+        )
         assert len(response.data) == 2
         assert response.get("X-Sentry-Direct-Hit") != "1"
 
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(
-                query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]",
-                shortIdLookup=1,
-            )
+        response = self.get_success_response(
+            query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]",
+            shortIdLookup=1,
+        )
         assert len(response.data) == 2
         assert response.get("X-Sentry-Direct-Hit") != "1"
 
@@ -682,7 +689,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(group=[self.group.id, group_2.id])
         assert {g["id"] for g in response.data} == {str(self.group.id), str(group_2.id)}
 
-    def test_lookup_by_group_id_no_perms(self):
+    def test_lookup_by_group_id_no_perms(self) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         group = self.create_group(project=project)
@@ -708,19 +715,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_id=project2.id,
         )
 
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(
-                **{"query": 'first-release:"%s"' % release.version}
-            )
+        response = self.get_success_response(**{"query": 'first-release:"%s"' % release.version})
         issues = json.loads(response.content)
         assert len(issues) == 2
         assert int(issues[0]["id"]) == event2.group.id
         assert int(issues[1]["id"]) == event.group.id
 
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(
-                **{"query": 'first-release:"%s"' % release.version}
-            )
+        response = self.get_success_response(**{"query": 'first-release:"%s"' % release.version})
         issues = json.loads(response.content)
         assert len(issues) == 2
         assert int(issues[0]["id"]) == event2.group.id
@@ -779,8 +780,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_id=project.id,
         )
 
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(**{"query": 'release.package:["foo", "bar"]'})
+        response = self.get_success_response(**{"query": 'release.package:["foo", "bar"]'})
         issues = json.loads(response.content)
         assert len(issues) == 2
         assert int(issues[0]["id"]) == event2.group.id
@@ -896,11 +896,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 "search" == response.data["detail"]
             )
 
-            mock_record.assert_called_with(
-                "advanced_search.feature_gated",
-                user_id=self.user.id,
-                default_user_id=self.user.id,
-                organization_id=self.organization.id,
+            assert_last_analytics_event(
+                mock_record,
+                AdvancedSearchFeatureGateEvent(
+                    user_id=self.user.id,
+                    default_user_id=self.user.id,
+                    organization_id=self.organization.id,
+                ),
             )
 
     # This seems like a random override, but this test needed a way to override
@@ -939,7 +941,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # This side_effect is meant to override the `calculate_hits` snuba query specifically.
         # If this test is failing it's because the -last_seen override is being applied to
         # different snuba query.
-        def _my_patched_params(query_params, **kwargs):
+        def _my_patched_params(
+            query_params: SnubaQueryParams, **kwargs: Any
+        ) -> tuple[int, dict[str, Any]]:
             if query_params.aggregations == [
                 ["uniq", "group_id", "total"],
                 ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
@@ -964,6 +968,45 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["id"] == str(assigned_groups[0].id)
 
         assert options.set("snuba.search.hits-sample-size", old_sample_size)
+
+    @patch("sentry.search.snuba.executors.PostgresSnubaQueryExecutor.calculate_hits")
+    def test_hits_capped_when_overestimated(self, mock_calculate_hits: MagicMock) -> None:
+        """
+        Test that when sampling overestimates the hit count and all results fit on one page,
+        the X-Hits header is capped to the actual number of results returned.
+
+        This prevents UI bugs like showing "(6-11) of 11" when there are only 6 results.
+        """
+        self.login_as(user=self.user)
+
+        # Create 6 groups
+        groups = []
+        for i in range(6):
+            event = self.store_event(
+                data={
+                    "timestamp": before_now(days=i).isoformat(),
+                    "fingerprint": [f"group-{i}"],
+                },
+                project_id=self.project.id,
+            )
+            groups.append(event.group)
+
+        # Mock calculate_hits to return an overestimate (simulating sampling inaccuracy)
+        # This would happen when Snuba thinks there are 11 groups but Postgres only has 6
+        mock_calculate_hits.return_value = 11
+
+        # Make a request that returns all 6 groups on one page
+        response = self.get_success_response(limit=25, query="is:unresolved")
+
+        # Should return all 6 groups
+        assert len(response.data) == 6
+
+        # X-Hits should be corrected to 6, not the overestimated 11
+        assert response["X-Hits"] == "6"
+
+        # Verify no next page exists (we have all results)
+        links = self._parse_links(response["Link"])
+        assert links["next"]["results"] == "false"
 
     def test_assigned_me_none(self) -> None:
         self.login_as(user=self.user)
@@ -1457,7 +1500,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:>1.2.3")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_2_g_1,
             release_2_g_2,
             release_3_g_1,
@@ -1466,7 +1509,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:>=1.2.3")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_1_g_1,
             release_1_g_2,
             release_2_g_1,
@@ -1477,15 +1520,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:<1.2.4")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [release_1_g_1, release_1_g_2]
+        assert [int(r["id"]) for r in response.data] == [release_1_g_1, release_1_g_2]
 
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:<1.0")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == []
+        assert [int(r["id"]) for r in response.data] == []
 
         response = self.get_response(sort_by="date", limit=10, query=f"!{SEMVER_ALIAS}:1.2.4")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_1_g_1,
             release_1_g_2,
             release_3_g_1,
@@ -1551,7 +1594,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             adopted_release_g_1,
             adopted_release_g_2,
         ]
@@ -1563,7 +1606,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             adopted_release_g_1,
             adopted_release_g_2,
             replaced_release_g_1,
@@ -1577,7 +1620,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             adopted_release_g_1,
             adopted_release_g_2,
             replaced_release_g_1,
@@ -1591,7 +1634,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             adopted_release_g_1,
             adopted_release_g_2,
         ]
@@ -1627,7 +1670,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_PACKAGE_ALIAS}:test")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_1_g_1,
             release_1_g_2,
         ]
@@ -1636,7 +1679,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             sort_by="date", limit=10, query=f"{SEMVER_PACKAGE_ALIAS}:test2"
         )
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_2_g_1,
         ]
 
@@ -1671,14 +1714,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_BUILD_ALIAS}:123")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_1_g_1,
             release_1_g_2,
         ]
 
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_BUILD_ALIAS}:124")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_2_g_1,
         ]
 
@@ -2070,36 +2113,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert [int(r["id"]) for r in response.data] == [event1.group.id]
 
-    def test_default_search_with_priority(self) -> None:
-        event1 = self.store_event(
-            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
-            project_id=self.project.id,
-        )
-        event1.group.priority = PriorityLevel.HIGH
-        event1.group.save()
-        event2 = self.store_event(
-            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-3"]},
-            project_id=self.project.id,
-        )
-        event2.group.status = GroupStatus.RESOLVED
-        event2.group.substatus = None
-        event2.group.priority = PriorityLevel.HIGH
-        event2.group.save()
-
-        event3 = self.store_event(
-            data={"timestamp": before_now(seconds=400).isoformat(), "fingerprint": ["group-2"]},
-            project_id=self.project.id,
-        )
-        event3.group.priority = PriorityLevel.LOW
-        event3.group.save()
-
-        self.login_as(user=self.user)
-        sleep(1)
-
-        response = self.get_response(sort_by="date", limit=10, expand="inbox", collapse="stats")
-        assert response.status_code == 200
-        assert [int(r["id"]) for r in response.data] == [event1.group.id]
-
     def test_collapse_stats(self) -> None:
         event = self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
@@ -2452,6 +2465,46 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             == []
         )
 
+    def test_query_detector_filter(self) -> None:
+        event = self.store_event(
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        group = event.group
+
+        event2 = self.store_event(
+            data={"timestamp": before_now(seconds=400).isoformat(), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+        assert event2.group.id != group.id
+
+        detector_id = 12345  # intentionally multi-digit
+        detector = self.create_detector(
+            id=detector_id,
+            name=f"Test Detector {detector_id}",
+            project=self.project,
+            type="error",
+        )
+
+        self.create_detector_group(
+            detector=detector,
+            group=group,
+        )
+
+        self.login_as(user=self.user)
+
+        # Query for the specific detector ID
+        response = self.get_response(sort_by="date", query=f"detector:{detector_id}")
+        assert response.status_code == 200
+
+        # Should return only the group associated with the detector
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == group.id
+
+        response_empty = self.get_response(sort_by="date", query="detector:99999")
+        assert response_empty.status_code == 200
+        assert len(response_empty.data) == 0
+
     def test_first_seen_and_last_seen_filters(self) -> None:
         self.login_as(user=self.user)
         project = self.project
@@ -2698,7 +2751,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_feedback_filtered_by_default(self) -> None:
         with Feature(
             {
-                FeedbackGroup.build_visible_feature_name(): True,
+                **{f: True for f in FeedbackGroup.build_visible_feature_name()},
                 FeedbackGroup.build_ingest_feature_name(): True,
             }
         ):
@@ -2710,7 +2763,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
             feedback_event = mock_feedback_event(self.project.id, before_now(seconds=1))
             create_feedback_issue(
-                feedback_event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                feedback_event, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
             self.login_as(user=self.user)
             res = self.get_success_response()
@@ -2725,7 +2778,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_feedback_category_filter(self) -> None:
         with Feature(
             {
-                FeedbackGroup.build_visible_feature_name(): True,
+                **{f: True for f in FeedbackGroup.build_visible_feature_name()},
                 FeedbackGroup.build_ingest_feature_name(): True,
             }
         ):
@@ -2737,7 +2790,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
             feedback_event = mock_feedback_event(self.project.id, before_now(seconds=1))
             create_feedback_issue(
-                feedback_event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                feedback_event, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
             self.login_as(user=self.user)
             res = self.get_success_response(query="issue.category:feedback")
@@ -2775,11 +2828,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         only when it's a statement timeout, and remains a 500 for user cancellation"""
 
         class TimeoutError(OperationalError):
-            def __str__(self):
+            def __str__(self) -> str:
                 return "canceling statement due to statement timeout"
 
         class UserCancelError(OperationalError):
-            def __str__(self):
+            def __str__(self) -> str:
                 return "canceling statement due to user request"
 
         self.login_as(user=self.user)
@@ -2796,6 +2849,43 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response()
         assert response.status_code == 500
 
+    def test_wildcard_operator_with_backslash(self) -> None:
+        self.login_as(user=self.user)
+
+        event = self.store_event(
+            data={
+                "timestamp": before_now(seconds=1).isoformat(),
+                "user": {
+                    "id": "1",
+                    "email": "foo@example.com",
+                    "username": r"foo\bar",
+                    "ip_address": "192.168.0.1",
+                },
+            },
+            project_id=self.project.id,
+        )
+        assert event.group
+
+        response = self.get_success_response(query=r"user.username:foo\bar")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
+        response = self.get_success_response(query=r"user.username:*foo\\bar*")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
+        response = self.get_success_response(query="user.username:\uf00dContains\uf00dfoo\\bar")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
+        response = self.get_success_response(query="user.username:\uf00dStartsWith\uf00dfoo\\bar")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
+        response = self.get_success_response(query="user.username:\uf00dEndsWith\uf00dfoo\\bar")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
@@ -2805,7 +2895,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         super().setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
 
-    def get_response(self, *args, **kwargs):
+    def get_response(self, *args: Any, **kwargs: Any) -> Response:
         if not args:
             org = self.project.organization.slug
         else:
@@ -3332,10 +3422,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(
-                qs_params={"id": [group1.id, group2.id], "group4": group4.id}, status="resolved"
-            )
+        response = self.get_success_response(
+            qs_params={"id": [group1.id, group2.id], "group4": group4.id}, status="resolved"
+        )
         assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
 
         new_group1 = Group.objects.get(id=group1.id)
@@ -3358,7 +3447,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert new_group4.resolved_at is None
         assert new_group4.status == GroupStatus.UNRESOLVED
 
-    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_current_release(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
@@ -3395,52 +3483,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
         ).exists()
 
-        open_period = get_latest_open_period(group)
-        assert open_period is not None
-        assert open_period.date_ended == group.resolved_at
-        assert open_period.resolution_activity == activity
-
-    @with_feature("organizations:issue-open-periods")
-    def test_set_resolved_in_current_release_without_open_period(self) -> None:
-        release = Release.objects.create(organization_id=self.project.organization_id, version="a")
-        release.add_project(self.project)
-
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-        GroupOpenPeriod.objects.all().delete()
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(
-            qs_params={"id": group.id}, status="resolved", statusDetails={"inRelease": "latest"}
-        )
-        assert response.data["status"] == "resolved"
-        assert response.data["statusDetails"]["inRelease"] == release.version
-        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
-
-        group = Group.objects.get(id=group.id)
-        assert group.status == GroupStatus.RESOLVED
-
-        resolution = GroupResolution.objects.get(group=group)
-        assert resolution.release == release
-        assert resolution.type == GroupResolution.Type.in_release
-        assert resolution.status == GroupResolution.Status.resolved
-        assert resolution.actor_id == self.user.id
-
-        assert GroupSubscription.objects.filter(
-            user_id=self.user.id, group=group, is_active=True
-        ).exists()
-
-        activity = Activity.objects.get(
-            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
-        )
-        assert activity.data["version"] == release.version
-        assert GroupHistory.objects.filter(
-            group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
-        ).exists()
-
-        assert GroupOpenPeriod.objects.filter(group=group).count() == 0
-
-    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_explicit_release(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
@@ -3479,12 +3521,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert activity.data["version"] == release.version
 
-        open_period = get_latest_open_period(group)
-        assert open_period is not None
-        assert open_period.date_ended == group.resolved_at
-        assert open_period.resolution_activity == activity
-
-    @with_feature("organizations:issue-open-periods")
     def test_in_semver_projects_set_resolved_in_explicit_release(self) -> None:
         release_1 = self.create_release(version="fake_package@3.0.0")
         release_2 = self.create_release(version="fake_package@2.0.0")
@@ -3531,11 +3567,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         assert GroupResolution.has_resolution(group=group, release=release_2)
         assert not GroupResolution.has_resolution(group=group, release=release_3)
-
-        open_period = get_latest_open_period(group)
-        assert open_period is not None
-        assert open_period.date_ended == group.resolved_at
-        assert open_period.resolution_activity == activity
 
     def test_set_resolved_in_next_release(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
@@ -3643,7 +3674,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
         ).exists()
 
-    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_explicit_commit_released(self) -> None:
         release = self.create_release(project=self.project)
         repo = self.create_repo(project=self.project, name=self.project.name)
@@ -3686,12 +3716,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
         ).exists()
 
-        open_period = get_latest_open_period(group)
-        assert open_period is not None
-        assert open_period.date_ended == group.resolved_at
-        assert open_period.resolution_activity == activity
-
-    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_explicit_commit_missing(self) -> None:
         repo = self.create_repo(project=self.project, name=self.project.name)
         group = self.create_group(status=GroupStatus.UNRESOLVED)
@@ -3711,10 +3735,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not GroupHistory.objects.filter(
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
         ).exists()
-
-        open_period = get_latest_open_period(group)
-        assert open_period is not None
-        assert open_period.date_ended is None
 
     def test_set_unresolved(self) -> None:
         release = self.create_release(project=self.project, version="abc")
@@ -3882,10 +3902,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(
-                qs_params={"id": [group1.id, group2.id], "group4": group4.id}, isBookmarked="true"
-            )
+        response = self.get_success_response(
+            qs_params={"id": [group1.id, group2.id], "group4": group4.id}, isBookmarked="true"
+        )
         assert response.data == {"isBookmarked": True}
 
         bookmark1 = GroupBookmark.objects.filter(group=group1, user_id=self.user.id)
@@ -3915,10 +3934,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group4 = self.create_group(project=self.create_project(slug="foo"))
 
         self.login_as(user=self.user)
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(
-                qs_params={"id": [group1.id, group2.id], "group4": group4.id}, isSubscribed="true"
-            )
+        response = self.get_success_response(
+            qs_params={"id": [group1.id, group2.id], "group4": group4.id}, isSubscribed="true"
+        )
         assert response.data == {"isSubscribed": True, "subscriptionDetails": {"reason": "unknown"}}
 
         assert GroupSubscription.objects.filter(
@@ -3981,10 +3999,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        with self.feature("organizations:global-views"):
-            response = self.get_success_response(
-                qs_params={"id": [group1.id, group2.id], "group4": group4.id}, hasSeen="true"
-            )
+        response = self.get_success_response(
+            qs_params={"id": [group1.id, group2.id], "group4": group4.id}, hasSeen="true"
+        )
         assert response.data == {"hasSeen": True}
 
         r1 = GroupSeen.objects.filter(group=group1, user_id=self.user.id)
@@ -4009,9 +4026,12 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
         mock_uuid4.return_value = self.get_mock_uuid()
-        group1 = self.create_group(times_seen=1)
-        group2 = self.create_group(times_seen=50)
-        group3 = self.create_group(times_seen=2)
+
+        today = datetime.now(tz=UTC)
+        yesterday = today - timedelta(days=1)
+        group1 = self.create_group(first_seen=today, times_seen=1)
+        group2 = self.create_group(first_seen=yesterday, times_seen=50)
+        group3 = self.create_group(first_seen=today, times_seen=2)
         self.create_group()
 
         self.login_as(user=self.user)
@@ -4024,7 +4044,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         mock_eventstream.start_merge.assert_called_once_with(
-            group1.project_id, [group3.id, group1.id], group2.id
+            group1.project_id,
+            [group3.id, group1.id],
+            group2.id,
+            group2.first_seen,
         )
 
         assert len(merge_groups.mock_calls) == 1
@@ -4266,131 +4289,84 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group2, type=ActivityType.SET_PRIORITY.value, user_id=self.user.id
         ).exists()
 
-    def test_resolved_in_upcoming_release_multiple_projects(self) -> None:
-        project_2 = self.create_project(slug="foo")
-        group1 = self.create_group(status=GroupStatus.UNRESOLVED)
-        group2 = self.create_group(status=GroupStatus.UNRESOLVED, project=project_2)
-
-        self.login_as(user=self.user)
-        response = self.get_response(
-            qs_params={
-                "id": [group1.id, group2.id],
-                "statd": "resolved",
-                "statusDetails": {"inUpcomingRelease": True},
-            }
+    def test_cannot_update_metric_issue_priority(self) -> None:
+        """
+        Users should be prohibited from manually updating the priority of metric issues.
+        """
+        group = self.create_group(priority=PriorityLevel.HIGH.value, type=MetricIssue.type_id)
+        self.login_as(self.user)
+        response = self.get_error_response(
+            qs_params={"id": [group.id]}, priority=PriorityLevel.MEDIUM.to_str()
         )
-
         assert response.status_code == 400
+        assert response.data["detail"] == "Cannot manually set priority of one or more issues."
 
 
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "delete"
 
-    def get_response(self, *args, **kwargs):
+    def get_response(self, *args: Any, **kwargs: Any) -> Response:
         if not args:
             org = self.project.organization.slug
         else:
             org = args[0]
         return super().get_response(org, **kwargs)
 
-    def create_n_groups(self, n: int, type: int | None = None) -> list[Group]:
-        groups = []
-        for _ in range(n):
-            if type:
-                group = self.create_group(
-                    project=self.project, status=GroupStatus.RESOLVED, type=type
-                )
-            else:
-                group = self.create_group(project=self.project, status=GroupStatus.RESOLVED)
-            hash = uuid4().hex
-            GroupHash.objects.create(project=group.project, hash=hash, group=group)
-            groups.append(group)
-
-        return groups
-
-    def assert_pending_deletion_groups(self, groups: Sequence[Group]) -> None:
-        for group in groups:
-            assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
-            assert not GroupHash.objects.filter(group_id=group.id).exists()
-
     def assert_deleted_groups(self, groups: Sequence[Group]) -> None:
         for group in groups:
             assert not Group.objects.filter(id=group.id).exists()
             assert not GroupHash.objects.filter(group_id=group.id).exists()
 
-    @patch("sentry.eventstream.backend")
-    def test_delete_by_id(self, mock_eventstream: MagicMock) -> None:
-        eventstream_state = {"event_stream_state": str(uuid4())}
-        mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
+    @patch("sentry.eventstream.snuba.SnubaEventStream._send")
+    @patch("sentry.eventstream.snuba.datetime")
+    def test_delete_by_id(self, mock_datetime: MagicMock, mock_send: MagicMock) -> None:
+        fixed_datetime = datetime.now()
+        mock_datetime.now.return_value = fixed_datetime
 
-        group1 = self.create_group(status=GroupStatus.RESOLVED)
-        group2 = self.create_group(status=GroupStatus.UNRESOLVED)
-        group3 = self.create_group(status=GroupStatus.IGNORED)
-        group4 = self.create_group(
-            project=self.create_project(slug="foo"),
-            status=GroupStatus.UNRESOLVED,
-        )
-
-        hashes = []
-        for g in group1, group2, group3, group4:
-            hash = uuid4().hex
-            hashes.append(hash)
-            GroupHash.objects.create(project=g.project, hash=hash, group=g)
+        groups = self.create_n_groups_with_hashes(2, project=self.project)
+        group_ids = [group.id for group in groups]
 
         self.login_as(user=self.user)
-        with self.feature("organizations:global-views"):
-            response = self.get_response(
-                qs_params={"id": [group1.id, group2.id], "group4": group4.id}
-            )
-
-        mock_eventstream.start_delete_groups.assert_called_once_with(
-            group1.project_id, [group1.id, group2.id]
-        )
-
-        assert response.status_code == 204
-
-        assert Group.objects.get(id=group1.id).status == GroupStatus.PENDING_DELETION
-        assert not GroupHash.objects.filter(group_id=group1.id).exists()
-
-        assert Group.objects.get(id=group2.id).status == GroupStatus.PENDING_DELETION
-        assert not GroupHash.objects.filter(group_id=group2.id).exists()
-
-        assert Group.objects.get(id=group3.id).status != GroupStatus.PENDING_DELETION
-        assert GroupHash.objects.filter(group_id=group3.id).exists()
-
-        assert Group.objects.get(id=group4.id).status != GroupStatus.PENDING_DELETION
-        assert GroupHash.objects.filter(group_id=group4.id).exists()
-
-        Group.objects.filter(id__in=(group1.id, group2.id)).update(status=GroupStatus.UNRESOLVED)
-
         with self.tasks():
-            with self.feature("organizations:global-views"):
-                response = self.get_response(
-                    qs_params={"id": [group1.id, group2.id], "group4": group4.id}
-                )
+            response = self.get_response(qs_params={"id": group_ids})
+            assert response.status_code == 204
 
-        # XXX(markus): Something is sending duplicated replacements to snuba --
-        # once from within tasks.deletions.groups and another time from
-        # sentry.deletions.defaults.groups
-        assert mock_eventstream.end_delete_groups.call_args_list == [
-            call(eventstream_state),
-            call(eventstream_state),
+        # Extract transaction_id from the first call
+        transaction_id = mock_send.call_args_list[0][1]["extra_data"][0]["transaction_id"]
+
+        assert mock_send.call_args_list == [
+            call(
+                self.project.id,
+                "start_delete_groups",
+                extra_data=(
+                    {
+                        "transaction_id": transaction_id,
+                        "project_id": self.project.id,
+                        "group_ids": group_ids,
+                        "datetime": json.datetime_to_str(fixed_datetime),
+                    },
+                ),
+                asynchronous=False,
+            ),
+            call(
+                self.project.id,
+                "end_delete_groups",
+                extra_data=(
+                    {
+                        "transaction_id": transaction_id,
+                        "project_id": self.project.id,
+                        "group_ids": group_ids,
+                        "datetime": json.datetime_to_str(fixed_datetime),
+                    },
+                ),
+                asynchronous=False,
+            ),
         ]
 
-        assert response.status_code == 204
-
-        assert not Group.objects.filter(id=group1.id).exists()
-        assert not GroupHash.objects.filter(group_id=group1.id).exists()
-
-        assert not Group.objects.filter(id=group2.id).exists()
-        assert not GroupHash.objects.filter(group_id=group2.id).exists()
-
-        assert Group.objects.filter(id=group3.id).exists()
-        assert GroupHash.objects.filter(group_id=group3.id).exists()
-
-        assert Group.objects.filter(id=group4.id).exists()
-        assert GroupHash.objects.filter(group_id=group4.id).exists()
+        for group in groups:
+            assert not Group.objects.filter(id=group.id).exists()
+            assert not GroupHash.objects.filter(group_id=group.id).exists()
 
     @patch("sentry.eventstream.backend")
     def test_delete_performance_issue_by_id(self, mock_eventstream: MagicMock) -> None:
@@ -4411,70 +4387,89 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             GroupHash.objects.create(project=g.project, hash=hash, group=g)
 
         self.login_as(user=self.user)
-        with self.feature("organizations:global-views"), self.tasks():
+        with self.tasks():
             response = self.get_response(qs_params={"id": [group1.id, group2.id]})
 
         assert response.status_code == 204
 
         self.assert_deleted_groups([group1, group2])
 
-    def test_bulk_delete(self) -> None:
-        groups = self.create_n_groups(20)
+    def test_bulk_delete_for_many_projects_without_option(self) -> None:
+        NEW_CHUNK_SIZE = 2
+        project_2 = self.create_project(slug="baz", organization=self.organization)
+        groups_1 = self.create_n_groups_with_hashes(2, project=self.project)
+        groups_2 = self.create_n_groups_with_hashes(5, project=project_2)
 
-        self.login_as(user=self.user)
-        response = self.get_success_response(qs_params={"query": ""})
-        assert response.status_code == 204
-        self.assert_pending_deletion_groups(groups)
-
-        # This is needed to put the groups in the unresolved state before also triggering the task
-        Group.objects.filter(id__in=[group.id for group in groups]).update(
-            status=GroupStatus.UNRESOLVED
-        )
-
-        with self.tasks():
+        with (
+            self.tasks(),
+            patch("sentry.api.helpers.group_index.delete.GROUP_CHUNK_SIZE", NEW_CHUNK_SIZE),
+            patch("sentry.deletions.tasks.groups.logger") as mock_logger,
+            patch(
+                "sentry.api.helpers.group_index.delete.uuid4",
+                side_effect=[self.get_mock_uuid("foo"), self.get_mock_uuid("bar")],
+            ),
+        ):
+            self.login_as(user=self.user)
             response = self.get_success_response(qs_params={"query": ""})
             assert response.status_code == 204
+            batch_1 = [g.id for g in groups_2[0:2]]
+            batch_2 = [g.id for g in groups_2[2:4]]
+            batch_3 = [g.id for g in groups_2[4:]]
+            assert batch_1 + batch_2 + batch_3 == [g.id for g in groups_2]
 
-        self.assert_deleted_groups(groups)
+            calls_by_project: dict[int, list[tuple[str, dict[str, Any]]]] = defaultdict(list)
+            for log_call in mock_logger.info.call_args_list:
+                calls_by_project[log_call[1]["extra"]["project_id"]].append(log_call)
+
+            assert len(calls_by_project) == 2
+            assert calls_by_project[self.project.id] == [
+                call(
+                    "delete_groups.started",
+                    extra={
+                        "object_ids": [g.id for g in groups_1],
+                        "project_id": self.project.id,
+                        "transaction_id": "bar",
+                    },
+                ),
+            ]
+            assert calls_by_project[project_2.id] == [
+                call(
+                    "delete_groups.started",
+                    extra={
+                        "object_ids": batch_1,
+                        "project_id": project_2.id,
+                        "transaction_id": "foo",
+                    },
+                ),
+                call(
+                    "delete_groups.started",
+                    extra={
+                        "object_ids": batch_2,
+                        "project_id": project_2.id,
+                        "transaction_id": "foo",
+                    },
+                ),
+                call(
+                    "delete_groups.started",
+                    extra={
+                        "object_ids": batch_3,
+                        "project_id": project_2.id,
+                        "transaction_id": "foo",
+                    },
+                ),
+            ]
+
+        self.assert_deleted_groups(groups_1 + groups_2)
 
     def test_bulk_delete_performance_issues(self) -> None:
-        groups = self.create_n_groups(20, PerformanceSlowDBQueryGroupType.type_id)
+        groups = self.create_n_groups_with_hashes(
+            20, self.project, PerformanceSlowDBQueryGroupType.type_id
+        )
 
         self.login_as(user=self.user)
-        response = self.get_success_response(qs_params={"query": ""})
-        assert response.status_code == 204
-        self.assert_pending_deletion_groups(groups)
-
-        # This is needed to put the groups in the unresolved state before also triggering the task
-        Group.objects.filter(id__in=[group.id for group in groups]).update(
-            status=GroupStatus.UNRESOLVED
-        )
         with self.tasks():
             # if query is '' it defaults to is:unresolved
             response = self.get_response(qs_params={"query": ""})
             assert response.status_code == 204
 
         self.assert_deleted_groups(groups)
-
-    @patch("sentry.api.helpers.group_index.delete.may_schedule_task_to_delete_hashes_from_seer")
-    def test_do_not_mark_as_pending_deletion_if_seer_fails(self, mock_seer_delete: Mock):
-        """
-        Test that the issue is not marked as pending deletion if the seer call fails.
-        """
-        # When trying to gather the hashes, the query could be cancelled by the user
-        mock_seer_delete.side_effect = OperationalError(
-            "QueryCanceled('canceling statement due to user request\n')"
-        )
-        event = self.store_event(data={}, project_id=self.project.id)
-        group1 = Group.objects.get(id=event.group_id)
-        assert GroupHash.objects.filter(group=group1).exists()
-
-        self.login_as(user=self.user)
-        with self.tasks():
-            response = self.get_response(qs_params={"id": [group1.id]})
-            assert response.status_code == 500
-            assert response.data["detail"] == "Error deleting groups"
-
-        # The group has not been marked as pending deletion
-        assert Group.objects.get(id=group1.id).status == group1.status
-        assert GroupHash.objects.filter(group=group1).exists()

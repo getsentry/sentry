@@ -1,4 +1,5 @@
-import {Input} from 'sentry/components/core/input';
+import {Input} from '@sentry/scraps/input';
+
 import FormField, {
   type FormFieldProps,
 } from 'sentry/components/deprecatedforms/formField';
@@ -27,7 +28,7 @@ abstract class InputField<
   getField() {
     return (
       <Input
-        id={this.getId()} // TODO(Priscila): check the reason behind this. We are getting warnings if we have 2 or more fields with the same name, for instance in the DATA PRIVACY RULES
+        id={this.getId()}
         type={this.getType()}
         className="form-control"
         autoComplete={this.props.autoComplete}

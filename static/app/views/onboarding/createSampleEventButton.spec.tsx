@@ -1,7 +1,6 @@
 import * as Sentry from '@sentry/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -11,8 +10,7 @@ import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventBu
 jest.useFakeTimers();
 jest.mock('sentry/utils/analytics');
 
-describe('CreateSampleEventButton', function () {
-  const router = RouterFixture();
+describe('CreateSampleEventButton', () => {
   const org = OrganizationFixture();
   const project = ProjectFixture();
   const groupID = '123';
@@ -28,18 +26,16 @@ describe('CreateSampleEventButton', function () {
       </CreateSampleEventButton>,
       {
         organization: org,
-        router,
-        deprecatedRouterMocks: true,
       }
     );
   }
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('creates a sample event', async function () {
-    renderComponent();
+  it('creates a sample event', async () => {
+    const {router} = renderComponent();
     const createRequest = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/create-sample/`,
       method: 'POST',
@@ -59,7 +55,7 @@ describe('CreateSampleEventButton', function () {
     expect(createRequest).toHaveBeenCalled();
 
     const latestIssueRequest = MockApiClient.addMockResponse({
-      url: `/issues/${groupID}/events/latest/`,
+      url: `/organizations/${org.slug}/issues/${groupID}/events/latest/`,
       body: {},
     });
 
@@ -71,13 +67,19 @@ describe('CreateSampleEventButton', function () {
     // Wait for the api request and latestEventAvailable to resolve
     expect(sampleButton).toBeEnabled();
 
-    expect(router.push).toHaveBeenCalledWith(
-      `/organizations/${org.slug}/issues/${groupID}/?project=${project.id}&referrer=sample-error`
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: `/organizations/${org.slug}/issues/${groupID}/`,
+        query: expect.objectContaining({
+          project: project.id,
+          referrer: 'sample-error',
+        }),
+      })
     );
   });
 
-  it('waits for the latest event to be processed', async function () {
-    renderComponent();
+  it('waits for the latest event to be processed', async () => {
+    const {router} = renderComponent();
     const createRequest = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/create-sample/`,
       method: 'POST',
@@ -92,7 +94,7 @@ describe('CreateSampleEventButton', function () {
 
     // Start with no latest event
     let latestIssueRequest = MockApiClient.addMockResponse({
-      url: `/issues/${groupID}/events/latest/`,
+      url: `/organizations/${org.slug}/issues/${groupID}/events/latest/`,
       statusCode: 404,
       body: {},
     });
@@ -104,7 +106,7 @@ describe('CreateSampleEventButton', function () {
     // Second request will be successful
     MockApiClient.clearMockResponses();
     latestIssueRequest = MockApiClient.addMockResponse({
-      url: `/issues/${groupID}/events/latest/`,
+      url: `/organizations/${org.slug}/issues/${groupID}/events/latest/`,
       statusCode: 200,
       body: {},
     });
@@ -112,8 +114,14 @@ describe('CreateSampleEventButton', function () {
     jest.runAllTimers();
     await waitFor(() => expect(latestIssueRequest).toHaveBeenCalled());
 
-    expect(router.push).toHaveBeenCalledWith(
-      `/organizations/${org.slug}/issues/${groupID}/?project=${project.id}&referrer=sample-error`
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: `/organizations/${org.slug}/issues/${groupID}/`,
+        query: expect.objectContaining({
+          project: project.id,
+          referrer: 'sample-error',
+        }),
+      })
     );
 
     expect(trackAnalytics).toHaveBeenCalledWith(

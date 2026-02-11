@@ -2,26 +2,27 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import * as qs from 'query-string';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import type {Client} from 'sentry/api';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import DiscoverButton from 'sentry/components/discoverButton';
 import GroupList from 'sentry/components/issues/groupList';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {appendQueryDatasetParam} from 'sentry/views/dashboards/utils';
@@ -63,9 +64,10 @@ type Props = {
 function ProjectIssues({organization, location, projectId, query, api}: Props) {
   const [pageLinks, setPageLinks] = useState<string | undefined>();
   const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
-  const [issuesType, setIssuesType] = useState<IssuesType>(
-    (location.query.issuesType as IssuesType) || IssuesType.UNHANDLED
-  );
+  const [issuesType, setIssuesType] = useQueryState('issuesType', {
+    ...parseAsStringLiteral(Object.values(IssuesType)),
+    defaultValue: IssuesType.UNHANDLED,
+  });
   const [issuesCount, setIssuesCount] = useState<Count>({
     all: 0,
     new: 0,
@@ -172,7 +174,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
     : [`${IssuesQuery.ALL}`, query].join(' ').trim();
 
   const queryParams = {
-    limit: '5',
+    limit: 5,
     ...normalizeDateTimeParams(
       pick(location.query, [...Object.values(URL_PARAM), 'cursor'])
     ),
@@ -184,19 +186,6 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
     pathname: endpointPath,
     query: queryParams,
   };
-
-  function handleIssuesTypeSelection(issueType: IssuesType) {
-    const to = {
-      ...location,
-      query: {
-        ...location.query,
-        issuesType: issueType,
-      },
-    };
-
-    browserHistory.replace(to);
-    setIssuesType(issueType);
-  }
 
   function renderEmptyMessage() {
     const selectedTimePeriod = location.query.start
@@ -250,11 +239,11 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
 
   return (
     <Fragment>
-      <ControlsWrapper>
+      <Flex justify="between" align="end" wrap="wrap" marginBottom="md">
         <SegmentedControl
           aria-label={t('Issue type')}
           value={issuesType}
-          onChange={value => handleIssuesTypeSelection(value)}
+          onChange={setIssuesType}
           size="xs"
         >
           {issuesTypes.map(({value, label, issueCount}) => (
@@ -282,7 +271,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
           </DiscoverButton>
           <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
         </OpenInButtonBar>
-      </ControlsWrapper>
+      </Flex>
 
       <GroupList
         queryParams={queryParams}
@@ -292,20 +281,15 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
         withPagination={false}
         onFetchSuccess={handleFetchSuccess}
         source="project"
+        numPlaceholderRows={queryParams.limit}
       />
     </Fragment>
   );
 }
 
-const ControlsWrapper = styled('div')`
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-  flex-wrap: wrap;
-`;
-
-const OpenInButtonBar = styled(ButtonBar)`
+const OpenInButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   margin-top: ${space(1)};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {

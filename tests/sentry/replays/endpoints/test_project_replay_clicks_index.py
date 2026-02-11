@@ -12,7 +12,7 @@ REPLAYS_FEATURES = {"organizations:session-replay": True}
 class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-clicks-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.replay_id = uuid4().hex
@@ -20,17 +20,17 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             self.endpoint, args=(self.organization.slug, self.project.slug, self.replay_id)
         )
 
-    def test_feature_flag_disabled(self):
+    def test_feature_flag_disabled(self) -> None:
         response = self.client.get(self.url)
         assert response.status_code == 404
 
-    def test_invalid_uuid_404s(self):
+    def test_invalid_uuid_404s(self) -> None:
         with self.feature(REPLAYS_FEATURES):
             url = reverse(self.endpoint, args=(self.organization.slug, self.project.slug, "abc"))
             response = self.client.get(url)
             assert response.status_code == 404
 
-    def test_get_replay_multiple_selectors(self):
+    def test_get_replay_multiple_selectors(self) -> None:
         """Test only one replay returned."""
         replay1_id = self.replay_id
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
@@ -78,7 +78,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data[0]["node_id"] == 1
             assert response_data[1]["node_id"] == 2
 
-    def test_get_replays_filter_clicks(self):
+    def test_get_replays_filter_clicks(self) -> None:
         """Test replays conform to the interchange format."""
         replay1_id = self.replay_id
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
@@ -172,7 +172,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = response.json()
                 assert len(response_data["data"]) == 0, query
 
-    def test_get_replays_filter_clicks_not_selector(self):
+    def test_get_replays_filter_clicks_not_selector(self) -> None:
         replay1_id = self.replay_id
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
@@ -215,7 +215,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             response_data = response.json()
             assert len(response_data["data"]) == 2
 
-    def test_get_replay_explicit_and_to_implicit_or(self):
+    def test_get_replay_explicit_and_to_implicit_or(self) -> None:
         """Test explicit AND operation are implicitly converted to OR operations."""
         replay1_id = self.replay_id
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
@@ -281,7 +281,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data[0]["node_id"] == 1
             assert response_data[1]["node_id"] == 2
 
-    def test_get_replays_invalid_filter_field(self):
+    def test_get_replays_invalid_filter_field(self) -> None:
         """Test invalid filter fields error."""
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url + "?query=abc:123")

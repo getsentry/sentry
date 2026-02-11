@@ -4,17 +4,17 @@ import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
 
 jest.unmock('getsentry/utils/trackMarketingEvent');
 
-describe('trackMarketingEvent', function () {
+describe('trackMarketingEvent', () => {
   const eventName = 'my_event';
-  beforeEach(function () {
+  beforeEach(() => {
     ConfigStore.set('enableAnalytics', true);
     window.ga = jest.fn();
   });
-  afterEach(function () {
+  afterEach(() => {
     window.ga.mockClear();
   });
 
-  it('calls window.ga with event_label', function () {
+  it('calls window.ga with event_label', () => {
     const data = {event_label: 'my_label'};
     trackMarketingEvent(eventName, data);
     expect(window.ga).toHaveBeenCalledWith('send', {
@@ -24,7 +24,7 @@ describe('trackMarketingEvent', function () {
       eventLabel: 'my_label',
     });
   });
-  it('calls window.ga without event_label', function () {
+  it('calls window.ga without event_label', () => {
     trackMarketingEvent(eventName);
     expect(window.ga).toHaveBeenCalledWith('send', {
       hitType: 'event',
@@ -33,7 +33,7 @@ describe('trackMarketingEvent', function () {
       eventLabel: undefined,
     });
   });
-  it('enableAnalytics is false', function () {
+  it('enableAnalytics is false', () => {
     ConfigStore.set('enableAnalytics', false);
     trackMarketingEvent(eventName);
     expect(window.ga).not.toHaveBeenCalled();

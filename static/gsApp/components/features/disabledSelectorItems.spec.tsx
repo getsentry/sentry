@@ -7,10 +7,10 @@ import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
-describe('DisabledSelectorItems', function () {
+describe('DisabledSelectorItems', () => {
   const handleSelectRelative = jest.fn();
 
-  it('renders extended relative periods without sub', function () {
+  it('renders extended relative periods without sub', () => {
     const organization = OrganizationFixture();
     SubscriptionStore.set(organization.slug, {});
 
@@ -37,7 +37,7 @@ describe('DisabledSelectorItems', function () {
     expect(screen.queryByText(/Start Trial/)).not.toBeInTheDocument();
   });
 
-  it('renders extended relative periods for paid plan', function () {
+  it('renders extended relative periods for paid plan', () => {
     const organization = OrganizationFixture({slug: 'paid'});
     SubscriptionStore.set(
       organization.slug,
@@ -74,7 +74,7 @@ describe('DisabledSelectorItems', function () {
     expect(screen.queryByText(/Start Trial/)).not.toBeInTheDocument();
   });
 
-  it('renders upsell and not extended relative periods for free plan', function () {
+  it('renders upsell and not extended relative periods for free plan', () => {
     const organization = OrganizationFixture({slug: 'free'});
     SubscriptionStore.set(
       organization.slug,
@@ -111,7 +111,7 @@ describe('DisabledSelectorItems', function () {
     expect(screen.getByText(/Start Trial/)).toBeInTheDocument();
   });
 
-  it('does not render upsell when 90 day is not a relative option for free plan', function () {
+  it('does not render upsell when 90 day is not a relative option for free plan', () => {
     const organization = OrganizationFixture({slug: 'free'});
     SubscriptionStore.set(
       organization.slug,

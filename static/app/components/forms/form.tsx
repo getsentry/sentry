@@ -1,10 +1,11 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Observer} from 'mobx-react';
+import {Observer} from 'mobx-react-lite';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+
 import FormContext from 'sentry/components/forms/formContext';
 import type {FormOptions} from 'sentry/components/forms/model';
 import FormModel, {fieldIsRequiredMessage} from 'sentry/components/forms/model';
@@ -19,18 +20,18 @@ type RenderProps = {
 
 type RenderFunc = (props: RenderProps) => React.ReactNode;
 
-export interface FormProps
-  extends Pick<
-    FormOptions,
-    | 'allowUndo'
-    | 'resetOnError'
-    | 'saveOnBlur'
-    | 'apiEndpoint'
-    | 'apiMethod'
-    | 'onFieldChange'
-    | 'onSubmitError'
-    | 'onSubmitSuccess'
-  > {
+export interface FormProps extends Pick<
+  FormOptions,
+  | 'allowUndo'
+  | 'resetOnError'
+  | 'saveOnBlur'
+  | 'apiEndpoint'
+  | 'apiMethod'
+  | 'onFieldChange'
+  | 'onSubmitError'
+  | 'onSubmitSuccess'
+  | 'mapFormErrors'
+> {
   additionalFieldProps?: Record<string, any>;
   cancelLabel?: string;
   children?: React.ReactNode | RenderFunc;
@@ -80,7 +81,7 @@ export interface FormProps
   submitPriority?: ButtonProps['priority'];
 }
 
-function getSubmitButtonTitle(form: FormModel) {
+export function getSubmitButtonTitle(form: FormModel) {
   if (form.isFormIncomplete) {
     return t('Required fields must be filled out');
   }
@@ -122,6 +123,7 @@ function Form({
   footerStyle,
   hideFooter,
   initialData,
+  mapFormErrors,
   model,
   onCancel,
   onFieldChange,
@@ -159,6 +161,7 @@ function Form({
       saveOnBlur,
       apiEndpoint,
       apiMethod,
+      mapFormErrors,
     });
 
     return resolvedModel;
@@ -296,7 +299,7 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
   display: flex;
   justify-content: flex-end;
   margin-top: 25px;
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   background: none;
   padding: 16px 0 0;
   margin-bottom: 16px;

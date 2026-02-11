@@ -1,19 +1,17 @@
+from __future__ import annotations
+
 from collections.abc import Sequence
 
 import sentry_sdk
 
-from sentry import quotas
+from sentry import options, quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT
 from sentry.dynamic_sampling.rules.utils import DecisionKeepCount, OrganizationId, ProjectId
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     fetch_projects_with_total_root_transaction_count_and_rates,
 )
-from sentry.dynamic_sampling.tasks.common import GetActiveOrgsVolumes, TimedIterator
-from sentry.dynamic_sampling.tasks.constants import (
-    MAX_REBALANCE_FACTOR,
-    MAX_TASK_SECONDS,
-    MIN_REBALANCE_FACTOR,
-)
+from sentry.dynamic_sampling.tasks.common import GetActiveOrgsVolumes, OrganizationDataVolume
+from sentry.dynamic_sampling.tasks.constants import MAX_REBALANCE_FACTOR, MIN_REBALANCE_FACTOR
 from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
     compute_adjusted_factor,
     delete_adjusted_factor,
@@ -25,12 +23,7 @@ from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
 )
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
-from sentry.dynamic_sampling.tasks.task_context import TaskContext
-from sentry.dynamic_sampling.tasks.utils import (
-    dynamic_sampling_task,
-    dynamic_sampling_task_with_context,
-    sample_function,
-)
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task, sample_function
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.models.options.organization_option import OrganizationOption
@@ -38,75 +31,76 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.taskworker.retry import Retry
 
 
+def _get_segments_org_ids() -> set[int]:
+    """
+    Returns the set of organization IDs that should use SEGMENTS measure (new).
+    """
+    return set(options.get("dynamic-sampling.recalibrate_orgs.segment-metric-orgs") or [])
+
+
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.recalibrate_orgs",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=1 * 60,  # 1 minute
-    time_limit=1 * 60 + 5,
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=1 * 60 + 5,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=telemetry_experience_tasks,
-        processing_deadline_duration=1 * 60 + 5,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
-@dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
-def recalibrate_orgs(context: TaskContext) -> None:
-    for org_volumes in TimedIterator(
-        context,
-        GetActiveOrgsVolumes(),
-    ):
-        modes = OrganizationOption.objects.get_value_bulk_id(
-            [v.org_id for v in org_volumes], "sentry:sampling_mode", SAMPLING_MODE_DEFAULT
-        )
+@dynamic_sampling_task
+def recalibrate_orgs() -> None:
+    segments_org_ids = _get_segments_org_ids()
 
-        orgs_batch = []
-        projects_batch = []
+    # Process orgs using segment metrics (opted-in via option)
+    if segments_org_ids:
+        for segment_volumes in GetActiveOrgsVolumes(
+            measure=SamplingMeasure.SEGMENTS, orgs=list(segments_org_ids)
+        ):
+            _process_orgs_volumes(segment_volumes)
 
-        for org_volume in org_volumes:
-            if not org_volume.is_valid_for_recalibration():
-                continue
+    # Process orgs using transaction metrics (default)
+    for transaction_volumes in GetActiveOrgsVolumes(measure=SamplingMeasure.TRANSACTIONS):
+        filtered_volumes = [v for v in transaction_volumes if v.org_id not in segments_org_ids]
+        _process_orgs_volumes(filtered_volumes)
 
-            if modes[org_volume.org_id] == DynamicSamplingMode.PROJECT:
-                projects_batch.append(org_volume.org_id)
-            else:
-                orgs_batch.append((org_volume.org_id, org_volume.total, org_volume.indexed))
 
-        # We run an asynchronous job for recalibrating a batch of orgs whose
-        # size is specified in `GetActiveOrgsVolumes`.
-        if orgs_batch:
-            recalibrate_orgs_batch.delay(orgs_batch)
+def _process_orgs_volumes(org_volumes: Sequence[OrganizationDataVolume]) -> None:
+    """
+    Process organization volumes for recalibration.
 
-        if projects_batch:
-            recalibrate_projects_batch.delay(projects_batch)
+    Args:
+        org_volumes: Volumes to process for recalibration.
+    """
+    if not org_volumes:
+        return
+
+    modes = OrganizationOption.objects.get_value_bulk_id(
+        [v.org_id for v in org_volumes], "sentry:sampling_mode", SAMPLING_MODE_DEFAULT
+    )
+    orgs_batch = []
+    projects_batch = []
+    for org_volume in org_volumes:
+        if not org_volume.is_valid_for_recalibration():
+            continue
+        if modes[org_volume.org_id] == DynamicSamplingMode.PROJECT:
+            projects_batch.append(org_volume.org_id)
+        else:
+            orgs_batch.append((org_volume.org_id, org_volume.total, org_volume.indexed))
+
+    if orgs_batch:
+        recalibrate_orgs_batch.delay(orgs_batch)
+    if projects_batch:
+        recalibrate_projects_batch.delay(projects_batch)
 
 
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.recalibrate_orgs_batch",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=6 * 60,  # 6 minutes
-    time_limit=6 * 60 + 5,
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=6 * 60 + 5,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=telemetry_experience_tasks,
-        processing_deadline_duration=6 * 60 + 5,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @dynamic_sampling_task
 def recalibrate_orgs_batch(orgs: Sequence[tuple[OrganizationId, int, int]]) -> None:
@@ -180,25 +174,15 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
 
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.recalibrate_projects_batch",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=2 * 60,
-    time_limit=2 * 60 + 5,
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=2 * 60 + 5,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=telemetry_experience_tasks,
-        processing_deadline_duration=2 * 60 + 5,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
-@dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
-def recalibrate_projects_batch(context: TaskContext, orgs: list[OrganizationId]) -> None:
+@dynamic_sampling_task
+def recalibrate_projects_batch(orgs: list[OrganizationId]) -> None:
     for org_id, projects in fetch_projects_with_total_root_transaction_count_and_rates(
-        context, org_ids=orgs, measure=SamplingMeasure.SPANS
+        org_ids=orgs, measure=SamplingMeasure.SPANS
     ).items():
         sample_rates = ProjectOption.objects.get_value_bulk_id(
             [t[0] for t in projects], "sentry:target_sample_rate"

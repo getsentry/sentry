@@ -1,8 +1,10 @@
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Link} from 'sentry/components/core/link';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {Hovercard} from 'sentry/components/hovercard';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
@@ -35,10 +37,10 @@ function ConnectedAutomationsHoverBody({automationIds}: {automationIds: string[]
     return (
       <div>
         {Array.from({length: shownAutomations.length}).map((_, index) => (
-          <HovercardSkeletonRow key={index}>
+          <Stack justify="center" padding="md xl" gap="xs" minHeight="64px" key={index}>
             <Placeholder height="20px" width="100%" />
             <Placeholder height="18px" width="40%" />
-          </HovercardSkeletonRow>
+          </Stack>
         ))}
       </div>
     );
@@ -89,7 +91,7 @@ export function DetectorListConnectedAutomations({
             `}
             showUnderline
           >
-            {tn('%s automation', '%s automations', automationIds.length)}
+            {tn('%s alert', '%s alerts', automationIds.length)}
           </Hovercard>
         )}
       </ClassNames>
@@ -98,20 +100,10 @@ export function DetectorListConnectedAutomations({
 }
 
 const ConnectedAutomations = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: flex;
   flex-direction: row;
   gap: ${space(0.5)};
-`;
-
-const HovercardSkeletonRow = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: ${space(0.5)};
-  padding: ${space(1)} ${space(2)};
-
-  min-height: 64px;
 `;
 
 const HovercardRow = styled(Link)`
@@ -119,21 +111,21 @@ const HovercardRow = styled(Link)`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   padding: ${space(1)} ${space(2)};
 
   min-height: 64px;
 
   &:first-child {
-    border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+    border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   }
 
   &:last-child {
-    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   }
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 
   &:hover strong {
@@ -143,11 +135,11 @@ const HovercardRow = styled(Link)`
 
 const AutomationActionWrapper = styled('div')`
   margin-top: ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const MoreText = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-align: center;
   margin: 0;
   padding: ${space(1)} ${space(2)};

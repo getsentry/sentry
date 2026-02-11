@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useUserFromId from 'sentry/utils/useUserFromId';
 import type {Secret} from 'sentry/views/settings/featureFlags/changeTracking';
 
@@ -31,13 +31,13 @@ export function OrganizationFeatureFlagsProviderRow({
         <SecretPreview aria-label={t('Secret preview')}>{secret.secret}</SecretPreview>
       </div>
 
-      <DateTime>
+      <Flex align="center" gap="xs">
         <TimeSince date={secret.createdAt} />
-      </DateTime>
+      </Flex>
 
       <Flex align="center">{isUserPending ? <LoadingIndicator mini /> : user?.name}</Flex>
 
-      <Actions>
+      <Flex justify="end">
         <Tooltip
           title={t(
             'You must be an organization owner, manager or admin to remove a secret.'
@@ -56,34 +56,17 @@ export function OrganizationFeatureFlagsProviderRow({
               size="sm"
               disabled={isRemoving || !removeSecret}
               aria-label={t('Remove secret for %s provider', secret.provider)}
-              icon={
-                isRemoving ? (
-                  <LoadingIndicator mini />
-                ) : (
-                  <IconSubtract isCircled size="xs" />
-                )
-              }
+              icon={isRemoving ? <LoadingIndicator mini /> : <IconSubtract size="xs" />}
             >
               {t('Remove')}
             </Button>
           </Confirm>
         </Tooltip>
-      </Actions>
+      </Flex>
     </Fragment>
   );
 }
 
-const Actions = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
-
-const DateTime = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
 const SecretPreview = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

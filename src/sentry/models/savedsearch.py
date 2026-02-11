@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from enum import StrEnum
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from django.db import models
 from django.db.models import Q, UniqueConstraint
@@ -14,6 +16,9 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.text import CharField
 from sentry.models.search_common import SearchType
 
+if TYPE_CHECKING:
+    from django.utils.functional import _StrPromise  # fake type added by django-stubs
+
 
 class SortOptions(StrEnum):
     DATE = "date"
@@ -24,7 +29,7 @@ class SortOptions(StrEnum):
     INBOX = "inbox"
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> tuple[tuple[SortOptions, _StrPromise], ...]:
         return (
             (cls.DATE, _("Last Seen")),
             (cls.NEW, _("First Seen")),
@@ -105,7 +110,7 @@ class SavedSearch(Model):
         ]
 
     @property
-    def is_pinned(self):
+    def is_pinned(self) -> bool:
         return self.visibility == Visibility.OWNER_PINNED
 
     __repr__ = sane_repr("project_id", "name")

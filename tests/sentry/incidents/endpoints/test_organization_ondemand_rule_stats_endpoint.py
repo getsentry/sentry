@@ -37,19 +37,19 @@ class OrganizationOnDemandRuleStatsEndpointTest(BaseAlertRuleSerializerTest, API
 
         self.login_as(user=self.user)
 
-    def do_success_request(self, extra_features: dict[str, bool] | None = None):
+    def do_success_request(self, extra_features: dict[str, bool] | None = None) -> dict[str, int]:
         _features = {**self.features, **(extra_features or {})}
         with self.feature(_features):
             response = self.get_success_response(self.organization.slug, project_id=self.project.id)
             return response.data
 
-    def test_missing_project_id(self):
+    def test_missing_project_id(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
         )
-        assert response.data["detail"] == "Missing required parameter 'project_id'"
+        assert response.data["detail"] == "Invalid project_id"
 
-    def test_endpoint_return_correct_counts(self):
+    def test_endpoint_return_correct_counts(self) -> None:
         response_data = self.do_success_request()
         assert response_data == {
             "totalOnDemandAlertSpecs": 2,  # alert3 and alert4
@@ -63,7 +63,7 @@ class OrganizationOnDemandRuleStatsEndpointTest(BaseAlertRuleSerializerTest, API
             "maxAllowed": 50,
         }
 
-    def test_on_demand_alerts_exceeding_limit(self):
+    def test_on_demand_alerts_exceeding_limit(self) -> None:
         for _ in range(50):
             self.create_alert_rule(
                 aggregate="count()",
@@ -84,3 +84,22 @@ class OrganizationOnDemandRuleStatsEndpointTest(BaseAlertRuleSerializerTest, API
             "totalOnDemandAlertSpecs": 53,
             "maxAllowed": 50,
         }
+
+    def test_idor_project_from_different_org(self) -> None:
+        """Regression test: Cannot access projects from other organizations (IDOR)."""
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+
+        with self.feature(self.features):
+            self.get_error_response(
+                self.organization.slug, project_id=other_project.id, status_code=403
+            )
+
+    def test_negative_project_id_rejected(self) -> None:
+        """Regression test: project_id=-1 (ALL_ACCESS_PROJECT_ID) should be rejected."""
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug, project_id=-1, status_code=400
+            )
+            assert "project_id" in response.data
+            assert "not a valid integer id" in response.data["project_id"]

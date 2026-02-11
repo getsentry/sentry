@@ -2,8 +2,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 
-describe('RadioGroup', function () {
-  it('renders', function () {
+describe('RadioGroup', () => {
+  it('renders', () => {
     render(
       <RadioGroup
         label="test"
@@ -18,7 +18,7 @@ describe('RadioGroup', function () {
     );
   });
 
-  it('renders disabled', function () {
+  it('renders disabled', () => {
     render(
       <RadioGroup
         label="test"
@@ -32,7 +32,7 @@ describe('RadioGroup', function () {
     expect(screen.getByRole('radio', {name: 'Choice One'})).toBeDisabled();
   });
 
-  it('renders disabled choice', async function () {
+  it('renders disabled choice', async () => {
     render(
       <RadioGroup
         label="test"
@@ -55,7 +55,7 @@ describe('RadioGroup', function () {
     ).toBeInTheDocument();
   });
 
-  it('can select a different item', function () {
+  it('can select a different item', () => {
     render(
       <RadioGroup
         label="test"
@@ -70,7 +70,7 @@ describe('RadioGroup', function () {
     );
   });
 
-  it('calls onChange when clicked', async function () {
+  it('calls onChange when clicked', async () => {
     const mock = jest.fn();
 
     render(

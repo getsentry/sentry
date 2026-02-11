@@ -8,13 +8,25 @@ import {
   type AlertsEventParameters,
 } from 'sentry/utils/analytics/alertsAnalyticsEvents';
 import {
+  exploreAnalyticsEventMap,
+  type ExploreAnalyticsEventParameters,
+} from 'sentry/utils/analytics/exploreAnalyticsEvents';
+import {
   featureFlagEventMap,
   type FeatureFlagEventParameters,
 } from 'sentry/utils/analytics/featureFlagAnalyticsEvents';
 import {
+  gamingEventMap,
+  type GamingAnalyticsEventParameters,
+} from 'sentry/utils/analytics/gamingAnalyticsEvents';
+import {
   logsAnalyticsEventMap,
   type LogsAnalyticsEventParameters,
 } from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {
+  metricsAnalyticsEventMap,
+  type MetricsAnalyticsEventParameters,
+} from 'sentry/utils/analytics/metricsAnalyticsEvent';
 import {navigationAnalyticsEventMap} from 'sentry/utils/analytics/navigationAnalyticsEvents';
 import {nextJsInsightsEventMap} from 'sentry/utils/analytics/nextJsInsightsAnalyticsEvents';
 import {
@@ -28,6 +40,10 @@ import {
 
 import type {AgentMonitoringEventParameters} from './analytics/agentMonitoringAnalyticsEvents';
 import {agentMonitoringEventMap} from './analytics/agentMonitoringAnalyticsEvents';
+import type {BreadcrumbsAnalyticsEventParameters} from './analytics/breadcrumbsAnalyticsEvents';
+import {breadcrumbsAnalyticsEventMap} from './analytics/breadcrumbsAnalyticsEvents';
+import type {ConversationsEventParameters} from './analytics/conversationsAnalyticsEvents';
+import {conversationsEventMap} from './analytics/conversationsAnalyticsEvents';
 import type {CoreUIEventParameters} from './analytics/coreuiAnalyticsEvents';
 import {coreUIEventMap} from './analytics/coreuiAnalyticsEvents';
 import type {DashboardsEventParameters} from './analytics/dashboardsAnalyticsEvents';
@@ -59,6 +75,8 @@ import type {OnboardingEventParameters} from './analytics/onboardingAnalyticsEve
 import {onboardingEventMap} from './analytics/onboardingAnalyticsEvents';
 import type {PerformanceEventParameters} from './analytics/performanceAnalyticsEvents';
 import {performanceEventMap} from './analytics/performanceAnalyticsEvents';
+import type {PreprodBuildEventParameters} from './analytics/preprodBuildAnalyticsEvents';
+import {preprodBuildEventMap} from './analytics/preprodBuildAnalyticsEvents';
 import type {ProfilingEventParameters} from './analytics/profilingAnalyticsEvents';
 import {profilingEventMap} from './analytics/profilingAnalyticsEvents';
 import type {ProjectCreationEventParameters} from './analytics/projectCreationAnalyticsEvents';
@@ -69,6 +87,8 @@ import type {ReplayEventParameters} from './analytics/replayAnalyticsEvents';
 import {replayEventMap} from './analytics/replayAnalyticsEvents';
 import type {SearchEventParameters} from './analytics/searchAnalyticsEvents';
 import {searchEventMap} from './analytics/searchAnalyticsEvents';
+import {seerAnalyticsEventsMap} from './analytics/seerAnalyticsEvents';
+import type {SeerAnalyticsEventsParameters} from './analytics/seerAnalyticsEvents';
 import type {SettingsEventParameters} from './analytics/settingsAnalyticsEvents';
 import {settingsEventMap} from './analytics/settingsAnalyticsEvents';
 import type {SignupAnalyticsParameters} from './analytics/signupAnalyticsEvents';
@@ -83,9 +103,12 @@ import type {TeamInsightsEventParameters} from './analytics/workflowAnalyticsEve
 import {workflowEventMap} from './analytics/workflowAnalyticsEvents';
 
 interface EventParameters
-  extends GrowthEventParameters,
+  extends
+    GrowthEventParameters,
     AgentMonitoringEventParameters,
     AlertsEventParameters,
+    ConversationsEventParameters,
+    BreadcrumbsAnalyticsEventParameters,
     CoreUIEventParameters,
     DashboardsEventParameters,
     DiscoverEventParameters,
@@ -98,21 +121,26 @@ interface EventParameters
     MonitorsEventParameters,
     PerformanceEventParameters,
     ProfilingEventParameters,
+    PreprodBuildEventParameters,
     ReleasesEventParameters,
     ReplayEventParameters,
     SearchEventParameters,
+    SeerAnalyticsEventsParameters,
     SettingsEventParameters,
     TeamInsightsEventParameters,
     DynamicSamplingEventParameters,
     OnboardingEventParameters,
+    GamingAnalyticsEventParameters,
     StackTraceEventParameters,
     EcosystemEventParameters,
     IntegrationEventParameters,
     ProjectCreationEventParameters,
     SignupAnalyticsParameters,
     LogsAnalyticsEventParameters,
+    MetricsAnalyticsEventParameters,
     TracingEventParameters,
     StatsEventParameters,
+    ExploreAnalyticsEventParameters,
     QuickStartEventParameters,
     TempestEventParameters,
     Record<string, Record<string, any>> {}
@@ -120,6 +148,8 @@ interface EventParameters
 const allEventMap: Record<string, string | null> = {
   ...agentMonitoringEventMap,
   ...alertsEventMap,
+  ...conversationsEventMap,
+  ...breadcrumbsAnalyticsEventMap,
   ...coreUIEventMap,
   ...dashboardsEventMap,
   ...discoverEventMap,
@@ -132,16 +162,21 @@ const allEventMap: Record<string, string | null> = {
   ...monitorsEventMap,
   ...nextJsInsightsEventMap,
   ...performanceEventMap,
+  ...preprodBuildEventMap,
   ...tracingEventMap,
   ...profilingEventMap,
+  ...exploreAnalyticsEventMap,
   ...logsAnalyticsEventMap,
+  ...metricsAnalyticsEventMap,
   ...releasesEventMap,
   ...replayEventMap,
   ...searchEventMap,
+  ...seerAnalyticsEventsMap,
   ...settingsEventMap,
   ...workflowEventMap,
   ...dynamicSamplingEventMap,
   ...onboardingEventMap,
+  ...gamingEventMap,
   ...stackTraceEventMap,
   ...ecosystemEventMap,
   ...integrationEventMap,

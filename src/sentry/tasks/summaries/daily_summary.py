@@ -36,7 +36,6 @@ from sentry.tasks.summaries.utils import (
     project_key_performance_issues,
     user_project_ownership,
 )
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
@@ -57,11 +56,9 @@ HOUR_TO_SEND_REPORT = 16
 # The entry point. This task is scheduled to run every day at 4pm PST.
 @instrumented_task(
     name="sentry.tasks.summaries.daily_summary.schedule_organizations",
-    queue="reports.prepare",
-    max_retries=5,
-    acks_late=True,
+    namespace=reports_tasks,
+    retry=Retry(times=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=reports_tasks, retry=Retry(times=5)),
 )
 @retry
 def schedule_organizations(timestamp: float | None = None, duration: int | None = None) -> None:
@@ -114,20 +111,15 @@ def schedule_organizations(timestamp: float | None = None, duration: int | None 
                         users_to_send_to.append(user)
 
             if any(users_to_send_to):
-                # Create a celery task per timezone
+                # Create a task per timezone
                 prepare_summary_data.delay(timestamp, duration, organization.id, users_to_send_to)
 
 
 @instrumented_task(
     name="sentry.tasks.summaries.daily_summary.prepare_summary_data",
-    queue="reports.prepare",
-    max_retries=5,
-    acks_late=True,
+    namespace=reports_tasks,
+    retry=Retry(times=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=reports_tasks,
-        retry=Retry(times=5),
-    ),
 )
 @retry
 def prepare_summary_data(
@@ -135,7 +127,7 @@ def prepare_summary_data(
     duration: int,
     organization_id: int,
     users_to_send_to: list[int],
-):
+) -> None:
     organization = Organization.objects.get(id=organization_id)
     ctx = build_summary_data(
         timestamp=timestamp, duration=duration, organization=organization, daily=True
@@ -145,7 +137,7 @@ def prepare_summary_data(
     set_tag("report.available", report_is_available)
     if not report_is_available:
         logger.info("prepare_summary_data.skipping_empty", extra={"organization": organization.id})
-        return
+        return None
 
     with sentry_sdk.start_span(op="daily_summary.deliver_summary"):
         deliver_summary(ctx=ctx, users=users_to_send_to)
@@ -279,7 +271,9 @@ def build_summary_data(
     return ctx
 
 
-def build_top_projects_map(context: OrganizationReportContext, user_id: int):
+def build_top_projects_map(
+    context: OrganizationReportContext, user_id: int
+) -> dict[int, DailySummaryProjectContext]:
     """
     Order the projects by which of the user's projects have the highest error count for the day
     """
@@ -304,7 +298,7 @@ def build_top_projects_map(context: OrganizationReportContext, user_id: int):
     return top_projects_context_map
 
 
-def deliver_summary(ctx: OrganizationReportContext, users: list[int]):
+def deliver_summary(ctx: OrganizationReportContext, users: list[int]) -> None:
     # TODO: change this to some setting for daily summary
     user_ids = notifications_service.get_users_for_weekly_reports(
         organization_id=ctx.organization.id, user_ids=users

@@ -29,7 +29,7 @@ class TempestCredentialsEndpoint(ProjectEndpoint):
     permission_classes = (TempestCredentialsPermission,)
 
     def get(self, request: Request, project: Project) -> Response:
-        if not has_tempest_access(project.organization, request.user):
+        if not has_tempest_access(project.organization):
             raise NotFound
 
         tempest_credentials_qs = TempestCredentials.objects.filter(project=project)
@@ -41,7 +41,7 @@ class TempestCredentialsEndpoint(ProjectEndpoint):
         )
 
     def post(self, request: Request, project: Project) -> Response:
-        if not has_tempest_access(project.organization, request.user):
+        if not has_tempest_access(project.organization):
             raise NotFound
 
         serializer = DRFTempestCredentialsSerializer(data=request.data)

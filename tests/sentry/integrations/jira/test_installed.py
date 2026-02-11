@@ -76,7 +76,7 @@ class JiraInstalledTest(APITestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
-    def test_missing_body(self, mock_record_failure):
+    def test_missing_body(self, mock_record_failure: MagicMock) -> None:
         self.get_error_response(
             extra_headers=dict(HTTP_AUTHORIZATION="JWT anexampletoken"),
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -86,10 +86,10 @@ class JiraInstalledTest(APITestCase):
             ProjectManagementFailuresReason.INSTALLATION_STATE_MISSING
         )
 
-    def test_missing_token(self):
+    def test_missing_token(self) -> None:
         self.get_error_response(**self.body(), status_code=status.HTTP_409_CONFLICT)
 
-    def test_invalid_token(self):
+    def test_invalid_token(self) -> None:
         self.get_error_response(
             **self.body(),
             extra_headers=dict(HTTP_AUTHORIZATION="invalid"),
@@ -101,7 +101,7 @@ class JiraInstalledTest(APITestCase):
         side_effect=AtlassianConnectValidationError(),
     )
     @responses.activate
-    def test_no_claims(self, mock_authenticate_asymmetric_jwt):
+    def test_no_claims(self, mock_authenticate_asymmetric_jwt: MagicMock) -> None:
         self.add_response()
 
         self.get_error_response(
@@ -112,7 +112,7 @@ class JiraInstalledTest(APITestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry_sdk.set_tag")
-    def test_with_shared_secret(self, mock_set_tag: MagicMock, mock_record_event):
+    def test_with_shared_secret(self, mock_set_tag: MagicMock, mock_record_event) -> None:
         self.get_success_response(
             **self.body(),
             extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_secret()),
@@ -125,7 +125,7 @@ class JiraInstalledTest(APITestCase):
 
     @patch("sentry_sdk.set_tag")
     @responses.activate
-    def test_with_key_id(self, mock_set_tag: MagicMock):
+    def test_with_key_id(self, mock_set_tag: MagicMock) -> None:
         self.add_response()
 
         self.get_success_response(
@@ -138,7 +138,7 @@ class JiraInstalledTest(APITestCase):
         assert integration.status == ObjectStatus.ACTIVE
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_with_invalid_key_id(self, mock_record_event: MagicMock):
+    def test_with_invalid_key_id(self, mock_record_event: MagicMock) -> None:
         self.get_error_response(
             **self.body(),
             extra_headers=dict(

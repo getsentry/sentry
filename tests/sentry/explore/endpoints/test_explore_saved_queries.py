@@ -3,6 +3,7 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.explore.models import (
     ExploreSavedQuery,
+    ExploreSavedQueryDataset,
     ExploreSavedQueryLastVisited,
     ExploreSavedQueryStarred,
 )
@@ -15,7 +16,7 @@ class ExploreSavedQueriesTest(APITestCase):
         "organizations:visibility-explore-view": True,
     }
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
@@ -44,7 +45,7 @@ class ExploreSavedQueriesTest(APITestCase):
 
         self.url = reverse("sentry-api-0-explore-saved-queries", args=[self.org.slug])
 
-    def test_get(self):
+    def test_get(self) -> None:
         with self.feature(self.features):
             response = self.client.get(self.url)
 
@@ -57,6 +58,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert "range" not in response.data[0]
         assert response.data[0]["query"] == [
             {
+                "caseInsensitive": False,
                 "fields": [
                     "id",
                     "span.op",
@@ -93,7 +95,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.data[3]["createdBy"]["username"] == self.user.username
         assert not response.data[3]["expired"]
 
-    def test_get_name_filter(self):
+    def test_get_name_filter(self) -> None:
         with self.feature(self.features):
             response = self.client.get(self.url, format="json", data={"query": "Test"})
 
@@ -115,7 +117,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-    def test_get_all_paginated(self):
+    def test_get_all_paginated(self) -> None:
         for i in range(0, 10):
             query = {
                 "range": "24h",
@@ -134,7 +136,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
 
-    def test_get_sortby(self):
+    def test_get_sortby(self) -> None:
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
         model = ExploreSavedQuery.objects.create(
             organization=self.org,
@@ -164,7 +166,7 @@ class ExploreSavedQueriesTest(APITestCase):
                 values = list(reversed(values))
             assert list(sorted(values)) == values
 
-    def test_get_sortby_most_popular(self):
+    def test_get_sortby_most_popular(self) -> None:
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
         ExploreSavedQuery.objects.filter(name="Test query").update(visits=2)
         model = ExploreSavedQuery.objects.create(
@@ -195,7 +197,7 @@ class ExploreSavedQueriesTest(APITestCase):
                 assert values[-1] == expected[0]
                 assert values[-2] == expected[1]
 
-    def test_get_sortby_recently_viewed(self):
+    def test_get_sortby_recently_viewed(self) -> None:
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
         model = ExploreSavedQuery.objects.create(
             organization=self.org,
@@ -231,7 +233,7 @@ class ExploreSavedQueriesTest(APITestCase):
                 assert values[0] == expected[0]
                 assert values[1] == expected[1]
 
-    def test_get_sortby_myqueries(self):
+    def test_get_sortby_myqueries(self) -> None:
         uhoh_user = self.create_user(username="uhoh")
         self.create_member(organization=self.org, user=uhoh_user)
 
@@ -266,7 +268,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.data[1]["createdBy"]["id"] == str(uhoh_user.id)
         assert response.data[2]["createdBy"]["id"] == str(whoops_user.id)
 
-    def test_get_expired_query(self):
+    def test_get_expired_query(self) -> None:
         query = {
             "start": str(before_now(days=90)),
             "end": str(before_now(days=61)),
@@ -288,14 +290,14 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data[0]["expired"]
 
-    def test_get_my_queries(self):
+    def test_get_my_queries(self) -> None:
         with self.feature(self.features):
             response = self.client.get(self.url, data={"exclude": "shared"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["name"] == "Test query"
 
-    def test_get_shared_queries(self):
+    def test_get_shared_queries(self) -> None:
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
         model = ExploreSavedQuery.objects.create(
             organization=self.org,
@@ -311,7 +313,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert len(response.data) == 5
         assert response.data[0]["name"] == "Shared query"
 
-    def test_get_query_last_visited(self):
+    def test_get_query_last_visited(self) -> None:
         last_visited = before_now(minutes=10)
         query = {"fields": ["span.op"], "mode": "samples"}
         model = ExploreSavedQuery.objects.create(
@@ -335,7 +337,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["lastVisited"] == last_visited
 
-    def test_get_no_starred_queries(self):
+    def test_get_no_starred_queries(self) -> None:
         with self.feature(self.features):
             response = self.client.get(self.url, data={"starred": "1"})
         assert response.status_code == 200, response.content
@@ -353,7 +355,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-    def test_get_starred_queries(self):
+    def test_get_starred_queries(self) -> None:
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
         model_a = ExploreSavedQuery.objects.create(
             organization=self.org,
@@ -399,7 +401,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.data[0]["starred"] is True
         assert response.data[0]["position"] == 1
 
-    def test_get_most_starred_queries(self):
+    def test_get_most_starred_queries(self) -> None:
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
         model = ExploreSavedQuery.objects.create(
             organization=self.org,
@@ -460,7 +462,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.data[-1]["starred"] is False
         assert response.data[-1]["position"] is None
 
-    def test_get_sortby_multiple(self):
+    def test_get_sortby_multiple(self) -> None:
         # Trigger prebuilt queries creation and unstar prebuilt queries to simplify test
         with self.feature(self.features):
             response = self.client.get(self.url)
@@ -579,7 +581,7 @@ class ExploreSavedQueriesTest(APITestCase):
         )  # This should be false because this query is starred by a different user
         assert response.data[4]["position"] is None
 
-    def test_post_require_mode(self):
+    def test_post_require_mode(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -593,7 +595,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 400, response.content
         assert "This field is required." == response.data["query"]["mode"][0]
 
-    def test_post_success(self):
+    def test_post_success(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -617,6 +619,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert data["environment"] == ["dev"]
         assert data["query"] == [
             {
+                "caseInsensitive": False,
                 "fields": ["span.op", "count(span.duration)"],
                 "mode": "samples",
                 "query": "span.op:pageload",
@@ -625,7 +628,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert data["projects"] == self.project_ids
         assert data["dataset"] == "spans"
 
-    def test_post_all_projects(self):
+    def test_post_all_projects(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -644,7 +647,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 201, response.content
         assert response.data["projects"] == [-1]
 
-    def test_save_with_project(self):
+    def test_save_with_project(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -664,7 +667,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 201, response.content
         assert ExploreSavedQuery.objects.filter(name="project query").exists()
 
-    def test_save_with_project_and_my_projects(self):
+    def test_save_with_project_and_my_projects(self) -> None:
         team = self.create_team(organization=self.org, members=[self.user])
         project = self.create_project(organization=self.org, teams=[team])
         with self.feature(self.features):
@@ -686,7 +689,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 201, response.content
         assert ExploreSavedQuery.objects.filter(name="project query").exists()
 
-    def test_save_with_org_projects(self):
+    def test_save_with_org_projects(self) -> None:
         project = self.create_project(organization=self.org)
         with self.feature(self.features):
             response = self.client.post(
@@ -707,7 +710,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 201, response.content
         assert ExploreSavedQuery.objects.filter(name="project query").exists()
 
-    def test_save_with_team_project(self):
+    def test_save_with_team_project(self) -> None:
         team = self.create_team(organization=self.org, members=[self.user])
         project = self.create_project(organization=self.org, teams=[team])
         self.create_project(organization=self.org, teams=[team])
@@ -730,7 +733,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 201, response.content
         assert ExploreSavedQuery.objects.filter(name="project query").exists()
 
-    def test_save_without_team(self):
+    def test_save_without_team(self) -> None:
         team = self.create_team(organization=self.org, members=[])
         self.create_project(organization=self.org, teams=[team])
         with self.feature(self.features):
@@ -752,7 +755,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 400
         assert "No Projects found, join a Team" == response.data["detail"]
 
-    def test_save_with_team_and_without_project(self):
+    def test_save_with_team_and_without_project(self) -> None:
         team = self.create_team(organization=self.org, members=[self.user])
         self.create_project(organization=self.org, teams=[team])
         with self.feature(self.features):
@@ -774,7 +777,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 201, response.content
         assert ExploreSavedQuery.objects.filter(name="with team query").exists()
 
-    def test_save_with_wrong_projects(self):
+    def test_save_with_wrong_projects(self) -> None:
         other_org = self.create_organization(owner=self.user)
         project = self.create_project(organization=other_org)
         project2 = self.create_project(organization=self.org)
@@ -816,7 +819,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 403, response.content
         assert not ExploreSavedQuery.objects.filter(name="project query").exists()
 
-    def test_save_interval(self):
+    def test_save_interval(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -838,7 +841,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.data["name"] == "Interval query"
         assert response.data["interval"] == "1m"
 
-    def test_save_invalid_interval(self):
+    def test_save_invalid_interval(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -858,7 +861,7 @@ class ExploreSavedQueriesTest(APITestCase):
             )
         assert response.status_code == 400, response.content
 
-    def test_save_without_chart_type(self):
+    def test_save_without_chart_type(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -887,7 +890,7 @@ class ExploreSavedQueriesTest(APITestCase):
             {"yAxes": ["count(span.duration)"]},
         ]
 
-    def test_save_aggregate_field_and_orderby(self):
+    def test_save_aggregate_field_and_orderby(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -935,7 +938,7 @@ class ExploreSavedQueriesTest(APITestCase):
         ]
         assert response.data["query"][0]["aggregateOrderby"] == "-avg(span.duration)"
 
-    def test_save_invalid_ambiguous_aggregate_field(self):
+    def test_save_invalid_ambiguous_aggregate_field(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -967,7 +970,7 @@ class ExploreSavedQueriesTest(APITestCase):
             ),
         }
 
-    def test_save_invalid_aggregate_field(self):
+    def test_save_invalid_aggregate_field(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -1005,7 +1008,7 @@ class ExploreSavedQueriesTest(APITestCase):
             },
         }
 
-    def test_save_invalid_aggregate_field_bad_y_axes(self):
+    def test_save_invalid_aggregate_field_bad_y_axes(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -1041,7 +1044,7 @@ class ExploreSavedQueriesTest(APITestCase):
             },
         }
 
-    def test_save_invalid_aggregate_field_bad_group_by(self):
+    def test_save_invalid_aggregate_field_bad_group_by(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -1076,3 +1079,259 @@ class ExploreSavedQueriesTest(APITestCase):
                 },
             },
         }
+
+    def test_get_with_migration_feature_flag(self) -> None:
+        self.features_with_migration = {"organizations:expose-migrated-discover-queries": True}
+        self.features_with_migration.update(self.features)
+        model = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            date_added=before_now(),
+            # sort by name so it shows up last
+            name="Z - Segment span query",
+            query={"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]},
+            dataset=ExploreSavedQueryDataset.SEGMENT_SPANS,
+        )
+
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model,
+            last_visited=before_now(),
+        )
+
+        with self.feature(self.features_with_migration):
+            response_with_flag = self.client.get(self.url, data={"sortBy": ["name"]})
+
+        assert response_with_flag.status_code == 200, response_with_flag.content
+        assert len(response_with_flag.data) == 6
+
+        assert response_with_flag.data[5]["name"] == "Z - Segment span query"
+        assert response_with_flag.data[5]["dataset"] == "segment_spans"
+
+        with self.feature(self.features):
+            response_without_flag = self.client.get(self.url)
+
+        assert response_without_flag.status_code == 200, response_without_flag.content
+        assert len(response_without_flag.data) == 5
+
+    def test_post_metrics_dataset_with_metric_field(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Metrics query with metric field",
+                    "projects": self.project_ids,
+                    "dataset": "metrics",
+                    "query": [
+                        {
+                            "fields": ["count()"],
+                            "mode": "aggregate",
+                            "metric": {
+                                "name": "sentry.alert_endpoint.executed",
+                                "type": "counter",
+                            },
+                        }
+                    ],
+                    "range": "24h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        data = response.data
+        assert data["dataset"] == "metrics"
+        assert data["query"] == [
+            {
+                "caseInsensitive": False,
+                "fields": ["count()"],
+                "mode": "aggregate",
+                "metric": {
+                    "name": "sentry.alert_endpoint.executed",
+                    "type": "counter",
+                },
+            }
+        ]
+
+    def test_post_metrics_dataset_with_metric_field_and_unit(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Metrics query with unit",
+                    "projects": self.project_ids,
+                    "dataset": "metrics",
+                    "query": [
+                        {
+                            "fields": ["avg()"],
+                            "mode": "aggregate",
+                            "metric": {
+                                "name": "sentry.response_time",
+                                "type": "gauge",
+                                "unit": "millisecond",
+                            },
+                        }
+                    ],
+                    "range": "1h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        data = response.data
+        assert data["dataset"] == "metrics"
+        assert data["query"] == [
+            {
+                "caseInsensitive": False,
+                "fields": ["avg()"],
+                "mode": "aggregate",
+                "metric": {
+                    "name": "sentry.response_time",
+                    "type": "gauge",
+                    "unit": "millisecond",
+                },
+            }
+        ]
+
+    def test_get_metrics_dataset_with_metric_field(self) -> None:
+        query = {
+            "range": "24h",
+            "query": [
+                {
+                    "fields": ["count()"],
+                    "mode": "aggregate",
+                    "metric": {
+                        "name": "sentry.alert_endpoint.executed",
+                        "type": "counter",
+                    },
+                }
+            ],
+        }
+
+        model = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Test metrics query",
+            query=query,
+            dataset=ExploreSavedQueryDataset.METRICS,
+        )
+        model.set_projects(self.project_ids)
+
+        with self.feature(self.features):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200, response.content
+
+        test_query = None
+        for item in response.data:
+            if item["name"] == "Test metrics query":
+                test_query = item
+                break
+
+        assert test_query is not None
+        assert test_query["dataset"] == "metrics"
+        assert test_query["query"][0]["metric"] == {
+            "name": "sentry.alert_endpoint.executed",
+            "type": "counter",
+        }
+
+    def test_post_non_metrics_dataset_rejects_metric_field(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Spans query with invalid metric",
+                    "projects": self.project_ids,
+                    "dataset": "spans",
+                    "query": [
+                        {
+                            "fields": ["span.op"],
+                            "mode": "samples",
+                            "metric": {
+                                "name": "sentry.alert_endpoint.executed",
+                                "type": "counter",
+                            },
+                        }
+                    ],
+                    "range": "24h",
+                },
+            )
+        assert response.status_code == 400, response.content
+        assert "Metric field is only allowed for metrics dataset" in str(response.data)
+
+    def test_post_metrics_dataset_requires_metric_field(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Metrics query without metric field",
+                    "projects": self.project_ids,
+                    "dataset": "metrics",
+                    "query": [
+                        {
+                            "fields": ["span.op"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "range": "24h",
+                },
+            )
+        assert response.status_code == 400, response.content
+        assert "Metric field is required for metrics dataset" in str(response.data)
+
+    def test_save_with_start_and_end_time(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Start and end time query",
+                    "projects": self.project_ids,
+                    "dataset": "spans",
+                    "start": "2025-11-12T23:00:00.000Z",
+                    "end": "2025-11-20T22:59:59.000Z",
+                },
+            )
+        assert response.status_code == 201, response.content
+        data = response.data
+        assert data["start"] is not None
+        assert data["end"] is not None
+
+    def test_save_with_case_insensitive(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Case insensitive query",
+                    "projects": self.project_ids,
+                    "dataset": "spans",
+                    "query": [
+                        {
+                            "fields": ["span.op"],
+                            "mode": "samples",
+                            "caseInsensitive": 1,
+                        }
+                    ],
+                    "range": "24h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        data = response.data
+        assert data["query"][0]["caseInsensitive"] is True
+
+    def test_save_replay_query(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Replay dataset",
+                    "projects": self.project_ids,
+                    "dataset": "replays",
+                    "query": [
+                        {
+                            "query": "user.email:*@sentry.io",
+                            "mode": "samples",
+                        }
+                    ],
+                    "range": "48h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        data = response.data
+        assert data["query"][0]["query"] == "user.email:*@sentry.io"
+        assert data["query"][0]["mode"] == "samples"

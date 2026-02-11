@@ -23,7 +23,6 @@ import {
 } from 'sentry/components/charts/utils';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import {NOT_AVAILABLE_MESSAGES} from 'sentry/constants/notAvailableMessages';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -140,8 +139,10 @@ class ProjectCharts extends Component<Props, State> {
   get displayModes(): Array<SelectValue<string>> {
     const {organization, hasSessions, hasTransactions, project} = this.props;
     const hasPerformance = organization.features.includes('performance-view');
-    const noPerformanceTooltip = NOT_AVAILABLE_MESSAGES.performance;
-    const noHealthTooltip = NOT_AVAILABLE_MESSAGES.releaseHealth;
+    const noPerformanceTooltip = t(
+      'This view is only available with Performance Monitoring.'
+    );
+    const noHealthTooltip = t('This view is only available with Release Health.');
 
     const options = [
       {
@@ -249,7 +250,7 @@ class ProjectCharts extends Component<Props, State> {
   get summaryHeading() {
     switch (this.displayMode) {
       case DisplayModes.ERRORS:
-        return t('Total Errors');
+        return t('Sample Count');
       case DisplayModes.STABILITY:
       case DisplayModes.SESSIONS:
         return t('Total Sessions');
@@ -350,7 +351,10 @@ class ProjectCharts extends Component<Props, State> {
                   location={location}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[theme.chart.getColorPalette(0)[0], theme.purple200]}
+                  colors={[
+                    theme.chart.getColorPalette(0)[0],
+                    theme.tokens.border.accent.moderate,
+                  ]}
                 />
               )}
               {displayMode === DisplayModes.FAILURE_RATE && (
@@ -367,7 +371,10 @@ class ProjectCharts extends Component<Props, State> {
                   location={location}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[theme.red300, theme.purple200]}
+                  colors={[
+                    theme.tokens.dataviz.semantic.bad,
+                    theme.tokens.border.accent.moderate,
+                  ]}
                 />
               )}
               {displayMode === DisplayModes.TPM && (
@@ -384,7 +391,10 @@ class ProjectCharts extends Component<Props, State> {
                   location={location}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[theme.yellow300, theme.purple200]}
+                  colors={[
+                    theme.tokens.dataviz.semantic.meh,
+                    theme.tokens.border.accent.moderate,
+                  ]}
                   disablePrevious
                 />
               )}
@@ -402,7 +412,10 @@ class ProjectCharts extends Component<Props, State> {
                     location={location}
                     organization={organization}
                     onTotalValuesChange={this.handleTotalValuesChange}
-                    colors={[theme.purple300, theme.purple200]}
+                    colors={[
+                      theme.tokens.dataviz.semantic.accent,
+                      theme.tokens.dataviz.semantic.neutral,
+                    ]}
                     interval={this.barChartInterval}
                     chartComponent={BarChart}
                     disableReleases
@@ -427,7 +440,10 @@ class ProjectCharts extends Component<Props, State> {
                   location={location}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[theme.gray200, theme.purple200]}
+                  colors={[
+                    theme.tokens.dataviz.semantic.neutral,
+                    theme.tokens.border.accent.moderate,
+                  ]}
                   interval={this.barChartInterval}
                   chartComponent={BarChart}
                   disableReleases

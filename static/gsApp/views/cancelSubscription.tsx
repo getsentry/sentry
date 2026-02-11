@@ -1,12 +1,13 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {ExternalLink} from 'sentry/components/core/link';
 import RadioGroupField from 'sentry/components/forms/fields/radioField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import Form from 'sentry/components/forms/form';
@@ -17,6 +18,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -26,13 +28,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import withSubscription from 'getsentry/components/withSubscription';
 import {ANNUAL} from 'getsentry/constants';
 import subscriptionStore from 'getsentry/stores/subscriptionStore';
-import type {PromotionData, Subscription} from 'getsentry/types';
-import {checkForPromptBasedPromotion} from 'getsentry/utils/promotionUtils';
-import usePromotionTriggerCheck from 'getsentry/utils/usePromotionTriggerCheck';
-import withPromotions from 'getsentry/utils/withPromotions';
+import type {Subscription} from 'getsentry/types';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 type CancelReason = [string, React.ReactNode];
 type CancelCheckbox = [string, React.ReactNode];
@@ -103,7 +102,11 @@ function CancelSubscriptionForm() {
   const navigate = useNavigate();
   const api = useApi();
   const {data: subscription, isPending} = useApiQuery<Subscription>(
-    [`/customers/${organization.slug}/`],
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {staleTime: 0}
   );
   const [state, setState] = useState<State>({
@@ -137,7 +140,7 @@ function CancelSubscriptionForm() {
       });
 
       handleSubmitSuccess(response);
-    } catch (error) {
+    } catch (error: any) {
       addErrorMessage(error.responseJSON?.detail || t('Failed to cancel subscription'));
     }
   };
@@ -151,7 +154,7 @@ function CancelSubscriptionForm() {
   if (!canCancelPlan) {
     return (
       <Alert.Container>
-        <Alert type="error">{t('Your plan is not eligible to be cancelled.')}</Alert>
+        <Alert variant="danger">{t('Your plan is not eligible to be cancelled.')}</Alert>
       </Alert.Container>
     );
   }
@@ -160,7 +163,7 @@ function CancelSubscriptionForm() {
     return (
       <Fragment>
         <Alert.Container>
-          <Alert type="error">
+          <Alert variant="danger">
             {tct(
               `Upon cancellation your account will be downgraded to a free plan which is limited to a single user.
             Your account currently has [count] [teamMembers: other team member(s)] using Sentry that would lose
@@ -189,7 +192,7 @@ function CancelSubscriptionForm() {
   return (
     <Fragment>
       <Alert.Container>
-        <Alert type="warning">
+        <Alert variant="warning">
           {tct(
             `Your organization is currently subscribed to the [planName] plan on a [interval] contract.
              Cancelling your subscription will downgrade your account to a free plan at the end
@@ -293,47 +296,14 @@ const ButtonList = styled('div')`
   margin-top: ${space(1)};
 `;
 
-interface CancelSubscriptionWrapperProps {
-  subscription: Subscription;
-  promotionData?: PromotionData;
-}
-
-function CancelSubscriptionWrapper({
-  promotionData,
-  subscription,
-}: CancelSubscriptionWrapperProps) {
-  const api = useApi();
-  const organization = useOrganization();
-  const navigate = useNavigate();
-  const {refetch} = usePromotionTriggerCheck(organization);
-  const switchToBillingOverview = useCallback(() => {
-    navigate(
-      normalizeUrl({
-        pathname: `/settings/${organization.slug}/billing/overview/`,
-      })
-    );
-  }, [navigate, organization.slug]);
-  useEffect(() => {
-    // when we mount, we know someone is thinking about canceling their subscription
-    if (promotionData) {
-      checkForPromptBasedPromotion({
-        organization,
-        refetch,
-        promptFeature: 'cancel_subscription',
-        subscription,
-        promotionData,
-        onAcceptConditions: switchToBillingOverview,
-      });
-    }
-  }, [api, organization, refetch, subscription, promotionData, switchToBillingOverview]);
-
+function CancelSubscriptionPage() {
   const title = t('Cancel Subscription');
   return (
-    <div data-test-id="cancel-subscription">
+    <SubscriptionPageContainer background="secondary" data-test-id="cancel-subscription">
       <SentryDocumentTitle title={title} />
       <SettingsPageHeader title={title} />
       <CancelSubscriptionForm />
-    </div>
+    </SubscriptionPageContainer>
   );
 }
 
@@ -364,6 +334,4 @@ const ExtraContainer = styled('div')`
   padding: ${space(1)} 0;
 `;
 
-export default withSubscription(withPromotions(CancelSubscriptionWrapper), {
-  noLoader: true,
-});
+export default CancelSubscriptionPage;

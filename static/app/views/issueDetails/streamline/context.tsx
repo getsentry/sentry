@@ -1,11 +1,11 @@
 import {
   createContext,
-  type Dispatch,
-  type Reducer,
   useCallback,
   useContext,
   useMemo,
   useReducer,
+  type Dispatch,
+  type Reducer,
 } from 'react';
 
 import type {DetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
@@ -19,8 +19,11 @@ export const enum SectionKey {
   USER_FEEDBACK = 'user-feedback',
   SEER = 'seer',
   EXTERNAL_ISSUES = 'external-issues',
+  PEOPLE = 'people',
+  ACTIVITY = 'activity',
 
   UPTIME = 'uptime', // Only Uptime issues
+  ASSERTIONS = 'assertions', // Only Uptime issues
   DOWNTIME = 'downtime',
   CRON_TIMELINE = 'cron-timeline', // Only Cron issues
   CORRELATED_ISSUES = 'correlated-issues', // Only Metric issues
@@ -31,6 +34,7 @@ export const enum SectionKey {
 
   EXCEPTION = 'exception',
   STACKTRACE = 'stacktrace',
+  CHAINED_EXCEPTION = 'chained-exception',
   THREADS = 'threads',
   SPANS = 'spans',
   EVIDENCE = 'evidence',
@@ -50,6 +54,7 @@ export const enum SectionKey {
 
   BREADCRUMBS = 'breadcrumbs',
   LOGS = 'logs',
+  METRICS = 'metrics',
   SPAN_ATTRIBUTES = 'span-attributes',
   /**
    * Also called images loaded
@@ -88,6 +93,14 @@ export const enum SectionKey {
 
   MCP_INPUT = 'mcp-input',
   MCP_OUTPUT = 'mcp-output',
+
+  SPAN_LINKS = 'span-links',
+
+  XRAY_DIFF = 'xray-diff',
+
+  INSTRUMENTATION_FIX = 'instrumentation-fix',
+
+  PROFILE_PREVIEW = 'profile-preview',
 }
 
 /**
@@ -161,12 +174,18 @@ type UpdateDetectorDetailsAction = {
   type: 'UPDATE_DETECTOR_DETAILS';
 };
 
+type RemoveEventSectionAction = {
+  key: SectionKey;
+  type: 'REMOVE_EVENT_SECTION';
+};
+
 type IssueDetailsActions =
   | UpdateEventSectionAction
   | UpdateNavScrollMarginAction
   | UpdateEventCountAction
   | UpdateSidebarAction
-  | UpdateDetectorDetailsAction;
+  | UpdateDetectorDetailsAction
+  | RemoveEventSectionAction;
 
 function updateEventSection(
   state: IssueDetailsState,
@@ -202,6 +221,10 @@ export function IssueDetailsContextProvider({children}: {children: React.ReactNo
           return {...state, eventCount: action.count};
         case 'UPDATE_DETECTOR_DETAILS':
           return {...state, detectorDetails: action.detectorDetails};
+        case 'REMOVE_EVENT_SECTION': {
+          const {[action.key]: _removed, ...remainingSections} = state.sectionData;
+          return {...state, sectionData: remainingSections};
+        }
         default:
           return state;
       }

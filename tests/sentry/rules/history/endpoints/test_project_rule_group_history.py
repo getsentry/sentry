@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from sentry.api.serializers import serialize
-from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import RuleGroupHistory
 from sentry.rules.history.endpoints.project_rule_group_history import RuleGroupHistorySerializer
@@ -13,7 +12,7 @@ pytestmark = [requires_snuba]
 
 
 class RuleGroupHistorySerializerTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         current_date = datetime.now()
         group_history = RuleGroupHistory(self.group, 50, current_date)
         result = serialize([group_history], self.user, RuleGroupHistorySerializer())
@@ -31,9 +30,9 @@ class RuleGroupHistorySerializerTest(TestCase):
 class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-group-history-index"
 
-    def test(self):
+    def test(self) -> None:
         history = []
-        rule = Rule.objects.create(project=self.project)
+        rule = self.create_project_rule()
         for i in range(3):
             history.append(
                 RuleFireHistory(
@@ -96,8 +95,8 @@ class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
             RuleGroupHistorySerializer(),
         )
 
-    def test_invalid_dates(self):
-        rule = Rule.objects.create(project=self.project)
+    def test_invalid_dates(self) -> None:
+        rule = self.create_project_rule()
 
         self.login_as(self.user)
         resp = self.get_response(

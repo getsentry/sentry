@@ -7,7 +7,6 @@ from typing import Any
 from django import forms
 from django.db.models.signals import post_delete, post_save
 
-from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release, follows_semver_versioning_scheme
@@ -25,6 +24,7 @@ from sentry.search.utils import (
     get_first_last_release_for_group,
     get_latest_release,
 )
+from sentry.services.eventstore.models import GroupEvent
 from sentry.utils.cache import cache
 
 
@@ -150,7 +150,7 @@ class LatestAdoptedReleaseFilter(EventFilter):
 
 def is_newer_release(
     release: Release, comparison_release: Release, order_type: LatestReleaseOrders
-):
+) -> bool:
     if (
         order_type == LatestReleaseOrders.SEMVER
         and release.is_semver_release

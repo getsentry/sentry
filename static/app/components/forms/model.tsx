@@ -430,6 +430,7 @@ class FormModel {
         method,
         data,
         success: response => resolve(response),
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
         error: error => reject(error),
       })
     );
@@ -779,8 +780,9 @@ class FormModel {
       this.errors.delete(id);
     }
 
-    // Field should no longer to "saving", but is not necessarily "ready"
+    // Resets field states used in the control state
     this.setFieldState(id, FormState.SAVING, false);
+    this.setFieldState(id, FormState.READY, false);
   }
 
   /**
@@ -805,8 +807,11 @@ class FormModel {
 
   handleErrorResponse({responseJSON: resp}: {responseJSON?: any} = {}) {
     if (!resp) {
+      addErrorMessage(t('Unknown error while saving'));
       return;
     }
+
+    let errorDisplayed = false;
 
     // Show resp msg from API endpoint if possible
     Object.keys(resp).forEach(id => {
@@ -818,11 +823,17 @@ class FormModel {
         nonFieldErrors.length
       ) {
         addErrorMessage(nonFieldErrors[0], {duration: 10000});
+        errorDisplayed = true;
       } else if (Array.isArray(resp[id]) && resp[id].length) {
         // Just take first resp for now
         this.setError(id, resp[id][0]);
+        errorDisplayed = true;
       }
     });
+
+    if (!errorDisplayed) {
+      addErrorMessage(t('Unknown error while saving'));
+    }
   }
 
   submitSuccess(data: Record<string, FieldValue>) {

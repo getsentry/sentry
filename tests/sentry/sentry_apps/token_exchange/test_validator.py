@@ -1,4 +1,4 @@
-from unittest.mock import PropertyMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 
@@ -11,7 +11,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class TestValidator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.install = self.create_sentry_app_installation()
         self.client_id = self.install.sentry_app.application.client_id
         self.user = self.install.sentry_app.proxy_user
@@ -21,10 +21,10 @@ class TestValidator(TestCase):
             user=self.user,
         )
 
-    def test_happy_path(self):
+    def test_happy_path(self) -> None:
         assert self.validator.run()
 
-    def test_request_must_be_made_by_sentry_app(self):
+    def test_request_must_be_made_by_sentry_app(self) -> None:
         self.validator.user = self.create_user()
 
         with pytest.raises(SentryAppIntegratorError) as e:
@@ -35,7 +35,7 @@ class TestValidator(TestCase):
         }
         assert e.value.public_context == {}
 
-    def test_request_user_must_own_sentry_app(self):
+    def test_request_user_must_own_sentry_app(self) -> None:
         self.validator.user = self.create_user(is_sentry_app=True)
 
         with pytest.raises(SentryAppIntegratorError) as e:
@@ -49,7 +49,7 @@ class TestValidator(TestCase):
         }
         assert e.value.public_context == {}
 
-    def test_installation_belongs_to_sentry_app_with_client_id(self):
+    def test_installation_belongs_to_sentry_app_with_client_id(self) -> None:
         self.validator.install = self.create_sentry_app_installation()
 
         with pytest.raises(SentryAppIntegratorError) as e:
@@ -62,7 +62,7 @@ class TestValidator(TestCase):
         assert e.value.public_context == {}
 
     @patch("sentry.models.ApiApplication.sentry_app", new_callable=PropertyMock)
-    def test_raises_when_sentry_app_cannot_be_found(self, sentry_app):
+    def test_raises_when_sentry_app_cannot_be_found(self, sentry_app: MagicMock) -> None:
         sentry_app.side_effect = SentryApp.DoesNotExist()
 
         with pytest.raises(SentryAppSentryError) as e:
@@ -71,11 +71,27 @@ class TestValidator(TestCase):
         assert e.value.webhook_context == {"application_id": self.install.sentry_app.application.id}
         assert e.value.public_context == {}
 
-    def test_raises_with_invalid_client_id(self):
+    def test_raises_with_invalid_client_id(self) -> None:
         self.validator.client_id = "123"
 
         with pytest.raises(SentryAppSentryError) as e:
             self.validator.run()
         assert e.value.message == "Application does not exist"
         assert e.value.webhook_context == {"client_id": self.validator.client_id[:4]}
+        assert e.value.public_context == {}
+
+    def test_raises_when_application_is_inactive(self) -> None:
+        from sentry.models.apiapplication import ApiApplicationStatus
+
+        self.install.sentry_app.application.status = ApiApplicationStatus.inactive
+        self.install.sentry_app.application.save()
+
+        with pytest.raises(SentryAppIntegratorError) as e:
+            self.validator.run()
+        assert e.value.message == "Application is not active"
+        assert e.value.status_code == 401
+        assert e.value.webhook_context == {
+            "application_id": self.install.sentry_app.application.id,
+            "client_id": self.client_id[:4],
+        }
         assert e.value.public_context == {}

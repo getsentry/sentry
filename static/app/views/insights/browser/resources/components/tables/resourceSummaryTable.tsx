@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {
@@ -9,6 +10,7 @@ import type {
   GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -30,7 +32,7 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {type EAPSpanResponse, ModuleName, SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
 
 const {
   RESOURCE_RENDER_BLOCKING_STATUS,
@@ -41,7 +43,7 @@ const {
 } = SpanFields;
 
 type Row = Pick<
-  EAPSpanResponse,
+  SpanResponse,
   | 'avg(http.response_content_length)'
   | 'avg(span.self_time)'
   | 'epm()'
@@ -108,7 +110,7 @@ function ResourceSummaryTable() {
       }
 
       const link = (
-        <Link
+        <TransactionLink
           to={{
             pathname: location.pathname,
             query: {
@@ -119,7 +121,7 @@ function ResourceSummaryTable() {
           }}
         >
           {row[key]}
-        </Link>
+        </TransactionLink>
       );
 
       return (
@@ -165,13 +167,16 @@ function ResourceSummaryTable() {
       query: {...query, [QueryParameterNames.PAGES_CURSOR]: newCursor},
     });
   };
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: [...columnOrder],
+  });
 
   return (
     <Fragment>
       <GridEditable
         data={data || []}
         isLoading={isPending}
-        columnOrder={columnOrder}
+        columnOrder={columns}
         columnSortBy={[
           {
             key: sort.field as keyof Row,
@@ -186,6 +191,7 @@ function ResourceSummaryTable() {
               sort,
             }),
           renderBodyCell,
+          onResizeColumn: handleResizeColumn,
         }}
       />
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
@@ -201,6 +207,10 @@ const DescriptionWrapper = styled('div')`
   .inline-flex {
     display: inline-flex;
   }
+`;
+
+const TransactionLink = styled(Link)`
+  min-width: ${p => p.theme.space['2xl']};
 `;
 
 export default ResourceSummaryTable;

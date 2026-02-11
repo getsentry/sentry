@@ -5,18 +5,17 @@ from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from fixtures.integrations.jira.mock import MockJira
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
+from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiInvalidRequestError,
-    IntegrationError,
+    IntegrationConfigurationError,
     IntegrationFormError,
-    IntegrationInstallationConfigurationError,
 )
-from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
+from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
@@ -28,7 +27,7 @@ pytestmark = [requires_snuba]
 class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
     rule_cls = JiraCreateTicketAction
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project_name = "Jira Cloud"
         self.integration, _ = self.create_provider_integration_for(
@@ -94,7 +93,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         return response
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_ticket_rules(self, mock_record_event):
+    def test_ticket_rules(self, mock_record_event: mock.MagicMock) -> None:
         with mock.patch(
             "sentry.integrations.jira.integration.JiraIntegration.get_client",
             return_value=MockJira(),
@@ -127,7 +126,9 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(MockJira, "create_issue")
-    def test_misconfigured_ticket_rule(self, mock_create_issue, mock_record_event):
+    def test_misconfigured_ticket_rule(
+        self, mock_create_issue: mock.MagicMock, mock_record_event: mock.MagicMock
+    ) -> None:
         def raise_api_error(*args, **kwargs):
             raise ApiInvalidRequestError("Invalid data entered")
 
@@ -141,21 +142,19 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             rule_object = Rule.objects.get(id=response.data["id"])
             event = self.get_event()
 
-            with pytest.raises(IntegrationError):
-                # Trigger its `after`, but with a broken client which should raise
-                # an ApiInvalidRequestError, which is reraised as an IntegrationError.
+            with pytest.raises(IntegrationConfigurationError):
                 self.trigger(event, rule_object)
 
             assert mock_record_event.call_count == 2
-            start, failure = mock_record_event.call_args_list
+            start, halt = mock_record_event.call_args_list
             assert start.args == (EventLifecycleOutcome.STARTED,)
 
-            assert_failure_metric(
+            assert_halt_metric(
                 mock_record_event,
-                IntegrationError("Error Communicating with Jira (HTTP 400): unknown error"),
+                IntegrationConfigurationError(),
             )
 
-    def test_fails_validation(self):
+    def test_fails_validation(self) -> None:
         """
         Test that the absence of dynamic_form_fields in the action fails validation
         """
@@ -191,7 +190,9 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(MockJira, "create_issue")
-    def test_fails_with_field_configuration_error(self, mock_create_issue, mock_record_event):
+    def test_fails_with_field_configuration_error(
+        self, mock_create_issue: mock.MagicMock, mock_record_event: mock.MagicMock
+    ) -> None:
         # Mock an error from the client response that cotains a field
 
         def raise_api_error_with_payload(*args, **kwargs):
@@ -208,8 +209,6 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             event = self.get_event()
 
             with pytest.raises(IntegrationFormError):
-                # Trigger its `after`, but with a broken client which should raise
-                # an ApiInvalidRequestError, which is reraised as an IntegrationError.
                 self.trigger(event, rule_object)
 
             assert mock_record_event.call_count == 2
@@ -232,7 +231,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             rule_object = Rule.objects.get(id=response.data["id"])
             event = self.get_event()
 
-            with pytest.raises(IntegrationInstallationConfigurationError):
+            with pytest.raises(IntegrationConfigurationError):
                 self.trigger(event, rule_object)
 
             assert mock_record_event.call_count == 2
@@ -240,7 +239,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             assert start.args == (EventLifecycleOutcome.STARTED,)
             assert_halt_metric(
                 mock_record_event,
-                IntegrationInstallationConfigurationError(
+                IntegrationConfigurationError(
                     "Could not fetch issue create configuration from Jira."
                 ),
             )

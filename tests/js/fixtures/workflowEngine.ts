@@ -1,10 +1,10 @@
 import type {ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {ActionGroup, ActionType} from 'sentry/types/workflowEngine/actions';
 import {
-  type DataConditionHandler,
   DataConditionHandlerGroupType,
   DataConditionHandlerSubgroupType,
   DataConditionType,
+  type DataConditionHandler,
 } from 'sentry/types/workflowEngine/dataConditions';
 
 export function DataConditionHandlerFixture(

@@ -3,14 +3,17 @@ from collections.abc import Iterable, Mapping
 from datetime import timedelta
 from typing import Any
 
+import sentry_sdk
 from django.db.models import Q
 from django.utils import timezone as django_timezone
 
 from sentry import analytics
+from sentry.analytics.events.issue_resolved import IssueResolvedEvent
 from sentry.api.helpers.group_index.update import get_current_release_version_of_group
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
@@ -18,7 +21,6 @@ from sentry.models.release import Release, ReleaseStatus, follows_semver_version
 from sentry.signals import issue_resolved, issue_unresolved
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
@@ -189,19 +191,10 @@ def group_was_recently_resolved(group: Group) -> bool:
 
 @instrumented_task(
     name="sentry.integrations.tasks.sync_status_inbound",
-    queue="integrations",
-    default_retry_delay=60 * 5,
-    max_retries=5,
-    silo_mode=SiloMode.REGION,
+    namespace=integrations_tasks,
     processing_deadline_duration=150,
-    taskworker_config=TaskworkerConfig(
-        namespace=integrations_tasks,
-        processing_deadline_duration=30,
-        retry=Retry(
-            times=5,
-            delay=60 * 5,
-        ),
-    ),
+    retry=Retry(times=5, delay=60 * 5),
+    silo_mode=SiloMode.REGION,
 )
 @retry(exclude=(Integration.DoesNotExist,))
 @track_group_async_operation
@@ -273,7 +266,7 @@ def sync_status_inbound(
             activity_type=activity_type,
             activity_data=activity_data,
         )
-        # after we update the group, pdate the resolutions
+        # after we update the group, update the resolutions
         for group in resolvable_groups:
             resolution_params = resolutions_by_group_id.get(group.id)
             if resolution_params:
@@ -283,6 +276,16 @@ def sync_status_inbound(
                 if not created:
                     resolution.update(datetime=django_timezone.now(), **resolution_params)
 
+                # Link the activity to the resolution so regressions can find it.
+                if created:
+                    latest_resolution_activity = (
+                        Activity.objects.filter(group=group, type=activity_type.value)
+                        .order_by("-datetime")
+                        .first()
+                    )
+                    if latest_resolution_activity and not latest_resolution_activity.ident:
+                        latest_resolution_activity.update(ident=resolution.id)
+
             issue_resolved.send_robust(
                 organization_id=organization_id,
                 user=None,
@@ -291,18 +294,21 @@ def sync_status_inbound(
                 resolution_type=provider.key,
                 sender=f"resolved_with_{provider.key}",
             )
-
-            analytics.record(
-                "issue.resolved",
-                project_id=group.project.id,
-                default_user_id="Sentry Jira",
-                organization_id=organization_id,
-                group_id=group.id,
-                resolution_type="with_third_party_app",
-                provider=provider.key,
-                issue_type=group.issue_type.slug,
-                issue_category=group.issue_category.name.lower(),
-            )
+            try:
+                analytics.record(
+                    IssueResolvedEvent(
+                        project_id=group.project.id,
+                        default_user_id="Sentry Jira",
+                        organization_id=organization_id,
+                        group_id=group.id,
+                        resolution_type="with_third_party_app",
+                        provider=provider.key,
+                        issue_type=group.issue_type.slug,
+                        issue_category=group.issue_category.name.lower(),
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
     elif action == ResolveSyncAction.UNRESOLVE:
         Group.objects.update_group_status(

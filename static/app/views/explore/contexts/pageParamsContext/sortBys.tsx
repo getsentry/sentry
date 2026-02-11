@@ -1,9 +1,5 @@
-import type {Location} from 'history';
-
-import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {decodeSorts} from 'sentry/utils/queryString';
 
 export function defaultSortBys(fields: string[]): Sort[] {
   if (fields.includes('timestamp')) {
@@ -25,34 +21,6 @@ export function defaultSortBys(fields: string[]): Sort[] {
   }
 
   return [];
-}
-
-export function getSortBysFromLocation(location: Location, fields: string[]): Sort[] {
-  const sortBys = decodeSorts(location.query.sort);
-
-  if (sortBys.length > 0) {
-    if (sortBys.every(sortBy => fields.includes(sortBy.field))) {
-      return sortBys;
-    }
-  }
-
-  return defaultSortBys(fields);
-}
-
-export function updateLocationWithSortBys(
-  location: Location,
-  sortBys: Sort[] | null | undefined
-) {
-  if (defined(sortBys)) {
-    location.query.sort = sortBys.map(sortBy =>
-      sortBy.kind === 'desc' ? `-${sortBy.field}` : sortBy.field
-    );
-
-    // make sure to clear the cursor every time the query is updated
-    delete location.query.cursor;
-  } else if (sortBys === null) {
-    delete location.query.sort;
-  }
 }
 
 export function formatSort(sort: Sort): string {

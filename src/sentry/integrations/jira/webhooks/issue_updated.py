@@ -15,6 +15,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.integrations.utils.atlassian_connect import get_integration_from_jwt
 from sentry.integrations.utils.scope import bind_org_context_from_integration
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -31,13 +32,15 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    rate_limits = {
-        "POST": {
-            RateLimitCategory.IP: RateLimit(limit=100, window=1),
-            RateLimitCategory.USER: RateLimit(limit=100, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=1),
-        },
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.IP: RateLimit(limit=100, window=1),
+                RateLimitCategory.USER: RateLimit(limit=100, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=1),
+            },
+        }
+    )
 
     """
     Webhook hit by Jira whenever an issue is updated in Jira's database.

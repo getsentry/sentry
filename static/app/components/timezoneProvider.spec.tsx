@@ -6,7 +6,7 @@ import ConfigStore from 'sentry/stores/configStore';
 
 import {TimezoneProvider, UserTimezoneProvider, useTimezone} from './timezoneProvider';
 
-describe('timezoneProvider', function () {
+describe('timezoneProvider', () => {
   function setConfigStoreTimezone(tz: string) {
     const user = UserFixture();
     user.options.timezone = tz;
@@ -24,8 +24,8 @@ describe('timezoneProvider', function () {
 
   beforeEach(() => setConfigStoreTimezone('America/New_York'));
 
-  describe('TimezoneProvider', function () {
-    it('provides the timezone value', function () {
+  describe('TimezoneProvider', () => {
+    it('provides the timezone value', () => {
       render(
         <TimezoneProvider timezone="America/Halifax">
           <ShowTimezone data-test-id="tz" />
@@ -36,8 +36,8 @@ describe('timezoneProvider', function () {
     });
   });
 
-  describe('UserTimezoneProvider', function () {
-    it('provides timezone for the user', function () {
+  describe('UserTimezoneProvider', () => {
+    it('provides timezone for the user', () => {
       render(
         <UserTimezoneProvider>
           <ShowTimezone data-test-id="tz" />
@@ -47,7 +47,7 @@ describe('timezoneProvider', function () {
       expect(screen.getByTestId('tz')).toHaveTextContent('America/New_York');
     });
 
-    it('updates when the user timezone changes', function () {
+    it('updates when the user timezone changes', () => {
       render(
         <UserTimezoneProvider>
           <ShowTimezone data-test-id="tz" />

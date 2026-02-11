@@ -1,10 +1,14 @@
 import React, {Component, Fragment} from 'react';
-import styled from '@emotion/styled';
+import {ThemeProvider} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
-import every from 'lodash/every';
 import snakeCase from 'lodash/snakeCase';
 import moment from 'moment-timezone';
+
+import {Alert, type AlertProps} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -16,28 +20,18 @@ import {
   promptsUpdate,
 } from 'sentry/actionCreators/prompts';
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
-import {Badge} from 'sentry/components/core/badge';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
-import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 import {space} from 'sentry/styles/space';
-import {DataCategory, DataCategoryExact} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {Oxfordize} from 'sentry/utils/oxfordizeArray';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
+import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
-import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
-import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
 import {
   openForcedTrialModal,
@@ -45,9 +39,7 @@ import {
   openTrialEndingModal,
 } from 'getsentry/actionCreators/modal';
 import type {EventType} from 'getsentry/components/addEventsCTA';
-import AddEventsCTA, {
-  getCategoryInfoFromEventType,
-} from 'getsentry/components/addEventsCTA';
+import AddEventsCTA from 'getsentry/components/addEventsCTA';
 import ProductTrialAlert from 'getsentry/components/productTrial/productTrialAlert';
 import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
@@ -62,20 +54,16 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {
-  getActiveProductTrial,
   getContractDaysLeft,
   getProductTrial,
   getTrialLength,
+  hasPartnerMigrationFeature,
   hasPerformance,
   isBusinessTrial,
   partnerPlanEndingModalIsDismissed,
   trialPromptIsDismissed,
 } from 'getsentry/utils/billing';
-import {
-  getCategoryInfoFromPlural,
-  getSingularCategoryName,
-  listDisplayNames,
-} from 'getsentry/utils/dataCategory';
+import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import {getPendoAccountFields} from 'getsentry/utils/pendo';
 import {claimAvailablePromotion} from 'getsentry/utils/promotionUtils';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
@@ -118,7 +106,7 @@ function SuspensionModal({Header, Body, Footer, subscription}: SuspensionModalPr
       <Header>{'Action Required'}</Header>
       <Body>
         <Alert.Container>
-          <Alert type="warning">{t('Your account has been suspended')}</Alert>
+          <Alert variant="warning">{t('Your account has been suspended')}</Alert>
         </Alert.Container>
         <p>{t('Your account has been suspended with the following reason:')}</p>
         <ul>
@@ -191,7 +179,7 @@ function NoticeModal({
     }
   };
 
-  const alertType = whichModal === ModalType.PAST_DUE ? 'error' : 'warning';
+  const alertType = whichModal === ModalType.PAST_DUE ? 'danger' : 'warning';
 
   let subText: React.ReactNode;
   let body: React.ReactNode;
@@ -276,7 +264,7 @@ function NoticeModal({
       </Header>
       <Body>
         <Alert.Container>
-          <Alert type={alertType}>{title}</Alert>
+          <Alert variant={alertType}>{title}</Alert>
         </Alert.Container>
         <p>{body}</p>
         {subText && <p>{subText}</p>}
@@ -454,9 +442,7 @@ class GSBanner extends Component<Props, State> {
 
   async tryTriggerPartnerPlanEndingModal() {
     const {organization, subscription, api} = this.props;
-    const hasPartnerMigrationFeature = organization.features.includes(
-      'partner-billing-migration'
-    );
+    const hasEndingPartnerPlan = hasPartnerMigrationFeature(organization);
     const hasPendingUpgrade =
       subscription.pendingChanges !== null &&
       subscription.pendingChanges?.planDetails.price > 0;
@@ -468,7 +454,7 @@ class GSBanner extends Component<Props, State> {
       daysLeft >= 0 &&
       daysLeft <= 30 &&
       subscription.partner.isActive &&
-      hasPartnerMigrationFeature;
+      hasEndingPartnerPlan;
 
     if (!showPartnerPlanEndingNotice) {
       return;
@@ -582,7 +568,8 @@ class GSBanner extends Component<Props, State> {
     // check for required conditions of triggering a forced trial of any type
     const considerTrigger =
       subscription.canSelfServe && // must be self serve
-      subscription.isFree &&
+      subscription.isFree && // must be on Developer plan
+      !subscription.isTrial && // don't trigger if already on a trial
       hasPerformance(subscription.planDetails) &&
       !subscription.isExemptFromForcedTrial && // orgs who ever did enterprise trials are exempt
       !user?.isSuperuser; // never trigger for superusers
@@ -735,7 +722,7 @@ class GSBanner extends Component<Props, State> {
 
   get overageWarningActive(): Record<EventType, boolean> {
     const {subscription} = this.props;
-    // disable warnings if org has on-demand
+    // disable warnings if org has PAYG
     if (
       subscription.hasOverageNotificationsDisabled ||
       subscription.onDemandMaxSpend > 0
@@ -821,179 +808,6 @@ class GSBanner extends Component<Props, State> {
       overageAlertDismissed: dismissedState,
       overageWarningDismissed: dismissedState,
     });
-  }
-
-  renderOverageAlert(isWarning: boolean) {
-    const {organization, subscription} = this.props;
-    const plan = subscription.planDetails;
-    let overquotaPrompt: React.ReactNode;
-    let eventTypes: EventType[] = [];
-
-    if (prefersStackedNav(organization)) {
-      // new nav uses sidebar quota alert (see quotaExceededNavItem.tsx)
-      return null;
-    }
-
-    const renderDocsLinkForEventType = (eventType: EventType): React.JSX.Element => {
-      const onClick = () => {
-        trackGetsentryAnalytics('quota_alert.clicked_link', {
-          organization,
-          subscription,
-          event_types: eventTypes.sort().join(','),
-          is_warning: isWarning,
-          clicked_event: eventType,
-        });
-      };
-      const categoryInfo =
-        getCategoryInfoFromEventType(eventType) ??
-        DATA_CATEGORY_INFO[DataCategoryExact.ERROR];
-      return (
-        <ExternalLink
-          key={eventType}
-          href={getPricingDocsLinkForEventType(categoryInfo.name)}
-          onClick={onClick}
-        >
-          {getSingularCategoryName({
-            plan,
-            category: categoryInfo.plural,
-            capitalize: false,
-          })}
-        </ExternalLink>
-      );
-    };
-
-    let strictlySeatOverage = false;
-    if (isWarning) {
-      eventTypes = Object.entries(this.overageWarningActive)
-        .filter(
-          ([key, value]) =>
-            value &&
-            getActiveProductTrial(
-              subscription.productTrials ?? null,
-              getCategoryInfoFromEventType(key as EventType)?.plural as DataCategory
-            ) === null
-        )
-        .map(([key, _]) => key as EventType);
-
-      overquotaPrompt = tct(
-        'You are about to exceed your [eventTypes] limit and we will drop any excess events.',
-        {
-          eventTypes: (
-            <b>
-              <Oxfordize>{eventTypes.map(renderDocsLinkForEventType)}</Oxfordize>
-            </b>
-          ),
-        }
-      );
-    } else {
-      eventTypes = Object.entries(this.overageAlertActive)
-        .filter(
-          ([key, value]) =>
-            value &&
-            getActiveProductTrial(
-              subscription.productTrials ?? null,
-              getCategoryInfoFromEventType(key as EventType)?.plural as DataCategory
-            ) === null
-        )
-        .map(([key, _]) => key as EventType);
-
-      // Make an exception for when only seat-based categories have an overage to disable the See Usage button
-      strictlySeatOverage = every(
-        eventTypes,
-        eventType => getCategoryInfoFromEventType(eventType)?.tallyType === 'seat'
-      );
-
-      // Make an exception for when only crons has an overage to change the language to be more fitting and hide See Usage
-      if (strictlySeatOverage) {
-        overquotaPrompt = tct(
-          `We can't enable additional [seatCategories] because you don't have a sufficient [budgetType] budget.`,
-          {
-            seatCategories: listDisplayNames({
-              plan: subscription.planDetails,
-              categories: eventTypes.map(
-                eventType =>
-                  getCategoryInfoFromEventType(eventType)?.plural as DataCategory
-              ),
-              shouldTitleCase: true,
-            }),
-            budgetType: subscription.planDetails.budgetTerm,
-          }
-        );
-      } else {
-        overquotaPrompt = tct(
-          'You have exceeded your [eventTypes] limit. We are dropping any excess events until [periodEnd].',
-          {
-            eventTypes: (
-              <b>
-                <Oxfordize>{eventTypes.map(renderDocsLinkForEventType)}</Oxfordize>
-              </b>
-            ),
-            periodEnd: moment(subscription.onDemandPeriodEnd).add(1, 'days').format('ll'),
-          }
-        );
-      }
-    }
-
-    if (eventTypes.length === 0) {
-      return null;
-    }
-
-    // we should only ever specify an event type that has an external stats page
-    // in the stats link
-    const eventTypeForStatsPage = strictlySeatOverage
-      ? null
-      : (eventTypes.find(
-          eventType =>
-            getCategoryInfoFromEventType(eventType)?.statsInfo.showExternalStats
-        ) ?? null);
-
-    return (
-      <Alert
-        system
-        type={isWarning ? 'muted' : 'warning'}
-        data-test-id={'overage-banner-' + eventTypes.join('-')}
-        trailingItems={
-          <ButtonBar>
-            {!strictlySeatOverage && (
-              <LinkButton
-                size="xs"
-                to={`/organizations/${organization.slug}/stats/?${eventTypeForStatsPage ? `dataCategory=${eventTypeForStatsPage}&` : ''}pageStart=${subscription.onDemandPeriodStart}&pageEnd=${subscription.onDemandPeriodEnd}&pageUtc=true`}
-                onClick={() => {
-                  trackGetsentryAnalytics('quota_alert.clicked_see_usage', {
-                    organization,
-                    subscription,
-                    event_types: eventTypes.sort().join(','),
-                    is_warning: isWarning,
-                  });
-                }}
-              >
-                {t('See Usage')}
-              </LinkButton>
-            )}
-            {this.renderOverageAlertPrimaryCTA(eventTypes, isWarning)}
-            <Button
-              icon={<IconClose size="sm" />}
-              data-test-id="btn-overage-notification-snooze"
-              onClick={() => {
-                trackGetsentryAnalytics('quota_alert.clicked_snooze', {
-                  organization,
-                  subscription,
-                  event_types: eventTypes.sort().join(','),
-                  is_warning: isWarning,
-                });
-                this.handleOverageSnooze(eventTypes, isWarning);
-              }}
-              size="zero"
-              borderless
-              title={t('Dismiss this period')}
-              aria-label={t('Dismiss this period')}
-            />
-          </ButtonBar>
-        }
-      >
-        {overquotaPrompt}
-      </Alert>
-    );
   }
 
   handleSnoozeMemberDeactivatedAlert = () => {
@@ -1137,11 +951,15 @@ class GSBanner extends Component<Props, State> {
 
       return (
         <Alert.Container>
-          <BannerAlert
+          <Alert
             system
+            variant="danger"
             data-test-id="banner-alert-past-due"
-            type="muted"
-            trailingItems={<Badge type="warning">{t('Action Required')}</Badge>}
+            trailingItems={
+              <Flex align="center" height="100%">
+                <Tag variant="danger">{t('Action Required')}</Tag>
+              </Flex>
+            }
           >
             {billingPermissions
               ? tct(
@@ -1150,7 +968,7 @@ class GSBanner extends Component<Props, State> {
                     updateUrl: (
                       <LinkButton
                         to={billingUrl}
-                        size="xs"
+                        size="zero"
                         priority="default"
                         aria-label={t('Update payment information')}
                         onClick={addButtonAnalytics}
@@ -1164,7 +982,7 @@ class GSBanner extends Component<Props, State> {
                     updateUrl: (
                       <LinkButton
                         to={membersPageUrl}
-                        size="xs"
+                        size="zero"
                         priority="default"
                         aria-label={t('Org Owner or Billing Member')}
                         onClick={addButtonAnalytics}
@@ -1172,7 +990,7 @@ class GSBanner extends Component<Props, State> {
                     ),
                   }
                 )}
-          </BannerAlert>
+          </Alert>
         </Alert.Container>
       );
     }
@@ -1184,7 +1002,6 @@ class GSBanner extends Component<Props, State> {
       return (
         <React.Fragment>
           {productTrialAlerts && productTrialAlerts.length > 0 && productTrialAlerts}
-          {this.renderOverageAlert(overageAlertType === 'warning')}
         </React.Fragment>
       );
     }
@@ -1195,18 +1012,16 @@ class GSBanner extends Component<Props, State> {
     // if there are deactivated members, than anyone who doesn't have org:billing will be
     // prevented from accessing this view anyways cause they will be deactivated
     if (isOverMemberLimit && !deactivatedMemberDismissed && this.hasBillingPerms) {
-      const checkoutUrl = `/settings/${organization.slug}/billing/checkout/?referrer=deactivated_member_header`;
+      const checkoutUrl = `/checkout/${organization.slug}/?referrer=deactivated_member_header`;
       const wrappedNumber = <strong>{membersDeactivatedFromLimit}</strong>;
       // only disabling members if the plan allows exactly one member
       return (
         <React.Fragment>
           {productTrialAlerts && productTrialAlerts.length > 0 && productTrialAlerts}
           <Alert.Container>
-            <BannerAlert
-              system
-              type="muted"
+            <InvertedAlert
               trailingItems={
-                <ButtonBar>
+                <Grid flow="column" align="center" gap="md">
                   <LinkButton
                     to={checkoutUrl}
                     onClick={this.handleUpgradeLinkClick}
@@ -1225,7 +1040,7 @@ class GSBanner extends Component<Props, State> {
                   >
                     {t('Snooze')}
                   </Button>
-                </ButtonBar>
+                </Grid>
               }
             >
               {tct(
@@ -1247,7 +1062,7 @@ class GSBanner extends Component<Props, State> {
                         }),
                 }
               )}
-            </BannerAlert>
+            </InvertedAlert>
           </Alert.Container>
         </React.Fragment>
       );
@@ -1259,10 +1074,12 @@ class GSBanner extends Component<Props, State> {
 
 export default withPromotions(withApi(withSubscription(GSBanner, {noLoader: true})));
 
-// XXX: We have no alert types with this styling, but for now we would like for
-// it to be differentiated.
-const BannerAlert = styled(Alert)`
-  color: ${p => p.theme.headerBackground};
-  background-color: ${p => p.theme.bannerBackground};
-  border: none;
-`;
+function InvertedAlert(props: Omit<AlertProps, 'system' | 'variant'>) {
+  const invertedTheme = useInvertedTheme();
+
+  return (
+    <ThemeProvider theme={invertedTheme}>
+      <Alert system variant="info" {...props} />
+    </ThemeProvider>
+  );
+}

@@ -30,7 +30,7 @@ class RecentSearchesListTest(APITestCase):
         )
         assert response.data == serialize(expected)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.create_team(members=[self.user])
         RecentSearch.objects.create(
             organization=self.organization,
@@ -126,6 +126,14 @@ class RecentSearchesListTest(APITestCase):
             last_seen=timezone.now(),
             date_added=timezone.now(),
         )
+        tracemetric_recent_search = RecentSearch.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            type=SearchType.TRACEMETRIC.value,
+            query="some test",
+            last_seen=timezone.now(),
+            date_added=timezone.now(),
+        )
         self.check_results(issue_recent_searches, search_type=SearchType.ISSUE)
         self.check_results([event_recent_search], search_type=SearchType.EVENT)
         self.check_results([session_recent_search], search_type=SearchType.SESSION)
@@ -134,8 +142,9 @@ class RecentSearchesListTest(APITestCase):
         self.check_results([error_recent_search], search_type=SearchType.ERROR)
         self.check_results([transaction_recent_search], search_type=SearchType.TRANSACTION)
         self.check_results([logs_recent_search], search_type=SearchType.LOG)
+        self.check_results([tracemetric_recent_search], search_type=SearchType.TRACEMETRIC)
 
-    def test_param_validation(self):
+    def test_param_validation(self) -> None:
         self.login_as(user=self.user)
         error_cases: list[tuple[dict[str, Any], str]] = [
             ({"type": 1000}, "Invalid input for `type`"),
@@ -147,7 +156,7 @@ class RecentSearchesListTest(APITestCase):
             assert response.status_code == 400
             assert response.data["detail"].startswith(expected_error)
 
-    def test_query(self):
+    def test_query(self) -> None:
         issue_recent_searches = [
             RecentSearch.objects.create(
                 organization=self.organization,
@@ -191,7 +200,7 @@ class RecentSearchesCreateTest(APITestCase):
         self.create_team(members=[user], organization=self.organization)
         return user
 
-    def test(self):
+    def test(self) -> None:
         self.login_as(self.user)
         search_type = 1
         query = "something"

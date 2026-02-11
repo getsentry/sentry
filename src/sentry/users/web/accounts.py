@@ -17,7 +17,6 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import organization_service
 from sentry.security.utils import capture_security_activity
 from sentry.signals import email_verified, terms_accepted
-from sentry.silo.base import control_silo_function
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
@@ -31,6 +30,7 @@ from sentry.users.web.accounts_form import (
 from sentry.utils import auth
 from sentry.utils.signing import unsign
 from sentry.web.decorators import login_required, set_referrer_policy
+from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.twofactor import reset_2fa_rate_limits
 from sentry.web.helpers import render_to_response
 
@@ -64,13 +64,13 @@ def get_template(mode: str, name: str) -> str:
 
 
 @login_required
-@control_silo_function
+@control_silo_view
 def login_redirect(request: HttpRequest) -> HttpResponseRedirect:
     login_url = auth.get_login_redirect(request)
     return HttpResponseRedirect(login_url)
 
 
-@control_silo_function
+@control_silo_view
 def expired(request: HttpRequest, user: User) -> HttpResponse:
     hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
     LostPasswordHash.send_recover_password_email(user, hash, request.META["REMOTE_ADDR"])
@@ -79,7 +79,7 @@ def expired(request: HttpRequest, user: User) -> HttpResponse:
     return render_to_response(get_template("recover", "expired"), context, request)
 
 
-@control_silo_function
+@control_silo_view
 def recover(request: HttpRequest) -> HttpResponse:
     from sentry import ratelimits as ratelimiter
 
@@ -132,7 +132,7 @@ def recover(request: HttpRequest) -> HttpResponse:
 
 
 @set_referrer_policy("strict-origin-when-cross-origin")
-@control_silo_function
+@control_silo_view
 def relocate_reclaim(request: HttpRequest, user_id: int) -> HttpResponse:
     """
     Ask to receive a new "claim this user" email.
@@ -195,8 +195,8 @@ def relocate_reclaim(request: HttpRequest, user_id: int) -> HttpResponse:
     return render_to_response(get_template("relocate", "sent"), {}, request)
 
 
+@control_silo_view
 @set_referrer_policy("strict-origin-when-cross-origin")
-@control_silo_function
 def recover_confirm(
     request: HttpRequest, user_id: int, hash: str, mode: str = "recover"
 ) -> HttpResponse:
@@ -300,16 +300,16 @@ def recover_confirm(
 
 
 # Set password variation of password recovery
-set_password_confirm = partial(recover_confirm, mode="set_password")
+set_password_confirm = control_silo_view(partial(recover_confirm, mode="set_password"))
 
 
 # Relocation variation of password recovery
-relocate_confirm = partial(recover_confirm, mode="relocate")
+relocate_confirm = control_silo_view(partial(recover_confirm, mode="relocate"))
 
 
 @login_required
 @require_http_methods(["POST"])
-@control_silo_function
+@control_silo_view
 def start_confirm_email(request: HttpRequest) -> HttpResponse:
     from sentry import ratelimits as ratelimiter
 
@@ -361,7 +361,7 @@ def start_confirm_email(request: HttpRequest) -> HttpResponse:
 
 @set_referrer_policy("strict-origin-when-cross-origin")
 @login_required
-@control_silo_function
+@control_silo_view
 def confirm_email(request: HttpRequest, user_id: int, hash: str) -> HttpResponseRedirect:
     msg = _("Thanks for confirming your email")
     level = messages.SUCCESS
@@ -398,7 +398,7 @@ def confirm_email(request: HttpRequest, user_id: int, hash: str) -> HttpResponse
 
 @set_referrer_policy("strict-origin-when-cross-origin")
 @login_required
-@control_silo_function
+@control_silo_view
 def confirm_signed_email(
     request: HttpRequest, signed_data: str
 ) -> HttpResponseRedirect | HttpResponse:

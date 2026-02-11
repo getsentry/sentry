@@ -11,7 +11,7 @@ pytestmark = [requires_snuba]
 class NotifyEventActionTest(RuleTestCase):
     rule_cls = NotifyEventAction
 
-    def test_applies_correctly(self):
+    def test_applies_correctly(self) -> None:
         event = self.get_event()
 
         plugin = MagicMock()

@@ -7,7 +7,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class TestUnitsUtils(TestCase):
-    def test_format_value_using_unit(self):
+    def test_format_value_using_unit(self) -> None:
         assert format_value_using_unit(543200, "nanosecond") == "0.54 ms"
         assert format_value_using_unit(54320, "microsecond") == "54.32 ms"
         assert format_value_using_unit(123456, "millisecond") == "2.06 m"

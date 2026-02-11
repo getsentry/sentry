@@ -1,7 +1,12 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
+
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {removeAuthenticator} from 'sentry/actionCreators/account';
 import {
@@ -11,9 +16,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {resendMemberInvite, updateMember} from 'sentry/actionCreators/members';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import NotFound from 'sentry/components/errors/notFound';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -29,13 +31,14 @@ import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Member} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useMutation,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import Teams from 'sentry/utils/teams';
@@ -84,7 +87,9 @@ function MemberStatus({
 }
 
 const getMemberQueryKey = (orgSlug: string, memberId: string): ApiQueryKey => [
-  `/organizations/${orgSlug}/members/${memberId}/`,
+  getApiUrl(`/organizations/$organizationIdOrSlug/members/$memberId/`, {
+    path: {organizationIdOrSlug: orgSlug, memberId},
+  }),
 ];
 
 function OrganizationMemberDetailContent({member}: {member: Member}) {
@@ -93,16 +98,9 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
   const organization = useOrganization();
   const navigate = useNavigate();
 
-  const [orgRole, setOrgRole] = useState<Member['orgRole']>('');
-  const [teamRoles, setTeamRoles] = useState<Member['teamRoles']>([]);
+  const [orgRole, setOrgRole] = useState<Member['orgRole']>(member.orgRole);
+  const [teamRoles, setTeamRoles] = useState<Member['teamRoles']>(member.teamRoles);
   const hasTeamRoles = organization.features.includes('team-roles');
-
-  useEffect(() => {
-    if (member) {
-      setOrgRole(member.orgRole);
-      setTeamRoles(member.teamRoles);
-    }
-  }, [member]);
 
   const {mutate: updatedMember, isPending: isSaving} = useMutation<Member, RequestError>({
     mutationFn: () => {
@@ -378,7 +376,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
         )}
       </Teams>
 
-      <Footer>
+      <Flex justify="end">
         <Button
           priority="primary"
           busy={isSaving}
@@ -387,7 +385,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
         >
           {t('Save Member')}
         </Button>
-      </Footer>
+      </Flex>
     </Fragment>
   );
 }
@@ -417,15 +415,15 @@ function OrganizationMemberDetail() {
     return <NotFound />;
   }
 
-  return <OrganizationMemberDetailContent member={member} />;
+  return <OrganizationMemberDetailContent member={member} key={member.id} />;
 }
 
 export default OrganizationMemberDetail;
 
 const ExtraHeaderText = styled('div')`
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.lg};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const Details = styled('div')`
@@ -442,12 +440,7 @@ const Details = styled('div')`
 `;
 
 const DetailLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(0.5)};
-  color: ${p => p.theme.textColor};
-`;
-
-const Footer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
+  color: ${p => p.theme.tokens.content.primary};
 `;

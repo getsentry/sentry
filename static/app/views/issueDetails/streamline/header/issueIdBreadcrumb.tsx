@@ -1,10 +1,12 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
 import {IconCopy, IconGlobe} from 'sentry/icons';
@@ -26,26 +28,26 @@ interface ShortIdBreadcrumbProps {
 export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
   const organization = useOrganization();
   const [isHovered, setIsHovered] = useState(false);
-  const shareUrl = group?.shareId ? getShareUrl(group) : null;
-  const {onClick: handleCopyShortId} = useCopyToClipboard({
-    text: group.shortId,
-    successMessage: t('Copied Short-ID to clipboard'),
-    onCopy: () => {
+  const shareUrl = group?.shareId ? getShareUrl(organization, group) : null;
+  const {copy} = useCopyToClipboard();
+
+  const handleCopyShortId = useCallback(() => {
+    copy(group.shortId, {successMessage: t('Copied Short-ID to clipboard')}).then(() => {
       trackAnalytics('issue_details.copy_issue_short_id_clicked', {
         organization,
         ...getAnalyticsDataForGroup(group),
         streamline: true,
       });
-    },
-  });
+    });
+  }, [copy, organization, group]);
 
   if (!group.shortId) {
     return null;
   }
 
   return (
-    <BreadcrumbContainer>
-      <Wrapper>
+    <Flex align="center" gap="xs">
+      <Flex gap="md" align="center">
         <ProjectBadge
           project={project}
           avatarSize={16}
@@ -71,64 +73,48 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
               aria-label={t('Copy Issue Short-ID')}
               onClick={handleCopyShortId}
               size="zero"
-              borderless
-              icon={<IconCopy size="xs" color="subText" />}
+              priority="transparent"
+              icon={<IconCopy size="xs" variant="muted" />}
             />
           )}
         </ShortIdCopyable>
-      </Wrapper>
+      </Flex>
       {!isHovered && group.isPublic && shareUrl && (
         <Button
           size="zero"
-          borderless
+          priority="transparent"
           aria-label={t('View issue share settings')}
+          icon={<IconGlobe size="xs" variant="muted" />}
           title={tct('This issue has been shared [link:with a public link].', {
             link: <ExternalLink href={shareUrl} />,
           })}
           tooltipProps={{isHoverable: true}}
-          icon={
-            <IconGlobe
-              size="xs"
-              color="subText"
-              onClick={() =>
-                openModal(modalProps => (
-                  <ShareIssueModal
-                    {...modalProps}
-                    organization={organization}
-                    projectSlug={group.project.slug}
-                    groupId={group.id}
-                    onToggle={() =>
-                      trackAnalytics('issue.shared_publicly', {
-                        organization,
-                      })
-                    }
-                    event={null}
-                    hasIssueShare
-                  />
-                ))
-              }
-            />
+          onClick={() =>
+            openModal(modalProps => (
+              <ShareIssueModal
+                {...modalProps}
+                organization={organization}
+                projectSlug={group.project.slug}
+                groupId={group.id}
+                onToggle={() =>
+                  trackAnalytics('issue.shared_publicly', {
+                    organization,
+                  })
+                }
+                event={null}
+                hasIssueShare
+              />
+            ))
           }
         />
       )}
-    </BreadcrumbContainer>
+    </Flex>
   );
 }
 
-const BreadcrumbContainer = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
 const StyledShortId = styled(ShortId)`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.md};
+  font-family: ${p => p.theme.font.family.sans};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1;
 `;
 

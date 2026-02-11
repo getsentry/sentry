@@ -1,9 +1,7 @@
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, renderHook, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -21,6 +19,13 @@ describe('EventList', () => {
   const group = GroupFixture();
   const persistantQuery = `issue:${group.shortId}`;
   const totalCount = 100;
+
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+    },
+    route: `/organizations/:orgId/issues/:groupId/events/`,
+  };
 
   let mockEventList: jest.Mock;
   let mockEventListMeta: jest.Mock;
@@ -73,20 +78,11 @@ describe('EventList', () => {
 
   function renderAllEvents() {
     render(<EventList group={group} />, {
-      organization,
-
-      router: RouterFixture({
-        location: LocationFixture({
-          pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
-        }),
-        routes: [{name: '', path: 'events/'}],
-      }),
-
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
   }
 
-  it('renders the list using a discover event query', async function () {
+  it('renders the list using a discover event query', async () => {
     renderAllEvents();
     const {result} = renderHook(() => useEventColumns(group, organization));
 
@@ -125,7 +121,7 @@ describe('EventList', () => {
     }
   });
 
-  it('updates query from location param change', async function () {
+  it('updates query from location param change', async () => {
     const [tagKey, tagValue] = ['user.email', 'leander.rodrigues@sentry.io'];
     const locationQuery = {
       query: {
@@ -133,17 +129,13 @@ describe('EventList', () => {
       },
     };
     render(<EventList group={group} />, {
-      organization,
-
-      router: RouterFixture({
-        location: LocationFixture({
-          pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
           query: locationQuery.query,
-        }),
-        routes: [{name: '', path: 'events/'}],
-      }),
-
-      deprecatedRouterMocks: true,
+        },
+      },
     });
 
     const expectedArgs = [

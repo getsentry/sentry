@@ -7,7 +7,7 @@ class ReleaseThresholdTest(APITestCase):
     endpoint = "sentry-api-0-organization-release-thresholds"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(is_staff=True, is_superuser=True)
         self.login_as(user=self.user)
@@ -19,13 +19,13 @@ class ReleaseThresholdTest(APITestCase):
             organization_id=self.organization.id, name="production"
         )
 
-    def test_get_invalid_project(self):
+    def test_get_invalid_project(self) -> None:
         self.get_error_response(self.organization.slug, project="foo bar")
 
-    def test_get_no_project(self):
+    def test_get_no_project(self) -> None:
         self.get_error_response(self.organization.slug)
 
-    def test_get_valid_project(self):
+    def test_get_valid_project(self) -> None:
         ReleaseThreshold.objects.create(
             threshold_type=0,
             trigger_type=0,
@@ -49,10 +49,10 @@ class ReleaseThresholdTest(APITestCase):
         assert created_threshold["environment"]["id"] == str(self.canary_environment.id)
         assert created_threshold["environment"]["name"] == self.canary_environment.name
 
-    def test_get_invalid_environment(self):
+    def test_get_invalid_environment(self) -> None:
         self.get_error_response(self.organization.slug, environment="foo bar", project="-1")
 
-    def test_get_valid_no_environment(self):
+    def test_get_valid_no_environment(self) -> None:
         response = self.get_success_response(self.organization.slug, project="-1")
         ReleaseThreshold.objects.create(
             threshold_type=0,
@@ -78,7 +78,7 @@ class ReleaseThresholdTest(APITestCase):
         assert created_threshold["environment"]["id"] == str(self.canary_environment.id)
         assert created_threshold["environment"]["name"] == self.canary_environment.name
 
-    def test_get_valid_with_environment(self):
+    def test_get_valid_with_environment(self) -> None:
         response = self.get_success_response(
             self.organization.slug, project="-1", environment="canary"
         )

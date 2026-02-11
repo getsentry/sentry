@@ -6,8 +6,9 @@ import type {FocusTrap} from 'focus-trap';
 import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {closeModal as actionCloseModal} from 'sentry/actionCreators/modal';
-import {TooltipContext} from 'sentry/components/core/tooltip';
+import {Surface} from '@sentry/scraps/layout';
+import {TooltipContext} from '@sentry/scraps/tooltip';
+
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {ROOT_ELEMENT} from 'sentry/constants';
 import ModalStore from 'sentry/stores/modalStore';
@@ -121,8 +122,8 @@ function GlobalModal({onClose}: Props) {
       // Option close callback, from the thing which opened the modal
       options.onClose?.(reason);
 
-      // Action creator, actually closes the modal
-      actionCloseModal();
+      // actually closes the modal
+      ModalStore.closeModal();
 
       // GlobalModal onClose prop callback
       onClose?.();
@@ -193,7 +194,7 @@ function GlobalModal({onClose}: Props) {
   // XXX: We're using useEffectAfterFirstRender primarily to support tests
   // which render the GlobalModal after a modal has already been registered in
   // the modal store, meaning it would be closed immediately.
-  useEffectAfterFirstRender(() => actionCloseModal(), [location.pathname]);
+  useEffectAfterFirstRender(() => ModalStore.closeModal(), [location.pathname]);
 
   // Default to enabled backdrop
   const backdrop = options.backdrop ?? true;
@@ -255,7 +256,13 @@ function GlobalModal({onClose}: Props) {
                   damping: 25,
                 })}
               >
-                <Content role="document">{renderedChild}</Content>
+                <Surface variant="overlay" elevation="high">
+                  {p => (
+                    <Content role="document" {...p}>
+                      {renderedChild}
+                    </Content>
+                  )}
+                </Surface>
               </Modal>
             )}
           </AnimatePresence>
@@ -277,7 +284,7 @@ const fullPageCss = css`
 const Backdrop = styled('div')`
   ${fullPageCss};
   z-index: ${p => p.theme.zIndex.modal};
-  background: ${p => p.theme.black};
+  background: ${p => p.theme.colors.black};
   will-change: opacity;
   transition: opacity 200ms;
   pointer-events: none;
@@ -307,11 +314,6 @@ const Modal = styled(motion.div)`
 `;
 
 const Content = styled('div')`
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
-  box-shadow:
-    0 0 0 1px ${p => p.theme.translucentBorder},
-    ${p => p.theme.dropShadowHeavy};
   position: relative;
   padding: ${space(4)} ${space(3)};
 

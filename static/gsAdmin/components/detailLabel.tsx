@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
+
 import {space} from 'sentry/styles/space';
 
 type Props = {
@@ -30,7 +31,7 @@ function DetailLabel({title, yesNo, multiLine, children}: Props) {
       <dt>{title}:</dt>
       <Value multiLine={!!multiLine}>
         {yesNo !== undefined &&
-          (yesNo ? <Tag type="success">yes</Tag> : <Tag type="error">no</Tag>)}
+          (yesNo ? <Tag variant="success">yes</Tag> : <Tag variant="danger">no</Tag>)}
         {children}
       </Value>
     </Fragment>

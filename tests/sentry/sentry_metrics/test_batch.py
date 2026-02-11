@@ -234,7 +234,7 @@ def _get_string_indexer_log_records(caplog):
         ),
     ],
 )
-def test_extract_strings_with_rollout(should_index_tag_values, expected):
+def test_extract_strings_with_rollout(should_index_tag_values, expected) -> None:
     """
     Test that the indexer batch extracts the correct strings from the messages
     based on whether tag values should be indexed or not.
@@ -261,7 +261,7 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
 
 
 @pytest.mark.django_db
-def test_extract_strings_with_multiple_use_case_ids():
+def test_extract_strings_with_multiple_use_case_ids() -> None:
     """
     Verify that the extract string method can handle payloads that has multiple
     (generic) uses cases
@@ -353,7 +353,7 @@ def test_extract_strings_with_multiple_use_case_ids():
 
 @pytest.mark.django_db
 @override_options({"sentry-metrics.indexer.disabled-namespaces": ["escalating_issues"]})
-def test_extract_strings_with_single_use_case_ids_blocked():
+def test_extract_strings_with_single_use_case_ids_blocked() -> None:
     """
     Verify that the extract string method will work normally when a single use case ID is blocked
     """
@@ -431,7 +431,7 @@ def test_extract_strings_with_single_use_case_ids_blocked():
 
 @pytest.mark.django_db
 @override_options({"sentry-metrics.indexer.disabled-namespaces": ["spans", "escalating_issues"]})
-def test_extract_strings_with_multiple_use_case_ids_blocked():
+def test_extract_strings_with_multiple_use_case_ids_blocked() -> None:
     """
     Verify that the extract string method will work normally when multiple use case IDs are blocked
     """
@@ -506,7 +506,7 @@ def test_extract_strings_with_multiple_use_case_ids_blocked():
 
 
 @pytest.mark.django_db
-def test_extract_strings_with_invalid_mri():
+def test_extract_strings_with_invalid_mri() -> None:
     """
     Verify that extract strings will drop payload that has invalid MRI in name field but continue processing the rest
     """
@@ -611,7 +611,7 @@ def test_extract_strings_with_invalid_mri():
 
 
 @pytest.mark.django_db
-def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
+def test_extract_strings_with_multiple_use_case_ids_and_org_ids() -> None:
     """
     Verify that the extract string method can handle payloads that has multiple
     (generic) uses cases and from different orgs
@@ -704,7 +704,7 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
 
 
 @pytest.mark.django_db
-def test_all_resolved(caplog, settings):
+def test_all_resolved(caplog, settings) -> None:
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
@@ -855,7 +855,7 @@ def test_all_resolved(caplog, settings):
 
 
 @pytest.mark.django_db
-def test_all_resolved_with_routing_information(caplog, settings):
+def test_all_resolved_with_routing_information(caplog, settings) -> None:
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
@@ -1011,7 +1011,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
 
 
 @pytest.mark.django_db
-def test_all_resolved_retention_days_honored(caplog, settings):
+def test_all_resolved_retention_days_honored(caplog, settings) -> None:
     """
     Tests that the indexer batch honors the incoming retention_days values
     from Relay or falls back to 90.
@@ -1169,7 +1169,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
 
 
 @pytest.mark.django_db
-def test_batch_resolve_with_values_not_indexed(caplog, settings):
+def test_batch_resolve_with_values_not_indexed(caplog, settings) -> None:
     """
     Tests that the indexer batch skips resolving tag values for indexing and
     sends the raw tag value to Snuba.
@@ -1321,7 +1321,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
 
 
 @pytest.mark.django_db
-def test_metric_id_rate_limited(caplog, settings):
+def test_metric_id_rate_limited(caplog, settings) -> None:
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
@@ -1438,7 +1438,7 @@ def test_metric_id_rate_limited(caplog, settings):
 
 
 @pytest.mark.django_db
-def test_tag_key_rate_limited(caplog, settings):
+def test_tag_key_rate_limited(caplog, settings) -> None:
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
@@ -1532,7 +1532,7 @@ def test_tag_key_rate_limited(caplog, settings):
 
 
 @pytest.mark.django_db
-def test_tag_value_rate_limited(caplog, settings):
+def test_tag_value_rate_limited(caplog, settings) -> None:
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
@@ -1675,7 +1675,7 @@ def test_tag_value_rate_limited(caplog, settings):
 
 
 @pytest.mark.django_db
-def test_one_org_limited(caplog, settings):
+def test_one_org_limited(caplog, settings) -> None:
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
@@ -1798,7 +1798,7 @@ def test_one_org_limited(caplog, settings):
     ]
 
 
-def test_aggregation_options():
+def test_aggregation_options() -> None:
 
     with override_options(
         {

@@ -1,9 +1,9 @@
 import type {Actor} from 'sentry/types/core';
 import {
-  type CombinedAlerts,
   CombinedAlertType,
-  type CombinedMetricIssueAlerts,
   IncidentStatus,
+  type CombinedAlerts,
+  type CombinedMetricIssueAlerts,
 } from 'sentry/views/alerts/types';
 
 export function hasActiveIncident(rule: CombinedMetricIssueAlerts): boolean {

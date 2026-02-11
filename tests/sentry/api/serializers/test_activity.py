@@ -11,7 +11,7 @@ from sentry.users.models.user import User
 
 
 class GroupActivityTestCase(TestCase):
-    def test_pr_activity(self):
+    def test_pr_activity(self) -> None:
         self.org = self.create_organization(name="Rowdy Tiger")
         user = self.create_user()
         group = self.create_group(status=GroupStatus.UNRESOLVED)
@@ -38,7 +38,7 @@ class GroupActivityTestCase(TestCase):
         assert pull_request["repository"]["name"] == "organization-bar"
         assert pull_request["message"] == "kartoffel"
 
-    def test_commit_activity(self):
+    def test_commit_activity(self) -> None:
         self.org = self.create_organization(name="Rowdy Tiger")
         user = self.create_user()
         group = self.create_group(status=GroupStatus.UNRESOLVED)
@@ -62,7 +62,7 @@ class GroupActivityTestCase(TestCase):
         assert commit_data["repository"]["name"] == "organization-bar"
         assert commit_data["message"] == "gemuse"
 
-    def test_serialize_set_resolve_in_commit_activity_with_release(self):
+    def test_serialize_set_resolve_in_commit_activity_with_release(self) -> None:
         project = self.create_project(name="test_throwaway")
         group = self.create_group(project)
         user = self.create_user()
@@ -84,7 +84,7 @@ class GroupActivityTestCase(TestCase):
 
         assert len(serialized["data"]["commit"]["releases"]) == 1
 
-    def test_serialize_set_resolve_in_commit_activity_with_no_releases(self):
+    def test_serialize_set_resolve_in_commit_activity_with_no_releases(self) -> None:
         self.org = self.create_organization(name="komal-test")
         project = self.create_project(name="random-proj")
         user = self.create_user()
@@ -108,7 +108,7 @@ class GroupActivityTestCase(TestCase):
         assert len(serialized["data"]["commit"]["releases"]) == 0
         assert not Commit.objects.filter(releasecommit__id=commit.id).exists()
 
-    def test_serialize_set_resolve_in_commit_activity_with_release_not_deployed(self):
+    def test_serialize_set_resolve_in_commit_activity_with_release_not_deployed(self) -> None:
         project = self.create_project(name="random-test")
         group = self.create_group(project)
         user = self.create_user()
@@ -131,7 +131,7 @@ class GroupActivityTestCase(TestCase):
 
         assert len(serialized["data"]["commit"]["releases"]) == 1
 
-    def test_collapse_group_stats_in_activity_with_option(self):
+    def test_collapse_group_stats_in_activity_with_option(self) -> None:
         project = self.create_project(name="random-test")
         group = self.create_group(project)
         group_2 = self.create_group(project)
@@ -154,7 +154,7 @@ class GroupActivityTestCase(TestCase):
 
         assert "firstSeen" not in serialized["data"]["source"]
 
-    def test_get_activities_for_group_proxy_user(self):
+    def test_get_activities_for_group_proxy_user(self) -> None:
         project = self.create_project(name="test_activities_group")
         group = self.create_group(project)
         user = self.create_user()

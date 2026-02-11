@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from typing import Any, TypedDict
 
+import sentry_sdk
 from django.db.models import QuerySet
 from snuba_sdk import (
     BooleanCondition,
@@ -25,8 +26,10 @@ from snuba_sdk import (
 )
 
 from sentry import analytics
-from sentry.eventstore.models import Event, GroupEvent
+from sentry.analytics.events.eventuser_snuba_for_projects import EventUserSnubaForProjects
+from sentry.analytics.events.eventuser_snuba_query import EventUserSnubaQuery
 from sentry.models.project import Project
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.datastructures import BidirectionalMapping
@@ -60,9 +63,11 @@ KEYWORD_MAP = BidirectionalMapping(
 MAX_QUERY_TRIES = 5
 OVERFETCH_FACTOR = 10
 MAX_FETCH_SIZE = 10_000
+# Maximum number of tag values to process in a single query to avoid ClickHouse query size limits
+MAX_TAG_VALUES_BATCH_SIZE = 100
 
 
-def get_ip_address_conditions(ip_addresses: list[str]) -> list[Condition]:
+def get_ip_address_conditions(ip_addresses: Sequence[str]) -> list[Condition]:
     """
     Returns a list of Snuba Conditions for filtering a list of mixed IPv4/IPv6 addresses.
     Silently ignores invalid IP addresses, and applies `Op.IN` to the `ip_address_v4` and/or `ip_address_v6` columns.
@@ -106,7 +111,7 @@ class EventUser:
     user_ident: int | str | None
     id: int | None = None  # EventUser model id
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.hash)
 
     @staticmethod
@@ -121,14 +126,14 @@ class EventUser:
             user_ident=event.data.get("user", {}).get("id") if event else None,
         )
 
-    def get_display_name(self):
+    def get_display_name(self) -> str | None:
         return self.name or self.email or self.username
 
     @classmethod
     def for_projects(
-        self,
+        cls: type[EventUser],
         projects: QuerySet[Project] | Sequence[Project],
-        keyword_filters: Mapping[str, list[Any]],
+        keyword_filters: Mapping[str, Sequence[Any]],
         filter_boolean: BooleanOp = BooleanOp.AND,
         result_offset: int = 0,
         result_limit: int | None = None,
@@ -191,7 +196,7 @@ class EventUser:
             orderby=[OrderBy(Column("latest_timestamp"), Direction.DESC)],
         )
 
-        full_results = []
+        full_results: list[EventUser] = []
         tries = 0
         # If we have no result_limit, fetch as many results as we can with a single query
         max_tries = MAX_QUERY_TRIES if result_limit else 1
@@ -210,7 +215,7 @@ class EventUser:
                     min((target_unique_rows_fetched * OVERFETCH_FACTOR) + 1, MAX_FETCH_SIZE)
                 )
 
-        seen_eventuser_tags: set[str] = set()
+        seen_eventuser_tags: set[str | None] = set()
         while tries < max_tries:
             query_start_time = time.time()
             if query.limit:
@@ -225,22 +230,27 @@ class EventUser:
             )
             data_results = raw_snql_query(request, referrer=REFERRER)["data"]
 
-            unique_event_users, seen_eventuser_tags = self._find_unique(
+            unique_event_users, seen_eventuser_tags = cls._find_unique(
                 data_results, seen_eventuser_tags
             )
             full_results.extend(unique_event_users)
 
             query_end_time = time.time()
 
-            analytics.record(
-                "eventuser_snuba.query",
-                project_ids=[p.id for p in projects],
-                query=query.print(),
-                query_try=tries,
-                count_rows_returned=len(data_results),
-                count_rows_filtered=len(data_results) - len(unique_event_users),
-                query_time_ms=int((query_end_time - query_start_time) * 1000),
-            )
+            try:
+                analytics.record(
+                    EventUserSnubaQuery(
+                        project_ids=[p.id for p in projects],
+                        query=query.print(),
+                        query_try=tries,
+                        count_rows_returned=len(data_results),
+                        count_rows_filtered=len(data_results) - len(unique_event_users),
+                        query_time_ms=int((query_end_time - query_start_time) * 1000),
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
             tries += 1
             if (
                 target_unique_rows_fetched
@@ -251,13 +261,17 @@ class EventUser:
                 break
 
         end_time = time.time()
-        analytics.record(
-            "eventuser_snuba.for_projects",
-            project_ids=[p.id for p in projects],
-            total_tries=tries,
-            total_rows_returned=len(full_results),
-            total_time_ms=int((end_time - start_time) * 1000),
-        )
+        try:
+            analytics.record(
+                EventUserSnubaForProjects(
+                    project_ids=[p.id for p in projects],
+                    total_tries=tries,
+                    total_rows_returned=len(full_results),
+                    total_time_ms=int((end_time - start_time) * 1000),
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         if result_limit:
             return full_results[result_offset : result_offset + result_limit]
@@ -265,13 +279,15 @@ class EventUser:
             return full_results[result_offset:]
 
     @staticmethod
-    def _find_unique(data_results: list[dict[str, Any]], seen_eventuser_tags: set[str]):
+    def _find_unique(
+        data_results: Sequence[Mapping[str, Any]], seen_eventuser_tags: set[str | None]
+    ) -> tuple[list[EventUser], set[str | None]]:
         """
         Return the first instance of an EventUser object
         with a unique tag_value from the Snuba results.
         """
-        unique_tag_values = seen_eventuser_tags.copy()
         unique_event_users = []
+        unique_tag_values: set[str | None] = seen_eventuser_tags.copy()
 
         for euser in [EventUser.from_snuba(item) for item in data_results]:
             tag_value = euser.tag_value
@@ -297,17 +313,43 @@ class EventUser:
         )
 
     @classmethod
-    def for_tags(cls, project_id: int, values: list[str]) -> dict[str, EventUser]:
+    def for_tags(
+        cls: type[EventUser], project_id: int, values: Sequence[str | None]
+    ) -> dict[str, EventUser]:
         """
         Finds matching EventUser objects from a list of tag values.
 
         Return a dictionary of {tag_value: event_user}.
         """
         projects = Project.objects.filter(id=project_id)
+        result = {}
 
+        if len(values) <= MAX_TAG_VALUES_BATCH_SIZE:
+            # Process normally for small batches
+            return cls._process_tag_batch(projects, values)
+
+        # Process in batches to avoid ClickHouse query size limits
+        for i in range(0, len(values), MAX_TAG_VALUES_BATCH_SIZE):
+            batch_values = values[i : i + MAX_TAG_VALUES_BATCH_SIZE]
+            batch_result = cls._process_tag_batch(projects, batch_values)
+            result.update(batch_result)
+
+        return result
+
+    @classmethod
+    def _process_tag_batch(
+        cls, projects: QuerySet[Project], values: Sequence[str | None]
+    ) -> dict[str, EventUser]:
+        """
+        Process a single batch of tag values and return the matching EventUser objects.
+        """
         result = {}
         keyword_filters: dict[str, Any] = {}
         for value in values:
+            # Skip None values - these represent events without the tag set.
+            # There's no EventUser to look up for these cases.
+            if value is None:
+                continue
             key, value = value.split(":", 1)[0], value.split(":", 1)[-1]
             if keyword_filters.get(key):
                 keyword_filters[key].append(value)
@@ -328,7 +370,7 @@ class EventUser:
         return result
 
     @property
-    def tag_value(self):
+    def tag_value(self) -> str | None:
         """
         Return the identifier used with tags to link this user.
         """
@@ -336,7 +378,9 @@ class EventUser:
             if value:
                 return f"{KEYWORD_MAP[key]}:{value}"
 
-    def iter_attributes(self):
+        return None
+
+    def iter_attributes(self) -> Iterator[tuple[str, str | int | None]]:
         """
         Iterate over key/value pairs for this EventUser in priority order.
         """
@@ -354,7 +398,9 @@ class EventUser:
         }
 
     @cached_property
-    def hash(self):
-        for key, value in self.iter_attributes():
+    def hash(self) -> str | None:
+        for _, value in self.iter_attributes():
             if value:
                 return md5_text(value).hexdigest()
+
+        return None

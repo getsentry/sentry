@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
@@ -13,46 +14,33 @@ import {
 } from 'sentry/utils/fields';
 import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 interface UseVisualizeFieldsProps {
+  booleanTags: TagCollection;
   numberTags: TagCollection;
   stringTags: TagCollection;
+  traceItemType: TraceItemDataset;
   parsedFunction?: ParsedFunction | null;
 }
 
 export function useVisualizeFields({
+  booleanTags,
   parsedFunction,
   numberTags,
   stringTags,
+  traceItemType,
 }: UseVisualizeFieldsProps) {
-  const [kind, tags]: [FieldKind, TagCollection] = useMemo(() => {
-    if (parsedFunction?.name === AggregationKey.COUNT) {
-      const countTags: TagCollection = {
-        [SpanFields.SPAN_DURATION]: {
-          name: t('spans'),
-          key: SpanFields.SPAN_DURATION,
-        },
-      };
-      return [FieldKind.MEASUREMENT, countTags];
-    }
-
-    if (NO_ARGUMENT_SPAN_AGGREGATES.includes(parsedFunction?.name as AggregationKey)) {
-      const countTags: TagCollection = {
-        '': {
-          name: t('spans'),
-          key: '',
-        },
-      };
-      return [FieldKind.MEASUREMENT, countTags];
-    }
-
-    if (parsedFunction?.name === AggregationKey.COUNT_UNIQUE) {
-      return [FieldKind.TAG, stringTags];
-    }
-
-    return [FieldKind.MEASUREMENT, numberTags];
-  }, [parsedFunction?.name, numberTags, stringTags]);
+  const tags: TagCollection = useMemo(() => {
+    return getSupportedAttributes({
+      functionName: parsedFunction?.name || '',
+      numberTags,
+      stringTags,
+      booleanTags,
+      traceItemType,
+    });
+  }, [booleanTags, numberTags, parsedFunction?.name, stringTags, traceItemType]);
 
   const unknownField = parsedFunction?.arguments[0];
 
@@ -68,10 +56,13 @@ export function useVisualizeFields({
           label,
           value: option,
           textValue: option,
-          trailingItems: <TypeBadge kind={kind} />,
           showDetailsInOverlay: true,
           details: (
-            <AttributeDetails column={option} kind={kind} label={label} type="span" />
+            <AttributeDetails
+              column={option}
+              label={label}
+              traceItemType={traceItemType}
+            />
           ),
         };
       }),
@@ -80,10 +71,15 @@ export function useVisualizeFields({
           label: tag.name,
           value: tag.key,
           textValue: tag.name,
-          trailingItems: <TypeBadge kind={kind} />,
+          trailingItems: <TypeBadge kind={tag.kind} />,
           showDetailsInOverlay: true,
           details: (
-            <AttributeDetails column={tag.key} kind={kind} label={tag.name} type="span" />
+            <AttributeDetails
+              column={tag.key}
+              kind={tag.kind}
+              label={tag.name}
+              traceItemType={traceItemType}
+            />
           ),
         };
       }),
@@ -102,7 +98,51 @@ export function useVisualizeFields({
     });
 
     return options;
-  }, [kind, tags, unknownField]);
+  }, [tags, unknownField, traceItemType]);
 
   return fieldOptions;
+}
+
+function getSupportedAttributes({
+  functionName,
+  numberTags,
+  booleanTags,
+  stringTags,
+  traceItemType,
+}: {
+  booleanTags: TagCollection;
+  numberTags: TagCollection;
+  stringTags: TagCollection;
+  traceItemType: TraceItemDataset;
+  functionName?: string;
+}): TagCollection {
+  if (traceItemType === TraceItemDataset.SPANS) {
+    if (functionName === AggregationKey.COUNT) {
+      const countTags: TagCollection = {
+        [SpanFields.SPAN_DURATION]: {
+          name: t('spans'),
+          key: SpanFields.SPAN_DURATION,
+          kind: FieldKind.MEASUREMENT,
+        },
+      };
+      return countTags;
+    }
+
+    if (NO_ARGUMENT_SPAN_AGGREGATES.includes(functionName as AggregationKey)) {
+      return {
+        '': {
+          name: t('spans'),
+          key: '',
+        },
+      };
+    }
+
+    if (functionName === AggregationKey.COUNT_UNIQUE) {
+      return {...numberTags, ...stringTags, ...booleanTags};
+    }
+
+    return numberTags;
+  }
+
+  throw new Error('Cannot get support attributes for unknown trace item type');
 }

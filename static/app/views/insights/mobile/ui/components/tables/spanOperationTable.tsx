@@ -1,8 +1,10 @@
 import * as qs from 'query-string';
 
+import {Link} from '@sentry/scraps/link';
+
 import {getInterval} from 'sentry/components/charts/utils';
-import {Link} from 'sentry/components/core/link';
 import Duration from 'sentry/components/duration';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
@@ -11,11 +13,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/insights/common/components/releaseSelector';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
@@ -35,9 +32,8 @@ const VALID_SPAN_OPS = APP_START_SPANS;
 export function SpanOperationTable({
   transaction,
   primaryRelease,
-  secondaryRelease,
 }: SpanOperationTableProps) {
-  const moduleURL = useModuleURL('mobile-ui');
+  const moduleURL = useModuleURL('mobile-vitals');
   const location = useLocation();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
@@ -60,32 +56,24 @@ export function SpanOperationTable({
       ? [`${SpanFields.USER_GEO_SUBREGION}:[${subregions.join(',')}]`]
       : []),
   ]);
-  const queryStringPrimary = appendReleaseFilters(
-    searchQuery,
-    primaryRelease,
-    secondaryRelease
-  );
+  const queryStringPrimary = appendReleaseFilters(searchQuery, primaryRelease);
 
   const orderby = decodeScalar(location.query.sort, '');
 
+  const baseFields = [PROJECT_ID, SPAN_OP, SPAN_GROUP, SPAN_DESCRIPTION];
+  const fields: any = [
+    ...baseFields,
+    'division(mobile.slow_frames,mobile.total_frames)',
+    'division(mobile.frozen_frames,mobile.total_frames)',
+    'avg(mobile.frames_delay)',
+  ] as any;
+
   const newQuery: NewQuery = {
     name: '',
-    fields: [
-      PROJECT_ID,
-      SPAN_OP,
-      SPAN_GROUP,
-      SPAN_DESCRIPTION,
-      `division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`,
-      `division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`,
-      `division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`,
-      `division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`,
-      `avg_if(mobile.frames_delay,release,${primaryRelease})`,
-      `avg_if(mobile.frames_delay,release,${secondaryRelease})`,
-      `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,
-    ],
+    fields,
     query: queryStringPrimary,
     orderby,
-    dataset: DiscoverDatasets.SPANS_EAP_RPC,
+    dataset: DiscoverDatasets.SPANS,
     version: 2,
     projects: selection.projects,
     interval: getInterval(selection.datetime, STARFISH_CHART_INTERVAL_FIDELITY),
@@ -98,75 +86,32 @@ export function SpanOperationTable({
       cursor,
       search: queryStringPrimary,
       orderby,
-      fields: [
-        PROJECT_ID,
-        SPAN_OP,
-        SPAN_GROUP,
-        SPAN_DESCRIPTION,
-        `division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`,
-        `division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`,
-        `division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`,
-        `division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`,
-        `avg_if(mobile.frames_delay,release,${primaryRelease})`,
-        `avg_if(mobile.frames_delay,release,${secondaryRelease})`,
-        `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,
-      ],
+      fields,
     },
     Referrer.SPAN_OPERATION_TABLE
   );
 
-  const columnNameMap = {
+  const columnNameMap: Record<string, string> = {
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
-    [`division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`]: t(
-      'Slow (%s)',
-      PRIMARY_RELEASE_ALIAS
-    ),
-    [`division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`]:
-      t('Slow (%s)', SECONDARY_RELEASE_ALIAS),
-    [`division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`]:
-      t('Frozen (%s)', PRIMARY_RELEASE_ALIAS),
-    [`division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`]:
-      t('Frozen (%s)', SECONDARY_RELEASE_ALIAS),
-    [`avg_if(mobile.frames_delay,release,${primaryRelease})`]: t(
-      'Delay (%s)',
-      PRIMARY_RELEASE_ALIAS
-    ),
-    [`avg_if(mobile.frames_delay,release,${secondaryRelease})`]: t(
-      'Delay (%s)',
-      SECONDARY_RELEASE_ALIAS
-    ),
-    [`avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`]:
-      t('Change'),
   };
+  const columnTooltipMap: Record<string, string> = {};
 
-  const columnTooltipMap = {
-    [`division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`]: t(
-      'The number of slow frames divided by total frames (%s)',
-      PRIMARY_RELEASE_ALIAS
-    ),
-    [`division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`]:
-      t(
-        'The number of slow frames divided by total frames (%s)',
-        SECONDARY_RELEASE_ALIAS
-      ),
-    [`division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`]:
-      t(
-        'The number of frozen frames divided by total frames (%s)',
-        PRIMARY_RELEASE_ALIAS
-      ),
-    [`division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`]:
-      t(
-        'The number of frozen frames divided by total frames (%s)',
-        SECONDARY_RELEASE_ALIAS
-      ),
-  };
+  columnNameMap['division(mobile.slow_frames,mobile.total_frames)'] = t('Slow');
+  columnNameMap['division(mobile.frozen_frames,mobile.total_frames)'] = t('Frozen');
+  columnNameMap['avg(mobile.frames_delay)'] = t('Delay');
+
+  columnTooltipMap['division(mobile.slow_frames,mobile.total_frames)'] = t(
+    'The number of slow frames divided by total frames'
+  );
+  columnTooltipMap['division(mobile.frozen_frames,mobile.total_frames)'] = t(
+    'The number of frozen frames divided by total frames'
+  );
 
   function renderBodyCell(column: any, row: any) {
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanFields.SPAN_DESCRIPTION];
-
-      const pathname = `${moduleURL}/spans/`;
+      const pathname = `${moduleURL}/details/`;
 
       const query = {
         ...location.query,
@@ -200,31 +145,31 @@ export function SpanOperationTable({
     return null;
   }
 
+  const columnOrder = [
+    String(SPAN_OP),
+    String(SPAN_DESCRIPTION),
+    'division(mobile.slow_frames,mobile.total_frames)',
+    'division(mobile.frozen_frames,mobile.total_frames)',
+    'avg(mobile.frames_delay)',
+  ];
+
+  const defaultSort = [
+    {
+      key: 'avg(mobile.frames_delay)',
+      order: 'desc' as const,
+    },
+  ];
+
   return (
     <ScreensTable
       columnNameMap={columnNameMap}
       columnTooltipMap={columnTooltipMap}
-      data={{data, meta}}
+      data={{data, meta: meta ?? {}}}
       eventView={eventView}
       isLoading={isPending}
       pageLinks={pageLinks}
-      columnOrder={[
-        String(SPAN_OP),
-        String(SPAN_DESCRIPTION),
-        `division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`,
-        `division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`,
-        `division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`,
-        `division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`,
-        `avg_if(mobile.frames_delay,release,${primaryRelease})`,
-        `avg_if(mobile.frames_delay,release,${secondaryRelease})`,
-        `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,
-      ]}
-      defaultSort={[
-        {
-          key: `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,
-          order: 'desc',
-        },
-      ]}
+      columnOrder={columnOrder}
+      defaultSort={defaultSort}
       customBodyCellRenderer={renderBodyCell}
       moduleName={ModuleName.MOBILE_UI}
     />

@@ -4,7 +4,7 @@ import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from datetime import datetime, timezone
-from typing import Any, TypedDict
+from typing import Any, TypedDict, TypeIs
 
 from django.utils.datastructures import OrderedSet
 
@@ -13,6 +13,7 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.shared_integrations.response.mapping import MappingApiResponse
 
 logger = logging.getLogger("sentry.integrations.github")
 
@@ -49,6 +50,11 @@ class GitHubGraphQlResponse(TypedDict):
     errors: list[dict[str, str]]
 
 
+def is_graphql_response(response: object) -> TypeIs[GitHubGraphQlResponse]:
+    # TODO: should probably narrow this better
+    return isinstance(response, MappingApiResponse) and ("data" in response or "errors" in response)
+
+
 FilePathMapping = dict[str, dict[str, OrderedSet]]
 GitHubRepositoryResponse = dict[str, GitHubRefResponse]
 
@@ -82,7 +88,7 @@ def create_blame_query(
         try:
             [repo_owner, repo_name] = full_repo_name.split("/", maxsplit=1)
         except ValueError:
-            logger.exception(
+            logger.warning(
                 "get_blame_for_files.create_blame_query.invalid_repo_name",
                 extra={**extra, "repo_name": full_repo_name},
             )
@@ -155,7 +161,7 @@ def extract_commits_from_blame_response(
                     f"blame{file_path_index}"
                 )
                 if not blame:
-                    logger.error(
+                    logger.warning(
                         "get_blame_for_files.extract_commits_from_blame.missing_file_blame",
                         extra={
                             **extra,
@@ -214,7 +220,7 @@ def _get_matching_file_blame(
 
     commit: GitHubFileBlameCommit | None = matching_blame_range.get("commit", None)
     if not commit:
-        logger.error(
+        logger.warning(
             "get_blame_for_files.extract_commits_from_blame.no_commit_data",
             extra=extra,
         )
@@ -224,7 +230,7 @@ def _get_matching_file_blame(
     commit_id = commit.get("oid")
 
     if not commit_id:
-        logger.error(
+        logger.warning(
             "get_blame_for_files.extract_commits_from_blame.invalid_commit_response",
             extra={
                 **extra,
@@ -233,7 +239,7 @@ def _get_matching_file_blame(
         )
         return None
     if not committed_date_str:
-        logger.error(
+        logger.warning(
             "get_blame_for_files.extract_commits_from_blame.invalid_commit_response",
             extra={
                 **extra,
@@ -246,7 +252,7 @@ def _get_matching_file_blame(
     try:
         committed_date = datetime.fromisoformat(committed_date_str).astimezone(timezone.utc)
     except Exception:
-        logger.exception(
+        logger.warning(
             "get_blame_for_files.extract_commits_from_blame.invalid_commit_response",
             extra={
                 **extra,

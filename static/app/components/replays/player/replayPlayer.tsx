@@ -1,5 +1,5 @@
-import {type HTMLAttributes, useEffect, useLayoutEffect, useRef} from 'react';
-import {type Interpolation, type Theme, useTheme} from '@emotion/react';
+import {useEffect, useLayoutEffect, useRef, type HTMLAttributes} from 'react';
+import {useTheme, type Interpolation, type Theme} from '@emotion/react';
 import {Replayer} from '@sentry-internal/rrweb';
 
 import {
@@ -51,7 +51,7 @@ function useReplayerInstance() {
         duration: 0.75 * 1000,
         lineCap: 'round',
         lineWidth: 2,
-        strokeStyle: theme.purple200,
+        strokeStyle: theme.tokens.border.accent.moderate,
       },
       plugins: getPlugins(webFrames),
       skipInactive: initialPrefsRef.current.isSkippingInactive,

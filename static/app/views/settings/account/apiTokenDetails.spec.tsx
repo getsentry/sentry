@@ -5,19 +5,10 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import * as indicators from 'sentry/actionCreators/indicator';
 import ApiTokenDetails from 'sentry/views/settings/account/apiTokenDetails';
 
-describe('ApiNewToken', function () {
+describe('ApiNewToken', () => {
   MockApiClient.clearMockResponses();
 
-  it('renders', function () {
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/api-tokens/1/`,
-      body: ApiTokenFixture({id: '1', name: 'token1'}),
-    });
-    render(<ApiTokenDetails params={{tokenId: '1'}} />);
-  });
-
-  it('renames token to new name', async function () {
+  it('renames token to new name', async () => {
     MockApiClient.clearMockResponses();
     jest.spyOn(indicators, 'addSuccessMessage');
 
@@ -27,7 +18,14 @@ describe('ApiNewToken', function () {
       body: ApiTokenFixture({id: '1', name: 'token1'}),
     });
 
-    render(<ApiTokenDetails params={{tokenId: '1'}} />);
+    render(<ApiTokenDetails />, {
+      initialRouterConfig: {
+        route: `/api/auth-tokens/:tokenId/`,
+        location: {
+          pathname: `/api/auth-tokens/1/`,
+        },
+      },
+    });
 
     await waitFor(() => expect(mock1).toHaveBeenCalledTimes(1));
 
@@ -55,7 +53,7 @@ describe('ApiNewToken', function () {
     expect(indicators.addSuccessMessage).toHaveBeenCalled();
   });
 
-  it('removes token name', async function () {
+  it('removes token name', async () => {
     MockApiClient.clearMockResponses();
     jest.spyOn(indicators, 'addSuccessMessage');
 
@@ -65,7 +63,14 @@ describe('ApiNewToken', function () {
       body: ApiTokenFixture({id: '1', name: 'token1'}),
     });
 
-    render(<ApiTokenDetails params={{tokenId: '1'}} />);
+    render(<ApiTokenDetails />, {
+      initialRouterConfig: {
+        route: `/api/auth-tokens/:tokenId/`,
+        location: {
+          pathname: `/api/auth-tokens/1/`,
+        },
+      },
+    });
 
     await waitFor(() => expect(mock1).toHaveBeenCalledTimes(1));
 
@@ -93,7 +98,7 @@ describe('ApiNewToken', function () {
     expect(indicators.addSuccessMessage).toHaveBeenCalled();
   });
 
-  it('does not accept long name', async function () {
+  it('does not accept long name', async () => {
     MockApiClient.clearMockResponses();
     jest.spyOn(indicators, 'addErrorMessage');
 
@@ -103,7 +108,14 @@ describe('ApiNewToken', function () {
       body: ApiTokenFixture({id: '1', name: 'token1'}),
     });
 
-    render(<ApiTokenDetails params={{tokenId: '1'}} />);
+    render(<ApiTokenDetails />, {
+      initialRouterConfig: {
+        route: `/api/auth-tokens/:tokenId/`,
+        location: {
+          pathname: `/api/auth-tokens/1/`,
+        },
+      },
+    });
 
     await waitFor(() => expect(mock1).toHaveBeenCalledTimes(1));
 

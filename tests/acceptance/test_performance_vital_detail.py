@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
 from django.db.models import F
@@ -15,7 +15,7 @@ FEATURE_NAMES = ("organizations:performance-view",)
 
 @no_silo_test
 class PerformanceVitalDetailsTest(AcceptanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
@@ -32,7 +32,7 @@ class PerformanceVitalDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.page = BasePage(self.browser)
 
     @patch("django.utils.timezone.now")
-    def test_with_data(self, mock_now):
+    def test_with_data(self, mock_now: MagicMock) -> None:
 
         mock_now.return_value = before_now()
 

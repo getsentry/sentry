@@ -30,6 +30,13 @@ export enum AutofixStatus {
   WAITING_FOR_USER_RESPONSE = 'WAITING_FOR_USER_RESPONSE',
 }
 
+export enum AutofixStoppingPoint {
+  ROOT_CAUSE = 'root_cause',
+  SOLUTION = 'solution',
+  CODE_CHANGES = 'code_changes',
+  OPEN_PR = 'open_pr',
+}
+
 type AutofixPullRequestDetails = {
   pr_number: number;
   pr_url: string;
@@ -38,6 +45,36 @@ type AutofixPullRequestDetails = {
 type AutofixOptions = {
   iterative_feedback?: boolean;
 };
+
+interface CodingAgentResult {
+  branch_name: string | null;
+  description: string;
+  pr_url: string | null;
+  repo_full_name: string;
+  repo_provider: string;
+}
+
+export enum CodingAgentStatus {
+  PENDING = 'pending',
+  RUNNING = 'running',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+}
+
+export enum CodingAgentProvider {
+  CURSOR_BACKGROUND_AGENT = 'cursor_background_agent',
+  GITHUB_COPILOT_AGENT = 'github_copilot_agent',
+}
+
+export interface CodingAgentState {
+  id: string;
+  name: string;
+  provider: CodingAgentProvider;
+  started_at: string;
+  status: CodingAgentStatus;
+  agent_url?: string;
+  results?: CodingAgentResult[];
+}
 
 type CodebaseState = {
   is_readable: boolean | null;
@@ -60,6 +97,7 @@ export type AutofixData = {
   codebase_indexing?: {
     status: 'COMPLETED';
   };
+  coding_agents?: Record<string, CodingAgentState>;
   completed_at?: string | null;
   error_message?: string;
   options?: AutofixOptions;
@@ -126,6 +164,7 @@ export type InsightSources = {
   thoughts: string;
   trace_event_ids_used: string[];
   event_trace_id?: string;
+  event_trace_timestamp?: number;
 };
 
 export interface AutofixDefaultStep extends BaseStep {
@@ -247,8 +286,15 @@ export interface AutofixRepoDefinition {
   provider: string;
 }
 
+export interface BranchOverride {
+  branch_name: string;
+  tag_name: string;
+  tag_value: string;
+}
+
 export interface RepoSettings {
   branch: string;
+  branch_overrides: BranchOverride[];
   instructions: string;
 }
 
@@ -259,13 +305,24 @@ export interface SeerRepoDefinition {
   provider: string;
   base_commit_sha?: string;
   branch_name?: string;
+  branch_overrides?: BranchOverride[];
   instructions?: string;
+  integration_id?: string;
+  organization_id?: number | string; // TODO: should be string
   provider_raw?: string;
+}
+
+interface SeerAutomationHandoffConfiguration {
+  handoff_point: 'root_cause';
+  integration_id: number;
+  target: 'cursor_background_agent';
+  auto_create_pr?: boolean;
 }
 
 export interface ProjectSeerPreferences {
   repositories: SeerRepoDefinition[];
-  automated_run_stopping_point?: 'solution' | 'code_changes' | 'open_pr';
+  automated_run_stopping_point?: 'root_cause' | 'solution' | 'code_changes' | 'open_pr';
+  automation_handoff?: SeerAutomationHandoffConfiguration;
 }
 
 export const AUTOFIX_TTL_IN_DAYS = 30;

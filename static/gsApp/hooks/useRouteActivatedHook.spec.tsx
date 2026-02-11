@@ -17,7 +17,7 @@ const HALF_ADVANCE_PERIOD = DELAY_TIME_MS * 0.6;
 
 jest.mock('getsentry/utils/rawTrackAnalyticsEvent');
 
-describe('useRouteActivatedHook', function () {
+describe('useRouteActivatedHook', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({organization});
   const subscription = SubscriptionFixture({
@@ -44,15 +44,15 @@ describe('useRouteActivatedHook', function () {
   }
   const props = genProps();
 
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
   });
 
-  afterEach(function () {
+  afterEach(() => {
     (rawTrackAnalyticsEvent as jest.Mock).mockClear();
   });
 
-  it('calls rawTrackAnalyticsEvent after one seconds if org is set', function () {
+  it('calls rawTrackAnalyticsEvent after one seconds if org is set', () => {
     jest.useFakeTimers();
     const {result} = renderHook(useRouteActivatedHook, {
       initialProps: props,
@@ -76,7 +76,7 @@ describe('useRouteActivatedHook', function () {
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
   });
 
-  it('does not call rawTrackAnalyticsEvent if org is not set', function () {
+  it('does not call rawTrackAnalyticsEvent if org is not set', () => {
     jest.useFakeTimers();
     renderHook(useRouteActivatedHook, {
       initialProps: props,
@@ -85,7 +85,7 @@ describe('useRouteActivatedHook', function () {
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(0);
   });
 
-  it('only calls rawTrackAnalyticsEvent once and ignores later param updates', function () {
+  it('only calls rawTrackAnalyticsEvent once and ignores later param updates', () => {
     jest.useFakeTimers();
     const {result} = renderHook(useRouteActivatedHook, {
       initialProps: props,
@@ -110,7 +110,7 @@ describe('useRouteActivatedHook', function () {
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
   });
 
-  it('only calls rawTrackAnalyticsEvent once when URL query params are updated', function () {
+  it('only calls rawTrackAnalyticsEvent once when URL query params are updated', () => {
     jest.useFakeTimers();
     const {result, rerender} = renderHook(useRouteActivatedHook, {
       initialProps: props,
@@ -130,7 +130,7 @@ describe('useRouteActivatedHook', function () {
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
   });
 
-  it('disable route analytics', function () {
+  it('disable route analytics', () => {
     jest.useFakeTimers();
     const {result} = renderHook(useRouteActivatedHook, {
       initialProps: props,
@@ -141,7 +141,7 @@ describe('useRouteActivatedHook', function () {
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(0);
   });
 
-  it('disables and re-enables analytics', function () {
+  it('disables and re-enables analytics', () => {
     jest.useFakeTimers();
     const {result} = renderHook(useRouteActivatedHook, {
       initialProps: props,
@@ -155,7 +155,7 @@ describe('useRouteActivatedHook', function () {
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
   });
 
-  it('re-initializes after route changes', function () {
+  it('re-initializes after route changes', () => {
     jest.useFakeTimers();
     const {result, rerender} = renderHook(useRouteActivatedHook, {
       initialProps: props,
@@ -198,7 +198,7 @@ describe('useRouteActivatedHook', function () {
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
   });
 
-  it('overrwite event names', function () {
+  it('overrwite event names', () => {
     jest.useFakeTimers();
     const {result} = renderHook(useRouteActivatedHook, {
       initialProps: props,
@@ -221,7 +221,7 @@ describe('useRouteActivatedHook', function () {
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
   });
 
-  it('route changes triggers early analytics event', function () {
+  it('route changes triggers early analytics event', () => {
     jest.useFakeTimers();
     let loadTime = Date.now();
     const {result, rerender} = renderHook(useRouteActivatedHook, {

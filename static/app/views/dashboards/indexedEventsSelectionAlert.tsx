@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -13,7 +14,7 @@ import {
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {DashboardsMEPConsumer} from './widgetCard/dashboardsMEPContext';
-import {type Widget, WidgetType} from './types';
+import {WidgetType, type Widget} from './types';
 
 type SearchFilterKey = {key?: {value: string}};
 
@@ -64,7 +65,7 @@ export function IndexedEventsSelectionAlert({widget}: IndexedEventsSelectionAler
               ) {
                 if (!widgetContainsErrorFields) {
                   return (
-                    <StoredDataAlert type="info">
+                    <StoredDataAlert variant="info">
                       {tct(
                         "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
                         {

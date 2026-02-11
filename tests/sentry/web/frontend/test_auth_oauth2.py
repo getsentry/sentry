@@ -58,7 +58,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
     provider = DummyOAuth2Provider
     provider_name = "oauth2_dummy"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         auth_provider = AuthProvider.objects.create(
             provider=self.provider_name, organization_id=self.organization.id
@@ -148,13 +148,13 @@ class AuthOAuth2Test(AuthProviderTestCase):
             }
         return resp
 
-    def test_oauth2_flow(self):
+    def test_oauth2_flow(self) -> None:
         auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
 
         state = self.initiate_oauth_flow()
         self.initiate_callback(state, auth_data)
 
-    def test_oauth2_flow_customer_domain(self):
+    def test_oauth2_flow_customer_domain(self) -> None:
         HTTP_HOST = "albertos-apples.testserver"
         auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
 
@@ -166,7 +166,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
         )
 
     @mock.patch("sentry.utils.auth.login")
-    def test_oauth2_flow_incomplete_security_checks(self, mock_login):
+    def test_oauth2_flow_incomplete_security_checks(self, mock_login: mock.MagicMock) -> None:
         mock_login.return_value = False
         auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
 
@@ -177,7 +177,9 @@ class AuthOAuth2Test(AuthProviderTestCase):
         assert response.context["user"] != self.user
 
     @mock.patch("sentry.utils.auth.login")
-    def test_oauth2_flow_customer_domain_incomplete_security_checks(self, mock_login):
+    def test_oauth2_flow_customer_domain_incomplete_security_checks(
+        self, mock_login: mock.MagicMock
+    ) -> None:
         HTTP_HOST = "albertos-apples.testserver"
         mock_login.return_value = False
         auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
@@ -188,7 +190,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
         assert response.redirect_chain == [("http://albertos-apples.testserver/auth/login/", 302)]
         assert response.context["user"] != self.user
 
-    def test_oauth2_flow_with_2fa(self):
+    def test_oauth2_flow_with_2fa(self) -> None:
         RecoveryCodeInterface().enroll(self.user)
         TotpInterface().enroll(self.user)
 
@@ -197,7 +199,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
         state = self.initiate_oauth_flow()
         self.initiate_callback(state, auth_data, has_2fa=True)
 
-    def test_state_mismatch(self):
+    def test_state_mismatch(self) -> None:
         auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
 
         self.initiate_oauth_flow()
@@ -208,7 +210,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
         assert str(messages[0]).startswith("Authentication error")
         assert auth_resp.context["user"] != self.user
 
-    def test_response_errors(self):
+    def test_response_errors(self) -> None:
         auth_data = {"error_description": "Mock failure"}
 
         state = self.initiate_oauth_flow()
@@ -227,3 +229,37 @@ class AuthOAuth2Test(AuthProviderTestCase):
         assert len(messages) == 1
         assert str(messages[0]).startswith("Authentication error")
         assert auth_resp.context["user"] != self.user
+
+    def test_state_contains_provider_key(self) -> None:
+        """Test that OAuth state parameter contains the provider key for mismatch detection."""
+        state = self.initiate_oauth_flow()
+
+        # State format should be "{nonce}:{provider_key}"
+        assert ":" in state
+        nonce, provider_key = state.split(":", 1)
+        assert len(nonce) > 0
+        assert provider_key == self.provider_name
+
+    @mock.patch("sentry.auth.providers.oauth2.safe_urlopen")
+    def test_provider_mismatch_detected(self, urlopen: mock.MagicMock) -> None:
+        """Test that authenticating with wrong provider in state triggers mismatch detection."""
+        # Start a normal OAuth flow to get the session set up
+        state = self.initiate_oauth_flow()
+
+        # Modify the state to have a different provider key (simulating multi-tab scenario
+        # where user started auth with a different provider)
+        nonce = state.split(":")[0]
+        wrong_state = f"{nonce}:wrong_provider"
+
+        # The state validation should fail because the full state doesn't match
+        headers = {"Content-Type": "application/json"}
+        auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
+        urlopen.return_value = MockResponse(headers, json.dumps(auth_data))
+
+        query = urlencode({"code": "1234", "state": wrong_state})
+        auth_resp = self.client.get(f"{self.sso_path}?{query}", follow=True)
+
+        # Should fail with state mismatch error
+        messages = list(auth_resp.context["messages"])
+        assert len(messages) == 1
+        assert str(messages[0]).startswith("Authentication error")

@@ -5,6 +5,7 @@ from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import Any
 
+import sentry_sdk
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
@@ -68,6 +69,8 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             substatus=new_substatus,
             activity_type=activity_type,
             activity_data=status_change.get("activity_data"),
+            detector_id=status_change.get("detector_id"),
+            update_date=status_change.get("update_date"),
         )
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
         kick_off_status_syncs.apply_async(
@@ -92,6 +95,8 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             substatus=new_substatus,
             activity_type=activity_type,
             activity_data=status_change.get("activity_data"),
+            detector_id=status_change.get("detector_id"),
+            update_date=status_change.get("update_date"),
         )
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED)
         kick_off_status_syncs.apply_async(
@@ -130,6 +135,8 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             activity_type=activity_type,
             from_substatus=group.substatus,
             activity_data=status_change.get("activity_data"),
+            detector_id=status_change.get("detector_id"),
+            update_date=status_change.get("update_date"),
         )
         add_group_to_inbox(group, group_inbox_reason)
         kick_off_status_syncs.apply_async(
@@ -161,8 +168,16 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
                 "workflow_engine.issue_platform.status_change_handler",
                 amount=len(group_status_update_registry.registrations.keys()),
                 tags={"activity_type": activity_type.value},
+                sample_rate=1.0,
             )
             for handler in group_status_update_registry.registrations.values():
+                logger.info(
+                    "group.status_change.activity_created.handler",
+                    extra={
+                        "group_id": group.id,
+                        "activity_type": activity_type,
+                    },
+                )
                 handler(group, status_change, latest_activity)
 
 
@@ -231,6 +246,8 @@ def _get_status_change_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
         "new_status": payload["new_status"],
         "new_substatus": payload.get("new_substatus", None),
         "detector_id": payload.get("detector_id", None),
+        "activity_data": payload.get("activity_data", None),
+        "update_date": payload.get("update_date", None),
     }
 
     process_occurrence_data(data)
@@ -277,6 +294,8 @@ def process_status_change_message(
             )
             return None
         txn.set_tag("group_id", group.id)
+
+    sentry_sdk.set_tag("group_type", group.issue_type.slug)
 
     with metrics.timer(
         "occurrence_consumer._process_message.status_change.update_group_status",

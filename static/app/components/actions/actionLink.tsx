@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 
 import ConfirmableAction from './confirmableAction';
 
@@ -20,9 +20,7 @@ const StyledButton = styled(Button)<{
   align-items: center;
 
   ${p => p.disabled && 'cursor: not-allowed;'}
-  ${p =>
-    p.hasDropdown &&
-    `border-radius: ${p.theme.borderRadius} 0 0 ${p.theme.borderRadius}`};
+  ${p => p.hasDropdown && `border-radius: ${p.theme.radius.md} 0 0 ${p.theme.radius.md}`};
 `;
 
 type ConfirmableActionProps = React.ComponentProps<typeof ConfirmableAction>;

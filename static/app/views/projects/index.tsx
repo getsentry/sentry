@@ -1,11 +1,9 @@
+import {Outlet} from 'react-router-dom';
+
 import Redirect from 'sentry/components/redirect';
 import {useRedirectNavV2Routes} from 'sentry/views/nav/useRedirectNavV2Routes';
 
-type Props = {
-  children: React.ReactNode;
-};
-
-export default function Projects({children}: Props) {
+export default function Projects() {
   const redirectPath = useRedirectNavV2Routes({
     oldPathPrefix: '/projects/',
     newPathPrefix: '/insights/projects/',
@@ -15,5 +13,5 @@ export default function Projects({children}: Props) {
     return <Redirect to={redirectPath} />;
   }
 
-  return children;
+  return <Outlet />;
 }

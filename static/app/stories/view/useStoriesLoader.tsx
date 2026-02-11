@@ -10,21 +10,22 @@ export interface StoryResources {
   a11y?: Record<string, string>;
   figma?: string;
   js?: string;
+  reference?: Record<string, string>;
 }
 
-interface MDXStoryDescriptor {
+export interface MDXStoryDescriptor {
   exports: {
     default: React.ComponentType | any;
+    documentation?: TypeLoader.TypeLoaderResult;
     frontmatter?: {
       description: string;
       title: string;
+      layout?: 'document';
       resources?: StoryResources;
       source?: string;
+      status?: 'in-progress' | 'experimental' | 'stable';
       types?: string;
     };
-    types?:
-      | TypeLoader.ComponentDocWithFilename
-      | Record<string, TypeLoader.ComponentDocWithFilename>;
   };
   filename: string;
 }
@@ -51,6 +52,10 @@ export function useStoryBookFiles() {
 }
 
 async function importStory(filename: string): Promise<StoryDescriptor> {
+  if (!filename) {
+    throw new Error(`Filename is required, got ${filename}`);
+  }
+
   if (filename.endsWith('.mdx')) {
     const story = await mdxContext(filename.replace(/^app\//, './'));
     return {
@@ -78,6 +83,6 @@ export function useStoriesLoader(
     queryFn: (): Promise<StoryDescriptor[]> => {
       return Promise.all(options.files.map(importStory));
     },
-    enabled: !!options.files,
+    enabled: options.files.length > 0,
   });
 }

@@ -101,13 +101,13 @@ class JiraWebhookBase(Endpoint, abc.ABC):
                     exc.text = f"Gateway timeout when connecting to {jira_api_endpoint}"
                 else:  # generic ApiError
                     exc.text = f"Unknown error when requesting {jira_api_endpoint}"
-                    logger.error("Unclear JIRA exception")
+                    logger.warning("Unclear JIRA exception")
 
         # OperationalErrors are errors talking to our postgres DB
         elif isinstance(exc, OperationalError):
             pass  # No processing needed and these are known errors
         else:
-            logger.error("Unclear JIRA exception")
+            logger.warning("Unclear JIRA exception")
 
         # This will log the error locally, capture the exception and send it to Sentry, and create a
         # generic 500/Internal Error response

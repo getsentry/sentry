@@ -10,24 +10,27 @@ from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import tempest_tasks
 from sentry.tempest.models import MessageType, TempestCredentials
+from sentry.tempest.utils import has_tempest_access
 
 logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
     name="sentry.tempest.tasks.poll_tempest",
-    queue="tempest",
+    namespace=tempest_tasks,
+    processing_deadline_duration=60,
     silo_mode=SiloMode.REGION,
-    soft_time_limit=55,
-    time_limit=60,
-    taskworker_config=TaskworkerConfig(namespace=tempest_tasks, processing_deadline_duration=60),
 )
 def poll_tempest(**kwargs):
     # FIXME: Once we have more traffic this needs to be done smarter.
-    for credentials in TempestCredentials.objects.all():
+    for credentials in TempestCredentials.objects.select_related("project__organization").all():
+        # Bruno wants to keeps the customers credentials around so need to
+        # skip if the credentials are associated with an org that no longer has tempest access.
+        if not has_tempest_access(credentials.project.organization):
+            continue
+
         if credentials.latest_fetched_item_id is None:
             fetch_latest_item_id.apply_async(
                 kwargs={"credentials_id": credentials.id},
@@ -42,11 +45,9 @@ def poll_tempest(**kwargs):
 
 @instrumented_task(
     name="sentry.tempest.tasks.fetch_latest_item_id",
-    queue="tempest",
+    namespace=tempest_tasks,
+    processing_deadline_duration=60,
     silo_mode=SiloMode.REGION,
-    soft_time_limit=55,
-    time_limit=60,
-    taskworker_config=TaskworkerConfig(namespace=tempest_tasks, processing_deadline_duration=60),
 )
 def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
     # FIXME: Try catch this later
@@ -54,6 +55,8 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
     project_id = credentials.project.id
     org_id = credentials.project.organization_id
     client_id = credentials.client_id
+
+    sentry_sdk.set_user({"id": f"{org_id}-{project_id}"})
 
     try:
         response = fetch_latest_id_from_tempest(
@@ -65,11 +68,21 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
         result = response.json()
 
         if "latest_id" in result:
-            credentials.latest_fetched_item_id = result["latest_id"]
-            credentials.message = ""
-            credentials.message_type = MessageType.SUCCESS
-            credentials.save(update_fields=["message", "latest_fetched_item_id", "message_type"])
-            return
+            if result["latest_id"] is None:
+                # If there are no crashes in the CRS we want to communicate that back to the
+                # customer so that they are not surprised about no crashes arriving.
+                credentials.message = "Connection successful. No crashes found in the crash report system yet. New crashes will appear here automatically when they occur."
+                credentials.message_type = MessageType.WARNING
+                credentials.save(update_fields=["message", "message_type"])
+                return
+            else:
+                credentials.latest_fetched_item_id = result["latest_id"]
+                credentials.message = ""
+                credentials.message_type = MessageType.SUCCESS
+                credentials.save(
+                    update_fields=["message", "latest_fetched_item_id", "message_type"]
+                )
+                return
         elif "error" in result:
             if result["error"]["type"] == "invalid_credentials":
                 credentials.message = "Seems like the provided credentials are invalid"
@@ -79,6 +92,12 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
 
             elif result["error"]["type"] == "ip_not_allowlisted":
                 credentials.message = "Seems like our IP is not allow-listed"
+                credentials.message_type = MessageType.ERROR
+                credentials.save(update_fields=["message", "message_type"])
+                return
+
+            elif result["error"]["type"] == "invalid_scope":
+                credentials.message = "Seems like the provided credentials have the wrong scope."
                 credentials.message_type = MessageType.ERROR
                 credentials.save(update_fields=["message", "message_type"])
                 return
@@ -109,17 +128,17 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
 
 @instrumented_task(
     name="sentry.tempest.tasks.poll_tempest_crashes",
-    queue="tempest",
+    namespace=tempest_tasks,
+    processing_deadline_duration=60,
     silo_mode=SiloMode.REGION,
-    soft_time_limit=55,
-    time_limit=60,
-    taskworker_config=TaskworkerConfig(namespace=tempest_tasks, processing_deadline_duration=60),
 )
 def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
     credentials = TempestCredentials.objects.select_related("project").get(id=credentials_id)
     project_id = credentials.project.id
     org_id = credentials.project.organization_id
     client_id = credentials.client_id
+
+    sentry_sdk.set_user({"id": f"{org_id}-{project_id}"})
 
     try:
         if credentials.latest_fetched_item_id is not None:
@@ -133,9 +152,8 @@ def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
                     project_id=project_id, trigger="tempest:poll_tempest_crashes"
                 )
 
-            # Check if we should attach screenshots  and or dumps (opt-in features)
+            # Check if we should attach screenshots (opt-in feature)
             attach_screenshot = credentials.project.get_option("sentry:tempest_fetch_screenshots")
-            attach_dump = credentials.project.get_option("sentry:tempest_fetch_dumps")
 
             response = fetch_items_from_tempest(
                 org_id=org_id,
@@ -146,7 +164,7 @@ def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
                 offset=int(credentials.latest_fetched_item_id),
                 limit=options.get("tempest.poll-limit"),
                 attach_screenshot=attach_screenshot,
-                attach_dump=attach_dump,
+                attach_dump=True,  # Always fetch for symbolication
             )
         else:
             raise ValueError(
@@ -173,6 +191,13 @@ def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
                 "error": str(e),
             },
         )
+
+        # Fetching crashes can fail if the CRS returns unexpected data.
+        # In this case retying does not help since we will just keep failing.
+        # To avoid this we skip over the bad crash by setting the latest fetched id to
+        # `None` such that in the next iteration of the job we first fetch the latest ID again.
+        credentials.latest_fetched_item_id = None
+        credentials.save(update_fields=["latest_fetched_item_id"])
 
 
 def fetch_latest_id_from_tempest(
@@ -207,7 +232,7 @@ def fetch_items_from_tempest(
     offset: int,
     limit: int = 10,
     attach_screenshot: bool = False,
-    attach_dump: bool = False,
+    attach_dump: bool = True,
     time_out: int = 50,  # Since there is a timeout of 45s in the middleware anyways
 ) -> Response:
     payload = {

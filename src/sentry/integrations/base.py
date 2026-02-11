@@ -120,6 +120,7 @@ class IntegrationFeatures(StrEnum):
     STACKTRACE_LINK = "stacktrace-link"
     CODEOWNERS = "codeowners"
     USER_MAPPING = "user-mapping"
+    CODING_AGENT = "coding-agent"
 
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
@@ -376,6 +377,8 @@ class IntegrationInstallation(abc.ABC):
             organization_id=self.organization_id,
         )
         if integration is None:
+            sentry_sdk.set_tag("integration_id", self.model.id)
+            sentry_sdk.set_tag("organization_id", self.organization_id)
             raise OrganizationIntegrationNotFound("missing org_integration")
         return integration
 
@@ -414,13 +417,34 @@ class IntegrationInstallation(abc.ABC):
         if org_integration is not None:
             self.org_integration = org_integration
 
-    def get_config_data(self) -> Mapping[str, str]:
+    def get_config_data(self) -> Mapping[str, Any]:
         if not self.org_integration:
             return {}
         return self.org_integration.config
 
     def get_dynamic_display_information(self) -> Mapping[str, Any] | None:
         return None
+
+    def _get_debug_metadata_keys(self) -> list[str]:
+        """
+        Override this method in integration subclasses to expose additional
+        non-sensitive metadata fields via admin endpoints and logging.
+
+        Returns:
+            A list of keys that are safe to expose for debugging purposes.
+        """
+        return []
+
+    def get_debug_metadata(self) -> dict[str, Any]:
+        """
+        Returns a dictionary containing key value pairs of metadata useful for
+        debugging. These fields should be safe to log.
+
+        Returns:
+            A dictionary containing only the allowlisted metadata fields.
+        """
+        allowed_keys = self._get_debug_metadata_keys()
+        return {key: self.model.metadata.get(key) for key in allowed_keys}
 
     @abc.abstractmethod
     def get_client(self) -> Any:
@@ -504,7 +528,6 @@ class IntegrationInstallation(abc.ABC):
         elif isinstance(exc, IntegrationError):
             raise
         else:
-            self.logger.exception(str(exc))
             raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
 
     def is_rate_limited_error(self, exc: ApiError) -> bool:
@@ -539,7 +562,7 @@ def is_response_error(resp: Any) -> bool:
     return resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500
 
 
-def get_integration_types(provider: str):
+def get_integration_types(provider: str) -> list[IntegrationDomain]:
     types = []
     for integration_type, providers in INTEGRATION_TYPE_TO_PROVIDER.items():
         if provider in providers:

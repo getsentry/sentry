@@ -2,6 +2,7 @@ import {css, type Theme} from '@emotion/react';
 
 // Base styles, to make the Replayer instance work
 export const baseReplayerCss = css`
+  position: absolute;
   .replayer-wrapper {
     /* Videos have z-index, so we need a z-index here so user interactions is on top of the video */
     z-index: 1000000;
@@ -58,7 +59,7 @@ export const sentryReplayerCss = (theme: Theme) => css`
     display: inline-block;
     width: 32px;
     height: 32px;
-    background: ${theme.purple300};
+    background: ${theme.tokens.background.accent.vibrant};
     border-radius: 100%;
     transform: translate(-50%, -50%);
     opacity: 0.3;
@@ -80,7 +81,7 @@ export const sentryReplayerCss = (theme: Theme) => css`
       border-color 0.2s ease-in-out;
   }
   .replayer-mouse.touch-device.touch-active {
-    border-color: ${theme.purple200};
+    border-color: ${theme.tokens.border.transparent.accent.moderate};
     transition:
       left 0.25s linear,
       top 0.25s linear,

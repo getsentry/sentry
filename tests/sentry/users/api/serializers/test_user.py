@@ -13,7 +13,7 @@ from sentry.users.models.userpermission import UserPermission
 
 @control_silo_test
 class UserSerializerTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user()
 
         result = serialize(user)
@@ -33,7 +33,7 @@ class UserSerializerTest(TestCase):
         assert result["isSuperuser"] is False
         assert result["experiments"] == {}
 
-    def test_no_useremail(self):
+    def test_no_useremail(self) -> None:
         user = self.create_user()
 
         UserEmail.objects.all().delete()
@@ -42,7 +42,7 @@ class UserSerializerTest(TestCase):
         result = serialize(user)
         assert len(result["emails"]) == 0
 
-    def test_is_superuser(self):
+    def test_is_superuser(self) -> None:
         """Test that the user is a superuser"""
         user = self.create_user(is_superuser=True)
 
@@ -52,7 +52,7 @@ class UserSerializerTest(TestCase):
 
 @control_silo_test
 class DetailedUserSerializerTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user()
         UserPermission.objects.create(user=user, permission="foo")
 
@@ -85,7 +85,7 @@ class DetailedUserSerializerTest(TestCase):
         result = serialize(user, user, DetailedUserSerializer())
         assert result["canReset2fa"] is False
 
-    def test_with_avatar(self):
+    def test_with_avatar(self) -> None:
         UserAvatar.objects.create(
             user_id=self.user.id,
             avatar_type=1,  # upload
@@ -101,7 +101,7 @@ class DetailedUserSerializerTest(TestCase):
 
 @control_silo_test
 class DetailedSelfUserSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         UserPermission.objects.create(user=self.user, permission="foo")
@@ -116,7 +116,7 @@ class DetailedSelfUserSerializerTest(TestCase):
             type=available_authenticators(ignore_backup=True)[0].type, user=self.user, config={}
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         result = serialize(self.user, self.user, DetailedSelfUserSerializer())
 
         assert result["id"] == str(self.user.id)

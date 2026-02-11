@@ -2,8 +2,9 @@ import {useCallback, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
-import type SmartSearchBar from 'sentry/components/deprecatedSmartSearchBar';
+import {EMAIL_REGEX} from 'sentry/components/events/contexts/knownContext/user';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -18,6 +19,8 @@ import {
   getFieldDefinition,
   REPLAY_CLICK_FIELDS,
   REPLAY_FIELDS,
+  REPLAY_TAG_ALIASES,
+  REPLAY_TAP_FIELDS,
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
@@ -40,6 +43,7 @@ function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
 
 const REPLAY_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_FIELDS);
 const REPLAY_CLICK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_CLICK_FIELDS);
+const REPLAY_TAP_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_TAP_FIELDS);
 /**
  * Excluded from the display but still valid search queries. browser.name,
  * device.name, etc are effectively the same and included from REPLAY_FIELDS.
@@ -56,6 +60,7 @@ function getReplayFilterKeys(supportedTags: TagCollection): TagCollection {
   return {
     ...REPLAY_FIELDS_AS_TAGS,
     ...REPLAY_CLICK_FIELDS_AS_TAGS,
+    ...REPLAY_TAP_FIELDS_AS_TAGS,
     ...Object.fromEntries(
       Object.keys(supportedTags)
         .filter(key => !EXCLUDED_TAGS.includes(key))
@@ -75,7 +80,8 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
     tag =>
       !EXCLUDED_TAGS.includes(tag.key) &&
       !REPLAY_FIELDS.map(String).includes(tag.key) &&
-      !REPLAY_CLICK_FIELDS.map(String).includes(tag.key)
+      !REPLAY_CLICK_FIELDS.map(String).includes(tag.key) &&
+      !REPLAY_TAP_FIELDS.map(String).includes(tag.key)
   );
 
   const orderedTagKeys = orderBy(customTags, ['totalValues', 'key'], ['desc', 'asc']).map(
@@ -94,6 +100,11 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
       children: Object.keys(REPLAY_CLICK_FIELDS_AS_TAGS),
     },
     {
+      value: 'replay_tap_field',
+      label: t('Tap Fields'),
+      children: Object.keys(REPLAY_TAP_FIELDS_AS_TAGS),
+    },
+    {
       value: FieldKind.TAG,
       label: t('Tags'),
       children: orderedTagKeys,
@@ -101,9 +112,15 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
   ];
 };
 
-type Props = React.ComponentProps<typeof SmartSearchBar> & {
+type Props = Omit<
+  React.ComponentProps<typeof SearchQueryBuilder>,
+  'filterKeys' | 'getTagValues' | 'searchSource' | 'onSearch'
+> & {
   organization: Organization;
   pageFilters: PageFilters;
+  query: string;
+  onSearch?: (query: string) => void;
+  searchSource?: string;
 };
 
 function ReplaySearchBar(props: Props) {
@@ -145,8 +162,8 @@ function ReplaySearchBar(props: Props) {
     return getFilterKeySections(customTags);
   }, [customTags]);
 
-  const getTagValues = useCallback(
-    (tag: Tag, searchQuery: string): Promise<string[]> => {
+  const getTagValues = useCallback<GetTagValues>(
+    (tag, searchQuery) => {
       if (isAggregateField(tag.key)) {
         // We can't really auto suggest values for aggregate fields
         // or measurements, so we simply don't
@@ -159,10 +176,15 @@ function ReplaySearchBar(props: Props) {
         statsPeriod,
       };
 
+      const searchName =
+        tag.key in REPLAY_TAG_ALIASES
+          ? REPLAY_TAG_ALIASES[tag.key as keyof typeof REPLAY_TAG_ALIASES]
+          : tag.key;
+
       return fetchTagValues({
         api,
         orgSlug: organization.slug,
-        tagKey: tag.key,
+        tagKey: searchName,
         search: searchQuery,
         projectIds: projectIds?.map(String),
         endpointParams,
@@ -205,7 +227,8 @@ function ReplaySearchBar(props: Props) {
       filterKeys={filterKeys}
       filterKeySections={filterKeySections}
       getTagValues={getTagValues}
-      initialQuery={props.query ?? props.defaultQuery ?? ''}
+      matchKeySuggestions={[{key: 'user.email', valuePattern: EMAIL_REGEX}]}
+      initialQuery={props.query ?? props.initialQuery ?? ''}
       onSearch={onSearchWithAnalytics}
       searchSource={props.searchSource ?? 'replay_index'}
       placeholder={

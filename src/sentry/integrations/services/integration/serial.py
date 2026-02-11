@@ -25,6 +25,7 @@ def serialize_organization_integration(oi: OrganizationIntegration) -> RpcOrgani
         config=oi.config,
         status=oi.status,
         grace_period_end=oi.grace_period_end,
+        date_added=oi.date_added,
     )
 
 

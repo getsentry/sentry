@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import requests.exceptions
@@ -20,7 +20,7 @@ from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 @all_silo_test
 class TestCodecovIntegration(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.create_integration(
             organization=self.organization,
             provider="github",
@@ -28,7 +28,7 @@ class TestCodecovIntegration(APITestCase):
         )
         options.set("codecov.client-secret", "supersecrettoken")
 
-    def test_no_github_integration(self):
+    def test_no_github_integration(self) -> None:
         with (
             assume_test_silo_mode(SiloMode.CONTROL),
             unguarded_write(using=router.db_for_write(Integration)),
@@ -44,7 +44,7 @@ class TestCodecovIntegration(APITestCase):
         "sentry.integrations.github.client.GitHubApiClient.get_repos",
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
-    def test_no_codecov_integration(self, mock_get_repositories):
+    def test_no_codecov_integration(self, mock_get_repositories: MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://api.codecov.io/api/v2/github/testgit",
@@ -60,7 +60,7 @@ class TestCodecovIntegration(APITestCase):
         "sentry.integrations.github.client.GitHubApiClient.get_repos",
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
-    def test_has_codecov_integration(self, mock_get_repositories):
+    def test_has_codecov_integration(self, mock_get_repositories: MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://api.codecov.io/api/v2/github/testgit",
@@ -71,7 +71,7 @@ class TestCodecovIntegration(APITestCase):
         assert has_integration
 
     @responses.activate
-    def test_get_codecov_report(self):
+    def test_get_codecov_report(self) -> None:
         expected_line_coverage = [[1, 1], [2, 1], [3, 1], [4, 1], [5, 1]]
         expected_codecov_url = "https://app.codecov.io/gh/testgit/abc/commit/0f1e2d/path/to/file.py"
         responses.add(
@@ -94,7 +94,7 @@ class TestCodecovIntegration(APITestCase):
         assert url == expected_codecov_url
 
     @responses.activate
-    def test_get_codecov_report_error(self):
+    def test_get_codecov_report_error(self) -> None:
         responses.add(
             responses.GET,
             "https://api.codecov.io/api/v2/gh/testgit/repos/abc/file_report/path/to/file.py",

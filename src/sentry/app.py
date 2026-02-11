@@ -35,6 +35,6 @@ from sentry import search, tsdb  # NOQA
 from sentry.buffer import backend as buffer  # NOQA
 from sentry.digests import backend as digests  # NOQA
 from sentry.locks import locks  # NOQA
-from sentry.nodestore import backend as nodestore  # NOQA
 from sentry.quotas import backend as quotas  # NOQA
 from sentry.ratelimits import backend as ratelimiter  # NOQA
+from sentry.services.nodestore import backend as nodestore  # NOQA

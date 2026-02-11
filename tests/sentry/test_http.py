@@ -1,5 +1,5 @@
 import platform
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import brotli
 import pytest
@@ -13,7 +13,7 @@ from sentry.testutils.helpers import override_blocklist
 
 @responses.activate
 @patch("socket.getaddrinfo")
-def test_simple(mock_getaddrinfo):
+def test_simple(mock_getaddrinfo: MagicMock) -> None:
     mock_getaddrinfo.return_value = [(2, 1, 6, "", ("81.0.0.1", 0))]
     responses.add(responses.GET, "http://example.com", body="foo bar")
 
@@ -29,7 +29,7 @@ def test_simple(mock_getaddrinfo):
 @override_blocklist("127.0.0.1", "::1", "10.0.0.0/8")
 # XXX(dcramer): we can't use responses here as it hooks Session.send
 # @responses.activate
-def test_ip_blacklist_ipv4():
+def test_ip_blacklist_ipv4() -> None:
     with pytest.raises(SuspiciousOperation):
         http.safe_urlopen("http://127.0.0.1")
     with pytest.raises(SuspiciousOperation):
@@ -41,7 +41,7 @@ def test_ip_blacklist_ipv4():
 
 @pytest.mark.skipif(not HAS_IPV6, reason="needs ipv6")
 @override_blocklist("::1")
-def test_ip_blacklist_ipv6():
+def test_ip_blacklist_ipv6() -> None:
     with pytest.raises(SuspiciousOperation):
         http.safe_urlopen("http://[::1]")
 
@@ -49,7 +49,7 @@ def test_ip_blacklist_ipv6():
 @pytest.mark.skipif(HAS_IPV6, reason="stub for non-ipv6 systems")
 @override_blocklist("::1")
 @patch("socket.getaddrinfo")
-def test_ip_blacklist_ipv6_fallback(mock_getaddrinfo):
+def test_ip_blacklist_ipv6_fallback(mock_getaddrinfo: MagicMock) -> None:
     mock_getaddrinfo.return_value = [(10, 1, 6, "", ("::1", 0, 0, 0))]
     with pytest.raises(SuspiciousOperation):
         http.safe_urlopen("http://[::1]")
@@ -59,14 +59,14 @@ def test_ip_blacklist_ipv6_fallback(mock_getaddrinfo):
     platform.system() == "Darwin", reason="macOS is always broken, see comment in sentry/http.py"
 )
 @override_blocklist("127.0.0.1")
-def test_garbage_ip():
+def test_garbage_ip() -> None:
     with pytest.raises(SuspiciousOperation):
         # '0177.0000.0000.0001' is an octal for '127.0.0.1'
         http.safe_urlopen("http://0177.0000.0000.0001")
 
 
 @responses.activate
-def test_fetch_file():
+def test_fetch_file() -> None:
     responses.add(
         responses.GET, "http://example.com", body="foo bar", content_type="application/json"
     )
@@ -76,7 +76,7 @@ def test_fetch_file():
 
 
 @responses.activate
-def test_fetch_file_brotli():
+def test_fetch_file_brotli() -> None:
     body = brotli.compress(b"foo bar")
     responses.add(
         responses.GET,

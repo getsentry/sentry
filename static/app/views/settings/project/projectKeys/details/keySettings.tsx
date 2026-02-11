@@ -1,5 +1,7 @@
 import {Fragment, useCallback} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -7,7 +9,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
@@ -21,9 +22,10 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
+import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/credentials';
 import KeyRateLimitsForm from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
 import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
-import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
 
 type Props = {
   data: ProjectKey;
@@ -67,6 +69,10 @@ export function KeySettings({
       addErrorMessage(t('Unable to revoke key'));
     }
   }, [organization, api, onRemove, keyId, projectId]);
+
+  const showOtlpTraces =
+    useOTelFriendlyUI() && organization.features.includes('relay-otlp-traces-endpoint');
+  const showOtlpLogs = organization.features.includes('relay-otel-logs-endpoint');
 
   return (
     <Fragment>
@@ -112,12 +118,13 @@ export function KeySettings({
               params={params}
               data={data}
               disabled={!hasAccess}
+              updateData={updateData}
             />
 
             <Panel>
               <PanelHeader>{t('JavaScript Loader Script')}</PanelHeader>
               <PanelBody>
-                <PanelAlert type="info">
+                <PanelAlert variant="info">
                   {t(
                     'Note that it can take a few minutes until changed options are live.'
                   )}
@@ -136,7 +143,7 @@ export function KeySettings({
             <Panel>
               <PanelHeader>{t('Credentials')}</PanelHeader>
               <PanelBody>
-                <PanelAlert type="info">
+                <PanelAlert variant="info">
                   {t(
                     'Your credentials are coupled to a public and secret key. Different clients will require different credentials, so make sure you check the documentation before plugging things in.'
                   )}
@@ -145,6 +152,8 @@ export function KeySettings({
                 <ProjectKeyCredentials
                   projectId={`${data.projectId}`}
                   data={data}
+                  showOtlpTraces={showOtlpTraces}
+                  showOtlpLogs={showOtlpLogs}
                   showPublicKey
                   showSecretKey
                   showProjectId

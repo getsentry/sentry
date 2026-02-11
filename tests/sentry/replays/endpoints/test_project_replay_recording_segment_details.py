@@ -27,7 +27,7 @@ class EnvironmentBase(APITestCase):
     def init_environment(self) -> None:
         raise NotImplementedError
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.replay_id = uuid.uuid4().hex
         self.segment_id = 0
@@ -45,7 +45,7 @@ class EnvironmentBase(APITestCase):
             ),
         )
 
-    def test_get_replay_recording_segment(self):
+    def test_get_replay_recording_segment(self) -> None:
         self.login_as(user=self.user)
 
         with self.feature("organizations:session-replay"):
@@ -57,7 +57,7 @@ class EnvironmentBase(APITestCase):
             assert response.data["data"]["projectId"] == str(self.project.id)
             assert "dateAdded" in response.data["data"]
 
-    def test_get_replay_recording_segment_download(self):
+    def test_get_replay_recording_segment_download(self) -> None:
         self.login_as(user=self.user)
 
         with self.feature("organizations:session-replay"):
@@ -74,7 +74,7 @@ class EnvironmentBase(APITestCase):
 
 
 class FilestoreReplayRecordingSegmentDetailsTestCase(EnvironmentBase):
-    def init_environment(self):
+    def init_environment(self) -> None:
         metadata = RecordingSegmentStorageMeta(
             project_id=self.project.id,
             replay_id=self.replay_id,
@@ -87,7 +87,7 @@ class FilestoreReplayRecordingSegmentDetailsTestCase(EnvironmentBase):
 
 
 class StorageReplayRecordingSegmentDetailsTestCase(EnvironmentBase, ReplaysSnubaTestCase):
-    def init_environment(self):
+    def init_environment(self) -> None:
         metadata = RecordingSegmentStorageMeta(
             project_id=self.project.id,
             replay_id=self.replay_id,
@@ -110,7 +110,7 @@ class StorageReplayRecordingSegmentDetailsTestCase(EnvironmentBase, ReplaysSnuba
 
 
 class PackedStorageReplayRecordingSegmentDetailsTestCase(EnvironmentBase, ReplaysSnubaTestCase):
-    def init_environment(self):
+    def init_environment(self) -> None:
         metadata = RecordingSegmentStorageMeta(
             project_id=self.project.id,
             replay_id=self.replay_id,

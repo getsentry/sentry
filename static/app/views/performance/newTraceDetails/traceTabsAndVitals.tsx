@@ -1,9 +1,9 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
-import {space} from 'sentry/styles/space';
+import {Flex} from '@sentry/scraps/layout';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
 import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
@@ -16,18 +16,25 @@ type TraceTabsAndVitalsProps = {
   tree: TraceTree;
 };
 
+const CONTAINER_MIN_HEIGHT = 36;
+
 function Placeholder() {
   return (
-    <Flex justify="space-between" align="center" gap={space(1)}>
-      <Flex align="center" gap={space(1)}>
-        <StyledPlaceholder _width={75} _height={28} />
-        <StyledPlaceholder _width={75} _height={28} />
-        <StyledPlaceholder _width={75} _height={28} />
+    <Flex
+      justify="between"
+      align="center"
+      gap="md"
+      minHeight={`${CONTAINER_MIN_HEIGHT}px`}
+    >
+      <Flex align="center" gap="md">
+        <StyledPlaceholder _width={75} _height={CONTAINER_MIN_HEIGHT} />
+        <StyledPlaceholder _width={75} _height={CONTAINER_MIN_HEIGHT} />
+        <StyledPlaceholder _width={75} _height={CONTAINER_MIN_HEIGHT} />
       </Flex>
-      <Flex>
-        <StyledPlaceholder _width={100} _height={28} />
-        <StyledPlaceholder _width={100} _height={28} />
-        <StyledPlaceholder _width={100} _height={28} />
+      <Flex align="center" gap="md">
+        <StyledPlaceholder _width={100} _height={24} />
+        <StyledPlaceholder _width={100} _height={24} />
+        <StyledPlaceholder _width={100} _height={24} />
       </Flex>
     </Flex>
   );
@@ -90,13 +97,13 @@ export function TraceTabsAndVitals({
   }
 
   return (
-    <Flex ref={setRef} justify="space-between">
+    <Flex ref={setRef} justify="between" minHeight={`${CONTAINER_MIN_HEIGHT}px`}>
       <Tabs value={currentTab} onChange={onTabChange}>
-        <StyledTabsList hideBorder variant="floating">
+        <TabList variant="floating">
           {tabOptions.map(tab => (
             <TabList.Item key={tab.slug}>{tab.label}</TabList.Item>
           ))}
-        </StyledTabsList>
+        </TabList>
       </Tabs>
       <TraceContextVitals
         rootEventResults={rootEventResults}
@@ -108,11 +115,5 @@ export function TraceTabsAndVitals({
 }
 
 const StyledPlaceholder = styled(TraceHeaderComponents.StyledPlaceholder)`
-  background-color: ${p => p.theme.purple100};
-`;
-
-const StyledTabsList = styled(TabList)`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
+  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
 `;

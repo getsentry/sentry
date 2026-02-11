@@ -5,6 +5,7 @@ COMMON_COLUMNS = [
     ResolvedAttribute(
         public_alias="organization.id",
         internal_name="sentry.organization_id",
+        internal_type=constants.INT,
         search_type="string",
     ),
     ResolvedAttribute(
@@ -31,7 +32,7 @@ COMMON_COLUMNS = [
         private=True,
     ),
     ResolvedAttribute(
-        public_alias="timestamp",
+        public_alias=constants.TIMESTAMP_ALIAS,
         internal_name="sentry.timestamp",
         internal_type=constants.DOUBLE,
         search_type="string",

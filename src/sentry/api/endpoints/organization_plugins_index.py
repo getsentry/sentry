@@ -9,6 +9,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_plugin import OrganizationPluginSerializer
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.models.options.project_option import ProjectOption
+from sentry.models.organization import Organization
 from sentry.plugins.base import plugins
 
 
@@ -19,7 +20,7 @@ class OrganizationPluginsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         all_plugins = {p.slug: p for p in plugins.all()}
 
         if "plugins" in request.GET:

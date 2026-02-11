@@ -4,10 +4,10 @@ import {
 } from 'sentry-fixture/metrics';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {
   DashboardFilterKeys,
   DisplayType,
@@ -15,9 +15,7 @@ import {
 } from 'sentry/views/dashboards/types';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 
-describe('Dashboards > ReleaseWidgetQueries', function () {
-  const {organization} = initializeOrg();
-
+describe('Dashboards > ReleaseWidgetQueries', () => {
   const badMessage = 'Bad request data';
 
   const multipleQueryWidget = {
@@ -71,17 +69,17 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     },
   };
 
-  const api = new MockApiClient();
-
-  beforeEach(function () {
+  beforeEach(() => {
     setMockDate(new Date('2022-08-02'));
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(selection);
   });
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     resetMockDate();
   });
 
-  it('can send chart requests', async function () {
+  it('can send chart requests', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsFieldFixture(`session.all`),
@@ -89,14 +87,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     const children = jest.fn(() => <div />);
 
     render(
-      <ReleaseWidgetQueries
-        api={api}
-        widget={singleQueryWidget}
-        organization={organization}
-        selection={selection}
-      >
-        {children}
-      </ReleaseWidgetQueries>
+      <ReleaseWidgetQueries widget={singleQueryWidget}>{children}</ReleaseWidgetQueries>
     );
 
     expect(mock).toHaveBeenCalledTimes(1);
@@ -121,7 +112,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('fetches release data when sorting on release for metrics api', async function () {
+  it('fetches release data when sorting on release for metrics api', async () => {
     const mockRelease = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [
@@ -147,12 +138,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     ];
 
     render(
-      <ReleaseWidgetQueries
-        api={api}
-        widget={{...singleQueryWidget, queries}}
-        organization={organization}
-        selection={selection}
-      >
+      <ReleaseWidgetQueries widget={{...singleQueryWidget, queries}}>
         {children}
       </ReleaseWidgetQueries>
     );
@@ -189,7 +175,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('calls session api when session.status is a group by', async function () {
+  it('calls session api when session.status is a group by', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sessions/',
       body: MetricsFieldFixture(`count_unique(user)`),
@@ -207,12 +193,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     ];
 
     render(
-      <ReleaseWidgetQueries
-        api={api}
-        widget={{...singleQueryWidget, queries}}
-        organization={organization}
-        selection={selection}
-      >
+      <ReleaseWidgetQueries widget={{...singleQueryWidget, queries}}>
         {children}
       </ReleaseWidgetQueries>
     );
@@ -234,7 +215,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     });
   });
 
-  it('appends dashboard filters to releases request', async function () {
+  it('appends dashboard filters to releases request', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsSessionUserCountByStatusByReleaseFixture(),
@@ -242,10 +223,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
 
     render(
       <ReleaseWidgetQueries
-        api={api}
         widget={singleQueryWidget}
-        organization={organization}
-        selection={selection}
         dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.3.0']}}
       >
         {() => <div data-test-id="child" />}
@@ -264,7 +242,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('strips injected sort columns', async function () {
+  it('strips injected sort columns', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsSessionUserCountByStatusByReleaseFixture(),
@@ -289,14 +267,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     };
 
     render(
-      <ReleaseWidgetQueries
-        api={api}
-        widget={injectedOrderby}
-        organization={organization}
-        selection={selection}
-      >
-        {children}
-      </ReleaseWidgetQueries>
+      <ReleaseWidgetQueries widget={injectedOrderby}>{children}</ReleaseWidgetQueries>
     );
     expect(mock).toHaveBeenCalledTimes(1);
 
@@ -464,7 +435,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('can send table requests', async function () {
+  it('can send table requests', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsSessionUserCountByStatusByReleaseFixture(),
@@ -473,10 +444,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
 
     render(
       <ReleaseWidgetQueries
-        api={api}
         widget={{...singleQueryWidget, displayType: DisplayType.TABLE}}
-        organization={organization}
-        selection={selection}
       >
         {children}
       </ReleaseWidgetQueries>
@@ -569,7 +537,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('can send big number requests', async function () {
+  it('can send big number requests', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsFieldFixture(`count_unique(sentry.sessions.user)`),
@@ -578,10 +546,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
 
     render(
       <ReleaseWidgetQueries
-        api={api}
         widget={{...singleQueryWidget, displayType: DisplayType.BIG_NUMBER}}
-        organization={organization}
-        selection={selection}
       >
         {children}
       </ReleaseWidgetQueries>
@@ -617,7 +582,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('can send multiple API requests', async function () {
+  it('can send multiple API requests', async () => {
     const metricsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: SessionsFieldFixture(`session.all`),
@@ -628,12 +593,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       ],
     });
     render(
-      <ReleaseWidgetQueries
-        api={api}
-        widget={multipleQueryWidget}
-        organization={organization}
-        selection={selection}
-      >
+      <ReleaseWidgetQueries widget={multipleQueryWidget}>
         {() => <div data-test-id="child" />}
       </ReleaseWidgetQueries>
     );
@@ -677,7 +637,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('sets errorMessage when the first request fails', async function () {
+  it('sets errorMessage when the first request fails', async () => {
     const failMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       statusCode: 400,
@@ -691,14 +651,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     const children = jest.fn(() => <div data-test-id="child" />);
 
     render(
-      <ReleaseWidgetQueries
-        api={api}
-        widget={multipleQueryWidget}
-        organization={organization}
-        selection={selection}
-      >
-        {children}
-      </ReleaseWidgetQueries>
+      <ReleaseWidgetQueries widget={multipleQueryWidget}>{children}</ReleaseWidgetQueries>
     );
 
     // Child should be rendered and 2 requests should be sent.
@@ -711,19 +664,19 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('adjusts interval based on date window', async function () {
+  it('adjusts interval based on date window', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: SessionsFieldFixture(`session.all`),
     });
 
+    PageFiltersStore.onInitializeUrlState({
+      ...selection,
+      datetime: {...selection.datetime, period: '14d'},
+    });
+
     render(
-      <ReleaseWidgetQueries
-        api={api}
-        widget={{...singleQueryWidget, interval: '1m'}}
-        organization={organization}
-        selection={{...selection, datetime: {...selection.datetime, period: '14d'}}}
-      >
+      <ReleaseWidgetQueries widget={{...singleQueryWidget, interval: '1m'}}>
         {() => <div data-test-id="child" />}
       </ReleaseWidgetQueries>
     );
@@ -751,14 +704,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     const children = jest.fn(() => <div />);
 
     const {rerender} = render(
-      <ReleaseWidgetQueries
-        api={api}
-        widget={singleQueryWidget}
-        organization={organization}
-        selection={selection}
-      >
-        {children}
-      </ReleaseWidgetQueries>
+      <ReleaseWidgetQueries widget={singleQueryWidget}>{children}</ReleaseWidgetQueries>
     );
 
     await waitFor(() => {
@@ -767,7 +713,6 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
 
     rerender(
       <ReleaseWidgetQueries
-        api={api}
         widget={{
           ...singleQueryWidget,
           queries: [
@@ -778,8 +723,6 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
             },
           ],
         }}
-        organization={organization}
-        selection={selection}
       >
         {children}
       </ReleaseWidgetQueries>
@@ -800,10 +743,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
 
     const {rerender} = render(
       <ReleaseWidgetQueries
-        api={api}
         widget={singleQueryWidget}
-        organization={organization}
-        selection={selection}
         dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.3.0']}}
       >
         {children}
@@ -816,10 +756,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
 
     rerender(
       <ReleaseWidgetQueries
-        api={api}
         widget={singleQueryWidget}
-        organization={organization}
-        selection={selection}
         dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.3.0']}}
       >
         {children}
@@ -866,14 +803,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     const children = jest.fn(() => <div />);
 
     const {rerender} = render(
-      <ReleaseWidgetQueries
-        api={api}
-        widget={releasesWidget}
-        organization={organization}
-        selection={selection}
-      >
-        {children}
-      </ReleaseWidgetQueries>
+      <ReleaseWidgetQueries widget={releasesWidget}>{children}</ReleaseWidgetQueries>
     );
 
     await waitFor(() => {
@@ -884,7 +814,6 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
 
     rerender(
       <ReleaseWidgetQueries
-        api={api}
         widget={{
           ...releasesWidget,
           queries: [
@@ -894,8 +823,6 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
             },
           ],
         }}
-        organization={organization}
-        selection={selection}
       >
         {children}
       </ReleaseWidgetQueries>
@@ -908,7 +835,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     expect(releasesMock).toHaveBeenCalledTimes(1);
   });
 
-  it('escapes release versions with spaces and special characters', async function () {
+  it('escapes release versions with spaces and special characters', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsFieldFixture(`session.status`),
@@ -936,12 +863,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     const children = jest.fn(() => <div />);
 
     render(
-      <ReleaseWidgetQueries
-        api={api}
-        widget={{...singleQueryWidget, queries}}
-        organization={organization}
-        selection={selection}
-      >
+      <ReleaseWidgetQueries widget={{...singleQueryWidget, queries}}>
         {children}
       </ReleaseWidgetQueries>
     );

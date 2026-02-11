@@ -4,7 +4,6 @@ from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira import JiraCreateTicketAction
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.grouplink import GroupLink
-from sentry.models.rule import Rule
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
@@ -19,7 +18,7 @@ pytestmark = [requires_snuba]
 class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = JiraCreateTicketAction
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration, _ = self.create_provider_integration_for(
             organization=self.organization,
             user=self.user,
@@ -47,10 +46,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
                 "fixVersions": "[10000]",
             }
         )
-        self.jira_rule.rule = Rule.objects.create(
-            project=self.project,
-            label="test rule",
-        )
+        self.jira_rule.rule = self.create_project_rule(name="test rule")
 
         self.jira_rule.data["key"] = "APP-123"
 
@@ -93,7 +89,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
         return json.loads(responses.calls[1].request.body)
 
     @responses.activate
-    def test_creates_issue(self):
+    def test_creates_issue(self) -> None:
         event = self.get_event()
         data = self.create_issue_base(event)
 
@@ -106,7 +102,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert external_issue
 
     @responses.activate
-    def test_creates_performance_issue(self):
+    def test_creates_performance_issue(self) -> None:
         """Test that a performance issue properly creates a Jira ticket"""
         event = self.create_performance_issue()
         data = self.create_issue_base(event)
@@ -121,7 +117,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert external_issue
 
     @responses.activate
-    def test_creates_generic_issue(self):
+    def test_creates_generic_issue(self) -> None:
         """Test that a generic issue properly creates a Jira ticket"""
 
         occurrence = TEST_ISSUE_OCCURRENCE
@@ -139,7 +135,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert external_issue
 
     @responses.activate
-    def test_doesnt_create_issue(self):
+    def test_doesnt_create_issue(self) -> None:
         """Don't create an issue if one already exists on the event for the given integration"""
 
         event = self.get_event()
@@ -166,7 +162,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
         # Assert that we don't POST to create the issue.
         assert len(responses.calls) == 0
 
-    def test_render_label(self):
+    def test_render_label(self) -> None:
         rule = self.get_rule(
             data={
                 "integration": self.integration.id,
@@ -180,7 +176,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
         assert rule.render_label() == """Create a Jira issue in Jira Cloud with these """
 
-    def test_render_label_without_integration(self):
+    def test_render_label_without_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             deleted_id = self.integration.id
             self.integration.delete()
@@ -190,14 +186,14 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert rule.render_label() == "Create a Jira issue in [removed] with these "
 
     @responses.activate
-    def test_invalid_integration(self):
+    def test_invalid_integration(self) -> None:
         rule = self.get_rule(data={"integration": self.integration.id})
 
         form = rule.get_form_instance()
         assert form.is_valid()
 
     @responses.activate
-    def test_invalid_project(self):
+    def test_invalid_project(self) -> None:
         rule = self.get_rule(data={"integration": self.integration.id})
 
         form = rule.get_form_instance()

@@ -60,8 +60,8 @@ function WrappedComponent({
   );
 }
 
-describe('Transaction Summary Content', function () {
-  beforeEach(function () {
+describe('Transaction Summary Content', () => {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/prompts-activity/',
@@ -80,7 +80,7 @@ describe('Transaction Summary Content', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20transaction%3Aexample-transaction&sort=trends&statsPeriod=14d',
+      url: '/organizations/org-slug/issues/',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -182,11 +182,11 @@ describe('Transaction Summary Content', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('performs basic rendering', async function () {
+  it('performs basic rendering', async () => {
     const project = ProjectFixture();
     const {
       organization,

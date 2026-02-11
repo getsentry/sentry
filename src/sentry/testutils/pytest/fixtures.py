@@ -12,19 +12,18 @@ import sys
 from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor
 from string import Template
-from typing import Any, Protocol, overload
+from typing import Any, ContextManager, Protocol, overload
 
 import pytest
 import requests
 import yaml
 from django.core.cache import cache
-from django.utils import timezone
 
 import sentry
+from sentry.types.activity import ActivityType
 
 # These chars cannot be used in Windows paths so replace them:
 # https://docs.microsoft.com/en-us/windows/desktop/FileIO/naming-a-file#naming-conventions
-from sentry.types.activity import ActivityType
 
 UNSAFE_PATH_CHARS = ("<", ">", ":", '"', " | ", "?", "*")
 
@@ -37,21 +36,17 @@ def django_db_all[R, **P](func: Callable[P, R]) -> Callable[P, R]: ...
 
 
 @overload
-def django_db_all[
-    R, **P
-](*, transaction: bool | None = None, reset_sequences: bool | None = None) -> Callable[
-    [Callable[P, R]], Callable[P, R]
-]: ...
+def django_db_all[R, **P](
+    *, transaction: bool | None = None, reset_sequences: bool | None = None
+) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
 
-def django_db_all[
-    R, **P
-](
+def django_db_all[R, **P](
     func: Callable[P, R] | None = None,
     *,
     transaction: bool | None = None,
     reset_sequences: bool | None = None,
-) -> (Callable[P, R] | Callable[[Callable[P, R]], Callable[P, R]]):
+) -> Callable[P, R] | Callable[[Callable[P, R]], Callable[P, R]]:
     """Pytest decorator for resetting all databases"""
 
     if func is not None:
@@ -76,10 +71,10 @@ def factories():
 
 
 @pytest.fixture
-def task_runner():
-    """Context manager that ensures Celery tasks run directly inline where invoked.
+def task_runner() -> Callable[[], ContextManager[None]]:
+    """Context manager that ensures tasks run directly inline where invoked.
 
-    While this context manager is active any Celery tasks created will run immediately at
+    While this context manager is active any tasks created will run immediately at
     the callsite rather than being sent to RabbitMQ and handled by a worker.
     """
     from sentry.testutils.helpers.task_runner import TaskRunner
@@ -183,10 +178,10 @@ if _snapshot_writeback in ("true", "1", "overwrite"):
     _snapshot_writeback = "overwrite"
 elif _snapshot_writeback != "new":
     _snapshot_writeback = None
-_test_base = os.path.realpath(
+repo_abs_path = os.path.realpath(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(sentry.__file__))))
 )
-_yaml_snap_re = re.compile(r"^---\r?\n(.*?)\r?\n---\r?\n(.*)$", re.DOTALL)
+SNAPSHOT_REGEX = re.compile(r"^---\r?\n.*?\r?\n---\r?\n(.*)$", re.DOTALL)
 
 
 @pytest.fixture
@@ -200,18 +195,17 @@ def log():
 class ReadableYamlDumper(yaml.dumper.SafeDumper):
     """Disable pyyaml aliases for identical object references"""
 
-    def ignore_aliases(self, data):
+    def ignore_aliases(self, data) -> bool:
         return True
 
 
-def read_snapshot_file(reference_file: str) -> tuple[str, str]:
+def read_snapshot_file(reference_file: str) -> str:
     with open(reference_file, encoding="utf-8") as f:
-        match = _yaml_snap_re.match(f.read())
+        match = SNAPSHOT_REGEX.match(f.read())
         if match is None:
             raise OSError()
 
-        header, refval = match.groups()
-        return (header, refval)
+        return match.group(1)
 
 
 InequalityComparator = Callable[[str, str], bool | str]
@@ -271,7 +265,7 @@ def insta_snapshot(request: pytest.FixtureRequest) -> Generator[InstaSnapshotter
             )
 
         try:
-            _, refval = read_snapshot_file(reference_file)
+            refval = read_snapshot_file(reference_file)
         except OSError:
             refval = ""
 
@@ -281,27 +275,15 @@ def insta_snapshot(request: pytest.FixtureRequest) -> Generator[InstaSnapshotter
 
         if _snapshot_writeback is not None and is_unequal:
             os.makedirs(os.path.dirname(reference_file), exist_ok=True)
-            source = os.path.realpath(str(request.node.fspath))
-            if source.startswith(_test_base + os.path.sep):
-                source = source[len(_test_base) + 1 :]
+            test_file = os.path.realpath(str(request.node.fspath))
+            test_name = request.node.originalname
+            if test_file.startswith(repo_abs_path + os.path.sep):
+                test_file = test_file.replace(repo_abs_path + os.path.sep, "")
             if _snapshot_writeback == "new":
                 reference_file += ".new"
             with open(reference_file, "w") as f:
-                f.write(
-                    "---\n%s\n---\n%s\n"
-                    % (
-                        yaml.safe_dump(
-                            {
-                                "created": timezone.now().isoformat(),
-                                "creator": "sentry",
-                                "source": source,
-                            },
-                            indent=2,
-                            default_flow_style=False,
-                        ).rstrip(),
-                        output,
-                    )
-                )
+                header = f"---\nsource: {test_file}::{test_name}\n---"
+                f.write(f"{header}\n{output}\n")
         elif is_unequal:
             __tracebackhide__ = True
             if isinstance(is_unequal, str):

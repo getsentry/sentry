@@ -1,6 +1,7 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -18,7 +19,11 @@ interface OrganizationSeerSetupResponse {
 }
 
 export function makeOrganizationSeerSetupQueryKey(orgSlug: string): ApiQueryKey {
-  return [`/organizations/${orgSlug}/seer/setup-check/`];
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/seer/setup-check/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+  ];
 }
 
 export function useOrganizationSeerSetup(

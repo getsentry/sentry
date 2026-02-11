@@ -21,12 +21,15 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
         "issues.sdk_crash_detection.dart.project_id": 5,
         "issues.sdk_crash_detection.dart.sample_rate": 0.5,
         "issues.sdk_crash_detection.dart.organization_allowlist": [4],
+        "issues.sdk_crash_detection.dotnet.project_id": 6,
+        "issues.sdk_crash_detection.dotnet.sample_rate": 0.6,
+        "issues.sdk_crash_detection.dotnet.organization_allowlist": [5],
     }
 )
-def test_build_sdk_crash_detection_configs():
+def test_build_sdk_crash_detection_configs() -> None:
     configs = build_sdk_crash_detection_configs()
 
-    assert len(configs) == 5
+    assert len(configs) == 6
 
     cocoa_config = configs[0]
     assert cocoa_config.sdk_name == SdkName.Cocoa
@@ -58,6 +61,12 @@ def test_build_sdk_crash_detection_configs():
     assert dart_config.sample_rate == 0.5
     assert dart_config.organization_allowlist == [4]
 
+    dotnet_config = configs[5]
+    assert dotnet_config.sdk_name == SdkName.Dotnet
+    assert dotnet_config.project_id == 6
+    assert dotnet_config.sample_rate == 0.6
+    assert dotnet_config.organization_allowlist == [5]
+
 
 @override_options(
     {
@@ -75,9 +84,12 @@ def test_build_sdk_crash_detection_configs():
         "issues.sdk_crash_detection.dart.project_id": 0,
         "issues.sdk_crash_detection.dart.sample_rate": 0.0,
         "issues.sdk_crash_detection.dart.organization_allowlist": [],
+        "issues.sdk_crash_detection.dotnet.project_id": 0,
+        "issues.sdk_crash_detection.dotnet.sample_rate": 0.0,
+        "issues.sdk_crash_detection.dotnet.organization_allowlist": [],
     }
 )
-def test_build_sdk_crash_detection_configs_only_react_native():
+def test_build_sdk_crash_detection_configs_only_react_native() -> None:
     configs = build_sdk_crash_detection_configs()
 
     assert len(configs) == 1
@@ -104,9 +116,12 @@ def test_build_sdk_crash_detection_configs_only_react_native():
         "issues.sdk_crash_detection.dart.project_id": 5,
         "issues.sdk_crash_detection.dart.sample_rate": 0.0,
         "issues.sdk_crash_detection.dart.organization_allowlist": [4],
+        "issues.sdk_crash_detection.dotnet.project_id": 6,
+        "issues.sdk_crash_detection.dotnet.sample_rate": 0.0,
+        "issues.sdk_crash_detection.dotnet.organization_allowlist": [5],
     }
 )
-def test_build_sdk_crash_detection_configs_no_sample_rate():
+def test_build_sdk_crash_detection_configs_no_sample_rate() -> None:
     configs = build_sdk_crash_detection_configs()
 
     assert len(configs) == 1
@@ -133,7 +148,10 @@ def test_build_sdk_crash_detection_configs_no_sample_rate():
         "issues.sdk_crash_detection.dart.project_id": 0,
         "issues.sdk_crash_detection.dart.sample_rate": 0.0,
         "issues.sdk_crash_detection.dart.organization_allowlist": [],
+        "issues.sdk_crash_detection.dotnet.project_id": 0,
+        "issues.sdk_crash_detection.dotnet.sample_rate": 0.0,
+        "issues.sdk_crash_detection.dotnet.organization_allowlist": [],
     }
 )
-def test_build_sdk_crash_detection_default_configs():
+def test_build_sdk_crash_detection_default_configs() -> None:
     assert len(build_sdk_crash_detection_configs()) == 0

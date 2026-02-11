@@ -1,24 +1,26 @@
-import {Fragment} from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
+import {Badge, FeatureBadge} from '@sentry/scraps/badge';
+import {ExternalLink} from '@sentry/scraps/link';
+import {TabList} from '@sentry/scraps/tabs';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Badge} from 'sentry/components/core/badge';
-import {ExternalLink} from 'sentry/components/core/link';
-import {TabList} from 'sentry/components/core/tabs';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import Version from 'sentry/components/version';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconOpen} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseMeta, ReleaseProject} from 'sentry/types/release';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {isMobileRelease} from 'sentry/views/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import ReleaseActions from './releaseActions';
@@ -51,28 +53,59 @@ function ReleaseHeader({
   const tabs = [
     {title: t('Overview'), to: ''},
     {
-      title: (
-        <Fragment>
-          {t('Commits')}{' '}
-          <NavTabsBadge type="default">
+      title: tct('Commits [count]', {
+        count: (
+          <NavTabsBadge variant="muted">
             {formatAbbreviatedNumber(commitCount)}
           </NavTabsBadge>
-        </Fragment>
-      ),
+        ),
+      }),
+      textValue: t('Commits %s', formatAbbreviatedNumber(commitCount)),
       to: `commits/`,
     },
     {
-      title: (
-        <Fragment>
-          {t('Files Changed')}
-          <NavTabsBadge type="default">
+      title: tct('Files Changed [count]', {
+        count: (
+          <NavTabsBadge variant="muted">
             {formatAbbreviatedNumber(commitFilesChanged)}
           </NavTabsBadge>
-        </Fragment>
-      ),
+        ),
+      }),
+      textValue: t('Files Changed %s', formatAbbreviatedNumber(commitFilesChanged)),
       to: `files-changed/`,
     },
   ];
+
+  const numberOfMobileBuilds = releaseMeta.preprodBuildCount;
+
+  const buildsTab = {
+    title: tct('Mobile Builds [count]', {
+      count:
+        numberOfMobileBuilds === 0 ? (
+          <BadgeWrapper>
+            <FeatureBadge type="new" />
+          </BadgeWrapper>
+        ) : (
+          <React.Fragment>
+            <NavTabsBadge variant="muted">
+              {formatAbbreviatedNumber(numberOfMobileBuilds)}
+            </NavTabsBadge>
+            <BadgeWrapper>
+              <FeatureBadge type="new" />
+            </BadgeWrapper>
+          </React.Fragment>
+        ),
+    }),
+    textValue: t('Mobile Builds %s', numberOfMobileBuilds),
+    to: `builds/`,
+  };
+
+  if (
+    organization.features?.includes('preprod-frontend-routes') &&
+    (numberOfMobileBuilds || isMobileRelease(project.platform, false))
+  ) {
+    tabs.push(buildsTab);
+  }
 
   const getTabUrl = (path: string) =>
     normalizeUrl({
@@ -113,10 +146,11 @@ function ReleaseHeader({
           <Version version={version} anchor={false} truncate />
           <IconWrapper>
             <CopyToClipboardButton
-              borderless
+              priority="transparent"
               size="zero"
               text={version}
               title={version}
+              aria-label={t('Copy release version to clipboard')}
             />
           </IconWrapper>
           {!!url && (
@@ -133,19 +167,17 @@ function ReleaseHeader({
 
       <Layout.HeaderActions>
         <ReleaseActions
-          organization={organization}
           projectSlug={project.slug}
           release={release}
           releaseMeta={releaseMeta}
           refetchData={refetchData}
-          location={location}
         />
       </Layout.HeaderActions>
 
       <Layout.HeaderTabs value={getActiveTabTo()}>
-        <TabList hideBorder>
+        <TabList>
           {tabs.map(tab => (
-            <TabList.Item key={tab.to} to={getTabUrl(tab.to)}>
+            <TabList.Item key={tab.to} to={getTabUrl(tab.to)} textValue={tab.textValue}>
               {tab.title}
             </TabList.Item>
           ))}
@@ -160,11 +192,11 @@ const IconWrapper = styled('span')`
 
   &,
   a {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     display: flex;
     &:hover {
       cursor: pointer;
-      color: ${p => p.theme.textColor};
+      color: ${p => p.theme.tokens.content.primary};
     }
   }
 `;
@@ -173,6 +205,10 @@ const NavTabsBadge = styled(Badge)`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
+`;
+
+const BadgeWrapper = styled('div')`
+  margin-left: 0;
 `;
 
 export default ReleaseHeader;

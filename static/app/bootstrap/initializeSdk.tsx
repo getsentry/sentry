@@ -1,18 +1,17 @@
-// eslint-disable-next-line simple-import-sort/imports
-import * as Sentry from '@sentry/react';
-import type {Event} from '@sentry/core';
-
-import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
-import type {Config} from 'sentry/types/system';
-import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useEffect} from 'react';
 import {
   createRoutesFromChildren,
   matchRoutes,
   useLocation,
   useNavigationType,
 } from 'react-router-dom';
-import {useEffect} from 'react';
+import type {Event, Log} from '@sentry/core';
+import * as Sentry from '@sentry/react';
+
+import {NODE_ENV, SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
+import type {Config} from 'sentry/types/system';
+import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 const SPA_MODE_ALLOW_URLS = [
   'localhost',
@@ -37,10 +36,26 @@ export function getLastEventId(): string | undefined {
 // pollute our breadcrumbs since they may occur a LOT.
 //
 // XXX(epurkhiser): Note some of these hosts may only apply to sentry.io.
-const IGNORED_BREADCRUMB_FETCH_HOSTS = ['amplitude.com', 'reload.getsentry.net'];
+const IGNORED_BREADCRUMB_FETCH_HOSTS = [
+  'amplitude.com',
+  'pendo.io',
+  'reload.getsentry.net',
+];
 
 // Ignore analytics in spans as well
-const IGNORED_SPANS_BY_DESCRIPTION = ['amplitude.com', 'reload.getsentry.net'];
+const IGNORED_SPANS_BY_DESCRIPTION = [
+  'amplitude.com',
+  'pendo.io',
+  'reload.getsentry.net',
+];
+
+/**
+ * Check if the message is from the console banner in `static/app/bootstrap/printConsoleBanner.ts`.
+ * Used to filter it from both breadcrumbs and logs.
+ */
+function isConsoleBannerMessage(message: string | undefined): boolean {
+  return !!message?.includes('Hey, you opened the console!');
+}
 
 // We check for `window.__initialData.user` property and only enable profiling
 // for Sentry employees. This is to prevent a Violation error being visible in
@@ -70,12 +85,13 @@ function getSentryIntegrations() {
       },
       linkPreviousTrace: 'session-storage',
     }),
-    Sentry.browserProfilingIntegration(),
+    ...(NODE_ENV === 'production' ? [Sentry.browserProfilingIntegration()] : []),
     Sentry.thirdPartyErrorFilterIntegration({
       filterKeys: ['sentry-spa'],
       behaviour: 'apply-tag-if-contains-third-party-frames',
     }),
     Sentry.featureFlagsIntegration(),
+    Sentry.consoleLoggingIntegration(),
   ];
 
   return integrations;
@@ -111,7 +127,8 @@ export function initializeSdk(config: Config) {
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.allowUrls,
     integrations: getSentryIntegrations(),
     tracesSampleRate,
-    profilesSampleRate: shouldOverrideBrowserProfiling ? 1 : 0.1,
+    profileSessionSampleRate: shouldOverrideBrowserProfiling ? 1 : 0.1,
+    profileLifecycle: 'trace',
     tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
     tracesSampler: context => {
       const op = context.attributes?.[Sentry.SEMANTIC_ATTRIBUTE_SENTRY_OP] || '';
@@ -169,11 +186,16 @@ export function initializeSdk(config: Config) {
     beforeBreadcrumb(crumb) {
       const isFetch = crumb.category === 'fetch' || crumb.category === 'xhr';
 
-      // Ignore
+      // Ignore fetch/xhr requests to certain hosts
       if (
         isFetch &&
         IGNORED_BREADCRUMB_FETCH_HOSTS.some(host => crumb.data?.url?.includes(host))
       ) {
+        return null;
+      }
+
+      // Ignore the console banner
+      if (crumb.category === 'console' && isConsoleBannerMessage(crumb.message)) {
         return null;
       }
 
@@ -191,8 +213,19 @@ export function initializeSdk(config: Config) {
 
       return event;
     },
+
+    beforeSendLog: log => {
+      if (isFilteredLog(log)) {
+        return null;
+      }
+
+      return log;
+    },
+
+    enableLogs: true,
+    sendDefaultPii: true,
     _experiments: {
-      enableLogs: true,
+      enableMetrics: true,
     },
   });
 
@@ -292,4 +325,13 @@ export function addEndpointTagToRequestError(event: Event): void {
   if (messageMatch) {
     event.tags = {...event.tags, endpoint: messageMatch[1]};
   }
+}
+
+function isFilteredLog(log: Log): boolean {
+  // Ignore the console banner
+  if (isConsoleBannerMessage(log.message)) {
+    return true;
+  }
+
+  return false;
 }

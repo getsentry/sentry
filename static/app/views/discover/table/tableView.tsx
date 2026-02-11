@@ -4,29 +4,24 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptorObject} from 'history';
 
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import GridEditable, {
-  COL_WIDTH_MINIMUM,
-  COL_WIDTH_UNDEFINED,
-} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import Truncate from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
-import {
-  isFieldSortable,
-  pickRelevantLocationQueryStrings,
-} from 'sentry/utils/discover/eventView';
+import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {
   DURATION_UNITS,
   getFieldRenderer,
@@ -39,10 +34,10 @@ import {
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
 import {
-  type DiscoverDatasets,
   DisplayModes,
   SavedQueryDatasets,
   TOP_N,
+  type DiscoverDatasets,
 } from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
@@ -58,7 +53,6 @@ import {appendQueryDatasetParam, hasDatasetSelector} from 'sentry/views/dashboar
 import {
   getExpandedResults,
   getTargetForTransactionSummaryLink,
-  pushEventViewToLocation,
 } from 'sentry/views/discover/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
@@ -67,7 +61,7 @@ import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {QuickContextHoverWrapper} from './quickContext/quickContextWrapper';
 import {ContextType} from './quickContext/utils';
-import CellAction, {Actions, copyToClipBoard, updateQuery} from './cellAction';
+import CellAction, {Actions, updateQuery} from './cellAction';
 import ColumnEditModal, {modalCss} from './columnEditModal';
 import TableActions from './tableActions';
 import {TopResultsIndicator} from './topResultsIndicator';
@@ -109,35 +103,12 @@ type TableViewProps = {
  * In most cases, the new EventView object differs from the previous EventView
  * object. The new EventView object is pushed to the location object.
  */
-function TableView(props: TableViewProps) {
+export default function TableView(props: TableViewProps) {
   const theme = useTheme();
+  const navigate = useNavigate();
   const {projects} = useProjects();
   const routes = useRoutes();
-  const navigate = useNavigate();
   const replayLinkGenerator = generateReplayLink(routes);
-
-  /**
-   * Updates a column on resizing
-   */
-  function _resizeColumn(
-    columnIndex: number,
-    nextColumn: TableColumn<keyof TableDataRow>
-  ) {
-    const {location, eventView, organization, queryDataset} = props;
-
-    const newWidth = nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED;
-    const nextEventView = eventView.withResizedColumn(columnIndex, newWidth);
-
-    pushEventViewToLocation({
-      navigate,
-      location,
-      nextEventView,
-      extraQuery: {
-        ...pickRelevantLocationQueryStrings(location),
-        ...appendQueryDatasetParam(organization, queryDataset),
-      },
-    });
-  }
 
   function _renderPrependColumns(
     isHeader: boolean,
@@ -216,8 +187,7 @@ function TableView(props: TableViewProps) {
       if (dataRow['event.type'] !== 'transaction' && !isTransactionsDataset) {
         const project = dataRow.project || dataRow['project.name'];
         target = {
-          // NOTE: This uses a legacy redirect for project event to the issue group event link
-          // This only works with dev-server or production.
+          // Redirects to the issue group event page via ProjectEventRedirect
           pathname: normalizeUrl(
             `/${organization.slug}/${project}/events/${dataRow.id}/`
           ),
@@ -325,7 +295,7 @@ function TableView(props: TableViewProps) {
     const {isFirstPage, eventView, location, organization, tableData, queryDataset} =
       props;
 
-    if (!tableData || !tableData.meta) {
+    if (!tableData?.meta) {
       return dataRow[column.key];
     }
 
@@ -353,8 +323,7 @@ function TableView(props: TableViewProps) {
         const project = dataRow.project || dataRow['project.name'];
 
         target = {
-          // NOTE: This uses a legacy redirect for project event to the issue group event link.
-          // This only works with dev-server or production.
+          // Redirects to the issue group event page via ProjectEventRedirect
           pathname: normalizeUrl(
             `/${organization.slug}/${project}/events/${dataRow.id}/`
           ),
@@ -575,7 +544,7 @@ function TableView(props: TableViewProps) {
             return project.slug === dataRow.project;
           });
 
-          browserHistory.push(
+          navigate(
             normalizeUrl({
               pathname: makeReleasesPathname({
                 organization,
@@ -603,7 +572,7 @@ function TableView(props: TableViewProps) {
             function: ['count', '', undefined, undefined],
           });
 
-          browserHistory.push(
+          navigate(
             normalizeUrl(
               nextView.getResultsViewUrlTarget(
                 organization,
@@ -614,10 +583,6 @@ function TableView(props: TableViewProps) {
           );
 
           return;
-        }
-        case Actions.COPY_TO_CLIPBOARD: {
-          copyToClipBoard(value);
-          break;
         }
         default: {
           // Some custom perf metrics have units.
@@ -645,7 +610,7 @@ function TableView(props: TableViewProps) {
       );
       // Get yAxis from location
       target.query.yAxis = decodeList(location.query.yAxis);
-      browserHistory.push(normalizeUrl(target));
+      navigate(normalizeUrl(target));
     };
   }
 
@@ -668,7 +633,7 @@ function TableView(props: TableViewProps) {
     resultsViewUrlTarget.query.yAxis = previousYAxis.filter(yAxis =>
       nextView.getYAxisOptions().find(({value}) => value === yAxis)
     );
-    browserHistory.push(normalizeUrl(resultsViewUrlTarget));
+    navigate(normalizeUrl(resultsViewUrlTarget));
   }
 
   function renderHeaderButtons() {
@@ -697,7 +662,6 @@ function TableView(props: TableViewProps) {
         location={location}
         onChangeShowTags={onChangeShowTags}
         showTags={showTags}
-        supportsInvestigationRule
         queryDataset={queryDataset}
       />
     );
@@ -714,18 +678,22 @@ function TableView(props: TableViewProps) {
       ? []
       : [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`];
 
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: columnOrder,
+  });
+
   return (
     <GridEditable
       isLoading={isLoading}
       error={error}
       data={tableData ? tableData.data : []}
-      columnOrder={columnOrder}
+      columnOrder={columns}
       columnSortBy={columnSortBy}
       title={t('Results')}
       grid={{
         renderHeadCell: _renderGridHeaderCell as any,
         renderBodyCell: _renderGridBodyCell as any,
-        onResizeColumn: _resizeColumn as any,
+        onResizeColumn: handleResizeColumn,
         renderPrependColumns: _renderPrependColumns as any,
         prependColumnWidths,
       }}
@@ -735,7 +703,7 @@ function TableView(props: TableViewProps) {
 }
 
 const PrependHeader = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledTooltip = styled(Tooltip)`
@@ -750,11 +718,13 @@ const StyledLink = styled(Link)`
 `;
 
 export const TransactionLink = styled(Link)`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledIcon = styled(IconStack)`
   vertical-align: middle;
 `;
-
-export default TableView;

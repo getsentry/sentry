@@ -1,7 +1,8 @@
 import {useCallback, useEffect} from 'react';
 
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import OnboardingDrawerStore, {
+  OnboardingDrawerKey,
+} from 'sentry/stores/onboardingDrawerStore';
 import useSelectedProjectsHaveField from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -15,33 +16,27 @@ export default function useHaveSelectedProjectsSetupFeedback() {
   return {hasSetupOneFeedback, fetching};
 }
 
-export function useHaveSelectedProjectsSetupNewFeedback() {
-  const {hasField: hasSetupNewFeedback, fetching} =
-    useSelectedProjectsHaveField('hasNewFeedbacks');
-  return {hasSetupNewFeedback, fetching};
-}
-
 export function useFeedbackOnboardingSidebarPanel() {
   const location = useLocation();
   const organization = useOrganization();
 
   useEffect(() => {
     if (location.hash === FEEDBACK_HASH || location.hash === CRASH_REPORT_HASH) {
-      SidebarPanelStore.activatePanel(SidebarPanelKey.FEEDBACK_ONBOARDING);
+      OnboardingDrawerStore.open(OnboardingDrawerKey.FEEDBACK_ONBOARDING);
     }
   }, [location.hash, organization]);
 
   const activateSidebar = useCallback((event: {preventDefault: () => void}) => {
     event.preventDefault();
     window.location.hash = FEEDBACK_HASH;
-    SidebarPanelStore.activatePanel(SidebarPanelKey.FEEDBACK_ONBOARDING);
+    OnboardingDrawerStore.open(OnboardingDrawerKey.FEEDBACK_ONBOARDING);
   }, []);
 
   const activateSidebarIssueDetails = useCallback(
     (event: {preventDefault: () => void}) => {
       event.preventDefault();
       window.location.hash = CRASH_REPORT_HASH;
-      SidebarPanelStore.activatePanel(SidebarPanelKey.FEEDBACK_ONBOARDING);
+      OnboardingDrawerStore.open(OnboardingDrawerKey.FEEDBACK_ONBOARDING);
     },
     []
   );

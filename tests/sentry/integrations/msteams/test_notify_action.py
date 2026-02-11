@@ -1,16 +1,23 @@
 import re
 import time
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
+from django.forms import Form
 
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.msteams import MsTeamsNotifyServiceAction
+from sentry.integrations.msteams.actions.notification import MsTeamsNotifyServiceAction
+from sentry.integrations.msteams.analytics import MSTeamsIntegrationNotificationSent
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
+from sentry.testutils.helpers.analytics import (
+    assert_any_analytics_event,
+    assert_last_analytics_event,
+)
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
@@ -21,7 +28,7 @@ pytestmark = [requires_snuba]
 class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = MsTeamsNotifyServiceAction
 
-    def setUp(self):
+    def setUp(self) -> None:
         event = self.get_event()
 
         self.integration, _ = self.create_provider_integration_for(
@@ -37,7 +44,9 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             },
         )
 
-    def assert_form_valid(self, form, expected_channel_id, expected_channel):
+    def assert_form_valid(
+        self, form: Form, expected_channel_id: str, expected_channel: str
+    ) -> None:
         assert form.is_valid()
         assert form.cleaned_data["channel_id"] == expected_channel_id
         assert form.cleaned_data["channel"] == expected_channel
@@ -45,7 +54,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch("sentry.analytics.record")
-    def test_applies_correctly(self, mock_record, mock_record_event):
+    def test_applies_correctly(self, mock_record: MagicMock, mock_record_event: MagicMock) -> None:
         event = self.get_event()
 
         rule = self.get_rule(
@@ -76,24 +85,28 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         title_card = attachments[0]["content"]["body"][0]
         title_pattern = r"\[%s\](.*)" % event.title
         assert re.match(title_pattern, title_card["text"])
-        mock_record.assert_called_with(
-            "alert.sent",
-            provider="msteams",
-            alert_id="",
-            alert_type="issue_alert",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            external_id="nb",
-            notification_uuid=notification_uuid,
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                provider="msteams",
+                alert_id="",
+                alert_type="issue_alert",
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                external_id="nb",
+                notification_uuid=notification_uuid,
+            ),
         )
-        mock_record.assert_any_call(
-            "integrations.msteams.notification_sent",
-            category="issue_alert",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id=event.group_id,
-            notification_uuid=notification_uuid,
-            alert_id=None,
+        assert_any_analytics_event(
+            mock_record,
+            MSTeamsIntegrationNotificationSent(
+                category="issue_alert",
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=event.group_id,
+                notification_uuid=notification_uuid,
+                alert_id=None,
+            ),
         )
 
         assert_slo_metric(mock_record_event)
@@ -101,7 +114,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch("sentry.analytics.record")
-    def test_client_error(self, mock_record, mock_record_event):
+    def test_client_error(self, mock_record: MagicMock, mock_record_event: MagicMock) -> None:
         event = self.get_event()
 
         rule = self.get_rule(
@@ -132,24 +145,28 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         title_card = attachments[0]["content"]["body"][0]
         title_pattern = r"\[%s\](.*)" % event.title
         assert re.match(title_pattern, title_card["text"])
-        mock_record.assert_called_with(
-            "alert.sent",
-            provider="msteams",
-            alert_id="",
-            alert_type="issue_alert",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            external_id="nb",
-            notification_uuid=notification_uuid,
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                provider="msteams",
+                alert_id="",
+                alert_type="issue_alert",
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                external_id="nb",
+                notification_uuid=notification_uuid,
+            ),
         )
-        mock_record.assert_any_call(
-            "integrations.msteams.notification_sent",
-            category="issue_alert",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id=event.group_id,
-            notification_uuid=notification_uuid,
-            alert_id=None,
+        assert_any_analytics_event(
+            mock_record,
+            MSTeamsIntegrationNotificationSent(
+                category="issue_alert",
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=event.group_id,
+                notification_uuid=notification_uuid,
+                alert_id=None,
+            ),
         )
 
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.FAILURE)
@@ -157,7 +174,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch("sentry.analytics.record")
-    def test_halt(self, mock_record, mock_record_event):
+    def test_halt(self, mock_record: MagicMock, mock_record_event: MagicMock) -> None:
         event = self.get_event()
 
         rule = self.get_rule(
@@ -193,24 +210,28 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         title_card = attachments[0]["content"]["body"][0]
         title_pattern = r"\[%s\](.*)" % event.title
         assert re.match(title_pattern, title_card["text"])
-        mock_record.assert_called_with(
-            "alert.sent",
-            provider="msteams",
-            alert_id="",
-            alert_type="issue_alert",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            external_id="nb",
-            notification_uuid=notification_uuid,
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                provider="msteams",
+                alert_id="",
+                alert_type="issue_alert",
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                external_id="nb",
+                notification_uuid=notification_uuid,
+            ),
         )
-        mock_record.assert_any_call(
-            "integrations.msteams.notification_sent",
-            category="issue_alert",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id=event.group_id,
-            notification_uuid=notification_uuid,
-            alert_id=None,
+        assert_any_analytics_event(
+            mock_record,
+            MSTeamsIntegrationNotificationSent(
+                category="issue_alert",
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=event.group_id,
+                notification_uuid=notification_uuid,
+                alert_id=None,
+            ),
         )
 
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.HALTED)
@@ -218,11 +239,13 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_applies_correctly_generic_issue(self, occurrence, mock_record_event):
+    def test_applies_correctly_generic_issue(
+        self, occurrence: MagicMock, mock_record_event: MagicMock
+    ) -> None:
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
@@ -262,11 +285,13 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_applies_correctly_performance_issue(self, occurrence, mock_record_event):
+    def test_applies_correctly_performance_issue(
+        self, occurrence: MagicMock, mock_record_event: MagicMock
+    ) -> None:
         event = self.create_performance_issue()
 
         rule = self.get_rule(
@@ -302,12 +327,12 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.SUCCESS)
 
-    def test_render_label(self):
+    def test_render_label(self) -> None:
         rule = self.get_rule(data={"team": self.integration.id, "channel": "Tatooine"})
 
         assert rule.render_label() == "Send a notification to the Galactic Empire Team to Tatooine"
 
-    def test_render_label_without_integration(self):
+    def test_render_label_without_integration(self) -> None:
         with assume_test_silo_mode_of(Integration):
             self.integration.delete()
 
@@ -316,7 +341,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert rule.render_label() == "Send a notification to the [removed] Team to Coruscant"
 
     @responses.activate
-    def test_valid_channel_selected(self):
+    def test_valid_channel_selected(self) -> None:
         rule = self.get_rule(data={"team": self.integration.id, "channel": "Death Star"})
 
         channels = [{"id": "d_s", "name": "Death Star"}]
@@ -331,7 +356,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         self.assert_form_valid(form, "d_s", "Death Star")
 
     @responses.activate
-    def test_valid_member_selected(self):
+    def test_valid_member_selected(self) -> None:
         rule = self.get_rule(data={"team": self.integration.id, "channel": "Darth Vader"})
 
         channels = [{"id": "i_s_d", "name": "Imperial Star Destroyer"}]
@@ -360,7 +385,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         self.assert_form_valid(form, "i_am_your_father", "Darth Vader")
 
     @responses.activate
-    def test_invalid_channel_selected(self):
+    def test_invalid_channel_selected(self) -> None:
         rule = self.get_rule(data={"team": self.integration.id, "channel": "Alderaan"})
 
         channels = [{"name": "Hoth", "id": "hh"}]

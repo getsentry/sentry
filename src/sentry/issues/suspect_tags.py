@@ -4,7 +4,13 @@ from typing import NamedTuple
 import sentry_sdk
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.search.eap.occurrences.common_queries import count_occurrences
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.seer.workflows.compare import KeyedValueCount, keyed_kl_score
+from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
 
@@ -121,7 +127,7 @@ def query_baseline_set(
 
     response = raw_snql_query(
         snuba_request,
-        referrer="issues.suspect_tags.query_baseline_set",
+        referrer=Referrer.ISSUES_SUSPECT_TAGS_QUERY_BASELINE_SET.value,
         use_cache=True,
     )
 
@@ -197,7 +203,7 @@ def query_selection_set(
 
     response = raw_snql_query(
         snuba_request,
-        referrer="issues.suspect_tags.query_selection_set",
+        referrer=Referrer.ISSUES_SUSPECT_TAGS_QUERY_SELECTION_SET.value,
         use_cache=True,
     )
 
@@ -207,34 +213,20 @@ def query_selection_set(
     ]
 
 
-@sentry_sdk.trace
-def query_error_counts(
+def _query_error_counts_snuba(
     organization_id: int,
     project_id: int,
     start: datetime,
     end: datetime,
-    environments: list[str],
+    environment_names: list[str],
     group_id: int | None,
 ) -> int:
-    """
-    Query for the number of errors for a given project optionally associated witha a group_id.
-
-    SQL:
-        SELECT count()
-        FROM errors_dist
-        WHERE (
-            project_id = {project_id} AND
-            timestamp >= {start} AND
-            timestamp < {end} AND
-            environment IN environments AND
-            group_id = {group_id}
-        )
-    """
+    """Snuba implementation of query_error_counts."""
     where = []
     if group_id is not None:
         where.append(Condition(Column("group_id"), Op.EQ, group_id))
-    if environments:
-        where.append(Condition(Column("environment"), Op.IN, environments))
+    if environment_names:
+        where.append(Condition(Column("environment"), Op.IN, environment_names))
 
     query = Query(
         match=Entity("events"),
@@ -259,8 +251,79 @@ def query_error_counts(
 
     response = raw_snql_query(
         snuba_request,
-        referrer="issues.suspect_tags.query_error_counts",
+        referrer=Referrer.ISSUES_SUSPECT_TAGS_QUERY_ERROR_COUNTS.value,
         use_cache=True,
     )
 
     return int(response["data"][0]["count"])
+
+
+def _query_error_counts_eap(
+    organization_id: int,
+    project_id: int,
+    start: datetime,
+    end: datetime,
+    environment_names: list[str],
+    group_id: int | None,
+) -> int:
+    """EAP implementation of query_error_counts."""
+    organization = Organization.objects.get(id=organization_id)
+    project = Project.objects.get(id=project_id)
+
+    environments: list[Environment] = []
+    if environment_names:
+        environments = list(
+            Environment.objects.filter(
+                name__in=environment_names,
+                organization_id=organization_id,
+            )
+        )
+
+    return count_occurrences(
+        organization=organization,
+        projects=[project],
+        start=start,
+        end=end,
+        referrer=Referrer.ISSUES_SUSPECT_TAGS_QUERY_ERROR_COUNTS.value,
+        group_id=group_id,
+        environments=environments,
+    )
+
+
+@sentry_sdk.trace
+def query_error_counts(
+    organization_id: int,
+    project_id: int,
+    start: datetime,
+    end: datetime,
+    environment_names: list[str],
+    group_id: int | None,
+) -> int:
+    """
+    Query for the number of errors for a given project optionally associated with a group_id.
+
+    SQL:
+        SELECT count()
+        FROM errors_dist
+        WHERE (
+            project_id = {project_id} AND
+            timestamp >= {start} AND
+            timestamp < {end} AND
+            environment IN environments AND
+            group_id = {group_id}
+        )
+    """
+    snuba_count = _query_error_counts_snuba(
+        organization_id, project_id, start, end, environment_names, group_id
+    )
+    error_count = snuba_count
+
+    if EAPOccurrencesComparator.should_check_experiment("issues.suspect_tags.query_error_counts"):
+        eap_count = _query_error_counts_eap(
+            organization_id, project_id, start, end, environment_names, group_id
+        )
+        error_count = EAPOccurrencesComparator.check_and_choose(
+            snuba_count, eap_count, "issues.suspect_tags.query_error_counts"
+        )
+
+    return error_count

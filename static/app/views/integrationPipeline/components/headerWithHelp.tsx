@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
 import LogoSentry from 'sentry/components/logoSentry';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -24,12 +25,12 @@ const Header = styled('div')`
   top: 0;
   z-index: 100;
   padding: ${space(2)};
-  background: ${p => p.theme.background};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  background: ${p => p.theme.tokens.background.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const StyledLogoSentry = styled(LogoSentry)`
   width: 130px;
   height: 30px;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;

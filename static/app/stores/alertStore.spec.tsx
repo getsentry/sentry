@@ -2,21 +2,21 @@ import AlertStore from 'sentry/stores/alertStore';
 
 jest.mock('sentry/utils/localStorage');
 
-describe('AlertStore', function () {
-  beforeEach(function () {
+describe('AlertStore', () => {
+  beforeEach(() => {
     AlertStore.init();
   });
 
-  describe('addAlert()', function () {
-    it('should add a new alert with incrementing key', function () {
+  describe('addAlert()', () => {
+    it('should add a new alert with incrementing key', () => {
       AlertStore.addAlert({
         message: 'Bzzzzzzp *crash*',
-        type: 'error',
+        variant: 'danger',
       });
 
       AlertStore.addAlert({
         message: 'Everything is super',
-        type: 'info',
+        variant: 'info',
       });
 
       expect(AlertStore.getState()).toHaveLength(2);
@@ -24,17 +24,17 @@ describe('AlertStore', function () {
       expect(AlertStore.getState()[1]!.key).toBe(1);
     });
 
-    it('should not add duplicates when noDuplicates is set', function () {
+    it('should not add duplicates when noDuplicates is set', () => {
       AlertStore.addAlert({
         id: 'unique-key',
         message: 'Bzzzzzzp *crash*',
-        type: 'error',
+        variant: 'danger',
         noDuplicates: true,
       });
       AlertStore.addAlert({
         id: 'unique-key',
         message: 'Bzzzzzzp *crash*',
-        type: 'error',
+        variant: 'danger',
         noDuplicates: true,
       });
 
@@ -42,12 +42,12 @@ describe('AlertStore', function () {
     });
   });
 
-  describe('closeAlert()', function () {
-    it('should remove alert', function () {
+  describe('closeAlert()', () => {
+    it('should remove alert', () => {
       const alerts = [
-        {message: 'foo', type: 'error'},
-        {message: 'bar', type: 'error'},
-        {message: 'baz', type: 'error'},
+        {message: 'foo', variant: 'danger'},
+        {message: 'bar', variant: 'danger'},
+        {message: 'baz', variant: 'danger'},
       ] as const;
       for (const alert of alerts) {
         AlertStore.addAlert(alert);
@@ -60,12 +60,12 @@ describe('AlertStore', function () {
       expect(newState).toHaveLength(2);
       expect(newState).toEqual([alerts[0], alerts[2]]);
     });
-    it('should persist removal of persistent alerts', function () {
+    it('should persist removal of persistent alerts', () => {
       const alert = {
         key: 1,
         id: 'test',
         message: 'this is a test',
-        type: 'error',
+        variant: 'danger',
       } as const;
 
       AlertStore.closeAlert(alert);
@@ -77,7 +77,7 @@ describe('AlertStore', function () {
   it('returns a stable reference from getState', () => {
     AlertStore.addAlert({
       message: 'Bzzzzzzp *crash*',
-      type: 'error',
+      variant: 'danger',
     });
 
     const state = AlertStore.getState();

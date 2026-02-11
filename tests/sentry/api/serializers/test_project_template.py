@@ -10,7 +10,7 @@ from sentry.testutils.cases import TestCase
 
 
 class ProjectTemplateSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
 
@@ -20,7 +20,7 @@ class ProjectTemplateSerializerTest(TestCase):
             project_template=self.project_template, key="key1", value="value1"
         )
 
-    def test_serialize(self):
+    def test_serialize(self) -> None:
         serializer = ProjectTemplateSerializer()
         result = serializer.serialize(self.project_template, {}, self.user)
 
@@ -31,7 +31,7 @@ class ProjectTemplateSerializerTest(TestCase):
             "updatedAt": self.project_template.date_updated,
         }
 
-    def test_serialize__expand_options(self):
+    def test_serialize__expand_options(self) -> None:
         serializer = ProjectTemplateSerializer(expand=[ProjectTemplateAttributes.OPTIONS])
         attrs: Mapping[str, Any] = {
             ProjectTemplateAttributes.OPTIONS: {
@@ -49,7 +49,7 @@ class ProjectTemplateSerializerTest(TestCase):
             "options": {"key1": "value1"},
         }
 
-    def test_get_attrs(self):
+    def test_get_attrs(self) -> None:
         serializer = ProjectTemplateSerializer(expand=[ProjectTemplateAttributes.OPTIONS])
         result = serializer.get_attrs([self.project_template], self.user)
 
@@ -61,7 +61,7 @@ class ProjectTemplateSerializerTest(TestCase):
             },
         }
 
-    def test_get_attrs__without_options(self):
+    def test_get_attrs__without_options(self) -> None:
         serializer = ProjectTemplateSerializer()
         result = serializer.get_attrs([self.project_template], self.user)
 
@@ -70,10 +70,10 @@ class ProjectTemplateSerializerTest(TestCase):
         }
 
     # other checks like looking at more attributes are validated with types
-    def test_expand(self):
+    def test_expand(self) -> None:
         serializer = ProjectTemplateSerializer(expand=[ProjectTemplateAttributes.OPTIONS])
         assert serializer._expand(ProjectTemplateAttributes.OPTIONS) is True
 
-    def test_expand__without_being_set(self):
+    def test_expand__without_being_set(self) -> None:
         serializer = ProjectTemplateSerializer(expand=[])
         assert serializer._expand(ProjectTemplateAttributes.OPTIONS) is False

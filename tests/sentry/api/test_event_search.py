@@ -1,7 +1,7 @@
 import datetime
 import os
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.test import SimpleTestCase
@@ -16,13 +16,17 @@ from sentry.api.event_search import (
     SearchKey,
     SearchValue,
     _RecursiveList,
+    add_leading_wildcard,
+    add_trailing_wildcard,
     default_config,
     flatten,
+    gen_wildcard_value,
     parse_search_query,
     translate_wildcard_as_clickhouse_pattern,
 )
 from sentry.constants import MODULE_ROOT
 from sentry.exceptions import InvalidSearchQuery
+from sentry.search.events.constants import WILDCARD_OPERATOR_MAP, WILDCARD_UNICODE
 from sentry.search.utils import parse_datetime_string, parse_duration, parse_numeric_value
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
@@ -104,6 +108,9 @@ def result_transformer(result):
         if token["type"] == "keyExplicitNumberTag":
             return SearchKey(name=f"tags[{token['key']['value']},number]")
 
+        if token["type"] == "keyExplicitBooleanTag":
+            return SearchKey(name=f"tags[{token['key']['value']},boolean]")
+
         if token["type"] == "keyExplicitFlag":
             return SearchKey(name=f"flags[{token['key']['value']}]")
 
@@ -120,7 +127,7 @@ def result_transformer(result):
             return AggregateKey(name=f"{name}({args})")
 
         if token["type"] == "valueText":
-            # Noramlize values by removing the escaped quotes
+            # Normalize values by removing the escaped quotes
             value = token["value"].replace('\\"', '"')
             return SearchValue(raw_value=value)
 
@@ -193,7 +200,51 @@ class ParseSearchQueryTest(SimpleTestCase):
             expect_error = True
 
         try:
-            expected = result_transformer(case["result"])
+            test_case = case["result"]
+            expected = result_transformer(test_case)
+
+            # If we have a wildcard operator in the query, we need to replace the
+            # expected result value without the wildcard operator, this is because the
+            # backend does a translation from the unicode wildcard to the regular
+            # asterisk wildcard
+            if "Contains" in query or "EndsWith" in query:
+                leading_op = "="
+                leading_wildcard_value: str | list[str] | None = None
+                if test_case[1]["filter"] == "text":
+                    leading_op = "!=" if test_case[1]["negated"] else "="
+                    leading_wildcard_value = add_leading_wildcard(expected[0].value.raw_value)
+
+                elif test_case[1]["filter"] == "textIn":
+                    leading_op = "NOT IN" if test_case[1]["negated"] else "IN"
+                    leading_wildcard_value = list(
+                        map(
+                            lambda x: add_leading_wildcard(x),
+                            expected[0].value.raw_value,
+                        )
+                    )
+
+                new_search_value = expected[0].value._replace(raw_value=leading_wildcard_value)
+                expected = [SearchFilter(expected[0].key, leading_op, new_search_value)]
+
+            if "Contains" in query or "StartsWith" in query:
+                trailing_op = "="
+                trailing_wildcard_value: str | list[str] | None = None
+                if test_case[1]["filter"] == "text":
+                    trailing_op = "!=" if test_case[1]["negated"] else "="
+                    trailing_wildcard_value = add_trailing_wildcard(expected[0].value.raw_value)
+
+                elif test_case[1]["filter"] == "textIn":
+                    trailing_op = "NOT IN" if test_case[1]["negated"] else "IN"
+                    trailing_wildcard_value = list(
+                        map(
+                            lambda x: add_trailing_wildcard(x),
+                            expected[0].value.raw_value,
+                        )
+                    )
+
+                new_search_value = expected[0].value._replace(raw_value=trailing_wildcard_value)
+                expected = [SearchFilter(expected[0].key, trailing_op, new_search_value)]
+
         except InvalidSearchQuery:
             # If our expected result will raise an InvalidSearchQuery from one
             # of the filters we handle that here
@@ -247,7 +298,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
     ParseSearchQueryTest.
     """
 
-    def test_key_remapping(self):
+    def test_key_remapping(self) -> None:
         config = SearchConfig(key_mappings={"target_value": ["someValue", "legacy-value"]})
 
         assert parse_search_query(
@@ -264,7 +315,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    def test_paren_expression(self):
+    def test_paren_expression(self) -> None:
         assert parse_search_query("(x:1 OR y:1) AND z:1") == [
             ParenExpression(
                 children=[
@@ -281,10 +332,10 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             SearchFilter(key=SearchKey(name="z"), operator="=", value=SearchValue(raw_value="1")),
         ]
 
-    def test_paren_expression_of_empty_string(self):
+    def test_paren_expression_of_empty_string(self) -> None:
         assert parse_search_query('("")') == parse_search_query('""') == []
 
-    def test_paren_expression_with_bool_disabled(self):
+    def test_paren_expression_with_bool_disabled(self) -> None:
         config = SearchConfig.create_from(default_config, allow_boolean=False)
         ret = parse_search_query("( x:1 )", config=config)
         assert ret == [
@@ -293,19 +344,19 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             )
         ]
 
-    def test_paren_expression_to_query_string(self):
+    def test_paren_expression_to_query_string(self) -> None:
         (val,) = parse_search_query("(has:1 random():<5)")
         assert isinstance(val, ParenExpression)
         assert val.to_query_string() == "(has:=1 random():<5.0)"
 
-    def test_bool_operator_with_bool_disabled(self):
+    def test_bool_operator_with_bool_disabled(self) -> None:
         config = SearchConfig.create_from(default_config, allow_boolean=False)
         with pytest.raises(InvalidSearchQuery) as excinfo:
             parse_search_query("x:1 OR y:1", config=config)
         (msg,) = excinfo.value.args
         assert msg == 'Boolean statements containing "OR" or "AND" are not supported in this search'
 
-    def test_wildcard_free_text(self):
+    def test_wildcard_free_text(self) -> None:
         config = SearchConfig.create_from(default_config, wildcard_free_text=True)
         assert parse_search_query("foo", config=config) == [
             SearchFilter(
@@ -320,7 +371,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
-    def test_size_filter(self, mock_type):
+    def test_size_filter(self, mock_type: MagicMock) -> None:
         config = SearchConfig()
         mock_type.return_value = "gigabyte"
 
@@ -337,7 +388,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    def test_size_field_unrelated_field(self):
+    def test_size_field_unrelated_field(self) -> None:
         assert parse_search_query("something:5gb") == [
             SearchFilter(
                 key=SearchKey(name="something"), operator="=", value=SearchValue(raw_value="5gb")
@@ -345,7 +396,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
-    def test_ibyte_size_filter(self, mock_type):
+    def test_ibyte_size_filter(self, mock_type: MagicMock) -> None:
         config = SearchConfig()
         mock_type.return_value = "gibibyte"
 
@@ -365,7 +416,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
-    def test_aggregate_size_filter(self, mock_type):
+    def test_aggregate_size_filter(self, mock_type: MagicMock) -> None:
         config = SearchConfig()
         mock_type.return_value = "gigabyte"
 
@@ -384,7 +435,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    def test_aggregate_empty_quoted_arg(self):
+    def test_aggregate_empty_quoted_arg(self) -> None:
         assert parse_search_query('p50(""):5') == [
             AggregateFilter(
                 key=AggregateKey(name='p50("")'), operator="=", value=SearchValue(raw_value=5.0)
@@ -392,7 +443,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
-    def test_aggregate_ibyte_size_filter(self, mock_type):
+    def test_aggregate_ibyte_size_filter(self, mock_type: MagicMock) -> None:
         config = SearchConfig()
         mock_type.return_value = "gibibyte"
 
@@ -412,7 +463,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
-    def test_duration_measurement_filter(self, mock_type):
+    def test_duration_measurement_filter(self, mock_type: MagicMock) -> None:
         config = SearchConfig()
         mock_type.return_value = "second"
 
@@ -429,14 +480,14 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    def test_invalid_duration(self):
+    def test_invalid_duration(self) -> None:
         with pytest.raises(InvalidSearchQuery) as excinfo:
             parse_search_query("transaction.duration:>1111111111w")
         (msg,) = excinfo.value.args
         assert msg == "1111111111w is too large of a value, the maximum value is 999999999 days"
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
-    def test_aggregate_duration_measurement_filter(self, mock_type):
+    def test_aggregate_duration_measurement_filter(self, mock_type: MagicMock) -> None:
         config = SearchConfig()
         mock_type.return_value = "minute"
 
@@ -455,14 +506,14 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    def test_invalid_aggregate_duration(self):
+    def test_invalid_aggregate_duration(self) -> None:
         with pytest.raises(InvalidSearchQuery) as excinfo:
             parse_search_query("trend_difference():>1111111111w")
         (msg,) = excinfo.value.args
         assert msg == "1111111111w is too large of a value, the maximum value is 999999999 days"
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
-    def test_numeric_measurement_filter(self, mock_type):
+    def test_numeric_measurement_filter(self, mock_type: MagicMock) -> None:
         config = SearchConfig()
         mock_type.return_value = "number"
 
@@ -480,7 +531,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
-    def test_aggregate_numeric_measurement_filter(self, mock_type):
+    def test_aggregate_numeric_measurement_filter(self, mock_type: MagicMock) -> None:
         config = SearchConfig()
         mock_type.return_value = "number"
 
@@ -499,7 +550,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    def test_rel_time_filter(self):
+    def test_rel_time_filter(self) -> None:
         now = timezone.now()
         with freeze_time(now):
             assert parse_search_query("time:+7d") == [
@@ -520,13 +571,13 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
                 SearchFilter(key=SearchKey(name="random"), operator="=", value=SearchValue("-2w"))
             ]
 
-    def test_invalid_rel_time_filter(self):
+    def test_invalid_rel_time_filter(self) -> None:
         with pytest.raises(InvalidSearchQuery) as excinfo:
             parse_search_query(f'time:+{"1" * 9999}d')
         (msg,) = excinfo.value.args
         assert msg.endswith(" is not a valid datetime query")
 
-    def test_aggregate_rel_time_filter(self):
+    def test_aggregate_rel_time_filter(self) -> None:
         now = timezone.now()
         with freeze_time(now):
             assert parse_search_query("last_seen():+7d") == [
@@ -547,19 +598,19 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
                 SearchFilter(key=SearchKey(name="random()"), operator="=", value=SearchValue("-2w"))
             ]
 
-    def test_invalid_aggregate_rel_time_filter(self):
+    def test_invalid_aggregate_rel_time_filter(self) -> None:
         with pytest.raises(InvalidSearchQuery) as excinfo:
             parse_search_query(f'last_seen():+{"1" * 9999}d')
         (msg,) = excinfo.value.args
         assert msg.endswith(" is not a valid datetime query")
 
-    def test_invalid_date_filter(self):
+    def test_invalid_date_filter(self) -> None:
         with pytest.raises(InvalidSearchQuery) as excinfo:
             parse_search_query("time:>0000-00-00")
         (msg,) = excinfo.value.args
         assert msg == "0000-00-00 is not a valid ISO8601 date query"
 
-    def test_specific_time_filter(self):
+    def test_specific_time_filter(self) -> None:
         assert parse_search_query("time:2018-01-01") == [
             SearchFilter(
                 key=SearchKey(name="time"),
@@ -615,13 +666,13 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             )
         ]
 
-    def test_invalid_time_format(self):
+    def test_invalid_time_format(self) -> None:
         with pytest.raises(InvalidSearchQuery) as excinfo:
             parse_search_query("time:0000-00-00")
         (msg,) = excinfo.value.args
         assert msg == "0000-00-00 is not a valid datetime query"
 
-    def test_aggregate_time_filter(self):
+    def test_aggregate_time_filter(self) -> None:
         assert parse_search_query("last_seen():>2025-01-01") == [
             AggregateFilter(
                 key=AggregateKey(name="last_seen()"),
@@ -639,13 +690,13 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             )
         ]
 
-    def test_aggregate_time_filter_invalid_date_format(self):
+    def test_aggregate_time_filter_invalid_date_format(self) -> None:
         with pytest.raises(InvalidSearchQuery) as excinfo:
             parse_search_query("last_seen():>0000-00-00")
         (msg,) = excinfo.value.args
         assert msg == "0000-00-00 is not a valid ISO8601 date query"
 
-    def test_timestamp_rollup(self):
+    def test_timestamp_rollup(self) -> None:
         assert parse_search_query("timestamp.to_hour:2018-01-01T05:06:07+00:00") == [
             SearchFilter(
                 key=SearchKey(name="timestamp.to_hour"),
@@ -663,7 +714,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    def test_percentage_filter(self):
+    def test_percentage_filter(self) -> None:
         assert parse_search_query("failure_rate():<5%") == [
             AggregateFilter(
                 key=AggregateKey(name="failure_rate()"),
@@ -679,13 +730,13 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             )
         ]
 
-    def test_percentage_filter_unknown_column(self):
+    def test_percentage_filter_unknown_column(self) -> None:
         with pytest.raises(InvalidSearchQuery) as excinfo:
             parse_search_query("unknown():<5%")
         (msg,) = excinfo.value.args
         assert msg == "unknown is not a valid function"
 
-    def test_binary_operators(self):
+    def test_binary_operators(self) -> None:
         ret_or = parse_search_query("has:release or has:something_else")
         assert ret_or == [
             SearchFilter(
@@ -708,7 +759,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    def test_flags(self):
+    def test_flags(self) -> None:
         ret_flags = parse_search_query("flags[feature.one]:true")
         assert ret_flags == [
             SearchFilter(
@@ -736,7 +787,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             )
         ]
 
-    def test_has_tag(self):
+    def test_has_tag(self) -> None:
         # unquoted key
         assert parse_search_query("has:release") == [
             SearchFilter(
@@ -755,7 +806,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         with pytest.raises(InvalidSearchQuery):
             parse_search_query('has:"hi there"')
 
-    def test_not_has_tag(self):
+    def test_not_has_tag(self) -> None:
         # unquoted key
         assert parse_search_query("!has:release") == [
             SearchFilter(key=SearchKey(name="release"), operator="=", value=SearchValue(""))
@@ -766,7 +817,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             SearchFilter(key=SearchKey(name="hi:there"), operator="=", value=SearchValue(""))
         ]
 
-    def test_allowed_keys(self):
+    def test_allowed_keys(self) -> None:
         config = SearchConfig(allowed_keys={"good_key"})
 
         assert parse_search_query("good_key:123 bad_key:123 text") == [
@@ -783,7 +834,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("text")),
         ]
 
-    def test_blocked_keys(self):
+    def test_blocked_keys(self) -> None:
         config = SearchConfig(blocked_keys={"bad_key"})
 
         assert parse_search_query("some_key:123 bad_key:123 text") == [
@@ -803,14 +854,14 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("text")),
         ]
 
-    def test_invalid_aggregate_column_with_duration_filter(self):
+    def test_invalid_aggregate_column_with_duration_filter(self) -> None:
         with self.assertRaisesMessage(
             InvalidSearchQuery,
             expected_message="avg: column argument invalid: stack.colno is not a numeric column",
         ):
             parse_search_query("avg(stack.colno):>500s")
 
-    def test_invalid_numeric_aggregate_filter(self):
+    def test_invalid_numeric_aggregate_filter(self) -> None:
         with self.assertRaisesMessage(
             InvalidSearchQuery, "is not a valid number suffix, must be k, m or b"
         ):
@@ -821,13 +872,13 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ):
             parse_search_query("count_if(measurements.fcp, greater, 5s):3s")
 
-    def test_is_query_unsupported(self):
+    def test_is_query_unsupported(self) -> None:
         with pytest.raises(
             InvalidSearchQuery, match=".*queries are not supported in this search.*"
         ):
             parse_search_query("is:unassigned")
 
-    def test_is_query_when_configured(self):
+    def test_is_query_when_configured(self) -> None:
         config = SearchConfig.create_from(
             default_config,
             is_filter_translation={
@@ -844,7 +895,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             )
         ]
 
-    def test_is_query_invalid_is_value_when_configured(self):
+    def test_is_query_invalid_is_value_when_configured(self) -> None:
         config = SearchConfig.create_from(
             default_config,
             is_filter_translation={
@@ -857,7 +908,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         (msg,) = excinfo.value.args
         assert msg == "Invalid value for \"is\" search, valid values are ['assigned', 'unassigned']"
 
-    def test_is_query_invalid_is_value_syntax(self):
+    def test_is_query_invalid_is_value_syntax(self) -> None:
         config = SearchConfig.create_from(
             default_config,
             is_filter_translation={
@@ -870,7 +921,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         (msg,) = excinfo.value.args
         assert msg == '"in" syntax invalid for "is" search'
 
-    def test_escaping_asterisk(self):
+    def test_escaping_asterisk(self) -> None:
         # the asterisk is escaped with a preceding backslash, so it's a literal and not a wildcard
         search_filters = parse_search_query(r"title:a\*b")
         assert search_filters == [
@@ -892,7 +943,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         assert search_filter.value.value == r"^.*\*.*$"
 
     @pytest.mark.xfail(reason="escaping backslashes is not supported yet")
-    def test_escaping_backslashes(self):
+    def test_escaping_backslashes(self) -> None:
         search_filters = parse_search_query(r"title:a\\b")
         assert search_filters == [
             SearchFilter(key=SearchKey(name="title"), operator="=", value=SearchValue(r"a\\b"))
@@ -903,7 +954,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         assert search_filter.value.value == r"a\b"
 
     @pytest.mark.xfail(reason="escaping backslashes is not supported yet")
-    def test_trailing_escaping_backslashes(self):
+    def test_trailing_escaping_backslashes(self) -> None:
         search_filters = parse_search_query(r"title:a\\")
         assert search_filters == [
             SearchFilter(key=SearchKey(name="title"), operator="=", value=SearchValue(r"a\\"))
@@ -913,7 +964,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         assert isinstance(search_filter, SearchFilter)
         assert search_filter.value.value == "a\\"
 
-    def test_escaping_quotes(self):
+    def test_escaping_quotes(self) -> None:
         search_filters = parse_search_query(r"title:a\"b")
         assert search_filters == [
             SearchFilter(key=SearchKey(name="title"), operator="=", value=SearchValue(r'a"b'))
@@ -946,7 +997,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         (r"\*\*\*aaa\*\*\*", r"***aaa***"),
     ],
 )
-def test_search_value(raw, result):
+def test_search_value(raw, result) -> None:
     search_value = SearchValue(raw)
     assert search_value.value == result
 
@@ -965,7 +1016,7 @@ def test_search_value(raw, result):
         "transaction.duration:<1.0",
     ],
 )
-def test_search_filter_to_query_string(query):
+def test_search_filter_to_query_string(query) -> None:
     """
     Does a round trip (from query string to tokens and back to query string)
     """
@@ -987,7 +1038,7 @@ def test_search_filter_to_query_string(query):
         (datetime.datetime(2023, 10, 15, 11, 12, 13), "2023-10-15T11:12:13"),
     ],
 )
-def test_search_value_to_query_string(value, expected_query_string):
+def test_search_value_to_query_string(value, expected_query_string) -> None:
     """
     Test turning a QueryValue back to a string usable in a query string
     """
@@ -1019,7 +1070,7 @@ def test_search_value_to_query_string(value, expected_query_string):
         pytest.param("Case*", "prefix", "case", id="prefix is lower cased"),
     ],
 )
-def test_search_value_classify_and_format_wildcard(value, expected_kind, expected_value):
+def test_search_value_classify_and_format_wildcard(value, expected_kind, expected_value) -> None:
     """
     Test classifying the wildcard type into one of prefix/suffix/infix/other
     and formatting the value according to the classification results.
@@ -1040,7 +1091,7 @@ def test_search_value_classify_and_format_wildcard(value, expected_kind, expecte
         pytest.param("c*o_m%p\\*lex", "c%o\\_m\\%p*lex", id="complex"),
     ],
 )
-def test_translate_wildcard_as_clickhouse_pattern(pattern, clickhouse):
+def test_translate_wildcard_as_clickhouse_pattern(pattern, clickhouse) -> None:
     assert translate_wildcard_as_clickhouse_pattern(pattern) == clickhouse
 
 
@@ -1052,7 +1103,7 @@ def test_translate_wildcard_as_clickhouse_pattern(pattern, clickhouse):
         pytest.param("\\_"),
     ],
 )
-def test_invalid_translate_wildcard_as_clickhouse_pattern(pattern):
+def test_invalid_translate_wildcard_as_clickhouse_pattern(pattern) -> None:
     with pytest.raises(InvalidSearchQuery):
         assert translate_wildcard_as_clickhouse_pattern(pattern)
 
@@ -1067,6 +1118,8 @@ def test_invalid_translate_wildcard_as_clickhouse_pattern(pattern):
         pytest.param("tags[foo:bar,string]:true", "tags[foo:bar,string]", "true"),
         pytest.param("tags[foo,number]:0", "tags[foo,number]", "0"),
         pytest.param("tags[foo:bar,number]:0", "tags[foo:bar,number]", "0"),
+        pytest.param("tags[foo,boolean]:true", "tags[foo,boolean]", "true"),
+        pytest.param("tags[foo:bar,boolean]:true", "tags[foo:bar,boolean]", "true"),
         pytest.param("flags[foo]:true", "flags[foo]", "true"),
         pytest.param("flags[foo,string]:true", "flags[foo,string]", "true"),
         pytest.param("flags[foo:bar,string]:true", "flags[foo:bar,string]", "true"),
@@ -1074,7 +1127,7 @@ def test_invalid_translate_wildcard_as_clickhouse_pattern(pattern):
         pytest.param("flags[foo:bar,number]:0", "flags[foo:bar,number]", "0"),
     ],
 )
-def test_handles_special_character_in_tags_and_flags(query, key, value):
+def test_handles_special_character_in_tags_and_flags(query, key, value) -> None:
     parsed = parse_search_query(query)
     assert parsed == [SearchFilter(SearchKey(key), "=", SearchValue(value))]
 
@@ -1085,9 +1138,11 @@ def test_handles_special_character_in_tags_and_flags(query, key, value):
         pytest.param("has:tags[foo]", "tags[foo]"),
         pytest.param("has:tags[foo,string]", "tags[foo,string]"),
         pytest.param("has:tags[foo,number]", "tags[foo,number]"),
+        pytest.param("has:tags[foo,boolean]", "tags[foo,boolean]"),
         pytest.param("has:tags[foo:bar]", "tags[foo:bar]"),
         pytest.param("has:tags[foo:bar,string]", "tags[foo:bar,string]"),
         pytest.param("has:tags[foo:bar,number]", "tags[foo:bar,number]"),
+        pytest.param("has:tags[foo:bar,boolean]", "tags[foo:bar,boolean]"),
         pytest.param("has:flags[foo]", "flags[foo]"),
         pytest.param("has:flags[foo,string]", "flags[foo,string]"),
         pytest.param("has:flags[foo,number]", "flags[foo,number]"),
@@ -1096,6 +1151,254 @@ def test_handles_special_character_in_tags_and_flags(query, key, value):
         pytest.param("has:flags[foo:bar,number]", "flags[foo:bar,number]"),
     ],
 )
-def test_handles_has_tags_and_flags(query, key):
+def test_handles_has_tags_and_flags(query, key) -> None:
     parsed = parse_search_query(query)
     assert parsed == [SearchFilter(SearchKey(key), "!=", SearchValue(""))]
+
+
+@pytest.mark.parametrize(
+    ["value", "wildcard_op", "expected"],
+    [
+        # testing basic cases
+        pytest.param("test", "", "test"),
+        pytest.param("", WILDCARD_OPERATOR_MAP["contains"], ""),
+        pytest.param("*test*", WILDCARD_OPERATOR_MAP["contains"], "*\\*test\\**"),
+        pytest.param("\\*test\\*", WILDCARD_OPERATOR_MAP["contains"], "*\\*test\\**"),
+    ],
+)
+def test_gen_wildcard_value(value, wildcard_op, expected) -> None:
+    assert gen_wildcard_value(value, wildcard_op) == expected
+
+
+@pytest.mark.parametrize(
+    ["query", "expected"],
+    [
+        # --- contains ---
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}test", "span.op:=^.*test.*$"
+        ),
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}*test", "span.op:=^.*\\*test.*$"
+        ),
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}test*", "span.op:=^.*test\\*.*$"
+        ),
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}*test*",
+            "span.op:=^.*\\*test\\*.*$",
+        ),
+        # --- contains quoted text ---
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}"test 1"',
+            "span.op:=^.*test\\ 1.*$",
+        ),
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}"*test 1"',
+            "span.op:=^.*\\*test\\ 1.*$",
+        ),
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}"test 1*"',
+            "span.op:=^.*test\\ 1\\*.*$",
+        ),
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}"*test 1*"',
+            "span.op:=^.*\\*test\\ 1\\*.*$",
+        ),
+        # --- contains text list ---
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}[test, test2]",
+            "span.op:[*test*, *test2*]",
+        ),
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}[*test, *test2]",
+            "span.op:[*\\*test*, *\\*test2*]",
+        ),
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}[test*, test2*]",
+            "span.op:[*test\\**, *test2\\**]",
+        ),
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}[*test*, *test2*]",
+            "span.op:[*\\*test\\**, *\\*test2\\**]",
+        ),
+        # --- contains quoted text list ---
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}["test 1", "test 2"]',
+            "span.op:[*test 1*, *test 2*]",
+        ),
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}["*test 1", "*test 2"]',
+            "span.op:[*\\*test 1*, *\\*test 2*]",
+        ),
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}["test 1*", "test 2*"]',
+            "span.op:[*test 1\\**, *test 2\\**]",
+        ),
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}Contains{WILDCARD_UNICODE}["*test 1*", "*test 2*"]',
+            "span.op:[*\\*test 1\\**, *\\*test 2\\**]",
+        ),
+    ],
+)
+def test_handles_contains_wildcard_op_translations(query, expected) -> None:
+    filters = parse_search_query(query)
+    assert len(filters) == 1
+    assert isinstance(filters[0], SearchFilter)
+    actual = filters[0].to_query_string()
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
+    ["query", "expected"],
+    [
+        # --- StartsWith ---
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}test", "span.op:=^test.*$"
+        ),
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}*test", "span.op:=^\\*test.*$"
+        ),
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}test*", "span.op:=^test\\*.*$"
+        ),
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}*test*",
+            "span.op:=^\\*test\\*.*$",
+        ),
+        # --- StartsWith quoted text ---
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}"test 1"',
+            "span.op:=^test\\ 1.*$",
+        ),
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}"*test 1"',
+            "span.op:=^\\*test\\ 1.*$",
+        ),
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}"test 1*"',
+            "span.op:=^test\\ 1\\*.*$",
+        ),
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}"*test 1*"',
+            "span.op:=^\\*test\\ 1\\*.*$",
+        ),
+        # --- StartsWith text list ---
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}[test, test2]",
+            "span.op:[test*, test2*]",
+        ),
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}[*test, *test2]",
+            "span.op:[\\*test*, \\*test2*]",
+        ),
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}[test*, test2*]",
+            "span.op:[test\\**, test2\\**]",
+        ),
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}[*test*, *test2*]",
+            "span.op:[\\*test\\**, \\*test2\\**]",
+        ),
+        # --- StartsWith quoted text list ---
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}["test 1", "test 2"]',
+            "span.op:[test 1*, test 2*]",
+        ),
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}["*test 1", "*test 2"]',
+            "span.op:[\\*test 1*, \\*test 2*]",
+        ),
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}["test 1*", "test 2*"]',
+            "span.op:[test 1\\**, test 2\\**]",
+        ),
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}["*test 1*", "*test 2*"]',
+            "span.op:[\\*test 1\\**, \\*test 2\\**]",
+        ),
+    ],
+)
+def test_handles_starts_with_wildcard_op_translations(query, expected) -> None:
+    filters = parse_search_query(query)
+    assert len(filters) == 1
+    assert isinstance(filters[0], SearchFilter)
+    actual = filters[0].to_query_string()
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
+    ["query", "expected"],
+    [
+        # --- EndsWith ---
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}test", "span.op:=^.*test$"
+        ),
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}*test", "span.op:=^.*\\*test$"
+        ),
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}test*", "span.op:=^.*test\\*$"
+        ),
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}*test*",
+            "span.op:=^.*\\*test\\*$",
+        ),
+        # --- EndsWith quoted text ---
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}"test 1"',
+            "span.op:=^.*test\\ 1$",
+        ),
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}"*test 1"',
+            "span.op:=^.*\\*test\\ 1$",
+        ),
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}"test 1*"',
+            "span.op:=^.*test\\ 1\\*$",
+        ),
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}"*test 1*"',
+            "span.op:=^.*\\*test\\ 1\\*$",
+        ),
+        # --- EndsWith text list ---
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}[test, test2]",
+            "span.op:[*test, *test2]",
+        ),
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}[*test, *test2]",
+            "span.op:[*\\*test, *\\*test2]",
+        ),
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}[test*, test2*]",
+            "span.op:[*test\\*, *test2\\*]",
+        ),
+        pytest.param(
+            f"span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}[*test*, *test2*]",
+            "span.op:[*\\*test\\*, *\\*test2\\*]",
+        ),
+        # --- EndsWith quoted text list ---
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}["test 1", "test 2"]',
+            "span.op:[*test 1, *test 2]",
+        ),
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}["*test 1", "*test 2"]',
+            "span.op:[*\\*test 1, *\\*test 2]",
+        ),
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}["test 1*", "test 2*"]',
+            "span.op:[*test 1\\*, *test 2\\*]",
+        ),
+        pytest.param(
+            f'span.op:{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}["*test 1*", "*test 2*"]',
+            "span.op:[*\\*test 1\\*, *\\*test 2\\*]",
+        ),
+    ],
+)
+def test_handles_ends_with_wildcard_op_translations(query, expected) -> None:
+    filters = parse_search_query(query)
+    assert len(filters) == 1
+    assert isinstance(filters[0], SearchFilter)
+    actual = filters[0].to_query_string()
+    assert actual == expected

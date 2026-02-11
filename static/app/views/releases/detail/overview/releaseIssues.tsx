@@ -4,10 +4,11 @@ import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import type {Client} from 'sentry/api';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import GroupList from 'sentry/components/issues/groupList';
 import Pagination from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
@@ -15,6 +16,7 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {escapeDoubleQuotes} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -369,30 +371,35 @@ class ReleaseIssues extends Component<Props, State> {
       <Fragment>
         <ControlsWrapper>
           <DemoTourElement
-            id={DemoTourStep.RELEASES_STATES}
+            id={DemoTourStep.RELEASES_ISSUES}
             title={t('New and regressed issues')}
             description={t(
               `Along with reviewing how your release is trending over time compared to previous releases, you can view new and regressed issues here.`
             )}
+            position="top-start"
           >
-            <SegmentedControl
-              aria-label={t('Issue type')}
-              size="xs"
-              value={issuesType}
-              onChange={key => this.handleIssuesTypeSelection(key)}
-            >
-              {issuesTypes.map(({value, label, issueCount}) => (
-                <SegmentedControl.Item key={value} textValue={label}>
-                  {label}&nbsp;
-                  <QueryCount
-                    count={issueCount}
-                    max={99}
-                    hideParens
-                    hideIfEmpty={false}
-                  />
-                </SegmentedControl.Item>
-              ))}
-            </SegmentedControl>
+            {tourProps => (
+              <div {...tourProps}>
+                <SegmentedControl
+                  aria-label={t('Issue type')}
+                  size="xs"
+                  value={issuesType}
+                  onChange={key => this.handleIssuesTypeSelection(key)}
+                >
+                  {issuesTypes.map(({value, label, issueCount}) => (
+                    <SegmentedControl.Item key={value} textValue={label}>
+                      {label}&nbsp;
+                      <QueryCount
+                        count={issueCount}
+                        max={99}
+                        hideParens
+                        hideIfEmpty={false}
+                      />
+                    </SegmentedControl.Item>
+                  ))}
+                </SegmentedControl>
+              </div>
+            )}
           </DemoTourElement>
 
           <OpenInButtonBar>
@@ -407,7 +414,7 @@ class ReleaseIssues extends Component<Props, State> {
           <GroupList
             endpointPath={path}
             queryParams={queryParams}
-            query={`release:${version}`}
+            query={`release:"${escapeDoubleQuotes(version)}"`}
             canSelectGroups={false}
             queryFilterDescription={queryFilterDescription}
             withChart={withChart}
@@ -415,6 +422,7 @@ class ReleaseIssues extends Component<Props, State> {
             withPagination={false}
             onFetchSuccess={this.handleFetchSuccess}
             source="release"
+            numPlaceholderRows={queryParams.limit}
           />
         </div>
       </Fragment>
@@ -432,7 +440,9 @@ const ControlsWrapper = styled('div')`
   }
 `;
 
-const OpenInButtonBar = styled(ButtonBar)`
+const OpenInButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   margin: ${space(1)} 0;
 `;
 

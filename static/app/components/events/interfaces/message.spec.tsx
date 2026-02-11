@@ -6,8 +6,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Message} from 'sentry/components/events/interfaces/message';
 
-describe('Message entry', function () {
-  it('display redacted data', async function () {
+describe('Message entry', () => {
+  it('display redacted data', async () => {
     const event = EventFixture({
       entries: [
         {

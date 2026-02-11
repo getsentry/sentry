@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 
-describe('MetricReadout', function () {
+describe('MetricReadout', () => {
   it('shows a loading spinner if data is loading', () => {
     render(
       <MetricReadout
@@ -28,7 +28,7 @@ describe('MetricReadout', function () {
   });
 
   it('parses strings', () => {
-    render(<MetricReadout title="Rate" unit={RateUnit.PER_MINUTE} value={'17.8'} />);
+    render(<MetricReadout title="Rate" unit={RateUnit.PER_MINUTE} value="17.8" />);
 
     expect(screen.getByRole('heading', {name: 'Rate'})).toBeInTheDocument();
     expect(screen.getByText('17.8/min')).toBeInTheDocument();
@@ -119,6 +119,6 @@ describe('MetricReadout', function () {
     render(<MetricReadout title="Count" unit="count" value={7800123} />);
 
     expect(screen.getByRole('heading', {name: 'Count'})).toBeInTheDocument();
-    expect(screen.getByText('7.8m')).toBeInTheDocument();
+    expect(screen.getByText('7.8M')).toBeInTheDocument();
   });
 });

@@ -1,18 +1,22 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import omit from 'lodash/omit';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {PAGE_URL_PARAM} from 'sentry/components/pageFilters/constants';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -44,8 +48,9 @@ import {
   TraceDrawerActionKind,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
-import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
 const formatter = new SQLishFormatter();
@@ -62,20 +67,22 @@ export function SpanDescription({
   attributes: TraceItemResponseAttribute[];
   avgSpanDuration: number | undefined;
   location: Location;
-  node: TraceTreeNode<TraceTree.EAPSpan>;
+  node: EapSpanNode;
   organization: Organization;
   project: Project | undefined;
   hideNodeActions?: boolean;
 }) {
   const {data: event} = useEventDetails({
-    eventId: node.event?.eventID,
+    eventId: node.value.transaction_id,
     projectSlug: project?.slug,
   });
   const span = node.value;
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
 
   const category = findSpanAttributeValue(attributes, 'span.category');
   const dbSystem = findSpanAttributeValue(attributes, 'db.system');
+  const dbQueryText = findSpanAttributeValue(attributes, 'db.query.text');
   const group = findSpanAttributeValue(attributes, 'span.group');
 
   const resolvedModule: ModuleName = resolveSpanModule(span.op, category);
@@ -93,15 +100,38 @@ export function SpanDescription({
       return prettyPrintJsonString(span.description).prettifiedQuery;
     }
 
-    return formatter.toString(span.description ?? '');
-  }, [span.description, resolvedModule, dbSystem]);
+    return formatter.toString(dbQueryText ?? span.description ?? '');
+  }, [span.description, resolvedModule, dbSystem, dbQueryText]);
 
-  const actions = span.description ? (
+  const exploreUsingName =
+    shouldUseOTelFriendlyUI && !span.description && span.name !== span.op;
+  const exploreAttributeName = exploreUsingName
+    ? SpanFields.NAME
+    : SpanFields.SPAN_DESCRIPTION;
+  const exploreAttributeValue = exploreUsingName ? span.name : span.description;
+
+  const actions = exploreAttributeValue ? (
     <BodyContentWrapper
       padding={
         resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : `${space(1)}`
       }
     >
+      {node.value.is_transaction ? (
+        <StyledLink
+          to={transactionSummaryRouteWithQuery({
+            organization,
+            transaction: node.value.transaction,
+            // Omit the query from the target url, as we dont know where it may have came from
+            // and if its syntax is supported on the target page. In this example, txn search does
+            // not support is:filter type expressions (and possibly other expressions we dont know about)
+            query: omit(location.query, Object.values(PAGE_URL_PARAM).concat('query')),
+            projectID: String(node.value.project_id),
+          })}
+        >
+          <IconGraph type="area" size="xs" />
+          {t('View Summary')}
+        </StyledLink>
+      ) : null}
       <SpanSummaryLink
         op={span.op}
         category={category}
@@ -109,45 +139,30 @@ export function SpanDescription({
         project_id={span.project_id.toString()}
         organization={organization}
       />
-      <Link
-        to={
-          hasExploreEnabled
-            ? getSearchInExploreTarget(
-                organization,
-                location,
-                node.event?.projectID,
-                SpanFields.SPAN_DESCRIPTION,
-                span.description,
-                TraceDrawerActionKind.INCLUDE
-              )
-            : spanDetailsRouteWithQuery({
-                organization,
-                transaction: node.event?.title ?? '',
-                query: location.query,
-                spanSlug: {op: span.op, group: group ?? ''},
-                projectID: node.event?.projectID,
-              })
-        }
-        onClick={() => {
-          if (hasExploreEnabled) {
+      {hasExploreEnabled && (
+        <StyledLink
+          to={getSearchInExploreTarget(
+            organization,
+            location,
+            node.projectId?.toString(),
+            exploreAttributeName,
+            exploreAttributeValue,
+            TraceDrawerActionKind.INCLUDE
+          )}
+          onClick={() => {
             traceAnalytics.trackExploreSearch(
               organization,
-              SpanFields.SPAN_DESCRIPTION,
-              span.description!,
+              exploreAttributeName,
+              exploreAttributeValue,
               TraceDrawerActionKind.INCLUDE,
               'drawer'
             );
-          } else {
-            trackAnalytics('trace.trace_layout.view_span_summary', {
-              organization,
-              module: resolvedModule,
-            });
-          }
-        }}
-      >
-        <StyledIconGraph type="scatter" size="xs" />
-        {hasExploreEnabled ? t('More Samples') : t('View Similar Spans')}
-      </Link>
+          }}
+        >
+          <IconGraph type="scatter" size="xs" />
+          {hasExploreEnabled ? t('More Samples') : t('View Similar Spans')}
+        </StyledLink>
+      )}
     </BodyContentWrapper>
   ) : null;
 
@@ -155,9 +170,16 @@ export function SpanDescription({
   const codeLineNumber = findSpanAttributeValue(attributes, 'code.lineno');
   const codeFunction = findSpanAttributeValue(attributes, 'code.function');
 
+  const requestMethod = findSpanAttributeValue(attributes, 'http.request.method');
+
+  // `"url.full"` is semantic, but `"url"` is common
+  const spanURL =
+    findSpanAttributeValue(attributes, 'url.full') ??
+    findSpanAttributeValue(attributes, 'url');
+
   const value =
     resolvedModule === ModuleName.DB ? (
-      <CodeSnippetWrapper>
+      <Stack flex="1">
         <StyledCodeSnippet
           language={dbSystem === 'mongodb' ? 'json' : 'sql'}
           isRounded={false}
@@ -166,7 +188,7 @@ export function SpanDescription({
         </StyledCodeSnippet>
         {codeFilepath ? (
           <StackTraceMiniFrame
-            projectId={node.event?.projectID}
+            projectId={node.projectId?.toString()}
             event={event}
             frame={{
               filename: codeFilepath,
@@ -177,26 +199,72 @@ export function SpanDescription({
         ) : (
           <MissingFrame />
         )}
-      </CodeSnippetWrapper>
+      </Stack>
+    ) : resolvedModule === ModuleName.HTTP && span.op === 'http.client' && spanURL ? (
+      <Flex direction="column" width="100%">
+        <Flex align="start" justify="between" gap="xs" padding="md">
+          <Flex align="start" paddingLeft="md" paddingTop="sm" paddingBottom="sm">
+            <Flex gap="xs">
+              {requestMethod && <Text>{requestMethod}</Text>}
+              <Text wordBreak="break-word">{spanURL}</Text>
+            </Flex>
+            <LinkHint value={spanURL} />
+          </Flex>
+          <CopyToClipboardButton
+            priority="transparent"
+            size="zero"
+            aria-label={t('Copy span URL to clipboard')}
+            text={spanURL}
+            tooltipProps={{disabled: true}}
+          />
+        </Flex>
+        {codeFilepath && (
+          <StackTraceMiniFrame
+            projectId={project?.id}
+            event={event}
+            frame={{
+              filename: codeFilepath,
+              lineNo: codeLineNumber ? Number(codeLineNumber) : null,
+              function: codeFunction,
+            }}
+          />
+        )}
+      </Flex>
     ) : resolvedModule === ModuleName.RESOURCE && span.op === 'resource.img' ? (
       <ResourceImageDescription
         formattedDescription={formattedDescription}
         node={node}
         attributes={attributes}
       />
+    ) : shouldUseOTelFriendlyUI &&
+      !span.description &&
+      span.name &&
+      span.name !== span.op ? (
+      <DescriptionWrapper>
+        <Flex align="center" minHeight="24px">
+          {span.name}
+        </Flex>
+        <CopyToClipboardButton
+          priority="transparent"
+          size="zero"
+          text={span.name}
+          aria-label={t('Copy span name to clipboard')}
+          tooltipProps={{disabled: true}}
+        />
+      </DescriptionWrapper>
     ) : (
       <DescriptionWrapper>
         {formattedDescription ? (
           <Fragment>
-            <FormattedDescription>
+            <Flex align="center" minHeight="24px">
               {formattedDescription}
               <LinkHint value={formattedDescription} />
-            </FormattedDescription>
+            </Flex>
             <CopyToClipboardButton
-              borderless
+              priority="transparent"
               size="zero"
-              iconSize="xs"
               text={formattedDescription}
+              aria-label={t('Copy formatted description to clipboard')}
               tooltipProps={{disabled: true}}
             />
           </Fragment>
@@ -209,15 +277,16 @@ export function SpanDescription({
   return (
     <TraceDrawerComponents.Highlights
       node={node}
-      transaction={undefined}
       project={project}
       avgDuration={avgSpanDuration ? avgSpanDuration / 1000 : undefined}
       headerContent={value}
       bodyContent={actions}
       hideNodeActions={hideNodeActions}
+      footerContent={<TraceDrawerComponents.HighLightEAPOpsBreakdown node={node} />}
+      comparisonDescription={t('Average duration for this span over the last 24 hours')}
       highlightedAttributes={getHighlightedSpanAttributes({
-        organization,
         attributes,
+        spanId: span.event_id,
         op: span.op,
       })}
     />
@@ -247,7 +316,7 @@ function ResourceImageDescription({
 }: {
   attributes: TraceItemResponseAttribute[];
   formattedDescription: string;
-  node: TraceTreeNode<TraceTree.EAPSpan>;
+  node: EapSpanNode;
 }) {
   const span = node.value;
 
@@ -273,7 +342,7 @@ function ResourceImageDescription({
       ) : (
         <DisabledImages
           onClickShowLinks={() => setShowLinks(true)}
-          projectSlug={span.project_slug ?? node.event?.projectSlug}
+          projectSlug={span.project_slug ?? node.projectSlug}
         />
       )}
     </StyledDescriptionWrapper>
@@ -291,19 +360,19 @@ function ResourceImage(props: {
   const {fileName, size, src, showImage = true} = props;
 
   return (
-    <ImageContainer>
-      <FilenameContainer>
+    <Stack align="center" gap="xs" width="100%">
+      <Flex justify="between" align="baseline" gap="md" width="100%">
         <span>
           {fileName} (<ResourceSize bytes={size} />)
         </span>
         <CopyToClipboardButton
-          borderless
+          priority="transparent"
           size="zero"
-          iconSize="xs"
           text={fileName}
+          aria-label={t('Copy file name to clipboard')}
           title={t('Copy file name')}
         />
-      </FilenameContainer>
+      </Flex>
       {showImage && !hasError ? (
         <ImageWrapper>
           <img
@@ -321,17 +390,9 @@ function ResourceImage(props: {
       ) : (
         <MissingImage />
       )}
-    </ImageContainer>
+    </Stack>
   );
 }
-
-const FilenameContainer = styled('div')`
-  width: 100%;
-  display: flex;
-  align-items: baseline;
-  gap: ${space(1)};
-  justify-content: space-between;
-`;
 
 const ImageWrapper = styled('div')`
   width: 200px;
@@ -339,22 +400,10 @@ const ImageWrapper = styled('div')`
   margin: auto;
 `;
 
-const ImageContainer = styled('div')`
-  width: 100%;
+const StyledLink = styled(Link)`
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: ${space(0.5)};
-`;
-
-const CodeSnippetWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-`;
-
-const StyledIconGraph = styled(IconGraph)`
-  margin-right: ${space(0.5)};
 `;
 
 const BodyContentWrapper = styled('div')<{padding: string}>`
@@ -363,22 +412,16 @@ const BodyContentWrapper = styled('div')<{padding: string}>`
   padding: ${p => p.padding};
 `;
 
-const StyledCodeSnippet = styled(CodeSnippet)`
+const StyledCodeSnippet = styled(CodeBlock)`
   code {
     text-wrap: wrap;
   }
 `;
 
-const FormattedDescription = styled('div')`
-  min-height: 24px;
-  display: flex;
-  align-items: center;
-`;
-
 const DescriptionWrapper = styled('div')`
   display: flex;
   align-items: flex-start;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   width: 100%;
   justify-content: space-between;
   flex-direction: row;

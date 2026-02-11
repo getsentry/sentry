@@ -6,7 +6,10 @@ import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender'
 import {VirtualizedTreeReducer} from './useVirtualizedTreeReducer';
 import {VirtualizedTree} from './VirtualizedTree';
 import type {VirtualizedTreeNode} from './VirtualizedTreeNode';
-import type {VirtualizedTreeRenderedRow} from './virtualizedTreeUtils';
+import type {
+  VirtualizedTreeRenderedRow,
+  VirtualizedTreeRenderedRowHandlers,
+} from './virtualizedTreeUtils';
 import {
   cancelAnimationTimeout,
   computeVirtualizedTreeNodeScrollTop,
@@ -105,17 +108,7 @@ export interface UseVirtualizedTreeProps<T extends TreeLike> {
   overscroll?: number;
   renderRow?: (
     item: VirtualizedTreeRenderedRow<T>,
-    itemHandlers: {
-      handleExpandTreeNode: (
-        node: VirtualizedTreeNode<T>,
-        expand: boolean,
-        opts?: {expandChildren: boolean}
-      ) => void;
-      handleRowClick: (evt: React.MouseEvent<HTMLElement>) => void;
-      handleRowKeyDown: (event: React.KeyboardEvent) => void;
-      handleRowMouseEnter: (event: React.MouseEvent<HTMLElement>) => void;
-      selectedNodeIndex: number | null;
-    }
+    itemHandlers: VirtualizedTreeRenderedRowHandlers<T>
   ) => React.ReactNode;
   skipFunction?: (node: VirtualizedTreeNode<T>) => boolean;
   sortFunction?: (a: VirtualizedTreeNode<T>, b: VirtualizedTreeNode<T>) => number;
@@ -907,6 +900,10 @@ export function useVirtualizedTree<T extends TreeLike>(
     };
   }, [props.scrollContainer, props.rowHeight]);
 
+  const getNodeAtIndex = useCallback((index: number) => {
+    return latestItemsRef.current.find(row => row.key === index)?.item?.node;
+  }, []);
+
   return {
     tree,
     items,
@@ -923,5 +920,6 @@ export function useVirtualizedTree<T extends TreeLike>(
     containerStyles,
     clickedGhostRowRef,
     hoveredGhostRowRef,
+    getNodeAtIndex,
   };
 }

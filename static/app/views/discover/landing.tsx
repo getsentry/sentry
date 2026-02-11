@@ -1,21 +1,25 @@
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Switch} from '@sentry/scraps/switch';
+
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Switch} from 'sentry/components/core/switch';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
@@ -24,7 +28,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
@@ -46,7 +49,7 @@ function NoAccess() {
   return (
     <Layout.Page withPadding>
       <Alert.Container>
-        <Alert type="warning" showIcon={false}>
+        <Alert variant="warning" showIcon={false}>
           {t("You don't have access to this feature")}
         </Alert>
       </Alert.Container>
@@ -113,7 +116,9 @@ const useDiscoverLandingQuery = (renderPrebuilt: boolean) => {
 
   return useApiQuery<SavedQuery[]>(
     [
-      `/organizations/${organization.slug}/discover/saved/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: queryParams,
       },
@@ -129,7 +134,6 @@ const RENDER_PREBUILT_KEY = 'discover-render-prebuilt';
 function DiscoverLanding() {
   const organization = useOrganization();
   const location = useLocation();
-  const router = useRouter();
   const activeSort = useActiveSort();
   const savedSearchQuery = useSavedSearchQuery();
 
@@ -143,6 +147,7 @@ function DiscoverLanding() {
     error,
     data: savedQueries = [],
     getResponseHeader,
+    refetch: refreshSavedQueries,
   } = useDiscoverLandingQuery(renderPrebuilt);
 
   const savedQueriesPageLinks = getResponseHeader?.('Link');
@@ -188,12 +193,10 @@ function DiscoverLanding() {
               <Breadcrumbs
                 crumbs={[
                   {
-                    key: 'discover-homepage',
                     label: t('Discover'),
                     to: getDiscoverLandingUrl(organization),
                   },
                   {
-                    key: 'discover-saved-queries',
                     label: t('Saved Queries'),
                   },
                 ]}
@@ -216,7 +219,7 @@ function DiscoverLanding() {
             </Layout.HeaderActions>
           </Layout.Header>
           <Layout.Body>
-            <Layout.Main fullWidth>
+            <Layout.Main width="full">
               <StyledActions>
                 <StyledSearchBar
                   defaultQuery=""
@@ -234,7 +237,9 @@ function DiscoverLanding() {
                   />
                 </PrebuiltSwitch>
                 <CompactSelect
-                  triggerProps={{prefix: t('Sort By')}}
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button {...triggerProps} prefix={t('Sort By')} />
+                  )}
                   value={activeSort.value}
                   options={SORT_OPTIONS}
                   onChange={opt => handleSortChange(opt.value)}
@@ -246,15 +251,27 @@ function DiscoverLanding() {
               ) : status === 'error' ? (
                 <LoadingError message={error.message} />
               ) : (
-                <QueryList
-                  pageLinks={savedQueriesPageLinks ?? ''}
-                  savedQueries={savedQueries}
-                  savedQuerySearchQuery={savedSearchQuery}
-                  renderPrebuilt={renderPrebuilt}
-                  location={location}
-                  organization={organization}
-                  router={router}
-                />
+                <QueriesContainer>
+                  {organization.features.includes('expose-migrated-discover-queries') && (
+                    <Alert variant="info">
+                      {tct(
+                        'Your saved transactions queries are also available in the new Explore UI. Try them out in [exploreLink:Explore] instead.',
+                        {
+                          exploreLink: <Link to="/explore/saved-queries/" />,
+                        }
+                      )}
+                    </Alert>
+                  )}
+                  <QueryList
+                    pageLinks={savedQueriesPageLinks ?? ''}
+                    savedQueries={savedQueries}
+                    savedQuerySearchQuery={savedSearchQuery}
+                    renderPrebuilt={renderPrebuilt}
+                    location={location}
+                    organization={organization}
+                    refetchSavedQueries={refreshSavedQueries}
+                  />
+                </QueriesContainer>
               )}
             </Layout.Main>
           </Layout.Body>
@@ -268,7 +285,7 @@ const PrebuiltSwitch = styled('label')`
   display: flex;
   align-items: center;
   gap: ${space(1.5)};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: 0;
 `;
 
@@ -286,6 +303,12 @@ const StyledActions = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
   }
+`;
+
+const QueriesContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.xl};
 `;
 
 export default DiscoverLanding;

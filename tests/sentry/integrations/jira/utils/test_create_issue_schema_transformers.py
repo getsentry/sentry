@@ -15,11 +15,11 @@ from sentry.testutils.cases import TestCase
 
 
 class TestDataTransformer(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         # TODO(Gabe): Add an interface for the Jira client to share among the different impls
         self.client: Any = StubJiraApiClient()
 
-    def test_transform_with_empty_fields_set(self):
+    def test_transform_with_empty_fields_set(self) -> None:
         transformed_data = transform_fields(
             self.client.user_id_field(),
             [],
@@ -54,7 +54,7 @@ class TestDataTransformer(TestCase):
             schema=jira_schema,
         )
 
-    def test_multi_user_array(self):
+    def test_multi_user_array(self) -> None:
         field = self.create_standard_field(
             name="Foo Bar", key="foobar", schema_type=JiraSchemaTypes.user, is_array=True
         )
@@ -68,7 +68,7 @@ class TestDataTransformer(TestCase):
         )
         assert transformed_data == {"foobar": [{"accountId": "abcd"}, {"accountId": "efgh"}]}
 
-    def test_transform_single_user(self):
+    def test_transform_single_user(self) -> None:
         field = self.create_standard_field(schema_type=JiraSchemaTypes.user, name="barfoo")
         transformed_data = transform_fields(
             self.client.user_id_field(), jira_fields=[field], **{"barfoo": "abcd"}
@@ -76,7 +76,7 @@ class TestDataTransformer(TestCase):
 
         assert transformed_data == {"barfoo": {"accountId": "abcd"}}
 
-    def test_transform_number_field(self):
+    def test_transform_number_field(self) -> None:
         field = self.create_standard_field(schema_type=JiraSchemaTypes.number, name="num_field")
         with pytest.raises(IntegrationFormError) as exc:
             transform_fields(
@@ -99,14 +99,14 @@ class TestDataTransformer(TestCase):
 
         assert transformed_data == {"num_field": 5}
 
-    def test_transform_issue_type_field(self):
+    def test_transform_issue_type_field(self) -> None:
         field = self.create_standard_field(name="issue", schema_type=JiraSchemaTypes.issue_type)
         transformed_data = transform_fields(
             self.client.user_id_field(), jira_fields=[field], **{"issue": "abcd"}
         )
         assert transformed_data == {"issue": {"id": "abcd"}}
 
-    def test_transform_option_field(self):
+    def test_transform_option_field(self) -> None:
         field = self.create_standard_field(name="option_thing", schema_type=JiraSchemaTypes.option)
         transformed_data = transform_fields(
             self.client.user_id_field(),
@@ -115,7 +115,7 @@ class TestDataTransformer(TestCase):
         )
         assert transformed_data == {"option_thing": {"value": "abcd"}}
 
-    def test_transform_issue_link_field(self):
+    def test_transform_issue_link_field(self) -> None:
         field = self.create_standard_field(name="link", schema_type=JiraSchemaTypes.issue_link)
 
         transformed_data = transform_fields(
@@ -126,7 +126,7 @@ class TestDataTransformer(TestCase):
 
         assert transformed_data == {"link": {"key": "abcd"}}
 
-    def test_transform_project_field(self):
+    def test_transform_project_field(self) -> None:
         field = self.create_standard_field(name="project", schema_type=JiraSchemaTypes.project)
         transformed_data = transform_fields(
             self.client.user_id_field(),
@@ -136,7 +136,7 @@ class TestDataTransformer(TestCase):
 
         assert transformed_data == {"project": {"id": "abcd"}}
 
-    def test_sprint_custom_field(self):
+    def test_sprint_custom_field(self) -> None:
         sprint_field = JiraField(
             schema=JiraSchema(
                 custom_id=1001,
@@ -159,7 +159,7 @@ class TestDataTransformer(TestCase):
 
         assert transformed_data == {"sprint": 2}
 
-    def test_version_custom_field(self):
+    def test_version_custom_field(self) -> None:
         version_field = JiraField(
             schema=JiraSchema(
                 schema_type=JiraSchemaTypes.version,
@@ -195,7 +195,7 @@ class TestDataTransformer(TestCase):
 
         assert transformed_data == {"fixVersion": {"id": 0}}
 
-    def test_title_field(self):
+    def test_title_field(self) -> None:
         field = self.create_standard_field(name="summary", schema_type=JiraSchemaTypes.string)
         transformed_data = transform_fields(
             self.client.user_id_field(), jira_fields=[field], **{"title": "a" * 512}
@@ -207,7 +207,7 @@ class TestDataTransformer(TestCase):
         )
         assert transformed_data == {"summary": "Test Title"}
 
-    def test_field_capitalization(self):
+    def test_field_capitalization(self) -> None:
         field = self.create_standard_field(name="issuetype", schema_type=JiraSchemaTypes.issue_type)
         transformed_data = transform_fields(
             self.client.user_id_field(), jira_fields=[field], **{"issueType": "1122"}

@@ -84,6 +84,24 @@ describe('useWidgetBuilderState', () => {
     );
   });
 
+  it('does not update the url when the updateUrl option is false', () => {
+    const {result} = renderHook(() => useWidgetBuilderState(), {
+      wrapper: WidgetBuilderProvider,
+    });
+
+    act(() => {
+      result.current.dispatch(
+        {
+          type: BuilderStateAction.SET_TITLE,
+          payload: 'new title',
+        },
+        {updateUrl: false}
+      );
+    });
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
   describe('display type', () => {
     it('returns the display type from the query params', () => {
       mockedUsedLocation.mockReturnValue(
@@ -872,6 +890,30 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.displayType).toBe(DisplayType.TABLE);
     });
 
+    it('resets display type to first supported type when switching to dataset with limited display types', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.TABLE},
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.TABLE);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.PREPROD_APP_SIZE,
+        });
+      });
+
+      // PREPROD_APP_SIZE only supports LINE, so TABLE should be reset to LINE
+      expect(result.current.state.displayType).toBe(DisplayType.LINE);
+    });
+
     it('resets the fields, yAxis, query, and sort when the dataset is switched', () => {
       mockedUsedLocation.mockReturnValue(
         LocationFixture({
@@ -1646,6 +1688,37 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.sort).toEqual([]);
     });
+
+    it('updates the limit when the y-axis changes', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            limit: '5',
+            field: ['event.type'],
+            yAxis: ['count()', 'count_unique(user)'],
+          },
+        })
+      );
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.limit).toBe(5);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_Y_AXIS,
+          payload: [
+            {function: ['count', '', undefined, undefined], kind: 'function'},
+            {function: ['count_unique', 'user', undefined, undefined], kind: 'function'},
+            {function: ['count_unique', 'title', undefined, undefined], kind: 'function'},
+          ],
+        });
+      });
+
+      // The resulting limit should be at max 3
+      expect(result.current.state.limit).toBe(3);
+    });
   });
 
   describe('sort', () => {
@@ -1815,6 +1888,446 @@ describe('useWidgetBuilderState', () => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({selectedAggregate: undefined}),
+        }),
+        expect.anything()
+      );
+    });
+  });
+
+  describe('traceMetric', () => {
+    it('validates and fixes invalid aggregates when trace metric is changed for chart display', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: ['p50(value)', 'p90(value)'],
+            traceMetric: JSON.stringify({name: 'my.metric', type: 'distribution'}),
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      // Initial state should have p50 and p90 from query params
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['p50', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['p90', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      // Change trace metric from distribution to counter, where percentiles are invalid
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_TRACE_METRIC,
+          payload: {name: 'my.metric', type: 'counter'},
+        });
+      });
+
+      // p50 and p90 are now invalid for counter, so they should be replaced with per_second
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['per_second', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['per_second', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+
+    it('validates and fixes invalid aggregates when trace metric is changed for big number display', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.BIG_NUMBER,
+            field: ['avg(value)'],
+            traceMetric: JSON.stringify({name: 'my.metric', type: 'gauge'}),
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      // Initial state should have avg (valid for gauge)
+      expect(result.current.state.fields).toEqual([
+        {
+          function: ['avg', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      // Change trace metric to counter which doesn't support avg
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_TRACE_METRIC,
+          payload: {name: 'my.metric', type: 'counter'},
+        });
+      });
+
+      // Aggregate should be updated to valid one for counter (per_second is the first valid option)
+      expect(result.current.state.fields).toEqual([
+        {
+          function: ['per_second', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+
+    it('does not modify aggregates when they are already valid for the trace metric type', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: ['sum(value)'],
+            traceMetric: JSON.stringify({name: 'my.metric', type: 'counter'}),
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      // Initial state should have sum (valid for counter)
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['sum', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      // Change trace metric to distribution which also supports sum
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_TRACE_METRIC,
+          payload: {name: 'my.metric', type: 'distribution'},
+        });
+      });
+
+      // sum is valid for distribution, so it should remain unchanged
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['sum', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+
+    it('handles mixed valid and invalid aggregates', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: ['sum(value)', 'p99(value)', 'count(value)'],
+            traceMetric: JSON.stringify({name: 'my.metric', type: 'distribution'}),
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      // All aggregates are valid for distribution
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['sum', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['p99', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      // Change to counter which only supports sum and count (not p99)
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_TRACE_METRIC,
+          payload: {name: 'my.metric', type: 'counter'},
+        });
+      });
+
+      // sum and count should remain, but p99 should be replaced with per_second (first valid option)
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['sum', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['per_second', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['per_second', 'value', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+
+    it('only applies validation for trace metrics dataset', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.ERRORS,
+            displayType: DisplayType.LINE,
+            yAxis: ['count()'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      // Try to set a trace metric on a non-trace-metrics dataset
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_TRACE_METRIC,
+          payload: {name: 'my.metric', type: 'counter'},
+        });
+      });
+
+      // yAxis should remain unchanged since dataset is not TRACEMETRICS
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+  });
+
+  describe('categorical bar chart actions', () => {
+    it('updates only the X-axis field with SET_CATEGORICAL_X_AXIS', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.CATEGORICAL_BAR,
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'transaction'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', '', undefined, undefined],
+              },
+            ]),
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_CATEGORICAL_X_AXIS,
+          payload: 'project',
+        });
+      });
+
+      jest.runAllTimers();
+
+      // Should preserve aggregates while updating X-axis
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'project'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', '', undefined, undefined],
+              },
+            ]),
+          }),
+        }),
+        expect.anything()
+      );
+    });
+
+    it('resets sort to first aggregate when X-axis changes and sort was on old X-axis', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.CATEGORICAL_BAR,
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'transaction'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', '', undefined, undefined],
+              },
+            ]),
+            sort: ['-transaction'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_CATEGORICAL_X_AXIS,
+          payload: 'project',
+        });
+      });
+
+      jest.runAllTimers();
+
+      // Sort should be reset to first aggregate
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ['-count()'],
+          }),
+        }),
+        expect.anything()
+      );
+    });
+
+    it('preserves sort when X-axis changes but sort was on aggregate', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.CATEGORICAL_BAR,
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'transaction'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', '', undefined, undefined],
+              },
+            ]),
+            sort: ['-count()'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_CATEGORICAL_X_AXIS,
+          payload: 'project',
+        });
+      });
+
+      jest.runAllTimers();
+
+      // Sort should NOT change since it was already on an aggregate
+      expect(mockNavigate).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: expect.anything(),
+          }),
+        }),
+        expect.anything()
+      );
+    });
+
+    it('sets default X-axis and aggregate when dataset changes with categorical bar', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.CATEGORICAL_BAR,
+            dataset: WidgetType.SPANS,
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'browser.name'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', 'span.duration', undefined, undefined],
+              },
+            ]),
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.ERRORS,
+        });
+      });
+
+      jest.runAllTimers();
+
+      // Each state setter makes a separate navigate call - check each one
+      // Should set default X-axis field and aggregate for new dataset
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            // Errors dataset defaults: title (X-axis) + count_unique(user) (aggregate)
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'title'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count_unique', 'user', undefined, undefined],
+              },
+            ]),
+          }),
+        }),
+        expect.anything()
+      );
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ['-count_unique(user)'],
+          }),
+        }),
+        expect.anything()
+      );
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            limit: 20,
+          }),
         }),
         expect.anything()
       );

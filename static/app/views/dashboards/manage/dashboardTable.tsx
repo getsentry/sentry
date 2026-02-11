@@ -3,20 +3,20 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {
-  createDashboard,
-  deleteDashboard,
-  fetchDashboard,
   updateDashboardFavorite,
   updateDashboardPermissions,
 } from 'sentry/actionCreators/dashboards';
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -28,17 +28,20 @@ import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
+import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
+import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
+import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import type {
   DashboardDetails,
   DashboardListItem,
   DashboardPermissions,
 } from 'sentry/views/dashboards/types';
-import {cloneDashboard} from 'sentry/views/dashboards/utils';
 
 type Props = {
   api: Client;
@@ -85,12 +88,12 @@ function FavoriteButton({
     <Button
       aria-label={t('Favorite Button')}
       size="zero"
-      borderless
+      priority="transparent"
       icon={
         <IconStar
-          color={favorited ? 'yellow300' : 'gray300'}
+          variant={favorited ? 'warning' : 'muted'}
           isSolid={favorited}
-          aria-label={favorited ? t('UnFavorite') : t('Favorite')}
+          aria-label={favorited ? t('Unstar') : t('Star')}
           size="sm"
         />
       }
@@ -100,7 +103,7 @@ function FavoriteButton({
           await updateDashboardFavorite(
             api,
             queryClient,
-            organization.slug,
+            organization,
             dashboardId,
             !favorited
           );
@@ -127,6 +130,12 @@ function DashboardTable({
   onDashboardsChange,
   isLoading,
 }: Props) {
+  const handleDuplicateDashboard = useDuplicateDashboard({
+    onSuccess: onDashboardsChange,
+  });
+  const handleDeleteDashboard = useDeleteDashboard({
+    onSuccess: onDashboardsChange,
+  });
   const columnOrder: Array<GridColumnOrder<ResponseKeys>> = [
     {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
@@ -134,40 +143,6 @@ function DashboardTable({
     {key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
   ];
-
-  function handleDelete(dashboard: DashboardListItem) {
-    deleteDashboard(api, organization.slug, dashboard.id)
-      .then(() => {
-        trackAnalytics('dashboards_manage.delete', {
-          organization,
-          dashboard_id: parseInt(dashboard.id, 10),
-          view_type: 'table',
-        });
-        onDashboardsChange();
-        addSuccessMessage(t('Dashboard deleted'));
-      })
-      .catch(() => {
-        addErrorMessage(t('Error deleting Dashboard'));
-      });
-  }
-
-  async function handleDuplicate(dashboard: DashboardListItem) {
-    try {
-      const dashboardDetail = await fetchDashboard(api, organization.slug, dashboard.id);
-      const newDashboard = cloneDashboard(dashboardDetail);
-      newDashboard.widgets.map(widget => (widget.id = undefined));
-      await createDashboard(api, organization.slug, newDashboard, true);
-      trackAnalytics('dashboards_manage.duplicate', {
-        organization,
-        dashboard_id: parseInt(dashboard.id, 10),
-        view_type: 'table',
-      });
-      onDashboardsChange();
-      addSuccessMessage(t('Dashboard duplicated'));
-    } catch (e) {
-      addErrorMessage(t('Error duplicating Dashboard'));
-    }
-  }
 
   // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
   // router 6 handles empty query objects without appending a trailing ?
@@ -192,7 +167,7 @@ function DashboardTable({
 
       return (
         <SortLink
-          align={'left'}
+          align="left"
           title={column.name}
           direction={sortDirection}
           canSort
@@ -252,11 +227,15 @@ function DashboardTable({
 
     if (column.key === ResponseKeys.OWNER) {
       return dataRow[ResponseKeys.OWNER] ? (
-        <BodyCellContainer>
+        <Flex justify="between" align="center" gap="3xl">
           <UserAvatar hasTooltip user={dataRow[ResponseKeys.OWNER]} size={26} />
-        </BodyCellContainer>
+        </Flex>
       ) : (
-        <ActivityAvatar type="system" size={26} />
+        <Flex justify="between" align="center" gap="3xl">
+          <Tooltip title="Sentry">
+            <ActivityAvatar type="system" size={26} />
+          </Tooltip>
+        </Flex>
       );
     }
 
@@ -280,13 +259,14 @@ function DashboardTable({
           dashboard={dataRow}
           onChangeEditAccess={onChangeEditAccess}
           listOnly
+          disabled={defined(dataRow.prebuiltId)} // Prebuilt dashboards cannot be edited
         />
       );
     }
 
     if (column.key === ResponseKeys.CREATED) {
       return (
-        <BodyCellContainer>
+        <Flex justify="between" align="center" gap="3xl">
           <DateSelected>
             {dataRow[ResponseKeys.CREATED] ? (
               <DateStatus>
@@ -296,38 +276,67 @@ function DashboardTable({
               <DateStatus />
             )}
           </DateSelected>
-          <ActionsIconWrapper>
-            <StyledButton
-              onClick={e => {
-                e.stopPropagation();
-                openConfirmModal({
-                  message: t('Are you sure you want to duplicate this dashboard?'),
-                  priority: 'primary',
-                  onConfirm: () => handleDuplicate(dataRow),
-                });
-              }}
-              aria-label={t('Duplicate Dashboard')}
-              data-test-id={'dashboard-duplicate'}
-              icon={<IconCopy />}
-              size="sm"
-            />
+          <Flex gap="xs">
+            <DashboardCreateLimitWrapper>
+              {({
+                hasReachedDashboardLimit,
+                isLoading: isLoadingDashboardsLimit,
+                limitMessage,
+              }) => (
+                <StyledButton
+                  onClick={e => {
+                    e.stopPropagation();
+                    openConfirmModal({
+                      message: t('Are you sure you want to duplicate this dashboard?'),
+                      priority: 'primary',
+                      onConfirm: () => handleDuplicateDashboard(dataRow, 'table'),
+                    });
+                  }}
+                  priority="transparent"
+                  aria-label={t('Duplicate Dashboard')}
+                  data-test-id="dashboard-duplicate"
+                  icon={<IconCopy />}
+                  size="sm"
+                  disabled={
+                    hasReachedDashboardLimit ||
+                    isLoadingDashboardsLimit ||
+                    (defined(dataRow.prebuiltId) &&
+                      !organization.features.includes('dashboards-prebuilt-controls'))
+                  }
+                  title={
+                    defined(dataRow.prebuiltId) &&
+                    !organization.features.includes('dashboards-prebuilt-controls')
+                      ? t('Prebuilt dashboards cannot be duplicated')
+                      : limitMessage
+                  }
+                />
+              )}
+            </DashboardCreateLimitWrapper>
             <StyledButton
               onClick={e => {
                 e.stopPropagation();
                 openConfirmModal({
                   message: t('Are you sure you want to delete this dashboard?'),
                   priority: 'danger',
-                  onConfirm: () => handleDelete(dataRow),
+                  onConfirm: () => handleDeleteDashboard(dataRow, 'table'),
                 });
               }}
+              priority="transparent"
               aria-label={t('Delete Dashboard')}
-              data-test-id={'dashboard-delete'}
+              data-test-id="dashboard-delete"
               icon={<IconDelete />}
               size="sm"
-              disabled={dashboards && dashboards.length <= 1}
+              disabled={
+                (dashboards && dashboards.length <= 1) || defined(dataRow.prebuiltId)
+              }
+              title={
+                defined(dataRow.prebuiltId)
+                  ? t('Prebuilt dashboards cannot be deleted')
+                  : undefined
+              }
             />
-          </ActionsIconWrapper>
-        </BodyCellContainer>
+          </Flex>
+        </Flex>
       );
     }
 
@@ -338,8 +347,6 @@ function DashboardTable({
   return (
     <GridEditable
       data={dashboards ?? []}
-      // necessary for edit access dropdown
-      bodyStyle={{overflow: 'scroll'}}
       columnOrder={columnOrder}
       columnSortBy={[]}
       grid={{
@@ -351,12 +358,13 @@ function DashboardTable({
             key: ResponseKeys.FAVORITE,
             name: t('Favorite'),
           };
+
           if (isHeader) {
             return [
-              <StyledIconStar
-                color="yellow300"
+              <IconStar
+                variant="warning"
                 isSolid
-                aria-label={t('Favorite Column')}
+                aria-label={t('Star Column')}
                 key="favorite-header"
               />,
             ];
@@ -381,34 +389,22 @@ function DashboardTable({
 export default withApi(DashboardTable);
 
 const DateSelected = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  display: grid;
+  font-size: ${p => p.theme.font.size.md};
   grid-column-gap: ${space(1)};
-  color: ${p => p.theme.textColor};
-  ${p => p.theme.overflowEllipsis};
+  color: ${p => p.theme.tokens.content.primary};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const DateStatus = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   padding-left: ${space(1)};
-`;
-
-const BodyCellContainer = styled('div')`
-  display: flex;
-  gap: ${space(4)};
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const ActionsIconWrapper = styled('div')`
-  display: flex;
 `;
 
 const StyledButton = styled(Button)`
   border: none;
   box-shadow: none;
-`;
-
-const StyledIconStar = styled(IconStar)`
-  margin-left: ${space(0.25)};
 `;

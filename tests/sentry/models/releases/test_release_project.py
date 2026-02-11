@@ -10,11 +10,11 @@ from sentry.testutils.helpers import Feature
 
 
 class ReleaseProjectManagerTestCase(TransactionTestCase):
-    def test_custom_manager(self):
+    def test_custom_manager(self) -> None:
         self.assertIsInstance(ReleaseProject.objects, ReleaseProjectModelManager)
 
     @receivers_raise_on_send()
-    def test_post_save_signal_runs_if_dynamic_sampling_is_disabled(self):
+    def test_post_save_signal_runs_if_dynamic_sampling_is_disabled(self) -> None:
         project = self.create_project(name="foo")
         release = Release.objects.create(organization_id=project.organization_id, version="42")
 
@@ -27,7 +27,7 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
     @receivers_raise_on_send()
     def test_post_save_signal_runs_if_dynamic_sampling_is_enabled_and_latest_release_rule_does_not_exist(
         self,
-    ):
+    ) -> None:
         with Feature(
             {
                 "organizations:dynamic-sampling": True,
@@ -45,7 +45,7 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
     @receivers_raise_on_send()
     def test_post_save_signal_runs_if_dynamic_sampling_is_enabled_and_latest_release_rule_exists(
         self,
-    ):
+    ) -> None:
         with Feature(
             {
                 "organizations:dynamic-sampling": True,

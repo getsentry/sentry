@@ -10,7 +10,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 
-export type TimeOffsetLocationQueryParams = {
+type TimeOffsetLocationQueryParams = {
   /**
    * The time when the event happened.
    * Anything that can be parsed by `new Date()`; for example a timestamp in ms

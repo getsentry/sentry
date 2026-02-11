@@ -1,6 +1,7 @@
 import type {ComponentProps, CSSProperties} from 'react';
 
-import type {Tooltip} from 'sentry/components/core/tooltip';
+import type {Tooltip} from '@sentry/scraps/tooltip';
+
 import HeaderCell from 'sentry/components/replays/virtualizedGrid/headerCell';
 import {t} from 'sentry/locale';
 import type useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
@@ -22,6 +23,7 @@ const COLUMNS: Array<{
   {field: 'id', label: t('Event ID')},
   {field: 'title', label: t('Title')},
   {field: 'project', label: t('Issue')},
+  {field: 'level', label: t('Level')},
   {field: 'timestamp', label: t('Timestamp')},
 ];
 

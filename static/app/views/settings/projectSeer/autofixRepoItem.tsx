@@ -1,19 +1,22 @@
-import {type ChangeEvent, useEffect, useState} from 'react';
+import {useEffect, useState, type ChangeEvent} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
+
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {TextArea} from 'sentry/components/core/textarea';
-import type {RepoSettings} from 'sentry/components/events/autofix/types';
+import type {BranchOverride, RepoSettings} from 'sentry/components/events/autofix/types';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {
-  IconChevron as IconExpandToggle,
+  IconAdd,
   IconClose,
   IconCommit,
   IconDelete,
+  IconChevron as IconExpandToggle,
+  IconTag,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -31,9 +34,13 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
   const [isEditingBranch, setIsEditingBranch] = useState(false);
   const [branchInputValue, setBranchInputValue] = useState(settings.branch);
   const [instructionsValue, setInstructionsValue] = useState(settings.instructions);
+  const [branchOverridesValue, setBranchOverridesValue] = useState<BranchOverride[]>(
+    settings.branch_overrides || []
+  );
   const [originalValues, setOriginalValues] = useState({
     branch: settings.branch,
     instructions: settings.instructions,
+    branch_overrides: settings.branch_overrides || [],
   });
   const [isDirty, setIsDirty] = useState(false);
 
@@ -42,21 +49,29 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setBranchInputValue(settings.branch);
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setInstructionsValue(settings.instructions);
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+    setBranchOverridesValue(settings.branch_overrides || []);
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setOriginalValues({
       branch: settings.branch,
       instructions: settings.instructions,
+      branch_overrides: settings.branch_overrides || [],
     });
     setIsDirty(false);
-  }, [settings.branch, settings.instructions]);
+  }, [settings.branch, settings.instructions, settings.branch_overrides]);
 
   useEffect(() => {
     const newIsDirty =
       branchInputValue !== originalValues.branch ||
-      instructionsValue !== originalValues.instructions;
+      instructionsValue !== originalValues.instructions ||
+      JSON.stringify(branchOverridesValue) !==
+        JSON.stringify(originalValues.branch_overrides);
     setIsDirty(newIsDirty);
-  }, [branchInputValue, instructionsValue, originalValues]);
+  }, [branchInputValue, instructionsValue, branchOverridesValue, originalValues]);
 
   const handleBranchInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
@@ -69,9 +84,18 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
   };
 
   const saveChanges = () => {
+    // Filter out incomplete branch overrides - all fields must be filled
+    const completeOverrides = branchOverridesValue.filter(
+      override =>
+        override.tag_name.trim() !== '' &&
+        override.tag_value.trim() !== '' &&
+        override.branch_name.trim() !== ''
+    );
+
     onSettingsChange({
       branch: branchInputValue,
       instructions: instructionsValue,
+      branch_overrides: completeOverrides,
     });
     setIsEditingBranch(false);
   };
@@ -79,29 +103,47 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
   const cancelChanges = () => {
     setBranchInputValue(originalValues.branch);
     setInstructionsValue(originalValues.instructions);
+    setBranchOverridesValue(originalValues.branch_overrides);
     setIsEditingBranch(false);
     setIsDirty(false);
   };
 
+  const addBranchOverride = () => {
+    setBranchOverridesValue([
+      ...branchOverridesValue,
+      {tag_name: '', tag_value: '', branch_name: ''},
+    ]);
+  };
+
+  const updateBranchOverride = (index: number, override: BranchOverride) => {
+    const newOverrides = [...branchOverridesValue];
+    newOverrides[index] = override;
+    setBranchOverridesValue(newOverrides);
+  };
+
+  const removeBranchOverride = (index: number) => {
+    setBranchOverridesValue(branchOverridesValue.filter((_, i) => i !== index));
+  };
+
   return (
-    <SelectedRepoContainer>
+    <Stack width="100%" overflow="hidden">
       <SelectedRepoHeader role="button" onClick={toggleExpanded}>
         <InteractionStateLayer />
-        <RepoNameAndExpandToggle>
+        <Flex align="center">
           <StyledIconExpandToggle direction={isExpanded ? 'up' : 'down'} size="xs" />
-          <RepoInfoWrapper>
+          <Stack marginLeft="md">
             <RepoName>{repo.name}</RepoName>
-          </RepoInfoWrapper>
-        </RepoNameAndExpandToggle>
+          </Stack>
+        </Flex>
         <RepoProvider>{repo.provider?.name || t('Unknown Provider')}</RepoProvider>
       </SelectedRepoHeader>
       {isExpanded && (
         <ExpandedContent>
-          <RepoForm>
+          <Stack gap="md" width="100%">
             <div>
               <SettingsGroup>
                 <BranchInputLabel>
-                  {t('Branch that Seer works on')}
+                  {t('Working Branch for Seer')}
                   <QuestionTooltip
                     title={t(
                       'Optionally provide a specific branch that Seer will work on. If left blank, Seer will use the default branch of the repository.'
@@ -110,7 +152,9 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                   />
                 </BranchInputLabel>
 
-                <BranchInputContainer>
+                <Flex align="center" gap="md">
+                  <SubHeader>{t('By default, look at')}</SubHeader>
+
                   <InputGroup>
                     <InputGroup.LeadingItems disablePointerEvents>
                       <IconCommit size="sm" />
@@ -127,7 +171,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                       <InputGroup.TrailingItems>
                         <ClearButton
                           size="xs"
-                          borderless
+                          priority="transparent"
                           icon={<IconClose size="xs" />}
                           onClick={() => {
                             setBranchInputValue('');
@@ -142,7 +186,86 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                       </InputGroup.TrailingItems>
                     )}
                   </InputGroup>
-                </BranchInputContainer>
+                  <AddOverrideButton
+                    size="xs"
+                    icon={<IconAdd />}
+                    onClick={addBranchOverride}
+                    priority="transparent"
+                  >
+                    {t('Add an override for a tag')}
+                  </AddOverrideButton>
+                  <QuestionTooltip
+                    title={t(
+                      'Configure different branches to use based on event tags. For example, use a staging branch for events tagged with environment=staging.'
+                    )}
+                    size="sm"
+                  />
+                </Flex>
+
+                <Stack marginTop="md">
+                  {branchOverridesValue.map((override, index) => (
+                    <BranchOverrideItem key={index}>
+                      <Flex align="center" flex="1" gap="md">
+                        <SubHeader>{t('When')}</SubHeader>
+                        <OverrideInputGroup>
+                          <InputGroup.LeadingItems disablePointerEvents>
+                            <IconTag size="sm" />
+                          </InputGroup.LeadingItems>
+                          <InputGroup.Input
+                            type="text"
+                            value={override.tag_name}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                              updateBranchOverride(index, {
+                                ...override,
+                                tag_name: e.target.value,
+                              })
+                            }
+                            placeholder={t('Tag name (e.g. environment)')}
+                          />
+                        </OverrideInputGroup>
+                        <SubHeader>{t('is')}</SubHeader>
+                        <OverrideInputGroup>
+                          <InputGroup.Input
+                            type="text"
+                            value={override.tag_value}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                              updateBranchOverride(index, {
+                                ...override,
+                                tag_value: e.target.value,
+                              })
+                            }
+                            placeholder={t('Tag value (e.g. staging)')}
+                          />
+                        </OverrideInputGroup>
+                        <SubHeader>{t('look at')}</SubHeader>
+                        <OverrideInputGroup>
+                          <InputGroup.LeadingItems disablePointerEvents>
+                            <IconCommit size="sm" />
+                          </InputGroup.LeadingItems>
+                          <InputGroup.Input
+                            type="text"
+                            value={override.branch_name}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                              updateBranchOverride(index, {
+                                ...override,
+                                branch_name: e.target.value,
+                              })
+                            }
+                            placeholder={t('Branch name (e.g. dev)')}
+                          />
+                        </OverrideInputGroup>
+                      </Flex>
+                      <Button
+                        size="sm"
+                        priority="transparent"
+                        icon={<IconDelete size="sm" variant="muted" />}
+                        onClick={() => removeBranchOverride(index)}
+                        aria-label={t('Remove override')}
+                        title={t('Remove override')}
+                      />
+                    </BranchOverrideItem>
+                  ))}
+                </Stack>
               </SettingsGroup>
 
               <SettingsGroup>
@@ -157,7 +280,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                 />
               </SettingsGroup>
             </div>
-            <FormActions>
+            <Flex justify="between" marginTop="md" gap="md">
               <Confirm
                 onConfirm={onRemove}
                 message={tct('Are you sure you want to remove [repo] from Seer?', {
@@ -169,29 +292,22 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                 </Button>
               </Confirm>
               {isDirty && (
-                <ButtonBar gap="xs">
-                  <Button size="sm" onClick={cancelChanges}>
+                <Grid flow="column" align="center" gap="xs">
+                  <Button size="md" onClick={cancelChanges}>
                     {t('Cancel')}
                   </Button>
-                  <Button size="sm" priority="primary" onClick={saveChanges}>
+                  <Button size="md" priority="primary" onClick={saveChanges}>
                     {t('Save')}
                   </Button>
-                </ButtonBar>
+                </Grid>
               )}
-            </FormActions>
-          </RepoForm>
+            </Flex>
+          </Stack>
         </ExpandedContent>
       )}
-    </SelectedRepoContainer>
+    </Stack>
   );
 }
-
-const SelectedRepoContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  overflow: hidden;
-`;
 
 const SelectedRepoHeader = styled('div')`
   position: relative;
@@ -207,21 +323,24 @@ const RepoName = styled('div')`
 `;
 
 const RepoProvider = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(0.25)};
 `;
 
 const ExpandedContent = styled('div')`
-  padding: ${space(1)} ${space(2)} ${space(1)} 40px;
-  background-color: ${p => p.theme.background};
+  padding: 0 ${space(2)} ${space(1)} 40px;
+  background-color: ${p => p.theme.tokens.background.primary};
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const SettingsGroup = styled('div')`
-  margin-bottom: ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  padding-bottom: ${p => p.theme.space.lg};
+  padding-top: ${p => p.theme.space.lg};
 
   &:last-child {
     margin-bottom: 0;
@@ -231,29 +350,16 @@ const SettingsGroup = styled('div')`
 const BranchInputLabel = styled('label')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.gray500};
-  margin-bottom: ${space(0.5)};
-  gap: ${space(0.5)};
+  font-size: ${p => p.theme.font.size.lg};
+  color: ${p => p.theme.tokens.content.primary};
+  margin-bottom: ${p => p.theme.space.sm};
+  gap: ${p => p.theme.space.md};
 `;
 
-const BranchInputContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-const RepoForm = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  width: 100%;
-`;
-
-const FormActions = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${space(1)};
+const SubHeader = styled('div')`
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const StyledTextArea = styled(TextArea)`
@@ -263,24 +369,30 @@ const StyledTextArea = styled(TextArea)`
 `;
 
 const ClearButton = styled(Button)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.colors.gray400};
 
   &:hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
   }
-`;
-
-const RepoNameAndExpandToggle = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const StyledIconExpandToggle = styled(IconExpandToggle)`
   margin-right: ${space(0.5)};
 `;
 
-const RepoInfoWrapper = styled('div')`
+const AddOverrideButton = styled(Button)`
+  color: ${p => p.theme.tokens.content.secondary};
+`;
+
+const BranchOverrideItem = styled('div')`
   display: flex;
-  flex-direction: column;
-  margin-left: ${space(1)};
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  padding-top: ${p => p.theme.space.md};
+  padding-bottom: ${p => p.theme.space.md};
+`;
+
+const OverrideInputGroup = styled(InputGroup)`
+  flex: 1;
+  min-width: 0;
 `;

@@ -2,7 +2,9 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import GridEditable from 'sentry/components/tables/gridEditable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
@@ -16,7 +18,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
@@ -64,7 +65,7 @@ export function OverviewSpansTable({eventView, totalValues, transactionName}: Pr
       fields: ['count()'],
       pageFilters: selection,
     },
-    'api.performance.service-entry-spans-table-count'
+    'api.insights.service-entry-spans-table-count'
   );
 
   const pageEventsCount = Math.min(numEvents[0]?.['count()'] ?? 0, LIMIT);

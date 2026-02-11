@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import parse_qs, urlparse
 
 from django.urls import reverse
@@ -24,7 +24,7 @@ class VstsExtensionIntegrationProviderTest(VstsIntegrationTestCase):
         "sentry.integrations.vsts.integration.VstsIntegrationProvider.get_scopes",
         return_value=FULL_SCOPES,
     )
-    def test_get_pipeline_views(self, mock_get_scopes):
+    def test_get_pipeline_views(self, mock_get_scopes: MagicMock) -> None:
         # Should be same as the VSTS integration, but with a different last
         # step.
         views = self.provider.get_pipeline_views()
@@ -39,7 +39,9 @@ class VstsExtensionIntegrationProviderTest(VstsIntegrationTestCase):
         "sentry.integrations.vsts.integration.VstsIntegrationProvider.get_scopes",
         return_value=FULL_SCOPES,
     )
-    def test_build_integration(self, mock_get_scopes, create_sub, get_user_info):
+    def test_build_integration(
+        self, mock_get_scopes: MagicMock, create_sub: MagicMock, get_user_info: MagicMock
+    ) -> None:
         get_user_info.return_value = {"id": "987"}
         create_sub.return_value = (1, "sharedsecret")
 
@@ -54,7 +56,7 @@ class VstsExtensionIntegrationProviderTest(VstsIntegrationTestCase):
         assert integration["external_id"] == self.vsts_account_id
         assert integration["name"] == "test"
 
-    def test_builds_integration_with_vsts_key(self):
+    def test_builds_integration_with_vsts_key(self) -> None:
         self._stub_vsts()
 
         # Emulate the request from VSTS to us

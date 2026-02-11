@@ -1,7 +1,7 @@
 import type {LocationDescriptor} from 'history';
 
-import type {SearchGroup} from 'sentry/components/deprecatedSmartSearchBar/types';
-import type {TitledPlugin} from 'sentry/components/group/pluginActions';
+import type {TitledPlugin} from 'sentry/components/group/pluginActionsModal';
+import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
 import type {FieldKind} from 'sentry/utils/fields';
 
@@ -16,7 +16,7 @@ import type {
   Repository,
 } from './integrations';
 import type {Team} from './organization';
-import type {PlatformKey, Project} from './project';
+import type {AvatarProject, PlatformKey, Project} from './project';
 import type {AvatarUser, User} from './user';
 
 export type EntryData = Record<string, any | any[]>;
@@ -62,6 +62,9 @@ export enum SavedSearchType {
   ERROR = 6,
   TRANSACTION = 7,
   LOG = 8,
+  TRACEMETRIC = 9,
+  PREPROD_APP_SIZE = 10,
+  // This and src/sentry/models/search_common.py must be updated together.
 }
 
 export enum IssueCategory {
@@ -95,19 +98,26 @@ export enum IssueCategory {
    */
   METRIC_ALERT = 'metric_alert',
 
-  // New issue categories (under the issue-taxonomy flag)
   OUTAGE = 'outage',
   METRIC = 'metric',
   FRONTEND = 'frontend',
   HTTP_CLIENT = 'http_client',
   DB_QUERY = 'db_query',
   MOBILE = 'mobile',
+
+  AI_DETECTED = 'ai_detected',
+
+  PREPROD = 'preprod',
+
+  INSTRUMENTATION = 'instrumentation',
 }
 
 /**
- * Valid issue categories for the new issue-taxonomy flag
+ * These are issue categories that are generally filterable in the UI.
+ * Do not include deprecated or test categories.
  */
-export const VALID_ISSUE_CATEGORIES_V2 = [
+
+export const VALID_ISSUE_CATEGORIES = [
   IssueCategory.ERROR,
   IssueCategory.OUTAGE,
   IssueCategory.METRIC,
@@ -116,6 +126,7 @@ export const VALID_ISSUE_CATEGORIES_V2 = [
   IssueCategory.FRONTEND,
   IssueCategory.MOBILE,
   IssueCategory.FEEDBACK,
+  IssueCategory.PREPROD,
 ];
 
 export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
@@ -132,6 +143,11 @@ export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.CRON]: '',
   [IssueCategory.REPLAY]: '',
   [IssueCategory.UPTIME]: '',
+  [IssueCategory.AI_DETECTED]: t('AI detected issues.'),
+  [IssueCategory.PREPROD]: t('Problems detected via static analysis.'),
+  [IssueCategory.INSTRUMENTATION]: t(
+    'Improvements to your instrumentation and SDK usage.'
+  ),
 };
 
 export enum IssueType {
@@ -171,14 +187,25 @@ export enum IssueType {
   UPTIME_DOMAIN_FAILURE = 'uptime_domain_failure',
 
   // Metric Issues
-  METRIC_ISSUE_POC = 'metric_issue_poc', // To be removed
+  METRIC_ISSUE = 'metric_issue',
 
   // Detectors
   QUERY_INJECTION_VULNERABILITY = 'query_injection_vulnerability',
+
+  // Insights Web Vitals
+  WEB_VITALS = 'web_vitals',
+
+  LLM_DETECTED_EXPERIMENTAL = 'llm_detected_experimental',
+
+  // Preprod
+  PREPROD_STATIC = 'preprod_static',
+  PREPROD_DELTA = 'preprod_delta',
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
-export const VISIBLE_ISSUE_TYPES = Object.values(IssueType);
+export const VISIBLE_ISSUE_TYPES = Object.values(IssueType).filter(
+  type => ![IssueType.LLM_DETECTED_EXPERIMENTAL].includes(type)
+);
 
 export enum IssueTitle {
   ERROR = 'Error',
@@ -193,7 +220,7 @@ export enum IssueTitle {
   PERFORMANCE_SLOW_DB_QUERY = 'Slow DB Query',
   PERFORMANCE_RENDER_BLOCKING_ASSET = 'Large Render Blocking Asset',
   PERFORMANCE_UNCOMPRESSED_ASSET = 'Uncompressed Asset',
-  PERFORMANCE_LARGE_HTTP_PAYLOAD = 'Large HTTP payload',
+  PERFORMANCE_LARGE_HTTP_PAYLOAD = 'Large HTTP Payload',
   PERFORMANCE_HTTP_OVERHEAD = 'HTTP/1.1 Overhead',
   PERFORMANCE_ENDPOINT_REGRESSION = 'Endpoint Regression',
 
@@ -209,7 +236,24 @@ export enum IssueTitle {
   REPLAY_RAGE_CLICK = 'Rage Click Detected',
   REPLAY_HYDRATION_ERROR = 'Hydration Error Detected',
 
+  // Metric Issues
+  METRIC_ISSUE = 'Issue Detected by Metric Monitor',
+
+  // Monitors
+  MONITOR_CHECK_IN_FAILURE = 'Missed or Failed Cron Check-In',
+
+  // Uptime
+  UPTIME_DOMAIN_FAILURE = 'Uptime Monitor Detected Downtime',
+
   QUERY_INJECTION_VULNERABILITY = 'Potential Query Injection Vulnerability',
+
+  // Insights Web Vitals
+  WEB_VITALS = 'Web Vitals',
+
+  LLM_DETECTED_EXPERIMENTAL = 'LLM Detected Issue',
+
+  PREPROD_STATIC = 'Static Analysis',
+  PREPROD_DELTA = 'Static Analysis Delta',
 }
 
 export const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -240,6 +284,18 @@ export const ISSUE_TYPE_TO_ISSUE_TITLE = {
 
   replay_click_rage: IssueTitle.REPLAY_RAGE_CLICK,
   replay_hydration_error: IssueTitle.REPLAY_HYDRATION_ERROR,
+
+  metric_issue: IssueTitle.METRIC_ISSUE,
+
+  monitor_check_in_failure: IssueTitle.MONITOR_CHECK_IN_FAILURE,
+  uptime_domain_failure: IssueTitle.UPTIME_DOMAIN_FAILURE,
+
+  web_vitals: IssueTitle.WEB_VITALS,
+
+  llm_detected_experimental: IssueTitle.LLM_DETECTED_EXPERIMENTAL,
+
+  preprod_static: IssueTitle.PREPROD_STATIC,
+  preprod_delta: IssueTitle.PREPROD_DELTA,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
@@ -272,6 +328,10 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   2007: IssueType.PROFILE_REGEX_MAIN_THREAD,
   2008: IssueType.PROFILE_FRAME_DROP,
   2010: IssueType.PROFILE_FUNCTION_REGRESSION,
+  3501: IssueType.LLM_DETECTED_EXPERIMENTAL,
+  10001: IssueType.WEB_VITALS,
+  11001: IssueType.PREPROD_STATIC,
+  11002: IssueType.PREPROD_DELTA,
 };
 
 const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);
@@ -302,7 +362,7 @@ export function isOccurrenceBased(typeId: number | undefined): boolean {
   return !PERFORMANCE_REGRESSION_TYPE_IDS.has(typeId);
 }
 
-// endpoint: /api/0/issues/:issueId/attachments/?limit=50
+// endpoint: /api/0/organizations/:orgSlug/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
   dateCreated: string;
   event_id: string;
@@ -335,6 +395,7 @@ export type Tag = {
    */
   maxSuggestedValues?: number;
   predefined?: boolean;
+  secondaryAliases?: string[];
   totalValues?: number;
   uniqueValues?: number;
   /**
@@ -592,12 +653,20 @@ interface GroupActivitySetByResolvedInNextSemverRelease extends GroupActivityBas
   data: {
     // Set for semver releases
     current_release_version: string;
+    inNextRelease?: boolean;
+    integration_id?: number;
+    provider?: string;
+    provider_key?: string;
   };
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
 }
 
 interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
   data: {
+    inNextRelease?: boolean;
+    integration_id?: number;
+    provider?: string;
+    provider_key?: string;
     version?: string;
   };
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
@@ -868,6 +937,7 @@ export const enum FixabilityScoreThresholds {
   HIGH = 'high',
   MEDIUM = 'medium',
   LOW = 'low',
+  SUPER_LOW = 'super_low',
 }
 
 // TODO(ts): incomplete
@@ -911,7 +981,6 @@ export interface BaseGroup {
   integrationIssues?: ExternalIssue[];
   latestEvent?: Event;
   latestEventHasAttachments?: boolean;
-  openPeriods?: GroupOpenPeriod[] | null;
   owners?: SuggestedOwner[] | null;
   seerAutofixLastTriggered?: string | null;
   seerFixabilityScore?: number | null;
@@ -919,9 +988,19 @@ export interface BaseGroup {
   substatus?: GroupSubstatus | null;
 }
 
+export interface GroupOpenPeriodActivity {
+  dateCreated: string;
+  eventId: string | null;
+  id: string;
+  type: 'opened' | 'status_change' | 'closed';
+  value: 'high' | 'medium' | null;
+}
+
 export interface GroupOpenPeriod {
+  activities: GroupOpenPeriodActivity[];
   duration: string;
   end: string;
+  id: string;
   isOpen: boolean;
   lastChecked: string;
   start: string;
@@ -948,6 +1027,24 @@ export interface GroupUnresolved extends BaseGroup, GroupStats {
 }
 
 export type Group = GroupUnresolved | GroupResolved | GroupIgnored | GroupReprocessing;
+
+// Maps to SimpleGroupSerializer in the backend
+export type SimpleGroup = {
+  culprit: string | null;
+  firstSeen: string;
+  id: string;
+  issueCategory: IssueCategory;
+  issueType: IssueType;
+  lastSeen: string;
+  level: Level;
+  metadata: EventMetadata;
+  project: AvatarProject;
+  shortId: string;
+  status: GroupStatus;
+  substatus: GroupSubstatus | null;
+  title: string;
+  type: EventOrGroupType;
+};
 
 export interface GroupTombstone {
   actor: AvatarUser;

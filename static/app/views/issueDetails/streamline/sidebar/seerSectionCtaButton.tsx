@@ -1,15 +1,26 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
+
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {
   AutofixStatus,
-  type AutofixStep,
   AutofixStepType,
+  type AutofixStep,
 } from 'sentry/components/events/autofix/types';
 import {useAiAutofix, useAutofixData} from 'sentry/components/events/autofix/useAutofix';
-import {getAutofixRunExists} from 'sentry/components/events/autofix/utils';
+import {
+  getAutofixRunExists,
+  getCodeChangesDescription,
+  getRootCauseDescription,
+  getSolutionDescription,
+  hasPullRequest,
+} from 'sentry/components/events/autofix/utils';
+import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
@@ -54,6 +65,8 @@ export function SeerSectionCtaButton({
     isSidebar: !isDrawerOpenRef.current,
     pollInterval: 1500,
   });
+
+  const {data: summaryData, isPending: isSummaryPending} = useGroupSummaryData(group);
 
   const {openSeerDrawer} = useOpenSeerDrawer({
     group,
@@ -142,9 +155,23 @@ export function SeerSectionCtaButton({
   const hasStepType = (type: AutofixStepType) =>
     autofixData?.steps?.some(step => step.type === type);
 
+  const rootCauseDescription = autofixData ? getRootCauseDescription(autofixData) : null;
+  const solutionDescription = autofixData ? getSolutionDescription(autofixData) : null;
+  const codeChangesDescription = autofixData
+    ? getCodeChangesDescription(autofixData)
+    : null;
+  const hasPr = hasPullRequest(autofixData);
+
   const getButtonText = () => {
     if (!aiConfig.hasAutofix) {
       return t('Open Resources');
+    }
+
+    if (
+      (aiConfig.orgNeedsGenAiAcknowledgement || !aiConfig.hasAutofixQuota) &&
+      !aiConfig.isAutofixSetupLoading
+    ) {
+      return t('Fix with Seer');
     }
 
     if (!lastStep) {
@@ -168,18 +195,13 @@ export function SeerSectionCtaButton({
     }
 
     if (isAutofixCompleted) {
-      if (lastStep.type === AutofixStepType.ROOT_CAUSE_ANALYSIS) {
-        return t('View Root Cause');
-      }
       if (lastStep.type === AutofixStepType.SOLUTION) {
-        return t('View Solution');
+        return t('Fix with Seer');
       }
-      if (lastStep.type === AutofixStepType.CHANGES) {
-        return t('View Code Changes');
-      }
+      return t('Open Seer');
     }
 
-    return t('Find Root Cause');
+    return t('Fix with Seer');
   };
 
   if (isButtonLoading) {
@@ -194,22 +216,30 @@ export function SeerSectionCtaButton({
     <StyledButton
       to={seerLink}
       onClick={handleOpenDrawer}
+      replace
+      preventScrollReset
       analyticsEventKey="issue_details.seer_opened"
       analyticsEventName="Issue Details: Seer Opened"
       analyticsParams={{
         has_streamlined_ui: hasStreamlinedUI,
         autofix_exists: Boolean(autofixData?.steps?.length),
         autofix_step_type: lastStep?.type ?? null,
+        has_summary: Boolean(summaryData && !isSummaryPending),
+        has_root_cause: Boolean(rootCauseDescription),
+        has_solution: Boolean(solutionDescription),
+        has_coded_solution: Boolean(codeChangesDescription),
+        has_pr: hasPr,
       }}
+      priority="primary"
     >
       {getButtonText()}
-      <ChevronContainer>
+      <Flex justify="center" align="center" marginLeft="xs" width="16px" height="16px">
         {isAutofixInProgress ? (
           <StyledLoadingIndicator size={14} />
         ) : (
           <IconChevron direction="right" size="xs" />
         )}
-      </ChevronContainer>
+      </Flex>
     </StyledButton>
   );
 }
@@ -217,34 +247,21 @@ export function SeerSectionCtaButton({
 const StyledButton = styled(LinkButton)`
   margin-top: ${space(1)};
   width: 100%;
-  background: ${p => p.theme.background}
-    linear-gradient(to right, ${p => p.theme.background}, ${p => p.theme.pink400}20);
-  color: ${p => p.theme.pink400};
-`;
-
-const ChevronContainer = styled('div')`
-  margin-left: ${space(0.5)};
-  height: 16px;
-  width: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   position: relative;
   margin-left: ${space(1)};
-  color: ${p => p.theme.pink400};
 
   .loading-indicator {
-    border-color: ${p => p.theme.pink100};
-    border-left-color: ${p => p.theme.pink400};
+    border-color: ${p => color(p.theme.colors.white).alpha(0.35).string()};
+    border-left-color: ${p => p.theme.colors.white};
   }
 `;
 
 const ButtonPlaceholder = styled(Placeholder)`
   width: 100%;
   height: 38px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   margin-top: ${space(1)};
 `;

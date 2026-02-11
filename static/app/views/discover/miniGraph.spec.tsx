@@ -9,7 +9,7 @@ import MiniGraph from 'sentry/views/discover/miniGraph';
 
 jest.mock('sentry/components/charts/eventsRequest');
 
-describe('Discover > MiniGraph', function () {
+describe('Discover > MiniGraph', () => {
   const features = ['discover-basic'];
   const location = LocationFixture({
     query: {query: 'tag:value'},
@@ -32,7 +32,7 @@ describe('Discover > MiniGraph', function () {
     });
   });
 
-  it('makes an EventsRequest with all selected multi y axis', function () {
+  it('makes an EventsRequest with all selected multi y axis', () => {
     const yAxis = ['count()', 'failure_count()'];
     render(
       <MiniGraph
@@ -49,7 +49,7 @@ describe('Discover > MiniGraph', function () {
     );
   });
 
-  it('uses low fidelity interval for bar charts', function () {
+  it('uses low fidelity interval for bar charts', () => {
     const yAxis = ['count()', 'failure_count()'];
     eventView.display = 'bar';
 

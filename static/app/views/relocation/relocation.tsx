@@ -1,8 +1,10 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion, useAnimation} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LogoSentry from 'sentry/components/logoSentry';
@@ -12,11 +14,11 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import testableTransition from 'sentry/utils/testableTransition';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useParams} from 'sentry/utils/useParams';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 import Stepper from 'sentry/views/onboarding/components/stepper';
@@ -27,12 +29,6 @@ import {InProgress} from './inProgress';
 import {PublicKey} from './publicKey';
 import type {MaybeUpdateRelocationState, RelocationState, StepDescriptor} from './types';
 import {UploadBackup} from './uploadBackup';
-
-type RouteParams = {
-  step: string;
-};
-
-type Props = RouteComponentProps<RouteParams>;
 
 function getRelocationOnboardingSteps(): StepDescriptor[] {
   return [
@@ -75,10 +71,9 @@ enum LoadingState {
   ERROR = 2,
 }
 
-function RelocationOnboarding(props: Props) {
-  const {
-    params: {step: stepId},
-  } = props;
+export default function RelocationOnboarding() {
+  const navigate = useNavigate();
+  const {step: stepId} = useParams<{step: string}>();
   const onboardingSteps = getRelocationOnboardingSteps();
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
@@ -126,20 +121,20 @@ function RelocationOnboarding(props: Props) {
         // progress of that relocation instead, since they can only have one relocation in flight at
         // a time.
         if (existingRelocationUUID !== '' && stepId !== 'in-progress') {
-          browserHistory.push('/relocation/in-progress/');
+          navigate('/relocation/in-progress/');
         }
 
         // The user does not have a relocation in-flight, but tried to view the in progress screen.
         // Since we have nothing to show them, take them back to the start of the flow.
         if (existingRelocationUUID === '' && stepId === 'in-progress') {
-          browserHistory.push('/relocation/get-started/');
+          navigate('/relocation/get-started/');
         }
 
         // The user tried to view a later step, but at least one bit of required data was missing in
         // their local storage. Take them back to the first screen.
         const {orgSlugs, regionUrl} = relocationState;
         if (stepId !== 'get-started' && (!orgSlugs || !regionUrl)) {
-          browserHistory.push('/relocation/get-started/');
+          navigate('/relocation/get-started/');
         }
 
         setExistingRelocation(existingRelocationUUID);
@@ -149,7 +144,7 @@ function RelocationOnboarding(props: Props) {
         setExistingRelocation('');
         setExistingRelocationState(LoadingState.ERROR);
       });
-  }, [api, regions, relocationState, stepId]);
+  }, [api, navigate, regions, relocationState, stepId]);
   useEffect(() => {
     fetchExistingRelocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -183,26 +178,6 @@ function RelocationOnboarding(props: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
-  useEffect(() => {
-    return () => {
-      window.clearTimeout(cornerVariantTimeoutRed.current);
-    };
-  }, []);
-
-  const cornerVariantControl = useAnimation();
-  const updateCornerVariant = () => {
-    // TODO(getsentry/team-ospo#214): Find a better way to delay the corner animation.
-    window.clearTimeout(cornerVariantTimeoutRed.current);
-
-    cornerVariantTimeoutRed.current = window.setTimeout(
-      () => cornerVariantControl.start(stepIndex === 0 ? 'top-right' : 'top-left'),
-      1000
-    );
-  };
-
-  useEffect(updateCornerVariant, [stepIndex, cornerVariantControl]);
-
   // Called onExitComplete
   const updateAnimationState = () => {
     if (!stepObj) {
@@ -214,10 +189,7 @@ function RelocationOnboarding(props: Props) {
     if (!stepObj) {
       return;
     }
-    if (step.cornerVariant !== stepObj.cornerVariant) {
-      cornerVariantControl.start('none');
-    }
-    props.router.push(normalizeUrl(`/relocation/${step.id}/`));
+    navigate(normalizeUrl(`/relocation/${step.id}/`));
   };
 
   const goNextStep = useCallback(
@@ -225,13 +197,9 @@ function RelocationOnboarding(props: Props) {
       const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
       const nextStep = onboardingSteps[currentStepIndex + 1]!;
 
-      if (step.cornerVariant !== nextStep.cornerVariant) {
-        cornerVariantControl.start('none');
-      }
-
-      props.router.push(normalizeUrl(`/relocation/${nextStep.id}/`));
+      navigate(normalizeUrl(`/relocation/${nextStep.id}/`));
     },
-    [onboardingSteps, cornerVariantControl, props.router]
+    [onboardingSteps, navigate]
   );
 
   if (!stepObj || stepIndex === -1) {
@@ -256,21 +224,18 @@ function RelocationOnboarding(props: Props) {
     );
 
   const backButtonView =
-    stepId === 'in-progress' ? null : (
+    stepId === 'in-progress' || stepIndex === 0 ? null : (
       <BackMotionDiv
-        animate={stepIndex > 0 ? 'visible' : 'hidden'}
+        initial="initial"
+        animate="visible"
         transition={testableTransition()}
         variants={{
           initial: {opacity: 0, visibility: 'hidden'},
           visible: {
             opacity: 1,
-            visibility: 'visible',
             transition: testableTransition({delay: 1}),
-          },
-          hidden: {
-            opacity: 0,
             transitionEnd: {
-              visibility: 'hidden',
+              visibility: 'visible',
             },
           },
         }}
@@ -322,9 +287,6 @@ function RelocationOnboarding(props: Props) {
             }}
             publicKeys={publicKeys}
             relocationState={relocationState}
-            route={props.route}
-            router={props.router}
-            location={props.location}
           />
         )}
       </OnboardingStep>
@@ -350,16 +312,18 @@ function RelocationOnboarding(props: Props) {
   ) : null;
 
   return (
-    <OnboardingWrapper data-test-id="relocation-onboarding">
+    <Stack as="main" flexGrow={1} data-test-id="relocation-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
       {headerView}
       <Container>
         {backButtonView}
         {contentView}
-        <AdaptivePageCorners animateVariant={cornerVariantControl} />
+        <AdaptivePageCorners
+          animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
+        />
         {errView}
       </Container>
-    </OnboardingWrapper>
+    </Stack>
   );
 }
 
@@ -380,7 +344,7 @@ const Container = styled('div')`
 `;
 
 const Header = styled('header')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding-left: ${space(4)};
   padding-right: ${space(4)};
   position: sticky;
@@ -397,7 +361,7 @@ const Header = styled('header')`
 const LogoSvg = styled(LogoSentry)`
   width: 130px;
   height: 30px;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const OnboardingStep = styled((props: React.ComponentProps<typeof motion.div>) => (
@@ -437,14 +401,6 @@ const BackMotionDiv = styled(motion.div)`
   left: 20px;
 
   button {
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
 `;
-
-const OnboardingWrapper = styled('main')`
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-`;
-
-export default RelocationOnboarding;

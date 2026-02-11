@@ -2,12 +2,12 @@ import type React from 'react';
 import {createContext, useContext} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
-  type DataCondition,
   DataConditionType,
+  type DataCondition,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {
   AgeComparisonDetails,
@@ -21,7 +21,7 @@ import {
 } from 'sentry/views/automations/components/actionFilters/assignedTo';
 import {
   AgeComparison,
-  Attributes,
+  Attribute,
   Interval,
   Level,
   MatchType,
@@ -62,6 +62,7 @@ import {
   IssuePriorityNode,
   validateIssuePriorityCondition,
 } from 'sentry/views/automations/components/actionFilters/issuePriority';
+import {IssuePriorityDeescalating} from 'sentry/views/automations/components/actionFilters/issuePriorityDeescalating';
 import {
   LatestAdoptedReleaseDetails,
   LatestAdoptedReleaseNode,
@@ -124,6 +125,13 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     },
   ],
   [
+    DataConditionType.ISSUE_RESOLVED_TRIGGER,
+    {
+      label: t('An issue is resolved'),
+      validate: undefined,
+    },
+  ],
+  [
     DataConditionType.REGRESSION_EVENT,
     {
       label: t('A resolved issue becomes unresolved'),
@@ -158,7 +166,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       dataCondition: AgeComparisonNode,
       details: AgeComparisonDetails,
       defaultComparison: {
-        comparison_type: AgeComparison.OLDER,
+        comparisonType: AgeComparison.OLDER,
         value: 10,
         time: TimeUnit.MINUTES,
       },
@@ -205,14 +213,23 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     },
   ],
   [
+    DataConditionType.ISSUE_PRIORITY_DEESCALATING,
+    {
+      label: t('De-escalation'),
+      dataCondition: IssuePriorityDeescalating,
+      details: IssuePriorityDeescalating,
+      validate: undefined,
+    },
+  ],
+  [
     DataConditionType.LATEST_ADOPTED_RELEASE,
     {
       label: t('Release age'),
       dataCondition: LatestAdoptedReleaseNode,
       details: LatestAdoptedReleaseDetails,
       defaultComparison: {
-        release_age_type: ModelAge.OLDEST,
-        age_comparison: AgeComparison.OLDER,
+        releaseAgeType: ModelAge.OLDEST,
+        ageComparison: AgeComparison.OLDER,
         environment: '',
       },
       validate: validateLatestAdoptedReleaseCondition,
@@ -236,7 +253,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       dataCondition: EventAttributeNode,
       details: EventAttributeDetails,
       defaultComparison: {
-        attribute: Attributes.MESSAGE,
+        attribute: Attribute.MESSAGE,
         match: MatchType.CONTAINS,
       },
       validate: validateEventAttributeCondition,
@@ -294,7 +311,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       defaultComparison: {
         value: 100,
         interval: Interval.ONE_HOUR,
-        comparison_interval: Interval.ONE_WEEK,
+        comparisonInterval: Interval.ONE_WEEK,
       },
       validate: validateEventFrequencyCondition,
       warningMessage: OccurenceBasedMonitorsWarning,
@@ -329,7 +346,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       defaultComparison: {
         value: 100,
         interval: Interval.ONE_HOUR,
-        comparison_interval: Interval.ONE_WEEK,
+        comparisonInterval: Interval.ONE_WEEK,
       },
       validate: validateEventUniqueUserFrequencyCondition,
       warningMessage: OccurenceBasedMonitorsWarning,
@@ -364,7 +381,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       defaultComparison: {
         value: 100,
         interval: Interval.ONE_HOUR,
-        comparison_interval: Interval.ONE_WEEK,
+        comparisonInterval: Interval.ONE_WEEK,
       },
       validate: validatePercentSessionsCondition,
       warningMessage: OccurenceBasedMonitorsWarning,
@@ -374,13 +391,13 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
 
 function OccurenceBasedMonitorsWarning() {
   return (
-    <Flex direction="column" gap={space(1)}>
+    <Flex direction="column" gap="md">
       <WarningLine>
         {t('These filters will only apply to some of your monitors and triggers.')}
       </WarningLine>
       <WarningLine>
         {t(
-          'They are only available for occurrence-based monitors \(errors, N+1, and replay\) and only apply to the triggers "A new event is captured for an issue" and "A new issue is created."'
+          'They are only available for occurrence-based monitors (errors, N+1, and replay) and only apply to the triggers "A new event is captured for an issue" and "A new issue is created."'
         )}
       </WarningLine>
     </Flex>

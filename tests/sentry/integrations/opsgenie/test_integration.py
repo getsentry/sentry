@@ -1,5 +1,5 @@
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -53,7 +53,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         "api_key": "123-key",
     }
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.init_path_without_guide = f"{self.init_path}?completed_installation_guide"
 
@@ -65,7 +65,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_installation_no_key(self, mock_record):
+    def test_installation_no_key(self, mock_record: MagicMock) -> None:
         self.assert_setup_flow(self.config_no_key)
 
         # SLO assertions
@@ -81,7 +81,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         assert integration.name == "cool-name"
         assert integration.metadata["domain_name"] == "cool-name.app.opsgenie.com"
 
-    def test_eu_installation_no_key(self):
+    def test_eu_installation_no_key(self) -> None:
         self.assert_setup_flow(self.eu_config_no_key)
 
         integration = Integration.objects.get(provider=self.provider.key)
@@ -94,7 +94,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         assert integration.name == "chill-name"
         assert integration.metadata["domain_name"] == "chill-name.app.eu.opsgenie.com"
 
-    def test_installation_with_key(self):
+    def test_installation_with_key(self) -> None:
         self.assert_setup_flow(self.config_with_key)
 
         integration = Integration.objects.get(provider=self.provider.key)
@@ -112,7 +112,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         assert integration.name == "cool-name"
         assert integration.metadata["domain_name"] == "cool-name.app.opsgenie.com"
 
-    def test_eu_installation_with_key(self):
+    def test_eu_installation_with_key(self) -> None:
         self.assert_setup_flow(self.eu_config_with_key)
 
         integration = Integration.objects.get(provider=self.provider.key)
@@ -131,7 +131,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         assert integration.metadata["domain_name"] == "chill-name.app.eu.opsgenie.com"
 
     @responses.activate
-    def test_update_config_valid(self):
+    def test_update_config_valid(self) -> None:
         integration = self.create_provider_integration(
             provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
         )
@@ -154,7 +154,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         }
 
     @responses.activate
-    def test_update_config_invalid(self):
+    def test_update_config_invalid(self) -> None:
         integration = self.create_provider_integration(
             provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
         )
@@ -190,7 +190,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         }
 
     @responses.activate
-    def test_update_config_invalid_rate_limited(self):
+    def test_update_config_invalid_rate_limited(self) -> None:
         integration = self.create_provider_integration(
             provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
         )
@@ -209,7 +209,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
             installation.update_organization_config(data)
 
     @responses.activate
-    def test_update_config_invalid_integration_key(self):
+    def test_update_config_invalid_integration_key(self) -> None:
         integration = self.create_provider_integration(
             provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
         )
@@ -233,7 +233,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
             "organizations:integrations-enterprise-incident-management": False,
         }
     )
-    def test_disallow_when_no_business_plan(self):
+    def test_disallow_when_no_business_plan(self) -> None:
         resp = self.client.get(self.init_path)
         assert resp.status_code == 200
         assert (
@@ -251,7 +251,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         integration.add_organization(self.organization, self.user)
         return integration
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project(
             name="thonk", organization=self.organization, teams=[self.team]
@@ -265,7 +265,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         self.login_as(self.user)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_migrate_plugin(self, mock_record):
+    def test_migrate_plugin(self, mock_record: MagicMock) -> None:
         """
         Test that 2 projects with the Opsgenie plugin activated that have one alert rule each
         and distinct API keys are successfully migrated.
@@ -285,16 +285,19 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         plugin2.set_option("alert_url", "https://api.opsgenie.com/v2/alerts/", project2)
         plugin2.set_option("api_key", "456-key", project2)
 
-        Rule.objects.create(
-            label="rule",
-            project=self.project,
-            data={"match": "all", "actions": [ALERT_LEGACY_INTEGRATIONS]},
+        self.create_project_rule(
+            name="rule",
+            action_data=[ALERT_LEGACY_INTEGRATIONS],
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
 
-        Rule.objects.create(
-            label="rule2",
+        self.create_project_rule(
+            name="rule2",
+            action_data=[ALERT_LEGACY_INTEGRATIONS],
             project=project2,
-            data={"match": "all", "actions": [ALERT_LEGACY_INTEGRATIONS]},
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
 
         with self.tasks():
@@ -347,7 +350,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
-    def test_no_duplicate_keys(self):
+    def test_no_duplicate_keys(self) -> None:
         """
         Keys should not be migrated twice.
         """
@@ -381,7 +384,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             ]
         }
 
-    def test_existing_key(self):
+    def test_existing_key(self) -> None:
         """
         Test that migration works if a key has already been added to config.
         """
@@ -400,10 +403,11 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             }
             org_integration.save()
 
-        Rule.objects.create(
-            label="rule",
-            project=self.project,
-            data={"match": "all", "actions": [ALERT_LEGACY_INTEGRATIONS]},
+        self.create_project_rule(
+            name="rule",
+            action_data=[ALERT_LEGACY_INTEGRATIONS],
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
         with self.tasks():
             self.installation.schedule_migrate_opsgenie_plugin()
@@ -436,7 +440,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             },
         ]
 
-    def test_multiple_rules(self):
+    def test_multiple_rules(self) -> None:
         """
         Test multiple rules, some of which send notifications to legacy integrations.
         """
@@ -447,17 +451,21 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             org_integration.config = {"team_table": []}
             org_integration.save()
 
-        Rule.objects.create(
-            label="rule",
-            project=self.project,
-            data={"match": "all", "actions": [ALERT_LEGACY_INTEGRATIONS]},
+        self.create_project_rule(
+            name="rule",
+            action_data=[ALERT_LEGACY_INTEGRATIONS],
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
 
-        Rule.objects.create(
-            label="rule2",
-            project=self.project,
-            data={"match": "all", "actions": []},
+        rule2 = self.create_project_rule(
+            name="rule2",
+            action_data=[{}],
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
+        rule2.data["actions"] = []
+        rule2.save()
 
         with self.tasks():
             self.installation.schedule_migrate_opsgenie_plugin()
@@ -488,7 +496,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
 
         assert rule2_updated.data["actions"] == []
 
-    def test_existing_rule(self):
+    def test_existing_rule(self) -> None:
         """
         Don't add a new recipient from an API key if the recipient already exists.
         """
@@ -507,20 +515,18 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             }
             org_integration.save()
 
-        Rule.objects.create(
-            label="rule",
-            project=self.project,
-            data={
-                "match": "all",
-                "actions": [
-                    ALERT_LEGACY_INTEGRATIONS,
-                    {
-                        "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
-                        "account": self.integration.id,
-                        "team": str(self.organization_integration.id) + "-pikachu",
-                    },
-                ],
-            },
+        self.create_project_rule(
+            name="rule",
+            action_data=[
+                ALERT_LEGACY_INTEGRATIONS,
+                {
+                    "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+                    "account": self.integration.id,
+                    "team": str(self.organization_integration.id) + "-pikachu",
+                },
+            ],
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
         with self.tasks():
             self.installation.schedule_migrate_opsgenie_plugin()
@@ -553,7 +559,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             },
         ]
 
-    def test_migrate_plugin_with_name(self):
+    def test_migrate_plugin_with_name(self) -> None:
         """
         Test that the Opsgenie plugin is migrated correctly if the legacy alert action has a name field.
         """
@@ -564,10 +570,11 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             org_integration.config = {"team_table": []}
             org_integration.save()
 
-        Rule.objects.create(
-            label="rule",
-            project=self.project,
-            data={"match": "all", "actions": [ALERT_LEGACY_INTEGRATIONS_WITH_NAME]},
+        self.create_project_rule(
+            name="rule",
+            action_data=[ALERT_LEGACY_INTEGRATIONS_WITH_NAME],
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
 
         with self.tasks():

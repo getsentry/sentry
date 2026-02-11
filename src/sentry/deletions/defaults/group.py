@@ -1,3 +1,17 @@
+"""
+Group deletion configuration.
+
+This module defines which models should be deleted when a group is deleted and how
+they should be handled during reprocessing operations.
+
+IMPORTANT: When adding a new model with a group_id foreign key, you MUST add it to
+one of the model lists below, or tests will fail. See:
+  - tests/sentry/deletions/test_validate_group_related_models.py
+
+For guidance on which list to use, see the comments on DIRECT_GROUP_RELATED_MODELS
+and ADDITIONAL_GROUP_RELATED_MODELS below.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -6,18 +20,18 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from sentry_sdk import set_tag
-from snuba_sdk import DeleteQuery, Request
-
-from sentry import eventstore, eventstream, models, nodestore
-from sentry.eventstore.models import Event
+from sentry import models, options
+from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
+from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
-from sentry.utils.snuba import bulk_snuba_queries
+from sentry.utils import metrics
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 from ..manager import DeletionTaskManager
@@ -26,14 +40,21 @@ logger = logging.getLogger(__name__)
 
 GROUP_CHUNK_SIZE = 100
 EVENT_CHUNK_SIZE = 10000
-# https://github.com/getsentry/snuba/blob/54feb15b7575142d4b3af7f50d2c2c865329f2db/snuba/datasets/configuration/issues/storages/search_issues.yaml#L139
-ISSUE_PLATFORM_MAX_ROWS_TO_DELETE = 2000000
+GROUP_HASH_ITERATIONS = 10000
+GROUP_HASH_METADATA_ITERATIONS = 10000
 
-# Group models that relate only to groups and not to events. We assume those to
-# be safe to delete/mutate within a single transaction for user-triggered
-# actions (delete/reprocess/merge/unmerge)
+# Group models that relate only to groups and not to events. These models are
+# transferred during reprocessing operations because they represent group-level
+# metadata that should follow the group when events are reprocessed.
+#
+# Add a model to this list if it meets ALL of these criteria:
+# 1. NO event_id field - represents group state, not individual event data
+# 2. Should be TRANSFERRED during reprocessing - the metadata is about the group itself
+#    (e.g., assignments, bookmarks, resolutions, history) and should move with it
+# 3. Safe to bulk update with group_id changes during merge/unmerge operations
 DIRECT_GROUP_RELATED_MODELS = (
     # prioritize GroupHash
+    # XXX: We could remove GroupHash from here since we call delete_group_hashes() in the _delete_children() method.
     models.GroupHash,
     models.GroupAssignee,
     models.GroupCommitResolution,
@@ -54,15 +75,26 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupOwner,
     models.GroupEmailThread,
     models.GroupSubscription,
-    models.GroupHistory,
+    models.GroupReaction,
+    models.Activity,
     RuleFireHistory,
 )
 
-_GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
+# Additional group-related models that require special handling during reprocessing.
+# Unlike DIRECT_GROUP_RELATED_MODELS which are migrated in bulk, these models need
+# per-event processing or should not be transferred at all.
+#
+# Add a model to this list if it meets ANY of these criteria:
+# 1. Has an event_id field - per-event data that must be migrated during event
+#    reprocessing pipeline, not as a group bulk operation (UserReport, EventAttachment)
+# 2. Should NOT be transferred during reprocessing - transient or notification data
+#    that doesn't represent core group state (NotificationMessage)
+ADDITIONAL_GROUP_RELATED_MODELS = (
     models.UserReport,
     models.EventAttachment,
     NotificationMessage,
 )
+_GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + ADDITIONAL_GROUP_RELATED_MODELS
 
 
 class EventsBaseDeletionTask(BaseDeletionTask[Group]):
@@ -93,38 +125,45 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
         self.group_ids = group_ids
         self.project_ids = list(self.project_groups.keys())
 
-    def get_unfetched_events(self) -> list[Event]:
-        conditions = []
-        if self.last_event is not None:
-            conditions.extend(
-                [
-                    ["timestamp", "<=", self.last_event.timestamp],
-                    [
-                        ["timestamp", "<", self.last_event.timestamp],
-                        ["event_id", "<", self.last_event.event_id],
-                    ],
-                ]
-            )
-
-        logger.info("Fetching %s events for deletion.", self.DEFAULT_CHUNK_SIZE)
-        events = eventstore.backend.get_unfetched_events(
-            filter=eventstore.Filter(
-                conditions=conditions, project_ids=self.project_ids, group_ids=self.group_ids
-            ),
-            limit=self.DEFAULT_CHUNK_SIZE,
-            referrer=self.referrer,
-            orderby=["-timestamp", "-event_id"],
-            tenant_ids=self.tenant_ids,
-            dataset=self.dataset,
-        )
-        return events
-
     @property
     def tenant_ids(self) -> Mapping[str, Any]:
         result = {"referrer": self.referrer}
         if self.groups:
             result["organization_id"] = self.groups[0].project.organization_id
         return result
+
+    def chunk(self, apply_filter: bool = False) -> bool:
+        """This method is called to delete chunks of data. It returns a boolean to say
+        if the deletion has completed and if it needs to be called again."""
+        self.delete_events_from_nodestore_and_eventstore()
+        return False
+
+    def delete_events_from_nodestore_and_eventstore(self) -> None:
+        """Schedule asynchronous deletion of events from the nodestore and eventstore for all groups."""
+        if not self.group_ids:
+            return
+
+        # Get organization_id from the first group
+        organization_id = self.groups[0].project.organization_id
+
+        # Schedule nodestore deletion task for each project
+        for project_id, groups in self.project_groups.items():
+            sorted_groups = sorted(groups, key=lambda g: (g.times_seen, g.id))
+            sorted_group_ids = [group.id for group in sorted_groups]
+            sorted_times_seen = [group.times_seen for group in sorted_groups]
+            # The scheduled task will not have access to the Group model, thus, we need to pass the times_seen
+            # in order to enable proper batching and calling deletions with less than ISSUE_PLATFORM_MAX_ROWS_TO_DELETE
+            delete_events_for_groups_from_nodestore_and_eventstore.apply_async(
+                kwargs={
+                    "organization_id": organization_id,
+                    "project_id": project_id,
+                    "group_ids": sorted_group_ids,
+                    "times_seen": sorted_times_seen,
+                    "transaction_id": self.transaction_id,
+                    "dataset_str": self.dataset.value,
+                    "referrer": self.referrer,
+                },
+            )
 
 
 class ErrorEventsDeletionTask(EventsBaseDeletionTask):
@@ -136,49 +175,6 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
 
     dataset = Dataset.Events
 
-    def chunk(self) -> bool:
-        """This method is called to delete chunks of data. It returns a boolean to say
-        if the deletion has completed and if it needs to be called again."""
-        events = self.get_unfetched_events()
-        if events:
-            # Adding this variable to see the values in stack traces
-            last_event = events[-1]
-            self.delete_events_from_nodestore(events)
-            self.delete_dangling_attachments_and_user_reports(events)
-            # This value will be used in the next call to chunk
-            self.last_event = last_event
-            # As long as it returns True the task will keep iterating
-            return True
-        else:
-            # Now that all events have been deleted from the eventstore, we can delete the events from snuba
-            self.delete_events_from_snuba()
-            return False
-
-    def delete_events_from_nodestore(self, events: Sequence[Event]) -> None:
-        # Remove from nodestore
-        node_ids = [Event.generate_node_id(event.project_id, event.event_id) for event in events]
-        logger.info("Deleting %s events from nodestore.", len(node_ids))
-        nodestore.backend.delete_multi(node_ids)
-
-    def delete_dangling_attachments_and_user_reports(self, events: Sequence[Event]) -> None:
-        # Remove EventAttachment and UserReport *again* as those may not have a
-        # group ID, therefore there may be dangling ones after "regular" model
-        # deletion.
-        event_ids = [event.event_id for event in events]
-        models.EventAttachment.objects.filter(
-            event_id__in=event_ids, project_id__in=self.project_ids
-        ).delete()
-        models.UserReport.objects.filter(
-            event_id__in=event_ids, project_id__in=self.project_ids
-        ).delete()
-
-    def delete_events_from_snuba(self) -> None:
-        # Remove all group events now that their node data has been removed.
-        for project_id, groups in self.project_groups.items():
-            group_ids = [group.id for group in groups]
-            eventstream_state = eventstream.backend.start_delete_groups(project_id, group_ids)
-            eventstream.backend.end_delete_groups(eventstream_state)
-
 
 class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
     """
@@ -186,78 +182,6 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
     """
 
     dataset = Dataset.IssuePlatform
-    max_rows_to_delete = ISSUE_PLATFORM_MAX_ROWS_TO_DELETE
-
-    def chunk(self) -> bool:
-        """This method is called to delete chunks of data. It returns a boolean to say
-        if the deletion has completed and if it needs to be called again."""
-        events = self.get_unfetched_events()
-        if events:
-            # Adding this variable to see the values in stack traces
-            last_event = events[-1]
-            # Ideally, in some cases, we should also delete the associated event from the Nodestore.
-            # In the occurrence_consumer [1] we sometimes create a new event but it's hard in post-ingestion to distinguish between
-            # a created event and an existing one.
-            # https://github.com/getsentry/sentry/blob/a86b9b672709bc9c4558cffb2c825965b8cee0d1/src/sentry/issues/occurrence_consumer.py#L324-L339
-            self.delete_events_from_nodestore(events)
-            # This value will be used in the next call to chunk
-            self.last_event = last_event
-            # As long as it returns True the task will keep iterating
-            return True
-        else:
-            # Now that all events have been deleted from the eventstore, we can delete the occurrences from Snuba
-            self.delete_events_from_snuba()
-            return False
-
-    def delete_events_from_nodestore(self, events: Sequence[Event]) -> None:
-        # We delete by the occurrence_id instead of the event_id
-        node_ids = [
-            Event.generate_node_id(event.project_id, event._snuba_data["occurrence_id"])
-            for event in events
-        ]
-        nodestore.backend.delete_multi(node_ids)
-
-    def delete_events_from_snuba(self) -> None:
-        requests = []
-        for project_id, groups in self.project_groups.items():
-            # Split group_ids into batches where the sum of times_seen is less than max_rows_to_delete
-            current_batch: list[int] = []
-            current_batch_rows = 0
-
-            # Deterministic sort for sanity, and for very large deletions we'll
-            # delete the "smaller" groups first
-            groups.sort(key=lambda g: (g.times_seen, g.id))
-
-            for group in groups:
-                times_seen = group.times_seen
-
-                # If adding this group would exceed the limit, create a request with the current batch
-                if current_batch_rows + times_seen > self.max_rows_to_delete:
-                    requests.append(self.delete_request(project_id, current_batch))
-                    # We now start a new batch
-                    current_batch = [group.id]
-                    current_batch_rows = times_seen
-                else:
-                    current_batch.append(group.id)
-                    current_batch_rows += times_seen
-
-            # Add the final batch if it's not empty
-            if current_batch:
-                requests.append(self.delete_request(project_id, current_batch))
-
-        bulk_snuba_queries(requests)
-
-    def delete_request(self, project_id: int, group_ids: Sequence[int]) -> Request:
-        query = DeleteQuery(
-            self.dataset.value,
-            column_conditions={"project_id": [project_id], "group_id": list(group_ids)},
-        )
-        return Request(
-            dataset=self.dataset.value,
-            app_id=self.referrer,
-            query=query,
-            tenant_ids=self.tenant_ids,
-        )
 
 
 class GroupDeletionTask(ModelDeletionTask[Group]):
@@ -274,22 +198,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             return True
 
         self.mark_deletion_in_progress(instance_list)
-
-        error_group_ids = []
-        # XXX: If a group type has been removed, we shouldn't error here.
-        # Ideally, we should refactor `issue_category` to return None if the type is
-        # unregistered.
-        for group in instance_list:
-            try:
-                if group.issue_category == GroupCategory.ERROR:
-                    error_group_ids.append(group.id)
-            except InvalidGroupTypeError:
-                pass
-        # Tell seer to delete grouping records with these group hashes
-        may_schedule_task_to_delete_hashes_from_seer(error_group_ids)
-
         self._delete_children(instance_list)
-
         # Remove group objects with children removed.
         self.delete_instance_bulk(instance_list)
 
@@ -297,12 +206,33 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
 
     def _delete_children(self, instance_list: Sequence[Group]) -> None:
         group_ids = [group.id for group in instance_list]
+        project_id = instance_list[0].project_id  # All groups should have same project_id
         # Remove child relations for all groups first.
         child_relations: list[BaseRelation] = []
         for model in _GROUP_RELATED_MODELS:
-            child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
+            if model == models.GroupHash:
+                # Using the composite index on (project_id, group_id) is very efficient compared to
+                # using the index on group_id alone. This index only shows up in production.
+                # XXX: Follow up with a PR to add this composite index
+                child_relations.append(
+                    ModelRelation(model, {"project_id": project_id, "group_id__in": group_ids})
+                )
+            else:
+                child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)
+        error_group_ids = [group.id for group in error_groups]
+        issue_platform_group_ids = [group.id for group in issue_platform_groups]
+
+        # delete_children() will delete GroupHash rows and related GroupHashMetadata rows,
+        # however, we have added multiple optimizations in this function that would need to
+        # be ported to a custom deletion task.
+        delete_project_group_hashes(
+            instance_list[0].project_id, group_ids_filter=error_group_ids, seer_deletion=True
+        )
+        delete_project_group_hashes(
+            instance_list[0].project_id, group_ids_filter=issue_platform_group_ids
+        )
 
         # If this isn't a retention cleanup also remove event data.
         if not os.environ.get("_SENTRY_CLEANUP"):
@@ -311,9 +241,6 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
                 child_relations.append(BaseRelation(params=params, task=ErrorEventsDeletionTask))
 
             if issue_platform_groups:
-                # This helps creating custom Sentry alerts;
-                # remove when #proj-snuba-lightweight_delets is done
-                set_tag("issue_platform_deletion", True)
                 params = {"groups": issue_platform_groups}
                 child_relations.append(
                     BaseRelation(params=params, task=IssuePlatformEventsDeletionTask)
@@ -324,8 +251,10 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
     def delete_instance(self, instance: Group) -> None:
         from sentry import similarity
 
+        # Don't do MinHash work if we use embeddings-based similarity.
         if not self.skip_models or similarity not in self.skip_models:
-            similarity.delete(None, instance)
+            if not instance.project.get_option("sentry:similarity_backfill_completed"):
+                similarity.delete(None, instance)
 
         return super().delete_instance(instance)
 
@@ -335,10 +264,122 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         ).update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
 
 
+def update_group_hash_metadata_in_batches(hash_ids: Sequence[int]) -> None:
+    """
+    Update seer_matched_grouphash to None for GroupHashMetadata rows
+    that reference the given hash_ids, in batches to avoid timeouts.
+
+    This function performs the update in smaller batches to reduce lock
+    contention and prevent statement timeouts when many rows need updating.
+    Includes a maximum iteration limit as a safeguard against potential
+    infinite loops.
+    """
+    option_batch_size = options.get("deletions.group-hash-metadata.batch-size")
+    batch_size = max(1, option_batch_size)
+
+    # Process rows in batches with a maximum iteration limit to prevent
+    # infinite loops while still allowing processing of large datasets.
+    updated_rows = 0
+    iteration_count = 0
+    while iteration_count < GROUP_HASH_METADATA_ITERATIONS:
+        iteration_count += 1
+        # Note: hash_ids is bounded to ~100 items (deletions.group-hashes-batch-size)
+        # from the caller, so this IN clause is intentionally not batched
+        batch_metadata_ids = list(
+            GroupHashMetadata.objects.filter(seer_matched_grouphash_id__in=hash_ids).values_list(
+                "id", flat=True
+            )[:batch_size]
+        )
+        if not batch_metadata_ids:
+            break
+
+        updated = GroupHashMetadata.objects.filter(id__in=batch_metadata_ids).update(
+            seer_matched_grouphash=None
+        )
+        updated_rows += updated
+        metrics.incr("deletions.group_hash_metadata.rows_updated", amount=updated, sample_rate=1.0)
+        # It could be possible we could be trying to update the same rows again and again,
+        # thus, let's break the loop.
+        if updated == 0:
+            break
+
+    # We will try again these hash_ids on the next run of the cleanup script.
+    # This is a safeguard to prevent infinite loops.
+    if iteration_count >= GROUP_HASH_METADATA_ITERATIONS:
+        logger.warning(
+            "update_group_hash_metadata_in_batches.max_iterations_reached",
+            extra={"updated_rows": updated_rows},
+        )
+        metrics.incr("deletions.group_hash_metadata.max_iterations_reached", sample_rate=1.0)
+
+
+def delete_project_group_hashes(
+    project_id: int,
+    group_ids_filter: Sequence[int] | None = None,
+    seer_deletion: bool = False,
+) -> None:
+    """
+    Delete GroupHash records for a project.
+
+    This is the main function for deleting GroupHash records. It can delete all hashes for a project
+    (used during project deletion to clean up orphaned records) or delete hashes for specific groups
+    (used during group deletion).
+
+    Args:
+        project_id: The project to delete hashes for
+        group_ids_filter: Optional filter for specific group IDs.
+                         - If None: deletes ALL GroupHash records for the project (including orphans)
+                         - If empty: returns immediately (no-op for safety)
+                         - If non-empty: deletes only hashes for those specific groups
+        seer_deletion: Whether to notify Seer about the deletion
+    """
+    # Safety: empty filter means nothing to delete
+    if group_ids_filter is not None and len(group_ids_filter) == 0:
+        return
+
+    hashes_batch_size = max(1, options.get("deletions.group-hashes-batch-size"))
+
+    iterations = 0
+    while iterations < GROUP_HASH_ITERATIONS:
+        # Base query: all hashes for this project
+        qs = GroupHash.objects.filter(project_id=project_id)
+
+        # Apply group filter if provided
+        if group_ids_filter is not None:
+            qs = qs.filter(group_id__in=group_ids_filter)
+
+        hashes_chunk = list(qs.values_list("id", "hash")[:hashes_batch_size])
+        if not hashes_chunk:
+            break
+        try:
+            if seer_deletion:
+                hash_values = [gh[1] for gh in hashes_chunk]
+                may_schedule_task_to_delete_hashes_from_seer(project_id, hash_values)
+        except Exception:
+            logger.warning("Error scheduling task to delete hashes from seer")
+        finally:
+            hash_ids = [gh[0] for gh in hashes_chunk]
+            update_group_hash_metadata_in_batches(hash_ids)
+            GroupHashMetadata.objects.filter(grouphash_id__in=hash_ids).delete()
+            GroupHash.objects.filter(id__in=hash_ids).delete()
+
+        iterations += 1
+
+    if iterations == GROUP_HASH_ITERATIONS:
+        metrics.incr("deletions.group_hashes.max_iterations_reached", sample_rate=1.0)
+        logger.warning(
+            "delete_group_hashes.max_iterations_reached",
+            extra={"project_id": project_id, "filtered": group_ids_filter is not None},
+        )
+
+
 def separate_by_group_category(instance_list: Sequence[Group]) -> tuple[list[Group], list[Group]]:
     error_groups = []
     issue_platform_groups = []
     for group in instance_list:
+        # XXX: If a group type has been removed, we shouldn't error here.
+        # Ideally, we should refactor `issue_category` to return None if the type is
+        # unregistered.
         try:
             if group.issue_category == GroupCategory.ERROR:
                 error_groups.append(group)

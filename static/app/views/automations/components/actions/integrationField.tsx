@@ -11,7 +11,7 @@ export function IntegrationField() {
     <AutomationBuilderSelect
       name={`${actionId}.integrationId`}
       aria-label={t('Integration')}
-      value={action.integrationId}
+      value={action.integrationId ?? ''}
       options={integrations?.map(team => ({
         label: team.name,
         value: team.id,
@@ -22,7 +22,7 @@ export function IntegrationField() {
         onUpdate({
           integrationId: option.value,
           ...(defaultService && {
-            config: {...action.config, target_identifier: defaultService},
+            config: {...action.config, targetIdentifier: defaultService},
           }),
         });
       }}

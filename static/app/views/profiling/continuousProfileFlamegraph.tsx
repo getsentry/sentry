@@ -1,6 +1,8 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ContinuousFlamegraph} from 'sentry/components/profiling/flamegraph/continuousFlamegraph';
@@ -29,6 +31,34 @@ import {useProfiles} from './profilesProvider';
 
 function ContinuousProfileFlamegraph(): React.ReactElement {
   const organization = useOrganization();
+
+  const {colorCoding, sorting, view} = useFlamegraphPreferences();
+
+  const currentProject = useCurrentProjectFromRouteParam();
+  const initial = useRef(true);
+
+  useEffect(() => {
+    if (!currentProject?.platform) {
+      return;
+    }
+
+    trackAnalytics('profiling_views.profile_flamegraph', {
+      organization,
+      project_platform: currentProject.platform,
+      colorCoding,
+      sorting,
+      view,
+      render: initial.current ? 'initial' : 're-render',
+    });
+
+    initial.current = false;
+  }, [organization, currentProject?.platform, colorCoding, sorting, view]);
+
+  return <ContinuousFlamegraph />;
+}
+
+export default function ContinuousProfileFlamegraphWrapper() {
+  const organization = useOrganization();
   const profiles = useProfiles();
   const params = useParams();
 
@@ -43,18 +73,6 @@ function ContinuousProfileFlamegraph(): React.ReactElement {
       },
     }
   );
-
-  const currentProject = useCurrentProjectFromRouteParam();
-
-  useEffect(() => {
-    trackAnalytics('profiling_views.profile_flamegraph', {
-      organization,
-      project_platform: currentProject?.platform,
-    });
-    // ignore  currentProject so we don't block the analytics event
-    // or fire more than once unnecessarily
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organization]);
 
   const initialFlamegraphPreferencesState = useMemo((): DeepPartial<FlamegraphState> => {
     const queryStringState = decodeFlamegraphStateFromQueryParams(
@@ -95,11 +113,11 @@ function ContinuousProfileFlamegraph(): React.ReactElement {
             <FlamegraphStateLocalStorageSync />
             <FlamegraphContainer>
               {profiles.type === 'loading' ? (
-                <LoadingIndicatorContainer>
+                <Stack justify="center" width="100%" height="100%" position="absolute">
                   <LoadingIndicator />
-                </LoadingIndicatorContainer>
+                </Stack>
               ) : null}
-              <ContinuousFlamegraph />
+              <ContinuousProfileFlamegraph />
             </FlamegraphContainer>
           </FlamegraphThemeProvider>
         </ProfileGroupTypeProvider>
@@ -133,15 +151,6 @@ function ProfileGroupTypeProvider({
   );
 }
 
-const LoadingIndicatorContainer = styled('div')`
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-`;
-
 const FlamegraphContainer = styled('div')`
   display: flex;
   flex-direction: column;
@@ -156,5 +165,3 @@ const FlamegraphContainer = styled('div')`
     display: none;
   }
 `;
-
-export default ContinuousProfileFlamegraph;

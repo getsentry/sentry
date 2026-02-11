@@ -1,40 +1,80 @@
+import styled from '@emotion/styled';
+import type {CaptureContext} from '@sentry/core';
+import * as Sentry from '@sentry/react';
+
+import {Tag} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Count from 'sentry/components/count';
-import {IconArrow} from 'sentry/icons/iconArrow';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
+import {StructuredData} from 'sentry/components/structuredEventData';
+import {t, tn} from 'sentry/locale';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
-import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
-import {getAIAttribute} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
+import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {
-  hasAgentInsightsFeature,
-  hasMCPInsightsFeature,
-} from 'sentry/views/insights/agentMonitoring/utils/features';
-import {getIsAiSpan} from 'sentry/views/insights/agentMonitoring/utils/query';
+  getIsAiAgentSpan,
+  getToolSpansFilter,
+} from 'sentry/views/insights/pages/agents/utils/query';
+import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
+import {SpanFields} from 'sentry/views/insights/types';
+import {tryParseJson} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 type HighlightedAttribute = {
   name: string;
   value: React.ReactNode;
 };
 
+type CaptureRule = {
+  messages: string[];
+  shouldCapture: boolean;
+};
+
+/**
+ * Gets AI tool definitions, checking attributes in priority order.
+ * Priority: gen_ai.tool.definitions > gen_ai.request.available_tools
+ */
+function getAIToolDefinitions(
+  attributes: Record<string, string | number | boolean>
+): any[] | null {
+  const toolDefinitions = attributes['gen_ai.tool.definitions'];
+  if (toolDefinitions) {
+    const parsed = tryParseJson(toolDefinitions.toString());
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+  }
+
+  const availableTools = attributes['gen_ai.request.available_tools'];
+  if (availableTools) {
+    const parsed = tryParseJson(availableTools.toString());
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
 export function getHighlightedSpanAttributes({
   op,
-  organization,
+  spanId,
   attributes = {},
 }: {
   attributes: Record<string, string> | undefined | TraceItemResponseAttribute[];
-  op: string | undefined;
-  organization: Organization;
+  spanId: string;
+  op?: string;
 }): HighlightedAttribute[] {
   const attributeObject = ensureAttributeObject(attributes);
+  const genAiOpType = attributeObject['gen_ai.operation.type'] as string | undefined;
 
-  if (hasAgentInsightsFeature(organization) && getIsAiSpan({op})) {
-    return getAISpanAttributes(attributeObject);
+  if (genAiOpType) {
+    return getAISpanAttributes({attributes: attributeObject, spanId});
   }
 
-  if (hasMCPInsightsFeature(organization) && op?.startsWith('mcp.')) {
+  if (op?.startsWith('mcp.')) {
     return getMCPAttributes(attributeObject);
   }
 
@@ -59,38 +99,55 @@ function ensureAttributeObject(
   return attributes;
 }
 
-function getAISpanAttributes(attributes: Record<string, string | number | boolean>) {
+function getAISpanAttributes({
+  spanId,
+  attributes = {},
+}: {
+  attributes: Record<string, string | number | boolean>;
+  spanId: string;
+}) {
   const highlightedAttributes = [];
 
-  const model =
-    getAIAttribute(attributes, 'gen_ai.request.model') ||
-    getAIAttribute(attributes, 'gen_ai.response.model');
-  if (model) {
+  const genAiOpType = attributes['gen_ai.operation.type'] as string | undefined;
+
+  const agentName = attributes['gen_ai.agent.name'] || attributes['gen_ai.function_id'];
+  if (agentName) {
     highlightedAttributes.push({
-      name: t('Model'),
-      value: <ModelName modelId={model.toString()} gap={space(0.5)} />,
+      name: t('Agent Name'),
+      value: agentName,
     });
   }
 
-  const promptTokens = getAIAttribute(attributes, 'gen_ai.usage.input_tokens');
-  const completionTokens = getAIAttribute(attributes, 'gen_ai.usage.output_tokens');
-  const totalTokens = getAIAttribute(attributes, 'gen_ai.usage.total_tokens');
-  if (promptTokens && completionTokens && totalTokens && Number(totalTokens) > 0) {
+  const model = attributes['gen_ai.response.model'] || attributes['gen_ai.request.model'];
+  if (model) {
+    highlightedAttributes.push({
+      name: t('Model'),
+      value: <ModelName modelId={model.toString()} gap="xs" />,
+    });
+  }
+
+  const inputTokens = attributes['gen_ai.usage.input_tokens'];
+  const cachedTokens = attributes['gen_ai.usage.input_tokens.cached'];
+  const outputTokens = attributes['gen_ai.usage.output_tokens'];
+  const reasoningTokens = attributes['gen_ai.usage.output_tokens.reasoning'];
+  const totalTokens = attributes['gen_ai.usage.total_tokens'];
+
+  if (inputTokens && outputTokens && totalTokens && Number(totalTokens) > 0) {
     highlightedAttributes.push({
       name: t('Tokens'),
       value: (
-        <span>
-          <Count value={promptTokens.toString()} />{' '}
-          <IconArrow direction="right" size="xs" />{' '}
-          <Count value={completionTokens.toString()} /> {' (Σ '}
-          <Count value={totalTokens.toString()} />
-          {')'}
-        </span>
+        <HighlightedTokenAttributes
+          inputTokens={Number(inputTokens)}
+          cachedTokens={Number(cachedTokens)}
+          outputTokens={Number(outputTokens)}
+          reasoningTokens={Number(reasoningTokens)}
+          totalTokens={Number(totalTokens)}
+        />
       ),
     });
   }
 
-  const totalCosts = getAIAttribute(attributes, 'gen_ai.usage.total_cost');
+  const totalCosts = attributes['gen_ai.cost.total_tokens'];
   if (totalCosts && Number(totalCosts) > 0) {
     highlightedAttributes.push({
       name: t('Cost'),
@@ -98,11 +155,109 @@ function getAISpanAttributes(attributes: Record<string, string | number | boolea
     });
   }
 
-  const toolName = getAIAttribute(attributes, 'gen_ai.tool.name');
+  const captureRules: CaptureRule[] = [
+    {
+      shouldCapture: Boolean(
+        model &&
+        (inputTokens || outputTokens) &&
+        (!totalCosts || Number(totalCosts) === 0)
+      ),
+      messages: [
+        'Gen AI span missing cost calculation',
+        `Gen AI cost data missing for model: ${model?.toString()}`,
+      ],
+    },
+    {
+      shouldCapture: Boolean(model && totalCosts && Number(totalCosts) < 0),
+      messages: [`Gen AI span with negative cost: ${model?.toString()}`],
+    },
+  ];
+  const shouldCapture = captureRules.some(rule => rule.shouldCapture);
+
+  if (shouldCapture && model) {
+    const integration = attributes['gen_ai.system'];
+    const platform = attributes.platform ?? attributes['sdk.name'];
+    const version = attributes['sdk.version'];
+    const orgId =
+      attributes['org.id'] ?? attributes['organization.id'] ?? attributes.organization_id;
+    const hasCost = totalCosts && Number(totalCosts) !== 0;
+    const contextData: CaptureContext = {
+      level: 'warning',
+      tags: {
+        feature: 'agent-monitoring',
+        span_type: 'gen_ai',
+        has_model: 'true',
+        has_cost: hasCost ? 'true' : 'false',
+        model: model.toString(),
+        integration: integration?.toString() ?? 'unknown',
+        platform: platform?.toString() ?? 'unknown',
+        version: version?.toString() ?? 'unknown',
+        org_id: orgId?.toString() ?? 'unknown',
+      },
+      extra: {
+        total_costs: totalCosts,
+        attributes,
+      },
+    };
+
+    captureRules
+      .filter(rule => rule.shouldCapture)
+      .flatMap(rule => rule.messages)
+      .forEach(message => {
+        Sentry.captureMessage(message, contextData);
+      });
+  }
+
+  const toolName = attributes['gen_ai.tool.name'];
   if (toolName) {
     highlightedAttributes.push({
       name: t('Tool Name'),
       value: toolName,
+    });
+  }
+
+  const toolsArray = getAIToolDefinitions(attributes);
+  if (toolsArray && toolsArray.length > 0 && getIsAiAgentSpan(genAiOpType)) {
+    highlightedAttributes.push({
+      name: t('Available Tools'),
+      value: <HighlightedTools availableTools={toolsArray} spanId={spanId} />,
+    });
+  }
+
+  // Emit a message if the span is missing any required gen_ai attributes,
+  // but only if the origin starts with "auto.ai"
+  const requiredGenAIAttributes = [
+    'gen_ai.system',
+    'gen_ai.request.model',
+    'gen_ai.operation.name',
+    'gen_ai.agent.name',
+  ];
+
+  const missingGenAIAttributes = requiredGenAIAttributes.filter(
+    attr => !attributes[attr]
+  );
+
+  const origin = attributes['gen_ai.origin'];
+  if (
+    missingGenAIAttributes.length > 0 &&
+    typeof origin === 'string' &&
+    origin.startsWith('auto.ai')
+  ) {
+    const sdkName = attributes['sdk.name'];
+    const sdkVersion = attributes['sdk.version'];
+
+    Sentry.captureMessage('Gen AI span missing required attributes', {
+      level: 'warning',
+      tags: {
+        feature: 'agent-monitoring',
+        span_type: 'gen_ai',
+        missing_attributes: missingGenAIAttributes.join(','),
+        origin,
+        sdk:
+          [sdkName?.toString(), sdkVersion?.toString()].filter(Boolean).join('@') ||
+          'unknown',
+        span_id: spanId,
+      },
     });
   }
 
@@ -146,3 +301,131 @@ function getMCPAttributes(attributes: Record<string, string | number | boolean>)
 
   return highlightedAttributes;
 }
+
+function HighlightedTools({
+  availableTools,
+  spanId,
+}: {
+  availableTools: any[];
+  spanId: string;
+}) {
+  const toolNames = availableTools.map(tool => tool.name).filter(Boolean);
+  const hasToolNames = toolNames.length > 0;
+  const toolSpansQuery = useSpans(
+    {
+      search: `parent_span:${spanId} has:${SpanFields.GEN_AI_TOOL_NAME} ${getToolSpansFilter()}`,
+      fields: [SpanFields.GEN_AI_TOOL_NAME],
+      enabled: hasToolNames,
+    },
+    Referrer.TRACE_DRAWER_TOOL_USAGE
+  );
+
+  const usedTools: Map<string, number> = new Map();
+  toolSpansQuery.data?.forEach(span => {
+    const toolName = span[SpanFields.GEN_AI_TOOL_NAME];
+    usedTools.set(toolName, (usedTools.get(toolName) ?? 0) + 1);
+  });
+
+  // Fall back to showing formatted JSON if tool names cannot be parsed
+  if (!hasToolNames) {
+    return (
+      <StructuredData value={availableTools} withAnnotatedText maxDefaultDepth={0} />
+    );
+  }
+
+  return (
+    <Flex direction="row" gap="xs" wrap="wrap">
+      {toolNames.sort().map(tool => {
+        const usageCount = usedTools.get(tool) ?? 0;
+        return (
+          <Tooltip
+            key={tool}
+            disabled={toolSpansQuery.isPending}
+            title={
+              usageCount === 0
+                ? t('Not used by agent')
+                : tn('Used %s time', 'Used %s times', usageCount)
+            }
+          >
+            <Tag key={tool} variant={usedTools.has(tool) ? 'info' : 'muted'}>
+              {tool}
+            </Tag>
+          </Tooltip>
+        );
+      })}
+    </Flex>
+  );
+}
+
+function HighlightedTokenAttributes({
+  inputTokens,
+  cachedTokens,
+  outputTokens,
+  reasoningTokens,
+  totalTokens,
+}: {
+  cachedTokens: number;
+  inputTokens: number;
+  outputTokens: number;
+  reasoningTokens: number;
+  totalTokens: number;
+}) {
+  return (
+    <Tooltip
+      title={
+        <TokensTooltipTitle>
+          <span>{t('Input')}</span>
+          <span>{inputTokens.toString()}</span>
+          <SubTextCell>{t('Cached')}</SubTextCell>
+          <SubTextCell>{isNaN(cachedTokens) ? '0' : cachedTokens.toString()}</SubTextCell>
+          <span>{t('Output')}</span>
+          <span>{outputTokens.toString()}</span>
+          <SubTextCell>{t('Reasoning')}</SubTextCell>
+          <SubTextCell>
+            {isNaN(reasoningTokens) ? '0' : reasoningTokens.toString()}
+          </SubTextCell>
+          <span>{t('Total')}</span>
+          <span>{totalTokens.toString()}</span>
+        </TokensTooltipTitle>
+      }
+    >
+      <TokensSpan>
+        <span>
+          <Count value={inputTokens.toString()} /> {t('in')}
+        </span>
+        <span>+</span>
+        <span>
+          <Count value={outputTokens.toString()} /> {t('out')}
+        </span>
+        <span>=</span>
+        <span>
+          <Count value={totalTokens.toString()} /> {t('total')}
+        </span>
+      </TokensSpan>
+    </Tooltip>
+  );
+}
+
+const TokensTooltipTitle = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  > *:nth-child(odd) {
+    text-align: left;
+  }
+  > *:nth-child(even) {
+    text-align: right;
+  }
+  gap: ${p => p.theme.space.xs};
+`;
+
+const SubTextCell = styled('span')`
+  margin-left: ${p => p.theme.space.md};
+  color: ${p => p.theme.tokens.content.secondary};
+`;
+
+const TokensSpan = styled('span')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
+`;

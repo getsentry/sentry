@@ -51,3 +51,19 @@ export function setWindowLocation(url: string) {
   // global jsdom is coming from `@sentry/jest-environment`
   (global as any).jsdom.reconfigure({url});
 }
+
+/**
+ * Mocks window.matchMedia to always return the provided `matches`.
+ */
+export function mockMatchMedia(matches: boolean) {
+  jest.spyOn(window, 'matchMedia').mockImplementation(() => ({
+    matches,
+    media: '',
+    onchange: null,
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  }));
+}

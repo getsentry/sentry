@@ -1,8 +1,9 @@
 import time
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
+from requests import PreparedRequest
 
 from sentry.integrations.msteams.link_identity import build_linking_url
 from sentry.testutils.cases import TestCase
@@ -12,7 +13,7 @@ from sentry.users.models.identity import Identity, IdentityStatus
 
 @control_silo_test
 class MsTeamsIntegrationLinkIdentityTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super(TestCase, self).setUp()
         self.user1 = self.create_user(is_superuser=False)
         self.user2 = self.create_user(is_superuser=False)
@@ -41,7 +42,7 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.messaging.linkage.unsign")
-    def test_basic_flow(self, unsign):
+    def test_basic_flow(self, unsign: MagicMock) -> None:
         unsign.return_value = {
             "integration_id": self.integration.id,
             "organization_id": self.org.id,
@@ -63,12 +64,16 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/auth-link-identity.html")
 
-        def user_conversation_id_callback(request):
+        def user_conversation_id_callback(
+            request: PreparedRequest,
+        ) -> tuple[int, dict[str, str], str]:
+            assert request.body is not None
             payload = orjson.loads(request.body)
             if payload["members"] == [{"id": "a_p_w_b_d"}] and payload["channelData"] == {
                 "tenant": {"id": "h0g5m34d3"}
             }:
                 return 200, {}, orjson.dumps({"id": "dumbl3d0r3"}).decode()
+            raise Exception("Callback invariant violation")
 
         responses.add_callback(
             method=responses.POST,
@@ -94,7 +99,7 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.messaging.linkage.unsign")
-    def test_overwrites_existing_identities(self, unsign):
+    def test_overwrites_existing_identities(self, unsign: MagicMock) -> None:
         Identity.objects.create(
             user=self.user1, idp=self.idp, external_id="h_p", status=IdentityStatus.VALID
         )
@@ -118,7 +123,10 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
             "th3_burr0w",
         )
 
-        def user_conversation_id_callback(request):
+        def user_conversation_id_callback(
+            request: PreparedRequest,
+        ) -> tuple[int, dict[str, str], str]:
+            assert request.body is not None
             payload = orjson.loads(request.body)
             if payload["members"] == [{"id": "g_w"}] and payload["channelData"] == {
                 "tenant": {"id": "th3_burr0w"}

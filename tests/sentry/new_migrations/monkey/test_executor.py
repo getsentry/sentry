@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from unittest.mock import patch
 
 import pytest
@@ -23,7 +24,7 @@ class DummyGetsentryAppConfig(AppConfig):
 
 class TestSentryMigrationExecutor:
     @pytest.fixture(autouse=True)
-    def _mock_getsentry_if_not_registered(self):
+    def _mock_getsentry_if_not_registered(self) -> Generator[None]:
         if "getsentry" in settings.INSTALLED_APPS:
             yield
             return
@@ -34,7 +35,7 @@ class TestSentryMigrationExecutor:
         ):
             yield
 
-    def test_check_db_routing_pass(self):
+    def test_check_db_routing_pass(self) -> None:
         class TestMigration(migrations.Migration):
             operations = [
                 migrations.CreateModel(
@@ -77,7 +78,7 @@ class TestSentryMigrationExecutor:
         SentryMigrationExecutor._check_db_routing(TestMigration(name="test", app_label="sentry"))
         SentryMigrationExecutor._check_db_routing(TestMigration(name="test", app_label="uptime"))
 
-    def test_check_db_routing_pass_2(self):
+    def test_check_db_routing_pass_2(self) -> None:
         class TestMigration(migrations.Migration):
             operations = [
                 migrations.SeparateDatabaseAndState(
@@ -127,7 +128,7 @@ class TestSentryMigrationExecutor:
         SentryMigrationExecutor._check_db_routing(TestMigration(name="test", app_label="sentry"))
         SentryMigrationExecutor._check_db_routing(TestMigration(name="test", app_label="uptime"))
 
-    def test_check_db_routing_missing_hints(self):
+    def test_check_db_routing_missing_hints(self) -> None:
         class TestMigration(migrations.Migration):
             operations = [
                 migrations.SeparateDatabaseAndState(
@@ -162,7 +163,7 @@ class TestSentryMigrationExecutor:
                 TestMigration(name="test", app_label="uptime")
             )
 
-    def test_check_db_routing_missing_hints_2(self):
+    def test_check_db_routing_missing_hints_2(self) -> None:
         class TestMigration(migrations.Migration):
             operations = [
                 SafeRunSQL("TEST SQL"),
@@ -177,7 +178,7 @@ class TestSentryMigrationExecutor:
                 TestMigration(name="test", app_label="uptime")
             )
 
-    def test_check_db_routing_missing_hints_3(self):
+    def test_check_db_routing_missing_hints_3(self) -> None:
         class TestMigration(migrations.Migration):
             operations = [
                 migrations.RunPython(
@@ -196,7 +197,7 @@ class TestSentryMigrationExecutor:
                 TestMigration(name="test", app_label="uptime")
             )
 
-    def test_check_db_routing_dont_run_for_3rd_party(self):
+    def test_check_db_routing_dont_run_for_3rd_party(self) -> None:
         class TestMigration(migrations.Migration):
             operations = [
                 SafeRunSQL("TEST SQL"),
@@ -204,7 +205,7 @@ class TestSentryMigrationExecutor:
 
         SentryMigrationExecutor._check_db_routing(TestMigration(name="test", app_label="auth"))
 
-    def test_check_db_routing_extensions(self):
+    def test_check_db_routing_extensions(self) -> None:
         class TestMigration(migrations.Migration):
             operations = [BtreeGistExtension()]
 

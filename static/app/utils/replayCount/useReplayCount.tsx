@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 
 import type {ApiResult} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import useAggregatedQueryKeys from 'sentry/utils/api/useAggregatedQueryKeys';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
@@ -11,6 +12,8 @@ interface Props {
   fieldName: string;
   organization: Organization;
   statsPeriod: string;
+  end?: string;
+  start?: string;
 }
 
 type CountValue = undefined | number;
@@ -50,18 +53,27 @@ export default function useReplayCount({
   fieldName,
   organization,
   statsPeriod,
+  start,
+  end,
 }: Props) {
+  const _statsPeriod = start && end ? undefined : statsPeriod;
+  const cachePeriod = start && end ? `${start}-${end}` : statsPeriod;
+
   const cache = useAggregatedQueryKeys<string, CountState>({
-    cacheKey: `/organizations/${organization.slug}/replay-count/|${dataSource}|${fieldName}|${statsPeriod}`,
+    cacheKey: `/organizations/${organization.slug}/replay-count/|${dataSource}|${fieldName}|${cachePeriod}`,
     bufferLimit,
     getQueryKey: useCallback(
       (ids: readonly string[]): ApiQueryKey => [
-        `/organizations/${organization.slug}/replay-count/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/replay-count/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           query: {
             data_source: dataSource,
             project: -1,
-            statsPeriod,
+            statsPeriod: _statsPeriod,
+            start,
+            end,
             query:
               fieldName === 'transaction'
                 ? `${fieldName}:[${ids.map(id => `"${id}"`).join(',')}]`
@@ -69,7 +81,7 @@ export default function useReplayCount({
           },
         },
       ],
-      [dataSource, fieldName, organization, statsPeriod]
+      [dataSource, fieldName, organization, _statsPeriod, start, end]
     ),
     responseReducer: useCallback(
       (

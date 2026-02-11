@@ -66,8 +66,14 @@ export function useServiceIncidents({
       }
       if (componentFilter) {
         filteredIncidents =
-          incidents?.filter(inc =>
-            inc.components.some(comp => componentFilter.includes(comp.id))
+          incidents?.filter(
+            inc =>
+              // Find incidents that include any of the componentFilter
+              inc.components.some(c => componentFilter.includes(c.id)) ||
+              // Find any incident with an update that includes any of the componentFilter.
+              inc.incident_updates.some(update =>
+                update.affected_components?.some(c => componentFilter.includes(c.code))
+              )
           ) ?? null;
       }
 

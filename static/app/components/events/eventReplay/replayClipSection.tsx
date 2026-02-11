@@ -2,12 +2,14 @@ import {Fragment, lazy} from 'react';
 import ReactLazyLoad from 'react-lazyload';
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
+
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import LazyLoad from 'sentry/components/lazyLoad';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {ReplayAccess} from 'sentry/components/replays/replayAccess';
 import {ReplayGroupContextProvider} from 'sentry/components/replays/replayGroupContext';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -104,23 +106,25 @@ export function ReplayClipSection({event, group, replayId}: Props) {
   );
 
   return (
-    <ReplaySectionMinHeight
-      title={t('Session Replay')}
-      actions={allReplaysButton}
-      type={SectionKey.REPLAY}
-    >
-      <ErrorBoundary mini>
-        <ReplayGroupContextProvider groupId={group?.id} eventId={event.id}>
-          {hasStreamlinedUI ? (
-            lazyReplay
-          ) : (
-            <ReactLazyLoad debounce={50} height={448} offset={0} once>
-              {lazyReplay}
-            </ReactLazyLoad>
-          )}
-        </ReplayGroupContextProvider>
-      </ErrorBoundary>
-    </ReplaySectionMinHeight>
+    <ReplayAccess>
+      <ReplaySectionMinHeight
+        title={t('Session Replay')}
+        actions={allReplaysButton}
+        type={SectionKey.REPLAY}
+      >
+        <ErrorBoundary mini>
+          <ReplayGroupContextProvider groupId={group?.id} eventId={event.id}>
+            {hasStreamlinedUI ? (
+              lazyReplay
+            ) : (
+              <ReactLazyLoad debounce={50} height={448} offset={0} once>
+                {lazyReplay}
+              </ReactLazyLoad>
+            )}
+          </ReplayGroupContextProvider>
+        </ErrorBoundary>
+      </ReplaySectionMinHeight>
+    </ReplayAccess>
   );
 }
 

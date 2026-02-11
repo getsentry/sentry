@@ -1,9 +1,8 @@
-import styled from '@emotion/styled';
+import {Flex} from '@sentry/scraps/layout';
 
 import InviteButton from 'sentry/components/modals/inviteMembersModal/inviteButton';
 import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import InviteStatusMessage from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
-import {space} from 'sentry/styles/space';
 
 interface Props {
   canSend: boolean;
@@ -11,13 +10,11 @@ interface Props {
 
 export default function InviteMembersFooter({canSend}: Props) {
   const {
-    complete,
     inviteStatus,
     setInviteStatus,
     invites,
     pendingInvites,
     sendInvites,
-    sendingInvites,
     willInvite,
   } = useInviteMembersContext();
   const isValidInvites = invites.length > 0;
@@ -34,17 +31,9 @@ export default function InviteMembersFooter({canSend}: Props) {
   };
 
   return (
-    <FooterContent>
-      {/* TODO(mia): remove these props and use InviteMemberContext once old modal is removed */}
+    <Flex gap="md" align="center" justify="between" flex="1">
       <div>
-        <InviteStatusMessage
-          data-test-id="invite-status-message"
-          complete={complete}
-          hasDuplicateEmails={false}
-          inviteStatus={inviteStatus}
-          sendingInvites={sendingInvites}
-          willInvite={willInvite}
-        />
+        <InviteStatusMessage data-test-id="invite-status-message" />
       </div>
       <InviteButton
         invites={invites}
@@ -58,14 +47,6 @@ export default function InviteMembersFooter({canSend}: Props) {
           sendInvites();
         }}
       />
-    </FooterContent>
+    </Flex>
   );
 }
-
-const FooterContent = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  justify-content: space-between;
-  flex: 1;
-`;

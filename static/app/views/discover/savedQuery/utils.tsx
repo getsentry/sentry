@@ -1,5 +1,7 @@
 import type {Location} from 'history';
 
+import {Link} from '@sentry/scraps/link';
+
 import {
   deleteHomepageQuery,
   updateHomepageQuery,
@@ -11,7 +13,7 @@ import {
 } from 'sentry/actionCreators/discoverSavedQueries';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SaveQueryEventParameters} from 'sentry/utils/analytics/discoverAnalyticsEvents';
@@ -79,7 +81,7 @@ export function handleUpdateQuery(
 
   if (!eventView.name) {
     addErrorMessage(t('Please name your query'));
-    return Promise.reject();
+    return Promise.reject(new Error('Query name is required'));
   }
 
   trackAnalytics('discover_v2.update_query_request', {
@@ -346,4 +348,13 @@ export function getSavedQueryDatasetFromLocationOrDataset(
     default:
       return undefined;
   }
+}
+
+export function getTransactionDeprecationMessage(tracesUrl: string) {
+  return tct(
+    'Discover\u2192Transactions is going to be merged into Explore\u2192Traces soon. Please save any transaction related queries from [traces:Explore\u2192Traces]',
+    {
+      traces: <Link to={tracesUrl} />,
+    }
+  );
 }

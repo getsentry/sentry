@@ -6,8 +6,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 
-describe('EventExtraData', function () {
-  it('display redacted data', async function () {
+describe('EventExtraData', () => {
+  it('display redacted data', async () => {
     const event = EventFixture({
       context: {
         'sys.argv': ['', '', '', '', '', '', '', '', '', ''],
@@ -178,8 +178,14 @@ describe('EventExtraData', function () {
       },
     });
 
+    // Before expanding, number of items is 14 because 4 items are redacted
+    expect(screen.getByText(/14 items/)).toBeInTheDocument();
+
     await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
     expect(await screen.findAllByText(/redacted/)).toHaveLength(10);
+
+    // After expanding, indicate that some items were truncated
+    expect(screen.getByText(/\(4 items truncated\)/)).toBeInTheDocument();
 
     await userEvent.hover(screen.getAllByText(/redacted/)[0]!);
 

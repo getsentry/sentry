@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
@@ -13,7 +13,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class BitbucketUnistalledEndpointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -38,7 +38,7 @@ class BitbucketUnistalledEndpointTest(TestCase):
             integration_id=self.integration.id,
         )
 
-    def test_uninstall_missing_auth_header(self):
+    def test_uninstall_missing_auth_header(self) -> None:
         response = self.client.post(self.path)
 
         assert response.status_code == 400
@@ -46,7 +46,7 @@ class BitbucketUnistalledEndpointTest(TestCase):
         assert self.repository.id
 
     @patch("sentry.integrations.bitbucket.uninstalled.get_integration_from_jwt")
-    def test_uninstall_missing_integration(self, mock_jwt):
+    def test_uninstall_missing_integration(self, mock_jwt: MagicMock) -> None:
         mock_jwt.side_effect = AtlassianConnectValidationError("missing integration")
         response = self.client.post(self.path, HTTP_AUTHORIZATION="JWT fake-jwt")
 
@@ -56,7 +56,7 @@ class BitbucketUnistalledEndpointTest(TestCase):
         assert self.repository.status == ObjectStatus.ACTIVE
 
     @patch("sentry.integrations.bitbucket.uninstalled.get_integration_from_jwt")
-    def test_uninstall_success(self, mock_jwt):
+    def test_uninstall_success(self, mock_jwt: MagicMock) -> None:
         mock_jwt.return_value = serialize_integration(self.integration)
         response = self.client.post(self.path, HTTP_AUTHORIZATION="JWT fake-jwt")
 

@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.exceptions import SentryAPIException
 from sentry.constants import ObjectStatus
+from sentry.integrations.analytics import IntegrationRepoAddedEvent
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
@@ -50,7 +51,7 @@ class RepoExistsError(SentryAPIException):
         super().__init__(code=code, message=message, detail=detail, **kwargs)
         self.repos = repos
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.repos:
             return f"Repositories already exist: {', '.join(repo['name'] for repo in self.repos)}"
         return "Repositories already exist."
@@ -307,10 +308,11 @@ class IntegrationRepositoryProvider:
         repo_linked.send_robust(repo=repo, user=request.user, sender=self.__class__)
 
         analytics.record(
-            "integration.repo.added",
-            provider=self.id,
-            id=result.get("integration_id"),
-            organization_id=organization.id,
+            IntegrationRepoAddedEvent(
+                provider=self.id,
+                id=result.get("integration_id"),
+                organization_id=organization.id,
+            )
         )
         return Response(
             repository_service.serialize_repository(

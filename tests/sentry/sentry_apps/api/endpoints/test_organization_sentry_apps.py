@@ -1,12 +1,15 @@
+from typing import Any
+
 import orjson
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-def assert_response_json(response, data):
+def assert_response_json(response: Response, data: list[dict[str, Any]]) -> None:
     """
     Normalizes unicode strings by encoding/decoding expected output
     """
@@ -14,7 +17,7 @@ def assert_response_json(response, data):
 
 
 class OrganizationSentryAppsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.superuser = self.create_user(email="a@example.com", is_superuser=True)
         self.user = self.create_user(email="boop@example.com")
         self.org = self.create_organization(owner=self.user)
@@ -28,7 +31,7 @@ class OrganizationSentryAppsTest(APITestCase):
 
 @control_silo_test
 class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
-    def test_gets_all_apps_in_own_org(self):
+    def test_gets_all_apps_in_own_org(self) -> None:
         self.login_as(user=self.user)
         response = self.client.get(self.url, format="json")
 
@@ -69,7 +72,7 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
             ],
         )
 
-    def test_includes_internal_integrations(self):
+    def test_includes_internal_integrations(self) -> None:
         self.create_project(organization=self.org)
         internal_integration = self.create_internal_integration(organization=self.org)
 
@@ -79,14 +82,14 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
         assert response.status_code == 200
         assert internal_integration.uuid in [a["uuid"] for a in response.data]
 
-    def test_cannot_see_apps_in_other_orgs(self):
+    def test_cannot_see_apps_in_other_orgs(self) -> None:
         self.login_as(user=self.user)
         url = reverse("sentry-api-0-organization-sentry-apps", args=[self.super_org.slug])
         response = self.client.get(url, format="json")
 
         assert response.status_code == 403
 
-    def test_filter_for_internal(self):
+    def test_filter_for_internal(self) -> None:
         self.login_as(user=self.user)
         self.create_project(organization=self.org)
         internal_integration = self.create_internal_integration(organization=self.org)

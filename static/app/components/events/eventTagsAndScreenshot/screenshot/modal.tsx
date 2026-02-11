@@ -1,20 +1,18 @@
 import type {ComponentProps} from 'react';
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
 import {getImageAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -66,25 +64,19 @@ export default function ScreenshotModal({
   const currentAttachmentIndex = screenshots.findIndex(
     attachment => attachment.id === currentEventAttachment.id
   );
-  const paginateItems = useCallback(
-    (delta: number) => {
-      if (screenshots.length) {
-        const newIndex = currentAttachmentIndex + delta;
-        if (newIndex >= 0 && newIndex < screenshots.length) {
-          setCurrentAttachment(screenshots[newIndex]!);
-        }
+  const paginateItems = (delta: number) => {
+    if (screenshots.length) {
+      const newIndex = currentAttachmentIndex + delta;
+      if (newIndex >= 0 && newIndex < screenshots.length) {
+        setCurrentAttachment(screenshots[newIndex]!);
       }
-    },
-    [screenshots, currentAttachmentIndex]
-  );
+    }
+  };
 
-  const paginateHotkeys = useMemo(() => {
-    return [
-      {match: 'right', callback: () => paginateItems(1)},
-      {match: 'left', callback: () => paginateItems(-1)},
-    ];
-  }, [paginateItems]);
-  useHotkeys(paginateHotkeys);
+  useHotkeys([
+    {match: 'right', callback: () => paginateItems(1)},
+    {match: 'left', callback: () => paginateItems(-1)},
+  ]);
 
   const {dateCreated, size, mimetype} = currentEventAttachment;
 
@@ -115,7 +107,7 @@ export default function ScreenshotModal({
         <h5>{t('Screenshot')}</h5>
       </Header>
       <Body>
-        <Flex direction="column" gap={space(1.5)}>
+        <Flex direction="column" gap="lg">
           {defined(paginationProps) && <ScreenshotPagination {...paginationProps} />}
           <AttachmentComponentWrapper>
             <AttachmentComponent
@@ -162,7 +154,7 @@ export default function ScreenshotModal({
         </Flex>
       </Body>
       <Footer>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           {onDelete && (
             <Confirm
               confirmText={t('Delete')}
@@ -176,7 +168,7 @@ export default function ScreenshotModal({
           <LinkButton onClick={onDownload} href={downloadUrl}>
             {t('Download')}
           </LinkButton>
-        </ButtonBar>
+        </Grid>
       </Footer>
     </Fragment>
   );
@@ -190,7 +182,7 @@ const AttachmentComponentWrapper = styled('div')`
     width: 100%;
     height: auto;
     object-fit: contain;
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
   }
 `;
 

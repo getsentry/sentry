@@ -30,6 +30,11 @@ class DetectorState(DefaultFieldsModel):
     # The detectors priority level from the last detector evaluation
     state = models.CharField(max_length=200, default=DetectorPriorityLevel.OK)
 
+    @property
+    def priority_level(self) -> DetectorPriorityLevel:
+        """Returns the state as a DetectorPriorityLevel enum."""
+        return DetectorPriorityLevel(int(self.state))
+
     class Meta:
         constraints = [
             models.UniqueConstraint(

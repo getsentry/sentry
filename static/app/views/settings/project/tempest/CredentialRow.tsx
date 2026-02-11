@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Confirm from 'sentry/components/confirm';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import {MessageType, type TempestCredentials} from './types';
 
@@ -24,7 +24,7 @@ export function CredentialRow({
 }) {
   return (
     <Fragment>
-      <Flex align="center" gap={space(1)}>
+      <Flex align="center" gap="md">
         {credential.clientId}
       </Flex>
 
@@ -40,7 +40,7 @@ export function CredentialRow({
         {credential.createdByEmail ? credential.createdByEmail : '\u2014'}
       </Flex>
 
-      <Flex align="center" justify="flex-end">
+      <Flex align="center" justify="end">
         <Tooltip
           title={t('You must be an organization admin to remove credentials.')}
           disabled={!!removeCredential}
@@ -56,13 +56,7 @@ export function CredentialRow({
               size="xs"
               disabled={isRemoving || !removeCredential}
               aria-label={t('Remove credentials')}
-              icon={
-                isRemoving ? (
-                  <LoadingIndicator mini />
-                ) : (
-                  <IconSubtract isCircled size="xs" />
-                )
-              }
+              icon={isRemoving ? <LoadingIndicator mini /> : <IconSubtract size="xs" />}
             >
               {t('Remove')}
             </Button>
@@ -74,21 +68,22 @@ export function CredentialRow({
 }
 
 type StatusTagProps = {
-  statusType: 'error' | 'success' | 'pending';
+  statusType: 'error' | 'success' | 'pending' | 'warning';
   message?: string;
 };
 
 const STATUS_CONFIG = {
-  error: {label: 'Error', type: 'error'},
-  success: {label: 'Active', type: 'default'},
+  error: {label: 'Error', type: 'danger'},
+  success: {label: 'Active', type: 'muted'},
   pending: {label: 'Pending', type: 'info'},
+  warning: {label: 'Active', type: 'warning'},
 } as const;
 
 function StatusTag({statusType, message}: StatusTagProps) {
   const config = STATUS_CONFIG[statusType];
   return (
     <Tooltip title={message} skipWrapper>
-      <Tag type={config.type}>{config.label}</Tag>
+      <Tag variant={config.type}>{config.label}</Tag>
     </Tooltip>
   );
 }
@@ -102,5 +97,13 @@ function getStatusType(credential: {
     return 'pending';
   }
 
-  return credential.messageType === MessageType.ERROR ? 'error' : 'success';
+  if (credential.messageType === MessageType.ERROR) {
+    return 'error';
+  }
+
+  if (credential.messageType === MessageType.WARNING) {
+    return 'warning';
+  }
+
+  return 'success';
 }

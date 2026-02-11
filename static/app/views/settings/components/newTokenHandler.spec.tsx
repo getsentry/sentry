@@ -4,8 +4,8 @@ import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestin
 
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 
-describe('displayNewToken', function () {
-  it('renders', async function () {
+describe('displayNewToken', () => {
+  it('renders', async () => {
     renderGlobalModal();
 
     const callback = jest.fn();

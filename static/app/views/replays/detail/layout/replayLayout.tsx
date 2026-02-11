@@ -1,7 +1,9 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {TooltipContext} from 'sentry/components/core/tooltip';
+import {Stack} from '@sentry/scraps/layout';
+import {TooltipContext} from '@sentry/scraps/tooltip';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
 import ReplayController from 'sentry/components/replays/replayController';
@@ -89,9 +91,9 @@ export default function ReplayLayout({
   if (layout === LayoutKey.NO_VIDEO) {
     return (
       <BodyGrid>
-        <BodySlider ref={measureRef}>
+        <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
           {hasSize ? <PanelContainer key={layout}>{focusArea}</PanelContainer> : null}
-        </BodySlider>
+        </Stack>
       </BodyGrid>
     );
   }
@@ -99,7 +101,7 @@ export default function ReplayLayout({
   if (layout === LayoutKey.SIDEBAR_LEFT) {
     return (
       <BodyGrid>
-        <BodySlider ref={measureRef}>
+        <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
           {hasSize ? (
             <SplitPanel
               key={layout}
@@ -113,7 +115,7 @@ export default function ReplayLayout({
               right={focusArea}
             />
           ) : null}
-        </BodySlider>
+        </Stack>
         {controller}
       </BodyGrid>
     );
@@ -122,7 +124,7 @@ export default function ReplayLayout({
   // layout === 'topbar'
   return (
     <BodyGrid>
-      <BodySlider ref={measureRef}>
+      <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
         {hasSize ? (
           <SplitPanel
             key={layout}
@@ -136,7 +138,7 @@ export default function ReplayLayout({
             bottom={focusArea}
           />
         ) : null}
-      </BodySlider>
+      </Stack>
       {controller}
     </BodyGrid>
   );
@@ -150,7 +152,7 @@ const FluidContainer = styled('section')`
 `;
 
 const BodyGrid = styled('main')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 
   display: grid;
   grid-template-rows: 1fr auto;
@@ -164,20 +166,13 @@ const BodyGrid = styled('main')`
   min-height: 0;
 `;
 
-const BodySlider = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  min-height: 0;
-`;
-
 const VideoSection = styled('div')`
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
   flex-grow: 1;
 
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   gap: ${space(1)};
 
   :fullscreen {

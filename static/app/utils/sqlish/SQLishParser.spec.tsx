@@ -1,6 +1,6 @@
 import {SQLishParser} from 'sentry/utils/sqlish/SQLishParser';
 
-describe('SQLishParser', function () {
+describe('SQLishParser', () => {
   describe('SQLishParser()', () => {
     const parser = new SQLishParser();
 

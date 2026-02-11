@@ -99,7 +99,7 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   restart: () => void;
 
   /**
-   * Jump the video to a specific time
+   * Jump the video to a specific time. Input is in ms.
    */
   setCurrentTime: (time: number) => void;
 
@@ -336,7 +336,7 @@ export function Provider({
           return;
         }
 
-        if (replayerRef.current.iframe.contentDocument?.body.childElementCount === 0) {
+        if (replayerRef.current.iframe.contentDocument?.body?.childElementCount === 0) {
           // If this is true, then no need to clear old iframe as nothing was rendered
           return;
         }
@@ -355,7 +355,7 @@ export function Provider({
           duration: 0.75 * 1000,
           lineCap: 'round',
           lineWidth: 2,
-          strokeStyle: theme.purple200,
+          strokeStyle: theme.tokens.border.accent.moderate,
         },
         plugins: [CanvasReplayerPlugin(events)],
         skipInactive: initialPrefsRef.current.isSkippingInactive,
@@ -388,7 +388,7 @@ export function Provider({
       hasNewEvents,
       isFetching,
       setReplayFinished,
-      theme.purple200,
+      theme.tokens.border.accent.moderate,
     ]
   );
 

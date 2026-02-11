@@ -11,9 +11,9 @@ from parsimonious.nodes import Node
 from parsimonious.nodes import NodeVisitor as BaseNodeVisitor
 from rest_framework.serializers import ValidationError
 
-from sentry.eventstore.models import EventSubjectTemplateData
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organizationmember import OrganizationMember
+from sentry.services.eventstore.models import EventSubjectTemplateData
 from sentry.types.actor import Actor, ActorType
 from sentry.users.services.user.service import user_service
 from sentry.utils.codeowners import codeowners_match
@@ -128,7 +128,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
     @staticmethod
     def munge_if_needed(
-        data: Mapping[str, Any]
+        data: Mapping[str, Any],
     ) -> tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
         keys = ["filename", "abs_path"]
         platform = data.get("platform")
@@ -533,7 +533,6 @@ def add_owner_ids_to_schema(rules: list[dict[str, Any]], owners_id: dict[str, in
 def create_schema_from_issue_owners(
     project_id: int,
     issue_owners: str | None,
-    add_owner_ids: bool = False,
     remove_deleted_owners: bool = False,
 ) -> dict[str, Any] | None:
     if issue_owners is None:
@@ -560,7 +559,7 @@ def create_schema_from_issue_owners(
                 bad_actors.append(owner.identifier)
             elif owner.type == "team":
                 bad_actors.append(f"#{owner.identifier}")
-        elif add_owner_ids:
+        else:
             owners_id[owner.identifier] = actor.id
 
     if bad_actors and remove_deleted_owners:
@@ -569,7 +568,6 @@ def create_schema_from_issue_owners(
         bad_actors.sort()
         raise ValidationError({"raw": "Invalid rule owners: {}".format(", ".join(bad_actors))})
 
-    if add_owner_ids:
-        add_owner_ids_to_schema(schema["rules"], owners_id)
+    add_owner_ids_to_schema(schema["rules"], owners_id)
 
     return schema

@@ -1,9 +1,10 @@
 import type {Location} from 'history';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -14,11 +15,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getCurrentTrendParameter} from 'sentry/views/performance/trends/utils';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from './landing/utils';
-import {
-  getVitalDetailTableMehStatusFunction,
-  getVitalDetailTablePoorStatusFunction,
-  vitalNameFromLocation,
-} from './vitalDetail/utils';
 
 export const DEFAULT_STATS_PERIOD = '14d';
 export const DEFAULT_PROJECT_THRESHOLD = 300;
@@ -306,7 +302,6 @@ export function generateMobilePerformanceEventView(
   projects: Project[],
   genericEventView: EventView,
   withStaticFilters: boolean,
-  organization: Organization,
   useEap = false
 ): EventView {
   const {query} = location;
@@ -320,9 +315,6 @@ export function generateMobilePerformanceEventView(
     'p75(measurements.frames_slow_rate)',
     'p75(measurements.frames_frozen_rate)',
   ];
-  if (organization.features.includes('mobile-vitals')) {
-    fields.push('p75(measurements.time_to_initial_display)');
-  }
 
   // At this point, all projects are mobile projects.
   // If in addition to that, all projects are react-native projects,
@@ -505,53 +497,9 @@ export function generatePerformanceEventView(
         location,
         projects,
         eventView,
-        withStaticFilters,
-        organization
+        withStaticFilters
       );
     default:
       return eventView;
   }
-}
-
-export function generatePerformanceVitalDetailView(location: Location): EventView {
-  const {query} = location;
-
-  const vitalName = vitalNameFromLocation(location);
-
-  const hasStartAndEnd = query.start && query.end;
-  const savedQuery: NewQuery = {
-    id: undefined,
-    name: t('Vitals Performance Details'),
-    query: 'event.type:transaction',
-    projects: [],
-    fields: [
-      'team_key_transaction',
-      'transaction',
-      'project',
-      'count_unique(user)',
-      'count()',
-      `p50(${vitalName})`,
-      `p75(${vitalName})`,
-      `p95(${vitalName})`,
-      getVitalDetailTablePoorStatusFunction(vitalName),
-      getVitalDetailTableMehStatusFunction(vitalName),
-    ],
-    version: 2,
-    yAxis: [`p75(${vitalName})`],
-  };
-
-  if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = DEFAULT_STATS_PERIOD;
-  }
-  savedQuery.orderby = decodeScalar(query.sort, '-count');
-
-  const searchQuery = decodeScalar(query.query, '');
-  savedQuery.query = prepareQueryForLandingPage(searchQuery, false);
-
-  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-
-  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
-  eventView.additionalConditions.addFilterValues('has', [vitalName]);
-
-  return eventView;
 }

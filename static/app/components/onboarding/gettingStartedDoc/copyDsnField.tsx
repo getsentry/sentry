@@ -13,7 +13,7 @@ export function CopyDsnField({params}: {params: DocsParams<any>}) {
         {tct(
           "If you already have the configuration for Sentry in your application, and just need this project's ([projectSlug]) DSN, you can find it below:",
           {
-            projectSlug: <code>{params.projectSlug}</code>,
+            projectSlug: <code>{params.project.slug}</code>,
           }
         )}
       </p>
@@ -33,7 +33,7 @@ export function CopyDsnField({params}: {params: DocsParams<any>}) {
 
 const Wrapper = styled('div')`
   padding-top: ${space(2)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   display: flex;
   flex-direction: column;
   gap: ${space(1)};

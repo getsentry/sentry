@@ -29,7 +29,13 @@ class BroadcastDetailsEndpoint(Endpoint):
     }
     permission_classes = (SentryIsAuthenticated,)
 
-    def _get_broadcast(self, request: Request, broadcast_id):
+    def convert_args(
+        self,
+        request: Request,
+        broadcast_id: int | str,
+        *args,
+        **kwargs,
+    ):
         if request.access.has_permission("broadcasts.admin"):
             queryset = Broadcast.objects.all()
         else:
@@ -37,9 +43,12 @@ class BroadcastDetailsEndpoint(Endpoint):
                 Q(date_expires__isnull=True) | Q(date_expires__gt=timezone.now()), is_active=True
             )
         try:
-            return queryset.get(id=int(broadcast_id))
+            broadcast = queryset.get(id=int(broadcast_id))
         except (Broadcast.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
+
+        kwargs["broadcast"] = broadcast
+        return args, kwargs
 
     def _get_validator(self, request: Request):
         if request.access.has_permission("broadcasts.admin"):
@@ -55,15 +64,12 @@ class BroadcastDetailsEndpoint(Endpoint):
         serializer_cls = self._get_serializer(request)
         return self.respond(serialize(broadcast, request.user, serializer=serializer_cls()))
 
-    def get(self, request: Request, broadcast_id) -> Response:
-        broadcast = self._get_broadcast(request, broadcast_id)
+    def get(self, request: Request, broadcast: Broadcast) -> Response:
         return self._serialize_response(request, broadcast)
 
-    def put(self, request: Request, broadcast_id) -> Response:
+    def put(self, request: Request, broadcast: Broadcast) -> Response:
         if not request.user.is_authenticated:
             return Response(status=400)
-
-        broadcast = self._get_broadcast(request, broadcast_id)
         validator = self._get_validator(request)(data=request.data, partial=True)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)

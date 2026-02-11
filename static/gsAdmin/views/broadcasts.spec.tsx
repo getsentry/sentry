@@ -1,7 +1,6 @@
 import {ConfigFixture} from 'sentry-fixture/config';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -10,7 +9,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import ModalStore from 'sentry/stores/modalStore';
 
 import Broadcasts from 'admin/views/broadcasts';
 
@@ -21,17 +19,14 @@ function renderMockRequests() {
   });
 }
 
-describe('Broadcasts', function () {
+describe('Broadcasts', () => {
   const mockUser = UserFixture({permissions: new Set(['broadcasts.admin'])});
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
   });
 
-  it('renders', async function () {
-    const {router} = initializeOrg();
-
+  it('renders', async () => {
     ConfigStore.loadInitialData(
       ConfigFixture({
         user: mockUser,
@@ -40,16 +35,7 @@ describe('Broadcasts', function () {
 
     renderMockRequests();
 
-    render(
-      <Broadcasts
-        location={router.location}
-        router={router}
-        params={router.params}
-        route={router.routes[0]!}
-        routeParams={router.params}
-        routes={router.routes}
-      />
-    );
+    render(<Broadcasts />);
 
     renderGlobalModal();
 

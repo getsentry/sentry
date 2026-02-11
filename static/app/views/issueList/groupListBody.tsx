@@ -3,9 +3,8 @@ import {useTheme} from '@emotion/react';
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelBody from 'sentry/components/panels/panelBody';
-import StreamGroup from 'sentry/components/stream/group';
+import StreamGroup, {LoadingStreamGroup} from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import useApi from 'sentry/utils/useApi';
@@ -25,6 +24,7 @@ type GroupListBodyProps = {
   loading: boolean;
   memberList: IndexedMembersByProject;
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
+  pageSize: number;
   query: string;
   refetchGroups: () => void;
   selectedProjectIds: number[];
@@ -39,6 +39,37 @@ type GroupListProps = {
   query: string;
 };
 
+const COLUMNS: GroupListColumn[] = [
+  'graph',
+  'firstSeen',
+  'lastSeen',
+  'event',
+  'users',
+  'priority',
+  'assignee',
+  'lastTriggered',
+];
+
+function LoadingSkeleton({
+  pageSize,
+  displayReprocessingLayout,
+}: {
+  displayReprocessingLayout: boolean;
+  pageSize: number;
+}) {
+  return (
+    <PanelBody>
+      {Array.from({length: pageSize}).map((_, index) => (
+        <LoadingStreamGroup
+          key={`loading-group-${index}`}
+          displayReprocessingLayout={displayReprocessingLayout}
+          withColumns={COLUMNS}
+        />
+      ))}
+    </PanelBody>
+  );
+}
+
 function GroupListBody({
   groupIds,
   memberList,
@@ -49,13 +80,19 @@ function GroupListBody({
   error,
   refetchGroups,
   selectedProjectIds,
+  pageSize,
   onActionTaken,
 }: GroupListBodyProps) {
   const api = useApi();
   const organization = useOrganization();
 
   if (loading) {
-    return <LoadingIndicator />;
+    return (
+      <LoadingSkeleton
+        displayReprocessingLayout={displayReprocessingLayout}
+        pageSize={pageSize}
+      />
+    );
   }
 
   if (error) {
@@ -100,20 +137,9 @@ function GroupList({
     false
   );
   const topIssue = groupIds[0];
-  const canSelect = !useMedia(
-    `(max-width: ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
+  const selectDisabled = useMedia(
+    `(width < ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
   );
-
-  const columns: GroupListColumn[] = [
-    'graph',
-    'firstSeen',
-    'lastSeen',
-    'event',
-    'users',
-    'priority',
-    'assignee',
-    'lastTriggered',
-  ];
 
   return (
     <PanelBody>
@@ -131,9 +157,9 @@ function GroupList({
             memberList={group?.project ? memberList[group.project.slug] : undefined}
             displayReprocessingLayout={displayReprocessingLayout}
             useFilteredStats
-            canSelect={canSelect}
+            canSelect={!selectDisabled}
             onPriorityChange={priority => onActionTaken([id], {priority})}
-            withColumns={columns}
+            withColumns={COLUMNS}
           />
         );
       })}

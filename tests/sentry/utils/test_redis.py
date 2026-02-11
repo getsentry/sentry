@@ -12,8 +12,10 @@ from sentry.utils.redis import (
     RBClusterManager,
     RedisClusterManager,
     _shared_pool,
+    check_cluster_versions,
     get_cluster_from_options,
 )
+from sentry.utils.versioning import Version
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 
@@ -28,10 +30,10 @@ def _options_manager():
 
 
 class ClusterManagerTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         imports._cache.clear()
 
-    def test_get(self):
+    def test_get(self) -> None:
         manager = RBClusterManager(_options_manager())
         assert manager.get("foo") is manager.get("foo")
         assert manager.get("foo") is not manager.get("bar")
@@ -40,7 +42,7 @@ class ClusterManagerTestCase(TestCase):
             manager.get("invalid")
 
     @mock.patch("sentry.utils.redis.RetryingRedisCluster")
-    def test_specific_cluster(self, RetryingRedisCluster):
+    def test_specific_cluster(self, RetryingRedisCluster: mock.MagicMock) -> None:
         manager = RedisClusterManager(_options_manager())
 
         # We wrap the cluster in a Simple Lazy Object, force creation of the
@@ -57,7 +59,9 @@ class ClusterManagerTestCase(TestCase):
             manager.get("bar")
 
     @mock.patch("sentry.utils.redis.RetryingRedisCluster")
-    def test_multiple_retrieval_do_not_setup_lazy_object(self, RetryingRedisCluster):
+    def test_multiple_retrieval_do_not_setup_lazy_object(
+        self, RetryingRedisCluster: mock.MagicMock
+    ) -> None:
         RetryingRedisCluster.side_effect = AssertionError("should not be called")
 
         manager = RedisClusterManager(_options_manager())
@@ -66,7 +70,7 @@ class ClusterManagerTestCase(TestCase):
         manager.get("baz")
 
 
-def test_get_cluster_from_options_cluster_provided():
+def test_get_cluster_from_options_cluster_provided() -> None:
     backend = mock.sentinel.backend
     manager = RBClusterManager(_options_manager())
 
@@ -80,7 +84,7 @@ def test_get_cluster_from_options_cluster_provided():
     assert options == {"foo": "bar"}
 
 
-def test_get_cluster_from_options_legacy_hosts_option():
+def test_get_cluster_from_options_legacy_hosts_option() -> None:
     backend = mock.sentinel.backend
     manager = RBClusterManager(_options_manager())
 
@@ -101,7 +105,7 @@ def test_get_cluster_from_options_legacy_hosts_option():
     assert options == {"foo": "bar"}
 
 
-def test_get_cluster_from_options_both_options_invalid():
+def test_get_cluster_from_options_both_options_invalid() -> None:
     backend = mock.sentinel.backend
     manager = RBClusterManager(_options_manager())
 
@@ -111,3 +115,28 @@ def test_get_cluster_from_options_both_options_invalid():
             {"hosts": {0: {"db": 0}}, "cluster": "foo", "foo": "bar"},
             cluster_manager=manager,
         )
+
+
+@pytest.mark.parametrize(
+    "version_value",
+    [
+        pytest.param("7.2.4", id="string_three_part"),
+        pytest.param("7.2", id="string_two_part"),
+        pytest.param(7.2, id="float_two_part"),
+    ],
+)
+def test_check_cluster_versions_parses_version_formats(version_value: str | float) -> None:
+    cluster = mock.MagicMock(spec=rb.Cluster)
+    mock_host = mock.MagicMock()
+    mock_host.host = "localhost"
+    mock_host.port = 6379
+    cluster.hosts = {0: mock_host}
+
+    mock_results = mock.MagicMock()
+    mock_results.value = {0: {"redis_version": version_value}}
+    cluster.all.return_value.__enter__ = mock.MagicMock(return_value=mock.MagicMock())
+    cluster.all.return_value.__enter__.return_value.info.return_value = mock_results
+    cluster.all.return_value.__exit__ = mock.MagicMock(return_value=False)
+
+    # Should not raise - all test versions meet requirement 5.0.0
+    check_cluster_versions(cluster, Version((5, 0, 0)))

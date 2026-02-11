@@ -7,10 +7,10 @@ import uniqBy from 'lodash/uniqBy';
 import moment from 'moment-timezone';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {ALL_ACCESS_PROJECTS, URL_PARAM} from 'sentry/components/pageFilters/constants';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
-import {ALL_ACCESS_PROJECTS, URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
@@ -34,11 +34,12 @@ import {
   DISPLAY_MODE_FALLBACK_OPTIONS,
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
-  type SavedQueryDatasets,
   TOP_N,
+  type SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import type {WebVital} from 'sentry/utils/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -68,6 +69,7 @@ export type MetaType = Record<string, any> & {
 export type EventsMetaType = {fields: Record<string, ColumnType>} & {
   units: Record<string, string>;
 } & {
+  bytesScanned?: number | null;
   dataScanned?: 'full' | 'partial';
   discoverSplitDecision?: WidgetType;
   isMetricsData?: boolean;
@@ -221,7 +223,7 @@ const collectQueryStringByKey = (query: Query, key: string): string[] => {
   }, []);
 };
 
-export const decodeQuery = (location: Location): string => {
+const decodeQuery = (location: Location): string => {
   if (!location.query?.query) {
     return '';
   }
@@ -1222,9 +1224,7 @@ class EventView {
         per_page: DEFAULT_PER_PAGE,
         query: queryString,
         dataset:
-          this.dataset === DiscoverDatasets.SPANS_EAP_RPC
-            ? DiscoverDatasets.SPANS_EAP
-            : this.dataset,
+          this.dataset === DiscoverDatasets.SPANS ? DiscoverDatasets.SPANS : this.dataset,
       }
     ) as EventQuery & LocationQuery;
 
@@ -1382,8 +1382,9 @@ class EventView {
         // Only include aggregates that make sense to be graphable (eg. not string or date)
         .filter(
           (field: Field) =>
-            isLegalYAxisType(aggregateOutputType(field.field)) ||
-            isAggregateEquation(field.field)
+            isAggregateEquation(field.field) ||
+            (isLegalYAxisType(aggregateOutputType(field.field)) &&
+              !field.field.startsWith(`${AggregationKey.ANY}(`)) // hide AggregationKey.ANY from y axis
         )
         .map((field: Field) => ({
           label: isEquation(field.field) ? getEquation(field.field) : field.field,

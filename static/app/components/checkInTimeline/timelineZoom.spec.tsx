@@ -58,8 +58,8 @@ function setupTestComponent() {
   return {handleSelect, body, container};
 }
 
-describe('TimelineZoom', function () {
-  it('triggers onSelect', async function () {
+describe('TimelineZoom', () => {
+  it('triggers onSelect', async () => {
     const {handleSelect, body, container} = setupTestComponent();
 
     // Selector has not appeared
@@ -109,7 +109,7 @@ describe('TimelineZoom', function () {
     });
   });
 
-  it('does not start selection with right click', function () {
+  it('does not start selection with right click', () => {
     const {body} = setupTestComponent();
 
     // Move cursor into the container, selection still not present
@@ -120,7 +120,7 @@ describe('TimelineZoom', function () {
     expect(screen.queryByRole('presentation')).not.toBeInTheDocument();
   });
 
-  it('does not select for very small regions', async function () {
+  it('does not select for very small regions', async () => {
     const {handleSelect, body, container} = setupTestComponent();
 
     // Left click starts selection

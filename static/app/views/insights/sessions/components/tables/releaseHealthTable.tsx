@@ -1,9 +1,10 @@
-import {type ReactNode, useCallback, useMemo} from 'react';
+import {useCallback, useMemo, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Count from 'sentry/components/count';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -75,7 +76,6 @@ export default function ReleaseHealthTable({
 
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: BASE_COLUMNS,
-    location,
   });
 
   const organization = useOrganization();
@@ -175,7 +175,7 @@ export default function ReleaseHealthTable({
 }
 
 const Subtitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const Title = styled('div')`

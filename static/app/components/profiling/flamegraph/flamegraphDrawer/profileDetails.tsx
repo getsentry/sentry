@@ -2,10 +2,10 @@ import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
+import {OrganizationAvatar, ProjectAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Version from 'sentry/components/version';
@@ -533,7 +533,7 @@ const DetailsRow = styled('div')`
   overflow: hidden;
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   > span,
   > a {
@@ -563,12 +563,12 @@ const ProfileDetailsBar = styled('div')<{layout: FlamegraphPreferences['layout']
     p.layout === 'table left' || p.layout === 'table right' ? '100%' : '260px'};
   height: ${p =>
     p.layout === 'table left' || p.layout === 'table right' ? '220px' : '100%'};
-  border-left: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.background};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.primary};
   grid-area: details;
   position: relative;
 
   > ul:first-child {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;

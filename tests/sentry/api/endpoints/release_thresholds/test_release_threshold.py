@@ -6,7 +6,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ReleaseThresholdTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(is_staff=True, is_superuser=True)
 
@@ -26,7 +26,7 @@ class ReleaseThresholdTest(APITestCase):
             },
         )
 
-    def test_post_missing_params(self):
+    def test_post_missing_params(self) -> None:
         response = self.client.post(
             self.url,
             data={
@@ -41,7 +41,7 @@ class ReleaseThresholdTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {"value": ["This field is required."]}
 
-    def test_post_invalid_threshold_type(self):
+    def test_post_invalid_threshold_type(self) -> None:
         response = self.client.post(
             self.url,
             data={
@@ -56,7 +56,7 @@ class ReleaseThresholdTest(APITestCase):
         assert response.status_code == 400
         assert response.data["threshold_type"][0].code == "invalid_choice"
 
-    def test_post_invalid_trigger_type(self):
+    def test_post_invalid_trigger_type(self) -> None:
         response = self.client.post(
             self.url,
             data={
@@ -71,7 +71,7 @@ class ReleaseThresholdTest(APITestCase):
         assert response.status_code == 400
         assert response.data["trigger_type"][0].code == "invalid_choice"
 
-    def test_post_invalid_project(self):
+    def test_post_invalid_project(self) -> None:
         url_with_invalid_project = reverse(
             "sentry-api-0-project-release-thresholds",
             kwargs={
@@ -91,7 +91,7 @@ class ReleaseThresholdTest(APITestCase):
         )
         assert response.status_code == 404
 
-    def test_post_invalid_environment(self):
+    def test_post_invalid_environment(self) -> None:
         response = self.client.post(
             self.url,
             data={
@@ -105,7 +105,7 @@ class ReleaseThresholdTest(APITestCase):
         assert response.status_code == 400
         assert response.data["environment"][0].code == "invalid"
 
-    def test_post_valid_no_environment(self):
+    def test_post_valid_no_environment(self) -> None:
         response = self.client.post(
             self.url,
             data={
@@ -127,7 +127,7 @@ class ReleaseThresholdTest(APITestCase):
         assert data["environment"] is None
         assert data["date_added"] is not None
 
-    def test_post_valid(self):
+    def test_post_valid(self) -> None:
         response = self.client.post(
             self.url,
             data={
@@ -152,7 +152,7 @@ class ReleaseThresholdTest(APITestCase):
         assert data["environment"]["name"] == self.canary_environment.name
         assert data["date_added"] is not None
 
-    def test_get_invalid_project(self):
+    def test_get_invalid_project(self) -> None:
         url_with_invalid_project = reverse(
             "sentry-api-0-project-release-thresholds",
             kwargs={
@@ -163,12 +163,12 @@ class ReleaseThresholdTest(APITestCase):
         response = self.client.get(url_with_invalid_project, data={"environment": "canary"})
         assert response.status_code == 404
 
-    def test_get_invalid_environment(self):
+    def test_get_invalid_environment(self) -> None:
         response = self.client.get(self.url, data={"environment": "The Hovitos are near"})
         assert response.status_code == 200
         assert len(response.data) == 0
 
-    def test_get_valid_no_environment(self):
+    def test_get_valid_no_environment(self) -> None:
         response = self.client.get(self.url)
         assert response.status_code == 200
         assert len(response.data) == 0
@@ -197,7 +197,7 @@ class ReleaseThresholdTest(APITestCase):
         assert created_threshold["environment"]["id"] == str(self.canary_environment.id)
         assert created_threshold["environment"]["name"] == self.canary_environment.name
 
-    def test_get_valid_with_environment(self):
+    def test_get_valid_with_environment(self) -> None:
         response = self.client.get(self.url, data={"environment": "canary"})
         assert response.status_code == 200
         assert len(response.data) == 0

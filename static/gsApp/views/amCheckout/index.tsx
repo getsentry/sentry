@@ -1,30 +1,33 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import type {QueryObserverResult} from '@tanstack/react-query';
+import {loadStripe} from '@stripe/stripe-js';
+import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
+import LogoSentry from 'sentry/components/logoSentry';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import TextOverflow from 'sentry/components/textOverflow';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import ConfigStore from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {QueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import ZendeskLink from 'getsentry/components/zendeskLink';
@@ -34,282 +37,172 @@ import {
   PAYG_BUSINESS_DEFAULT,
   PAYG_TEAM_DEFAULT,
 } from 'getsentry/constants';
-import {
-  type BillingConfig,
-  CheckoutType,
-  type EventBucket,
-  OnDemandBudgetMode,
-  type OnDemandBudgets,
-  type Plan,
-  PlanName,
-  PlanTier,
-  type PromotionData,
-  type Subscription,
+import {OnDemandBudgetMode, PlanName, PlanTier} from 'getsentry/types';
+import type {
+  BillingConfig,
+  CheckoutAddOns,
+  EventBucket,
+  Invoice,
+  OnDemandBudgets,
+  Plan,
+  PreviewData,
+  PromotionData,
+  Subscription,
 } from 'getsentry/types';
 import {
   hasActiveVCFeature,
   hasPartnerMigrationFeature,
   hasPerformance,
-  isAmPlan,
   isBizPlanFamily,
   isNewPayingCustomer,
   isTrialPlan,
 } from 'getsentry/utils/billing';
 import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
-import {showSubscriptionDiscount} from 'getsentry/utils/promotionUtils';
-import {loadStripe} from 'getsentry/utils/stripe';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import withPromotions from 'getsentry/utils/withPromotions';
-import CheckoutOverview from 'getsentry/views/amCheckout/checkoutOverview';
-import CheckoutOverviewV2 from 'getsentry/views/amCheckout/checkoutOverviewV2';
-import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
-import AddDataVolume from 'getsentry/views/amCheckout/steps/addDataVolume';
-import AddPaymentMethod from 'getsentry/views/amCheckout/steps/addPaymentMethod';
-import ContractSelect from 'getsentry/views/amCheckout/steps/contractSelect';
-import OnDemandBudgetsStep from 'getsentry/views/amCheckout/steps/onDemandBudgets';
-import OnDemandSpend from 'getsentry/views/amCheckout/steps/onDemandSpend';
-import PlanSelect from 'getsentry/views/amCheckout/steps/planSelect';
-import ReviewAndConfirm from 'getsentry/views/amCheckout/steps/reviewAndConfirm';
-import SetPayAsYouGo from 'getsentry/views/amCheckout/steps/setPayAsYouGo';
-import type {
-  CheckoutFormData,
-  SelectedProductData,
-} from 'getsentry/views/amCheckout/types';
-import {SelectableProduct} from 'getsentry/views/amCheckout/types';
+import Cart from 'getsentry/views/amCheckout/components/cart';
+import CheckoutSuccess from 'getsentry/views/amCheckout/components/checkoutSuccess';
+import AddBillingInformation from 'getsentry/views/amCheckout/steps/addBillingInfo';
+import BuildYourPlan from 'getsentry/views/amCheckout/steps/buildYourPlan';
+import ChooseYourBillingCycle from 'getsentry/views/amCheckout/steps/chooseYourBillingCycle';
+import SetSpendLimit from 'getsentry/views/amCheckout/steps/setSpendLimit';
+import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import {getBucket} from 'getsentry/views/amCheckout/utils';
 import {
   getTotalBudget,
   hasOnDemandBudgetsFeature,
   parseOnDemandBudgetsFromSubscription,
-} from 'getsentry/views/onDemandBudgets/utils';
+} from 'getsentry/views/spendLimits/utils';
 
-// TODO: push promotion logic to subcomponents
 type Props = {
   api: Client;
   checkoutTier: PlanTier;
   isError: boolean;
   isLoading: boolean;
-  onToggleLegacy: (tier: string) => void;
+  location: Location;
+  navigate: ReactRouter3Navigate;
   organization: Organization;
   queryClient: QueryClient;
   subscription: Subscription;
   promotionData?: PromotionData;
-  refetch?: () => Promise<QueryObserverResult<PromotionData, unknown>>;
-} & RouteComponentProps<Record<PropertyKey, unknown>, unknown>;
-
-type State = {
-  billingConfig: BillingConfig | null;
-  completedSteps: Set<number>;
-  currentStep: number;
-  error: Error | boolean;
-  formData: CheckoutFormData | null;
-  loading: boolean;
 };
 
-class AMCheckout extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    // TODO(am3): for now, only new customers and migrating partner customers can use the AM3 checkout flow
-    if (
-      props.checkoutTier === PlanTier.AM3 &&
-      !props.subscription.plan.startsWith('am3') &&
-      !props.organization.features.includes('partner-billing-migration')
-    ) {
-      props.onToggleLegacy(props.subscription.planTier);
+export type State = {
+  billingConfig: BillingConfig | null;
+  error: Error | boolean;
+  formData: CheckoutFormData | null;
+  formDataForPreview: CheckoutFormData | null;
+  isSubmitted: boolean;
+  loading: boolean;
+  nextQueryParams: string[];
+  invoice?: Invoice;
+  previewData?: PreviewData;
+};
+
+function AMCheckout(props: Props) {
+  const {
+    api,
+    checkoutTier,
+    isLoading,
+    location,
+    navigate,
+    organization,
+    subscription,
+    promotionData,
+  } = props;
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | boolean>(false);
+  const [formData, setFormData] = useState<CheckoutFormData | null>(null);
+  const [formDataForPreview, setFormDataForPreview] = useState<CheckoutFormData | null>(
+    null
+  );
+  const [billingConfig, setBillingConfig] = useState<BillingConfig | null>(null);
+  const [nextQueryParams, setNextQueryParams] = useState<string[]>([]);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [invoice, setInvoice] = useState<Invoice | undefined>(undefined);
+  const [previewData, setPreviewData] = useState<PreviewData | undefined>(undefined);
+
+  const referrer = useMemo(() => {
+    if (Array.isArray(location?.query?.referrer)) {
+      return location?.query?.referrer[0];
     }
-    let step = 1;
-    if (props.location?.hash) {
-      const stepMatch = /^#step(\d)$/.exec(props.location.hash);
-      if (stepMatch) {
-        step = parseInt(stepMatch[1]!, 10);
-        if (step < 1 || step > 6) {
-          step = 1;
-        }
+    return location?.query?.referrer ?? undefined;
+  }, [location]);
+
+  const checkoutSteps = useMemo(() => {
+    // Do not include Payment Method and Billing Details sections for subscriptions billed through partners
+    if (subscription.isSelfServePartner) {
+      if (hasActiveVCFeature(organization)) {
+        // Don't allow VC customers to choose Annual plans
+        return [BuildYourPlan, SetSpendLimit];
       }
-    } else if (
-      // skip 'Choose Your Plan' if customer is already on Business plan and they have all additional products enabled
-      isBizPlanFamily(props.subscription.planDetails) &&
-      props.checkoutTier === props.subscription.planTier
-    ) {
-      // TODO(billing): cleanup condition after backfill
-      const selectedAll = props.organization.features.includes('seer-billing')
-        ? props.subscription.reservedBudgets &&
-          props.subscription.reservedBudgets.length > 0
-          ? props.subscription.reservedBudgets.every(budget => {
-              if (
-                Object.values(SelectableProduct).includes(
-                  budget.apiName as string as SelectableProduct
-                )
-              ) {
-                return budget.reservedBudget > 0;
-              }
-              return !props.organization.features.includes(budget.billingFlag || '');
-            })
-          : false // don't skip before backfill
-        : true; // skip if seer hasn't launched
 
-      if (selectedAll) {
-        step = 2;
-      }
+      return [BuildYourPlan, SetSpendLimit, ChooseYourBillingCycle];
     }
-    this.initialStep = step;
-    this.state = {
-      loading: true,
-      error: false,
-      currentStep: step,
-      completedSteps: new Set(),
-      formData: null,
-      billingConfig: null,
-    };
-  }
-  state: State;
+    return [BuildYourPlan, SetSpendLimit, ChooseYourBillingCycle, AddBillingInformation];
+  }, [subscription.isSelfServePartner, organization]);
 
-  componentDidMount() {
-    const {subscription, organization} = this.props;
-    /**
-     * Preload Stripe so it's ready when the subscription + cc form becomes
-     * available. `loadStripe` ensures Stripe is not loaded multiple times
-     */
-    loadStripe();
-
-    if (subscription.canSelfServe) {
-      this.fetchBillingConfig();
-    } else {
-      this.handleRedirect();
+  const activePlan = useMemo(() => {
+    if (!formData || !billingConfig) {
+      return null;
     }
-
-    if (organization) {
-      trackGetsentryAnalytics('am_checkout.viewed', {organization, subscription});
+    const plan = billingConfig.planList.find(({id}) => id === formData.plan);
+    if (!plan) {
+      throw new Error('Cannot get active plan');
     }
-  }
+    return plan;
+  }, [formData, billingConfig]);
 
-  componentDidUpdate(prevProps: Props) {
-    const {checkoutTier, subscription} = this.props;
-    if (checkoutTier === prevProps.checkoutTier) {
-      return;
-    }
-
-    if (subscription.canSelfServe) {
-      this.fetchBillingConfig();
-    } else {
-      this.handleRedirect();
-    }
-  }
-
-  readonly initialStep: number;
-
-  get referrer(): string | undefined {
-    const {location} = this.props;
-    return location?.query?.referrer;
-  }
+  const getPlan = useCallback(
+    (planId: string) => {
+      return billingConfig?.planList.find(({id}) => id === planId);
+    },
+    [billingConfig]
+  );
 
   /**
    * Managed subscriptions need to go through Sales or Support to make
    * changes to their plan and cannot use the self-serve checkout flow
    */
-  handleRedirect() {
-    const {organization, router} = this.props;
-    return router.push(normalizeUrl(`/settings/${organization.slug}/billing/overview/`));
-  }
+  const handleRedirect = useCallback(() => {
+    return navigate(normalizeUrl(`/settings/${organization.slug}/billing/overview/`));
+  }, [navigate, organization.slug]);
 
-  async fetchBillingConfig() {
-    const {api, organization, checkoutTier} = this.props;
+  const getPlans = useCallback(
+    (config: BillingConfig) => {
+      const isTestOrg = subscription.planDetails.isTestPlan;
+      if (isTestOrg) {
+        const testPlans = config.planList.filter(
+          plan =>
+            plan.isTestPlan &&
+            (plan.id.includes(config.freePlan) ||
+              (plan.basePrice &&
+                ((plan.billingInterval === MONTHLY &&
+                  plan.contractInterval === MONTHLY) ||
+                  (plan.billingInterval === ANNUAL && plan.contractInterval === ANNUAL))))
+        );
 
-    this.setState({loading: true});
-    const endpoint = `/customers/${organization.slug}/billing-config/`;
-
-    try {
-      const config = await api.requestPromise(endpoint, {
-        method: 'GET',
-        data: {tier: checkoutTier},
-      });
-
-      const planList = this.getPaidPlans(config);
-      const billingConfig = {...config, planList};
-      const formData = this.getInitialData(billingConfig);
-
-      this.setState({billingConfig, formData});
-    } catch (error) {
-      this.setState({error, loading: false});
-      if (error.status !== 401 && error.status !== 403) {
-        Sentry.captureException(error);
+        if (testPlans.length > 0) {
+          return testPlans;
+        }
       }
-    }
+      const plans = config.planList.filter(
+        plan =>
+          plan.id === config.freePlan ||
+          (plan.basePrice &&
+            plan.userSelectable &&
+            ((plan.billingInterval === MONTHLY && plan.contractInterval === MONTHLY) ||
+              (plan.billingInterval === ANNUAL && plan.contractInterval === ANNUAL)))
+      );
 
-    this.setState({loading: false});
-  }
-
-  getPaidPlans(billingConfig: BillingConfig) {
-    const paidPlans = billingConfig.planList.filter(
-      plan =>
-        plan.basePrice &&
-        plan.userSelectable &&
-        ((plan.billingInterval === MONTHLY && plan.contractInterval === MONTHLY) ||
-          (plan.billingInterval === ANNUAL && plan.contractInterval === ANNUAL))
-    );
-
-    if (!paidPlans) {
-      throw new Error('Cannot get plan options');
-    }
-    return paidPlans;
-  }
-
-  get checkoutSteps() {
-    const {organization, subscription, checkoutTier} = this.props;
-    const OnDemandStep = hasOnDemandBudgetsFeature(organization, subscription)
-      ? OnDemandBudgetsStep
-      : OnDemandSpend;
-
-    const preAM3Tiers = [PlanTier.AM1, PlanTier.AM2];
-    const notAMTier = !isAmPlan(checkoutTier);
-
-    if (preAM3Tiers.includes(checkoutTier) || notAMTier) {
-      // Display for AM1 and AM2 tiers, and non-AM tiers  (e.g. L1)
-      return [
-        PlanSelect,
-        AddDataVolume,
-        OnDemandStep,
-        ContractSelect,
-        AddPaymentMethod,
-        AddBillingDetails,
-        ReviewAndConfirm,
-      ];
-    }
-    // Do not include Payment Method and Billing Details sections for subscriptions billed through partners
-    if (subscription.isSelfServePartner) {
-      if (hasActiveVCFeature(organization)) {
-        // Don't allow VC customers to choose Annual plans
-        return [PlanSelect, SetPayAsYouGo, AddDataVolume, ReviewAndConfirm];
+      if (plans.length === 0) {
+        throw new Error('Cannot get plan options');
       }
-      return [PlanSelect, SetPayAsYouGo, AddDataVolume, ContractSelect, ReviewAndConfirm];
-    }
-
-    // Display for AM3 tiers and above
-    return [
-      PlanSelect,
-      SetPayAsYouGo,
-      AddDataVolume,
-      ContractSelect,
-      AddPaymentMethod,
-      AddBillingDetails,
-      ReviewAndConfirm,
-    ];
-  }
-
-  get activePlan() {
-    const {formData} = this.state;
-    const activePlan = formData && this.getPlan(formData.plan);
-
-    if (!activePlan) {
-      throw new Error('Cannot get active plan');
-    }
-    return activePlan;
-  }
-
-  getPlan(plan: string) {
-    const {billingConfig} = this.state;
-    return billingConfig?.planList.find(({id}) => id === plan);
-  }
+      return plans;
+    },
+    [subscription.planDetails.isTestPlan]
+  );
 
   /**
    * Default to the business plan if:
@@ -317,27 +210,25 @@ class AMCheckout extends Component<Props, State> {
    * 2. The subscription is free
    * 3. Or, the subscription is on a free trial
    */
-  shouldDefaultToBusiness() {
-    const {subscription} = this.props;
-
-    const hasUpsell =
-      (this.referrer?.startsWith('upgrade') || this.referrer?.startsWith('upsell')) &&
-      this.initialStep === 1;
+  const shouldDefaultToBusiness = useCallback(() => {
+    const hasUpsell = referrer?.startsWith('upgrade') || referrer?.startsWith('upsell');
 
     return hasUpsell || subscription.isFree || subscription.isTrial;
-  }
+  }, [referrer, subscription.isFree, subscription.isTrial]);
 
-  getBusinessPlan(billingConfig: BillingConfig) {
-    const {subscription} = this.props;
-    const {planList} = billingConfig;
+  const getBusinessPlan = useCallback(
+    (config: BillingConfig) => {
+      const {planList} = config;
 
-    return planList.find(({name, contractInterval}) => {
-      return (
-        name === 'Business' &&
-        contractInterval === subscription?.planDetails?.contractInterval
-      );
-    });
-  }
+      return planList.find(({name, contractInterval}) => {
+        return (
+          name === 'Business' &&
+          contractInterval === subscription?.planDetails?.contractInterval
+        );
+      });
+    },
+    [subscription?.planDetails?.contractInterval]
+  );
 
   /**
    * Logic for initial plan:
@@ -346,549 +237,698 @@ class AMCheckout extends Component<Props, State> {
    * 3. Then default to an equivalent paid plan (mm2 Business -> am1 Business)
    * 4. Then default to the server default plan (Team)
    */
-  getInitialPlan(billingConfig: BillingConfig) {
-    const {subscription, checkoutTier} = this.props;
-    const {planList, defaultPlan} = billingConfig;
-    const initialPlan = planList.find(({id}) => id === subscription.plan);
+  const getInitialPlan = useCallback(
+    (config: BillingConfig) => {
+      const {planList, defaultPlan} = config;
+      const initialPlan = planList.find(({id}) => id === subscription.plan);
+      const businessPlan = getBusinessPlan(config);
 
-    if (this.shouldDefaultToBusiness()) {
-      const plan = this.getBusinessPlan(billingConfig);
-      if (plan) {
-        return plan;
+      if (shouldDefaultToBusiness()) {
+        if (businessPlan) {
+          return businessPlan;
+        }
       }
-    }
 
-    // Current tier paid plan
-    if (initialPlan) {
-      return initialPlan;
-    }
+      // Current tier paid plan
+      if (initialPlan) {
+        return initialPlan;
+      }
 
-    // map bundle plans
-    if (subscription.planDetails.name === PlanName.BUSINESS_BUNDLE) {
-      return planList.find(
-        p => p.name === PlanName.BUSINESS && p.contractInterval === 'monthly'
+      // map bundle plans
+      if (subscription.planDetails.name === PlanName.BUSINESS_BUNDLE) {
+        return planList.find(
+          p => p.name === PlanName.BUSINESS && p.contractInterval === 'monthly'
+        );
+      }
+      if (subscription.planDetails.name === PlanName.TEAM_BUNDLE) {
+        return planList.find(
+          p => p.name === PlanName.TEAM && p.contractInterval === 'monthly'
+        );
+      }
+
+      // find equivalent current plan for legacy
+      const legacyInitialPlan =
+        subscription.planTier !== checkoutTier &&
+        planList.find(
+          ({name, contractInterval}) =>
+            name === subscription?.planDetails?.name &&
+            contractInterval === subscription?.planDetails?.contractInterval
+        );
+
+      // if no legacy initial plan found, we fallback to the business plan, then the default plan (usually team)
+      return (
+        legacyInitialPlan || businessPlan || planList.find(({id}) => id === defaultPlan)
       );
-    }
-    if (subscription.planDetails.name === PlanName.TEAM_BUNDLE) {
-      return planList.find(
-        p => p.name === PlanName.TEAM && p.contractInterval === 'monthly'
+    },
+    [
+      subscription.plan,
+      subscription.planDetails.name,
+      subscription.planDetails?.contractInterval,
+      subscription.planTier,
+      checkoutTier,
+      getBusinessPlan,
+      shouldDefaultToBusiness,
+    ]
+  );
+
+  const canComparePrices = useCallback(
+    (initialPlan: Plan) => {
+      return (
+        // MMx event buckets are priced differently
+        hasPerformance(subscription?.planDetails) &&
+        subscription.planDetails.name === initialPlan.name &&
+        subscription.planDetails.billingInterval === initialPlan.billingInterval
       );
-    }
+    },
+    [subscription?.planDetails]
+  );
 
-    // find equivalent current plan for legacy
-    const legacyInitialPlan =
-      subscription.planTier !== checkoutTier &&
-      planList.find(
-        ({name, contractInterval}) =>
-          name === subscription?.planDetails?.name &&
-          contractInterval === subscription?.planDetails?.contractInterval
+  const getValidData = useCallback(
+    (plan: Plan, data: Omit<CheckoutFormData, 'plan'>): CheckoutFormData => {
+      const {onDemandMaxSpend, onDemandBudget, addOns} = data;
+
+      // Verify next plan data volumes before updating form data
+      // finds the approximate bucket if event level does not exist
+      const nextReserved = Object.fromEntries(
+        Object.entries(data.reserved).map(([category, value]) => [
+          category,
+          getBucket({
+            events: value,
+            buckets: plan.planCategories[category as DataCategory],
+            shouldMinimize: hasPartnerMigrationFeature(organization),
+          }).events,
+        ])
       );
 
-    return legacyInitialPlan || planList.find(({id}) => id === defaultPlan);
-  }
+      const onDemandSupported = plan.allowOnDemand && subscription.supportsOnDemand;
 
-  canComparePrices(initialPlan: Plan) {
-    const {subscription} = this.props;
+      // reset ondemand if not allowed or supported
+      let newOnDemandMaxSpend = onDemandSupported ? onDemandMaxSpend : 0;
+      if (typeof newOnDemandMaxSpend === 'number') {
+        newOnDemandMaxSpend = Math.max(newOnDemandMaxSpend, 0);
+      }
 
-    return (
-      // MMx event buckets are priced differently
-      hasPerformance(subscription?.planDetails) &&
-      subscription.planDetails.name === initialPlan.name &&
-      subscription.planDetails.billingInterval === initialPlan.billingInterval
-    );
-  }
+      let newOnDemandBudget: OnDemandBudgets | undefined = undefined;
+
+      if (
+        hasOnDemandBudgetsFeature(organization, subscription) ||
+        checkoutTier === PlanTier.AM3
+      ) {
+        newOnDemandBudget =
+          onDemandBudget && onDemandSupported
+            ? onDemandBudget
+            : {
+                budgetMode: OnDemandBudgetMode.SHARED,
+                sharedMaxBudget: 0,
+              };
+
+        newOnDemandMaxSpend = getTotalBudget(newOnDemandBudget);
+      }
+
+      return {
+        plan: plan.id,
+        onDemandMaxSpend: newOnDemandMaxSpend,
+        onDemandBudget: newOnDemandBudget,
+        reserved: nextReserved,
+        addOns,
+      };
+    },
+    [organization, subscription, checkoutTier]
+  );
 
   /**
    * Get the current subscription plan and event volumes.
    * If not available on current tier, use the default plan.
    */
-  getInitialData(billingConfig: BillingConfig): CheckoutFormData {
-    const {subscription, checkoutTier, organization} = this.props;
-    const {onDemandMaxSpend, planDetails} = subscription;
+  const getInitialData = useCallback(
+    (config: BillingConfig): CheckoutFormData => {
+      const {onDemandMaxSpend, planDetails} = subscription;
 
-    const initialPlan = this.getInitialPlan(billingConfig);
+      const initialPlan = getInitialPlan(config);
 
-    if (!initialPlan) {
-      throw new Error('Cannot get initial plan');
-    }
+      if (!initialPlan) {
+        throw new Error('Cannot get initial plan');
+      }
 
-    const canComparePrices = this.canComparePrices(initialPlan);
+      const canCompare = canComparePrices(initialPlan);
 
-    // Default to the max event volume per category based on either
-    // the current reserved volume or the current reserved price.
-    const reserved = Object.fromEntries(
-      (Object.entries(planDetails.planCategories) as Array<[DataCategory, EventBucket[]]>)
-        .filter(([category, _]) => initialPlan.planCategories[category])
-        .map(([category, eventBuckets]) => {
-          const currentHistory = subscription.categories[category];
-          // When introducing a new category before backfilling, the reserved value from the billing metric
-          // history is not available, so we default to 0.
-          // Skip trial volumes - don't pre-fill with trial reserved amounts
-          let events = (!subscription.isTrial && currentHistory?.reserved) || 0;
+      // Default to the max event volume per category based on either
+      // the current reserved volume or the current reserved price.
+      const reserved = Object.fromEntries(
+        (
+          Object.entries(planDetails.planCategories) as Array<
+            [DataCategory, EventBucket[]]
+          >
+        )
+          .filter(([category, _]) => initialPlan.planCategories[category])
+          .map(([category, eventBuckets]) => {
+            const currentHistory = subscription.categories[category];
+            // When introducing a new category before backfilling, the reserved value from the billing metric
+            // history is not available, so we default to 0.
+            // Skip trial volumes - don't pre-fill with trial reserved amounts
+            let events = (!isTrialPlan(planDetails.id) && currentHistory?.reserved) || 0;
 
-          if (canComparePrices) {
-            const price = getBucket({events, buckets: eventBuckets}).price;
-            const eventsByPrice = getBucket({
-              price,
-              buckets: initialPlan.planCategories[category],
-            }).events;
-            events = Math.max(events, eventsByPrice);
-          }
-          return [category, events];
-        })
-    );
+            if (canCompare) {
+              const price = getBucket({events, buckets: eventBuckets}).price;
+              const eventsByPrice = getBucket({
+                price,
+                buckets: initialPlan.planCategories[category],
+              }).events;
+              events = Math.max(events, eventsByPrice);
+            }
+            return [category, events];
+          })
+      );
 
-    const defaultReservedCategories = Object.entries(billingConfig.defaultReserved).map(
-      ([k, _]) => k
-    );
-    // this is the customer's reserved values that overlap with
-    // the categories in the new checkout plan
-    // e.g. AM2 customers checking out an AM3 plan will have
-    // reserved transactions in AM2 but do not need reserved transactions in AM3
-    const reservedOverlapping = Object.fromEntries(
-      Object.entries(reserved).filter(([k, _]) => defaultReservedCategories.includes(k))
-    );
+      const defaultReservedCategories = Object.entries(config.defaultReserved).map(
+        ([k, _]) => k
+      );
+      // this is the customer's reserved values that overlap with
+      // the categories in the new checkout plan
+      // e.g. AM2 customers checking out an AM3 plan will have
+      // reserved transactions in AM2 but do not need reserved transactions in AM3
+      const reservedOverlapping = Object.fromEntries(
+        Object.entries(reserved).filter(([k, _]) => defaultReservedCategories.includes(k))
+      );
 
-    const data = {
-      reserved: {
-        ...billingConfig.defaultReserved,
-        ...reservedOverlapping,
-      },
-      ...(onDemandMaxSpend > 0 && {onDemandMaxSpend}),
-      onDemandBudget: parseOnDemandBudgetsFromSubscription(subscription),
-      selectedProducts: Object.values(SelectableProduct).reduce(
-        (acc, product) => {
-          acc[product] = {
-            enabled: false,
-          };
-          return acc;
+      const data = {
+        reserved: {
+          ...config.defaultReserved,
+          ...reservedOverlapping,
         },
-        {} as Record<SelectableProduct, SelectedProductData>
-      ),
-    };
-
-    if (
-      isNewPayingCustomer(subscription, organization) &&
-      checkoutTier === PlanTier.AM3
-    ) {
-      // TODO(isabella): Test if this behavior works as expected on older tiers
-      data.onDemandMaxSpend = isBizPlanFamily(initialPlan)
-        ? PAYG_BUSINESS_DEFAULT
-        : PAYG_TEAM_DEFAULT;
-      data.onDemandBudget = {
-        budgetMode: OnDemandBudgetMode.SHARED,
-        sharedMaxBudget: data.onDemandMaxSpend,
-      };
-    }
-
-    if (!isTrialPlan(subscription.plan)) {
-      // don't prepopulate selected products from trial state
-      subscription.reservedBudgets?.forEach(budget => {
-        if (
-          Object.values(SelectableProduct).includes(
-            budget.apiName as string as SelectableProduct
+        ...(onDemandMaxSpend > 0 && {onDemandMaxSpend}),
+        onDemandBudget: parseOnDemandBudgetsFromSubscription(subscription),
+        addOns: Object.values(subscription.addOns ?? {})
+          .filter(
+            // only populate add-ons that are launched
+            addOn => addOn.isAvailable
           )
-        ) {
-          data.selectedProducts[budget.apiName as string as SelectableProduct] = {
-            enabled: budget.reservedBudget > 0,
-          };
-        }
-      });
-    }
-
-    return this.getValidData(initialPlan, data);
-  }
-
-  getValidData(plan: Plan, data: Omit<CheckoutFormData, 'plan'>): CheckoutFormData {
-    const {subscription, organization, checkoutTier} = this.props;
-
-    const {onDemandMaxSpend, onDemandBudget, selectedProducts} = data;
-
-    // Verify next plan data volumes before updating form data
-    // finds the approximate bucket if event level does not exist
-    const nextReserved = Object.fromEntries(
-      Object.entries(data.reserved).map(([category, value]) => [
-        category,
-        getBucket({
-          events: value,
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          buckets: plan.planCategories[category],
-          shouldMinimize: hasPartnerMigrationFeature(organization),
-        }).events,
-      ])
-    );
-
-    const onDemandSupported = plan.allowOnDemand && subscription.supportsOnDemand;
-
-    // reset ondemand if not allowed or supported
-    let newOnDemandMaxSpend = onDemandSupported ? onDemandMaxSpend : 0;
-    if (typeof newOnDemandMaxSpend === 'number') {
-      newOnDemandMaxSpend = Math.max(newOnDemandMaxSpend, 0);
-    }
-
-    let newOnDemandBudget: OnDemandBudgets | undefined = undefined;
-
-    if (
-      hasOnDemandBudgetsFeature(organization, subscription) ||
-      checkoutTier === PlanTier.AM3
-    ) {
-      newOnDemandBudget =
-        onDemandBudget && onDemandSupported
-          ? onDemandBudget
-          : {
-              budgetMode: OnDemandBudgetMode.SHARED,
-              sharedMaxBudget: 0,
+          .reduce((acc, addOn) => {
+            acc[addOn.apiName] = {
+              // don't prepopulate add-ons from trial state
+              enabled: addOn.enabled && !isTrialPlan(subscription.plan),
             };
+            return acc;
+          }, {} as CheckoutAddOns),
+      };
 
-      newOnDemandMaxSpend = getTotalBudget(newOnDemandBudget);
-    }
+      if (isNewPayingCustomer(subscription, organization)) {
+        data.onDemandMaxSpend = isBizPlanFamily(initialPlan)
+          ? PAYG_BUSINESS_DEFAULT
+          : PAYG_TEAM_DEFAULT;
+        data.onDemandBudget = {
+          budgetMode: OnDemandBudgetMode.SHARED,
+          sharedMaxBudget: data.onDemandMaxSpend,
+        };
+      }
 
+      return getValidData(initialPlan, data);
+    },
+    [subscription, organization, getInitialPlan, canComparePrices, getValidData]
+  );
+
+  const getFormDataForPreview = useCallback((data: CheckoutFormData) => {
     return {
-      plan: plan.id,
-      onDemandMaxSpend: newOnDemandMaxSpend,
-      onDemandBudget: newOnDemandBudget,
-      reserved: nextReserved,
-      selectedProducts,
+      ...data,
+      onDemandBudget: undefined,
+      onDemandMaxSpend: undefined,
     };
-  }
+  }, []);
 
-  handleUpdate = (updatedData: any) => {
-    const {organization, subscription, checkoutTier} = this.props;
-    const {formData} = this.state;
+  const fetchBillingConfig = useCallback(async () => {
+    setLoading(true);
+    const endpoint = `/customers/${organization.slug}/billing-config/`;
 
-    const data = {...formData, ...updatedData};
-    const plan = this.getPlan(data.plan) || this.activePlan;
-    const validData = this.getValidData(plan, data);
-
-    this.setState({
-      formData: validData,
-    });
-
-    const analyticsParams = {
-      organization,
-      subscription,
-      plan: plan.id,
-    };
-
-    if (this.state.currentStep === 1) {
-      trackGetsentryAnalytics('checkout.change_plan', analyticsParams);
-    } else if (
-      (checkoutTier === PlanTier.AM3 && this.state.currentStep === 2) ||
-      (checkoutTier !== PlanTier.AM3 && this.state.currentStep === 3)
-    ) {
-      trackGetsentryAnalytics('checkout.ondemand_changed', {
-        ...analyticsParams,
-        cents: validData.onDemandMaxSpend || 0,
+    try {
+      const config = await api.requestPromise(endpoint, {
+        method: 'GET',
+        data: {tier: checkoutTier},
       });
-    } else if (this.state.currentStep === 4) {
-      trackGetsentryAnalytics('checkout.change_contract', analyticsParams);
+
+      const planList = getPlans(config);
+      const newBillingConfig = {...config, planList};
+      const initialFormData = getInitialData(newBillingConfig);
+
+      setBillingConfig(newBillingConfig);
+      setFormData(initialFormData);
+      setFormDataForPreview(getFormDataForPreview(initialFormData));
+    } catch (err: any) {
+      setError(err);
+      setLoading(false);
+      if (err.status !== 401 && err.status !== 403) {
+        Sentry.captureException(err);
+      }
     }
 
-    if (!isEqual(validData.reserved, data.reserved)) {
-      Sentry.withScope(scope => {
-        scope.setExtras({validData, updatedData, previous: formData});
-        scope.setLevel('warning' as any);
-        Sentry.captureException(new Error('Plan event levels do not match'));
-      });
+    setLoading(false);
+  }, [
+    api,
+    organization.slug,
+    checkoutTier,
+    getPlans,
+    getInitialData,
+    getFormDataForPreview,
+  ]);
+
+  const scrollToStep = useCallback(() => {
+    const hash = location?.hash;
+
+    if (!hash) {
+      return;
     }
-  };
 
-  /**
-   * Complete step and all previous steps
-   */
-  handleCompleteStep = (stepNumber: number) => {
-    const {organization, subscription} = this.props;
-    const previousSteps = Array.from({length: stepNumber}, (_, idx) => idx + 1);
+    // Parse step number from hash like #step1, #step2, etc.
+    const stepMatch = /^#step(\d+)$/.exec(hash);
+    if (!stepMatch) {
+      return;
+    }
 
-    trackGetsentryAnalytics('checkout.click_continue', {
+    const stepNumber = parseInt(stepMatch[1]!, 10);
+    if (stepNumber < 1 || stepNumber > checkoutSteps.length) {
+      return;
+    }
+
+    // Use requestAnimationFrame to ensure DOM is ready
+    requestAnimationFrame(() => {
+      const stepElement = document.getElementById(`step${stepNumber}`);
+      if (stepElement) {
+        // TODO(isabella): We should calculate some offset to add to account for the sticky header (which covers the title)
+        // and we will likely need to take screen size into account (steps 3 and 4 cannot have their headers at the top of the viewport unless it's a smaller screen)
+        const targetScrollY = stepElement.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({top: targetScrollY, behavior: 'smooth'});
+      }
+    });
+  }, [location?.hash, checkoutSteps.length]);
+
+  const handleUpdate = useCallback(
+    (updatedData: any) => {
+      if (!formData || !activePlan) {
+        return;
+      }
+
+      const data = {...formData, ...updatedData};
+      const plan = getPlan(data.plan) || activePlan;
+      const validData = getValidData(plan, data);
+      let validPreviewData: CheckoutFormData | null = getFormDataForPreview(validData);
+      if (isEqual(validPreviewData, formDataForPreview)) {
+        validPreviewData = formDataForPreview;
+      }
+
+      setFormData(validData);
+      setFormDataForPreview(validPreviewData);
+
+      if (!isEqual(validData.reserved, data.reserved)) {
+        Sentry.withScope(scope => {
+          scope.setExtras({validData, updatedData, previous: formData});
+          scope.setLevel('warning' as any);
+          Sentry.captureException(new Error('Plan event levels do not match'));
+        });
+      }
+    },
+    [
+      formData,
+      formDataForPreview,
+      activePlan,
+      getPlan,
+      getValidData,
+      getFormDataForPreview,
+    ]
+  );
+
+  useEffect(() => {
+    /**
+     * Preload Stripe so it's ready when the subscription + cc form becomes
+     * available. `loadStripe` ensures Stripe is not loaded multiple times
+     */
+    loadStripe(ConfigStore.get('getsentry.stripePublishKey')!);
+  }, []);
+
+  useEffect(() => {
+    trackGetsentryAnalytics('am_checkout.viewed', {
       organization,
       subscription,
-      step_number: stepNumber,
-      plan: this.activePlan.id,
-      checkoutType: CheckoutType.STANDARD,
     });
 
-    this.setState(state => ({
-      currentStep: state.currentStep + 1,
-      completedSteps: new Set([...state.completedSteps, ...previousSteps]),
-    }));
-  };
+    Sentry.getReplay()?.start();
+  }, [organization, subscription]);
 
-  handleEdit = (stepNumber: number) => {
-    this.setState({
-      currentStep: stepNumber,
-    });
-  };
+  useEffect(() => {
+    if (subscription.canSelfServe) {
+      fetchBillingConfig();
+    } else {
+      handleRedirect();
+    }
+  }, [subscription.canSelfServe, fetchBillingConfig, handleRedirect]);
 
-  renderSteps() {
-    const {organization, onToggleLegacy, subscription, checkoutTier, promotionData} =
-      this.props;
-    const {currentStep, completedSteps, formData, billingConfig} = this.state;
+  // Scroll to step after billing config and form data are ready
+  useEffect(() => {
+    if (billingConfig && formData) {
+      scrollToStep();
+    }
+  }, [billingConfig, formData, scrollToStep]);
 
-    const promoClaimed = getCompletedOrActivePromotion(promotionData);
-
-    if (!formData || !billingConfig) {
+  const renderSteps = useCallback(() => {
+    if (!formData || !billingConfig || !activePlan) {
       return null;
     }
-
-    const promotion = promoClaimed?.promotion;
 
     const stepProps = {
       formData,
       billingConfig,
-      activePlan: this.activePlan,
-      onUpdate: this.handleUpdate,
-      onCompleteStep: this.handleCompleteStep,
-      onEdit: this.handleEdit,
-      onToggleLegacy,
+      activePlan,
+      onUpdate: handleUpdate,
       organization,
       subscription,
       checkoutTier,
-      promotion,
     };
 
-    return this.checkoutSteps.map((CheckoutStep, idx) => {
+    return checkoutSteps.map((CheckoutStep, idx) => {
       const stepNumber = idx + 1;
-      const isActive = currentStep === stepNumber;
-      const isCompleted = !isActive && completedSteps.has(stepNumber);
-      const prevStepCompleted = completedSteps.has(stepNumber - 1);
-
       return (
         <CheckoutStep
           {...stepProps}
           key={idx}
+          referrer={referrer}
           stepNumber={stepNumber}
-          isActive={isActive}
-          isCompleted={isCompleted}
-          prevStepCompleted={prevStepCompleted}
-          referrer={this.referrer}
         />
       );
     });
-  }
+  }, [
+    formData,
+    billingConfig,
+    activePlan,
+    handleUpdate,
+    organization,
+    subscription,
+    checkoutTier,
+    checkoutSteps,
+    referrer,
+  ]);
 
-  renderPartnerAlert() {
-    const {subscription} = this.props;
-
+  const renderPartnerAlert = useCallback(() => {
     if (!subscription.isSelfServePartner) {
       return null;
     }
 
     return (
       <Alert.Container>
-        <Alert type="info">
-          <PartnerAlertContent>
-            <PartnerAlertTitle>
+        <Alert variant="info">
+          <Stack gap="md">
+            <Text bold>
               {tct('Billing handled externally through [partnerName]', {
                 partnerName: subscription.partner?.partnership.displayName,
               })}
-            </PartnerAlertTitle>
+            </Text>
             {tct(
               'Payments for this subscription are processed by [partnerName]. Please make sure your payment method is up to date on their platform to avoid service interruptions.',
               {
                 partnerName: subscription.partner?.partnership.displayName,
               }
             )}
-          </PartnerAlertContent>
+          </Stack>
         </Alert>
       </Alert.Container>
     );
+  }, [subscription]);
+
+  if (loading || isLoading) {
+    return <LoadingIndicator />;
   }
 
-  render() {
-    const {subscription, organization, isLoading, promotionData, checkoutTier} =
-      this.props;
-    const {loading, error, formData, billingConfig} = this.state;
+  if (error) {
+    return <LoadingError />;
+  }
 
-    if (loading || isLoading) {
-      return <LoadingIndicator />;
-    }
+  if (!formData || !billingConfig || !formDataForPreview || !activePlan) {
+    return null;
+  }
 
-    if (error) {
-      return <LoadingError />;
-    }
-
-    if (!formData || !billingConfig) {
-      return null;
-    }
-
-    const promotionClaimed = getCompletedOrActivePromotion(promotionData);
-    const promo = promotionClaimed?.promotion;
-
-    const discountInfo = promo?.discountInfo;
-    const subscriptionDiscountInfo = showSubscriptionDiscount({
-      activePlan: this.activePlan,
-      discountInfo,
-    });
-
-    const overviewProps = {
-      formData,
-      billingConfig,
-      activePlan: this.activePlan,
-      onUpdate: this.handleUpdate,
-      organization,
-      subscription,
-      discountInfo: discountInfo ?? undefined,
-    };
-
-    const showAnnualTerms =
-      subscription.contractInterval === ANNUAL ||
-      this.activePlan.contractInterval === ANNUAL;
-
-    const promotionDisclaimerText =
-      promotionData?.activePromotions?.[0]?.promotion.discountInfo.disclaimerText;
-
-    const isOnSponsoredPartnerPlan =
-      (subscription.partner?.isActive && subscription.isSponsored) || false;
+  if (isSubmitted) {
+    const purchasedPlanItem = invoice?.items.find(item => item.type === 'subscription');
+    const basePlan = purchasedPlanItem
+      ? getPlan(purchasedPlanItem.data.plan)
+      : getPlan(formData.plan);
 
     return (
-      <Fragment>
+      <Grid columns="1fr" rows="max-content 1fr" minHeight="100vh" background="primary">
         <SentryDocumentTitle
-          title={t('Change Subscription')}
+          title={t('Checkout Completed')}
           orgSlug={organization.slug}
         />
-        {isOnSponsoredPartnerPlan && (
-          <Alert.Container>
-            <Alert type="info">
-              {t(
-                'Your promotional plan with %s ends on %s.',
-                subscription.partner?.partnership.displayName,
-                moment(subscription.contractPeriodEnd).format('ll')
-              )}
-            </Alert>
-          </Alert.Container>
-        )}
-        {promotionDisclaimerText && (
-          <Alert.Container>
-            <Alert type="info">{promotionDisclaimerText}</Alert>
-          </Alert.Container>
-        )}
-        <SettingsPageHeader
-          title="Change Subscription"
-          colorSubtitle={subscriptionDiscountInfo}
-          data-test-id="change-subscription"
-        />
-
-        <CheckoutContainer>
-          <CheckoutMain>
-            {this.renderPartnerAlert()}
-            <div data-test-id="checkout-steps">{this.renderSteps()}</div>
-          </CheckoutMain>
-          <SidePanel>
-            <OverviewContainer>
-              {checkoutTier === PlanTier.AM3 ? (
-                <CheckoutOverviewV2 {...overviewProps} />
-              ) : (
-                <CheckoutOverview {...overviewProps} />
-              )}
-              <SupportPrompt>
-                {t('Have a question?')}
-                <TextOverflow>
-                  {tct('[help:Find an Answer] or [contact:Ask Support]', {
-                    help: (
-                      <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
-                    ),
-                    contact: <ZendeskLink subject="Billing Question" source="checkout" />,
-                  })}
-                </TextOverflow>
-              </SupportPrompt>
-            </OverviewContainer>
-            <DisclaimerText>{discountInfo?.disclaimerText}</DisclaimerText>
-
-            {subscription.canCancel && (
-              <CancelSubscription>
-                <LinkButton
-                  to={`/settings/${organization.slug}/billing/cancel/`}
-                  disabled={subscription.cancelAtPeriodEnd}
-                >
-                  {subscription.cancelAtPeriodEnd
-                    ? t('Pending Cancellation')
-                    : t('Cancel Subscription')}
-                </LinkButton>
-              </CancelSubscription>
-            )}
-            {showAnnualTerms && (
-              <AnnualTerms>
-                {tct(
-                  `Annual subscriptions require a one-year non-cancellable commitment.
-                  By using Sentry you agree to our [terms: Terms of Service].`,
-                  {terms: <a href="https://sentry.io/terms/" />}
-                )}
-              </AnnualTerms>
-            )}
-          </SidePanel>
-        </CheckoutContainer>
-      </Fragment>
+        <Flex width="100%" justify="center" borderBottom="primary">
+          <Flex width="100%" justify="start" padding="2xl" maxWidth="1440px">
+            <LogoSentry />
+          </Flex>
+        </Flex>
+        <Flex height="100%" align="center" justify="center">
+          <CheckoutSuccess
+            invoice={invoice}
+            nextQueryParams={nextQueryParams}
+            basePlan={basePlan}
+            previewData={previewData}
+          />
+        </Flex>
+      </Grid>
     );
   }
+
+  const promotionClaimed = getCompletedOrActivePromotion(promotionData);
+  const promo = promotionClaimed?.promotion;
+
+  const discountInfo = promo?.discountInfo;
+
+  const overviewProps = {
+    formData,
+    billingConfig,
+    activePlan,
+    onUpdate: handleUpdate,
+    organization,
+    subscription,
+    discountInfo: discountInfo ?? undefined,
+  };
+
+  const showAnnualTerms =
+    subscription.contractInterval === ANNUAL || activePlan.contractInterval === ANNUAL;
+
+  const promotionDisclaimerText =
+    promotionData?.activePromotions?.[0]?.promotion.discountInfo.disclaimerText;
+
+  const isOnSponsoredPartnerPlan =
+    (subscription.partner?.isActive && subscription.isSponsored) || false;
+
+  const renderCheckoutContent = () => (
+    <Fragment>
+      <CheckoutBody>
+        {renderPartnerAlert()}
+        <CheckoutStepsContainer data-test-id="checkout-steps">
+          {renderSteps()}
+        </CheckoutStepsContainer>
+      </CheckoutBody>
+      <SidePanel>
+        <OverviewContainer>
+          <Cart
+            {...overviewProps}
+            referrer={referrer}
+            formDataForPreview={formDataForPreview}
+            onSuccess={params => {
+              setInvoice(params.invoice);
+              setNextQueryParams(params.nextQueryParams);
+              setIsSubmitted(params.isSubmitted);
+              setPreviewData(params.previewData);
+            }}
+          />
+
+          <Stack padding="xl" gap="xl">
+            <Flex justify="between" gap="xl" align="center">
+              {t('Have a question?')}
+              <Text align="right">
+                {tct('[help:Find an answer] or [contact]', {
+                  help: (
+                    <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
+                  ),
+                  contact: hasZendesk() ? (
+                    <Button size="zero" priority="link" onClick={activateZendesk}>
+                      <Text variant="accent">{t('ask Support')}</Text>
+                    </Button>
+                  ) : (
+                    <ZendeskLink subject="Billing Question" source="checkout">
+                      {t('ask Support')}
+                    </ZendeskLink>
+                  ),
+                })}
+              </Text>
+            </Flex>
+            {subscription.canCancel && (
+              <LinkButton
+                to={`/settings/${organization.slug}/billing/cancel/`}
+                disabled={subscription.cancelAtPeriodEnd}
+                size="sm"
+              >
+                {subscription.cancelAtPeriodEnd
+                  ? t('Pending Cancellation')
+                  : t('Cancel Subscription')}
+              </LinkButton>
+            )}
+            {showAnnualTerms && (
+              <Text size="xs" align="center" variant="muted">
+                {tct(
+                  `Annual subscriptions require a one-year non-cancellable commitment. By using Sentry you agree to our [terms: Terms of Service].`,
+                  {terms: <a href="https://sentry.io/terms/" />}
+                )}
+              </Text>
+            )}
+          </Stack>
+        </OverviewContainer>
+      </SidePanel>
+    </Fragment>
+  );
+
+  return (
+    <Flex
+      width="100%"
+      background="primary"
+      justify="center"
+      align="center"
+      direction="column"
+    >
+      <SentryDocumentTitle title={t('Change Subscription')} orgSlug={organization.slug} />
+      {isOnSponsoredPartnerPlan && (
+        <Alert.Container>
+          <Alert variant="info">
+            {t(
+              'Your promotional plan with %s ends on %s.',
+              subscription.partner?.partnership.displayName,
+              moment(subscription.contractPeriodEnd).format('ll')
+            )}
+          </Alert>
+        </Alert.Container>
+      )}
+      {promotionDisclaimerText && (
+        <Alert.Container>
+          <Alert variant="info">{promotionDisclaimerText}</Alert>
+        </Alert.Container>
+      )}
+      <CheckoutHeader>
+        <Flex width="100%" align="center" maxWidth="82rem" gap="lg" padding="lg 2xl">
+          <LogoSentry height="20px" />
+          <LinkButton
+            to={`/settings/${organization.slug}/billing/`}
+            icon={<IconChevron direction="left" />}
+            size="xs"
+            priority="transparent"
+            onClick={() => {
+              trackGetsentryAnalytics('checkout.exit', {
+                subscription,
+                organization,
+              });
+            }}
+          >
+            {t('Manage Subscription')}
+          </LinkButton>
+
+          <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
+        </Flex>
+      </CheckoutHeader>
+
+      <Flex
+        direction={{xs: 'column', md: 'row'}}
+        gap="md 3xl"
+        justify="between"
+        width="100%"
+        maxWidth="82rem"
+        align="start"
+        paddingTop="3xl"
+      >
+        {renderCheckoutContent()}
+      </Flex>
+    </Flex>
+  );
 }
 
-const CheckoutContainer = styled('div')`
-  display: grid;
-  gap: ${space(3)};
-  grid-template-columns: 58% auto;
+const CheckoutHeader = styled('header')`
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  width: 100%;
+  background: ${p => p.theme.tokens.background.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  display: flex;
+  justify-content: center;
+  gap: ${p => p.theme.space.md};
+`;
 
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: auto;
+const OrgSlug = styled('div')`
+  font-family: ${p => p.theme.font.family.mono};
+  color: ${p => p.theme.tokens.content.secondary};
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
+  flex: 1;
+  text-align: right;
+`;
+
+const CheckoutBody = styled('div')`
+  padding: 0 ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']}
+    ${p => p.theme.space['2xl']};
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    max-width: 47.5rem;
+    padding-top: ${p => p.theme.space.md};
   }
 `;
 
-const SidePanel = styled('div')`
-  height: max-content;
-  position: sticky;
-  top: 70px;
-  align-self: start;
+const SidePanel = styled('aside')`
+  width: 100%;
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  display: flex;
+  flex-direction: column;
+  padding: 0 ${p => p.theme.space['2xl']};
+  background-color: ${p => p.theme.tokens.background.secondary};
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    position: sticky;
+    right: 0;
+    top: 6.25rem;
+    max-width: 26rem;
+    border-top: none;
+    padding-left: ${p => p.theme.space['3xl']};
+    background-color: ${p => p.theme.tokens.background.primary};
+    padding-bottom: ${p => p.theme.space['3xl']};
+  }
 `;
 
 /**
- * Hide overview at smaller screen sizes
- * but keep cancel subscription button
+ * Hide overview at smaller screen sizes in old checkout
+ * Bring overview to bottom at smaller screen sizes in new checkout
+ * Cancel subscription button is always visible
  */
 const OverviewContainer = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    display: none;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  gap: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space['2xl']} 0;
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    padding: 0;
   }
 `;
 
-const SupportPrompt = styled(Panel)`
-  display: grid;
-  grid-template-columns: repeat(2, auto);
-  justify-content: space-between;
-  gap: ${space(1)};
-  padding: ${space(2)};
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
-  align-items: center;
-`;
-
-const CancelSubscription = styled('div')`
-  display: grid;
-  justify-items: center;
-  margin-bottom: ${space(3)};
-`;
-
-const DisclaimerText = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
-  text-align: center;
-  margin-bottom: ${space(1)};
-`;
-
-const PartnerAlertContent = styled('div')`
+const CheckoutStepsContainer = styled('div')`
   display: flex;
   flex-direction: column;
-`;
+  gap: ${p => p.theme.space['3xl']};
 
-const PartnerAlertTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin-bottom: ${space(1)};
+  & > * + * {
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
+    padding-top: ${p => p.theme.space['3xl']};
+    margin-top: ${p => p.theme.space['3xl']};
+  }
 `;
-
-const AnnualTerms = styled(TextBlock)`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
-`;
-
-const CheckoutMain = styled('div')``;
 
 export default withPromotions(withApi(withOrganization(withSubscription(AMCheckout))));

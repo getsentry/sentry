@@ -9,7 +9,7 @@ import PlanFeature from 'getsentry/components/features/planFeature';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 
-describe('PlanFeature', function () {
+describe('PlanFeature', () => {
   const organization = OrganizationFixture();
 
   beforeEach(() => {
@@ -21,7 +21,7 @@ describe('PlanFeature', function () {
     });
   });
 
-  it('provides the plan required for a feature', async function () {
+  it('provides the plan required for a feature', async () => {
     const mockFn = jest.fn(() => null);
 
     const sub = SubscriptionFixture({organization, planTier: PlanTier.MM2});
@@ -41,7 +41,7 @@ describe('PlanFeature', function () {
     });
   });
 
-  it('provides the business plan', async function () {
+  it('provides the business plan', async () => {
     const mockFn = jest.fn(() => null);
 
     const sub = SubscriptionFixture({organization, planTier: PlanTier.MM2});
@@ -61,7 +61,7 @@ describe('PlanFeature', function () {
     });
   });
 
-  it('provides no plan if the feature is not on a plan', async function () {
+  it('provides no plan if the feature is not on a plan', async () => {
     const mockFn = jest.fn(() => null);
 
     const sub = SubscriptionFixture({organization, planTier: PlanTier.MM2});
@@ -78,7 +78,7 @@ describe('PlanFeature', function () {
     });
   });
 
-  it('provides a plan when the tiers mismatch', async function () {
+  it('provides a plan when the tiers mismatch', async () => {
     const mockFn = jest.fn(() => null);
 
     const sub = SubscriptionFixture({
@@ -102,7 +102,7 @@ describe('PlanFeature', function () {
     });
   });
 
-  it('reports tier change as null when no tier change is required', async function () {
+  it('reports tier change as null when no tier change is required', async () => {
     const mockFn = jest.fn(() => null);
 
     const sub = SubscriptionFixture({organization, planTier: 'am2'});
@@ -122,7 +122,7 @@ describe('PlanFeature', function () {
     });
   });
 
-  it('provides the business plan for am3', async function () {
+  it('provides the business plan for am3', async () => {
     const mockFn = jest.fn(() => null);
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
@@ -147,7 +147,7 @@ describe('PlanFeature', function () {
     });
   });
 
-  it('offers business upgrade if on sponsored plan', async function () {
+  it('offers business upgrade if on sponsored plan', async () => {
     const mockFn = jest.fn(() => null);
 
     const sub = SubscriptionFixture({

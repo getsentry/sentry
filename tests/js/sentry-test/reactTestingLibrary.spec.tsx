@@ -3,7 +3,8 @@ import {useSearchParams} from 'react-router-dom';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -38,7 +39,7 @@ describe('rerender', () => {
 describe('disableRouterMocks', () => {
   it('starts with the correct initial location', () => {
     const {router} = render(<div />, {
-      initialRouterConfig: {location: '/foo/'},
+      initialRouterConfig: {location: {pathname: '/foo/'}},
     });
 
     expect(router.location.pathname).toBe('/foo/');
@@ -127,7 +128,7 @@ describe('disableRouterMocks', () => {
     render(<TestComp />, {
       initialRouterConfig: {
         route: '/projects/:projectId/',
-        location: '/projects/123/',
+        location: {pathname: '/projects/123/'},
       },
     });
 

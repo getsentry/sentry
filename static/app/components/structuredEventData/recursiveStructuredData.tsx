@@ -32,6 +32,11 @@ interface Props {
   withOnlyFormattedText?: boolean;
 }
 
+function getTotalChildrenFromMeta(m: Record<any, any> | undefined): number | undefined {
+  const rootMeta = m?.[''];
+  return typeof rootMeta?.len === 'number' ? rootMeta.len : undefined;
+}
+
 export function RecursiveStructuredData({
   config,
   meta,
@@ -179,6 +184,7 @@ export function RecursiveStructuredData({
   const children: React.ReactNode[] = [];
 
   if (Array.isArray(value)) {
+    const containerLen = getTotalChildrenFromMeta(meta);
     for (i = 0; i < value.length; i++) {
       children.push(
         <div key={i}>
@@ -194,7 +200,13 @@ export function RecursiveStructuredData({
       );
     }
     return (
-      <CollapsibleValue closeTag="]" openTag="[" path={path} prefix={formattedObjectKey}>
+      <CollapsibleValue
+        closeTag="]"
+        openTag="["
+        path={path}
+        prefix={formattedObjectKey}
+        totalChildren={containerLen}
+      >
         {children}
       </CollapsibleValue>
     );
@@ -224,20 +236,28 @@ export function RecursiveStructuredData({
     );
   }
 
+  const objectLen = getTotalChildrenFromMeta(meta);
+
   return (
-    <CollapsibleValue closeTag="}" openTag="{" path={path} prefix={formattedObjectKey}>
+    <CollapsibleValue
+      closeTag="}"
+      openTag="{"
+      path={path}
+      prefix={formattedObjectKey}
+      totalChildren={objectLen}
+    >
       {children}
     </CollapsibleValue>
   );
 }
 
 const ValueNull = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: var(--prism-property);
 `;
 
 const ValueBoolean = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: var(--prism-property);
 `;
 
@@ -255,11 +275,11 @@ const ValueMultiLineString = styled('pre')`
   border-radius: 4px;
   padding: 2px 4px;
   background-color: transparent;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const ValueStrippedString = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: var(--prism-keyword);
 `;
 

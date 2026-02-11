@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Generator, Sequence
-from datetime import datetime
-from typing import Any
+from datetime import UTC, datetime, timedelta
+from typing import Any, Literal
 
 from snuba_sdk import (
     Column,
@@ -34,6 +34,9 @@ from sentry.replays.usecases.query import (
     make_full_aggregation_query,
     query_using_optimized_search,
 )
+from sentry.search.events.types import SnubaParams
+from sentry.snuba.referrer import Referrer
+from sentry.snuba.utils import get_dataset
 from sentry.utils.snuba import raw_snql_query
 
 MAX_PAGE_SIZE = 100
@@ -106,6 +109,76 @@ def query_replay_instance(
         tenant_id={"organization_id": organization.id} if organization else {},
         referrer="replays.query.details_query",
     )["data"]
+
+
+def query_replay_id_by_prefix(
+    project_ids: list[int],
+    replay_id_prefix: str,
+    start: datetime,
+    end: datetime,
+    organization: Organization | None = None,
+) -> str | None:
+    """
+    Using a string prefix, query for a full replay ID in the given time range and project list, returning the first matching ID.
+    Date range is chunked into 14 day intervals, newest to oldest, to avoid timeouts.
+
+    TODO: This query ignores the replay_id column index and can do large scans. At the moment it's only used for the Seer Explorer replay details tool.
+    This is a good candidate for optimization, which can be done with a materialized string column for the first 8 chars, and a secondary index.
+    Alternatively we can try more consistent ways of passing the full ID to Explorer.
+    """
+
+    if len(replay_id_prefix) < 8 or len(replay_id_prefix) >= 32:
+        # Enforce length of 8-31 characters.
+        return None
+
+    # Enforce valid hex chars.
+    replay_id_prefix = replay_id_prefix.lower()
+    try:
+        int(replay_id_prefix, 16)
+    except ValueError:
+        return None
+
+    window_size = timedelta(days=14)
+    window_end = end
+    while window_end > start:
+        window_start = max(window_end - window_size, start)
+
+        query = Query(
+            match=Entity("replays"),
+            select=[Column("replay_id"), Column("timestamp")],
+            where=[
+                Condition(Column("project_id"), Op.IN, project_ids),
+                Condition(
+                    Function(
+                        "startsWith",
+                        parameters=[
+                            Function("toString", parameters=[Column("replay_id")]),
+                            replay_id_prefix,
+                        ],
+                    ),
+                    Op.EQ,
+                    1,
+                ),
+                Condition(Column("timestamp"), Op.GTE, window_start),
+                Condition(Column("timestamp"), Op.LT, window_end),
+            ],
+            orderby=[OrderBy(Column("timestamp"), Direction.DESC)],
+            granularity=Granularity(3600),
+            limit=Limit(1),
+        )
+
+        snuba_response = execute_query(
+            query=query,
+            tenant_id={"organization_id": organization.id} if organization else {},
+            referrer="replays.query.short_id_details_query",
+        )["data"]
+
+        if snuba_response:
+            return str(snuba_response[0]["replay_id"])
+
+        window_end = window_start
+
+    return None
 
 
 def query_replay_viewed_by_ids(
@@ -232,7 +305,10 @@ def query_replays_dataset_tagkey_values(
     if tag_substr_query:
         where.append(
             Condition(
-                Function("positionCaseInsensitive", parameters=[grouped_column, tag_substr_query]),
+                Function(
+                    "positionCaseInsensitive",
+                    parameters=[grouped_column, tag_substr_query],
+                ),
                 Op.NEQ,
                 0,
             )
@@ -269,7 +345,9 @@ def query_replays_dataset_tagkey_values(
         tenant_ids=tenant_ids,
     )
     return raw_snql_query(
-        snuba_request, referrer="replays.query.query_replays_dataset_tagkey_values", use_cache=True
+        snuba_request,
+        referrer="replays.query.query_replays_dataset_tagkey_values",
+        use_cache=True,
     )
 
 
@@ -280,7 +358,10 @@ def anyIfNonZeroIP(
 ) -> Function:
     return Function(
         "anyIf",
-        parameters=[Column(column_name), Function("greater", parameters=[Column(column_name), 0])],
+        parameters=[
+            Column(column_name),
+            Function("greater", parameters=[Column(column_name), 0]),
+        ],
         alias=alias or column_name if aliased else None,
     )
 
@@ -305,7 +386,8 @@ def _sorted_aggregated_urls(agg_urls_column, alias):
         "arrayMap",
         parameters=[
             Lambda(
-                ["url_tuple"], Function("tupleElement", parameters=[Identifier("url_tuple"), 2])
+                ["url_tuple"],
+                Function("tupleElement", parameters=[Identifier("url_tuple"), 2]),
             ),
             agg_urls_column,
         ],
@@ -314,7 +396,8 @@ def _sorted_aggregated_urls(agg_urls_column, alias):
         "arrayMap",
         parameters=[
             Lambda(
-                ["url_tuple"], Function("tupleElement", parameters=[Identifier("url_tuple"), 1])
+                ["url_tuple"],
+                Function("tupleElement", parameters=[Identifier("url_tuple"), 1]),
             ),
             agg_urls_column,
         ],
@@ -450,7 +533,11 @@ def _collect_event_ids(alias, ids_type_list):
         parameters=[
             Lambda(
                 ["error_id_no_dashes"],
-                _strip_uuid_dashes("error_id_no_dashes", Identifier("error_id_no_dashes")),
+                _strip_uuid_dashes(
+                    "error_id_no_dashes",
+                    Identifier("error_id_no_dashes"),
+                    aliased=False,
+                ),
             ),
             Function("flatten", [id_types_to_aggregate]),
         ],
@@ -558,7 +645,11 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "browser": ["browser_name", "browser_version"],
     "device": ["device_name", "device_brand", "device_family", "device_model"],
     "sdk": ["sdk_name", "sdk_version"],
-    "ota_updates": ["ota_updates_channel", "ota_updates_runtime_version", "ota_updates_update_id"],
+    "ota_updates": [
+        "ota_updates_channel",
+        "ota_updates_runtime_version",
+        "ota_updates_update_id",
+    ],
     "tags": ["tk", "tv"],
     # Nested fields.  Useful for selecting searchable fields.
     "user.id": ["user_id"],
@@ -616,6 +707,12 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
         "click.title",
         "click.component_name",
     ],
+    # Tap actions
+    "tap.message": ["tap.message"],
+    "tap.class": ["tap.view_class"],
+    "tap.id": ["tap.view_id"],
+    "tap.selector": ["tap.message", "tap.view_class", "tap.view_id"],
+    "taps": ["tap.message", "tap.view_class", "tap.view_id"],
     "warning_id": ["warning_ids"],
     "info_id": ["info_ids"],
     "warning_ids": ["warning_ids"],
@@ -623,7 +720,8 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "count_warnings": ["count_warnings"],
     "count_infos": ["count_infos"],
     "viewed_by_ids": ["viewed_by_ids"],
-    "has_viewed": ["viewed_by_ids"],
+    # queried through compute_has_viewed, which is a function of viewed_by_ids and request_user_id.
+    "has_viewed": [],
 }
 
 
@@ -634,7 +732,10 @@ QUERY_ALIAS_COLUMN_MAP = {
     "replay_id": Column("replay_id"),
     "agg_project_id": Function(
         "anyIf",
-        parameters=[Column("project_id"), Function("equals", parameters=[Column("segment_id"), 0])],
+        parameters=[
+            Column("project_id"),
+            Function("equals", parameters=[Column("segment_id"), 0]),
+        ],
         alias="agg_project_id",
     ),
     "trace_ids": Function(
@@ -762,7 +863,9 @@ QUERY_ALIAS_COLUMN_MAP = {
     "click.text": Function("groupArray", parameters=[Column("click_text")], alias="click_text"),
     "click.title": Function("groupArray", parameters=[Column("click_title")], alias="click_title"),
     "click.component_name": Function(
-        "groupArray", parameters=[Column("click_component_name")], alias="click_component_name"
+        "groupArray",
+        parameters=[Column("click_component_name")],
+        alias="click_component_name",
     ),
     "error_ids": _collect_new_errors(),
     "warning_ids": _collect_event_ids("warning_ids", ["warning_id"]),
@@ -842,13 +945,15 @@ def collect_aliases(fields: list[str]) -> list[str]:
 
 
 def select_from_fields(fields: list[str], user_id: int | None) -> list[Column | Function]:
-    """Return a list of columns to select."""
+    """Return a list of selections from the requested fields. If no fields are requested, return all."""
+    if not fields:
+        return list(QUERY_ALIAS_COLUMN_MAP.values()) + [compute_has_viewed(user_id)]
+
     selection = []
     for alias in collect_aliases(fields):
-        if alias == "has_viewed":
-            selection.append(compute_has_viewed(user_id))
-        else:
-            selection.append(QUERY_ALIAS_COLUMN_MAP[alias])
+        selection.append(QUERY_ALIAS_COLUMN_MAP[alias])
+    if "has_viewed" in fields:
+        selection.append(compute_has_viewed(user_id))
 
     return selection
 
@@ -879,3 +984,98 @@ def compute_has_viewed(viewed_by_id: int | None) -> Function:
         ],
         alias="has_viewed",
     )
+
+
+def query_trace_connected_events(
+    dataset_label: Literal["errors", "issuePlatform", "discover"],
+    selected_columns: list[str],
+    query: str | None,
+    snuba_params: SnubaParams,
+    equations: list[str] | None = None,
+    orderby: list[str] | None = None,
+    offset: int = 0,
+    limit: int = 10,
+    referrer: str = "api.replay.details-page",
+) -> dict[str, Any]:
+    """
+    Query for trace-connected events, with a reusable query configuration for replays.
+
+    Args:
+        dataset: The Snuba dataset to query against
+        selected_columns: List of columns to select
+        query: Optional query string
+        snuba_params: Snuba parameters including project IDs, time range, etc.
+        equations: Optional list of equations
+        orderby: Optional ordering specification
+        offset: Pagination offset
+        limit: Pagination limit
+        referrer: Referrer string for tracking
+
+    Returns:
+        Query result from the dataset
+    """
+    query_details = {
+        "selected_columns": selected_columns,
+        "query": query,
+        "snuba_params": snuba_params,
+        "equations": equations,
+        "orderby": orderby,
+        "offset": offset,
+        "limit": limit,
+        "referrer": referrer,
+        "auto_fields": True,
+        "auto_aggregations": True,
+        "use_aggregate_conditions": True,
+        "allow_metric_aggregates": False,
+        "transform_alias_to_input_format": True,
+    }
+
+    dataset = get_dataset(dataset_label)
+
+    if dataset is None:
+        raise ValueError(f"Unknown dataset: {dataset_label}")
+
+    return dataset.query(**query_details)
+
+
+def get_replay_range(
+    organization_id: int,
+    project_id: int,
+    replay_id: str,
+) -> tuple[datetime, datetime] | None:
+    """Get the min and max timestamps for a replay. This query is redundant if you're already using query_replay_instance - use the started_at and finished_at fields instead."""
+    query = Query(
+        match=Entity("replays"),
+        select=[
+            Function("min", parameters=[Column("replay_start_timestamp")], alias="min"),
+            Function("max", parameters=[Column("timestamp")], alias="max"),
+        ],
+        where=[
+            Condition(Column("project_id"), Op.EQ, project_id),
+            Condition(Column("replay_id"), Op.EQ, replay_id),
+            Condition(Column("segment_id"), Op.IS_NOT_NULL),
+            Condition(Column("timestamp"), Op.GTE, datetime.now(UTC) - timedelta(days=90)),
+            Condition(Column("timestamp"), Op.LT, datetime.now(UTC)),
+        ],
+        groupby=[Column("replay_id")],
+        limit=Limit(1),
+    )
+
+    response = execute_query(
+        query,
+        tenant_id={"organization_id": organization_id},
+        referrer=Referrer.API_REPLAY_SUMMARIZE_BREADCRUMBS.value,
+    )
+    rows = response.get("data", [])
+    if not rows:
+        return None
+
+    min_timestamp = rows[0]["min"]
+    max_timestamp = rows[0]["max"]
+
+    if min_timestamp is None or max_timestamp is None:
+        return None
+
+    min_dt = datetime.fromisoformat(min_timestamp.replace("Z", "+00:00"))
+    max_dt = datetime.fromisoformat(max_timestamp.replace("Z", "+00:00"))
+    return (min_dt, max_dt)

@@ -4,10 +4,11 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Count from 'sentry/components/count';
 import {deviceNameMapper} from 'sentry/components/deviceName';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -24,7 +25,6 @@ import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
@@ -36,6 +36,7 @@ import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {RateUnit} from 'sentry/utils/discover/fields';
 import {
+  ABYTE_UNITS,
   AGGREGATIONS,
   getAggregateAlias,
   getSpanOperationName,
@@ -56,14 +57,22 @@ import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
+import {type DashboardFilters, type Widget} from 'sentry/views/dashboards/types';
+import {
+  findLinkedDashboardForField,
+  getLinkedDashboardUrl,
+} from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
+import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/tableCells/responseStatusCodeCell';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {
   filterToLocationQuery,
@@ -89,6 +98,7 @@ import {
   VersionContainer,
 } from './styles';
 import TeamKeyTransactionField from './teamKeyTransactionField';
+
 /**
  * Types, functions and definitions for rendering fields in discover results.
  */
@@ -96,8 +106,21 @@ export type RenderFunctionBaggage = {
   location: Location;
   organization: Organization;
   theme: Theme;
+  /**
+   * If true, all fields that are not needed immediately will not be rendered lazily.
+   * This is useful for fields that require api calls or other side effects to render.
+   *
+   * eg. the code path field in logs requires a call to the stacktrace link api to render.
+   */
+  disableLazyLoad?: boolean;
   eventView?: EventView;
   projectSlug?: string;
+  projects?: Project[];
+  /**
+   * The trace item meta data for the trace item, which includes information needed to render annotated tooltip (eg. scrubbing reasons)
+   */
+  traceItemMeta?: TraceItemDetailsMeta;
+
   unit?: string;
 };
 
@@ -124,6 +147,7 @@ type FieldFormatter = {
 type FieldFormatters = {
   array: FieldFormatter;
   boolean: FieldFormatter;
+  currency: FieldFormatter;
   date: FieldFormatter;
   duration: FieldFormatter;
   integer: FieldFormatter;
@@ -136,7 +160,7 @@ type FieldFormatters = {
 };
 
 const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 const emptyValue = <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
 export const emptyStringValue = (
@@ -182,15 +206,6 @@ export const SIZE_UNITS = {
   petabyte: 1000 ** 5,
   exabyte: 1000 ** 6,
 };
-
-export const ABYTE_UNITS = [
-  'kilobyte',
-  'megabyte',
-  'gigabyte',
-  'terabyte',
-  'petabyte',
-  'exabyte',
-];
 
 // TODO: Remove this, use `DURATION_UNIT_MULTIPLIERS` instead
 export const DURATION_UNITS = {
@@ -268,7 +283,9 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       const {unit} = baggage ?? {};
       return (
         <NumberContainer>
-          {formatRate(data[field], unit as RateUnit, {minimumValue: 0.01})}
+          {typeof data[field] === 'number'
+            ? formatRate(data[field], unit as RateUnit, {minimumValue: 0.01})
+            : emptyValue}
         </NumberContainer>
       );
     },
@@ -365,6 +382,15 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       return <PercentChangeCell deltaValue={data[fieldName]} />;
     },
   },
+  currency: {
+    isSortable: true,
+    renderFunc: (field, data) => {
+      if (typeof data[field] !== 'number') {
+        return <Container>{emptyValue}</Container>;
+      }
+      return <CurrencyCell value={data[field]} />;
+    },
+  },
 };
 
 type SpecialFieldRenderFunc = (
@@ -378,12 +404,14 @@ type SpecialField = {
 };
 
 const DownloadCount = styled('span')`
-  padding-left: ${space(0.75)};
+  padding-left: ${p => p.theme.space.sm};
 `;
 
 const RightAlignedContainer = styled('span')`
   margin-left: auto;
   margin-right: 0;
+  display: block;
+  text-align: right;
 `;
 
 /**
@@ -430,7 +458,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
               showChevron: false,
               icon: (
                 <Fragment>
-                  <IconDownload color="gray500" size="sm" />
+                  <IconDownload variant="primary" size="sm" />
                   <DownloadCount>{items.length}</DownloadCount>
                 </Fragment>
               ),
@@ -465,7 +493,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
                 : undefined
             }
           >
-            <IconDownload color="gray500" size="sm" />
+            <IconDownload variant="primary" size="sm" />
             <DownloadCount>{minidump ? 1 : 0}</DownloadCount>
           </Button>
         </RightAlignedContainer>
@@ -611,17 +639,15 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       };
 
       return (
-        <Container>
-          <QuickContextHoverWrapper
-            dataRow={data}
-            contextType={ContextType.ISSUE}
-            organization={organization}
-          >
-            <StyledLink to={target} aria-label={issueID}>
-              <OverflowFieldShortId shortId={`${data.issue}`} />
-            </StyledLink>
-          </QuickContextHoverWrapper>
-        </Container>
+        <QuickContextHoverWrapper
+          dataRow={data}
+          contextType={ContextType.ISSUE}
+          organization={organization}
+        >
+          <StyledLink to={target} aria-label={issueID}>
+            <OverflowFieldShortId shortId={`${data.issue}`} />
+          </StyledLink>
+        </QuickContextHoverWrapper>
       );
     },
   },
@@ -662,14 +688,14 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     sortField: 'project_id',
     renderFunc: (data, baggage) => {
       const projectId = data.project_id;
-      return getProjectIdLink(projectId, baggage);
+      return <NumberContainer>{getProjectIdLink(projectId, baggage)}</NumberContainer>;
     },
   },
   'project.id': {
     sortField: 'project.id',
     renderFunc: (data, baggage) => {
       const projectId = data['project.id'];
-      return getProjectIdLink(projectId, baggage);
+      return <Container>{getProjectIdLink(projectId, baggage)}</Container>;
     },
   },
   user: {
@@ -747,7 +773,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       const label = ADOPTION_STAGE_LABELS[data.adoption_stage];
       return data.adoption_stage && label ? (
         <Tooltip title={label.tooltipTitle} isHoverable>
-          <Tag type={label.type}>{label.name}</Tag>
+          <Tag variant={label.variant}>{label.name}</Tag>
         </Tooltip>
       ) : (
         <Container>{emptyValue}</Container>
@@ -883,6 +909,18 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       );
     },
   },
+  'opportunity_score(measurements.score.total)': {
+    sortField: 'opportunity_score(measurements.score.total)',
+    renderFunc: data => {
+      const score = data['opportunity_score(measurements.score.total)'];
+      if (typeof score !== 'number') {
+        return <Container>{emptyValue}</Container>;
+      }
+      return (
+        <RightAlignedContainer>{Math.round(score * 10000) / 100}</RightAlignedContainer>
+      );
+    },
+  },
   'browser.name': {
     sortField: 'browser.name',
     renderFunc: data => {
@@ -894,7 +932,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return (
         <IconContainer>
           {getContextIcon(browserName)}
-          {browserName}
+          <Container>{browserName}</Container>
         </IconContainer>
       );
     },
@@ -910,7 +948,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return (
         <IconContainer>
           {getContextIcon(dropVersion(browser))}
-          {browser}
+          <Container>{browser}</Container>
         </IconContainer>
       );
     },
@@ -926,7 +964,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return (
         <IconContainer>
           {getContextIcon(osName)}
-          {osName}
+          <Container>{osName}</Container>
         </IconContainer>
       );
     },
@@ -945,14 +983,38 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         <IconContainer>
           {getContextIcon(dropVersion(os))}
           {hasUserAgentLocking ? (
-            <Tooltip title={userAgentLocking} showUnderline>
-              {os}
-            </Tooltip>
+            <StyledTooltip title={userAgentLocking} showUnderline>
+              <Container>{os}</Container>
+            </StyledTooltip>
           ) : (
-            os
+            <Container>{os}</Container>
           )}
         </IconContainer>
       );
+    },
+  },
+  [SpanFields.GEN_AI_REQUEST_MODEL]: {
+    sortField: SpanFields.GEN_AI_REQUEST_MODEL,
+    renderFunc: data => {
+      const modelId = data[SpanFields.GEN_AI_REQUEST_MODEL];
+
+      if (!modelId) {
+        return <Container>{emptyValue}</Container>;
+      }
+
+      return <ModelName modelId={data[SpanFields.GEN_AI_REQUEST_MODEL]} />;
+    },
+  },
+  [SpanFields.GEN_AI_RESPONSE_MODEL]: {
+    sortField: SpanFields.GEN_AI_RESPONSE_MODEL,
+    renderFunc: data => {
+      const modelId = data[SpanFields.GEN_AI_RESPONSE_MODEL];
+
+      if (!modelId) {
+        return <Container>{emptyValue}</Container>;
+      }
+
+      return <ModelName modelId={data[SpanFields.GEN_AI_RESPONSE_MODEL]} />;
     },
   },
 };
@@ -969,13 +1031,14 @@ const getContextIcon = (value: string) => {
 };
 
 /**
- * Drops the last part of an operating system or browser string that contains version appended at the end
+ * Drops the last part of an operating system or browser string that contains version appended at the end.
+ * If the value string has no spaces, the original string will be returned.
  * @param value The string that contains the version to be dropped. E.g., 'Safari 9.1.2'
- * @returns E.g., 'Safari 9.1.2' -> 'Safari'
+ * @returns E.g., 'Safari 9.1.2' -> 'Safari', 'Linux' -> 'Linux'
  */
 const dropVersion = (value: string) => {
   const valueArray = value.split(' ');
-  valueArray.pop();
+  if (valueArray.length > 1) valueArray.pop();
   return valueArray.join(' ');
 };
 
@@ -985,27 +1048,25 @@ const getProjectIdLink = (
 ) => {
   const parsedId = typeof projectId === 'string' ? parseInt(projectId, 10) : projectId;
   if (!defined(parsedId) || isNaN(parsedId)) {
-    return <NumberContainer>{emptyValue}</NumberContainer>;
+    return emptyValue;
   }
 
   // TODO: Component has been deprecated in favour of hook, need to refactor this
   return (
-    <NumberContainer>
-      <Projects orgId={organization.slug} slugs={[]} projectIds={[parsedId]}>
-        {({projects}) => {
-          const project = projects.find(p => p.id === parsedId?.toString());
-          if (!project) {
-            return emptyValue;
-          }
-          const target = makeProjectsPathname({
-            path: `/${project?.slug}/?project=${parsedId}/`,
-            organization,
-          });
+    <Projects orgId={organization.slug} slugs={[]} projectIds={[parsedId]}>
+      {({projects}) => {
+        const project = projects.find(p => p.id === parsedId?.toString());
+        if (!project) {
+          return emptyValue;
+        }
+        const target = makeProjectsPathname({
+          path: `/${project?.slug}/?project=${parsedId}/`,
+          organization,
+        });
 
-          return <Link to={target}>{parsedId}</Link>;
-        }}
-      </Projects>
-    </NumberContainer>
+        return <Link to={target}>{parsedId}</Link>;
+      }}
+    </Projects>
   );
 };
 
@@ -1262,7 +1323,7 @@ const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
 `;
 
 const OtherRelativeOpsBreakdown = styled(RectangleRelativeOpsBreakdown)`
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.colors.gray100};
 `;
 
 const StyledLink = styled(Link)`
@@ -1275,6 +1336,25 @@ const StyledProjectBadge = styled(ProjectBadge)`
   }
 `;
 
+const StyledTooltip = styled(Tooltip)`
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+export function getFieldRenderer(
+  field: string,
+  meta: MetaType,
+  isAlias = true,
+  widget: Widget | undefined = undefined,
+  dashboardFilters: DashboardFilters | undefined = undefined
+): FieldFormatterRenderFunctionPartial {
+  const baseRenderer = getFieldRendererBase(field, meta, isAlias);
+  return wrapFieldRendererInDashboardLink(baseRenderer, field, widget, dashboardFilters);
+}
+
 /**
  * Get the field renderer for the named field and metadata
  *
@@ -1283,7 +1363,7 @@ const StyledProjectBadge = styled(ProjectBadge)`
  * @param {boolean} isAlias convert the name with getAggregateAlias
  * @returns {Function}
  */
-export function getFieldRenderer(
+function getFieldRendererBase(
   field: string,
   meta: MetaType,
   isAlias = true
@@ -1312,4 +1392,58 @@ export function getFieldRenderer(
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
   }
   return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
+}
+
+// TODO: Need to handle cases where a field already has a link in it's renderer
+function wrapFieldRendererInDashboardLink(
+  renderer: FieldFormatterRenderFunctionPartial,
+  field: string,
+  widget: Widget | undefined = undefined,
+  dashboardFilters: DashboardFilters | undefined = undefined
+): FieldFormatterRenderFunctionPartial {
+  return function (data, baggage) {
+    const dashboardUrl = getDashboardUrl(data, field, baggage, widget, dashboardFilters);
+    if (dashboardUrl) {
+      return <Link to={dashboardUrl}>{renderer(data, baggage)}</Link>;
+    }
+    return renderer(data, baggage);
+  };
+}
+
+function getDashboardUrl(
+  data: EventData,
+  field: string,
+  baggage: RenderFunctionBaggage,
+  widget: Widget | undefined = undefined,
+  dashboardFilters: DashboardFilters | undefined = undefined
+) {
+  const {organization, location, projects} = baggage;
+  if (!widget?.widgetType || !dashboardFilters) {
+    return undefined;
+  }
+
+  const linkedDashboard = findLinkedDashboardForField(widget.queries[0], field);
+  if (!linkedDashboard) {
+    return undefined;
+  }
+
+  // Get project ID override from data if available
+  let projectIdOverride: string | number | undefined;
+  if ('project' in data) {
+    const projectId = projects?.find(project => project.slug === data.project)?.id;
+    if (projectId) {
+      projectIdOverride = projectId;
+    }
+  }
+
+  return getLinkedDashboardUrl({
+    linkedDashboard,
+    organizationSlug: organization.slug,
+    field,
+    value: data[field],
+    widgetType: widget.widgetType,
+    dashboardFilters,
+    locationQuery: location.query,
+    projectIdOverride,
+  });
 }

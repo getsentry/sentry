@@ -4,13 +4,13 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/utils/usePageFilters';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {FullSpanDescription} from 'sentry/views/insights/common/components/fullSpanDescription';
 import {ModuleName} from 'sentry/views/insights/types';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
-describe('FullSpanDescription', function () {
+describe('FullSpanDescription', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -24,7 +24,7 @@ describe('FullSpanDescription', function () {
   const groupId = '2ed2abf6ce7e3577';
   const spanId = 'abfed2aabf';
 
-  it('uses the correct code formatting for SQL queries', async function () {
+  it('uses the correct code formatting for SQL queries', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -41,7 +41,7 @@ describe('FullSpanDescription', function () {
     render(
       <FullSpanDescription
         group={groupId}
-        shortDescription={'SELECT users FRO*'}
+        shortDescription="SELECT users FRO*"
         moduleName={ModuleName.DB}
       />,
       {organization}
@@ -56,7 +56,7 @@ describe('FullSpanDescription', function () {
     expect(queryCodeSnippet).toHaveClass('language-sql');
   });
 
-  it('uses the correct code formatting for MongoDB queries', async function () {
+  it('uses the correct code formatting for MongoDB queries', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -84,7 +84,7 @@ describe('FullSpanDescription', function () {
     expect(queryCodeSnippet).toHaveClass('language-json');
   });
 
-  it('successfully handles truncated MongoDB queries', async function () {
+  it('successfully handles truncated MongoDB queries', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {

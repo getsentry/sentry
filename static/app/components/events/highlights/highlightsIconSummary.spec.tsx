@@ -15,7 +15,7 @@ jest.mock('sentry/components/events/contexts/contextIcon', () => ({
   getLogoImage: () => 'data:image/test',
 }));
 
-describe('HighlightsIconSummary', function () {
+describe('HighlightsIconSummary', () => {
   const organization = OrganizationFixture();
   const group = GroupFixture();
   const event = EventFixture({
@@ -54,7 +54,7 @@ describe('HighlightsIconSummary', function () {
     });
   });
 
-  it('hides user if there is no id, email, username, etc', function () {
+  it('hides user if there is no id, email, username, etc', () => {
     const eventWithoutUser = EventFixture({
       contexts: {
         user: {
@@ -69,7 +69,7 @@ describe('HighlightsIconSummary', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders user if there is id, email, username, etc', async function () {
+  it('renders user if there is id, email, username, etc', async () => {
     const eventWithUser = EventFixture({
       contexts: {
         user: {
@@ -87,7 +87,7 @@ describe('HighlightsIconSummary', function () {
     expect(await screen.findByText('User Username')).toBeInTheDocument();
   });
 
-  it('renders appropriate icons and text', async function () {
+  it('renders appropriate icons and text', async () => {
     render(<HighlightsIconSummary event={event} group={group} />);
     expect(screen.getByText('Mac OS X')).toBeInTheDocument();
     expect(screen.getByText('10.15')).toBeInTheDocument();
@@ -102,7 +102,7 @@ describe('HighlightsIconSummary', function () {
     expect(screen.getAllByRole('img')).toHaveLength(4);
   });
 
-  it('hides client_os and browser contexts for Meta-Framework backend issues', function () {
+  it('hides client_os and browser contexts for Meta-Framework backend issues', () => {
     const duplicateOsContextEvent = EventFixture({
       contexts: {
         client_os: {
@@ -132,7 +132,7 @@ describe('HighlightsIconSummary', function () {
     expect(screen.queryByText('15.3')).not.toBeInTheDocument();
   });
 
-  it('deduplicates client_os and os contexts', function () {
+  it('deduplicates client_os and os contexts', () => {
     const duplicateOsContextEvent = EventFixture({
       contexts: {
         client_os: {
@@ -151,7 +151,7 @@ describe('HighlightsIconSummary', function () {
     expect(screen.getByText('15.3')).toBeInTheDocument();
   });
 
-  it('deduplicates browser and runtime contexts', function () {
+  it('deduplicates browser and runtime contexts', () => {
     const eventWithDuplicateContexts = EventFixture({
       contexts: {
         browser: {
@@ -174,7 +174,7 @@ describe('HighlightsIconSummary', function () {
     expect(screen.getByText('120.0.0')).toBeInTheDocument();
   });
 
-  it('hides device for non mobile/native', function () {
+  it('hides device for non mobile/native', () => {
     const groupWithPlatform = GroupFixture({
       project: ProjectFixture({
         platform: 'javascript',
@@ -192,7 +192,7 @@ describe('HighlightsIconSummary', function () {
     expect(screen.queryByText('x86')).not.toBeInTheDocument();
   });
 
-  it('displays device for mobile/native event platforms', async function () {
+  it('displays device for mobile/native event platforms', async () => {
     const groupWithPlatform = GroupFixture({
       project: ProjectFixture({
         platform: 'android',
@@ -212,13 +212,13 @@ describe('HighlightsIconSummary', function () {
     expect(await screen.findByText('Device Architecture')).toBeInTheDocument();
   });
 
-  it('renders release and environment tags', async function () {
+  it('renders release and environment tags', async () => {
     render(<HighlightsIconSummary event={event} group={group} />);
     expect(await screen.findByText('1.8')).toBeInTheDocument();
     expect(screen.getByText('production')).toBeInTheDocument();
   });
 
-  it('renders screenshot', async function () {
+  it('renders screenshot', async () => {
     const orgWithAttachments = OrganizationFixture({
       features: ['event-attachments'],
     });
@@ -233,7 +233,7 @@ describe('HighlightsIconSummary', function () {
     expect(await screen.findByRole('button', {name: 'Screenshot'})).toBeInTheDocument();
   });
 
-  it('shortens long ruby runtime versions', async function () {
+  it('shortens long ruby runtime versions', async () => {
     const eventWithLongRuntime = EventFixture({
       contexts: {
         runtime: {
@@ -247,7 +247,7 @@ describe('HighlightsIconSummary', function () {
     expect(await screen.findByText('3.2.6')).toBeInTheDocument();
   });
 
-  it('shortens long ruby runtime versions with patch', async function () {
+  it('shortens long ruby runtime versions with patch', async () => {
     const eventWithLongRuntime = EventFixture({
       contexts: {
         runtime: {
@@ -262,7 +262,7 @@ describe('HighlightsIconSummary', function () {
     expect(await screen.findByText('2.6.10p210')).toBeInTheDocument();
   });
 
-  it('shortens long operating system versions', async function () {
+  it('shortens long operating system versions', async () => {
     const eventWithLongOperatingSystem = EventFixture({
       contexts: {
         os: {

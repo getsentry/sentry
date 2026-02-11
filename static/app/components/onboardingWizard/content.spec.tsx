@@ -10,6 +10,8 @@ import {
 
 import {OnboardingSidebarContent} from 'sentry/components/onboardingWizard/content';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
+import {NavContextProvider} from 'sentry/views/nav/context';
+import {NavigationTourProvider} from 'sentry/views/nav/tour/tour';
 
 const DEFAULT_GETTING_STARTED_TASKS = [
   {task: OnboardingTaskKey.FIRST_PROJECT, title: 'Create your first project'},
@@ -36,7 +38,7 @@ const organization = OrganizationFixture({
   features: ['onboarding'],
 });
 
-describe('OnboardingSidebarContent', function () {
+describe('OnboardingSidebarContent', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -46,10 +48,21 @@ describe('OnboardingSidebarContent', function () {
         onboardingTasks: [],
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/assistant/`,
+      body: [],
+    });
   });
 
-  it('should render the sidebar with the correct groups and tasks', async function () {
-    render(<OnboardingSidebarContent onClose={jest.fn()} />, {organization});
+  it('should render the sidebar with the correct groups and tasks', async () => {
+    render(
+      <NavContextProvider>
+        <NavigationTourProvider>
+          <OnboardingSidebarContent onClose={jest.fn()} />
+        </NavigationTourProvider>
+      </NavContextProvider>,
+      {organization}
+    );
     expect(await screen.findByText('Getting Started')).toBeInTheDocument();
     expect(screen.getByText('0 out of 6 tasks completed')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Collapse'})).toBeInTheDocument();
@@ -83,7 +96,7 @@ describe('OnboardingSidebarContent', function () {
     }
   });
 
-  it('marks task as completed when task is completed', async function () {
+  it('marks task as completed when task is completed', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/onboarding-tasks/',
@@ -92,22 +105,40 @@ describe('OnboardingSidebarContent', function () {
         onboardingTasks: [{task: OnboardingTaskKey.FIRST_PROJECT, status: 'complete'}],
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/assistant/`,
+      body: [],
+    });
 
-    render(<OnboardingSidebarContent onClose={jest.fn()} />, {organization});
+    render(
+      <NavContextProvider>
+        <NavigationTourProvider>
+          <OnboardingSidebarContent onClose={jest.fn()} />
+        </NavigationTourProvider>
+      </NavContextProvider>,
+      {organization}
+    );
 
     expect(await screen.findByText('1 out of 6 tasks completed')).toBeInTheDocument();
     expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
   });
 
-  it('if first group completed, second group should be expanded by default', async function () {
-    render(<OnboardingSidebarContent onClose={jest.fn()} />, {
-      organization: OrganizationFixture({
-        onboardingTasks: DEFAULT_GETTING_STARTED_TASKS.map(task => ({
-          task: task.task,
-          status: 'complete',
-        })),
-      }),
-    });
+  it('if first group completed, second group should be expanded by default', async () => {
+    render(
+      <NavContextProvider>
+        <NavigationTourProvider>
+          <OnboardingSidebarContent onClose={jest.fn()} />
+        </NavigationTourProvider>
+      </NavContextProvider>,
+      {
+        organization: OrganizationFixture({
+          onboardingTasks: DEFAULT_GETTING_STARTED_TASKS.map(task => ({
+            task: task.task,
+            status: 'complete',
+          })),
+        }),
+      }
+    );
 
     expect(await screen.findByText('Getting Started')).toBeInTheDocument();
     expect(screen.getByText('6 out of 6 tasks completed')).toBeInTheDocument();
@@ -115,13 +146,20 @@ describe('OnboardingSidebarContent', function () {
     expect(screen.getByText('Beyond the Basics')).toBeInTheDocument();
   });
 
-  it('show skipable confirmation when skipping a task', async function () {
+  it('show skipable confirmation when skipping a task', async () => {
     const mockUpdate = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/onboarding-tasks/`,
       method: 'POST',
     });
 
-    render(<OnboardingSidebarContent onClose={jest.fn()} />, {organization});
+    render(
+      <NavContextProvider>
+        <NavigationTourProvider>
+          <OnboardingSidebarContent onClose={jest.fn()} />
+        </NavigationTourProvider>
+      </NavContextProvider>,
+      {organization}
+    );
 
     await userEvent.click(
       within(screen.getByRole('button', {name: /Invite your team/})).getByRole('button', {

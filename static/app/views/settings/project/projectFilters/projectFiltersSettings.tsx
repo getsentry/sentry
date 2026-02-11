@@ -9,13 +9,14 @@ import iconIe from 'sentry-logos/logo-ie.svg';
 import iconOpera from 'sentry-logos/logo-opera.svg';
 import iconSafari from 'sentry-logos/logo-safari.svg';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Switch} from '@sentry/scraps/switch';
+
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Switch} from 'sentry/components/core/switch';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import {FieldLabel} from 'sentry/components/forms/fieldGroup/fieldLabel';
@@ -38,7 +39,9 @@ import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -82,13 +85,13 @@ const LEGACY_BROWSER_SUBFILTERS = {
   chrome: {
     icon: iconChrome,
     title: 'Chrome',
-    helpText: 'Version 63 and lower',
+    helpText: 'Version 110 and lower',
     legacy: false,
   },
   safari: {
     icon: iconSafari,
     title: 'Safari',
-    helpText: 'Version 11 and lower',
+    helpText: 'Version 15 and lower',
     legacy: false,
   },
   safari_pre_6: {
@@ -100,7 +103,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   firefox: {
     icon: iconFirefox,
     title: 'Firefox',
-    helpText: 'Version 66 and lower',
+    helpText: 'Version 110 and lower',
     legacy: false,
   },
   android: {
@@ -118,7 +121,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   edge: {
     icon: iconEdgeLegacy,
     title: 'Edge',
-    helpText: 'Version 78 and lower',
+    helpText: 'Version 110 and lower',
     legacy: false,
   },
   edge_pre_79: {
@@ -160,7 +163,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   opera: {
     icon: iconOpera,
     title: 'Opera',
-    helpText: 'Version 50 and lower',
+    helpText: 'Version 99 and lower',
     legacy: false,
   },
   opera_pre_15: {
@@ -263,14 +266,13 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
     return (
       <div>
         <div>
-          <BulkFilter>
+          <Flex align="center" gap="xs">
             <FieldLabel disabled={disabled}>
               {t('Filter out legacy browsers')}:
             </FieldLabel>
-            <ButtonBar>
+            <Grid flow="column" align="center" gap="md">
               <Button
                 priority="link"
-                borderless
                 onClick={this.handleToggleSubfilters.bind(this, true)}
                 disabled={disabled}
               >
@@ -278,14 +280,13 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
               </Button>
               <Button
                 priority="link"
-                borderless
                 onClick={this.handleToggleSubfilters.bind(this, false)}
                 disabled={disabled}
               >
                 {t('None')}
               </Button>
-            </ButtonBar>
-          </BulkFilter>
+            </Grid>
+          </Flex>
           <FieldHelp>
             {t(
               'The browser versions filtered out will be periodically evaluated and updated.'
@@ -369,16 +370,23 @@ function CustomFilters({project, disabled}: {disabled: boolean; project: Project
               ...featureProps,
             })}
 
-          {customFilterFields.map(field => (
-            <FieldFromConfig
-              key={field.name}
-              field={field}
-              disabled={disabled || !hasFeature}
-            />
-          ))}
+          {customFilterFields
+            .filter(field => {
+              if (defined(field.feature)) {
+                return organization.features.includes(field.feature);
+              }
+              return true;
+            })
+            .map(field => (
+              <FieldFromConfig
+                key={field.name}
+                field={field}
+                disabled={disabled || !hasFeature}
+              />
+            ))}
 
           {hasFeature && project.options?.['filters:error_messages'] && (
-            <PanelAlert type="warning" data-test-id="error-message-disclaimer">
+            <PanelAlert variant="warning" data-test-id="error-message-disclaimer">
               {t(
                 "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
               )}
@@ -417,10 +425,17 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<Filter[]>([`/projects/${organization.slug}/${projectSlug}/filters/`], {
-    staleTime: 0,
-    gcTime: 0,
-  });
+  } = useApiQuery<Filter[]>(
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+      }),
+    ],
+    {
+      staleTime: 0,
+      gcTime: 0,
+    }
+  );
 
   const filterList = filterListData ?? [];
 
@@ -593,7 +608,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       name: 'filters:chunk-load-error',
                       label: t('Filter out ChunkLoadError(s)'),
                       help: t(
-                        "ChunkLoadErrors can happen in Webpack-powered applications when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
+                        "ChunkLoadErrors can happen in applications powered by Webpack or Turbopack when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
                       ),
                       disabled: !hasAccess,
                     }}
@@ -645,8 +660,8 @@ const FilterGridItem = styled('div')`
   grid-template-columns: max-content 1fr max-content;
   gap: ${space(1)};
   align-items: center;
-  background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.tokens.background.secondary};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(1.5)};
 `;
 
@@ -656,19 +671,13 @@ const FilterGridIcon = styled('img')`
 `;
 
 const FilterTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   white-space: nowrap;
 `;
 
 const FilterDescription = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   white-space: nowrap;
-`;
-
-const BulkFilter = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;

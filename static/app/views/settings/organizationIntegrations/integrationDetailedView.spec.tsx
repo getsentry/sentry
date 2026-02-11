@@ -3,17 +3,26 @@ import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegration
 import {GitLabIntegrationFixture} from 'sentry-fixture/gitlabIntegration';
 import {GitLabIntegrationProviderFixture} from 'sentry-fixture/gitlabIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import IntegrationDetailedView from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
 
-describe('IntegrationDetailedView', function () {
+describe('IntegrationDetailedView', () => {
   const ENDPOINT = '/organizations/org-slug/';
   const organization = OrganizationFixture({
     access: ['org:integrations', 'org:write'],
   });
+
+  function createRouterConfig(integrationSlug: string, query?: Record<string, any>) {
+    return {
+      route: '/settings/:orgId/integrations/:integrationSlug/',
+      location: {
+        pathname: `/settings/org-slug/integrations/${integrationSlug}/`,
+        ...(query && {query}),
+      },
+    };
+  }
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -104,12 +113,10 @@ describe('IntegrationDetailedView', function () {
     });
   });
 
-  it('shows integration name, status, and install button', async function () {
-    const router = RouterFixture({params: {integrationSlug: 'bitbucket'}});
+  it('shows integration name, status, and install button', async () => {
     render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('bitbucket'),
       organization,
-      router,
-      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(screen.getByText('Bitbucket')).toBeInTheDocument();
@@ -117,15 +124,10 @@ describe('IntegrationDetailedView', function () {
     expect(screen.getByRole('button', {name: 'Add integration'})).toBeEnabled();
   });
 
-  it('view configurations', async function () {
-    const router = RouterFixture({
-      params: {integrationSlug: 'bitbucket'},
-      location: {query: {tab: 'configurations'}},
-    });
+  it('view configurations', async () => {
     render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('bitbucket', {tab: 'configurations'}),
       organization,
-      router,
-      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -135,16 +137,17 @@ describe('IntegrationDetailedView', function () {
     expect(screen.getByRole('button', {name: 'Configure'})).toBeEnabled();
   });
 
-  it('disables configure for members without access', async function () {
-    const router = RouterFixture({
-      params: {integrationSlug: 'bitbucket'},
-      location: {query: {tab: 'configurations'}},
-    });
-    const lowerAccessOrganization = OrganizationFixture({access: ['org:read']});
+  it('disables configure for members without access', async () => {
+    const lowerAccessOrg = OrganizationFixture({access: ['org:read']});
     render(<IntegrationDetailedView />, {
-      organization: lowerAccessOrganization,
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        route: '/settings/:orgId/integrations/:integrationSlug/',
+        location: {
+          pathname: `/settings/${lowerAccessOrg.slug}/integrations/bitbucket/`,
+          query: {tab: 'configurations'},
+        },
+      },
+      organization: lowerAccessOrg,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -154,48 +157,81 @@ describe('IntegrationDetailedView', function () {
     );
   });
 
-  it('allows members to configure github/gitlab', async function () {
-    const router = RouterFixture({
-      params: {integrationSlug: 'github'},
-      location: {query: {tab: 'configurations'}},
+  it('disables uninstall button when integration is pending deletion', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      match: [MockApiClient.matchQuery({provider_key: 'bitbucket', includeConfig: 0})],
+      body: [
+        {
+          accountType: null,
+          configData: {},
+          configOrganization: [],
+          domainName: 'bitbucket.org/%7Bfb715533-bbd7-4666-aa57-01dc93dd9cc0%7D',
+          icon: 'https://secure.gravatar.com/avatar/8b4cb68e40b74c90427d8262256bd1c8?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FNN-0.png',
+          id: '4',
+          name: '{fb715533-bbd7-4666-aa57-01dc93dd9cc0}',
+          provider: {
+            aspects: {},
+            canAdd: true,
+            canDisable: false,
+            features: ['commits', 'issue-basic'],
+            key: 'bitbucket',
+            name: 'Bitbucket',
+            slug: 'bitbucket',
+          },
+          status: 'active',
+          organizationIntegrationStatus: 'pending_deletion',
+        },
+      ],
     });
+
+    render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('bitbucket', {tab: 'configurations'}),
+      organization,
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Uninstall'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+  });
+
+  it('allows members to configure github/gitlab', async () => {
     const lowerAccessOrganization = OrganizationFixture({access: ['org:read']});
     render(<IntegrationDetailedView />, {
+      initialRouterConfig: {
+        route: '/settings/:orgId/integrations/:integrationSlug/',
+        location: {
+          pathname: `/settings/${lowerAccessOrganization.slug}/integrations/github/`,
+          query: {tab: 'configurations'},
+        },
+      },
       organization: lowerAccessOrganization,
-      router,
-      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Configure'})).toBeEnabled();
   });
 
-  it('shows features tab for github only', async function () {
-    const router = RouterFixture({
-      params: {integrationSlug: 'github'},
-    });
+  it('shows features tab for github only', async () => {
     render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('github'),
       organization,
-      router,
-      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(screen.getByText('features')).toBeInTheDocument();
   });
 
-  it('cannot enable PR bot without GitHub integration', async function () {
+  it('cannot enable PR bot without GitHub integration', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
       match: [MockApiClient.matchQuery({provider_key: 'github', includeConfig: 0})],
       body: [],
     });
-    const router = RouterFixture({
-      params: {integrationSlug: 'github'},
-    });
     render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('github'),
       organization,
-      router,
-      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -204,20 +240,12 @@ describe('IntegrationDetailedView', function () {
     expect(
       screen.getByRole('checkbox', {name: /Enable Comments on Suspect Pull Requests/})
     ).toBeDisabled();
-
-    expect(
-      screen.getByRole('checkbox', {name: /Enable Comments on Open Pull Requests/})
-    ).toBeDisabled();
   });
 
-  it('can enable github features', async function () {
-    const router = RouterFixture({
-      params: {integrationSlug: 'github'},
-    });
+  it('can enable github features', async () => {
     render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('github'),
       organization,
-      router,
-      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -242,19 +270,6 @@ describe('IntegrationDetailedView', function () {
     });
 
     await userEvent.click(
-      screen.getByRole('checkbox', {name: /Enable Comments on Open Pull Requests/})
-    );
-
-    await waitFor(() => {
-      expect(mock).toHaveBeenCalledWith(
-        ENDPOINT,
-        expect.objectContaining({
-          data: {githubOpenPRBot: true},
-        })
-      );
-    });
-
-    await userEvent.click(
       screen.getByRole('checkbox', {name: /Enable Missing Member Detection/})
     );
 
@@ -268,14 +283,10 @@ describe('IntegrationDetailedView', function () {
     });
   });
 
-  it('can enable gitlab features', async function () {
-    const router = RouterFixture({
-      params: {integrationSlug: 'gitlab'},
-    });
+  it('can enable gitlab features', async () => {
     render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('gitlab'),
       organization,
-      router,
-      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -298,5 +309,51 @@ describe('IntegrationDetailedView', function () {
         })
       );
     });
+  });
+
+  it('renders alerts without crashing when variant is not provided', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      match: [],
+      body: {
+        providers: [
+          {
+            canAdd: true,
+            canDisable: false,
+            features: [],
+            key: 'test-integration',
+            metadata: {
+              aspects: {
+                alerts: [
+                  {text: 'Alert without variant'},
+                  {text: 'Alert with explicit variant', variant: 'warning'},
+                ],
+              },
+              author: 'Test Author',
+              description: 'Test integration',
+              features: [],
+              noun: 'Installation',
+            },
+            name: 'Test Integration',
+            slug: 'test-integration',
+          },
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      match: [
+        MockApiClient.matchQuery({provider_key: 'test-integration', includeConfig: 0}),
+      ],
+      body: [],
+    });
+
+    render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('test-integration'),
+      organization,
+    });
+
+    expect(await screen.findByText('Alert without variant')).toBeInTheDocument();
+    expect(await screen.findByText('Alert with explicit variant')).toBeInTheDocument();
   });
 });

@@ -1,17 +1,17 @@
 import {useCallback, useMemo} from 'react';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {
-  type SpansRPCQueryExtras,
   useProgressiveQuery,
+  type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {getFieldsForConstructedQuery} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
@@ -22,7 +22,7 @@ type Props = {
   query: string;
   sortBys: Sort[];
   yAxes: string[];
-  queryExtras?: SpansRPCQueryExtras;
+  queryExtras?: RPCQueryExtras;
 };
 
 export function useMultiQueryTableAggregateMode({
@@ -81,7 +81,7 @@ function useMultiQueryTableAggregateModeImpl({
       orderby: sortBys.map(formatSort),
       query,
       version: 2,
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS,
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
@@ -100,7 +100,13 @@ function useMultiQueryTableAggregateModeImpl({
   return {eventView, fields, result};
 }
 
-export function useMultiQueryTableSampleMode({query, yAxes, sortBys, enabled}: Props) {
+export function useMultiQueryTableSampleMode({
+  query,
+  yAxes,
+  sortBys,
+  enabled,
+  queryExtras,
+}: Props) {
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useSpansQuery<any[]>>) => {
       const canGoToHigherAccuracyTier = results.meta?.dataScanned === 'partial';
@@ -111,7 +117,7 @@ export function useMultiQueryTableSampleMode({query, yAxes, sortBys, enabled}: P
   );
   return useProgressiveQuery({
     queryHookImplementation: useMultiQueryTableSampleModeImpl,
-    queryHookArgs: {query, yAxes, sortBys, enabled},
+    queryHookArgs: {query, yAxes, sortBys, enabled, queryExtras},
     queryOptions: {
       canTriggerHighAccuracy,
     },
@@ -141,7 +147,7 @@ function useMultiQueryTableSampleModeImpl({
       orderby: sortBys.map(formatSort),
       query,
       version: 2,
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS,
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);

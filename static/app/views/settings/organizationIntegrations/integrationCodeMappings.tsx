@@ -2,11 +2,11 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -24,12 +24,13 @@ import type {
   RepositoryProjectPathConfig,
 } from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {
-  type ApiQueryKey,
   useApiQuery,
   useMutation,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -74,7 +75,12 @@ function makePathConfigQueryKey({
   orgSlug: string;
   cursor?: string | string[] | null;
 }): ApiQueryKey {
-  return [`/organizations/${orgSlug}/code-mappings/`, {query: {integrationId, cursor}}];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/`, {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+    {query: {integrationId, cursor}},
+  ];
 }
 
 function useDeletePathConfig() {
@@ -115,6 +121,11 @@ function useDeletePathConfig() {
     onError: error => {
       addErrorMessage(`${error.statusText}: ${error.responseText}`);
     },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${organization.slug}/code-mappings/`],
+      });
+    },
   });
 }
 
@@ -123,6 +134,7 @@ export default function IntegrationCodeMappings({
 }: {
   integration: Integration;
 }) {
+  const queryClient = useQueryClient();
   useRouteAnalyticsEventNames(
     'integrations.code_mappings_viewed',
     'Integrations: Code Mappings Viewed'
@@ -142,16 +154,13 @@ export default function IntegrationCodeMappings({
     isPending: isPendingPathConfigs,
     isError: isErrorPathConfigs,
     getResponseHeader: getPathConfigsResponseHeader,
-    refetch: refetchPathConfigs,
   } = useApiQuery<RepositoryProjectPathConfig[]>(
     makePathConfigQueryKey({
       orgSlug: organization.slug,
       integrationId,
       cursor: location.query.cursor,
     }),
-    {
-      staleTime: 30000,
-    }
+    {staleTime: 10_000}
   );
 
   const {
@@ -159,8 +168,13 @@ export default function IntegrationCodeMappings({
     isPending: isPendingRepos,
     isError: isErrorRepos,
   } = useApiQuery<Repository[]>(
-    [`/organizations/${organization.slug}/repos/`, {query: {status: 'active'}}],
-    {staleTime: 30000}
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/repos/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {status: 'active'}},
+    ],
+    {staleTime: 10_000}
   );
 
   const pathConfigs = useMemo(() => {
@@ -184,6 +198,12 @@ export default function IntegrationCodeMappings({
 
   const {mutate: deletePathConfig} = useDeletePathConfig();
 
+  const invalidateCodeMappings = useCallback(() => {
+    queryClient.invalidateQueries({
+      queryKey: [`/organizations/${organization.slug}/code-mappings/`],
+    });
+  }, [queryClient, organization.slug]);
+
   const openCodeMappingModal = useCallback(
     (pathConfig?: RepositoryProjectPathConfig) => {
       trackAnalytics('integrations.stacktrace_start_setup', {
@@ -193,35 +213,43 @@ export default function IntegrationCodeMappings({
         organization,
       });
 
-      openModal(({Body, Header, closeModal}) => (
-        <Fragment>
-          <Header closeButton>
-            <h4>{t('Configure code path mapping')}</h4>
-          </Header>
-          <Body>
-            <RepositoryProjectPathConfigForm
-              organization={organization}
-              integration={integration}
-              projects={projects}
-              repos={repos}
-              onSubmitSuccess={() => {
-                trackAnalytics('integrations.stacktrace_complete_setup', {
-                  setup_type: 'manual',
-                  view: 'integration_configuration_detail',
-                  provider: integration.provider.key,
-                  organization,
-                });
-                refetchPathConfigs();
-                closeModal();
-              }}
-              existingConfig={pathConfig}
-              onCancel={closeModal}
-            />
-          </Body>
-        </Fragment>
-      ));
+      openModal(
+        ({Body, Header, closeModal}) => (
+          <Fragment>
+            <Header closeButton>
+              <h4>{t('Configure code path mapping')}</h4>
+            </Header>
+            <Body>
+              <RepositoryProjectPathConfigForm
+                organization={organization}
+                integration={integration}
+                projects={projects}
+                repos={repos}
+                onSubmitSuccess={() => {
+                  trackAnalytics('integrations.stacktrace_complete_setup', {
+                    setup_type: 'manual',
+                    view: 'integration_configuration_detail',
+                    provider: integration.provider.key,
+                    organization,
+                  });
+                  closeModal();
+                }}
+                existingConfig={pathConfig}
+                onCancel={() => {
+                  closeModal();
+                }}
+              />
+            </Body>
+          </Fragment>
+        ),
+        {
+          onClose: () => {
+            invalidateCodeMappings();
+          },
+        }
+      );
     },
-    [repos, projects, integration, organization, refetchPathConfigs]
+    [repos, projects, integration, organization, invalidateCodeMappings]
   );
 
   const isLoading = isPendingPathConfigs || isPendingRepos;

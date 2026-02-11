@@ -1,14 +1,15 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Input} from 'sentry/components/core/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -90,7 +91,7 @@ function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
 
   return (
     <Fragment>
-      <ActionContainer className="no-print">
+      <Flex justify="end" align="start" className="no-print">
         <EmailForm method="post" action="" onSubmit={handleSend}>
           {invoice.isPaid && (
             <Fragment>
@@ -111,18 +112,12 @@ function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
           )}
           <StyledLinkButton href={invoice.receipt.url}>{t('Save PDF')}</StyledLinkButton>
         </EmailForm>
-      </ActionContainer>
+      </Flex>
     </Fragment>
   );
 }
 
 export default InvoiceDetailsActions;
-
-const ActionContainer = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
-`;
 
 const EmailForm = styled('form')`
   display: grid;

@@ -75,5 +75,6 @@ const PlainPre = styled('pre')`
   border: 0;
   margin-bottom: 0;
   white-space: pre-wrap;
+  overflow-x: unset;
   word-break: break-all;
 `;

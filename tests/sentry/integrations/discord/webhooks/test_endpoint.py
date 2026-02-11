@@ -10,7 +10,7 @@ WEBHOOK_URL = "/extensions/discord/interactions/"
 
 class DiscordWebhookTest(APITestCase):
     @mock.patch("sentry.integrations.discord.requests.base.verify_signature")
-    def test_ping_interaction(self, mock_verify_signature):
+    def test_ping_interaction(self, mock_verify_signature: mock.MagicMock) -> None:
         mock_verify_signature.return_value = None
         resp = self.client.post(
             path=WEBHOOK_URL,
@@ -27,7 +27,7 @@ class DiscordWebhookTest(APITestCase):
         assert mock_verify_signature.call_count == 1
 
     @mock.patch("sentry.integrations.discord.requests.base.verify_signature")
-    def test_unknown_interaction(self, mock_verify_signature):
+    def test_unknown_interaction(self, mock_verify_signature: mock.MagicMock) -> None:
         resp = self.client.post(
             path=WEBHOOK_URL,
             data={
@@ -41,7 +41,7 @@ class DiscordWebhookTest(APITestCase):
         assert resp.status_code == 200
 
     @mock.patch("sentry.integrations.discord.requests.base.verify_signature")
-    def test_unauthorized_interaction(self, mock_verify_signature):
+    def test_unauthorized_interaction(self, mock_verify_signature: mock.MagicMock) -> None:
         mock_verify_signature.side_effect = DiscordRequestError(status=status.HTTP_401_UNAUTHORIZED)
         resp = self.client.post(
             path=WEBHOOK_URL,
@@ -55,7 +55,7 @@ class DiscordWebhookTest(APITestCase):
 
         assert resp.status_code == 401
 
-    def test_missing_signature(self):
+    def test_missing_signature(self) -> None:
         resp = self.client.post(
             path=WEBHOOK_URL,
             data={
@@ -67,7 +67,7 @@ class DiscordWebhookTest(APITestCase):
 
         assert resp.status_code == 401
 
-    def test_missing_timestamp(self):
+    def test_missing_timestamp(self) -> None:
         resp = self.client.post(
             path=WEBHOOK_URL,
             data={

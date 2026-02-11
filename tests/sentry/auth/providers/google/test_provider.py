@@ -10,13 +10,13 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class GoogleOAuth2ProviderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.auth_provider_inst = AuthProvider.objects.create(
             provider="google", organization_id=self.organization.id
         )
         super().setUp()
 
-    def test_refresh_identity_without_refresh_token(self):
+    def test_refresh_identity_without_refresh_token(self) -> None:
         auth_identity = AuthIdentity.objects.create(
             auth_provider=self.auth_provider_inst,
             user=self.user,
@@ -28,19 +28,19 @@ class GoogleOAuth2ProviderTest(TestCase):
         with pytest.raises(IdentityNotValid):
             provider.refresh_identity(auth_identity)
 
-    def test_handles_multiple_domains(self):
+    def test_handles_multiple_domains(self) -> None:
         self.auth_provider_inst.update(config={"domains": ["example.com"]})
 
         provider = self.auth_provider_inst.get_provider()
         assert provider.domains == ["example.com"]
 
-    def test_handles_legacy_single_domain(self):
+    def test_handles_legacy_single_domain(self) -> None:
         self.auth_provider_inst.update(config={"domain": "example.com"})
 
         provider = self.auth_provider_inst.get_provider()
         assert provider.domains == ["example.com"]
 
-    def test_build_config(self):
+    def test_build_config(self) -> None:
         provider = self.auth_provider_inst.get_provider()
         state = {
             "domain": "example.com",

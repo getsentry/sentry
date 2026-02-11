@@ -46,8 +46,8 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('DeviceContext', function () {
-  it('returns values and according to the parameters', function () {
+describe('DeviceContext', () => {
+  it('returns values and according to the parameters', () => {
     // We need to use expect.anything() for some fields as they return React components.
     expect(
       getDeviceContextData({data: MOCK_DEVICE_CONTEXT, event: EventFixture()})
@@ -135,7 +135,7 @@ describe('DeviceContext', function () {
     ]);
   });
 
-  it('renders with meta annotations correctly', function () {
+  it('renders with meta annotations correctly', () => {
     const event = EventFixture({
       _meta: {contexts: {device: MOCK_REDACTION}},
     });
@@ -143,8 +143,8 @@ describe('DeviceContext', function () {
     render(
       <ContextCard
         event={event}
-        type={'device'}
-        alias={'device'}
+        type="device"
+        alias="device"
         value={{...MOCK_DEVICE_CONTEXT, name: ''}}
       />
     );

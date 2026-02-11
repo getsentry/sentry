@@ -7,7 +7,6 @@ from django.utils import timezone
 from sentry import audit_log, buffer, tsdb
 from sentry.buffer.redis import RedisBuffer
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
@@ -18,7 +17,6 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupmeta import GroupMeta
-from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsnooze import GroupSnooze
@@ -26,12 +24,10 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.project import Project
 from sentry.models.release import Release
-from sentry.notifications.types import GroupSubscriptionReason
 from sentry.plugins.base import plugins
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -40,24 +36,12 @@ from sentry.types.group import GroupSubStatus
 
 pytestmark = [requires_snuba]
 
-# XXX: The tests in here have a mix of testing two different endpoints:
-# - /api/0/issues/{group_id}/
-# - /api/0/organizations/{org_slug}/issues/{group_id}/
-# We should either split them up or rewrite the tests to test both endpoints
-# TODO: See what is different between the endpoints and see if we can unify them
-
 
 class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_with_numerical_id(self) -> None:
         self.login_as(user=self.user)
 
         group = self.create_group()
-
-        url = f"/api/0/issues/{group.id}/"
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-        assert response.data["id"] == str(group.id)
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         response = self.client.get(url, format="json")
@@ -77,11 +61,6 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(group.id)
 
-        url = f"/api/0/issues/{group.qualified_short_id}/"
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 404, response.content
-
     def test_with_first_release(self) -> None:
         self.login_as(user=self.user)
 
@@ -89,7 +68,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         group = event.group
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.qualified_short_id}/"
 
         response = self.client.get(url, format="json")
 
@@ -103,7 +82,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         group = event.group
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.qualified_short_id}/"
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
@@ -118,16 +97,16 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{group1.id}/"
+        url = f"/api/0/organizations/{group1.organization.slug}/issues/{group1.id}/"
 
         response = self.client.get(url, format="json")
         assert response.status_code == 404
 
-        url = f"/api/0/issues/{group2.id}/"
+        url = f"/api/0/organizations/{group2.organization.slug}/issues/{group2.id}/"
         response = self.client.get(url, format="json")
         assert response.status_code == 404
 
-        url = f"/api/0/issues/{group3.id}/"
+        url = f"/api/0/organizations/{group3.organization.slug}/issues/{group3.id}/"
         response = self.client.get(url, format="json")
         assert response.status_code == 404
 
@@ -137,7 +116,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         environment = Environment.get_or_create(group.project, "production")
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         with mock.patch(
             "sentry.tsdb.backend.get_range", side_effect=tsdb.backend.get_range
@@ -161,7 +140,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             web_url="https://example.com/issues/2",
             display_name="Issue#2",
         )
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         response = self.client.get(url, format="json")
 
         assert response.data["annotations"] == [
@@ -178,7 +157,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         response = self.client.get(url, format="json")
 
         assert response.data["annotations"] == [
@@ -198,7 +177,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         response = self.client.get(url, format="json")
 
         assert response.data["annotations"] == [
@@ -210,7 +189,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         self.login_as(user=superuser, superuser=True)
 
         group = self.create_group()
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         response = self.client.get(url, format="json")
 
         result = response.data["permalink"]
@@ -230,7 +209,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         )
 
         group = self.create_group(project=project)
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json")
         result = response.data["permalink"]
         assert "http://" in result
@@ -240,7 +219,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_ratelimit(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         with freeze_time("2000-01-01"):
             for i in range(5):
                 self.client.get(url, sort_by="date", limit=1)
@@ -264,7 +243,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             user.delete()
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -272,7 +251,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_collapse_tags(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         # Without collapse param, tags should be present
         response = self.client.get(url)
@@ -299,7 +278,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             event.group.update(times_seen=1)
             buffer.backend.incr(Group, {"times_seen": 15}, filters={"id": event.group.id})
 
-            url = f"/api/0/issues/{group.id}/"
+            url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
             response = self.client.get(url, format="json")
             assert response.status_code == 200, response.content
             assert response.data["id"] == str(group.id)
@@ -312,64 +291,6 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             assert response.data["id"] == str(group.id)
             assert response.data["count"] == "16"
 
-    @with_feature("organizations:issue-open-periods")
-    def test_open_periods(self) -> None:
-        self.login_as(user=self.user)
-        group = self.create_group()
-        url = f"/api/0/issues/{group.id}/"
-
-        # test a new group has an open period
-        group.type = MetricIssue.type_id
-        group.save()
-
-        GroupOpenPeriod.objects.all().delete()
-
-        alert_rule = self.create_alert_rule(
-            organization=self.organization,
-            projects=[self.project],
-            name="Test Alert Rule",
-        )
-        time = timezone.now() - timedelta(seconds=alert_rule.snuba_query.time_window)
-
-        response = self.client.get(url, format="json")
-        assert response.status_code == 200, response.content
-        open_periods = response.data["openPeriods"]
-        assert len(open_periods) == 1
-        open_period = open_periods[0]
-        assert open_period["start"] == group.first_seen
-        assert open_period["end"] is None
-        assert open_period["duration"] is None
-        assert open_period["isOpen"] is True
-        assert open_period["lastChecked"] > time
-
-    @with_feature("organizations:issue-open-periods")
-    def test_group_open_periods(self) -> None:
-        self.login_as(user=self.user)
-        group = self.create_group()
-        url = f"/api/0/issues/{group.id}/"
-
-        # test a new group has an open period
-        group.type = MetricIssue.type_id
-        group.save()
-
-        alert_rule = self.create_alert_rule(
-            organization=self.organization,
-            projects=[self.project],
-            name="Test Alert Rule",
-        )
-        time = timezone.now() - timedelta(seconds=alert_rule.snuba_query.time_window)
-
-        response = self.client.get(url, format="json")
-        assert response.status_code == 200, response.content
-        open_periods = response.data["openPeriods"]
-        assert len(open_periods) == 1
-        open_period = open_periods[0]
-        assert open_period["start"] == group.first_seen
-        assert open_period["end"] is None
-        assert open_period["duration"] is None
-        assert open_period["isOpen"] is True
-        assert open_period["lastChecked"] > time
-
 
 class GroupUpdateTest(APITestCase):
     def test_resolve(self) -> None:
@@ -377,7 +298,7 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         response = self.client.put(url, data={"status": "resolved"}, format="json")
         assert response.status_code == 200, response.content
@@ -400,7 +321,7 @@ class GroupUpdateTest(APITestCase):
         assert group.status == GroupStatus.UNRESOLVED
         assert GroupResolution.objects.all().count() == 0
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         response = self.client.put(url, data={"status": "resolvedInNextRelease"})
         assert response.status_code == 200, response.content
 
@@ -458,7 +379,7 @@ class GroupUpdateTest(APITestCase):
             assert group.first_release is None
         assert GroupResolution.objects.all().count() == 0
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         data = {"status": "resolvedInNextRelease"}
         response = self.client.put(url, data=data)
         assert response.status_code == 200, response.content == {}
@@ -523,7 +444,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         response = self.client.put(
             url, data={"status": "ignored", "ignoreDuration": 30}, format="json"
@@ -551,7 +472,7 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         response = self.client.put(url, data={"isBookmarked": "1"}, format="json")
 
@@ -569,7 +490,7 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         response = self.client.put(url, data={"assignedTo": self.user.username}, format="json")
 
@@ -605,7 +526,7 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         response = self.client.put(url, data={"assignedTo": self.user.id}, format="json")
 
@@ -646,7 +567,7 @@ class GroupUpdateTest(APITestCase):
                 organization_id=self.organization.id, scope_list=["event:write"]
             )
         group = self.create_group()
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         response = self.client.put(
             url,
@@ -664,7 +585,7 @@ class GroupUpdateTest(APITestCase):
         team = self.create_team(organization=group.project.organization, members=[self.user])
         group.project.add_team(team)
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         response = self.client.put(url, data={"assignedTo": f"team:{team.id}"}, format="json")
 
@@ -692,7 +613,7 @@ class GroupUpdateTest(APITestCase):
         group = self.create_group()
         team = self.create_team(organization=group.project.organization, members=[self.user])
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         response = self.client.put(url, data={"assignedTo": f"team:{team.id}"}, format="json")
 
         assert response.status_code == 400, response.content
@@ -702,7 +623,7 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         response = self.client.put(url, data={"hasSeen": "1"}, format="json")
 
@@ -722,7 +643,7 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         response = self.client.put(url, data={"hasSeen": "1"}, format="json")
 
@@ -732,7 +653,7 @@ class GroupUpdateTest(APITestCase):
 
     def test_seen_by_deleted_user(self) -> None:
         group = self.create_group()
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         self.login_as(user=self.user)
         # Create a stale GroupSeen referencing a user that no longer exists
         GroupSeen.objects.create(group=group, user_id=424242, project_id=self.project.id)
@@ -756,7 +677,7 @@ class GroupUpdateTest(APITestCase):
         self.login_as(user=self.user)
         group = self.create_group()
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         resp = self.client.put(url, data={"isSubscribed": "true"})
         assert resp.status_code == 200, resp.content
@@ -770,55 +691,13 @@ class GroupUpdateTest(APITestCase):
             user_id=self.user.id, group=group, is_active=False
         ).exists()
 
-    @with_feature("organizations:team-workflow-notifications")
-    def test_team_subscription(self) -> None:
-        group = self.create_group()
-        team = self.create_team(organization=group.project.organization, members=[self.user])
-
-        # subscribe the team
-        GroupSubscription.objects.create(
-            team=team,
-            group=group,
-            project=group.project,
-            is_active=True,
-            reason=GroupSubscriptionReason.team_mentioned,
-        )
-
-        self.login_as(user=self.user)
-
-        url = f"/api/0/issues/{group.id}/"
-        response = self.client.get(url)
-
-        assert response.status_code == 200
-        assert len(response.data["participants"]) == 1
-        assert response.data["participants"][0]["type"] == "team"
-
-        # add the user as a subscriber
-        GroupSubscription.objects.create(
-            user_id=self.user.id,
-            group=group,
-            project=group.project,
-            is_active=True,
-            reason=GroupSubscriptionReason.comment,
-        )
-
-        response = self.client.get(url)
-        assert response.status_code == 200
-
-        # both the user and their team should be subscribed separately
-        assert len(response.data["participants"]) == 2
-        assert (
-            response.data["participants"][0]["type"] == "user"
-        )  # user participants are processed first
-        assert response.data["participants"][1]["type"] == "team"
-
     def test_discard(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
 
         group_hash = GroupHash.objects.create(hash="x" * 32, project=group.project, group=group)
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         with self.tasks():
             with self.feature("projects:discard-groups"):
@@ -840,7 +719,7 @@ class GroupUpdateTest(APITestCase):
         group = self.create_group(type=PerformanceSlowDBQueryGroupType.type_id)
         GroupHash.objects.create(hash="x" * 32, project=group.project, group=group)
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         with self.tasks():
             with self.feature("projects:discard-groups"):
@@ -856,7 +735,7 @@ class GroupUpdateTest(APITestCase):
     def test_ratelimit(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         with freeze_time("2000-01-01"):
             for i in range(10):
                 self.client.put(url, sort_by="date", limit=1)
@@ -872,17 +751,14 @@ class GroupDeleteTest(APITestCase):
         hash = "x" * 32
         GroupHash.objects.create(project=group.project, hash=hash, group=group)
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         response = self.client.delete(url, format="json")
         assert response.status_code == 202, response.content
 
         # Deletion was deferred, so it should still exist
         assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
-        # BUT the hash should be gone
-        assert not GroupHash.objects.filter(group_id=group.id).exists()
-
-        Group.objects.filter(id=group.id).update(status=GroupStatus.UNRESOLVED)
+        assert GroupHash.objects.filter(group_id=group.id).exists()
 
     def test_delete_and_tasks_run(self) -> None:
         self.login_as(user=self.user)
@@ -891,7 +767,7 @@ class GroupDeleteTest(APITestCase):
         hash = "x" * 32
         GroupHash.objects.create(project=group.project, hash=hash, group=group)
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         with self.tasks():
             response = self.client.delete(url, format="json")
@@ -918,7 +794,7 @@ class GroupDeleteTest(APITestCase):
         group = self.create_group(type=PerformanceSlowDBQueryGroupType.type_id)
         GroupHash.objects.create(project=group.project, hash="x" * 32, group=group)
 
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
         with self.tasks():
             response = self.client.delete(url, format="json")
@@ -931,7 +807,7 @@ class GroupDeleteTest(APITestCase):
     def test_ratelimit(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         with freeze_time("2000-01-01"):
             for i in range(10):
                 self.client.delete(url, sort_by="date", limit=1)
@@ -941,7 +817,7 @@ class GroupDeleteTest(APITestCase):
     def test_collapse_release(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
-        url = f"/api/0/issues/{group.id}/"
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         response = self.client.get(url)
         assert response.status_code == 200
         assert response.data["firstRelease"] is None

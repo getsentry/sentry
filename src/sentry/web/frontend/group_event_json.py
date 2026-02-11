@@ -1,8 +1,8 @@
 from django.http import Http404, HttpRequest, HttpResponse
 
-from sentry import eventstore
 from sentry.models.group import Group, get_group_with_redirect
 from sentry.models.groupmeta import GroupMeta
+from sentry.services import eventstore
 from sentry.utils import json
 from sentry.web.frontend.base import OrganizationView, region_silo_view
 
@@ -15,7 +15,7 @@ class GroupEventJsonView(OrganizationView):
         try:
             # TODO(tkaemming): This should *actually* redirect, see similar
             # comment in ``GroupEndpoint.convert_args``.
-            group, _ = get_group_with_redirect(group_id)
+            group, _ = get_group_with_redirect(group_id, organization=organization)
         except Group.DoesNotExist:
             raise Http404
 

@@ -6,7 +6,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ProguardArtifactReleasesEndpointTest(APITestCase):
-    def test_create_proguard_artifact_release_successfully(self):
+    def test_create_proguard_artifact_release_successfully(self) -> None:
         project = self.create_project(name="foo")
 
         proguard_uuid = "660f839b-8bfd-580d-9a7c-ea339a6c9867"
@@ -46,7 +46,7 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         assert proguard_artifact_release.organization_id == project.organization.id
         assert proguard_artifact_release.project_id == project.id
 
-    def test_create_proguard_artifact_release_with_missing_fields(self):
+    def test_create_proguard_artifact_release_with_missing_fields(self) -> None:
         project = self.create_project(name="foo")
 
         url = reverse(
@@ -79,7 +79,7 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         assert response.status_code == 400, response.content
         assert response.data == {"error": "Missing required fields: release_name, proguard_uuid"}
 
-    def test_create_proguard_artifact_release_with_conflicting_release_name(self):
+    def test_create_proguard_artifact_release_with_conflicting_release_name(self) -> None:
         project = self.create_project(name="foo")
 
         url = reverse(
@@ -123,7 +123,7 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
             "error": "Proguard artifact release with this name in this project already exists."
         }
 
-    def test_list_proguard_artifact_releases_with_uuid_successfully(self):
+    def test_list_proguard_artifact_releases_with_uuid_successfully(self) -> None:
         project = self.create_project(name="foo")
         proguard_uuid = "660f839b-8bfd-580d-9a7c-ea339a6c9867"
 
@@ -162,7 +162,7 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         assert len(response.data) == 1
         assert list(response.data["releases"]) == ["test@1.0.0"]
 
-    def test_create_proguard_artifact_release_with_non_existent_uuid(self):
+    def test_create_proguard_artifact_release_with_non_existent_uuid(self) -> None:
         project = self.create_project(name="foo")
 
         url = reverse(
@@ -196,7 +196,7 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         assert response.status_code == 400, response.content
         assert response.data == {"error": "No matching proguard mapping file with this uuid found"}
 
-    def test_create_proguard_artifact_release_with_invalid_uuid(self):
+    def test_create_proguard_artifact_release_with_invalid_uuid(self) -> None:
         project = self.create_project(name="foo")
 
         url = reverse(

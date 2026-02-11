@@ -18,7 +18,7 @@ import {OrganizationContextProvider} from './organizationContext';
 
 jest.mock('sentry/actionCreators/sudoModal');
 
-describe('OrganizationContext', function () {
+describe('OrganizationContext', () => {
   let getOrgMock: jest.Mock;
   let getProjectsMock: jest.Mock;
   let getTeamsMock: jest.Mock;
@@ -26,6 +26,13 @@ describe('OrganizationContext', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   const team = TeamFixture();
+
+  const initialRouterConfig = {
+    route: '/organizations/:orgId/',
+    location: {
+      pathname: `/organizations/${organization.slug}/`,
+    },
+  };
 
   function setupOrgMocks(org: Organization) {
     const orgMock = MockApiClient.addMockResponse({
@@ -44,7 +51,7 @@ describe('OrganizationContext', function () {
     return {orgMock, projectMock, teamMock};
   }
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     const {orgMock, projectMock, teamMock} = setupOrgMocks(organization);
@@ -60,7 +67,7 @@ describe('OrganizationContext', function () {
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
   });
 
-  afterEach(function () {
+  afterEach(() => {
     // eslint-disable-next-line no-console
     jest.mocked(console.error).mockRestore();
   });
@@ -74,14 +81,12 @@ describe('OrganizationContext', function () {
     return <div>{org?.slug ?? 'no-org'}</div>;
   }
 
-  it('fetches org, projects, teams, and provides organization context', async function () {
+  it('fetches org, projects, teams, and provides organization context', async () => {
     render(
       <OrganizationContextProvider>
         <OrganizationName />
       </OrganizationContextProvider>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      {initialRouterConfig}
     );
 
     expect(await screen.findByText(organization.slug)).toBeInTheDocument();
@@ -90,20 +95,13 @@ describe('OrganizationContext', function () {
     expect(getTeamsMock).toHaveBeenCalled();
   });
 
-  it('fetches new org when router params change', async function () {
+  it('fetches new org when router params change', async () => {
     // First render with org-slug
     const {router: testRouter} = render(
       <OrganizationContextProvider>
         <OrganizationName />
       </OrganizationContextProvider>,
-      {
-        initialRouterConfig: {
-          route: '/organizations/:orgId/',
-          location: {
-            pathname: `/organizations/${organization.slug}/`,
-          },
-        },
-      }
+      {initialRouterConfig}
     );
 
     expect(await screen.findByText(organization.slug)).toBeInTheDocument();
@@ -130,7 +128,7 @@ describe('OrganizationContext', function () {
     );
   });
 
-  it('opens sudo modal for superusers for nonmember org with active staff', async function () {
+  it('opens sudo modal for superusers for nonmember org with active staff', async () => {
     ConfigStore.set('user', UserFixture({isSuperuser: true, isStaff: true}));
     organization.access = [];
 
@@ -143,9 +141,7 @@ describe('OrganizationContext', function () {
       <OrganizationContextProvider>
         <OrganizationName />
       </OrganizationContextProvider>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      {initialRouterConfig}
     );
 
     await waitFor(() => !OrganizationStore.getState().loading);
@@ -153,7 +149,7 @@ describe('OrganizationContext', function () {
     await waitFor(() => expect(openSudo).toHaveBeenCalled());
   });
 
-  it('opens sudo modal for superusers on 403s', async function () {
+  it('opens sudo modal for superusers on 403s', async () => {
     ConfigStore.set('user', UserFixture({isSuperuser: true}));
 
     getOrgMock = MockApiClient.addMockResponse({
@@ -165,9 +161,7 @@ describe('OrganizationContext', function () {
       <OrganizationContextProvider>
         <OrganizationName />
       </OrganizationContextProvider>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      {initialRouterConfig}
     );
 
     await waitFor(() => !OrganizationStore.getState().loading);
@@ -180,7 +174,7 @@ describe('OrganizationContext', function () {
   /**
    * This test will rarely happen since most configurations are now using customer domains
    */
-  it('uses last organization slug from ConfigStore', async function () {
+  it('uses last organization slug from ConfigStore', async () => {
     const configStoreOrg = OrganizationFixture({slug: 'config-store-org'});
 
     ConfigStore.set('lastOrganization', configStoreOrg.slug);

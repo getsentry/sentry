@@ -7,6 +7,13 @@ export enum WidgetBuilderVersion {
 
 // Used in the full-page widget builder
 type DashboardsEventParametersWidgetBuilder = {
+  'dashboards_views.engagement.load': {
+    globalFilterCount: number;
+    issuesRatio: number;
+    logRatio: number;
+    title: string;
+    tracingRatio: number;
+  };
   'dashboards_views.widget_builder.change': {
     builder_version: WidgetBuilderVersion;
     field: string;
@@ -54,6 +61,7 @@ const dashboardsEventMapWidgetBuilder: Record<
     'Widget Builder: Template added to dashboard',
   'dashboards_views.widget_builder.templates.add_to_dashboard.customize':
     'Widget Builder: Template added to dashboard and customized',
+  'dashboards_views.engagement.load': 'Dashboard Load: Engagement by Product',
 };
 
 export type DashboardsEventParameters = {
@@ -71,6 +79,13 @@ export type DashboardsEventParameters = {
   'dashboards2.filter.cancel': Record<string, unknown>;
   'dashboards2.filter.change': {filter_type: string};
   'dashboards2.filter.save': Record<string, unknown>;
+  'dashboards2.global_filter.add': Record<string, unknown>;
+  'dashboards2.global_filter.remove': Record<string, unknown>;
+  'dashboards2.span_migration.results_check': {
+    error_message: string;
+    dashboard_id?: string;
+    widget_id?: string;
+  };
   'dashboards_manage.change_sort': {
     sort: string;
   };
@@ -164,6 +179,8 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards2.filter.save': 'Dashboards2: Filter bar save',
   'dashboards2.filter.cancel': 'Dashboards2: Filter bar cancel',
   'dashboards2.filter.change': 'Dashboards2: Filter bar changed',
+  'dashboards2.global_filter.add': 'Dashboards2: Global filter added',
+  'dashboards2.global_filter.remove': 'Dashboards2: Global filter removed',
   'dashboards_views.query_selector.opened':
     'Dashboards2: Query Selector opened for Widget',
   'dashboards_views.query_selector.selected':
@@ -197,5 +214,7 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_views.widget_viewer.zoom': 'Widget Viewer: Chart zoomed',
   'dashboards2.edit_access.start': 'Dashboards2: Edit Access Dropdown Opened',
   'dashboards2.edit_access.save': 'Dashboards2: Edit Access Dropdown Selection Saved',
+  'dashboards2.span_migration.results_check':
+    'Dashboards2: Check Widget Results From Span Migration',
   ...dashboardsEventMapWidgetBuilder,
 };

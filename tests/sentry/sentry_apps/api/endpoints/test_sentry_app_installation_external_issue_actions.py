@@ -3,10 +3,12 @@ from django.urls import reverse
 
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 
 
+@control_silo_test
 class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.superuser = self.create_user(email="a@example.com", is_superuser=True)
         self.user = self.create_user(email="boop@example.com")
         self.org = self.create_organization(owner=self.user)
@@ -26,7 +28,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         )
 
     @responses.activate
-    def test_creates_external_issue(self):
+    def test_creates_external_issue(self) -> None:
         self.login_as(user=self.user)
         data = {
             "groupId": self.group.id,
@@ -47,7 +49,8 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         )
 
         response = self.client.post(self.url, data=data, format="json")
-        external_issue = PlatformExternalIssue.objects.get()
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            external_issue = PlatformExternalIssue.objects.get()
 
         assert response.status_code == 200
         assert response.data == {
@@ -59,7 +62,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         }
 
     @responses.activate
-    def test_external_issue_doesnt_get_created(self):
+    def test_external_issue_doesnt_get_created(self) -> None:
         self.login_as(user=self.user)
         data = {
             "groupId": self.group.id,
@@ -80,4 +83,5 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
             response.content
             == b'{"detail":"Issue occured while trying to contact testin to link issue"}'
         )
-        assert not PlatformExternalIssue.objects.all()
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert not PlatformExternalIssue.objects.all()

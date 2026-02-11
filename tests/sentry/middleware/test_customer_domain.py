@@ -12,9 +12,15 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.middleware.customer_domain import CustomerDomainMiddleware
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import all_silo_test, create_test_regions, no_silo_test
+from sentry.testutils.silo import (
+    all_silo_test,
+    assume_test_silo_mode,
+    create_test_regions,
+    no_silo_test,
+)
 from sentry.web.frontend.auth_logout import AuthLogoutView
 
 
@@ -27,7 +33,7 @@ def _session(d: dict[str, str]) -> SessionBase:
 @all_silo_test(regions=create_test_regions("us", "eu"))
 class CustomerDomainMiddlewareTest(TestCase):
     @with_feature("system:multi-region")
-    def test_sets_active_organization_if_exists(self):
+    def test_sets_active_organization_if_exists(self) -> None:
         self.create_organization(name="test")
 
         request = RequestFactory().get("/")
@@ -38,7 +44,7 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert dict(request.session) == {"activeorg": "test"}
         assert response == mock.sentinel.response
 
-    def test_noop_if_customer_domain_is_off(self):
+    def test_noop_if_customer_domain_is_off(self) -> None:
         with self.feature({"system:multi-region": False}):
             self.create_organization(name="test")
 
@@ -51,7 +57,7 @@ class CustomerDomainMiddlewareTest(TestCase):
             assert response == mock.sentinel.response
 
     @with_feature("system:multi-region")
-    def test_recycles_last_active_org(self):
+    def test_recycles_last_active_org(self) -> None:
         self.create_organization(name="test")
 
         request = RequestFactory().get("/organizations/test/issues/")
@@ -64,7 +70,7 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert response["Location"] == "http://test.testserver/organizations/test/issues/"
 
     @with_feature("system:multi-region")
-    def test_recycles_last_active_org_path_mismatch(self):
+    def test_recycles_last_active_org_path_mismatch(self) -> None:
         self.create_organization(name="test")
 
         request = RequestFactory().get("/organizations/albertos-apples/issues/")
@@ -77,7 +83,7 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert response["Location"] == "http://test.testserver/organizations/test/issues/"
 
     @with_feature("system:multi-region")
-    def test_removes_active_organization(self):
+    def test_removes_active_organization(self) -> None:
         request = RequestFactory().get("/")
         request.subdomain = "does-not-exist"
         request.session = _session({"activeorg": "test"})
@@ -87,7 +93,7 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert response == mock.sentinel.response
 
     @with_feature("system:multi-region")
-    def test_no_session_dict(self):
+    def test_no_session_dict(self) -> None:
         request = RequestFactory().get("/")
         request.subdomain = "test"
         CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
@@ -103,7 +109,7 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert response == mock.sentinel.response
 
     @with_feature("system:multi-region")
-    def test_no_subdomain(self):
+    def test_no_subdomain(self) -> None:
         request = RequestFactory().get("/")
         request.session = _session({"activeorg": "test"})
         response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
@@ -112,7 +118,7 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert response == mock.sentinel.response
 
     @with_feature("system:multi-region")
-    def test_no_activeorg(self):
+    def test_no_activeorg(self) -> None:
         request = RequestFactory().get("/")
         request.session = _session({})
         response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
@@ -121,7 +127,7 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert response == mock.sentinel.response
 
     @with_feature("system:multi-region")
-    def test_no_op(self):
+    def test_no_op(self) -> None:
         request = RequestFactory().get("/")
         response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
@@ -130,7 +136,7 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert response == mock.sentinel.response
 
     @with_feature("system:multi-region")
-    def test_ignores_region_subdomains(self):
+    def test_ignores_region_subdomains(self) -> None:
         for region_name in ("us", "eu"):
             request = RequestFactory().get("/")
             request.subdomain = region_name
@@ -141,7 +147,7 @@ class CustomerDomainMiddlewareTest(TestCase):
             assert response == mock.sentinel.response
 
     @with_feature("system:multi-region")
-    def test_handles_redirects(self):
+    def test_handles_redirects(self) -> None:
         self.create_organization(name="sentry")
         request = RequestFactory().get("/organizations/albertos-apples/issues/")
         request.subdomain = "sentry"
@@ -157,19 +163,20 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert response["Location"] == "/organizations/sentry/issues/"
 
     @with_feature("system:multi-region")
-    def test_billing_route(self):
+    def test_billing_route(self) -> None:
         non_staff_user = self.create_user(is_staff=False)
         self.login_as(user=non_staff_user)
         self.create_organization(name="albertos-apples", owner=non_staff_user)
 
-        response = self.client.get(
-            "/settings/billing/checkout/",
-            data={"querystring": "value"},
-            follow=True,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            response = self.client.get(
+                "/settings/billing/overview/",
+                data={"querystring": "value"},
+                follow=True,
+            )
         assert response.status_code == 200
         assert response.redirect_chain == [
-            ("http://albertos-apples.testserver/settings/billing/checkout/?querystring=value", 302)
+            ("http://albertos-apples.testserver/settings/billing/overview/?querystring=value", 302)
         ]
 
 
@@ -239,12 +246,12 @@ def provision_middleware():
 @no_silo_test
 @override_settings(ROOT_URLCONF=__name__, SENTRY_SELF_HOSTED=False)
 class End2EndTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.middleware = provision_middleware()
 
     @with_feature("system:multi-region")
-    def test_with_middleware_no_customer_domain(self):
+    def test_with_middleware_no_customer_domain(self) -> None:
         self.create_organization(name="albertos-apples")
 
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
@@ -321,7 +328,7 @@ class End2EndTest(APITestCase):
             assert self.client.session["activeorg"] == "test"
 
     @with_feature("system:multi-region")
-    def test_with_middleware_and_customer_domain(self):
+    def test_with_middleware_and_customer_domain(self) -> None:
         self.create_organization(name="albertos-apples")
 
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
@@ -431,7 +438,7 @@ class End2EndTest(APITestCase):
             assert response.redirect_chain == []
 
     @with_feature("system:multi-region")
-    def test_with_middleware_and_non_staff(self):
+    def test_with_middleware_and_non_staff(self) -> None:
         self.create_organization(name="albertos-apples")
         non_staff_user = self.create_user(is_staff=False)
         self.login_as(user=non_staff_user)
@@ -477,7 +484,7 @@ class End2EndTest(APITestCase):
             assert response.status_code == 405
 
     @with_feature("system:multi-region")
-    def test_with_middleware_and_is_staff(self):
+    def test_with_middleware_and_is_staff(self) -> None:
         self.create_organization(name="albertos-apples")
         is_staff_user = self.create_user(is_staff=True)
         self.login_as(user=is_staff_user)
@@ -499,7 +506,7 @@ class End2EndTest(APITestCase):
             assert self.client.session["activeorg"] == "albertos-apples"
 
     @with_feature("system:multi-region")
-    def test_without_middleware(self):
+    def test_without_middleware(self) -> None:
         self.create_organization(name="albertos-apples")
 
         middleware = list(settings.MIDDLEWARE)
@@ -551,7 +558,7 @@ class End2EndTest(APITestCase):
             assert self.client.session["activeorg"] == "test"
 
     @with_feature("system:multi-region")
-    def test_with_middleware_and_nameless_view(self):
+    def test_with_middleware_and_nameless_view(self) -> None:
         self.create_organization(name="albertos-apples")
 
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
@@ -571,7 +578,7 @@ class End2EndTest(APITestCase):
             assert self.client.session["activeorg"] == "albertos-apples"
 
     @with_feature("system:multi-region")
-    def test_disallowed_customer_domain(self):
+    def test_disallowed_customer_domain(self) -> None:
         with override_settings(
             MIDDLEWARE=tuple(self.middleware), DISALLOWED_CUSTOMER_DOMAINS=["banned"]
         ):

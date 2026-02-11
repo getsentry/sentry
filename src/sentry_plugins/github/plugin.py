@@ -108,7 +108,7 @@ class GitHubPlugin(CorePluginMixin, IssuePlugin2):
             )
         ]
 
-    def get_url_module(self):
+    def get_url_module(self) -> str:
         return "sentry_plugins.github.urls"
 
     def is_configured(self, project) -> bool:
@@ -245,8 +245,8 @@ class GitHubPlugin(CorePluginMixin, IssuePlugin2):
                 "help": (
                     "If you want to add a repository to integrate commit data with releases, please install the "
                     'new <a href="/settings/{}/integrations/github/">'
-                    "Github global integration</a>.  "
-                    "You cannot add repositories to the legacy Github integration."
+                    "GitHub global integration</a>.  "
+                    "You cannot add repositories to the legacy GitHub integration."
                 ).format(project.organization.slug),
                 "required": True,
             }
@@ -355,7 +355,7 @@ class GitHubRepositoryProvider(CorePluginMixin, RepositoryProvider):
             try:
                 resp = self._create_webhook(client, organization, data["name"])
             except Exception as e:
-                self.logger.exception(
+                self.logger.warning(
                     "github.webhook.create-failure",
                     extra={
                         "organization_id": organization.id,
@@ -470,12 +470,12 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
 
         for repo in self.get_repositories(integration):
             # TODO(jess): figure out way to migrate from github --> github apps
-            Repository.objects.create_or_update(
+            Repository.objects.update_or_create(
                 organization_id=organization.id,
                 name=repo["name"],
                 external_id=repo["external_id"],
                 provider="github_apps",
-                values={
+                defaults={
                     "integration_id": integration.id,
                     "url": repo["url"],
                     "config": repo["config"],

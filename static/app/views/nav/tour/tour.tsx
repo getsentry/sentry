@@ -7,8 +7,8 @@ import {
   TourAction,
   TourContextProvider,
   TourElement,
-  type TourElementProps,
   TourGuide,
+  type TourElementProps,
 } from 'sentry/components/tours/components';
 import {StartTourModal, startTourModalCss} from 'sentry/components/tours/startTour';
 import type {TourContextType} from 'sentry/components/tours/tourContext';
@@ -230,7 +230,7 @@ export function StackedNavigationTourReminder({children}: {children: React.React
     <TourGuide
       title={t('Come back anytime')}
       description={t(
-        'You can always use the help menu to take this tour again, switch to the old experience, or share feedback with the team.'
+        'You can always use the help menu to take this tour again or share feedback with the team.'
       )}
       actions={
         <TourAction
@@ -244,13 +244,14 @@ export function StackedNavigationTourReminder({children}: {children: React.React
       }
       isOpen={showTourReminder}
     >
-      {children}
+      {props => <div {...props}>{children}</div>}
     </TourGuide>
   );
 }
 
 // Displays the introductory tour modal when a user is entering the experience for the first time.
 export function useTourModal() {
+  const user = useUser();
   const organization = useOrganization();
   const hasOpenedTourModal = useRef(false);
   const {startTour, endTour} = useStackedNavigationTour();
@@ -258,22 +259,21 @@ export function useTourModal() {
     notifyOnChangeProps: ['data'],
   });
   const {mutate: mutateAssistant} = useMutateAssistant();
-  const user = useUser();
   const [localTourState, setLocalTourState] = useLocalStorageState(
     STACKED_NAVIGATION_TOUR_GUIDE_KEY,
     {hasSeen: false}
   );
 
-  const enforceStackedNav = organization.features.includes('enforce-stacked-navigation');
   // We don't want to show the tour modal for new users that were forced into the new stacked navigation.
-  const shouldSkipForNewUserEnforcedStackedNav =
-    enforceStackedNav && new Date(user?.dateJoined) > TOUR_MODAL_DATE_THRESHOLD;
+  const shouldSkipTourForNewUsers =
+    new Date(user?.dateJoined) > TOUR_MODAL_DATE_THRESHOLD;
 
   const shouldShowTourModal =
     assistantData?.find(item => item.guide === STACKED_NAVIGATION_TOUR_GUIDE_KEY)
       ?.seen === false &&
-    !shouldSkipForNewUserEnforcedStackedNav &&
-    !localTourState.hasSeen;
+    !shouldSkipTourForNewUsers &&
+    !localTourState.hasSeen &&
+    !process.env.IS_ACCEPTANCE_TEST;
 
   const dismissTour = useCallback(() => {
     trackAnalytics('navigation.tour_modal_dismissed', {organization});

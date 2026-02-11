@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
-import type {ActionType} from 'sentry/types/workflowEngine/actions';
-import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {ActionType} from 'sentry/types/workflowEngine/actions';
+import type {Automation, StatusWarning} from 'sentry/types/workflowEngine/automations';
 import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
 import {
   DataConditionGroupLogicType,
@@ -8,7 +8,7 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import {AgeComparison} from 'sentry/views/automations/components/actionFilters/constants';
 import type {ConflictingConditions} from 'sentry/views/automations/components/automationBuilderConflictContext';
-import {useDetectorQueriesByIds} from 'sentry/views/detectors/hooks';
+import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
 export function getAutomationActions(automation: Automation): ActionType[] {
   return [
@@ -22,10 +22,40 @@ export function getAutomationActions(automation: Automation): ActionType[] {
   ] as ActionType[];
 }
 
+export function getAutomationActionsWarning(
+  automation: Automation
+): StatusWarning | null {
+  const allActions = automation.actionFilters.flatMap(filter => filter.actions ?? []);
+  const inactiveCount = allActions.filter(action => action.status === 'disabled').length;
+  const totalCount = allActions.length;
+
+  if (totalCount === 0) {
+    return {
+      color: 'danger' as const,
+      message: t('You must add an action for this alert to run.'),
+    };
+  }
+  if (inactiveCount === totalCount) {
+    return {
+      color: 'danger' as const,
+      message: t(
+        'Alert is invalid because no actions can run. Actions need to be reconfigured.'
+      ),
+    };
+  }
+  if (inactiveCount > 0) {
+    return {
+      color: 'warning' as const,
+      message: t('One or more actions need to be reconfigured in order to run.'),
+    };
+  }
+  return null;
+}
+
 export function useAutomationProjectIds(automation: Automation): string[] {
-  const queries = useDetectorQueriesByIds(automation.detectorIds);
+  const {data: detectors} = useDetectorsQuery({ids: automation.detectorIds});
   return [
-    ...new Set(queries.map(query => query.data?.projectId).filter(x => x)),
+    ...new Set(detectors?.map(detector => detector.projectId).filter(x => x) ?? []),
   ] as string[];
 }
 
@@ -43,21 +73,22 @@ export function findConflictingConditions(
   }
 
   // Check for mutually exclusive trigger conditions with ALL logic
-  const conflictingTriggerConditions =
-    findConflictingConditionsForConditionGroup(triggers);
-  if (
-    triggers.logicType === DataConditionGroupLogicType.ALL &&
-    conflictingTriggerConditions.size > 1
-  ) {
-    return {
-      conflictingConditionGroups: {
-        [triggers.id]: conflictingTriggerConditions,
-      },
-      conflictReason: t(
-        'The triggers highlighted in red are mutually exclusive and cannot be used together with "All" logic.'
-      ),
-    };
+  if (triggers.logicType === DataConditionGroupLogicType.ALL) {
+    const conflictingTriggerConditions =
+      findFirstSeenEventConflictingConditions(triggers);
+    if (conflictingTriggerConditions.size > 1) {
+      return {
+        conflictingConditionGroups: {
+          [triggers.id]: conflictingTriggerConditions,
+        },
+        conflictReason: t(
+          'The triggers highlighted in red are mutually exclusive and cannot be used together with "All" logic.'
+        ),
+      };
+    }
   }
+
+  let hasConflictingActionFilters = false;
 
   // Check for first seen event condition
   const firstSeenId = triggers.conditions.find(
@@ -73,11 +104,10 @@ export function findConflictingConditions(
     )
   ) {
     const conflictingConditions: Record<string, Set<string>> = {};
-    let hasConflictingActionFilters = false;
 
     // Create a mapping of conflicting conditions for each action filter
     for (const actionFilter of actionFilters) {
-      const conflicts = findConflictingConditionsForConditionGroup(actionFilter);
+      const conflicts = findFirstSeenEventConflictingConditions(actionFilter);
       conflictingConditions[actionFilter.id] = conflicts;
       if (conflicts.size > 0) {
         hasConflictingActionFilters = true;
@@ -96,6 +126,26 @@ export function findConflictingConditions(
       };
     }
   }
+
+  // Check for conflicting issue priority conditions in action filters
+  const conflictingActionFilters: Record<string, Set<string>> = {};
+  for (const actionFilter of actionFilters) {
+    const conflictingConditions = findConflictingPriorityConditions(actionFilter);
+    if (conflictingConditions.size > 0) {
+      hasConflictingActionFilters = true;
+      conflictingActionFilters[actionFilter.id] = conflictingConditions;
+    }
+  }
+
+  if (hasConflictingActionFilters) {
+    return {
+      conflictingConditionGroups: conflictingActionFilters,
+      conflictReason: t(
+        'The issue priority conditions highlighted in red are in conflict.'
+      ),
+    };
+  }
+
   return {
     conflictingConditionGroups: {},
     conflictReason: null,
@@ -104,6 +154,7 @@ export function findConflictingConditions(
 
 const conflictingTriggers = new Set<DataConditionType>([
   DataConditionType.FIRST_SEEN_EVENT,
+  DataConditionType.ISSUE_RESOLVED_TRIGGER,
   DataConditionType.REGRESSION_EVENT,
   DataConditionType.REAPPEARED_EVENT,
 ]);
@@ -115,7 +166,7 @@ const frequencyTypes = new Set<DataConditionType>([
   DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
 ]);
 
-function findConflictingConditionsForConditionGroup(
+function findFirstSeenEventConflictingConditions(
   conditionGroup: DataConditionGroup
 ): Set<string> {
   const conflictingConditions: Set<string> = new Set<string>();
@@ -166,6 +217,45 @@ function findConflictingConditionsForConditionGroup(
     conflictingConditions.size !== conditionGroup.conditions.length
   ) {
     return new Set<string>();
+  }
+
+  return conflictingConditions;
+}
+
+function findConflictingPriorityConditions(
+  conditionGroup: DataConditionGroup
+): Set<string> {
+  const conflictingConditions: Set<string> = new Set<string>();
+
+  const priorityGreaterOrEqualConditions: string[] = [];
+  const priorityDeescalatingConditions: string[] = [];
+
+  // Conflicting issue priority conditions are only relevant for ALL logic type
+  if (conditionGroup.logicType !== DataConditionGroupLogicType.ALL) {
+    return conflictingConditions;
+  }
+
+  for (const condition of conditionGroup.conditions) {
+    const isIssuePriority =
+      condition.type === DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL;
+    const isIssuePriorityDeescalating =
+      condition.type === DataConditionType.ISSUE_PRIORITY_DEESCALATING;
+    if (isIssuePriority) {
+      priorityGreaterOrEqualConditions.push(condition.id);
+    }
+    if (isIssuePriorityDeescalating) {
+      priorityDeescalatingConditions.push(condition.id);
+    }
+  }
+
+  // Issue priority and priority deescalating conditions conflict if logic type is ALL
+  if (
+    conditionGroup.logicType === DataConditionGroupLogicType.ALL &&
+    priorityGreaterOrEqualConditions.length > 0 &&
+    priorityDeescalatingConditions.length > 0
+  ) {
+    priorityGreaterOrEqualConditions.forEach(id => conflictingConditions.add(id));
+    priorityDeescalatingConditions.forEach(id => conflictingConditions.add(id));
   }
 
   return conflictingConditions;

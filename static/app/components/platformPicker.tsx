@@ -3,21 +3,24 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
-import {Button} from 'sentry/components/core/button';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {Button} from '@sentry/scraps/button';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingMask from 'sentry/components/loadingMask';
 import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {gaming} from 'sentry/data/platformCategories';
+import {consoles, gaming} from 'sentry/data/platformCategories';
 import {
+  categoryList,
   createablePlatforms,
   filterAliases,
-  getCategoryList,
 } from 'sentry/data/platformPickerCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration} from 'sentry/types/project';
@@ -42,7 +45,7 @@ function startsWithPunctuation(name: string) {
   return /^[\p{P}]/u.test(name);
 }
 
-export type Category = ReturnType<typeof getCategoryList>[number]['id'];
+export type Category = (typeof categoryList)[number]['id'];
 
 export type Platform = PlatformIntegration & {
   category: Category;
@@ -83,36 +86,30 @@ function PlatformPicker({
   showFilterBar = true,
   showOther = true,
 }: PlatformPickerProps) {
-  const categories = useMemo(() => {
-    return getCategoryList(organization);
-  }, [organization]);
+  const {isSelfHosted} = useLegacyStore(ConfigStore);
 
-  const [category, setCategory] = useState(defaultCategory ?? categories[0]!.id);
+  const [category, setCategory] = useState(defaultCategory ?? categoryList[0]!.id);
   const [filter, setFilter] = useState(
     noAutoFilter ? '' : (platform || '').split('-')[0]!
   );
 
-  useEffect(() => {
-    setCategory(defaultCategory ?? categories[0]!.id);
-  }, [defaultCategory, categories]);
-
-  const includeGamingPlatforms =
-    organization?.features.includes('project-creation-games-tab') ?? false;
-
   const availablePlatforms = useMemo(() => {
-    if (!includeGamingPlatforms) {
-      return selectablePlatforms;
-    }
+    const gamingPlatforms = platforms.filter(p => {
+      if (!gaming.includes(p.id) || createablePlatforms.has(p.id)) {
+        return false;
+      }
+      if (isSelfHosted) {
+        return !consoles.includes(p.id);
+      }
 
-    const gamingPlatforms = platforms.filter(
-      p => gaming.includes(p.id) && !createablePlatforms.has(p.id)
-    );
+      return true;
+    });
 
     return [...selectablePlatforms, ...gamingPlatforms];
-  }, [includeGamingPlatforms]);
+  }, [isSelfHosted]);
 
   const platformList = useMemo(() => {
-    const currentCategory = categories.find(({id}) => id === category);
+    const currentCategory = categoryList.find(({id}) => id === category);
 
     const subsetMatch = (platformIntegration: PlatformIntegration) =>
       platformIntegration.id.includes(filter.toLowerCase()) ||
@@ -151,30 +148,53 @@ function PlatformPicker({
       }
       return a.name.localeCompare(b.name);
     });
-  }, [filter, category, availablePlatforms, showOther, categories]);
+  }, [filter, category, availablePlatforms, showOther]);
 
-  const latestValuesRef = useRef({filter, platformList, source, organization});
-
-  useEffect(() => {
-    latestValuesRef.current = {filter, platformList, source, organization};
+  const latestValuesRef = useRef({
+    filter,
+    platformList,
+    source,
+    organization,
+    category,
   });
 
-  const debounceLogSearch = useRef(
+  useEffect(() => {
+    latestValuesRef.current = {filter, platformList, source, organization, category};
+  });
+
+  const debounceSearch = useRef(
     debounce(() => {
       const {
         filter: currentFilter,
         platformList: currentPlatformList,
         source: currentSource,
         organization: currentOrganization,
+        category: currentCategory,
       } = latestValuesRef.current;
-      if (currentFilter) {
-        trackAnalytics('growth.platformpicker_search', {
-          search: currentFilter.toLowerCase(),
-          num_results: currentPlatformList.length,
-          source: currentSource,
-          organization: currentOrganization ?? null,
-        });
+
+      if (!currentFilter) {
+        return;
       }
+      trackAnalytics('growth.platformpicker_search', {
+        search: currentFilter.toLowerCase(),
+        num_results: currentPlatformList.length,
+        source: currentSource,
+        organization: currentOrganization ?? null,
+      });
+
+      if (!visibleSelection) {
+        return;
+      }
+
+      const fullPlatformMatch = currentPlatformList.find(
+        platformItem => platformItem.name.toLowerCase() === currentFilter.toLowerCase()
+      );
+
+      if (!fullPlatformMatch) {
+        return;
+      }
+
+      setPlatform({...fullPlatformMatch, category: currentCategory});
     }, DEFAULT_DEBOUNCE_DURATION)
   ).current;
 
@@ -195,7 +215,7 @@ function PlatformPicker({
             }}
           >
             <TabList>
-              {categories.map(({id, name}) => (
+              {categoryList.map(({id, name}) => (
                 <TabList.Item key={id}>{name}</TabList.Item>
               ))}
             </TabList>
@@ -208,7 +228,7 @@ function PlatformPicker({
             placeholder={t('Filter Platforms')}
             onChange={val => {
               setFilter(val);
-              debounceLogSearch();
+              debounceSearch();
             }}
           />
         )}
@@ -233,6 +253,7 @@ function PlatformPicker({
                     source,
                     organization: organization ?? null,
                   });
+
                   setPlatform({...item, category});
                 }}
               />
@@ -242,7 +263,7 @@ function PlatformPicker({
       </PlatformList>
       {platformList.length === 0 && (
         <EmptyMessage
-          icon={<IconProject size="xl" />}
+          icon={<IconProject />}
           title={t("We don't have an SDK for that yet!")}
         >
           {tct(
@@ -295,8 +316,8 @@ const StyledSearchBar = styled(SearchBar)`
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin: ${space(2)};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const ClearButton = styled(Button)`
@@ -310,8 +331,8 @@ const ClearButton = styled(Button)`
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: ${p => p.theme.background};
-  color: ${p => p.theme.textColor};
+  background: ${p => p.theme.tokens.background.primary};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const TransparentLoadingMask = styled(LoadingMask)<{visible: boolean}>`
@@ -327,14 +348,14 @@ const PlatformCard = styled(
         platform={platform.id}
         size={56}
         radius={5}
-        withLanguageIcon
+        withLanguageIcon={platform.iconConfig?.withLanguageIcon ?? true}
         format="lg"
       />
       <h3>{platform.name}</h3>
       {selected && visibleSelection && (
         <ClearButton
-          icon={<IconClose isCircled />}
-          borderless
+          icon={<IconClose />}
+          priority="transparent"
           size="xs"
           onClick={onClear}
           aria-label={t('Clear')}
@@ -351,13 +372,10 @@ const PlatformCard = styled(
   border-radius: 4px;
   cursor: ${p => (p.loading ? 'default' : 'pointer')};
 
-  ${p =>
-    p.selected &&
-    p.visibleSelection &&
-    `background: ${p.theme.alert.info.backgroundLight};`}
+  ${p => p.selected && p.visibleSelection && `background: ${p.theme.colors.blue100};`}
 
   &:hover {
-    background: ${p => p.theme.alert.muted.backgroundLight};
+    background: ${p => p.theme.tokens.background.secondary};
   }
 
   h3 {
@@ -366,9 +384,10 @@ const PlatformCard = styled(
     align-items: center;
     justify-content: center;
     width: 100%;
-    color: ${p => (p.selected ? p.theme.textColor : p.theme.subText)};
+    color: ${p =>
+      p.selected ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
     text-align: center;
-    font-size: ${p => p.theme.fontSize.xs};
+    font-size: ${p => p.theme.font.size.xs};
     text-transform: uppercase;
     margin: 0;
     padding: 0 ${space(0.5)};

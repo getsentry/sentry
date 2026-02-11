@@ -14,7 +14,7 @@ from sentry.testutils.helpers.response import close_streaming_response
 class ReplayVideoDetailsTestCase(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-video-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.replay_id = uuid.uuid4().hex
         self.segment_id = 0
@@ -37,7 +37,7 @@ class ReplayVideoDetailsTestCase(APITestCase, ReplaysSnubaTestCase):
         storage_kv.set(key=filename, value=zlib.compress(pack(b"[]", data)))
         self.filename = filename + ".video"
 
-    def save_replay_segment(self, segment_id: int, **metadata) -> None:
+    def save_replay_segment(self, segment_id: int) -> None:
         # Insert a mock row into the database for tracking the blob.
         self.store_replays(
             mock_replay(
@@ -46,15 +46,18 @@ class ReplayVideoDetailsTestCase(APITestCase, ReplaysSnubaTestCase):
                 self.replay_id,
                 segment_id=segment_id,
                 retention_days=30,
-                **metadata,
             )
         )
 
-    def save_video(self, segment_id: int, data: bytes, **metadata) -> None:
+    def save_video(
+        self,
+        segment_id: int,
+        data: bytes,
+    ) -> None:
         self.save_video_file(segment_id, data)
-        self.save_replay_segment(segment_id, **metadata)
+        self.save_replay_segment(segment_id)
 
-    def test_get_replay_video(self):
+    def test_get_replay_video(self) -> None:
         self.save_video(0, self.segment_data)
         self.login_as(user=self.user)
 
@@ -67,7 +70,7 @@ class ReplayVideoDetailsTestCase(APITestCase, ReplaysSnubaTestCase):
             assert response.get("Content-Length") == str(self.segment_data_size)
             assert response.get("Content-Type") == "application/octet-stream"
 
-    def test_get_replay_video_range(self):
+    def test_get_replay_video_range(self) -> None:
         self.save_video(0, self.segment_data)
         self.login_as(user=self.user)
 
@@ -81,7 +84,7 @@ class ReplayVideoDetailsTestCase(APITestCase, ReplaysSnubaTestCase):
             assert response.get("Content-Type") == "application/octet-stream"
             assert response.get("Content-Range") == "bytes 0-5/13"
 
-    def test_get_replay_video_multi_range(self):
+    def test_get_replay_video_multi_range(self) -> None:
         self.save_video(0, self.segment_data)
         self.login_as(user=self.user)
 
@@ -95,7 +98,7 @@ class ReplayVideoDetailsTestCase(APITestCase, ReplaysSnubaTestCase):
             assert response.get("Content-Type") == "application/octet-stream"
             assert response.get("Content-Range") == "bytes */13"
 
-    def test_get_replay_video_invalid_range(self):
+    def test_get_replay_video_invalid_range(self) -> None:
         self.save_video(0, self.segment_data)
         self.login_as(user=self.user)
 
@@ -109,14 +112,14 @@ class ReplayVideoDetailsTestCase(APITestCase, ReplaysSnubaTestCase):
             assert response.get("Content-Type") == "application/octet-stream"
             assert response.get("Content-Range") == "bytes */13"
 
-    def test_get_replay_video_segment_not_found(self):
+    def test_get_replay_video_segment_not_found(self) -> None:
         self.login_as(user=self.user)
 
         with self.feature("organizations:session-replay"):
             response = self.client.get(self.url)
             assert response.status_code == 404, response.content
 
-    def test_get_replay_video_payload_not_found(self):
+    def test_get_replay_video_payload_not_found(self) -> None:
         self.save_replay_segment(0)
         self.login_as(user=self.user)
 

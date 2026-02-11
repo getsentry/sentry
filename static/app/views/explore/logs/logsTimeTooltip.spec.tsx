@@ -7,14 +7,14 @@ import ConfigStore from 'sentry/stores/configStore';
 import {TimestampTooltipBody} from 'sentry/views/explore/logs/logsTimeTooltip';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
-describe('TimestampTooltipBody', function () {
+describe('TimestampTooltipBody', () => {
   const timestamp = '2024-01-15T15:45:30.456Z';
 
   beforeEach(() => {
     ConfigStore.set('user', UserFixture());
   });
 
-  it('renders basic precise timestamp', function () {
+  it('renders basic precise timestamp', () => {
     const user = UserFixture();
     user.options.timezone = 'America/New_York';
     ConfigStore.set('user', user);
@@ -35,7 +35,7 @@ describe('TimestampTooltipBody', function () {
     expect(screen.getByText(/1705333530/)).toBeInTheDocument();
   });
 
-  it('renders only timezone line when timezone is UTC', function () {
+  it('renders only timezone line when timezone is UTC', () => {
     const user = UserFixture();
     user.options.timezone = 'UTC';
     ConfigStore.set('user', user);
@@ -56,7 +56,7 @@ describe('TimestampTooltipBody', function () {
     expect(allTimestampElements).toHaveLength(1);
   });
 
-  it('renders received time when observed timestamp is provided', function () {
+  it('renders received time when observed timestamp is provided', () => {
     const user = UserFixture();
     user.options.timezone = 'America/New_York';
     ConfigStore.set('user', user);
@@ -76,7 +76,7 @@ describe('TimestampTooltipBody', function () {
     expect(screen.getByText('Received')).toBeInTheDocument();
   });
 
-  it('does not render received time when observed timestamp is not provided', function () {
+  it('does not render received time when observed timestamp is not provided', () => {
     const user = UserFixture();
     user.options.timezone = 'America/New_York';
     ConfigStore.set('user', user);
@@ -95,7 +95,7 @@ describe('TimestampTooltipBody', function () {
     expect(screen.queryByText('Received')).not.toBeInTheDocument();
   });
 
-  it('renders in 24h format when user preference is set', function () {
+  it('renders in 24h format when user preference is set', () => {
     const user = UserFixture();
     user.options.timezone = 'America/New_York';
     user.options.clock24Hours = true;

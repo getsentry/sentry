@@ -7,6 +7,7 @@ from unittest.mock import Mock
 from django.db.models import QuerySet
 
 from sentry.constants import ObjectStatus
+from sentry.db.models import Model
 from sentry.deletions.models.scheduleddeletion import (
     BaseScheduledDeletion,
     RegionScheduledDeletion,
@@ -37,11 +38,11 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
         raise NotImplementedError("Subclasses should implement")
 
     @abstractmethod
-    def create_simple_deletion(self) -> QuerySet:
+    def create_simple_deletion(self) -> QuerySet[Model]:
         raise NotImplementedError("Subclasses should implement!")
 
     @abstractmethod
-    def create_does_not_proceed_deletion(self) -> QuerySet:
+    def create_does_not_proceed_deletion(self) -> QuerySet[Model]:
         raise NotImplementedError("Subclasses should implement!")
 
     @abstractmethod
@@ -52,7 +53,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
     def reattempt_deletions(self) -> None:
         raise NotImplementedError("Subclasses should implement")
 
-    def test_schedule_and_cancel(self):
+    def test_schedule_and_cancel(self) -> None:
         qs = self.create_simple_deletion()
         inst = qs.get()
 
@@ -63,7 +64,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
         # No errors if we cancel a delete that wasn't started.
         assert self.ScheduledDeletion.cancel(inst) is None
 
-    def test_duplicate_schedule(self):
+    def test_duplicate_schedule(self) -> None:
         qs = self.create_simple_deletion()
         inst = qs.get()
 
@@ -75,7 +76,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
         # Date should be updated
         assert second.date_scheduled - first.date_scheduled >= timedelta(days=1)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         qs = self.create_simple_deletion()
         inst = qs.get()
         schedule = self.ScheduledDeletion.schedule(instance=inst, days=0)
@@ -86,7 +87,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
         assert not qs.exists()
         assert not self.ScheduledDeletion.objects.filter(id=schedule.id).exists()
 
-    def test_should_proceed_check(self):
+    def test_should_proceed_check(self) -> None:
         qs = self.create_does_not_proceed_deletion()
         inst = qs.get()
 
@@ -98,7 +99,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
         assert qs.exists()
         assert not self.ScheduledDeletion.objects.filter(id=schedule.id, in_progress=True).exists()
 
-    def test_ignore_in_progress(self):
+    def test_ignore_in_progress(self) -> None:
         qs = self.create_simple_deletion()
         inst = qs.get()
         schedule = self.ScheduledDeletion.schedule(instance=inst, days=0)
@@ -110,7 +111,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
         assert qs.exists()
         assert self.ScheduledDeletion.objects.filter(id=schedule.id, in_progress=True).exists()
 
-    def test_future_schedule(self):
+    def test_future_schedule(self) -> None:
         qs = self.create_simple_deletion()
         inst = qs.get()
         schedule = self.ScheduledDeletion.schedule(instance=inst, days=1)
@@ -121,7 +122,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
         assert qs.exists()
         assert self.ScheduledDeletion.objects.filter(id=schedule.id, in_progress=False).exists()
 
-    def test_triggers_pending_delete_signal(self):
+    def test_triggers_pending_delete_signal(self) -> None:
         signal_handler = Mock()
         pending_delete.connect(signal_handler)
 
@@ -138,7 +139,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
         assert args["actor"] == user_service.get_user(user_id=self.user.id)
         pending_delete.disconnect(signal_handler)
 
-    def test_no_pending_delete_trigger_on_skipped_delete(self):
+    def test_no_pending_delete_trigger_on_skipped_delete(self) -> None:
         qs = self.create_does_not_proceed_deletion()
         inst = qs.get()
 
@@ -153,7 +154,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
         pending_delete.disconnect(signal_handler)
         assert signal_handler.call_count == 0
 
-    def test_handle_missing_record(self):
+    def test_handle_missing_record(self) -> None:
         qs = self.create_simple_deletion()
         inst = qs.get()
         schedule = self.ScheduledDeletion.schedule(instance=inst, days=0)
@@ -165,7 +166,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
 
         assert not self.ScheduledDeletion.objects.filter(id=schedule.id).exists()
 
-    def test_reattempt_simple(self):
+    def test_reattempt_simple(self) -> None:
         qs = self.create_simple_deletion()
         inst = qs.get()
         schedule = self.ScheduledDeletion.schedule(instance=inst, days=-3)
@@ -176,7 +177,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
         schedule.refresh_from_db()
         assert not schedule.in_progress
 
-    def test_reattempt_ignore_recent_jobs(self):
+    def test_reattempt_ignore_recent_jobs(self) -> None:
         qs = self.create_simple_deletion()
         inst = qs.get()
         schedule = self.ScheduledDeletion.schedule(instance=inst, days=0)
@@ -187,7 +188,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
         schedule.refresh_from_db()
         assert schedule.in_progress is True
 
-    def test_relocated_model(self):
+    def test_relocated_model(self) -> None:
         qs = self.create_simple_deletion()
         inst = qs.get()
 

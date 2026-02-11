@@ -4,7 +4,7 @@ import zoneinfo
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, overload
 
-from dateutil.parser import ParserError, parse
+from dateutil.parser import parse
 from django.http.request import HttpRequest
 from django.utils.timezone import is_aware, make_aware
 
@@ -76,6 +76,14 @@ def parse_date(datestr: str, timestr: str) -> datetime | None:
             return None
 
 
+@overload  # TODO: deprecate
+def parse_timestamp(value: None) -> None: ...
+
+
+@overload
+def parse_timestamp(value: datetime | int | float | str | bytes) -> datetime: ...
+
+
 def parse_timestamp(value: datetime | int | float | str | bytes | None) -> datetime | None:
     # TODO(mitsuhiko): merge this code with coreapis date parser
     if not value:
@@ -85,13 +93,9 @@ def parse_timestamp(value: datetime | int | float | str | bytes | None) -> datet
     elif isinstance(value, (int, float)):
         return datetime.fromtimestamp(value, UTC)
 
-    try:
-        if isinstance(value, bytes):
-            value = value.decode()
-        return parse(value, ignoretz=True).replace(tzinfo=UTC)
-    except (ParserError, ValueError):
-        logger.exception("parse_timestamp")
-        return None
+    if isinstance(value, bytes):
+        value = value.decode()
+    return parse(value, ignoretz=True).replace(tzinfo=UTC)
 
 
 def parse_stats_period(period: str) -> timedelta | None:
@@ -140,6 +144,7 @@ def get_rollup_from_request(
     error: Exception,
     top_events: int = 0,
     allow_interval_over_range: bool = True,
+    max_rollup_override: None | float = None,
 ) -> int:
     if default_interval is None:
         default_interval = get_interval_from_range(date_range, False)
@@ -147,7 +152,9 @@ def get_rollup_from_request(
     interval = parse_stats_period(request.GET.get("interval", default_interval))
     if interval is None:
         interval = timedelta(hours=1)
-    validate_interval(interval, error, date_range, top_events, allow_interval_over_range)
+    validate_interval(
+        interval, error, date_range, top_events, allow_interval_over_range, max_rollup_override
+    )
 
     return int(interval.total_seconds())
 
@@ -158,12 +165,16 @@ def validate_interval(
     date_range: timedelta,
     top_events: int,
     allow_interval_over_range: bool = True,
+    max_rollup_override: None | float = None,
 ) -> None:
     if interval.total_seconds() <= 0:
         raise error.__class__("Interval cannot result in a zero duration.")
 
-    # When top events are present, there can be up to 5x as many points
-    max_rollup_points = MAX_ROLLUP_POINTS if top_events == 0 else MAX_ROLLUP_POINTS / top_events
+    if max_rollup_override is not None:
+        max_rollup_points = max_rollup_override
+    else:
+        # When top events are present, there can be up to 5x as many points
+        max_rollup_points = MAX_ROLLUP_POINTS if top_events == 0 else MAX_ROLLUP_POINTS / top_events
 
     if not allow_interval_over_range and interval.total_seconds() > date_range.total_seconds():
         raise error.__class__("Interval cannot be larger than the date range.")
@@ -186,7 +197,7 @@ def outside_retention_with_modified_start(
 
     # Need to support timezone-aware and naive datetimes since
     # Snuba API only deals in naive UTC
-    now = datetime.now(UTC) if start.tzinfo else datetime.utcnow()
+    now = datetime.now(UTC) if start.tzinfo else datetime.now(UTC).replace(tzinfo=None)
     start = max(start, now - timedelta(days=retention))
 
     return start > end, start

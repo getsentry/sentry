@@ -6,11 +6,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import ProjectPluginDetailsContainer, {
-  ProjectPluginDetails,
-} from 'sentry/views/settings/projectPlugins/details';
+import ProjectPluginDetails from 'sentry/views/settings/projectPlugins/details';
 
-describe('ProjectPluginDetails', function () {
+describe('ProjectPluginDetails', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   const plugins = PluginsFixture();
@@ -23,11 +21,11 @@ describe('ProjectPluginDetails', function () {
     route: '/settings/:orgId/projects/:projectId/settings/plugins/:pluginId/',
   };
 
-  beforeAll(function () {
+  beforeAll(() => {
     jest.spyOn(console, 'info').mockImplementation(() => {});
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/plugins/`,
       method: 'GET',
@@ -55,24 +53,22 @@ describe('ProjectPluginDetails', function () {
     });
   });
 
-  it('renders', async function () {
-    render(
-      <ProjectPluginDetailsContainer organization={organization} project={project} />,
-      {initialRouterConfig}
-    );
+  it('renders', async () => {
+    render(<ProjectPluginDetails />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
     expect(await screen.findByRole('heading', {name: 'Amazon SQS'})).toBeInTheDocument();
   });
 
-  it('resets plugin', async function () {
+  it('resets plugin', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
-    render(
-      <ProjectPluginDetails
-        organization={organization}
-        project={project}
-        plugins={{plugins}}
-      />,
-      {initialRouterConfig}
-    );
+    render(<ProjectPluginDetails />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Reset Configuration'})
@@ -83,12 +79,13 @@ describe('ProjectPluginDetails', function () {
     );
   });
 
-  it('enables/disables plugin', async function () {
+  it('enables/disables plugin', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
-    render(
-      <ProjectPluginDetailsContainer organization={organization} project={project} />,
-      {initialRouterConfig}
-    );
+    render(<ProjectPluginDetails />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Enable Plugin'}));
 

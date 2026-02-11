@@ -54,6 +54,8 @@ class MultiProducer:
 
     def _default_producer_factory(self, producer_config: Mapping[str, object]) -> KafkaProducer:
         """Default factory that creates real KafkaProducers."""
+        producer_config = dict(producer_config)
+        producer_config["client.id"] = "sentry.spans.consumers.process.flusher"
         return KafkaProducer(build_kafka_producer_configuration(default_config=producer_config))
 
     def _setup_producers(self):
@@ -66,6 +68,7 @@ class MultiProducer:
 
         if sliced_configs:
             # Multiple producers configured via SLICED_KAFKA_TOPICS
+            # TODO(markus): Everything should go through get_arroyo_producer
             for config in sliced_configs:
                 cluster_name = config["cluster"]
                 topic_name = config["topic"]
@@ -131,6 +134,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
     ):
         self.next_step = next_step
         self.max_processes = max_processes or len(buffer.assigned_shards)
+        self.slice_id = buffer.slice_id
 
         self.mp_context = mp_context = multiprocessing.get_context("spawn")
         self.stopped = mp_context.Value("i", 0)
@@ -149,8 +153,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         self.processes: dict[int, multiprocessing.context.SpawnProcess | threading.Thread] = {}
         self.process_healthy_since = {
-            process_index: mp_context.Value("i", int(time.time()))
-            for process_index in range(self.num_processes)
+            process_index: mp_context.Value("i", 0) for process_index in range(self.num_processes)
         }
         self.process_backpressure_since = {
             process_index: mp_context.Value("i", 0) for process_index in range(self.num_processes)
@@ -160,19 +163,43 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         self._create_processes()
 
+        # When starting the consumer, block the consumer's main thread until
+        # all processes are healthy. This ensures we do not write into Redis if
+        # the flusher deterministically crashes on start, because in
+        # combination with the consumer crashlooping this will cause Redis to
+        # be filled up.
+        for process_index in self.process_to_shards_map.keys():
+            self._wait_for_process_to_become_healthy(process_index)
+
+    def _wait_for_process_to_become_healthy(self, process_index: int):
+        start_time = time.time()
+        max_unhealthy_seconds = options.get("spans.buffer.flusher.max-unhealthy-seconds") * 2
+
+        while True:
+            if self.process_healthy_since[process_index].value != 0:
+                break
+
+            if time.time() - start_time > max_unhealthy_seconds:
+                shards = self.process_to_shards_map[process_index]
+                raise RuntimeError(
+                    f"process {process_index} (shards {shards}) didn't start up in {max_unhealthy_seconds} seconds"
+                )
+
+            time.sleep(0.1)
+
     def _create_processes(self):
         # Create processes based on shard mapping
         for process_index, shards in self.process_to_shards_map.items():
             self._create_process_for_shards(process_index, shards)
 
     def _create_process_for_shards(self, process_index: int, shards: list[int]):
-        # Optimistically reset healthy_since to avoid a race between the
-        # starting process and the next flush cycle. Keep back pressure across
-        # the restart, however.
-        self.process_healthy_since[process_index].value = int(time.time())
+        use_stuck_detector = options.get("spans.buffer.flusher.use-stuck-detector")
+        self.process_healthy_since[process_index].value = 0
+
+        logger.info("Creating flusher process %s for shards %s", process_index, shards)
 
         # Create a buffer for these specific shards
-        shard_buffer = SpansBuffer(shards)
+        shard_buffer = SpansBuffer(shards, slice_id=self.slice_id)
 
         make_process: Callable[..., multiprocessing.context.SpawnProcess | threading.Thread]
         if self.produce_to_pipe is None:
@@ -183,6 +210,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 # synchronization primitives like multiprocessing.Value can
                 # only be done by the Process
                 shard_buffer,
+                use_stuck_detector=use_stuck_detector,
             )
             make_process = self.mp_context.Process
         else:
@@ -203,6 +231,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         )
 
         process.start()
+        pid = getattr(process, "pid", None)
+        logger.info("Flusher process %s started (pid=%s) for shards %s", process_index, pid, shards)
         self.processes[process_index] = process
         self.buffers[process_index] = shard_buffer
 
@@ -223,6 +253,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         healthy_since,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
     ) -> None:
+        logger.info("Flusher process main started for shards %s", shards)
+
         # TODO: remove once span buffer is live in all regions
         scope = sentry_sdk.get_isolation_scope()
         scope.level = "warning"
@@ -231,6 +263,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")
         sentry_sdk.set_tag("sentry_spans_buffer_shards", shard_tag)
 
+        logger.info("Flusher process started for shards %s", shard_tag)
+
         try:
             producer_futures = []
 
@@ -238,15 +272,21 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 produce = produce_to_pipe
                 producer_manager = None
             else:
+                logger.info("Flusher creating Kafka producer for shards %s", shard_tag)
                 producer_manager = MultiProducer(Topic.BUFFERED_SEGMENTS)
+                logger.info("Flusher Kafka producer created for shards %s", shard_tag)
 
                 def produce(payload: KafkaPayload) -> None:
                     producer_futures.append(producer_manager.produce(payload))
 
+            first_iteration = True
             while not stopped.value:
                 system_now = int(time.time())
                 now = system_now + current_drift.value
                 flushed_segments = buffer.flush_segments(now=now)
+
+                if first_iteration:
+                    logger.info("Flusher first flush_segments completed for shards %s", shard_tag)
 
                 # Check backpressure flag set by buffer
                 if buffer.any_shard_at_limit:
@@ -257,6 +297,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
                 # Update healthy_since for all shards handled by this process
                 healthy_since.value = system_now
+
+                if first_iteration:
+                    logger.info("Flusher process healthy for shards %s", shard_tag)
+                    first_iteration = False
 
                 if not flushed_segments:
                     time.sleep(1)
@@ -337,6 +381,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 pass  # Process already closed, ignore
 
             self._create_process_for_shards(process_index, shards)
+            self._wait_for_process_to_become_healthy(process_index)
 
     def submit(self, message: Message[FilteredPayload | int]) -> None:
         # Note that submit is not actually a hot path. Their message payloads

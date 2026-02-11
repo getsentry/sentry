@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {logger} from '@sentry/core';
+import {debug} from '@sentry/core';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import type {ChartId} from 'sentry/components/charts/chartWidgetLoader';
@@ -8,12 +8,12 @@ import {
   EventDrawerContainer,
 } from 'sentry/components/events/eventDrawer';
 import LoadingError from 'sentry/components/loadingError';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDateFromTimestamp} from 'sentry/utils/dates';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {ReleasesDrawerDetails} from 'sentry/views/releases/drawer/releasesDrawerDetails';
 import {ReleasesDrawerList} from 'sentry/views/releases/drawer/releasesDrawerList';
 
@@ -72,7 +72,7 @@ export function ReleasesDrawer() {
 
   useEffect(() => {
     if (rd === 'show' && !rdRelease && !rdStart && !rdEnd) {
-      logger.error('Release: Invalid URL parameters for drawer');
+      debug.error('Release: Invalid URL parameters for drawer');
     }
   }, [rd, rdRelease, rdStart, rdEnd]);
 

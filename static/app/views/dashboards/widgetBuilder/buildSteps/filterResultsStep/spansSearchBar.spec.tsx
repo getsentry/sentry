@@ -3,6 +3,7 @@ import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import type {TagValue} from 'sentry/types/group';
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -10,8 +11,10 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 
 // The endpoint seems to just return these fields, but the original TagValue type
 // has extra fields related to user information that we don't seem to need.
-interface MockedTagValue
-  extends Pick<TagValue, 'key' | 'value' | 'name' | 'count' | 'firstSeen' | 'lastSeen'> {}
+interface MockedTagValue extends Pick<
+  TagValue,
+  'key' | 'value' | 'name' | 'count' | 'firstSeen' | 'lastSeen'
+> {}
 
 function renderWithProvider({
   widgetQuery,
@@ -21,7 +24,8 @@ function renderWithProvider({
   return render(
     <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
       <SpansSearchBar widgetQuery={widgetQuery} onSearch={onSearch} onClose={onClose} />
-    </TraceItemAttributeProvider>
+    </TraceItemAttributeProvider>,
+    {organization: {features: ['search-query-builder-input-flow-changes']}}
   );
 }
 
@@ -126,14 +130,16 @@ describe('SpansSearchBar', () => {
     const searchInput = await screen.findByRole('combobox', {
       name: 'Add a search term',
     });
-    await userEvent.type(searchInput, 'span.op:function');
-
-    // It takes two enters. One to enter the search term, and one to submit the search.
+    await userEvent.type(searchInput, 'span.op:');
     await userEvent.keyboard('{enter}');
+    await userEvent.keyboard('function');
     await userEvent.keyboard('{enter}');
 
     await waitFor(() => {
-      expect(onSearch).toHaveBeenCalledWith('span.op:function', expect.anything());
+      expect(onSearch).toHaveBeenCalledWith(
+        `span.op:${WildcardOperators.CONTAINS}function`,
+        expect.anything()
+      );
     });
   });
 
@@ -149,7 +155,10 @@ describe('SpansSearchBar', () => {
     const searchInput = await screen.findByRole('combobox', {
       name: 'Add a search term',
     });
-    await userEvent.type(searchInput, 'span.op:function{enter}');
+    await userEvent.type(searchInput, 'span.op:');
+    await userEvent.keyboard('{enter}');
+    await userEvent.keyboard('function');
+    await userEvent.keyboard('{enter}');
 
     await waitFor(() => {
       expect(onClose).toHaveBeenCalled();

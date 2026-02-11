@@ -22,9 +22,8 @@ class IssueNotificationMessageBuilder(SlackNotificationsMessageBuilder):
         self.notification: ProjectNotification = notification
 
     def build(self) -> SlackBlock:
-        group = getattr(self.notification, "group", None)
         return SlackIssuesMessageBuilder(
-            group=group,
+            group=self.notification.group,
             event=getattr(self.notification, "event", None),
             tags=self.context.get("tags", None),
             rules=getattr(self.notification, "rules", None),

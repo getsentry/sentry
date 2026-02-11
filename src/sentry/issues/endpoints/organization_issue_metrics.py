@@ -267,7 +267,7 @@ def make_timeseries_result(
         "axis": axis,
         "groupBy": group,
         "meta": {
-            "interval": interval.seconds * 1000,
+            "interval": interval.total_seconds() * 1000,
             "isOther": is_other,
             "order": order,
             "valueType": "integer",

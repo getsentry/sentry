@@ -4,7 +4,7 @@ from sentry.flags.models import PROVIDER_MAP
 from sentry.flags.providers import DeserializationError, UnleashProvider
 
 
-def test_handle_update_no_email():
+def test_handle_update_no_email() -> None:
     items = UnleashProvider(123, "abcdefgh").handle(
         {
             "id": 28,
@@ -33,7 +33,7 @@ def test_handle_update_no_email():
     }
 
 
-def test_handle_update_with_email():
+def test_handle_update_with_email() -> None:
     items = UnleashProvider(123, "abcdefgh").handle(
         {
             "id": 28,
@@ -62,7 +62,7 @@ def test_handle_update_with_email():
     }
 
 
-def test_handle_create():
+def test_handle_create() -> None:
     items = UnleashProvider(123, "abcdefgh").handle(
         {
             "id": 28,
@@ -80,7 +80,7 @@ def test_handle_create():
     assert items[0]["action"] == 0
 
 
-def test_handle_junk_action():
+def test_handle_junk_action() -> None:
     items = UnleashProvider(123, "abcdefgh").handle(
         {
             "id": 28,
@@ -97,7 +97,7 @@ def test_handle_junk_action():
     assert len(items) == 0
 
 
-def test_handle_no_tags():
+def test_handle_no_tags() -> None:
     items = UnleashProvider(123, "abcdefgh").handle(
         {
             "id": 28,
@@ -120,7 +120,7 @@ def test_handle_no_tags():
     assert items[0]["tags"] == {}
 
 
-def test_blank():
+def test_blank() -> None:
     try:
         UnleashProvider(123, "abcdefgh").handle({})
     except DeserializationError as exc:
@@ -131,7 +131,7 @@ def test_blank():
         assert exc.errors["createdBy"][0].code == "required"
 
 
-def test_partial_fill():
+def test_partial_fill() -> None:
     try:
         UnleashProvider(123, "abcdefgh").handle(
             {

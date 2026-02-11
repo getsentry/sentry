@@ -61,18 +61,7 @@ def get_user_conversation_id(integration: Integration | RpcIntegration, user_id:
     return conversation_id
 
 
-def get_channel_id(organization: Organization, integration_id: int, name: str) -> str | None:
-    integrations = integration_service.get_integrations(
-        providers=[IntegrationProviderSlug.MSTEAMS.value],
-        organization_id=organization.id,
-        integration_ids=[integration_id],
-    )
-    if not integrations:
-        return None
-
-    assert len(integrations) == 1, "Found multiple msteams integrations for org!"
-    integration = integrations[0]
-
+def find_channel_id(integration: Integration | RpcIntegration, name: str) -> str | None:
     team_id = integration.external_id
     client = MsTeamsClient(integration)
 
@@ -103,6 +92,21 @@ def get_channel_id(organization: Organization, integration_id: int, name: str) -
         members = client.get_member_list(team_id, continuation_token)
 
     return None
+
+
+def get_channel_id(organization: Organization, integration_id: int, name: str) -> str | None:
+    integrations = integration_service.get_integrations(
+        providers=[IntegrationProviderSlug.MSTEAMS.value],
+        organization_id=organization.id,
+        integration_ids=[integration_id],
+    )
+    if not integrations:
+        return None
+
+    assert len(integrations) == 1, "Found multiple msteams integrations for org!"
+    integration = integrations[0]
+
+    return find_channel_id(integration, name)
 
 
 def send_incident_alert_notification(

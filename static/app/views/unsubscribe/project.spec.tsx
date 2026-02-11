@@ -1,10 +1,8 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import UnsubscribeProject from 'sentry/views/unsubscribe/project';
 
-describe('UnsubscribeProject', function () {
-  const params = {orgId: 'acme', id: '9876'};
+describe('UnsubscribeProject', () => {
   let mockUpdate: jest.Mock;
   let mockGet: jest.Mock;
   beforeEach(() => {
@@ -26,34 +24,36 @@ describe('UnsubscribeProject', function () {
     });
   });
 
-  it('loads data from the API based on URL parameters', async function () {
-    const {router, routerProps} = initializeOrg({
-      router: {location: {query: {_: 'signature-value'}}, params},
+  it('loads data from the API based on URL parameters', async () => {
+    render(<UnsubscribeProject />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/unsubscribe/acme/project/9876/',
+          query: {
+            _: 'signature-value',
+          },
+        },
+        route: '/unsubscribe/:orgId/project/:id/',
+      },
     });
-    render(
-      <UnsubscribeProject {...routerProps} location={router.location} params={params} />,
-      {
-        router,
-        deprecatedRouterMocks: true,
-      }
-    );
 
     expect(await screen.findByText('acme / react')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Unsubscribe'})).toBeInTheDocument();
     expect(mockGet).toHaveBeenCalled();
   });
 
-  it('makes an API request when the form is submitted', async function () {
-    const {router, routerProps} = initializeOrg({
-      router: {location: {query: {_: 'signature-value'}}, params},
+  it('makes an API request when the form is submitted', async () => {
+    render(<UnsubscribeProject />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/unsubscribe/acme/project/9876/',
+          query: {
+            _: 'signature-value',
+          },
+        },
+        route: '/unsubscribe/:orgId/project/:id/',
+      },
     });
-    render(
-      <UnsubscribeProject {...routerProps} location={router.location} params={params} />,
-      {
-        router,
-        deprecatedRouterMocks: true,
-      }
-    );
 
     expect(await screen.findByText('acme / react')).toBeInTheDocument();
     const button = screen.getByRole('button', {name: 'Unsubscribe'});

@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import type {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {PlatformOptionsControl} from 'sentry/components/onboarding/platformOptionsControl';
 
-describe('Onboarding Product Selection', function () {
+describe('Onboarding Product Selection', () => {
   const platformOptions: Record<string, PlatformOption> = {
     springBoot: {
       items: [
@@ -28,7 +28,7 @@ describe('Onboarding Product Selection', function () {
     },
   };
 
-  it('renders default state', function () {
+  it('renders default state', () => {
     render(<PlatformOptionsControl platformOptions={platformOptions} />, {
       initialRouterConfig: {
         location: {
@@ -70,7 +70,7 @@ describe('Onboarding Product Selection', function () {
     expect(languageKotlin).not.toBeChecked();
   });
 
-  it('updates the url on change', async function () {
+  it('updates the url on change', async () => {
     const {router} = render(
       <PlatformOptionsControl platformOptions={platformOptions} />,
       {
@@ -107,7 +107,7 @@ describe('Onboarding Product Selection', function () {
     );
   });
 
-  it('triggers onChange callback', async function () {
+  it('triggers onChange callback', async () => {
     const handleChange = jest.fn();
 
     render(

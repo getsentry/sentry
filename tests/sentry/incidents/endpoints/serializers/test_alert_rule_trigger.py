@@ -20,19 +20,19 @@ class BaseAlertRuleTriggerSerializerTest:
 
 
 class AlertRuleTriggerSerializerTest(BaseAlertRuleTriggerSerializerTest, TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         alert_rule = self.create_alert_rule(resolve_threshold=200)
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
         result = serialize(trigger)
         self.assert_alert_rule_trigger_serialized(trigger, result)
 
-    def test_decimal(self):
+    def test_decimal(self) -> None:
         alert_rule = self.create_alert_rule(resolve_threshold=200.70)
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000.50)
         result = serialize(trigger)
         self.assert_alert_rule_trigger_serialized(trigger, result)
 
-    def test_comparison_above(self):
+    def test_comparison_above(self) -> None:
         alert_rule = self.create_alert_rule(
             comparison_delta=60, detection_type=AlertRuleDetectionType.PERCENT
         )
@@ -40,7 +40,7 @@ class AlertRuleTriggerSerializerTest(BaseAlertRuleTriggerSerializerTest, TestCas
         result = serialize(trigger)
         self.assert_alert_rule_trigger_serialized(trigger, result, 80)
 
-    def test_comparison_below(self):
+    def test_comparison_below(self) -> None:
         alert_rule = self.create_alert_rule(
             comparison_delta=60,
             threshold_type=AlertRuleThresholdType.BELOW,

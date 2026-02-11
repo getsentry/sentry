@@ -20,19 +20,24 @@ SOURCE_CODE_ISSUE_HALT_PATTERNS = {
 
 
 class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegration, ABC):
-    def record_event(self, event: SCMIntegrationInteractionType):
+    def record_event(self, event: SCMIntegrationInteractionType) -> SCMIntegrationInteractionEvent:
         return SCMIntegrationInteractionEvent(
             interaction_type=event,
             provider_key=self.model.provider,
-            organization=self.organization,
-            org_integration=self.org_integration,
+            organization_id=self.organization.id,
+            integration_id=self.org_integration.integration_id,
         )
 
     def _get_repository_choices(
-        self, *, group: Group | None, params: Mapping[str, Any], lifecycle: EventLifecycle
-    ):
+        self,
+        *,
+        group: Group | None,
+        params: Mapping[str, Any],
+        lifecycle: EventLifecycle,
+        page_number_limit: int | None = None,
+    ) -> tuple[str, list[tuple[str, str | int]]]:
         try:
-            repos = self.get_repositories()
+            repos = self.get_repositories(page_number_limit=page_number_limit)
         except ApiError as exc:
             if any(pattern in str(exc) for pattern in SOURCE_CODE_ISSUE_HALT_PATTERNS):
                 lifecycle.record_halt(exc)
@@ -60,7 +65,9 @@ class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegratio
 
         return default_repo, repo_choices
 
-    def get_repository_choices(self, group: Group | None, params: Mapping[str, Any]):
+    def get_repository_choices(
+        self, group: Group | None, params: Mapping[str, Any], page_number_limit: int | None = None
+    ) -> tuple[str, list[tuple[str, str | int]]]:
         """
         Returns the default repository and a set/subset of repositories of associated with the installation
         """
@@ -69,15 +76,21 @@ class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegratio
             SCMIntegrationInteractionType.GET_REPOSITORY_CHOICES
         ).capture() as lifecycle:
             try:
-                return self._get_repository_choices(group=group, params=params, lifecycle=lifecycle)
+                return self._get_repository_choices(
+                    group=group,
+                    params=params,
+                    lifecycle=lifecycle,
+                    page_number_limit=page_number_limit,
+                )
             except IntegrationError as exc:
                 user_facing_error = exc
         # Now that we're outside the lifecycle, we can raise the user facing error
         if user_facing_error:
             raise user_facing_error
+        assert False, "Unreachable"
 
     # TODO(saif): Make private and move all usages over to `get_defaults`
-    def get_project_defaults(self, project_id):
+    def get_project_defaults(self, project_id: int | str) -> dict[str, str]:
         if not self.org_integration:
             return {}
 
@@ -85,7 +98,7 @@ class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegratio
             str(project_id), {}
         )
 
-    def create_default_repo_choice(self, default_repo):
+    def create_default_repo_choice(self, default_repo: str) -> tuple[str, str]:
         """
         Helper method for get_repository_choices
         Returns the choice for the default repo in a tuple to be added to the list of repository choices

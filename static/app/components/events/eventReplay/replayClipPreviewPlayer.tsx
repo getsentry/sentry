@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
+import type {LinkButtonProps} from '@sentry/scraps/button';
+
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import ReplayPreviewPlayer from 'sentry/components/events/eventReplay/replayPreviewPlayer';
 import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
@@ -87,9 +88,10 @@ const PlayerContainer = styled(FluidHeight)`
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     min-height: ${REPLAY_LOADING_HEIGHT + 16}px;
   }
+  overflow: unset;
 `;
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
   height: ${REPLAY_LOADING_HEIGHT}px;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;

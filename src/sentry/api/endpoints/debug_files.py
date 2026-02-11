@@ -70,7 +70,11 @@ def has_download_permission(request: Request, project: Project):
         return False
 
     organization = project.organization
-    required_role = organization.get_option("sentry:debug_files_role") or DEBUG_FILES_ROLE_DEFAULT
+    required_role = (
+        project.get_option("sentry:debug_files_role")
+        or organization.get_option("sentry:debug_files_role")
+        or DEBUG_FILES_ROLE_DEFAULT
+    )
 
     if request.user.is_sentry_app:
         if organization_roles.can_manage("member", required_role):
@@ -342,10 +346,11 @@ class DebugFilesEndpoint(ProjectEndpoint):
         :qparam string id: The id of the DIF to delete.
         :auth: required
         """
-        if request.GET.get("id") and _has_delete_permission(request.access, project):
+        debug_file_id = request.GET.get("id")
+        if debug_file_id and _has_delete_permission(request.access, project):
             with atomic_transaction(using=router.db_for_write(File)):
                 debug_file = (
-                    ProjectDebugFile.objects.filter(id=request.GET.get("id"), project_id=project.id)
+                    ProjectDebugFile.objects.filter(id=debug_file_id, project_id=project.id)
                     .select_related("file")
                     .first()
                 )

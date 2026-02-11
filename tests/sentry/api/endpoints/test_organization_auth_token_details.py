@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from django.urls import reverse
 from rest_framework import status
 
+from sentry.models.apitoken import ApiToken
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.silo import control_silo_test
@@ -12,7 +13,7 @@ from sentry.testutils.silo import control_silo_test
 class OrganizationAuthTokenDetailTest(APITestCase):
     endpoint = "sentry-api-0-org-auth-token-details"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         token = OrgAuthToken.objects.create(
             organization_id=self.organization.id,
             name="token 1",
@@ -39,7 +40,7 @@ class OrganizationAuthTokenDetailTest(APITestCase):
         assert res.get("lastUsedDate") is None
         assert res.get("lastUsedProjectId") is None
 
-    def test_last_used(self):
+    def test_last_used(self) -> None:
         token = OrgAuthToken.objects.create(
             organization_id=self.organization.id,
             name="token 1",
@@ -60,7 +61,7 @@ class OrganizationAuthTokenDetailTest(APITestCase):
         assert res.get("dateLastUsed") == datetime(2023, 1, 1, tzinfo=timezone.utc)
         assert res.get("projectLastUsedId") == str(self.project.id)
 
-    def test_no_auth(self):
+    def test_no_auth(self) -> None:
         token = OrgAuthToken.objects.create(
             organization_id=self.organization.id,
             name="token 1",
@@ -71,9 +72,9 @@ class OrganizationAuthTokenDetailTest(APITestCase):
         )
 
         response = self.get_error_response(self.organization.slug, token.id)
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_other_org_token(self):
+    def test_other_org_token(self) -> None:
         other_org = self.create_organization()
         token = OrgAuthToken.objects.create(
             organization_id=other_org.id,
@@ -88,7 +89,7 @@ class OrganizationAuthTokenDetailTest(APITestCase):
         response = self.get_error_response(other_org.slug, token.id)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_other_org(self):
+    def test_other_org(self) -> None:
         other_org = self.create_organization()
         token = OrgAuthToken.objects.create(
             organization_id=other_org.id,
@@ -103,12 +104,31 @@ class OrganizationAuthTokenDetailTest(APITestCase):
         response = self.get_error_response(self.organization.slug, token.id)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_not_exists(self):
+    def test_deny_token_access(self) -> None:
+        org_token = OrgAuthToken.objects.create(
+            organization_id=self.organization.id,
+            name="token 1",
+            token_hashed="ABCDEF",
+            token_last_characters="xyz1",
+            scope_list=["org:ci"],
+            date_last_used=None,
+        )
+
+        personal_token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
+
+        response = self.get_error_response(
+            self.organization.slug,
+            org_token.id,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {personal_token.token}"},
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_not_exists(self) -> None:
         self.login_as(self.user)
         response = self.get_error_response(self.organization.slug, 999999)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_get_deleted(self):
+    def test_get_deleted(self) -> None:
         token = OrgAuthToken.objects.create(
             organization_id=self.organization.id,
             name="token 1",
@@ -129,7 +149,7 @@ class OrganizationAuthTokenEditTest(APITestCase):
     endpoint = "sentry-api-0-org-auth-token-details"
     method = "PUT"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         token = OrgAuthToken.objects.create(
             organization_id=self.organization.id,
             name="token 1",
@@ -151,7 +171,7 @@ class OrganizationAuthTokenEditTest(APITestCase):
         assert tokenNew.token_hashed == token.token_hashed
         assert tokenNew.get_scopes() == token.get_scopes()
 
-    def test_no_name(self):
+    def test_no_name(self) -> None:
         token = OrgAuthToken.objects.create(
             organization_id=self.organization.id,
             name="token 1",
@@ -172,7 +192,7 @@ class OrganizationAuthTokenEditTest(APITestCase):
         tokenNew = OrgAuthToken.objects.get(id=token.id)
         assert tokenNew.name == "token 1"
 
-    def test_name_too_long(self):
+    def test_name_too_long(self) -> None:
         token = OrgAuthToken.objects.create(
             organization_id=self.organization.id,
             name="token 1",
@@ -193,7 +213,7 @@ class OrganizationAuthTokenEditTest(APITestCase):
         tokenNew = OrgAuthToken.objects.get(id=token.id)
         assert tokenNew.name == "token 1"
 
-    def test_blank_name(self):
+    def test_blank_name(self) -> None:
         token = OrgAuthToken.objects.create(
             organization_id=self.organization.id,
             name="token 1",
@@ -214,7 +234,7 @@ class OrganizationAuthTokenEditTest(APITestCase):
         tokenNew = OrgAuthToken.objects.get(id=token.id)
         assert tokenNew.name == "token 1"
 
-    def test_no_auth(self):
+    def test_no_auth(self) -> None:
         token = OrgAuthToken.objects.create(
             organization_id=self.organization.id,
             name="token 1",
@@ -225,9 +245,9 @@ class OrganizationAuthTokenEditTest(APITestCase):
         )
         payload: dict[str, str] = {}
         response = self.get_error_response(self.organization.slug, token.id, **payload)
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_other_org_token(self):
+    def test_other_org_token(self) -> None:
         other_org = self.create_organization()
         payload = {"name": "test token"}
         token = OrgAuthToken.objects.create(
@@ -243,7 +263,7 @@ class OrganizationAuthTokenEditTest(APITestCase):
         response = self.get_error_response(other_org.slug, token.id, **payload)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_other_org(self):
+    def test_other_org(self) -> None:
         other_org = self.create_organization()
         payload = {"name": "test token"}
         token = OrgAuthToken.objects.create(
@@ -259,13 +279,13 @@ class OrganizationAuthTokenEditTest(APITestCase):
         response = self.get_error_response(self.organization.slug, token.id, **payload)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_not_exists(self):
+    def test_not_exists(self) -> None:
         payload = {"name": "test token"}
         self.login_as(self.user)
         response = self.get_error_response(self.organization.slug, 999999, **payload)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_update_deleted(self):
+    def test_update_deleted(self) -> None:
         token = OrgAuthToken.objects.create(
             organization_id=self.organization.id,
             name="token 1",
@@ -287,7 +307,7 @@ class OrganizationAuthTokenDeleteTest(APITestCase):
     endpoint = "sentry-api-0-org-auth-token-details"
     method = "DELETE"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         token = OrgAuthToken.objects.create(
             organization_id=self.organization.id,
             name="token 1",
@@ -310,7 +330,7 @@ class OrganizationAuthTokenDeleteTest(APITestCase):
         assert tokenNew.is_active() is False
         assert tokenNew.date_deactivated is not None
 
-    def test_no_auth(self):
+    def test_no_auth(self) -> None:
         token = OrgAuthToken.objects.create(
             organization_id=self.organization.id,
             name="token 1",
@@ -320,9 +340,9 @@ class OrganizationAuthTokenDeleteTest(APITestCase):
             date_last_used=None,
         )
         response = self.get_error_response(self.organization.slug, token.id)
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_other_org_token(self):
+    def test_other_org_token(self) -> None:
         other_org = self.create_organization()
         token = OrgAuthToken.objects.create(
             organization_id=other_org.id,
@@ -337,7 +357,7 @@ class OrganizationAuthTokenDeleteTest(APITestCase):
         response = self.get_error_response(other_org.slug, token.id)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_other_org(self):
+    def test_other_org(self) -> None:
         other_org = self.create_organization()
         token = OrgAuthToken.objects.create(
             organization_id=other_org.id,
@@ -352,12 +372,12 @@ class OrganizationAuthTokenDeleteTest(APITestCase):
         response = self.get_error_response(self.organization.slug, token.id)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_not_exists(self):
+    def test_not_exists(self) -> None:
         self.login_as(self.user)
         response = self.get_error_response(self.organization.slug, 999999)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_delete_deleted(self):
+    def test_delete_deleted(self) -> None:
         token = OrgAuthToken.objects.create(
             organization_id=self.organization.id,
             name="token 1",
@@ -377,7 +397,7 @@ class OrganizationAuthTokenDeleteTest(APITestCase):
 class OrganizationAuthTokenDetailsPermissionTest(PermissionTestCase):
     putData = {"name": "token-1"}
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         token = OrgAuthToken.objects.create(
@@ -393,35 +413,35 @@ class OrganizationAuthTokenDetailsPermissionTest(PermissionTestCase):
             "sentry-api-0-org-auth-token-details", args=[self.organization.slug, token.id]
         )
 
-    def test_owner_can_get(self):
+    def test_owner_can_get(self) -> None:
         self.assert_owner_can_access(self.path)
 
-    def test_manager_can_get(self):
+    def test_manager_can_get(self) -> None:
         self.assert_manager_can_access(self.path)
 
-    def test_member_can_get(self):
+    def test_member_can_get(self) -> None:
         self.assert_member_can_access(self.path)
 
-    def test_owner_can_put(self):
+    def test_owner_can_put(self) -> None:
         self.assert_owner_can_access(
             self.path, method="PUT", data=self.putData, content_type="application/json"
         )
 
-    def test_manager_can_put(self):
+    def test_manager_can_put(self) -> None:
         self.assert_manager_can_access(
             self.path, method="PUT", data=self.putData, content_type="application/json"
         )
 
-    def test_member_can_put(self):
+    def test_member_can_put(self) -> None:
         self.assert_member_can_access(
             self.path, method="PUT", data=self.putData, content_type="application/json"
         )
 
-    def test_owner_can_delete(self):
+    def test_owner_can_delete(self) -> None:
         self.assert_owner_can_access(self.path, method="DELETE")
 
-    def test_manager_can_delete(self):
+    def test_manager_can_delete(self) -> None:
         self.assert_manager_can_access(self.path, method="DELETE")
 
-    def test_member_cannot_delete(self):
+    def test_member_cannot_delete(self) -> None:
         self.assert_member_cannot_access(self.path, method="DELETE")

@@ -6,7 +6,7 @@ from social_auth.models import UserSocialAuth
 
 @control_silo_test
 class RepositoryProviderTest(TestCase):
-    def test_needs_auth_for_user(self):
+    def test_needs_auth_for_user(self) -> None:
         user = self.create_user()
         provider = DummyRepositoryProvider(id="dummy")
 
@@ -17,7 +17,7 @@ class RepositoryProviderTest(TestCase):
 
         assert provider.needs_auth(user) is False
 
-    def test_needs_auth_for_organization(self):
+    def test_needs_auth_for_organization(self) -> None:
         user = self.create_user()
         provider = DummyRepositoryProvider(id="dummy")
 
@@ -27,7 +27,7 @@ class RepositoryProviderTest(TestCase):
 
         assert provider.needs_auth(user, organization=org) is False
 
-    def test_get_auth_for_user(self):
+    def test_get_auth_for_user(self) -> None:
         user = self.create_user()
         provider = DummyRepositoryProvider(id="dummy")
 
@@ -39,7 +39,7 @@ class RepositoryProviderTest(TestCase):
         assert auth
         assert auth.id == usa.id
 
-    def test_get_auth_for_organization(self):
+    def test_get_auth_for_organization(self) -> None:
         user = self.create_user()
         user2 = self.create_user()
         provider = DummyRepositoryProvider(id="dummy")

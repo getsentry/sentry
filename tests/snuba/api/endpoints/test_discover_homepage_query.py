@@ -14,7 +14,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse("sentry-api-0-discover-homepage-query", args=[self.org.slug])
         self.query = {"fields": ["test"], "conditions": [], "limit": 10}
@@ -23,14 +23,14 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
             self.create_project(organization=self.org).id,
         ]
 
-    def test_returns_no_response_if_no_homepage_query_for_user(self):
+    def test_returns_no_response_if_no_homepage_query_for_user(self) -> None:
         with self.feature(FEATURES):
             response = self.client.get(self.url)
 
         assert response.status_code == 204, response.content
         assert response.data is None
 
-    def test_returns_serialized_saved_query_if_homepage_is_set(self):
+    def test_returns_serialized_saved_query_if_homepage_is_set(self) -> None:
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.org,
             created_by_id=self.user.id,
@@ -44,7 +44,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         assert response.status_code == 200, response.content
         assert response.data == serialize(saved_query)
 
-    def test_put_updates_existing_homepage_query_to_reflect_new_data(self):
+    def test_put_updates_existing_homepage_query_to_reflect_new_data(self) -> None:
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.org,
             created_by_id=self.user.id,
@@ -74,7 +74,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         assert saved_query.dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE
         assert set(saved_query.projects.values_list("id", flat=True)) == set(self.project_ids)
 
-    def test_put_creates_new_discover_saved_query_if_none_exists(self):
+    def test_put_creates_new_discover_saved_query_if_none_exists(self) -> None:
         homepage_query_payload = {
             "version": 2,
             "name": "New Homepage Query",
@@ -98,7 +98,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         assert new_query.dataset == DiscoverSavedQueryTypes.get_id_for_type_name("error-events")
         assert set(new_query.projects.values_list("id", flat=True)) == set(self.project_ids)
 
-    def test_put_responds_with_saved_empty_name_field(self):
+    def test_put_responds_with_saved_empty_name_field(self) -> None:
         homepage_query_payload = {
             "version": 2,
             "name": "New Homepage Query",
@@ -119,7 +119,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         assert new_query.name == ""
         assert response.data["name"] == ""
 
-    def test_put_with_no_name(self):
+    def test_put_with_no_name(self) -> None:
         homepage_query_payload = {
             "version": 2,
             "name": "",
@@ -140,7 +140,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         assert new_query.name == ""
         assert response.data["name"] == ""
 
-    def test_post_not_allowed(self):
+    def test_post_not_allowed(self) -> None:
         homepage_query_payload = {
             "version": 2,
             "name": "New Homepage Query",
@@ -155,7 +155,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
 
         assert response.status_code == 405, response.content
 
-    def test_delete_resets_saved_query(self):
+    def test_delete_resets_saved_query(self) -> None:
         DiscoverSavedQuery.objects.create(
             organization=self.org,
             created_by_id=self.user.id,
@@ -171,7 +171,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
             created_by_id=self.user.id, organization=self.org, is_homepage=True
         ).exists()
 
-    def test_put_allows_custom_measurements_in_equations_with_query(self):
+    def test_put_allows_custom_measurements_in_equations_with_query(self) -> None:
         # Having a custom measurement stored implies that a transaction with this measurement has been stored
         BaseMetricsTestCase.store_metric(
             self.org.id,
@@ -211,7 +211,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         assert response.data == serialize(new_query)
         assert list(new_query.projects.values_list("id", flat=True)) == [self.project_ids[0]]
 
-    def test_put_success_is_filter(self):
+    def test_put_success_is_filter(self) -> None:
         with self.feature(FEATURES):
             response = self.client.put(
                 self.url,

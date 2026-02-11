@@ -3,7 +3,9 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/profiling-empty-state.svg';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -28,15 +30,13 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {MissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/missingInstrumentationNode';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {NoInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/noInstrumentationNode';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
 interface SpanProfileProps {
   event: Readonly<EventTransaction> | null;
-  node: MissingInstrumentationNode;
+  missingInstrumentationNode: NoInstrumentationNode;
   profileID: string | undefined;
   profilerID: string | undefined;
   project: Project | undefined;
@@ -47,7 +47,7 @@ export function ProfilePreview({
   profileID,
   profilerID,
   event,
-  node,
+  missingInstrumentationNode,
 }: SpanProfileProps) {
   const profiles = useProfiles();
   const profileGroup = useProfileGroup();
@@ -56,9 +56,8 @@ export function ProfilePreview({
   const [canvasView, setCanvasView] = useState<CanvasView<FlamegraphModel> | null>(null);
 
   const spanThreadId = useMemo(() => {
-    const value = node.previous.value ?? node.next.value ?? null;
-    return 'data' in value ? value.data?.['thread.id'] : null;
-  }, [node]);
+    return event?.contexts?.trace?.data?.['thread.id'] ?? null;
+  }, [event]);
 
   const profile = useMemo(() => {
     if (defined(spanThreadId)) {
@@ -75,10 +74,9 @@ export function ProfilePreview({
   }, [profileGroup.profiles, profileGroup.activeProfileIndex, spanThreadId]);
 
   const transactionHasProfile = useMemo(() => {
-    return isEAPSpanNode(node.previous)
-      ? (TraceTree.ParentEAPTransaction(node)?.profiles?.length ?? 0) > 0
-      : (TraceTree.ParentTransaction(node)?.profiles?.length ?? 0) > 0;
-  }, [node]);
+    const parentTransaction = missingInstrumentationNode.findClosestParentTransaction();
+    return !!parentTransaction?.hasProfiles;
+  }, [missingInstrumentationNode]);
 
   const flamegraph = useMemo(() => {
     if (!transactionHasProfile || !profile) {
@@ -89,8 +87,8 @@ export function ProfilePreview({
   }, [transactionHasProfile, profile]);
 
   const target = useMemo(() => {
-    if (defined(project?.slug)) {
-      if (defined(profileID)) {
+    if (project?.slug) {
+      if (profileID) {
         // we want to try to go straight to the same config view as the preview
         const query = canvasView?.configView
           ? {
@@ -110,7 +108,7 @@ export function ProfilePreview({
         });
       }
 
-      if (defined(event) && defined(profilerID)) {
+      if (event && profilerID) {
         const query = {
           eventId: event.id,
           tid: spanThreadId,
@@ -149,11 +147,11 @@ export function ProfilePreview({
   const startTimestamp = profile?.timestamp ?? event?.startTimestamp;
   const relativeStartTimestamp =
     transactionHasProfile && defined(startTimestamp)
-      ? node.value.start_timestamp - startTimestamp
+      ? missingInstrumentationNode.value.start_timestamp - startTimestamp
       : 0;
   const relativeStopTimestamp =
     transactionHasProfile && defined(startTimestamp)
-      ? node.value.timestamp - startTimestamp
+      ? missingInstrumentationNode.value.timestamp - startTimestamp
       : flamegraph.configSpace.width;
 
   function handleGoToProfile() {
@@ -167,11 +165,11 @@ export function ProfilePreview({
     <TextBlock>{t('Or, see if profiling can provide more context on this:')}</TextBlock>
   );
 
-  if (defined(target) && transactionHasProfile) {
+  if (target && transactionHasProfile) {
     return (
       <FlamegraphThemeProvider>
         {message}
-        <SectionDivider />
+        <SectionDivider orientation="horizontal" />
         <InterimSection
           title={t('Profile')}
           type="no_instrumentation_profile"
@@ -226,7 +224,7 @@ export function ProfilePreview({
 }
 
 const TextBlock = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   line-height: 1.5;
   margin-bottom: ${space(2)};
 `;
@@ -239,7 +237,7 @@ function ProfilePreviewLegend() {
   const systemFrameColor = colorComponentsToRGBA(theme.COLORS.FRAME_SYSTEM_COLOR);
 
   return (
-    <LegendContainer>
+    <Flex gap="lg">
       <LegendItem>
         <LegendMarker color={applicationFrameColor} />
         {t('Application Function')}
@@ -248,7 +246,7 @@ function ProfilePreviewLegend() {
         <LegendMarker color={systemFrameColor} />
         {t('System Function')}
       </LegendItem>
-    </LegendContainer>
+    </Flex>
   );
 }
 
@@ -306,19 +304,13 @@ const FlamegraphContainer = styled('div')`
   position: relative;
 `;
 
-const LegendContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1.5)};
-`;
-
 const LegendItem = styled('span')`
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const LegendMarker = styled('span')<{color: string}>`

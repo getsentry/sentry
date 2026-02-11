@@ -1,22 +1,24 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
+import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
+
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import ClippedBox from 'sentry/components/clippedBox';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
+import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
+import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
 import {
+  AutofixStatus,
   type AutofixChangesStep,
   type AutofixCodebaseChange,
-  AutofixStatus,
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
@@ -104,7 +106,7 @@ function AutofixRepoChange({
   );
 }
 
-const cardAnimationProps: AnimationProps = {
+const cardAnimationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
@@ -126,16 +128,18 @@ const cardAnimationProps: AnimationProps = {
 };
 
 function BranchButton({change}: {change: AutofixCodebaseChange}) {
-  const {onClick} = useCopyToClipboard({
-    text: change.branch_name ?? '',
-    successMessage: t('Branch name copied.'),
-  });
+  const {copy} = useCopyToClipboard();
 
   return (
     <CopyContainer>
       <CopyButton
         size="xs"
-        onClick={onClick}
+        disabled={!change.branch_name}
+        onClick={() =>
+          copy(change.branch_name ?? '', {
+            successMessage: t('Branch name copied to clipboard.'),
+          })
+        }
         icon={<IconCopy size="xs" />}
         aria-label={t('Copy branch in %s', change.repo_name)}
         title={t('Copy branch in %s', change.repo_name)}
@@ -148,9 +152,9 @@ function BranchButton({change}: {change: AutofixCodebaseChange}) {
 const CopyContainer = styled('div')`
   display: inline-flex;
   align-items: stretch;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.backgroundSecondary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  background: ${p => p.theme.tokens.background.secondary};
   max-width: 25rem;
   min-width: 0;
   flex: 1;
@@ -159,16 +163,16 @@ const CopyContainer = styled('div')`
 
 const CopyButton = styled(Button)`
   border: none;
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
-  border-right: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
   height: auto;
   flex-shrink: 0;
 `;
 
 const CodeText = styled('code')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   padding: ${space(0.5)} ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   display: block;
   min-width: 0;
   width: 100%;
@@ -246,8 +250,9 @@ export function AutofixChanges({
             <Alert.Container>
               <MarkdownAlert
                 text={
-                  step.termination_reason ||
-                  t('Seer had trouble applying its code changes.')
+                  step.termination_reason
+                    ? replaceHeadersWithBold(step.termination_reason)
+                    : t('Seer had trouble applying its code changes.')
                 }
               />
             </Alert.Container>
@@ -271,36 +276,75 @@ export function AutofixChanges({
     <AnimatePresence initial={isChangesFirstAppearance}>
       <AnimationWrapper key="card" {...cardAnimationProps}>
         <ChangesContainer>
+          <Flex justify="between" align="center" wrap="wrap" gap="md">
+            <HeaderText>
+              <Flex justify="center" align="center" ref={iconCodeRef}>
+                <IconCode size="md" variant="accent" />
+              </Flex>
+              {t('Code Changes')}
+              <Button
+                size="zero"
+                priority="transparent"
+                title={t('Chat with Seer')}
+                onClick={handleSelectFirstChange}
+                analyticsEventName="Autofix: Changes Chat"
+                analyticsEventKey="autofix.changes.chat"
+              >
+                <IconChat />
+              </Button>
+            </HeaderText>
+          </Flex>
+          <AnimatePresence>
+            {agentCommentThread && iconCodeRef.current && (
+              <AutofixHighlightPopup
+                selectedText=""
+                referenceElement={iconCodeRef.current}
+                groupId={groupId}
+                runId={runId}
+                stepIndex={previousDefaultStepIndex ?? 0}
+                retainInsightCardIndex={
+                  previousInsightCount !== undefined && previousInsightCount >= 0
+                    ? previousInsightCount
+                    : null
+                }
+                isAgentComment
+                blockName={t('Seer is uncertain of the code changes...')}
+              />
+            )}
+          </AnimatePresence>
           <ClippedBox clipHeight={408}>
-            <HeaderWrapper>
-              <HeaderText>
-                <HeaderIconWrapper ref={iconCodeRef}>
-                  <IconCode size="sm" color="blue400" />
-                </HeaderIconWrapper>
-                {t('Code Changes')}
-                <ChatButton
-                  size="zero"
-                  borderless
-                  title={t('Chat with Seer')}
-                  onClick={handleSelectFirstChange}
-                  analyticsEventName="Autofix: Changes Chat"
-                  analyticsEventKey="autofix.changes.chat"
-                >
-                  <IconChat size="xs" />
-                </ChatButton>
-              </HeaderText>
+            {step.changes.map((change, i) => (
+              <Fragment key={change.repo_external_id}>
+                {i > 0 && <Separator />}
+                <AutofixRepoChange
+                  change={change}
+                  groupId={groupId}
+                  runId={runId}
+                  previousDefaultStepIndex={previousDefaultStepIndex}
+                  previousInsightCount={previousInsightCount}
+                  ref={i === 0 ? firstChangeRef : undefined}
+                />
+              </Fragment>
+            ))}
+          </ClippedBox>
+          <BottomDivider />
+          <BottomButtonContainer hasTerminationReason={!!step.termination_reason}>
+            {step.termination_reason && (
+              <TerminationReasonText>{step.termination_reason}</TerminationReasonText>
+            )}
+            <Flex justify="end" align="center" gap="md">
               {!prsMade && (
-                <ButtonBar>
+                <Grid flow="column" align="center" gap="md">
                   {branchesMade ? (
                     step.changes.length === 1 && step.changes[0] ? (
                       <BranchButton change={step.changes[0]} />
                     ) : (
                       <ScrollCarousel aria-label={t('Check out branches')}>
                         {step.changes.map(
-                          change =>
+                          (change, idx) =>
                             change.branch_name && (
                               <BranchButton
-                                key={`${change.repo_external_id}-${Math.random()}`}
+                                key={`${change.repo_external_id}-${idx}`}
                                 change={change}
                               />
                             )
@@ -323,7 +367,10 @@ export function AutofixChanges({
                     isBusy={isBusy || isBranchProcessing}
                     onProcessingChange={setIsPrProcessing}
                   />
-                </ButtonBar>
+                </Grid>
+              )}
+              {step.status === AutofixStatus.COMPLETED && (
+                <AutofixStepFeedback stepType="changes" groupId={groupId} runId={runId} />
               )}
               {prsMade &&
                 (step.changes.length === 1 && step.changes[0]?.pull_request?.pr_url ? (
@@ -339,10 +386,10 @@ export function AutofixChanges({
                 ) : (
                   <ScrollCarousel aria-label={t('View pull requests')}>
                     {step.changes.map(
-                      change =>
+                      (change, idx) =>
                         change.pull_request?.pr_url && (
                           <LinkButton
-                            key={`${change.repo_external_id}-${Math.random()}`}
+                            key={`${change.repo_external_id}-${idx}`}
                             size="xs"
                             priority="primary"
                             icon={<IconOpen size="xs" />}
@@ -355,39 +402,8 @@ export function AutofixChanges({
                     )}
                   </ScrollCarousel>
                 ))}
-            </HeaderWrapper>
-            <AnimatePresence>
-              {agentCommentThread && iconCodeRef.current && (
-                <AutofixHighlightPopup
-                  selectedText=""
-                  referenceElement={iconCodeRef.current}
-                  groupId={groupId}
-                  runId={runId}
-                  stepIndex={previousDefaultStepIndex ?? 0}
-                  retainInsightCardIndex={
-                    previousInsightCount !== undefined && previousInsightCount >= 0
-                      ? previousInsightCount
-                      : null
-                  }
-                  isAgentComment
-                  blockName={t('Seer is uncertain of the code changes...')}
-                />
-              )}
-            </AnimatePresence>
-            {step.changes.map((change, i) => (
-              <Fragment key={change.repo_external_id}>
-                {i > 0 && <Separator />}
-                <AutofixRepoChange
-                  change={change}
-                  groupId={groupId}
-                  runId={runId}
-                  previousDefaultStepIndex={previousDefaultStepIndex}
-                  previousInsightCount={previousInsightCount}
-                  ref={i === 0 ? firstChangeRef : undefined}
-                />
-              </Fragment>
-            ))}
-          </ClippedBox>
+            </Flex>
+          </BottomButtonContainer>
         </ChangesContainer>
       </AnimationWrapper>
     </AnimatePresence>
@@ -397,7 +413,7 @@ export function AutofixChanges({
 const PreviewContent = styled('div')`
   display: flex;
   flex-direction: column;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   margin-top: ${space(2)};
 `;
 
@@ -408,11 +424,11 @@ const AnimationWrapper = styled(motion.div)`
 const PrefixText = styled('span')``;
 
 const ChangesContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowMedium};
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
+  padding: ${p => p.theme.space.xl};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const Content = styled('div')`
@@ -420,29 +436,31 @@ const Content = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
+  text-decoration: underline dashed;
+  text-decoration-color: ${p => p.theme.tokens.content.accent};
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 `;
 
 const PullRequestTitle = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const RepoChangesHeader = styled('div')`
-  padding-top: ${space(2)};
-  padding-bottom: 0;
   display: grid;
   align-items: center;
   grid-template-columns: 1fr auto;
 `;
 
 const MarkdownAlert = styled(MarkedText)`
-  border: 1px solid ${p => p.theme.alert.warning.border};
-  background-color: ${p => p.theme.alert.warning.backgroundLight};
+  border: 1px solid ${p => p.theme.colors.yellow200};
+  background-color: ${p => p.theme.colors.yellow100};
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.alert.warning.color};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.colors.yellow500};
 `;
 
 const NoChangesPadding = styled('div')`
@@ -451,36 +469,37 @@ const NoChangesPadding = styled('div')`
 
 const Separator = styled('hr')`
   border: none;
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   margin: ${space(2)} -${space(2)} 0 -${space(2)};
 `;
 
 const HeaderText = styled('div')`
-  font-weight: bold;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.lg};
   display: flex;
   align-items: center;
   gap: ${space(1)};
   margin-right: ${space(2)};
 `;
 
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: ${space(1)};
+const BottomDivider = styled('div')`
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
+  margin-top: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
-const HeaderIconWrapper = styled('div')`
+const BottomButtonContainer = styled('div')<{hasTerminationReason?: boolean}>`
   display: flex;
+  justify-content: ${p => (p.hasTerminationReason ? 'space-between' : 'flex-end')};
   align-items: center;
-  justify-content: center;
+  gap: ${p => p.theme.space.xl};
 `;
 
-const ChatButton = styled(Button)`
-  color: ${p => p.theme.subText};
-  margin-left: -${space(0.5)};
+const TerminationReasonText = styled('div')`
+  color: ${p => p.theme.tokens.content.danger};
+  font-size: ${p => p.theme.font.size.sm};
+  flex: 1;
+  min-width: 0;
 `;
 
 function CreatePRsButton({
@@ -642,7 +661,7 @@ function CreateBranchButton({
       analyticsEventKey="autofix.push_to_branch_clicked"
       analyticsParams={{group_id: groupId}}
     >
-      Check Out Locally
+      {t('Check Out Locally')}
     </Button>
   );
 }

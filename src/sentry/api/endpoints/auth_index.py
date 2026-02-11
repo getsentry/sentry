@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -9,6 +10,8 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
+from sentry.analytics.events.auth_v2 import AuthV2DeleteLogin
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import QuietBasicAuthentication
@@ -23,6 +26,7 @@ from sentry.auth.services.auth.impl import promote_request_rpc_user
 from sentry.auth.superuser import SUPERUSER_ORG_ID
 from sentry.demo_mode.utils import is_demo_user
 from sentry.organizations.services.organization import organization_service
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.users.models.authenticator import Authenticator
@@ -75,6 +79,7 @@ class BaseAuthIndexEndpoint(Endpoint):
 
     @staticmethod
     def _verify_user_via_inputs(validator: AuthVerifyValidator, request: Request) -> bool:
+        assert request.user.is_authenticated
         # See if we have a u2f challenge/response
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
             try:
@@ -130,13 +135,15 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
     and simple HTTP authentication.
     """
     enforce_rate_limit = True
-    rate_limits = {
-        "PUT": {
-            RateLimitCategory.USER: RateLimit(
-                limit=5, window=60 * 60
-            ),  # 5 PUT requests per hour per user
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "PUT": {
+                RateLimitCategory.USER: RateLimit(
+                    limit=5, window=60 * 60
+                ),  # 5 PUT requests per hour per user
+            }
         }
-    }
+    )
 
     def _validate_superuser(
         self, validator: AuthVerifyValidator, request: Request, verify_authenticator: bool
@@ -310,7 +317,6 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         Deauthenticate all active sessions for this user.
         """
-
         # Allows demo user to log out from its current session but not others
         if is_demo_user(request.user) and request.data.get("all", None) is True:
             return Response(status=status.HTTP_403_FORBIDDEN)
@@ -323,6 +329,22 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         logout(request._request)
         request.user = AnonymousUser()
 
+        # Force cookies to be deleted
+        response = Response()
+        response.delete_cookie(settings.CSRF_COOKIE_NAME, domain=settings.CSRF_COOKIE_DOMAIN)
+        response.delete_cookie(settings.SESSION_COOKIE_NAME, domain=settings.SESSION_COOKIE_DOMAIN)
+
+        if referrer := request.GET.get("referrer"):
+            analytics.record(
+                AuthV2DeleteLogin(
+                    event=referrer,
+                )
+            )
+
         if slo_url:
-            return Response(status=status.HTTP_200_OK, data={"sloUrl": slo_url})
-        return Response(status=status.HTTP_204_NO_CONTENT)
+            response.status_code = status.HTTP_200_OK
+            response.data = {"sloUrl": slo_url}
+        else:
+            response.status_code = status.HTTP_204_NO_CONTENT
+
+        return response

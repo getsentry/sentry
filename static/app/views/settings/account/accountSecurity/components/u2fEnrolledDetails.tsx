@@ -1,11 +1,11 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Grid} from '@sentry/scraps/layout';
+
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Input} from 'sentry/components/core/input';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
@@ -16,8 +16,18 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconClose, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {AuthenticatorDevice} from 'sentry/types/auth';
 
-function U2fEnrolledDetails(props: any) {
+interface U2fEnrolledDetailsProps {
+  devices: AuthenticatorDevice[];
+  id: string;
+  isEnrolled: boolean;
+  onRemoveU2fDevice: (device: AuthenticatorDevice) => void;
+  onRenameU2fDevice: (device: AuthenticatorDevice, deviceName: string) => void;
+  className?: string;
+}
+
+function U2fEnrolledDetails(props: U2fEnrolledDetailsProps) {
   const {className, isEnrolled, devices, id, onRemoveU2fDevice, onRenameU2fDevice} =
     props;
 
@@ -37,7 +47,7 @@ function U2fEnrolledDetails(props: any) {
           <EmptyMessage>{t('You have not added any U2F devices')}</EmptyMessage>
         )}
         {hasDevices &&
-          devices?.map((device: any, i: any) => (
+          devices?.map((device, i) => (
             <Device
               key={i}
               device={device}
@@ -56,7 +66,14 @@ function U2fEnrolledDetails(props: any) {
   );
 }
 
-function Device(props: any) {
+interface DeviceProps {
+  device: AuthenticatorDevice;
+  isLastDevice: boolean;
+  onRemoveU2fDevice: (device: AuthenticatorDevice) => void;
+  onRenameU2fDevice: (device: AuthenticatorDevice, deviceName: string) => void;
+}
+
+function Device(props: DeviceProps) {
   const {device, isLastDevice, onRenameU2fDevice, onRemoveU2fDevice} = props;
   const [deviceName, setDeviceName] = useState(device.name);
   const [isEditing, setEditting] = useState(false);
@@ -68,7 +85,7 @@ function Device(props: any) {
           {device.name}
           <FadedDateTime date={device.timestamp} />
         </DeviceInformation>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Button size="sm" onClick={() => setEditting(true)}>
             {t('Rename device')}
           </Button>
@@ -85,7 +102,7 @@ function Device(props: any) {
               title={isLastDevice ? t('Can not remove last U2F device') : undefined}
             />
           </Confirm>
-        </ButtonBar>
+        </Grid>
       </PanelItem>
     );
   }
@@ -103,7 +120,7 @@ function Device(props: any) {
         />
         <FadedDateTime date={device.timestamp} />
       </DeviceInformation>
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         <Button
           priority="primary"
           size="sm"
@@ -124,7 +141,7 @@ function Device(props: any) {
             setEditting(false);
           }}
         />
-      </ButtonBar>
+      </Grid>
     </PanelItem>
   );
 }
@@ -144,7 +161,7 @@ const DeviceInformation = styled('div')`
 `;
 
 const FadedDateTime = styled(DateTime)`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.font.size.sm};
   opacity: 0.6;
 `;
 

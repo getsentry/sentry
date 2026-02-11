@@ -1,11 +1,11 @@
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export interface GroupTag {
   key: string;
@@ -54,7 +54,9 @@ const makeGroupTagsQueryKey = ({
   readable,
   limit,
 }: FetchIssueTagsParameters): ApiQueryKey => [
-  `/organizations/${orgSlug}/issues/${groupId}/tags/`,
+  getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/tags/', {
+    path: {organizationIdOrSlug: orgSlug, issueId: groupId!},
+  }),
   {query: {environment, readable, limit}},
 ];
 
@@ -66,6 +68,7 @@ export function useGroupTags(
   return useApiQuery<GroupTag[]>(
     makeGroupTagsQueryKey({
       orgSlug: organization.slug,
+      limit: 3,
       ...parameters,
     }),
     {
@@ -80,14 +83,12 @@ export function useGroupTags(
  * Primarily used for tag facets
  */
 export function useGroupTagsReadable(
-  parameters: Omit<FetchIssueTagsParameters, 'orgSlug' | 'limit' | 'readable'>,
+  parameters: Omit<FetchIssueTagsParameters, 'orgSlug' | 'readable'>,
   options: GroupTagUseQueryOptions = {}
 ) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
   return useGroupTags(
     {
       readable: true,
-      limit: hasStreamlinedUI ? 3 : 4,
       ...parameters,
     },
     options

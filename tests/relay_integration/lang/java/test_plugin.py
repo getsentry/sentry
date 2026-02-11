@@ -13,6 +13,7 @@ from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_symbolicator
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils import json
 
 PROGUARD_UUID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
@@ -52,6 +53,21 @@ io.sentry.sample.MainActivity -> io.sentry.sample.MainActivity:
 """
 PROGUARD_BUG_UUID = "071207ac-b491-4a74-957c-2c94fd9594f2"
 PROGUARD_BUG_SOURCE = b"x"
+
+PROGUARD_OUTLINE_UUID = "d9a82b1e-7a8e-4c4b-9c7a-8b5e3f2a1d6c"
+PROGUARD_OUTLINE_SOURCE = b"""\
+# compiler: R8
+# compiler_version: 2.0
+# min_api: 15
+outline.OutlineClass -> o.a:
+    1:2:int outline() -> a
+# {"id":"com.android.tools.r8.outline"}
+com.example.RealClass -> com.example.b:
+    4:4:int realMethod(int):98:98 -> s
+    5:5:int realMethod(int):100:100 -> s
+    27:27:int realMethod(int):0:0 -> s
+# {"id":"com.android.tools.r8.outlineCallsite","positions":{"1":4,"2":5},"outline":"Lo/a;a()I"}
+"""
 
 JVM_DEBUG_ID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
 JVM_SOURCE = b"""\
@@ -395,6 +411,8 @@ class AnotherClassInSameFile {
 
 
 @pytest.mark.django_db(transaction=True)
+@thread_leak_allowlist(reason="kafka testutils", issue=97046)
+@thread_leak_allowlist(reason="sentry sdk background worker", issue=97042)
 class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, set_sentry_option, live_server):
@@ -434,7 +452,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_basic_resolving(self):
+    def test_basic_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
         event_data = {
@@ -496,7 +514,70 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_resolving_does_not_fail_when_no_value(self):
+    def test_value_only_class_names_are_deobfuscated(self) -> None:
+        self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
+
+        event_data = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_UUID}]},
+            "exception": {
+                "values": [
+                    {
+                        # No module/type, only value with obfuscated class reference
+                        "value": "Encountered class org.a.b.g$a during processing",
+                    }
+                ]
+            },
+            "timestamp": before_now(seconds=1).isoformat(),
+        }
+
+        event = self.post_and_retrieve_event(event_data)
+
+        exc = event.interfaces["exception"].values[0]
+        # Ensure the value got deobfuscated via classes mapping
+        assert "org.slf4j.helpers.Util$ClassContextSecurityManager" in exc.value
+        assert "org.a.b.g$a" not in exc.value
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_value_only_multiple_exceptions_are_all_deobfuscated(self) -> None:
+        self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
+
+        event_data = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_UUID}]},
+            "exception": {
+                "values": [
+                    {"value": "First mentions org.a.b.g$a"},
+                    {"value": "Second mentions org.a.b.g$b"},
+                ]
+            },
+            "timestamp": before_now(seconds=1).isoformat(),
+        }
+
+        event = self.post_and_retrieve_event(event_data)
+
+        excs = event.interfaces["exception"].values
+        assert any(
+            "org.slf4j.helpers.Util$ClassContextSecurityManager" in e.value
+            and "org.a.b.g$a" not in e.value
+            for e in excs
+        )
+        # Util$ClassContext maps to g$b as well in the provided mapping
+        assert any(
+            "org.slf4j.helpers.Util$ClassContext" in e.value and "org.a.b.g$b" not in e.value
+            for e in excs
+        )
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_resolving_does_not_fail_when_no_value(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
         event_data = {
@@ -541,7 +622,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_resolving_does_not_fail_when_no_module_or_function(self):
+    def test_resolving_does_not_fail_when_no_module_or_function(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
         event_data = {
@@ -598,7 +679,88 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_sets_inapp_after_resolving(self):
+    def test_removes_frames_not_found_in_mapping_but_preserves_native_frames(self) -> None:
+        """Test that outline frames are removed while native frames are preserved."""
+        self.upload_proguard_mapping(PROGUARD_OUTLINE_UUID, PROGUARD_OUTLINE_SOURCE)
+
+        event_data = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_OUTLINE_UUID}]},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "s",
+                                    "abs_path": None,
+                                    "module": "com.example.b",
+                                    "filename": None,
+                                    "lineno": 27,
+                                },
+                                {
+                                    "package": "/system/lib64/libc.so",
+                                    "instruction_addr": "0x00000000000a9170",
+                                    "addr_mode": "rel:0",
+                                    "symbol": "__pthread_start(void*)",
+                                    "symbol_addr": "0x00000000000a9130",
+                                },
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "o.a",
+                                    "filename": None,
+                                    "lineno": 1,
+                                },
+                                {
+                                    "platform": "native",
+                                    "instruction_addr": "0x79571a8000",
+                                    "addr_mode": "abs",
+                                },
+                            ]
+                        },
+                        "module": "com.example",
+                        "type": "Exception",
+                        "value": "Something went wrong",
+                    }
+                ]
+            },
+            "timestamp": before_now(seconds=1).isoformat(),
+        }
+
+        event = self.post_and_retrieve_event(event_data)
+
+        exc = event.interfaces["exception"].values[0]
+        bt = exc.stacktrace
+        frames = bt.frames
+
+        # Should only have 3 frames:
+        # - First deobfuscated Java frame (realMethod)
+        # - Native frame (preserved)
+        # - Native frame (preserved)
+        # The outline frame should be removed by symbolicator
+        assert len(frames) == 3
+
+        # First frame should be deobfuscated and inlined
+        assert frames[0].function == "realMethod"
+        assert frames[0].module == "com.example.RealClass"
+        assert frames[0].lineno == 98
+
+        # Second frame (native, no function/module) should be preserved as-is
+        assert frames[1].package == "/system/lib64/libc.so"
+        assert frames[1].instruction_addr == "0xa9170"
+        assert frames[1].symbol == "__pthread_start(void*)"
+
+        # Third frame (native platform) should be preserved as-is
+        assert frames[2].platform == "native"
+        assert frames[2].instruction_addr == "0x79571a8000"
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_sets_inapp_after_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
         version = "org.slf4j@1.2.3"
@@ -682,7 +844,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_resolving_inline(self):
+    def test_resolving_inline(self) -> None:
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
 
         event_data = {
@@ -745,7 +907,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_resolving_inline_with_native_frames(self):
+    def test_resolving_inline_with_native_frames(self) -> None:
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
 
         event_data = {
@@ -833,7 +995,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_error_on_resolving(self):
+    def test_error_on_resolving(self) -> None:
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
@@ -938,7 +1100,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_basic_source_lookup(self):
+    def test_basic_source_lookup(self) -> None:
         debug_id = str(uuid4())
         self.upload_jvm_bundle(debug_id, {"io/sentry/samples/MainActivity.jvm": JVM_SOURCE})
 
@@ -1129,7 +1291,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.mark.skip(reason="flaky: #93951")
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_source_lookup_with_proguard(self):
+    def test_source_lookup_with_proguard(self) -> None:
         self.upload_proguard_mapping(PROGUARD_SOURCE_LOOKUP_UUID, PROGUARD_SOURCE_LOOKUP_SOURCE)
         debug_id1 = str(uuid4())
         self.upload_jvm_bundle(
@@ -1425,7 +1587,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.mark.skip(reason="flaky: #93949")
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_invalid_exception(self):
+    def test_invalid_exception(self) -> None:
         event_data = {
             "user": {"ip_address": "31.172.207.97"},
             "extra": {},
@@ -1453,7 +1615,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
         assert received == expected
 
-    def test_is_jvm_event(self):
+    def test_is_jvm_event(self) -> None:
         from sentry.lang.java.utils import is_jvm_event
 
         event = {

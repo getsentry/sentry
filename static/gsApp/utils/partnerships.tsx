@@ -1,7 +1,7 @@
 import type {Subscription} from 'getsentry/types';
 
 export function isDisabledByPartner(subscription: Subscription): boolean {
-  if (subscription.partner === null) {
+  if (!subscription.partner) {
     return false;
   }
   return (

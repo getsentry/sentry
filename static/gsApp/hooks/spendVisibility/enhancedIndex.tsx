@@ -1,11 +1,12 @@
+import {decodeScalar} from 'sentry/utils/queryString';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats/index';
-import {OrganizationStats} from 'sentry/views/organizationStats/index';
+import {OrganizationStatsInner} from 'sentry/views/organizationStats/index';
 
 import EnhancedUsageStatsOrganization from './enhancedUsageStatsOrganization';
 
-class EnhancedOrganizationStats extends OrganizationStats {
+class EnhancedOrganizationStats extends OrganizationStatsInner {
   get spikeCursor(): string | undefined {
-    return this.props.location?.query?.spikeCursor;
+    return decodeScalar(this.props.location?.query?.spikeCursor);
   }
 
   renderUsageStatsOrg() {

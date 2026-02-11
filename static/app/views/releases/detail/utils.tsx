@@ -5,8 +5,8 @@ import type {Moment} from 'moment-timezone';
 import moment from 'moment-timezone';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {
@@ -108,11 +108,13 @@ export const releaseComparisonChartLabels = {
   [ReleaseComparisonChartType.HEALTHY_SESSIONS]: t('Healthy'),
   [ReleaseComparisonChartType.ABNORMAL_SESSIONS]: t('Abnormal'),
   [ReleaseComparisonChartType.ERRORED_SESSIONS]: t('Errored'),
+  [ReleaseComparisonChartType.UNHANDLED_SESSIONS]: t('Unhandled'),
   [ReleaseComparisonChartType.CRASHED_SESSIONS]: t('Crashed Session Rate'),
   [ReleaseComparisonChartType.CRASH_FREE_USERS]: t('Crash Free User Rate'),
   [ReleaseComparisonChartType.HEALTHY_USERS]: t('Healthy'),
   [ReleaseComparisonChartType.ABNORMAL_USERS]: t('Abnormal'),
   [ReleaseComparisonChartType.ERRORED_USERS]: t('Errored'),
+  [ReleaseComparisonChartType.UNHANDLED_USERS]: t('Unhandled'),
   [ReleaseComparisonChartType.CRASHED_USERS]: t('Crashed User Rate'),
   [ReleaseComparisonChartType.SESSION_COUNT]: t('Session Count'),
   [ReleaseComparisonChartType.USER_COUNT]: t('User Count'),
@@ -126,11 +128,13 @@ export const releaseComparisonChartTitles = {
   [ReleaseComparisonChartType.HEALTHY_SESSIONS]: t('Healthy Session Rate'),
   [ReleaseComparisonChartType.ABNORMAL_SESSIONS]: t('Abnormal Session Rate'),
   [ReleaseComparisonChartType.ERRORED_SESSIONS]: t('Errored Session Rate'),
+  [ReleaseComparisonChartType.UNHANDLED_SESSIONS]: t('Unhandled Session Rate'),
   [ReleaseComparisonChartType.CRASHED_SESSIONS]: t('Crashed Session Rate'),
   [ReleaseComparisonChartType.CRASH_FREE_USERS]: t('Crash Free User Rate'),
   [ReleaseComparisonChartType.HEALTHY_USERS]: t('Healthy User Rate'),
   [ReleaseComparisonChartType.ABNORMAL_USERS]: t('Abnormal User Rate'),
   [ReleaseComparisonChartType.ERRORED_USERS]: t('Errored User Rate'),
+  [ReleaseComparisonChartType.UNHANDLED_USERS]: t('Unhandled User Rate'),
   [ReleaseComparisonChartType.CRASHED_USERS]: t('Crashed User Rate'),
   [ReleaseComparisonChartType.SESSION_COUNT]: t('Session Count'),
   [ReleaseComparisonChartType.USER_COUNT]: t('User Count'),
@@ -171,18 +175,17 @@ function generateReleaseMarkLine(
     data: [{name: position, value: null as any}], // TODO(ts): echart types
     yAxisIndex: axisIndex ?? undefined,
     xAxisIndex: axisIndex ?? undefined,
-    color: theme.gray300,
+    color: theme.colors.gray400,
     markLine: MarkLine({
       silent: true,
-      lineStyle: {color: theme.gray300, type: 'solid'},
+      lineStyle: {color: theme.colors.gray400, type: 'solid'},
       label: {
         position: 'insideEndBottom',
         formatter: hideLabel ? '' : title,
-        // @ts-expect-error TS(2322): Type '{ position: "insideEndBottom"; formatter: st... Remove this comment to see the full error message
-        font: 'Rubik',
+        fontFamily: 'Rubik',
         fontSize: 14,
-        color: theme.chartLabel,
-        backgroundColor: theme.chartOther,
+        color: theme.tokens.content.secondary,
+        backgroundColor: theme.tokens.background.secondary,
       },
       data: [
         {

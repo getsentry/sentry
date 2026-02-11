@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconCircledNumber} from 'sentry/components/iconCircledNumber';
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ActionType} from 'sentry/types/workflowEngine/actions';
 
 type AutomationActionSummaryProps = {
@@ -31,7 +31,7 @@ export function AutomationActionSummary({
     }
     const {name, icon} = metadata;
     return (
-      <Flex align="center" gap={space(0.75)} className={className}>
+      <Flex align="center" gap="sm" className={className}>
         <IconContainer>{icon}</IconContainer>
         {name}
       </Flex>
@@ -44,7 +44,7 @@ export function AutomationActionSummary({
     .join(', ');
 
   return (
-    <ActionContainer align="center" gap={space(0.75)} className={className}>
+    <ActionContainer align="center" gap="sm" className={className}>
       <IconContainer>
         <IconCircledNumber number={actions.length} />
       </IconContainer>
@@ -62,7 +62,6 @@ const ActionContainer = styled(Flex)`
 `;
 
 const ActionsList = styled('span')`
-  ${p => p.theme.tooltipUnderline()};
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;

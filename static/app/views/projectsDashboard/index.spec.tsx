@@ -1,9 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
   render,
@@ -39,12 +37,12 @@ jest.mock('lodash/debounce', () => {
   return mockDebounce;
 });
 
-describe('ProjectsDashboard', function () {
+describe('ProjectsDashboard', () => {
   const org = OrganizationFixture();
   const team = TeamFixture();
   const teams = [team];
 
-  beforeEach(function () {
+  beforeEach(() => {
     TeamStore.loadInitialData(teams);
     MockApiClient.addMockResponse({
       url: `/teams/${org.slug}/${team.slug}/members/`,
@@ -58,23 +56,21 @@ describe('ProjectsDashboard', function () {
     ProjectsStore.loadInitialData([]);
   });
 
-  afterEach(function () {
+  afterEach(() => {
     TeamStore.reset();
     projectsActions._projectStatsToFetch.clear();
     MockApiClient.clearMockResponses();
   });
 
-  describe('empty state', function () {
-    it('renders with 1 project, with no first event', async function () {
+  describe('empty state', () => {
+    it('renders with 1 project, with no first event', async () => {
       const projects = [ProjectFixture({teams, firstEvent: null, stats: []})];
       ProjectsStore.loadInitialData(projects);
 
       const teamsWithOneProject = [TeamFixture({projects})];
       TeamStore.loadInitialData(teamsWithOneProject);
 
-      render(<ProjectsDashboard />, {
-        deprecatedRouterMocks: true,
-      });
+      render(<ProjectsDashboard />);
 
       expect(await screen.findByTestId('join-team')).toBeInTheDocument();
       expect(screen.getByTestId('create-project')).toBeInTheDocument();
@@ -88,8 +84,8 @@ describe('ProjectsDashboard', function () {
     });
   });
 
-  describe('with projects', function () {
-    it('renders with two projects', async function () {
+  describe('with projects', () => {
+    it('renders with two projects', async () => {
       const teamA = TeamFixture({slug: 'team1', isMember: true});
       const projects = [
         ProjectFixture({
@@ -112,15 +108,13 @@ describe('ProjectsDashboard', function () {
       ProjectsStore.loadInitialData(projects);
       const teamsWithTwoProjects = [TeamFixture({projects})];
       TeamStore.loadInitialData(teamsWithTwoProjects);
-      render(<ProjectsDashboard />, {
-        deprecatedRouterMocks: true,
-      });
+      render(<ProjectsDashboard />);
       expect(await screen.findByText('My Teams')).toBeInTheDocument();
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(2);
       expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
     });
 
-    it('renders only projects for my teams by default', async function () {
+    it('renders only projects for my teams by default', async () => {
       const teamA = TeamFixture({slug: 'team1', isMember: true, projects: undefined});
       const teamProjects = [
         ProjectFixture({
@@ -146,14 +140,12 @@ describe('ProjectsDashboard', function () {
       const teamsWithTwoProjects = [TeamFixture({projects: teamProjects})];
       TeamStore.loadInitialData(teamsWithTwoProjects);
 
-      render(<ProjectsDashboard />, {
-        deprecatedRouterMocks: true,
-      });
+      render(<ProjectsDashboard />);
       expect(await screen.findByText('My Teams')).toBeInTheDocument();
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(1);
     });
 
-    it('renders all projects if open membership is enabled and user selects all teams', async function () {
+    it('renders all projects if open membership is enabled and user selects all teams', async () => {
       const openOrg = OrganizationFixture({features: ['open-membership']});
       const teamA = TeamFixture({slug: 'team1', isMember: true});
       const teamB = TeamFixture({id: '2', slug: 'team2', name: 'team2', isMember: false});
@@ -208,7 +200,7 @@ describe('ProjectsDashboard', function () {
       expect(router.location.query).toEqual({team: ''});
     });
 
-    it('renders projects for specific team that user is not a member of', async function () {
+    it('renders projects for specific team that user is not a member of', async () => {
       const openMembershipOrg = OrganizationFixture({features: ['open-membership']});
       const teamB = TeamFixture({id: '2', slug: 'team2', name: 'team2', isMember: false});
 
@@ -263,14 +255,8 @@ describe('ProjectsDashboard', function () {
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(1);
     });
 
-    it('renders only projects for my teams if open membership is disabled', async function () {
-      const {organization: closedOrg, router} = initializeOrg({
-        organization: {features: []},
-        router: {
-          // All projects
-          location: {query: {team: ''}},
-        },
-      });
+    it('renders only projects for my teams if open membership is disabled', async () => {
+      const closedOrg = OrganizationFixture({features: []});
       const teamA = TeamFixture({slug: 'team1', isMember: true});
       const teamProjects = [
         ProjectFixture({
@@ -299,9 +285,13 @@ describe('ProjectsDashboard', function () {
       TeamStore.loadInitialData([...teamsWithTwoProjects, teamA]);
 
       render(<ProjectsDashboard />, {
-        router,
         organization: closedOrg,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/projects/',
+            query: {team: ''},
+          },
+        },
       });
       expect(await screen.findByText('All Teams')).toBeInTheDocument();
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(1);
@@ -309,7 +299,7 @@ describe('ProjectsDashboard', function () {
       expect(screen.queryByText('project2')).not.toBeInTheDocument();
     });
 
-    it('renders correct project with selected team', async function () {
+    it('renders correct project with selected team', async () => {
       const teamC = TeamFixture({
         id: '1',
         slug: 'teamC',
@@ -380,21 +370,13 @@ describe('ProjectsDashboard', function () {
         body: projects,
       });
 
-      const router = RouterFixture({
-        location: {
-          pathname: '',
-          hash: '',
-          state: '',
-          action: 'PUSH',
-          key: '',
-          query: {team: '2'},
-          search: '?team=2`',
-        },
-      });
-
       render(<ProjectsDashboard />, {
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/projects/',
+            query: {team: '2'},
+          },
+        },
       });
 
       expect(await screen.findByText('project3')).toBeInTheDocument();
@@ -402,7 +384,7 @@ describe('ProjectsDashboard', function () {
       expect(screen.queryByText('project4')).not.toBeInTheDocument();
     });
 
-    it('renders projects by search', async function () {
+    it('renders projects by search', async () => {
       const teamA = TeamFixture({slug: 'team1', isMember: true});
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/projects/`,
@@ -429,9 +411,7 @@ describe('ProjectsDashboard', function () {
       ProjectsStore.loadInitialData(projects);
       const teamsWithTwoProjects = [TeamFixture({projects})];
       TeamStore.loadInitialData(teamsWithTwoProjects);
-      render(<ProjectsDashboard />, {
-        deprecatedRouterMocks: true,
-      });
+      render(<ProjectsDashboard />);
       await userEvent.type(
         screen.getByPlaceholderText('Search for projects by name'),
         'project2{enter}'
@@ -443,7 +423,7 @@ describe('ProjectsDashboard', function () {
       expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
     });
 
-    it('renders bookmarked projects first in team list', async function () {
+    it('renders bookmarked projects first in team list', async () => {
       const teamA = TeamFixture({slug: 'team1', isMember: true});
       const projects = [
         ProjectFixture({
@@ -507,9 +487,7 @@ describe('ProjectsDashboard', function () {
         ],
       });
 
-      render(<ProjectsDashboard />, {
-        deprecatedRouterMocks: true,
-      });
+      render(<ProjectsDashboard />);
 
       // check that all projects are displayed
       await waitFor(() =>
@@ -527,7 +505,7 @@ describe('ProjectsDashboard', function () {
     });
   });
 
-  describe('ProjectsStatsStore', function () {
+  describe('ProjectsStatsStore', () => {
     const teamA = TeamFixture({slug: 'team1', isMember: true});
     const projects = [
       ProjectFixture({
@@ -568,12 +546,12 @@ describe('ProjectsDashboard', function () {
       }),
     ];
 
-    beforeEach(function () {
+    beforeEach(() => {
       const teamsWithStatTestProjects = [TeamFixture({projects})];
       TeamStore.loadInitialData(teamsWithStatTestProjects);
     });
 
-    it('uses ProjectsStatsStore to load stats', async function () {
+    it('uses ProjectsStatsStore to load stats', async () => {
       ProjectsStore.loadInitialData(projects);
 
       jest.useFakeTimers();
@@ -592,9 +570,7 @@ describe('ProjectsDashboard', function () {
         })),
       });
 
-      const {unmount} = render(<ProjectsDashboard />, {
-        deprecatedRouterMocks: true,
-      });
+      const {unmount} = render(<ProjectsDashboard />);
 
       expect(loadStatsSpy).toHaveBeenCalledTimes(6);
       expect(mock).not.toHaveBeenCalled();

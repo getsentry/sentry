@@ -22,7 +22,9 @@ from sentry.testutils.cases import TestCase
 class MonitorClockTasksCheckTimeoutTest(TestCase):
     @mock.patch("sentry.monitors.clock_tasks.check_timeout.mark_failed", wraps=mark_failed)
     @mock.patch("sentry.monitors.clock_tasks.check_timeout.produce_task")
-    def test_timeout(self, mock_produce_task, mock_mark_failed):
+    def test_timeout(
+        self, mock_produce_task: mock.MagicMock, mock_mark_failed: mock.MagicMock
+    ) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -109,7 +111,9 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         assert monitor_env[0].next_checkin == ts + timedelta(hours=24)
 
     @mock.patch("sentry.monitors.clock_tasks.check_timeout.produce_task")
-    def test_timeout_with_overlapping_concurrent_checkins(self, mock_produce_task):
+    def test_timeout_with_overlapping_concurrent_checkins(
+        self, mock_produce_task: mock.MagicMock
+    ) -> None:
         """
         Tests the scenario where the max_runtime is larger than the gap between
         the schedule.
@@ -204,11 +208,9 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
             id=checkin2.id, status=CheckInStatus.IN_PROGRESS
         ).exists()
 
-        # XXX(epurkhiser): We do NOT update the MonitorStatus, another check-in
-        # has already happened. It may be worth re-visiting this logic later.
         monitor_env = MonitorEnvironment.objects.filter(
             id=monitor_environment.id,
-            status=MonitorStatus.OK,
+            status=MonitorStatus.ERROR,
         )
         assert monitor_env.exists()
 
@@ -216,7 +218,7 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         assert monitor_env[0].next_checkin == ts + timedelta(hours=1)
 
     @mock.patch("sentry.monitors.clock_tasks.check_timeout.produce_task")
-    def test_timeout_at_next_checkin_time(self, mock_produce_task):
+    def test_timeout_at_next_checkin_time(self, mock_produce_task: mock.MagicMock) -> None:
         """
         Test that timeouts that happen the same time we expect another check-in
         """
@@ -288,7 +290,7 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         assert monitor_env[0].next_checkin == ts
 
     @mock.patch("sentry.monitors.clock_tasks.check_timeout.produce_task")
-    def test_timeout_using_interval(self, mock_produce_task):
+    def test_timeout_using_interval(self, mock_produce_task: mock.MagicMock) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -361,7 +363,7 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         assert monitor_env[0].next_checkin == ts + timedelta(minutes=10)
 
     @mock.patch("sentry.monitors.clock_tasks.check_timeout.produce_task")
-    def test_timeout_with_future_complete_checkin(self, mock_produce_task):
+    def test_timeout_with_future_complete_checkin(self, mock_produce_task: mock.MagicMock) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -443,7 +445,7 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         ).exists()
 
     @mock.patch("sentry.monitors.clock_tasks.check_timeout.mark_failed")
-    def test_timeout_checkin_backlog_handled(self, mock_mark_failed):
+    def test_timeout_checkin_backlog_handled(self, mock_mark_failed: mock.MagicMock) -> None:
         """
         In the scenario where we have a clock-tick backlog we may produce
         multiple tasks to update a timed-out check-in.

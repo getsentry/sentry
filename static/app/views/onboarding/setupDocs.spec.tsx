@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   screen,
@@ -55,16 +55,12 @@ function renderMockRequests({
   });
 }
 
-describe('Onboarding Setup Docs', function () {
-  it('does not render Product Selection', async function () {
-    const {router, organization, project} = initializeOrg({
-      projects: [
-        {
-          ...initializeOrg().project,
-          slug: 'python',
-          platform: 'python',
-        },
-      ],
+describe('Onboarding Setup Docs', () => {
+  it('does not render Product Selection', async () => {
+    const organization = OrganizationFixture();
+    const project = ProjectFixture({
+      slug: 'python',
+      platform: 'python',
     });
 
     ProjectsStore.init();
@@ -75,23 +71,12 @@ describe('Onboarding Setup Docs', function () {
     render(
       <OnboardingContextProvider>
         <SetupDocs
-          active
           onComplete={() => {}}
           stepIndex={2}
-          router={router}
-          route={{}}
-          location={router.location}
           genSkipOnboardingLink={() => ''}
-          orgId={organization.slug}
-          search=""
           recentCreatedProject={project}
         />
-      </OnboardingContextProvider>,
-      {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      }
+      </OnboardingContextProvider>
     );
 
     expect(
@@ -105,15 +90,11 @@ describe('Onboarding Setup Docs', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders SDK version from the sentry release registry', async function () {
-    const {router, organization, project} = initializeOrg({
-      projects: [
-        {
-          ...initializeOrg().project,
-          slug: 'java',
-          platform: 'java',
-        },
-      ],
+  it('renders SDK version from the sentry release registry', async () => {
+    const organization = OrganizationFixture();
+    const project = ProjectFixture({
+      slug: 'java',
+      platform: 'java',
     });
 
     ProjectsStore.init();
@@ -124,23 +105,12 @@ describe('Onboarding Setup Docs', function () {
     render(
       <OnboardingContextProvider>
         <SetupDocs
-          active
           onComplete={() => {}}
           stepIndex={2}
-          router={router}
-          route={{}}
-          location={router.location}
           genSkipOnboardingLink={() => ''}
-          orgId={organization.slug}
-          search=""
           recentCreatedProject={project}
         />
-      </OnboardingContextProvider>,
-      {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      }
+      </OnboardingContextProvider>
     );
 
     expect(
@@ -148,26 +118,12 @@ describe('Onboarding Setup Docs', function () {
     ).toBeInTheDocument();
   });
 
-  describe('renders Product Selection', function () {
-    it('all products checked', async function () {
-      const {router, organization, project} = initializeOrg({
-        router: {
-          location: {
-            query: {
-              product: [
-                ProductSolution.PERFORMANCE_MONITORING,
-                ProductSolution.SESSION_REPLAY,
-              ],
-            },
-          },
-        },
-        projects: [
-          {
-            ...initializeOrg().project,
-            slug: 'javascript-react',
-            platform: 'javascript-react',
-          },
-        ],
+  describe('renders Product Selection', () => {
+    it('all products checked', async () => {
+      const organization = OrganizationFixture();
+      const project = ProjectFixture({
+        slug: 'javascript-react',
+        platform: 'javascript-react',
       });
 
       ProjectsStore.init();
@@ -181,22 +137,25 @@ describe('Onboarding Setup Docs', function () {
       render(
         <OnboardingContextProvider>
           <SetupDocs
-            active
             onComplete={() => {}}
             stepIndex={2}
-            router={router}
-            route={{}}
-            location={router.location}
             genSkipOnboardingLink={() => ''}
-            orgId={organization.slug}
-            search=""
             recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
+          initialRouterConfig: {
+            location: {
+              pathname: `/onboarding/${organization.slug}/setup-docs/`,
+              query: {
+                product: [
+                  ProductSolution.PERFORMANCE_MONITORING,
+                  ProductSolution.SESSION_REPLAY,
+                ],
+              },
+            },
+            route: `/onboarding/:orgId/setup-docs/`,
+          },
         }
       );
 
@@ -204,25 +163,17 @@ describe('Onboarding Setup Docs', function () {
         await screen.findByRole('heading', {name: 'Configure React SDK'})
       ).toBeInTheDocument();
 
-      const codeBlock = await screen.findByText(/import \* as Sentry/);
-      expect(codeBlock).toHaveTextContent(/Tracing/);
-      expect(codeBlock).toHaveTextContent(/Session Replay/);
+      // First code block is the install snippet, second is the verify snippet
+      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      expect(codeBlocks[0]).toHaveTextContent(/Tracing/);
+      expect(codeBlocks[0]).toHaveTextContent(/Session Replay/);
     });
 
-    it('only performance checked', async function () {
-      const {router, organization, project} = initializeOrg({
-        router: {
-          location: {
-            query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
-          },
-        },
-        projects: [
-          {
-            ...initializeOrg().project,
-            slug: 'javascript-react',
-            platform: 'javascript-react',
-          },
-        ],
+    it('only performance checked', async () => {
+      const organization = OrganizationFixture();
+      const project = ProjectFixture({
+        slug: 'javascript-react',
+        platform: 'javascript-react',
       });
 
       ProjectsStore.init();
@@ -236,44 +187,34 @@ describe('Onboarding Setup Docs', function () {
       render(
         <OnboardingContextProvider>
           <SetupDocs
-            active
             onComplete={() => {}}
             stepIndex={2}
-            router={router}
-            route={{}}
-            location={router.location}
             genSkipOnboardingLink={() => ''}
-            orgId={organization.slug}
-            search=""
             recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
+          initialRouterConfig: {
+            location: {
+              pathname: `/onboarding/${organization.slug}/setup-docs/`,
+              query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
+            },
+            route: `/onboarding/:orgId/setup-docs/`,
+          },
         }
       );
 
-      const codeBlock = await screen.findByText(/import \* as Sentry/);
-      expect(codeBlock).toHaveTextContent(/Tracing/);
-      expect(codeBlock).not.toHaveTextContent(/Session Replay/);
+      // First code block is the install snippet, second is the verify snippet
+      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      expect(codeBlocks[0]).toHaveTextContent(/Tracing/);
+      expect(codeBlocks[0]).not.toHaveTextContent(/Session Replay/);
     });
 
-    it('only session replay checked', async function () {
-      const {router, organization, project} = initializeOrg({
-        router: {
-          location: {
-            query: {product: [ProductSolution.SESSION_REPLAY]},
-          },
-        },
-        projects: [
-          {
-            ...initializeOrg().project,
-            slug: 'javascript-react',
-            platform: 'javascript-react',
-          },
-        ],
+    it('only session replay checked', async () => {
+      const organization = OrganizationFixture();
+      const project = ProjectFixture({
+        slug: 'javascript-react',
+        platform: 'javascript-react',
       });
 
       ProjectsStore.init();
@@ -287,44 +228,34 @@ describe('Onboarding Setup Docs', function () {
       render(
         <OnboardingContextProvider>
           <SetupDocs
-            active
             onComplete={() => {}}
             stepIndex={2}
-            router={router}
-            route={{}}
-            location={router.location}
             genSkipOnboardingLink={() => ''}
-            orgId={organization.slug}
-            search=""
             recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
+          initialRouterConfig: {
+            location: {
+              pathname: `/onboarding/${organization.slug}/setup-docs/`,
+              query: {product: [ProductSolution.SESSION_REPLAY]},
+            },
+            route: `/onboarding/:orgId/setup-docs/`,
+          },
         }
       );
 
-      const codeBlock = await screen.findByText(/import \* as Sentry/);
-      expect(codeBlock).toHaveTextContent(/Session Replay/);
-      expect(codeBlock).not.toHaveTextContent(/Tracing/);
+      // First code block is the install snippet, second is the verify snippet
+      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      expect(codeBlocks[0]).toHaveTextContent(/Session Replay/);
+      expect(codeBlocks[0]).not.toHaveTextContent(/Tracing/);
     });
 
-    it('only error monitoring checked', async function () {
-      const {router, organization, project} = initializeOrg({
-        router: {
-          location: {
-            query: {product: []},
-          },
-        },
-        projects: [
-          {
-            ...initializeOrg().project,
-            slug: 'javascript-react',
-            platform: 'javascript-react',
-          },
-        ],
+    it('only error monitoring checked', async () => {
+      const organization = OrganizationFixture();
+      const project = ProjectFixture({
+        slug: 'javascript-react',
+        platform: 'javascript-react',
       });
 
       ProjectsStore.init();
@@ -338,57 +269,40 @@ describe('Onboarding Setup Docs', function () {
       render(
         <OnboardingContextProvider>
           <SetupDocs
-            active
             onComplete={() => {}}
             stepIndex={2}
-            router={router}
-            route={{}}
-            location={router.location}
             genSkipOnboardingLink={() => ''}
-            orgId={organization.slug}
-            search=""
             recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
+          initialRouterConfig: {
+            location: {
+              pathname: `/onboarding/${organization.slug}/setup-docs/`,
+              query: {product: []},
+            },
+            route: `/onboarding/:orgId/setup-docs/`,
+          },
         }
       );
 
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-      const codeBlock = await screen.findByText(/import \* as Sentry/);
-      expect(codeBlock).not.toHaveTextContent(/Tracing/);
-      expect(codeBlock).not.toHaveTextContent(/Session Replay/);
+      // First code block is the install snippet, second is the verify snippet
+      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      expect(codeBlocks[0]).not.toHaveTextContent(/Tracing/);
+      expect(codeBlocks[0]).not.toHaveTextContent(/Session Replay/);
     });
   });
 
-  describe('JS Loader Script', function () {
-    it('renders Loader Script setup', async function () {
-      const {router, organization, project} = initializeOrg({
-        router: {
-          location: {
-            query: {
-              product: [
-                ProductSolution.PERFORMANCE_MONITORING,
-                ProductSolution.SESSION_REPLAY,
-              ],
-              installationMode: 'auto',
-            },
-          },
-        },
-        projects: [
-          {
-            ...initializeOrg().project,
-            slug: 'javascript',
-            platform: 'javascript',
-          },
-        ],
-        organization: OrganizationFixture({
-          features: ['session-replay', 'performance-view'],
-        }),
+  describe('JS Loader Script', () => {
+    it('renders Loader Script setup', async () => {
+      const organization = OrganizationFixture({
+        features: ['session-replay', 'performance-view'],
+      });
+      const project = ProjectFixture({
+        slug: 'javascript',
+        platform: 'javascript',
       });
 
       const updateLoaderMock = MockApiClient.addMockResponse({
@@ -408,22 +322,27 @@ describe('Onboarding Setup Docs', function () {
       render(
         <OnboardingContextProvider>
           <SetupDocs
-            active
             onComplete={() => {}}
             stepIndex={2}
-            router={router}
-            route={{}}
-            location={router.location}
             genSkipOnboardingLink={() => ''}
-            orgId={organization.slug}
-            search=""
             recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
-          router,
           organization,
-          deprecatedRouterMocks: true,
+          initialRouterConfig: {
+            location: {
+              pathname: `/onboarding/${organization.slug}/setup-docs/`,
+              query: {
+                product: [
+                  ProductSolution.PERFORMANCE_MONITORING,
+                  ProductSolution.SESSION_REPLAY,
+                ],
+                installationMode: 'auto',
+              },
+            },
+            route: `/onboarding/:orgId/setup-docs/`,
+          },
         }
       );
 
@@ -438,6 +357,8 @@ describe('Onboarding Setup Docs', function () {
           data: {
             dynamicSdkLoaderOptions: {
               hasDebug: false,
+              hasFeedback: false,
+              hasLogsAndMetrics: false,
               hasPerformance: true,
               hasReplay: true,
             },
@@ -461,6 +382,8 @@ describe('Onboarding Setup Docs', function () {
           data: {
             dynamicSdkLoaderOptions: {
               hasDebug: false,
+              hasFeedback: false,
+              hasLogsAndMetrics: false,
               hasPerformance: true,
               hasReplay: false,
             },
@@ -474,15 +397,11 @@ describe('Onboarding Setup Docs', function () {
   });
 
   describe('special platforms', () => {
-    it('renders platform other', async function () {
-      const {router, organization, project} = initializeOrg({
-        projects: [
-          {
-            ...initializeOrg().project,
-            slug: 'other',
-            platform: 'other',
-          },
-        ],
+    it('renders platform other', async () => {
+      const organization = OrganizationFixture();
+      const project = ProjectFixture({
+        slug: 'other',
+        platform: 'other',
       });
 
       ProjectsStore.init();
@@ -493,23 +412,12 @@ describe('Onboarding Setup Docs', function () {
       render(
         <OnboardingContextProvider>
           <SetupDocs
-            active
             onComplete={() => {}}
             stepIndex={2}
-            router={router}
-            route={{}}
-            location={router.location}
             genSkipOnboardingLink={() => ''}
-            orgId={organization.slug}
-            search=""
             recentCreatedProject={project}
           />
-        </OnboardingContextProvider>,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
+        </OnboardingContextProvider>
       );
 
       expect(

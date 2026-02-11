@@ -2,14 +2,19 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
-import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import type {
+  GridColumnHeader,
+  GridColumnOrder,
+} from 'sentry/components/tables/gridEditable';
 import GridEditable from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -26,11 +31,7 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {TableColumn} from 'sentry/views/discover/table/types';
-import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
-import {DeviceClassSelector} from 'sentry/views/insights/mobile/common/components/deviceClassSelector';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {ModuleName} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type Props = {
@@ -45,15 +46,14 @@ type Props = {
   data?: TableData;
   footerAlignedPagination?: boolean;
   pageLinks?: string;
-  showDeviceClassSelector?: boolean;
 };
 
 const ICON_FIELDS = ['profile.id', 'profile_id'];
+const COLUMN_RESIZE_PARAM_NAME = 'spans';
 
 export function EventSamplesTable({
   cursorName,
   sortKey,
-  showDeviceClassSelector,
   eventView,
   data,
   isLoading,
@@ -174,7 +174,10 @@ export function EventSamplesTable({
     return sortLink;
   }
 
-  const columnSortBy = eventView.getSorts();
+  const columnSortBy = eventView.getSorts().map(column => ({
+    key: String(column.key),
+    order: column.order,
+  }));
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     navigate({
@@ -183,17 +186,23 @@ export function EventSamplesTable({
     });
   };
 
+  const gridColumnOrder: Array<GridColumnOrder<string>> = eventViewColumns
+    .filter(col => Object.keys(columnNameMap).includes(col.name))
+    .map(col => ({
+      key: col.key,
+      name: columnNameMap[col.key]!,
+      width: col.width,
+    }));
+
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
+    columns: gridColumnOrder,
+    paramName: COLUMN_RESIZE_PARAM_NAME,
+  });
+
   return (
     <Fragment>
       {!footerAlignedPagination && (
         <Header>
-          {showDeviceClassSelector && (
-            <StyledControls>
-              <DeviceClassSelector moduleName={ModuleName.SCREEN_LOAD} />
-              <SubregionSelector size="xs" />
-            </StyledControls>
-          )}
-
           <StyledPagination size="xs" pageLinks={pageLinks} onCursor={handleCursor} />
         </Header>
       )}
@@ -201,17 +210,12 @@ export function EventSamplesTable({
         <GridEditable
           isLoading={isLoading}
           data={data?.data as TableDataRow[]}
-          columnOrder={eventViewColumns
-            .filter((col: TableColumn<string | number>) =>
-              Object.keys(columnNameMap).includes(col.name)
-            )
-            .map((col: TableColumn<string | number>) => {
-              return {...col, name: columnNameMap[col.key]!};
-            })}
+          columnOrder={columns}
           columnSortBy={columnSortBy}
           grid={{
             renderHeadCell: column => renderHeadCell(column, data?.meta),
             renderBodyCell,
+            onResizeColumn: handleResizeColumn,
           }}
         />
       </GridContainer>
@@ -234,11 +238,6 @@ const Header = styled('div')`
   margin-bottom: ${space(1)};
   align-items: center;
   height: 26px;
-`;
-
-const StyledControls = styled('div')`
-  display: flex;
-  gap: ${space(1)};
 `;
 
 const IconWrapper = styled('div')`

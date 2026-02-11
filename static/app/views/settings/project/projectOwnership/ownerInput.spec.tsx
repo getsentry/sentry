@@ -7,11 +7,11 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import MemberListStore from 'sentry/stores/memberListStore';
 import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
-describe('Project Ownership Input', function () {
+describe('Project Ownership Input', () => {
   const {organization, project} = initializeOrg();
   let put: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/`,
       method: 'GET',
@@ -26,7 +26,7 @@ describe('Project Ownership Input', function () {
     MemberListStore.loadInitialData([UserFixture({id: '1', email: 'bob@example.com'})]);
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(
       <OwnerInput
         page="issue_details"
@@ -54,7 +54,7 @@ describe('Project Ownership Input', function () {
     expect(put).toHaveBeenCalled();
   });
 
-  it('updates on add preserving existing text', async function () {
+  it('updates on add preserving existing text', async () => {
     render(
       <OwnerInput
         page="issue_details"

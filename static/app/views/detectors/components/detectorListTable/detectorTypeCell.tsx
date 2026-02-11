@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import {getDetectorTypeLabel} from 'sentry/views/detectors/utils';
+import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 type DetectorTypeCellProps = {
   type: DetectorType;
@@ -23,7 +23,7 @@ export function DetectorTypeCell({
 }
 
 const Type = styled('div')<{disabled: boolean}>`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: flex;
   flex-direction: row;
   gap: ${space(0.5)};
@@ -31,6 +31,6 @@ const Type = styled('div')<{disabled: boolean}>`
   ${p =>
     p.disabled &&
     `
-    color: ${p.theme.disabled};
+    color: ${p.theme.tokens.content.disabled};
   `}
 `;

@@ -2,8 +2,8 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
-describe('SimpleTable component', function () {
-  it('renders headers andcells', function () {
+describe('SimpleTable component', () => {
+  it('renders headers andcells', () => {
     render(
       <SimpleTable>
         <SimpleTable.Header>

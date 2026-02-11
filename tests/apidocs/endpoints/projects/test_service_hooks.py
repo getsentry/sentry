@@ -5,7 +5,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class ProjectServiceHooksDocs(APIDocsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.create_service_hook(project=self.project, events=("event.created",))
         self.create_service_hook(project=self.project, events=("event.alert",))
 
@@ -19,14 +19,14 @@ class ProjectServiceHooksDocs(APIDocsTestCase):
 
         self.login_as(user=self.user)
 
-    def test_get(self):
+    def test_get(self) -> None:
         with self.feature("projects:servicehooks"):
             response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
 
         self.validate_schema(request, response)
 
-    def test_post(self):
+    def test_post(self) -> None:
         data = {"url": "https://example.com/other-sentry-hook", "events": ["event.created"]}
         with self.feature("projects:servicehooks"):
             response = self.client.post(self.url, data)

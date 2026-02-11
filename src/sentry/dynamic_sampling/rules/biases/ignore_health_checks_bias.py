@@ -9,7 +9,7 @@ from sentry.dynamic_sampling.rules.utils import (
 from sentry.models.project import Project
 
 
-class IgnoreHealthChecksBias(Bias):
+class IgnoreHealthChecksTransactionBias(Bias):
     def generate_rules(self, project: Project, base_sample_rate: float) -> list[PolymorphicRule]:
         return [
             {
@@ -24,6 +24,30 @@ class IgnoreHealthChecksBias(Bias):
                         {
                             "op": "glob",
                             "name": "event.transaction",
+                            "value": HEALTH_CHECK_GLOBS,
+                        }
+                    ],
+                },
+                "id": RESERVED_IDS[RuleType.IGNORE_HEALTH_CHECKS_RULE],
+            }
+        ]
+
+
+class IgnoreHealthChecksTraceBias(Bias):
+    def generate_rules(self, project: Project, base_sample_rate: float) -> list[PolymorphicRule]:
+        return [
+            {
+                "samplingValue": {
+                    "type": "sampleRate",
+                    "value": base_sample_rate / IGNORE_HEALTH_CHECKS_FACTOR,
+                },
+                "type": "trace",
+                "condition": {
+                    "op": "or",
+                    "inner": [
+                        {
+                            "op": "glob",
+                            "name": "trace.transaction",
                             "value": HEALTH_CHECK_GLOBS,
                         }
                     ],

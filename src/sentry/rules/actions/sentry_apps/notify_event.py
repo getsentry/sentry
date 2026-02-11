@@ -5,7 +5,6 @@ from typing import Any
 
 from rest_framework import serializers
 
-from sentry.eventstore.models import GroupEvent
 from sentry.models.project import Project
 from sentry.rules.actions.sentry_apps import SentryAppEventAction
 from sentry.rules.base import CallbackFuture
@@ -16,6 +15,7 @@ from sentry.sentry_apps.services.app import (
     app_service,
 )
 from sentry.sentry_apps.tasks.sentry_apps import notify_sentry_app
+from sentry.services.eventstore.models import GroupEvent
 
 ValidationError = serializers.ValidationError
 

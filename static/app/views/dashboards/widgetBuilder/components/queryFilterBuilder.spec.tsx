@@ -1,6 +1,4 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -16,14 +14,20 @@ jest.mock('sentry/views/explore/contexts/spanTagsContext');
 
 describe('QueryFilterBuilder', () => {
   let organization: Organization;
+
   beforeEach(() => {
     organization = OrganizationFixture({
       features: [],
     });
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
-    jest.mocked(useTraceItemTags).mockReturnValue({tags: {}, isLoading: false});
+    jest
+      .mocked(useTraceItemTags)
+      .mockReturnValue({tags: {}, secondaryAliases: {}, isLoading: false});
 
-    MockApiClient.addMockResponse({url: '/organizations/org-slug/recent-searches/'});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
   });
 
   it('renders a dataset-specific query filter bar', async () => {
@@ -36,18 +40,16 @@ describe('QueryFilterBuilder', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
             query: {
               query: [],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
     expect(
@@ -63,14 +65,12 @@ describe('QueryFilterBuilder', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
             query: {query: [], dataset: WidgetType.SPANS, displayType: DisplayType.TABLE},
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
     expect(
@@ -88,18 +88,16 @@ describe('QueryFilterBuilder', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
             query: {
               query: [],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -116,18 +114,16 @@ describe('QueryFilterBuilder', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
             query: {
               query: [],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -152,14 +148,12 @@ describe('QueryFilterBuilder', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
             query: {query: [], dataset: WidgetType.SPANS, displayType: DisplayType.LINE},
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -180,18 +174,16 @@ describe('QueryFilterBuilder', () => {
       </WidgetBuilderProvider>,
       {
         organization: organizationWithFeature,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
             query: {
               query: [],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -202,10 +194,6 @@ describe('QueryFilterBuilder', () => {
   });
 
   it('enables search bar when transaction widget type but no discover-saved-queries-deprecation feature flag', async () => {
-    const organizationWithoutFeature = OrganizationFixture({
-      features: [],
-    });
-
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderQueryFilterBuilder
@@ -214,19 +202,17 @@ describe('QueryFilterBuilder', () => {
         />
       </WidgetBuilderProvider>,
       {
-        organization: organizationWithoutFeature,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
             query: {
               query: [],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 

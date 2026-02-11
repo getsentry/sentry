@@ -9,7 +9,7 @@ from sentry.utils import snuba
 
 
 class SnubaUtilTest(TestCase, SnubaTestCase):
-    def test_filter_keys_set(self):
+    def test_filter_keys_set(self) -> None:
         create_default_projects()
         snuba.raw_query(
             start=datetime.now(),
@@ -19,7 +19,7 @@ class SnubaUtilTest(TestCase, SnubaTestCase):
             tenant_ids={"referrer": "bleh", "organization_id": 123},
         )
 
-    def test_shrink_timeframe(self):
+    def test_shrink_timeframe(self) -> None:
         now = datetime.now(UTC)
         naive_now = now.replace(tzinfo=None)
         year_ago = naive_now - timedelta(days=365)
@@ -59,7 +59,7 @@ class SnubaUtilTest(TestCase, SnubaTestCase):
         #        ],
         #    )
 
-    def test_override_options(self):
+    def test_override_options(self) -> None:
         assert snuba.OVERRIDE_OPTIONS == {"consistent": False}
         with snuba.options_override({"foo": 1}):
             assert snuba.OVERRIDE_OPTIONS == {"foo": 1, "consistent": False}
@@ -68,7 +68,7 @@ class SnubaUtilTest(TestCase, SnubaTestCase):
             assert snuba.OVERRIDE_OPTIONS == {"foo": 1, "consistent": False}
         assert snuba.OVERRIDE_OPTIONS == {"consistent": False}
 
-    def test_build_query_strings(self):
+    def test_build_query_strings(self) -> None:
         snuba_query_no_query = SnubaQuery.objects.create(
             type=SnubaQuery.Type.ERROR.value,
             dataset="events",

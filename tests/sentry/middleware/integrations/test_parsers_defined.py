@@ -19,7 +19,7 @@ def extract_matching_url_patterns(urlpatterns, base: str = ""):
                 yield url_pattern
 
 
-def test_parsers_for_all_extension_urls():
+def test_parsers_for_all_extension_urls() -> None:
     """
     Ensure that we have a request parser for all defined integrations.
     """
@@ -28,8 +28,8 @@ def test_parsers_for_all_extension_urls():
     for pattern in url_patterns:
         [_, provider, _trailing] = pattern.split("/", maxsplit=2)
 
-        # Ignore dynamic segments
-        if provider[0] in {"(", "["} or provider == "external-install":
+        # Ignore dynamic segments or providers without middleware parsers
+        if provider[0] in {"(", "["} or provider in {"external-install", "cursor"}:
             continue
 
         # Ensure the expected module exists

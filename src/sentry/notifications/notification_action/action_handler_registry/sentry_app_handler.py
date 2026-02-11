@@ -1,8 +1,11 @@
+from typing import override
+
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
-from sentry.workflow_engine.models import Action, Detector
+from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
+from sentry.workflow_engine.transformers import TargetTypeConfigTransformer
+from sentry.workflow_engine.types import ActionHandler, ActionInvocation, ConfigTransformer
 from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
@@ -26,11 +29,13 @@ class SentryAppActionHandler(ActionHandler):
                 "enum": [*SentryAppIdentifier],
             },
         },
-        "required": ["target_type", "target_identifier", "sentry_app_identifier"],
+        "required": ["target_type", "target_identifier"],
         "additionalProperties": False,
     }
+
     data_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "The data schema for a Sentry App Action",
         "type": "object",
         "properties": {
             "settings": {"type": ["array", "object"]},
@@ -39,9 +44,10 @@ class SentryAppActionHandler(ActionHandler):
     }
 
     @staticmethod
-    def execute(
-        job: WorkflowEventData,
-        action: Action,
-        detector: Detector,
-    ) -> None:
-        execute_via_group_type_registry(job, action, detector)
+    def get_config_transformer() -> ConfigTransformer | None:
+        return TargetTypeConfigTransformer.from_config_schema(SentryAppActionHandler.config_schema)
+
+    @staticmethod
+    @override
+    def execute(invocation: ActionInvocation) -> None:
+        execute_via_group_type_registry(invocation)

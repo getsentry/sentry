@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -26,20 +26,23 @@ import type {Scope} from 'sentry/types/core';
 import {IssueTitle, IssueType} from 'sentry/types/group';
 import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useMutation,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
@@ -49,6 +52,7 @@ export const retentionPrioritiesLabels = {
   boostEnvironments: t('Prioritize dev environments'),
   boostLowVolumeTransactions: t('Prioritize low-volume transactions'),
   ignoreHealthChecks: t('Deprioritize health checks'),
+  minimumSampleRate: t('Always use project sample rate'),
 };
 
 export const allowedDurationValues: number[] = [
@@ -88,6 +92,7 @@ enum DetectorConfigAdmin {
   TRANSACTION_DURATION_REGRESSION_ENABLED = 'transaction_duration_regression_detection_enabled',
   FUNCTION_DURATION_REGRESSION_ENABLED = 'function_duration_regression_detection_enabled',
   DB_QUERY_INJECTION_ENABLED = 'db_query_injection_detection_enabled',
+  WEB_VITALS_ENABLED = 'web_vitals_detection_enabled',
 }
 
 export enum DetectorConfigCustomer {
@@ -96,7 +101,8 @@ export enum DetectorConfigCustomer {
   N_PLUS_DB_COUNT = 'n_plus_one_db_count',
   N_PLUS_API_CALLS_DURATION = 'n_plus_one_api_calls_total_duration_threshold',
   RENDER_BLOCKING_ASSET_RATIO = 'render_blocking_fcp_ratio',
-  LARGE_HTT_PAYLOAD_SIZE = 'large_http_payload_size_threshold',
+  LARGE_HTTP_PAYLOAD_SIZE = 'large_http_payload_size_threshold',
+  LARGE_HTTP_PAYLOAD_FILTERED_PATHS = 'large_http_payload_filtered_paths',
   DB_ON_MAIN_THREAD_DURATION = 'db_on_main_thread_duration_threshold',
   FILE_IO_MAIN_THREAD_DURATION = 'file_io_on_main_thread_duration_threshold',
   UNCOMPRESSED_ASSET_DURATION = 'uncompressed_asset_duration_threshold',
@@ -105,6 +111,7 @@ export enum DetectorConfigCustomer {
   CONSECUTIVE_HTTP_MIN_TIME_SAVED = 'consecutive_http_spans_min_time_saved_threshold',
   HTTP_OVERHEAD_REQUEST_DELAY = 'http_request_delay_threshold',
   SQL_INJECTION_QUERY_VALUE_LENGTH = 'sql_injection_query_value_length_threshold',
+  WEB_VITALS_COUNT = 'web_vitals_count',
 }
 
 type ProjectThreshold = {
@@ -152,13 +159,25 @@ const formFields: Field[] = [
 ];
 
 const getThresholdQueryKey = (orgSlug: string, projectSlug: string): ApiQueryKey => [
-  `/projects/${orgSlug}/${projectSlug}/transaction-threshold/configure/`,
+  getApiUrl(
+    `/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/`,
+    {
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+    }
+  ),
 ];
 
 const getPerformanceIssueSettingsQueryKey = (
   orgSlug: string,
   projectSlug: string
-): ApiQueryKey => [`/projects/${orgSlug}/${projectSlug}/performance-issues/configure/`];
+): ApiQueryKey => [
+  getApiUrl(
+    `/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/`,
+    {
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+    }
+  ),
+];
 
 function ProjectPerformance() {
   const api = useApi({persistInFlight: true});
@@ -173,6 +192,8 @@ function ProjectPerformance() {
     projectSlug,
     orgSlug: organization.slug,
   });
+
+  const hasWebVitalsSeerSuggestions = useHasSeerWebVitalsSuggestions(project);
 
   const {
     data: threshold,
@@ -201,7 +222,14 @@ function ProjectPerformance() {
     isPending: isPendingGeneral,
     isError: isErrorGeneral,
   } = useApiQuery<any>(
-    [`/projects/${organization.slug}/${projectSlug}/performance/configure/`],
+    [
+      getApiUrl(
+        `/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/`,
+        {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+        }
+      ),
+    ],
     {
       staleTime: 0,
     }
@@ -298,40 +326,57 @@ function ProjectPerformance() {
     };
   };
 
-  const retentionPrioritiesFormFields: Field[] = [
-    {
-      name: 'boostLatestRelease',
-      type: 'boolean',
-      label: retentionPrioritiesLabels.boostLatestRelease,
-      help: t(
-        'Captures more transactions for your new releases as they are being adopted'
-      ),
-      getData: getRetentionPrioritiesData,
-    },
-    {
-      name: 'boostEnvironments',
-      type: 'boolean',
-      label: retentionPrioritiesLabels.boostEnvironments,
-      help: t(
-        'Captures more traces from environments that contain "debug", "dev", "local", "qa", and "test"'
-      ),
-      getData: getRetentionPrioritiesData,
-    },
-    {
-      name: 'boostLowVolumeTransactions',
-      type: 'boolean',
-      label: retentionPrioritiesLabels.boostLowVolumeTransactions,
-      help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
-      getData: getRetentionPrioritiesData,
-    },
-    {
-      name: 'ignoreHealthChecks',
-      type: 'boolean',
-      label: retentionPrioritiesLabels.ignoreHealthChecks,
-      help: t('Captures fewer of your health checks transactions'),
-      getData: getRetentionPrioritiesData,
-    },
-  ];
+  function getRetentionPrioritiesFormFields(): Field[] {
+    const fields = [
+      {
+        name: 'boostLatestRelease',
+        type: 'boolean' as const,
+        label: retentionPrioritiesLabels.boostLatestRelease,
+        help: t(
+          'Captures more transactions for your new releases as they are being adopted'
+        ),
+        getData: getRetentionPrioritiesData,
+      },
+      {
+        name: 'boostEnvironments',
+        type: 'boolean' as const,
+        label: retentionPrioritiesLabels.boostEnvironments,
+        help: t(
+          'Captures more traces from environments that contain "debug", "dev", "local", "qa", and "test"'
+        ),
+        getData: getRetentionPrioritiesData,
+      },
+      {
+        name: 'boostLowVolumeTransactions',
+        type: 'boolean' as const,
+        label: retentionPrioritiesLabels.boostLowVolumeTransactions,
+        help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
+        getData: getRetentionPrioritiesData,
+      },
+      {
+        name: 'ignoreHealthChecks',
+        type: 'boolean' as const,
+        label: retentionPrioritiesLabels.ignoreHealthChecks,
+        help: t('Captures fewer of your health checks transactions'),
+        getData: getRetentionPrioritiesData,
+      },
+    ];
+    if (
+      hasDynamicSamplingCustomFeature(organization) &&
+      organization.features.includes('dynamic-sampling-minimum-sample-rate')
+    ) {
+      fields.push({
+        name: 'minimumSampleRate',
+        type: 'boolean' as const,
+        label: retentionPrioritiesLabels.minimumSampleRate,
+        help: t(
+          'If higher than the trace sample rate, use the project sample rate for spans instead of the trace sample rate.'
+        ),
+        getData: getRetentionPrioritiesData,
+      });
+    }
+    return fields;
+  }
 
   const performanceIssueDetectorAdminFieldMapping: Record<string, Field> = {
     [IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: {
@@ -529,6 +574,23 @@ function ProjectPerformance() {
         'issue-query-injection-vulnerability-visible'
       ),
     },
+    [IssueTitle.WEB_VITALS]: {
+      name: DetectorConfigAdmin.WEB_VITALS_ENABLED,
+      type: 'boolean',
+      label: t('Web Vitals Detection'),
+      defaultValue: true,
+      onChange: value => {
+        setApiQueryData<ProjectPerformanceSettings>(
+          queryClient,
+          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+          data => ({
+            ...data!,
+            web_vitals_detection_enabled: value,
+          })
+        );
+      },
+      visible: hasWebVitalsSeerSuggestions,
+    },
   };
 
   const performanceRegressionAdminFields: Field[] = [
@@ -713,7 +775,7 @@ function ProjectPerformance() {
         title: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
         fields: [
           {
-            name: DetectorConfigCustomer.LARGE_HTT_PAYLOAD_SIZE,
+            name: DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_SIZE,
             type: 'range',
             label: t('Minimum Size'),
             defaultValue: 1000000, // 1MB in bytes
@@ -729,6 +791,23 @@ function ProjectPerformance() {
             ),
             formatLabel: formatSize,
             disabledReason,
+          },
+          {
+            name: DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_FILTERED_PATHS,
+            type: 'string',
+            label: t('Filtered Paths'),
+            placeholder: t('/api/download/, /download/file'),
+            help: t(
+              'Comma-separated list of URL paths to exclude from Large HTTP Payload detection. Any spans with these paths will be excluded. Supports partial matches (e.g., "/api/" will match "/api/users").'
+            ),
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
+            ),
+            disabledReason,
+            visible: organization.features.includes(
+              'large-http-payload-detector-improvements'
+            ),
           },
         ],
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
@@ -920,6 +999,32 @@ function ProjectPerformance() {
         ],
         initiallyCollapsed: issueType !== IssueType.QUERY_INJECTION_VULNERABILITY,
       },
+      {
+        title: IssueTitle.WEB_VITALS,
+        fields: [
+          {
+            name: DetectorConfigCustomer.WEB_VITALS_COUNT,
+            type: 'range',
+            label: t('Minimum Sample Count'),
+            defaultValue: 10,
+            help: t(
+              'Setting the value to 10, means that web vital issues will only be created if there are at least 10 samples of the web vital type.'
+            ),
+            tickValues: [0, allowedCountValues.length - 1],
+            allowedValues: allowedCountValues,
+            showTickLabels: true,
+            formatLabel: formatCount,
+            flexibleControlStateSize: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.WEB_VITALS_ENABLED]
+            ),
+            disabledReason,
+            visible: hasWebVitalsSeerSuggestions,
+          },
+        ],
+        initiallyCollapsed: issueType !== IssueType.WEB_VITALS,
+      },
     ];
 
     // If the organization can manage detectors, add the admin field to the existing settings
@@ -953,7 +1058,7 @@ function ProjectPerformance() {
       <ProjectPermissionAlert project={project} />
       <Access access={requiredScopes} project={project}>
         {({hasAccess}) => (
-          <Feature features="organizations:insights-initial-modules">
+          <Feature features="organizations:insight-modules">
             <Form
               initialData={general}
               saveOnBlur
@@ -1048,7 +1153,7 @@ function ProjectPerformance() {
             {({hasAccess}) => (
               <JsonForm
                 title={t('Sampling Priorities')}
-                fields={retentionPrioritiesFormFields}
+                fields={getRetentionPrioritiesFormFields()}
                 disabled={!hasAccess}
                 renderFooter={() => (
                   <Actions>
@@ -1151,7 +1256,7 @@ const Actions = styled(PanelItem)`
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-bottom: none;
 `;
 
@@ -1163,7 +1268,7 @@ const StyledJsonForm = styled(JsonForm)`
   }
 
   ${FieldWrapper} {
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   ${FieldWrapper} + ${FieldWrapper} {
@@ -1171,7 +1276,7 @@ const StyledJsonForm = styled(JsonForm)`
   }
 
   ${Panel} + ${Panel} {
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   ${PanelHeader} {
@@ -1184,10 +1289,10 @@ const StyledJsonForm = styled(JsonForm)`
 `;
 
 const StyledPanelFooter = styled(PanelFooter)`
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: 0 0 calc(${p => p.theme.borderRadius} - 1px)
-    calc(${p => p.theme.borderRadius} - 1px);
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: 0 0 calc(${p => p.theme.radius.md} - 1px)
+    calc(${p => p.theme.radius.md} - 1px);
 
   ${Actions} {
     padding: ${space(1.5)};

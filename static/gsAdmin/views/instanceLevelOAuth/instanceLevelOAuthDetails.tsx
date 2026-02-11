@@ -1,15 +1,17 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
 import ApiForm from 'sentry/components/forms/apiForm';
 import TextField from 'sentry/components/forms/fields/textField';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
 import useRouter from 'sentry/utils/useRouter';
@@ -64,7 +66,7 @@ function InstanceLevelOAuthDetails() {
       });
     } catch (err) {
       const message = 'Unable to load client data';
-      handleXhrErrorResponse(message, err);
+      handleXhrErrorResponse(message, err as RequestError);
       addErrorMessage(message);
       setErrorMessage(message);
     } finally {

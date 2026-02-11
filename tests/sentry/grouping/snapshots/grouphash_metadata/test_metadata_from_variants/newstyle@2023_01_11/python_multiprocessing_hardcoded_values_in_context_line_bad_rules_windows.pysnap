@@ -1,0 +1,557 @@
+---
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "thread",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "thread",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "38660ba262e9baab1dcf0a432479f643"
+    contributing component: threads
+    hint: None
+    root_component:
+      app*
+        threads*
+          stacktrace*
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "__main__"
+              function*
+                "<module>"
+              context_line*
+                "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=11, pipe_handle=32)"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "multiprocessing.spawn"
+              function*
+                "spawn_main"
+              context_line*
+                "exitcode = _main(fd, parent_sentinel)"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "multiprocessing.spawn"
+              function*
+                "_main"
+              context_line*
+                "return self._bootstrap(parent_sentinel)"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "multiprocessing.process"
+              function*
+                "_bootstrap"
+              context_line*
+                "self.run()"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "multiprocessing.process"
+              function*
+                "run"
+              context_line*
+                "self._target(*self._args, **self._kwargs)"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "uvicorn._subprocess"
+              function*
+                "subprocess_started"
+              context_line*
+                "target(sockets=sockets)"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "uvicorn.server"
+              function*
+                "run"
+              context_line*
+                "return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "asyncio.runners"
+              function*
+                "run"
+              context_line*
+                "return runner.run(main)"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+              module*
+                "asyncio.runners"
+              function*
+                "run"
+              context_line*
+                "return self._loop.run_until_complete(task)"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "asyncio.base_events"
+              function*
+                "run_until_complete"
+              context_line*
+                "self.run_forever()"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "asyncio.base_events"
+              function*
+                "run_forever"
+              context_line*
+                "self._run_once()"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "asyncio.base_events"
+              function*
+                "_run_once"
+              context_line*
+                "handle._run()"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "asyncio.events"
+              function*
+                "_run"
+              context_line*
+                "self._context.run(self._callback, *self._args)"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "uvicorn.lifespan.on"
+              function*
+                "main"
+              context_line*
+                "await app(scope, self.receive, self.send)"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "uvicorn.middleware.proxy_headers"
+              function*
+                "__call__"
+              context_line*
+                "return await self.app(scope, receive, send)"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "fastapi.applications"
+              function*
+                "__call__"
+              context_line*
+                "await super().__call__(scope, receive, send)"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "starlette.applications"
+              function*
+                "__call__"
+              context_line*
+                "await self.middleware_stack(scope, receive, send)"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "starlette.middleware.errors"
+              function*
+                "__call__"
+              context_line*
+                "await self.app(scope, receive, send)"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "starlette.middleware.base"
+              function*
+                "__call__"
+              context_line*
+                "await self.app(scope, receive, send)"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "starlette.middleware.cors"
+              function*
+                "__call__"
+              context_line*
+                "await self.app(scope, receive, send)"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "starlette.middleware.exceptions"
+              function*
+                "__call__"
+              context_line*
+                "await self.app(scope, receive, send)"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "fastapi.middleware.asyncexitstack"
+              function*
+                "__call__"
+              context_line*
+                "await self.app(scope, receive, send)"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "starlette.routing"
+              function*
+                "__call__"
+              context_line*
+                "await self.middleware_stack(scope, receive, send)"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "starlette.routing"
+              function*
+                "app"
+              context_line*
+                "await self.lifespan(scope, receive, send)"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "starlette.routing"
+              function*
+                "lifespan"
+              context_line*
+                "async with self.lifespan_context(app) as maybe_state:"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "fastapi.routing"
+              function*
+                "merged_lifespan"
+              context_line*
+                "async with original_context(app) as maybe_original_state:"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+              module*
+                "fastapi.routing"
+              function*
+                "merged_lifespan"
+              context_line*
+                "async with original_context(app) as maybe_original_state:"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+              module*
+                "fastapi.routing"
+              function*
+                "merged_lifespan"
+              context_line*
+                "async with original_context(app) as maybe_original_state:"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+              module*
+                "fastapi.routing"
+              function*
+                "merged_lifespan"
+              context_line*
+                "async with original_context(app) as maybe_original_state:"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+              module*
+                "fastapi.routing"
+              function*
+                "merged_lifespan"
+              context_line*
+                "async with original_context(app) as maybe_original_state:"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+              module*
+                "fastapi.routing"
+              function*
+                "merged_lifespan"
+              context_line*
+                "async with original_context(app) as maybe_original_state:"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+              module*
+                "fastapi.routing"
+              function*
+                "merged_lifespan"
+              context_line*
+                "async with original_context(app) as maybe_original_state:"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app) and un-ignored by custom stack trace rule (function:run_app +group v+group))
+              module*
+                "fastapi.routing"
+              function*
+                "merged_lifespan"
+              context_line*
+                "async with original_context(app) as maybe_original_state:"
+            frame* (marked in-app by custom stack trace rule (function:run_app +app v+app))
+              module*
+                "app.main"
+              function*
+                "run_app"
+              context_line*
+                "do_log(\"error\", f\"Error creating HTTP client: {e}\")"
+  system*
+    hash: "46b9ac9970eba6e39408d3392e619471"
+    contributing component: threads
+    hint: None
+    root_component:
+      system*
+        threads*
+          stacktrace*
+            frame*
+              module*
+                "__main__"
+              function*
+                "<module>"
+              context_line*
+                "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=11, pipe_handle=32)"
+            frame*
+              module*
+                "multiprocessing.spawn"
+              function*
+                "spawn_main"
+              context_line*
+                "exitcode = _main(fd, parent_sentinel)"
+            frame*
+              module*
+                "multiprocessing.spawn"
+              function*
+                "_main"
+              context_line*
+                "return self._bootstrap(parent_sentinel)"
+            frame*
+              module*
+                "multiprocessing.process"
+              function*
+                "_bootstrap"
+              context_line*
+                "self.run()"
+            frame*
+              module*
+                "multiprocessing.process"
+              function*
+                "run"
+              context_line*
+                "self._target(*self._args, **self._kwargs)"
+            frame*
+              module*
+                "uvicorn._subprocess"
+              function*
+                "subprocess_started"
+              context_line*
+                "target(sockets=sockets)"
+            frame*
+              module*
+                "uvicorn.server"
+              function*
+                "run"
+              context_line*
+                "return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())"
+            frame*
+              module*
+                "asyncio.runners"
+              function*
+                "run"
+              context_line*
+                "return runner.run(main)"
+            frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+              module*
+                "asyncio.runners"
+              function*
+                "run"
+              context_line*
+                "return self._loop.run_until_complete(task)"
+            frame*
+              module*
+                "asyncio.base_events"
+              function*
+                "run_until_complete"
+              context_line*
+                "self.run_forever()"
+            frame*
+              module*
+                "asyncio.base_events"
+              function*
+                "run_forever"
+              context_line*
+                "self._run_once()"
+            frame*
+              module*
+                "asyncio.base_events"
+              function*
+                "_run_once"
+              context_line*
+                "handle._run()"
+            frame*
+              module*
+                "asyncio.events"
+              function*
+                "_run"
+              context_line*
+                "self._context.run(self._callback, *self._args)"
+            frame*
+              module*
+                "uvicorn.lifespan.on"
+              function*
+                "main"
+              context_line*
+                "await app(scope, self.receive, self.send)"
+            frame*
+              module*
+                "uvicorn.middleware.proxy_headers"
+              function*
+                "__call__"
+              context_line*
+                "return await self.app(scope, receive, send)"
+            frame*
+              module*
+                "fastapi.applications"
+              function*
+                "__call__"
+              context_line*
+                "await super().__call__(scope, receive, send)"
+            frame*
+              module*
+                "starlette.applications"
+              function*
+                "__call__"
+              context_line*
+                "await self.middleware_stack(scope, receive, send)"
+            frame*
+              module*
+                "starlette.middleware.errors"
+              function*
+                "__call__"
+              context_line*
+                "await self.app(scope, receive, send)"
+            frame*
+              module*
+                "starlette.middleware.base"
+              function*
+                "__call__"
+              context_line*
+                "await self.app(scope, receive, send)"
+            frame*
+              module*
+                "starlette.middleware.cors"
+              function*
+                "__call__"
+              context_line*
+                "await self.app(scope, receive, send)"
+            frame*
+              module*
+                "starlette.middleware.exceptions"
+              function*
+                "__call__"
+              context_line*
+                "await self.app(scope, receive, send)"
+            frame*
+              module*
+                "fastapi.middleware.asyncexitstack"
+              function*
+                "__call__"
+              context_line*
+                "await self.app(scope, receive, send)"
+            frame*
+              module*
+                "starlette.routing"
+              function*
+                "__call__"
+              context_line*
+                "await self.middleware_stack(scope, receive, send)"
+            frame*
+              module*
+                "starlette.routing"
+              function*
+                "app"
+              context_line*
+                "await self.lifespan(scope, receive, send)"
+            frame*
+              module*
+                "starlette.routing"
+              function*
+                "lifespan"
+              context_line*
+                "async with self.lifespan_context(app) as maybe_state:"
+            frame*
+              module*
+                "fastapi.routing"
+              function*
+                "merged_lifespan"
+              context_line*
+                "async with original_context(app) as maybe_original_state:"
+            frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+              module*
+                "fastapi.routing"
+              function*
+                "merged_lifespan"
+              context_line*
+                "async with original_context(app) as maybe_original_state:"
+            frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+              module*
+                "fastapi.routing"
+              function*
+                "merged_lifespan"
+              context_line*
+                "async with original_context(app) as maybe_original_state:"
+            frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+              module*
+                "fastapi.routing"
+              function*
+                "merged_lifespan"
+              context_line*
+                "async with original_context(app) as maybe_original_state:"
+            frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+              module*
+                "fastapi.routing"
+              function*
+                "merged_lifespan"
+              context_line*
+                "async with original_context(app) as maybe_original_state:"
+            frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+              module*
+                "fastapi.routing"
+              function*
+                "merged_lifespan"
+              context_line*
+                "async with original_context(app) as maybe_original_state:"
+            frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+              module*
+                "fastapi.routing"
+              function*
+                "merged_lifespan"
+              context_line*
+                "async with original_context(app) as maybe_original_state:"
+            frame* (un-ignored by custom stack trace rule (function:run_app +group v+group))
+              module*
+                "fastapi.routing"
+              function*
+                "merged_lifespan"
+              context_line*
+                "async with original_context(app) as maybe_original_state:"
+            frame*
+              module*
+                "app.main"
+              function*
+                "run_app"
+              context_line*
+                "do_log(\"error\", f\"Error creating HTTP client: {e}\")"
+            frame*
+              module*
+                "app.main"
+              function*
+                "do_log"
+              context_line*
+                "getattr(logger, level)(msg, *args, **kwargs)"
+            frame*
+              module*
+                "logging"
+              function*
+                "error"
+              context_line*
+                "self._log(ERROR, msg, args, **kwargs)"
+            frame*
+              module*
+                "logging"
+              function*
+                "_log"
+              context_line*
+                "self.handle(record)"
+            frame*
+              module*
+                "logging"
+              function*
+                "handle"
+              context_line*
+                "self.callHandlers(record)"
+            frame*
+              module*
+                "logging"
+              function*
+                "callHandlers"
+              context_line*
+                "hdlr.handle(record)"
+            frame*
+              module*
+                "logging"
+              function*
+                "handle"
+              context_line*
+                "self.emit(record)"

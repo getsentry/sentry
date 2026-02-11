@@ -1,7 +1,10 @@
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DeviceName} from 'sentry/components/deviceName';
 import Version from 'sentry/components/version';
 import {t, tct} from 'sentry/locale';
@@ -22,7 +25,11 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
       0
     );
   const otherDisplayPercentage =
-    otherPercentage < 1 ? '<1%' : `${otherPercentage.toFixed(0)}%`;
+    otherPercentage < 1
+      ? '<1%'
+      : visibleTagValues.length > 0 && otherPercentage >= 100
+        ? '>99%'
+        : `${otherPercentage.toFixed(0)}%`;
 
   return (
     <TagPanel>
@@ -34,17 +41,32 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
       <TagValueContent>
         {visibleTagValues.map((tagValue, tagValueIdx) => {
           const percentage = Math.round(percent(tagValue.count, tag.totalValues));
-          const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
+          // Ensure no item shows 100% when there are multiple items
+          const hasMultipleItems = tag.topValues.length > 1 || hasOther;
+          const cappedPercentage =
+            hasMultipleItems && percentage >= 100 ? 99 : percentage;
+          const displayPercentage =
+            cappedPercentage < 1
+              ? '<1%'
+              : hasMultipleItems && percentage >= 100
+                ? '>99%'
+                : `${cappedPercentage.toFixed(0)}%`;
+
+          let valueComponent: React.ReactNode = tagValue.value;
+          if (tagValue.value === '') {
+            valueComponent = <Text variant="muted">{t('(empty)')}</Text>;
+          } else {
+            if (tag.key === 'release') {
+              valueComponent = <Version version={tagValue.value} anchor={false} />;
+            } else if (tag.key === 'device') {
+              valueComponent = <DeviceName value={tagValue.value} />;
+            }
+          }
+
           return (
             <TagValueRow key={tagValueIdx}>
-              <Tooltip delay={300} title={tagValue.name} skipWrapper>
-                <TagValue>
-                  {tag.key === 'release' ? (
-                    <Version version={tagValue.name} anchor={false} />
-                  ) : (
-                    <DeviceName value={tagValue.name} />
-                  )}
-                </TagValue>
+              <Tooltip delay={300} title={valueComponent} skipWrapper>
+                <TagValue>{valueComponent}</TagValue>
               </Tooltip>
               <Tooltip
                 title={tct('[count] of [total] tagged events', {
@@ -103,28 +125,32 @@ const TagPanel = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(1)};
 `;
 
 const TagHeader = styled('h5')`
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin: 0;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const progressBarWidth = '45px'; // Prevent percentages from overflowing
 const TagValueContent = styled('div')`
   display: grid;
   grid-template-columns: 4fr auto ${progressBarWidth};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   grid-column-gap: ${space(1)};
 
   & > :nth-child(2n) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
@@ -146,8 +172,9 @@ const TagBarPlaceholder = styled('div')`
   height: ${space(1)};
   width: 100%;
   border-radius: 3px;
-  box-shadow: inset 0 0 0 1px ${p => p.theme.translucentBorder};
-  background: ${p => Color(p.theme.gray300).alpha(0.1).toString()};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
+  background: ${p => color(p.theme.colors.gray400).alpha(0.1).toString()};
   overflow: hidden;
 `;
 
@@ -162,7 +189,7 @@ const TagBarContainer = styled('div')`
     inset: 0;
     content: '';
     background: ${p =>
-      `linear-gradient(to right, ${Color(p.theme.gray300).alpha(0.5).toString()} 0px, ${Color(p.theme.gray300).alpha(0.7).toString()} ${progressBarWidth})`};
+      `linear-gradient(to right, ${color(p.theme.colors.gray400).alpha(0.5).toString()} 0px, ${color(p.theme.colors.gray400).alpha(0.7).toString()} ${progressBarWidth})`};
     width: 100%;
   }
 `;

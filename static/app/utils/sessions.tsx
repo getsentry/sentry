@@ -190,9 +190,9 @@ export function initSessionsChart(theme: Theme) {
     [SessionStatus.HEALTHY]: {
       seriesName: sessionTerm.healthy,
       data: [],
-      color: theme.green300,
+      color: theme.colors.green400,
       areaStyle: {
-        color: theme.green300,
+        color: theme.colors.green400,
         opacity: 1,
       },
       lineStyle: {
@@ -206,6 +206,19 @@ export function initSessionsChart(theme: Theme) {
       color: colors[12],
       areaStyle: {
         color: colors[12],
+        opacity: 1,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+    [SessionStatus.UNHANDLED]: {
+      seriesName: sessionTerm.unhandled,
+      data: [],
+      color: colors[13],
+      areaStyle: {
+        color: colors[13],
         opacity: 1,
       },
       lineStyle: {
@@ -229,9 +242,9 @@ export function initSessionsChart(theme: Theme) {
     [SessionStatus.CRASHED]: {
       seriesName: sessionTerm.crashed,
       data: [],
-      color: theme.red300,
+      color: theme.colors.red400,
       areaStyle: {
-        color: theme.red300,
+        color: theme.colors.red400,
         opacity: 1,
       },
       lineStyle: {

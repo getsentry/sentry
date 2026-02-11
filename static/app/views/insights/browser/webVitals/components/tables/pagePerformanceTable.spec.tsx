@@ -10,21 +10,21 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {PagePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pagePerformanceTable';
 
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
-describe('PagePerformanceTable', function () {
+describe('PagePerformanceTable', () => {
   const organization = OrganizationFixture();
   const router = RouterFixture();
 
   let eventsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.mocked(useLocation).mockReturnValue(router.location);
 
     jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
@@ -78,7 +78,7 @@ describe('PagePerformanceTable', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
@@ -103,7 +103,7 @@ describe('PagePerformanceTable', function () {
     );
   });
 
-  it('renders a list of pages', async function () {
+  it('renders a list of pages', async () => {
     render(<PagePerformanceTable />, {
       organization,
     });
@@ -132,7 +132,7 @@ describe('PagePerformanceTable', function () {
     expect(screen.getByRole('cell', {name: 'View Project Details'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Project Details'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/projects/frontend/?project=11276'
+      '/organizations/org-slug/insights/projects/frontend/?project=11276'
     );
     expect(screen.getByRole('cell', {name: '492'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '700ms'})).toBeInTheDocument();

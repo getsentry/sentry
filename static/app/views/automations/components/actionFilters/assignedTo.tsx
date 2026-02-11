@@ -1,7 +1,7 @@
-import styled from '@emotion/styled';
+import {Container} from '@sentry/scraps/layout';
 
 import SelectMembers from 'sentry/components/selectMembers';
-import TeamSelector from 'sentry/components/teamSelector';
+import {TeamSelector} from 'sentry/components/teamSelector';
 import {
   AutomationBuilderSelect,
   selectControlStyles,
@@ -24,13 +24,13 @@ const TARGET_TYPE_CHOICES = [
 ];
 
 export function AssignedToDetails({condition}: {condition: DataCondition}) {
-  const {target_type, target_identifier} = condition.comparison;
+  const {targetType, targetIdentifier} = condition.comparison;
 
-  if (target_type === TargetType.TEAM) {
-    return <AssignedToTeam teamId={String(target_identifier)} />;
+  if (targetType === TargetType.TEAM) {
+    return <AssignedToTeam teamId={String(targetIdentifier)} />;
   }
-  if (target_type === TargetType.MEMBER) {
-    return <AssignedToMember memberId={target_identifier} />;
+  if (targetType === TargetType.MEMBER) {
+    return <AssignedToMember memberId={targetIdentifier} />;
   }
   return tct('Issue is unassigned', {});
 }
@@ -81,41 +81,49 @@ function IdentifierField() {
 
   if (condition.comparison.targetType === TargetType.TEAM) {
     return (
-      <SelectWrapper>
+      <Container width="200px">
         <TeamSelector
           name={`${condition_id}.data.targetIdentifier`}
           aria-label={t('Team')}
-          value={condition.comparison.targetIdentifier}
+          value={String(condition.comparison.targetIdentifier)}
           onChange={(option: SelectValue<string>) => {
             onUpdate({
-              comparison: {...condition.comparison, targetIdentifier: option.value},
+              comparison: {
+                ...condition.comparison,
+                // Backend expects a number
+                targetIdentifier: Number(option.value),
+              },
             });
             removeError(condition.id);
           }}
           useId
           styles={selectControlStyles}
         />
-      </SelectWrapper>
+      </Container>
     );
   }
 
   if (condition.comparison.targetType === TargetType.MEMBER) {
     return (
-      <SelectWrapper>
+      <Container width="200px">
         <SelectMembers
           organization={organization}
           key={`${condition_id}.data.targetIdentifier`}
           aria-label={t('Member')}
-          value={condition.comparison.targetIdentifier}
+          value={String(condition.comparison.targetIdentifier)}
           onChange={(value: any) => {
             onUpdate({
-              comparison: {...condition.comparison, targetIdentifier: value.actor.id},
+              comparison: {
+                ...condition.comparison,
+                // Backend expects a number
+                targetIdentifier: Number(value.actor.id),
+              },
             });
             removeError(condition.id);
           }}
           styles={selectControlStyles}
         />
-      </SelectWrapper>
+      </Container>
     );
   }
 
@@ -142,7 +150,3 @@ export function validateAssignedToCondition({
   }
   return undefined;
 }
-
-const SelectWrapper = styled('div')`
-  width: 200px;
-`;

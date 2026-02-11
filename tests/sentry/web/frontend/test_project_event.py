@@ -6,7 +6,7 @@ from sentry.testutils.helpers.features import with_feature
 
 
 class ProjectEventTest(SnubaTestCase, TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.login_as(self.user)
@@ -19,7 +19,7 @@ class ProjectEventTest(SnubaTestCase, TestCase):
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )
 
-    def test_redirect_to_event(self):
+    def test_redirect_to_event(self) -> None:
         resp = self.client.get(
             reverse(
                 "sentry-project-event-redirect",
@@ -29,9 +29,10 @@ class ProjectEventTest(SnubaTestCase, TestCase):
         self.assertRedirects(
             resp,
             f"http://testserver/organizations/{self.org.slug}/issues/{self.event.group_id}/events/{self.event.event_id}/",
+            fetch_redirect_response=False,
         )
 
-    def test_event_not_found(self):
+    def test_event_not_found(self) -> None:
         resp = self.client.get(
             reverse(
                 "sentry-project-event-redirect", args=[self.org.slug, self.project.slug, "event1"]
@@ -39,7 +40,7 @@ class ProjectEventTest(SnubaTestCase, TestCase):
         )
         assert resp.status_code == 404
 
-    def test_event_not_found__event_no_group(self):
+    def test_event_not_found__event_no_group(self) -> None:
         min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
@@ -61,7 +62,7 @@ class ProjectEventTest(SnubaTestCase, TestCase):
 
 
 class ProjectEventCustomerDomainTest(SnubaTestCase, TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.login_as(self.user)
@@ -75,11 +76,11 @@ class ProjectEventCustomerDomainTest(SnubaTestCase, TestCase):
         )
 
     @with_feature("system:multi-region")
-    def test_redirect_to_event_customer_domain(self):
+    def test_redirect_to_event_customer_domain(self) -> None:
         self.org.refresh_from_db()
         resp = self.client.get(
             reverse(
-                "sentry-project-event-redirect",
+                "sentry-organization-project-event-redirect",
                 args=[self.org.slug, self.project.slug, self.event.event_id],
             )
         )

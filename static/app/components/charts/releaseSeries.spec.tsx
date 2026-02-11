@@ -10,13 +10,13 @@ import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 
 const theme = ThemeFixture();
 
-describe('ReleaseSeries', function () {
+describe('ReleaseSeries', () => {
   const renderFunc = jest.fn(() => null);
   const organization = OrganizationFixture();
   let releases: any;
   let releasesMock: any;
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.resetAllMocks();
 
     releases = [
@@ -51,7 +51,7 @@ describe('ReleaseSeries', function () {
     theme,
   };
 
-  it('does not fetch releases if releases is truthy', function () {
+  it('does not fetch releases if releases is truthy', () => {
     render(
       <ReleaseSeries {...baseSeriesProps} organization={organization} releases={[]}>
         {renderFunc}
@@ -61,7 +61,7 @@ describe('ReleaseSeries', function () {
     expect(releasesMock).not.toHaveBeenCalled();
   });
 
-  it('does not fetch releases if not enabled', function () {
+  it('does not fetch releases if not enabled', () => {
     render(
       <ReleaseSeries {...baseSeriesProps} organization={organization} enabled={false}>
         {renderFunc}
@@ -71,7 +71,7 @@ describe('ReleaseSeries', function () {
     expect(releasesMock).not.toHaveBeenCalled();
   });
 
-  it('fetches releases if becomes enabled', async function () {
+  it('fetches releases if becomes enabled', async () => {
     const {rerender} = render(
       <ReleaseSeries {...baseSeriesProps} organization={organization} enabled={false}>
         {renderFunc}
@@ -101,7 +101,7 @@ describe('ReleaseSeries', function () {
     expect(releasesMock).toHaveBeenCalledTimes(1);
   });
 
-  it('fetches releases if no releases passed through props', async function () {
+  it('fetches releases if no releases passed through props', async () => {
     render(<ReleaseSeries {...baseSeriesProps}>{renderFunc}</ReleaseSeries>);
 
     expect(releasesMock).toHaveBeenCalled();
@@ -115,7 +115,7 @@ describe('ReleaseSeries', function () {
     );
   });
 
-  it('fetches releases with project conditions', async function () {
+  it('fetches releases with project conditions', async () => {
     render(
       <ReleaseSeries {...baseSeriesProps} projects={[1, 2]}>
         {renderFunc}
@@ -132,7 +132,7 @@ describe('ReleaseSeries', function () {
     );
   });
 
-  it('fetches releases with environment conditions', async function () {
+  it('fetches releases with environment conditions', async () => {
     render(
       <ReleaseSeries {...baseSeriesProps} environments={['dev', 'test']}>
         {renderFunc}
@@ -149,7 +149,7 @@ describe('ReleaseSeries', function () {
     );
   });
 
-  it('fetches releases with start and end date strings', async function () {
+  it('fetches releases with start and end date strings', async () => {
     render(
       <ReleaseSeries {...baseSeriesProps} start="2020-01-01" end="2020-01-31">
         {renderFunc}
@@ -169,7 +169,7 @@ describe('ReleaseSeries', function () {
     );
   });
 
-  it('fetches releases with start and end dates', async function () {
+  it('fetches releases with start and end dates', async () => {
     const start = new Date(Date.UTC(2020, 0, 1, 12, 13, 14));
     const end = new Date(Date.UTC(2020, 0, 31, 14, 15, 16));
     render(
@@ -191,7 +191,7 @@ describe('ReleaseSeries', function () {
     );
   });
 
-  it('fetches releases with period', async function () {
+  it('fetches releases with period', async () => {
     render(
       <ReleaseSeries {...baseSeriesProps} period="14d">
         {renderFunc}
@@ -208,7 +208,7 @@ describe('ReleaseSeries', function () {
     );
   });
 
-  it('fetches on property updates', async function () {
+  it('fetches on property updates', async () => {
     const wrapper = render(
       <ReleaseSeries {...baseSeriesProps} period="14d">
         {renderFunc}
@@ -235,7 +235,7 @@ describe('ReleaseSeries', function () {
     await waitFor(() => expect(releasesMock).toHaveBeenCalledTimes(1));
   });
 
-  it('doesnt not refetch releases with memoize enabled', async function () {
+  it('doesnt not refetch releases with memoize enabled', async () => {
     const originalPeriod = '14d';
     const updatedPeriod = '7d';
     const wrapper = render(
@@ -263,7 +263,7 @@ describe('ReleaseSeries', function () {
     await waitFor(() => expect(releasesMock).toHaveBeenCalledTimes(2));
   });
 
-  it('shares release fetches between components with memoize enabled', async function () {
+  it('shares release fetches between components with memoize enabled', async () => {
     render(
       <Fragment>
         <ReleaseSeries {...baseSeriesProps} period="42d" memoized>
@@ -285,7 +285,7 @@ describe('ReleaseSeries', function () {
     await waitFor(() => expect(releasesMock).toHaveBeenCalledTimes(1));
   });
 
-  it('generates an eCharts `markLine` series from releases', async function () {
+  it('generates an eCharts `markLine` series from releases', async () => {
     render(<ReleaseSeries {...baseSeriesProps}>{renderFunc}</ReleaseSeries>);
 
     await waitFor(() =>
@@ -310,7 +310,7 @@ describe('ReleaseSeries', function () {
     );
   });
 
-  it('allows updating the emphasized release', async function () {
+  it('allows updating the emphasized release', async () => {
     releases.push({
       version: 'sentry-android-shop@1.2.1',
       date: '2020-03-24T00:00:00Z',

@@ -46,12 +46,16 @@ from sentry.explore.models import (
     ExploreSavedQueryProject,
     ExploreSavedQueryStarred,
 )
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.incident import IncidentActivity, IncidentTrigger
 from sentry.insights.models import InsightsStarredSegment
+from sentry.integrations.models.data_forwarder import DataForwarder
+from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.activity import Activity
 from sentry.models.apiauthorization import ApiAuthorization
+from sentry.models.apidevicecode import ApiDeviceCode
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
@@ -66,10 +70,10 @@ from sentry.models.dashboard import (
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
+    DashboardFieldLink,
     DashboardWidget,
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
-    DashboardWidgetSnapshot,
     DashboardWidgetTypes,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
@@ -96,15 +100,18 @@ from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
+from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
-from sentry.nodestore.django.models import Node
+from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.services.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
+from sentry.snuba.models import QuerySubscriptionDataSourceHandler
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
@@ -119,6 +126,7 @@ from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
 from sentry.workflow_engine.models import Action, DataConditionAlertRuleTrigger, DataConditionGroup
 from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
+from sentry.workflow_engine.registry import data_source_type_registry
 
 __all__ = [
     "export_to_file",
@@ -464,8 +472,11 @@ class ExhaustiveFixtures(Fixtures):
                     )
 
         OrganizationOption.objects.create(
-            organization=org, key="sentry:account-rate-limit", value=0
+            organization=org, key="sentry:scrape_javascript", value=True
         )
+
+        owner_member = OrganizationMember.objects.get(organization=org, user_id=owner_id)
+        OrganizationMemberReplayAccess.objects.create(organizationmember=owner_member)
 
         # Team
         team = self.create_team(name=f"test_team_in_{slug}", organization=org)
@@ -567,6 +578,11 @@ class ExhaustiveFixtures(Fixtures):
             created_by_id=owner_id,
             organization=org,
         )
+        linked_dashboard = Dashboard.objects.create(
+            title=f"Linked Dashboard 1 for {slug}",
+            created_by_id=owner_id,
+            organization=org,
+        )
         DashboardFavoriteUser.objects.create(
             dashboard=dashboard,
             user_id=owner_id,
@@ -583,7 +599,6 @@ class ExhaustiveFixtures(Fixtures):
         permissions.teams_with_edit_access.set([team])
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
-            order=1,
             title=f"Test Widget for {slug}",
             display_type=0,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -596,9 +611,10 @@ class ExhaustiveFixtures(Fixtures):
             extraction_state=DashboardWidgetQueryOnDemand.OnDemandExtractionState.DISABLED_NOT_APPLICABLE,
             spec_hashes=[],
         )
-        DashboardWidgetSnapshot.objects.create(
-            widget=widget,
-            data={"test": "data"},
+        DashboardFieldLink.objects.create(
+            dashboard_widget_query=widget_query,
+            field="count()",
+            dashboard=linked_dashboard,
         )
         DashboardTombstone.objects.create(organization=org, slug=f"test-tombstone-in-{slug}")
 
@@ -628,6 +644,15 @@ class ExhaustiveFixtures(Fixtures):
         )
         repo.external_id = "https://git.example.com:1234"
         repo.save()
+
+        self.create_repository_settings(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=[
+                CodeReviewTrigger.ON_NEW_COMMIT,
+                CodeReviewTrigger.ON_READY_FOR_REVIEW,
+            ],
+        )
 
         # Group*
         group = self.create_group(project=project)
@@ -670,7 +695,7 @@ class ExhaustiveFixtures(Fixtures):
 
         # Setup a test 'Issue Rule' and 'Automation'
         workflow = self.create_workflow(organization=org)
-        detector = self.create_detector(project=project)
+        detector = self.create_detector(project=project, type=MetricIssue.slug)
         self.create_detector_workflow(detector=detector, workflow=workflow)
         self.create_detector_state(detector=detector)
 
@@ -689,7 +714,14 @@ class ExhaustiveFixtures(Fixtures):
             workflow=workflow, condition_group=notification_condition_group
         )
 
-        data_source = self.create_data_source(organization=org)
+        # Use the alert_rule's QuerySubscription for the DataSource
+        query_subscription = alert.snuba_query.subscriptions.first()
+        assert query_subscription is not None
+        data_source = self.create_data_source(
+            organization=org,
+            source_id=str(query_subscription.id),
+            type=data_source_type_registry.get_key(QuerySubscriptionDataSourceHandler),
+        )
 
         self.create_data_source_detector(data_source, detector)
         detector_conditions = self.create_data_condition_group(
@@ -759,6 +791,20 @@ class ExhaustiveFixtures(Fixtures):
             segment_name="test_transaction",
         )
 
+        data_forwarder = DataForwarder.objects.create(
+            organization=org,
+            is_enabled=True,
+            enroll_new_projects=True,
+            provider="segment",
+            config={"write_key": "test_write_key"},
+        )
+        DataForwarderProject.objects.create(
+            is_enabled=True,
+            data_forwarder=data_forwarder,
+            project=project,
+            overrides={"write_key": "test_override_write_key"},
+        )
+
         return org
 
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -793,7 +839,7 @@ class ExhaustiveFixtures(Fixtures):
             provider="slack", name=f"Slack for {org.slug}", external_id=f"slack:{org.slug}"
         )
         return OrganizationIntegration.objects.create(
-            organization_id=org.id, integration=integration, config='{"hello":"hello"}'
+            organization_id=org.id, integration=integration, config={"hello": "hello"}
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -826,6 +872,10 @@ class ExhaustiveFixtures(Fixtures):
             expires_at="2022-01-01 11:11+00:00",
             redirect_uri="https://example.com",
             scope_list=["openid", "profile", "email"],
+        )
+        ApiDeviceCode.objects.create(
+            application=app.application,
+            scope_list=["openid", "profile"],
         )
 
         # ServiceHook

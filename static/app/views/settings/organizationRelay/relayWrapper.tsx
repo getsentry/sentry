@@ -1,10 +1,11 @@
 import {useCallback, useState} from 'react';
 import omit from 'lodash/omit';
 
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import LoadingError from 'sentry/components/loadingError';
@@ -14,6 +15,7 @@ import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Relay, RelayActivity} from 'sentry/types/relay';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -61,7 +63,7 @@ export function RelayWrapper() {
             }
             priority="primary"
             size="sm"
-            icon={<IconAdd isCircled />}
+            icon={<IconAdd />}
             onClick={handleOpenAddDialog}
             disabled={disabled}
           >
@@ -101,6 +103,18 @@ export function RelayWrapper() {
                   visible: organization.features.includes(
                     'ingest-through-trusted-relays-only'
                   ),
+                  getData: (data: Record<string, any>) => {
+                    // Transform boolean to enabled/disabled string for API
+                    const value = data.ingestThroughTrustedRelaysOnly;
+                    return {
+                      ingestThroughTrustedRelaysOnly:
+                        typeof value === 'boolean'
+                          ? value
+                            ? 'enabled'
+                            : 'disabled'
+                          : value,
+                    };
+                  },
                 },
               ],
             },
@@ -142,7 +156,11 @@ function RelayUsageList({
   relays: Relay[];
 }) {
   const {isPending, isError, refetch, data} = useApiQuery<RelayActivity[]>(
-    [`/organizations/${orgSlug}/relay_usage/`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/relay_usage/`, {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+    ],
     {
       staleTime: 0,
       retry: false,

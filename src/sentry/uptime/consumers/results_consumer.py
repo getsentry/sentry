@@ -1,36 +1,35 @@
 from __future__ import annotations
 
+import base64
 import logging
 import random
+import uuid
 from datetime import datetime, timedelta, timezone
+from io import BytesIO
 from uuid import UUID
 
-from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
-from django.utils import timezone as django_timezone
-from sentry_kafka_schemas.codecs import Codec
-from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import SnubaUptimeResult
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_DISALLOWED_BY_ROBOTS,
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_MISSED_WINDOW,
     CHECKSTATUS_SUCCESS,
     CheckResult,
 )
 
-from sentry import features, options, quotas
-from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.models.project import Project
+from sentry import features
+from sentry.conf.types.kafka_definition import Topic
+from sentry.locks import locks
+from sentry.models.files.file import File
 from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
     ResultsStrategyFactory,
 )
+from sentry.uptime.autodetect.result_handler import handle_onboarding_result
 from sentry.uptime.consumers.eap_producer import produce_eap_uptime_result
-from sentry.uptime.detectors.ranking import _get_cluster
-from sentry.uptime.detectors.result_handler import handle_onboarding_result
 from sentry.uptime.grouptype import UptimePacketValue
-from sentry.uptime.issue_platform import create_issue_platform_occurrence, resolve_uptime_issue
 from sentry.uptime.models import (
-    UptimeStatus,
+    RESPONSE_BODY_SEPARATOR,
+    UptimeResponseCapture,
     UptimeSubscription,
     UptimeSubscriptionRegion,
     get_detector,
@@ -39,19 +38,29 @@ from sentry.uptime.models import (
 )
 from sentry.uptime.subscriptions.subscriptions import (
     check_and_update_regions,
-    remove_uptime_subscription_if_unused,
+    delete_uptime_subscription,
+    disable_uptime_detector,
+    set_response_capture_enabled,
 )
 from sentry.uptime.subscriptions.tasks import (
     send_uptime_config_deletion,
     update_remote_uptime_subscription,
 )
-from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION, IncidentStatus, UptimeMonitorMode
-from sentry.utils import metrics
-from sentry.utils.arroyo_producer import SingletonProducer
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.utils import (
+    build_backlog_key,
+    build_backlog_schedule_lock_key,
+    build_backlog_task_scheduled_key,
+    build_last_interval_change_timestamp_key,
+    build_last_update_key,
+    generate_scheduled_check_times_ms,
+    get_cluster,
+)
+from sentry.utils import json, metrics
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
-from sentry.workflow_engine.processors.data_packet import process_data_packets
+from sentry.workflow_engine.processors.detector import process_detectors
 
 logger = logging.getLogger(__name__)
 
@@ -64,43 +73,98 @@ ACTIVE_THRESHOLD_REDIS_TTL = timedelta(seconds=max(UptimeSubscription.IntervalSe
     minutes=60
 )
 
-SNUBA_UPTIME_RESULTS_CODEC: Codec[SnubaUptimeResult] = get_topic_codec(Topic.SNUBA_UPTIME_RESULTS)
-
 # We want to limit cardinality for provider tags. This controls how many tags we should include
 TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS = 30
 
-
-def _get_snuba_uptime_checks_producer() -> KafkaProducer:
-    cluster_name = get_topic_definition(Topic.SNUBA_UPTIME_RESULTS)["cluster"]
-    producer_config = get_kafka_producer_cluster_options(cluster_name)
-    producer_config.pop("compression.type", None)
-    producer_config.pop("message.max.bytes", None)
-    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+# The maximum number of missed checks we backfill, upon noticing a gap in our expected check results
+MAX_SYNTHETIC_MISSED_CHECKS = 100
 
 
-_snuba_uptime_checks_producer = SingletonProducer(_get_snuba_uptime_checks_producer)
+def format_response_for_storage(
+    headers: list[tuple[str, str]] | None,
+    body: bytes,
+) -> bytes:
+    """
+    Format response headers and body for storage.
+
+    Format: headers (one per line), separator, body
+    Split on RESPONSE_BODY_SEPARATOR to parse.
+    """
+    lines = []
+    if headers:
+        for name, value in headers:
+            lines.append(f"{name}: {value}")
+    header_bytes = "\r\n".join(lines).encode("utf-8")
+    return header_bytes + RESPONSE_BODY_SEPARATOR + body
 
 
-def build_last_update_key(detector: Detector) -> str:
-    return f"project-sub-last-update:detector:{detector.id}"
+def create_uptime_response_capture(
+    subscription: UptimeSubscription,
+    result: CheckResult,
+) -> UptimeResponseCapture | None:
+    """
+    Create a response capture from a check result if it contains response data.
 
+    Returns the created capture, or None if response capture is disabled,
+    there's no response data in result, or a capture already exists for this
+    scheduled check time.
+    """
+    if not subscription.response_capture_enabled:
+        return None
 
-def build_last_seen_interval_key(detector: Detector) -> str:
-    return f"project-sub-last-seen-interval:detector:{detector.id}"
+    # Check if we already have a capture for this scheduled check time
+    # to avoid creating duplicates on retries.
+    scheduled_check_time_ms = int(result["scheduled_check_time_ms"])
+    if UptimeResponseCapture.objects.filter(
+        uptime_subscription=subscription,
+        scheduled_check_time_ms=scheduled_check_time_ms,
+    ).exists():
+        return None
 
+    request_info_list = result.get("request_info_list")
+    if not request_info_list:
+        return None
 
-def build_active_consecutive_status_key(detector: Detector, status: str) -> str:
-    return f"project-sub-active:{status}:detector:{detector.id}"
+    request_info = request_info_list[-1]
+    response_body_b64 = request_info.get("response_body")
+    if not response_body_b64:
+        return None
 
+    try:
+        response_body = base64.b64decode(response_body_b64)
+    except Exception:
+        logger.exception("Failed to decode response body")
+        return None
 
-def get_active_failure_threshold():
-    # When in active monitoring mode, overrides how many failures in a row we need to see to mark the monitor as down
-    return options.get("uptime.active-failure-threshold")
+    raw_headers = request_info.get("response_headers")
+    response_headers: list[tuple[str, str]] | None = (
+        [(str(h[0]), str(h[1])) for h in raw_headers] if raw_headers else None
+    )
+    response_content = format_response_for_storage(
+        headers=response_headers,
+        body=response_body,
+    )
+    file = File.objects.create(
+        name=f"uptime-response-{uuid.uuid4().hex}",
+        type="uptime.response",
+    )
+    file.putfile(BytesIO(response_content))
+    capture = UptimeResponseCapture.objects.create(
+        uptime_subscription=subscription,
+        file_id=file.id,
+        scheduled_check_time_ms=result["scheduled_check_time_ms"],
+    )
 
+    metrics.incr("uptime.response_capture.created", sample_rate=1.0)
+    metrics.distribution(
+        "uptime.response_capture.size",
+        len(response_content),
+        sample_rate=1.0,
+        unit="byte",
+    )
 
-def get_active_recovery_threshold():
-    # When in active monitoring mode, how many successes in a row do we need to mark it as up
-    return options.get("uptime.active-recovery-threshold")
+    result["had_response_body"] = True  # type: ignore[typeddict-unknown-key]
+    return capture
 
 
 def get_host_provider_if_valid(subscription: UptimeSubscription) -> str:
@@ -138,99 +202,22 @@ def should_run_region_checks(subscription: UptimeSubscription, result: CheckResu
     return False
 
 
-def has_reached_status_threshold(
-    detector: Detector,
-    status: str,
-    metric_tags: dict[str, str],
-) -> bool:
-    pipeline = _get_cluster().pipeline()
-    key = build_active_consecutive_status_key(detector, status)
-    pipeline.incr(key)
-    pipeline.expire(key, ACTIVE_THRESHOLD_REDIS_TTL)
-    status_count = int(pipeline.execute()[0])
-    result = (status == CHECKSTATUS_FAILURE and status_count >= get_active_failure_threshold()) or (
-        status == CHECKSTATUS_SUCCESS and status_count >= get_active_recovery_threshold()
-    )
-    if not result:
-        metrics.incr(
-            "uptime.result_processor.active.under_threshold",
-            sample_rate=1.0,
-            tags=metric_tags,
-        )
-    return result
-
-
 def try_check_and_update_regions(
     subscription: UptimeSubscription, regions: list[UptimeSubscriptionRegion]
-):
+) -> bool:
     """
-    This method will check if regions have been added or removed from our region configuration,
-    and updates regions associated with this uptime monitor to reflect the new state.
+    Check if regions have been added or removed from our region configuration,
+    and update regions associated with this uptime monitor to reflect the new state.
+
+    Returns True if regions were updated and a config push is needed, False otherwise.
     """
     if not check_and_update_regions(subscription, regions):
-        return
+        return False
 
     # Regardless of whether we added or removed regions, we need to send an updated config to all active
     # regions for this subscription so that they all get an update set of currently active regions.
     subscription.update(status=UptimeSubscription.Status.UPDATING.value)
-    update_remote_uptime_subscription.delay(subscription.id)
-
-
-def produce_snuba_uptime_result(
-    uptime_subscription: UptimeSubscription,
-    project: Project,
-    result: CheckResult,
-    metric_tags: dict[str, str],
-) -> None:
-    """
-    Produces a message to Snuba's Kafka topic for uptime check results.
-    """
-    try:
-        retention_days = quotas.backend.get_event_retention(organization=project.organization) or 90
-
-        if uptime_subscription.uptime_status == UptimeStatus.FAILED:
-            incident_status = IncidentStatus.IN_INCIDENT
-        else:
-            incident_status = IncidentStatus.NO_INCIDENT
-
-        snuba_message: SnubaUptimeResult = {
-            # Copy over fields from original result
-            "guid": result["guid"],
-            "subscription_id": result["subscription_id"],
-            "status": result["status"],
-            "status_reason": result["status_reason"],
-            "trace_id": result["trace_id"],
-            "span_id": result["span_id"],
-            "scheduled_check_time_ms": result["scheduled_check_time_ms"],
-            "actual_check_time_ms": result["actual_check_time_ms"],
-            "duration_ms": result["duration_ms"],
-            "request_info": result["request_info"],
-            # Add required Snuba-specific fields
-            "organization_id": project.organization_id,
-            "project_id": project.id,
-            "retention_days": retention_days,
-            "incident_status": incident_status.value,
-            "region": result["region"],
-        }
-
-        topic = get_topic_definition(Topic.SNUBA_UPTIME_RESULTS)["real_topic_name"]
-        payload = KafkaPayload(None, SNUBA_UPTIME_RESULTS_CODEC.encode(snuba_message), [])
-
-        _snuba_uptime_checks_producer.produce(ArroyoTopic(topic), payload)
-
-        metrics.incr(
-            "uptime.result_processor.snuba_message_produced",
-            sample_rate=1.0,
-            tags=metric_tags,
-        )
-
-    except Exception:
-        logger.exception("Failed to produce Snuba message for uptime result")
-        metrics.incr(
-            "uptime.result_processor.snuba_message_failed",
-            sample_rate=1.0,
-            tags=metric_tags,
-        )
+    return True
 
 
 def is_shadow_region_result(result: CheckResult, regions: list[UptimeSubscriptionRegion]) -> bool:
@@ -294,116 +281,194 @@ def record_check_metrics(
     )
 
 
+def create_backfill_misses(
+    detector: Detector,
+    subscription: UptimeSubscription,
+    result: CheckResult,
+    last_update_ms: int,
+    metric_tags: dict[str, str],
+    cluster,
+) -> None:
+    """
+    Create synthetic missed check results for gaps in the check timeline.
+
+    When a result arrives with a gap (2+ intervals since last update), this
+    function creates backfill misses for the intervening time periods, unless
+    the subscription interval was recently changed.
+    """
+    subscription_interval_ms = 1000 * subscription.interval_seconds
+    num_intervals = (result["scheduled_check_time_ms"] - last_update_ms) / subscription_interval_ms
+
+    # If the scheduled check is two or more intervals since the last seen check, we can declare the
+    # intervening checks missed...
+    if num_intervals > 1:
+        # Check if the interval was changed recently. If the last update happened before the
+        # interval change, this gap is just the transition between intervals and should be skipped.
+        last_interval_change_key = build_last_interval_change_timestamp_key(detector)
+        last_interval_change_ms_raw: str | None = cluster.get(last_interval_change_key)
+
+        if last_interval_change_ms_raw is not None:
+            last_interval_change_ms = int(last_interval_change_ms_raw)
+            if last_update_ms < last_interval_change_ms:
+                # Last check was before interval change - this gap is just the transition
+                logger.info(
+                    "uptime.result_processor.skipping_backfill_interval_changed",
+                    extra={
+                        "last_update_ms": last_update_ms,
+                        "interval_change_ms": last_interval_change_ms,
+                        **result,
+                    },
+                )
+                return
+
+        # Bound the number of missed checks we generate--just in case.
+        num_missed_checks = min(MAX_SYNTHETIC_MISSED_CHECKS, int(num_intervals - 1))
+
+        metrics.distribution(
+            "uptime.result_processer.num_missing_check",
+            num_missed_checks,
+            tags=metric_tags,
+        )
+        logger.info(
+            "uptime.result_processor.num_missing_check",
+            extra={"num_missed_checks": num_missed_checks, **result},
+        )
+        if num_intervals != int(num_intervals):
+            logger.info(
+                "uptime.result_processor.invalid_check_interval",
+                0,
+                extra={
+                    "last_update_ms": last_update_ms,
+                    "current_update_ms": result["scheduled_check_time_ms"],
+                    "interval_ms": subscription_interval_ms,
+                    **result,
+                },
+            )
+
+        synthetic_metric_tags = metric_tags.copy()
+        synthetic_metric_tags["status"] = CHECKSTATUS_MISSED_WINDOW
+        missed_times = generate_scheduled_check_times_ms(
+            last_update_ms + subscription_interval_ms,
+            subscription_interval_ms,
+            num_missed_checks,
+        )
+        for scheduled_time_ms in missed_times:
+            missed_result: CheckResult = {
+                "guid": uuid.uuid4().hex,
+                "subscription_id": result["subscription_id"],
+                "status": CHECKSTATUS_MISSED_WINDOW,
+                "status_reason": {
+                    "type": "miss_backfill",
+                    "description": "Miss was never reported for this scheduled check_time",
+                },
+                "trace_id": uuid.uuid4().hex,
+                "span_id": uuid.uuid4().hex,
+                "region": result["region"],
+                "scheduled_check_time_ms": scheduled_time_ms,
+                "actual_check_time_ms": result["actual_check_time_ms"],
+                "duration_ms": 0,
+                "request_info": None,
+                "assertion_failure_data": None,
+            }
+            produce_eap_uptime_result(
+                detector,
+                missed_result,
+                synthetic_metric_tags.copy(),
+            )
+
+
+def process_result_internal(
+    detector: Detector,
+    uptime_subscription: UptimeSubscription,
+    result: CheckResult,
+    metric_tags: dict[str, str],
+    cluster,
+    subscription_regions: list[UptimeSubscriptionRegion],
+) -> None:
+    """
+    Core result processing logic shared by main consumer and retry task.
+
+    Does NOT include: dedup check, backfill detection, queue check.
+    Contains: metrics, mode handling, EAP production, state updates,
+    response capture toggle, and region updates.
+    """
+    needs_update = False
+
+    if result["status"] == CHECKSTATUS_SUCCESS:
+        needs_update |= set_response_capture_enabled(uptime_subscription, True)
+    elif result["status"] == CHECKSTATUS_FAILURE:
+        needs_update |= set_response_capture_enabled(uptime_subscription, False)
+        # Force an update if there was a response body, to make sure we properly sync things here.
+        if result.get("had_response_body"):
+            needs_update = True
+
+    if should_run_region_checks(uptime_subscription, result):
+        needs_update |= try_check_and_update_regions(uptime_subscription, subscription_regions)
+
+    if needs_update and uptime_subscription.subscription_id:
+        update_remote_uptime_subscription.delay(uptime_subscription.id)
+
+    mode_name = UptimeMonitorMode(detector.config["mode"]).name.lower()
+
+    # We log the result stats here after the duplicate check so that we
+    # know the "true" duration and delay of each check. Since during
+    # deploys we might have checks run from both the old/new checker
+    # deployments, there will be overlap of when things run. The new
+    # deployment will have artificially inflated delay stats, since it may
+    # duplicate checks that already ran on time on the old deployment, but
+    # will have run them later.
+    #
+    # Since we process all results for a given uptime monitor in order, we
+    # can guarantee that we get the earliest delay stat for each scheduled
+    # check for the monitor here, and so this stat will be a more accurate
+    # measurement of delay/duration.
+    record_check_metrics(result, detector, {"mode": mode_name, **metric_tags})
+
+    Mode = UptimeMonitorMode
+    try:
+        match detector.config["mode"]:
+            case Mode.AUTO_DETECTED_ONBOARDING:
+                handle_onboarding_result(detector, uptime_subscription, result, metric_tags.copy())
+            case Mode.AUTO_DETECTED_ACTIVE | Mode.MANUAL:
+                handle_active_result(detector, uptime_subscription, result, metric_tags.copy())
+            case _:
+                logger.error(
+                    "Unknown subscription mode",
+                    extra={"mode": detector.config["mode"]},
+                )
+    except Exception:
+        logger.exception("Failed to process result for uptime project subscription")
+
+    # EAP production _must_ happen after handling the result, since we
+    # may mutate the UptimeSubscription when we determine we're in an incident
+    produce_eap_uptime_result(detector, result, metric_tags.copy())
+
+    # Track the last update date to allow deduplication
+    last_update_key = build_last_update_key(detector)
+    cluster.set(
+        last_update_key,
+        int(result["scheduled_check_time_ms"]),
+        ex=LAST_UPDATE_REDIS_TTL,
+    )
+
+    record_check_completion_metrics(result, metric_tags)
+
+
 def handle_active_result(
     detector: Detector,
     uptime_subscription: UptimeSubscription,
     result: CheckResult,
     metric_tags: dict[str, str],
 ):
-    organization = detector.project.organization
-
-    if features.has("organizations:uptime-detector-handler", organization):
-        # XXX(epurkhiser): Enabling the uptime-detector-handler will process
-        # check results via the uptime detector handler. However the handler
-        # WILL NOT produce issue occurrences (however it will do nearly
-        # everything else, including logging that it will produce)
-        packet = UptimePacketValue(
-            check_result=result,
-            subscription=uptime_subscription,
-            metric_tags=metric_tags,
-        )
-        process_data_packets(
-            [DataPacket(source_id=str(uptime_subscription.id), packet=packet)],
-            DATA_SOURCE_UPTIME_SUBSCRIPTION,
-        )
-
-        # Bail if we're doing issue creation via detectors, we don't want to
-        # create issues using the legacy system in this case. If this flag is
-        # not enabled the detector will still run, but will not produce an
-        # issue occurrence.
-        #
-        # Once we've determined that the detector handler is producing issues
-        # the same as the legacy issue creation, we can remove this.
-        if features.has("organizations:uptime-detector-create-issues", organization):
-            return
-
-    uptime_status = uptime_subscription.uptime_status
-    result_status = result["status"]
-
-    redis = _get_cluster()
-    delete_status = (
-        CHECKSTATUS_FAILURE if result_status == CHECKSTATUS_SUCCESS else CHECKSTATUS_SUCCESS
+    packet = UptimePacketValue(
+        check_result=result,
+        subscription=uptime_subscription,
+        metric_tags=metric_tags,
     )
-    # Delete any consecutive results we have for the opposing status, since we received this status
-    redis.delete(build_active_consecutive_status_key(detector, delete_status))
-
-    if uptime_status == UptimeStatus.OK and result_status == CHECKSTATUS_FAILURE:
-        if not has_reached_status_threshold(detector, result_status, metric_tags):
-            return
-
-        issue_creation_flag_enabled = features.has(
-            "organizations:uptime-create-issues",
-            detector.project.organization,
-        )
-
-        restricted_host_provider_ids = options.get(
-            "uptime.restrict-issue-creation-by-hosting-provider-id"
-        )
-        host_provider_id = uptime_subscription.host_provider_id
-        issue_creation_restricted_by_provider = host_provider_id in restricted_host_provider_ids
-
-        if issue_creation_restricted_by_provider:
-            metrics.incr(
-                "uptime.result_processor.restricted_by_provider",
-                sample_rate=1.0,
-                tags={
-                    "host_provider_id": host_provider_id,
-                    **metric_tags,
-                },
-            )
-
-        if issue_creation_flag_enabled and not issue_creation_restricted_by_provider:
-            create_issue_platform_occurrence(result, detector)
-            metrics.incr(
-                "uptime.result_processor.active.sent_occurrence",
-                tags=metric_tags,
-                sample_rate=1.0,
-            )
-            logger.info(
-                "uptime_active_sent_occurrence",
-                extra={
-                    "project_id": detector.project_id,
-                    "url": uptime_subscription.url,
-                    **result,
-                },
-            )
-        uptime_subscription.update(
-            uptime_status=UptimeStatus.FAILED,
-            uptime_status_update_date=django_timezone.now(),
-        )
-    elif uptime_status == UptimeStatus.FAILED and result_status == CHECKSTATUS_SUCCESS:
-        if not has_reached_status_threshold(detector, result_status, metric_tags):
-            return
-
-        if features.has("organizations:uptime-create-issues", detector.project.organization):
-            resolve_uptime_issue(detector)
-            metrics.incr(
-                "uptime.result_processor.active.resolved",
-                sample_rate=1.0,
-                tags=metric_tags,
-            )
-            logger.info(
-                "uptime_active_resolved",
-                extra={
-                    "project_id": detector.project_id,
-                    "url": uptime_subscription.url,
-                    **result,
-                },
-            )
-        uptime_subscription.update(
-            uptime_status=UptimeStatus.OK,
-            uptime_status_update_date=django_timezone.now(),
-        )
+    process_detectors(
+        DataPacket(source_id=str(uptime_subscription.id), packet=packet),
+        [detector],
+    )
 
 
 class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
@@ -411,6 +476,98 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
     def get_subscription_id(self, result: CheckResult) -> str:
         return result["subscription_id"]
+
+    def queue_result_for_retry(
+        self,
+        subscription: UptimeSubscription,
+        result: CheckResult,
+        metric_tags: dict[str, str],
+        cluster,
+    ) -> None:
+        """
+        Queue an out-of-order result for retry processing.
+
+        In multiprocessing mode, Arroyo uses a shared worker pool across partitions with no
+        partition-to-process affinity. This means consecutive results for the same subscription
+        can be processed by different workers concurrently, causing out-of-order processing.
+        When we detect a gap (eg: 4:01 arrives before 4:00), we buffer the result in Redis
+        and schedule a task to retry processing after a short delay, giving time for the
+        missing result to arrive and be processed first.
+
+        Results are stored in a sorted set keyed by scheduled_check_time_ms, allowing the
+        retry task to process them in the correct chronological order.
+        """
+        from sentry.uptime.consumers.tasks import process_uptime_backlog
+
+        subscription_id = str(subscription.id)
+        backlog_key = build_backlog_key(subscription_id)
+        task_scheduled_key = build_backlog_task_scheduled_key(subscription_id)
+        schedule_lock_key = build_backlog_schedule_lock_key(subscription_id)
+        schedule_lock = locks.get(schedule_lock_key, duration=10, name="uptime.backlog.schedule")
+        lock_ctx = None
+
+        try:
+            lock_ctx = schedule_lock.blocking_acquire(0.1, 3)
+            lock_ctx.__enter__()
+        except UnableToAcquireLock:
+            # The lock shouldn't fail, but if it does we'd prefer to try and put this in the queue
+            # regardless, so that we don't have to drop it
+            metrics.incr(
+                "uptime.backlog.lock_failed",
+                amount=1,
+                sample_rate=1.0,
+                tags=metric_tags,
+            )
+
+        try:
+            # Strip response body and headers to save Redis memory.
+            # Safe because we've already stored these in UptimeResponseCapture before queuing.
+            result_for_queue = dict(result)
+            request_info_list = result.get("request_info_list")
+            if request_info_list:
+                result_for_queue["request_info_list"] = [
+                    {
+                        k: v
+                        for k, v in info.items()
+                        if k not in ("response_body", "response_headers")
+                    }
+                    for info in request_info_list
+                ]
+            result_json = json.dumps(result_for_queue)
+            pipeline = cluster.pipeline()
+            pipeline.zadd(backlog_key, {result_json: int(result["scheduled_check_time_ms"])})
+            pipeline.expire(backlog_key, 600)
+            pipeline.exists(task_scheduled_key)
+            task_scheduled = pipeline.execute()[2]
+            metrics.incr(
+                "uptime.backlog.added",
+                amount=1,
+                sample_rate=1.0,
+                tags=metric_tags,
+            )
+            if not task_scheduled:
+                cluster.set(task_scheduled_key, "1", ex=300)
+                process_uptime_backlog.apply_async(
+                    args=[subscription_id],
+                    countdown=10,
+                    kwargs={"attempt": 1},
+                )
+                logger.info(
+                    "uptime.backlog.task_scheduled",
+                    extra={
+                        "subscription_id": subscription_id,
+                        "buffer_size": cluster.zcard(backlog_key),
+                    },
+                )
+                metrics.incr(
+                    "uptime.backlog.task_scheduled",
+                    amount=1,
+                    sample_rate=1.0,
+                    tags=metric_tags,
+                )
+        finally:
+            if lock_ctx is not None:
+                lock_ctx.__exit__(None, None, None)
 
     def handle_result(self, subscription: UptimeSubscription | None, result: CheckResult):
         if random.random() < 0.01:
@@ -434,6 +591,20 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         }
         subscription_regions = load_regions_for_uptime_subscription(subscription.id)
 
+        if result["status"] == CHECKSTATUS_DISALLOWED_BY_ROBOTS:
+            try:
+                detector = get_detector(subscription)
+                logger.info("disallowed_by_robots", extra=result)
+                metrics.incr(
+                    "uptime.result_processor.disallowed_by_robots",
+                    sample_rate=1.0,
+                    tags={"uptime_region": result.get("region", "default")},
+                )
+                disable_uptime_detector(detector)
+            except Exception as e:
+                logger.exception("disallowed_by_robots.error", extra={"error": e, "result": result})
+            return
+
         # Discard shadow mode region results
         if is_shadow_region_result(result, subscription_regions):
             metrics.incr(
@@ -443,22 +614,14 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             )
             return
 
-        if should_run_region_checks(subscription, result):
-            try_check_and_update_regions(subscription, subscription_regions)
-
-        detector = get_detector(subscription)
-
-        # Nothing to do if there's an orphaned project subscription
-        if not detector:
-            remove_uptime_subscription_if_unused(subscription)
+        try:
+            detector = get_detector(subscription, prefetch_workflow_data=True)
+        except Detector.DoesNotExist:
+            # Nothing to do if there's an orphaned uptime subscription
+            delete_uptime_subscription(subscription)
             return
 
         organization = detector.project.organization
-
-        # Detailed logging for specific organizations, useful for if we need to
-        # debug a specific organizations checks.
-        if features.has("organizations:uptime-detailed-logging", organization):
-            logger.info("handle_result_for_project.before_dedupe", extra=result)
 
         # Nothing to do if this subscription is disabled.
         if not detector.enabled:
@@ -481,7 +644,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             sample_rate=1.0,
         )
 
-        cluster = _get_cluster()
+        cluster = get_cluster()
         last_update_key = build_last_update_key(detector)
         last_update_raw: str | None = cluster.get(last_update_key)
         last_update_ms = 0 if last_update_raw is None else int(last_update_raw)
@@ -497,104 +660,42 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 tags={"mode": mode_name, **metric_tags},
                 sample_rate=1.0,
             )
+
+            # Don't log too much; this codepath can get used when the consumer is doing increased
+            # work, which can further increase its work, and so make a bad situation even worse.
+            if random.random() < 0.01:
+                logger.info(
+                    "uptime.result_processor.skipping_already_processed_update",
+                    extra={
+                        "guid": result["guid"],
+                        "region": result["region"],
+                        "subscription_id": result["subscription_id"],
+                    },
+                )
             return
 
-        subscription_interval_ms = 1000 * subscription.interval_seconds
-        num_intervals = (
-            result["scheduled_check_time_ms"] - last_update_ms
-        ) / subscription_interval_ms
+        if result["status"] == CHECKSTATUS_FAILURE and features.has(
+            "organizations:uptime-response-capture", organization
+        ):
+            create_uptime_response_capture(subscription, result)
 
-        # If the scheduled check is two or more intervals since the last seen check, we can declare the
-        # intervening checks missed...
-        if last_update_raw is not None and num_intervals > 1:
-            # ... but it might be the case that the user changed the frequency of the detector.  So, first
-            # verify that the interval in postgres is the same as the last-seen interval (in redis).
-            # We only store in redis when we encounter a difference like this, which means we won't be able
-            # to tell if a missed check is real with the very first missed check.  This is probably okay,
-            # and preferable to just writing the interval to redis on every check consumed.
-            last_interval_key = build_last_seen_interval_key(detector)
+        if last_update_ms > 0:
+            subscription_interval_ms = subscription.interval_seconds * 1000
+            expected_next_ms = last_update_ms + subscription_interval_ms
+            is_out_of_order = result["scheduled_check_time_ms"] != expected_next_ms
 
-            # If we've never set an interval before, just set this to zero, which will never compare
-            # true with any valid interval.
-            last_interval_seen: str = cluster.get(last_interval_key) or "0"
+            if is_out_of_order:
+                if features.has("organizations:uptime-backlog-retry", organization):
+                    self.queue_result_for_retry(subscription, result, metric_tags, cluster)
+                    return
 
-            if int(last_interval_seen) == subscription_interval_ms:
-                num_missed_checks = num_intervals - 1
-                metrics.distribution(
-                    "uptime.result_processer.num_missing_check",
-                    num_missed_checks,
-                    tags=metric_tags,
+                create_backfill_misses(
+                    detector, subscription, result, last_update_ms, metric_tags, cluster
                 )
-                logger.info(
-                    "uptime.result_processor.num_missing_check",
-                    extra={"num_missed_checks": num_missed_checks, **result},
-                )
-                if num_intervals != int(num_intervals):
-                    logger.info(
-                        "uptime.result_processor.invalid_check_interval",
-                        0,
-                        extra={
-                            "last_update_ms": last_update_ms,
-                            "current_update_ms": result["scheduled_check_time_ms"],
-                            "interval_ms": subscription_interval_ms,
-                            **result,
-                        },
-                    )
-            else:
-                logger.info(
-                    "uptime.result_processor.false_num_missing_check",
-                    extra={**result},
-                )
-                cluster.set(last_interval_key, subscription_interval_ms, ex=LAST_UPDATE_REDIS_TTL)
 
-        if features.has("organizations:uptime-detailed-logging", organization):
-            logger.info("handle_result_for_project.after_dedupe", extra=result)
-
-        # We log the result stats here after the duplicate check so that we
-        # know the "true" duration and delay of each check. Since during
-        # deploys we might have checks run from both the old/new checker
-        # deployments, there will be overlap of when things run. The new
-        # deployment will have artificially inflated delay stats, since it may
-        # duplicate checks that already ran on time on the old deployment, but
-        # will have run them later.
-        #
-        # Since we process all results for a given uptime monitor in order, we
-        # can guarantee that we get the earliest delay stat for each scheduled
-        # check for the monitor here, and so this stat will be a more accurate
-        # measurement of delay/duration.
-        record_check_metrics(result, detector, {"mode": mode_name, **metric_tags})
-
-        Mode = UptimeMonitorMode
-        try:
-            match detector.config["mode"]:
-                case Mode.AUTO_DETECTED_ONBOARDING:
-                    handle_onboarding_result(detector, subscription, result, metric_tags.copy())
-                case Mode.AUTO_DETECTED_ACTIVE | Mode.MANUAL:
-                    handle_active_result(detector, subscription, result, metric_tags.copy())
-                case _:
-                    logger.error(
-                        "Unknown subscription mode",
-                        extra={"mode": detector.config["mode"]},
-                    )
-        except Exception:
-            logger.exception("Failed to process result for uptime project subscription")
-
-        # Snuba production _must_ happen after handling the result, since we
-        # may mutate the UptimeSubscription when we determine we're in an incident
-        if options.get("uptime.snuba_uptime_results.enabled"):
-            produce_snuba_uptime_result(subscription, detector.project, result, metric_tags.copy())
-
-        if features.has("organizations:uptime-eap-results", detector.project.organization):
-            produce_eap_uptime_result(subscription, detector.project, result, metric_tags.copy())
-
-        # Track the last update date to allow deduplication
-        cluster.set(
-            last_update_key,
-            int(result["scheduled_check_time_ms"]),
-            ex=LAST_UPDATE_REDIS_TTL,
+        process_result_internal(
+            detector, subscription, result, metric_tags, cluster, subscription_regions
         )
-
-        record_check_completion_metrics(result, metric_tags)
 
 
 class UptimeResultsStrategyFactory(ResultsStrategyFactory[CheckResult, UptimeSubscription]):

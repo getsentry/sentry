@@ -10,7 +10,7 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
+import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 
 export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
   const organization = useOrganization();
@@ -54,7 +54,7 @@ export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
           }
         );
       },
-      message: t('Deleting feedbacks is permanent. Are you sure you wish to continue?'),
+      message: t('Deleting feedback is permanent. Are you sure you wish to continue?'),
       confirmText: t('Delete'),
     });
   }, [

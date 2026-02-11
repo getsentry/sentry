@@ -2,32 +2,24 @@ from time import time
 
 from django.core.exceptions import ObjectDoesNotExist
 
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.tasks import logger
 from sentry.models.apitoken import generate_token
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import integrations_control_tasks
 from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(
     name="sentry.integrations.vsts.tasks.vsts_subscription_check",
-    queue="integrations.control",
-    default_retry_delay=60 * 5,
-    max_retries=5,
+    namespace=integrations_control_tasks,
+    retry=Retry(times=5, delay=60 * 5),
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(
-        namespace=integrations_control_tasks,
-        retry=Retry(
-            times=5,
-            delay=60 * 5,
-        ),
-    ),
 )
-@retry(exclude=(ApiError, ApiUnauthorized, Integration.DoesNotExist))
+@retry(exclude=(ApiError, ApiUnauthorized, Integration.DoesNotExist, IdentityNotValid))
 def vsts_subscription_check(integration_id: int, organization_id: int) -> None:
     from sentry.integrations.vsts.integration import VstsIntegration
 
@@ -53,6 +45,18 @@ def vsts_subscription_check(integration_id: int, organization_id: int) -> None:
                 "error": str(e),
             },
         )
+    except IdentityNotValid as e:
+        logger.info(
+            "vsts_subscription_check.identity_not_valid",
+            extra={
+                "integration_id": integration_id,
+                "organization_id": organization_id,
+                "error": str(e),
+            },
+        )
+        # There is no point in continuing this task if the identity is not valid.
+        # The integration is fundamentally broken
+        return
 
     # https://docs.microsoft.com/en-us/rest/api/vsts/hooks/subscriptions/replace%20subscription?view=vsts-rest-4.1#subscriptionstatus
     if not subscription or subscription["status"] == "disabledBySystem":

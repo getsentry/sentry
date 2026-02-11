@@ -8,6 +8,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     DefaultFieldsModel,
+    FlexibleForeignKey,
     Model,
     region_silo_model,
     sane_repr,
@@ -78,3 +79,28 @@ class ReplayRecordingSegment(Model):
 
         rv = super().delete(*args, **kwargs)
         return rv
+
+
+@region_silo_model
+class OrganizationMemberReplayAccess(DefaultFieldsModel):
+    """
+    Tracks which organization members have permission to access replay data.
+
+    When no records exist for an organization, all members have access (default).
+    When records exist, only members with a record can access replays.
+    """
+
+    __relocation_scope__ = RelocationScope.Organization
+
+    organizationmember = FlexibleForeignKey(
+        "sentry.OrganizationMember",
+        on_delete=models.CASCADE,
+        related_name="replay_access",
+        unique=True,
+    )
+
+    class Meta:
+        app_label = "replays"
+        db_table = "sentry_organizationmemberreplayaccess"
+
+    __repr__ = sane_repr("organizationmember_id")

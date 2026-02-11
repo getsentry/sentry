@@ -5,14 +5,14 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import BuiltInRepositories from 'sentry/views/settings/projectDebugFiles/sources/builtInRepositories';
 
-describe('Built-in Repositories', function () {
+describe('Built-in Repositories', () => {
   const api = new MockApiClient();
   const {project, organization} = initializeOrg();
 
   const builtinSymbolSourceOptions = BuiltInSymbolSourcesFixture();
   const builtinSymbolSources = ['ios', 'microsoft', 'android'];
 
-  it('renders', function () {
+  it('renders', () => {
     render(
       <BuiltInRepositories
         api={api}

@@ -1,18 +1,32 @@
-import {Fragment} from 'react';
+import React, {Fragment, useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
+import {parseAsString, useQueryState} from 'nuqs';
 
-import {Alert} from 'sentry/components/core/alert';
-import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
+import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {InlineCode} from '@sentry/scraps/code';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
-import {StoryFooter} from 'sentry/stories/view/storyFooter';
-import {StoryTableOfContents} from 'sentry/stories/view/storyTableOfContents';
-import {space} from 'sentry/styles/space';
 
+import {StoryFooter} from './storyFooter';
+import {storyMdxComponents} from './storyMdxComponent';
 import {StoryResources} from './storyResources';
 import {StorySourceLinks} from './storySourceLinks';
-import {isMDXStory, type StoryDescriptor} from './useStoriesLoader';
+import {
+  StoryTableOfContents,
+  StoryTableOfContentsPlaceholder,
+} from './storyTableOfContents';
+import {
+  isMDXStory,
+  type MDXStoryDescriptor,
+  type StoryDescriptor,
+} from './useStoriesLoader';
 import type {StoryExports as StoryExportValues} from './useStory';
 import {StoryContextProvider, useStory} from './useStory';
 
@@ -25,14 +39,20 @@ export function StoryExports(props: {story: StoryDescriptor}) {
 }
 
 function StoryLayout() {
+  const {story} = useStory();
+  const [tab, setTab] = useQueryState(
+    'tab',
+    parseAsString.withOptions({history: 'push'}).withDefault('usage')
+  );
+
   return (
-    <Tabs>
-      <StoryTitlebar />
+    <Tabs value={tab} onChange={setTab}>
+      {isMDXStory(story) ? <MDXStoryTitle story={story} /> : null}
       <StoryGrid>
         <StoryContainer>
-          <StoryContent>
+          <Flex flexGrow={1} minWidth="0px">
             <StoryTabPanels />
-          </StoryContent>
+          </Flex>
           <ErrorBoundary>
             <StorySourceLinks />
           </ErrorBoundary>
@@ -44,36 +64,83 @@ function StoryLayout() {
   );
 }
 
-function StoryTitlebar() {
-  const {story} = useStory();
+export function makeStorybookDocumentTitle(title: string | undefined): string {
+  return title ? `${title} — Scraps` : 'Scraps';
+}
 
-  if (!isMDXStory(story)) return null;
+function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
+  const theme = useTheme();
+  const title = props.story.exports.frontmatter?.title;
+  const description = props.story.exports.frontmatter?.description;
 
-  const title = story.exports.frontmatter?.title;
-  const description = story.exports.frontmatter?.description;
+  useEffect(() => {
+    document.title = makeStorybookDocumentTitle(title);
+  }, [title]);
 
   return (
-    <StoryHeader>
+    <Container
+      as="header"
+      background="secondary"
+      padding="3xl 0 0 0"
+      borderBottom="primary"
+      area="story-head"
+    >
       <StoryGrid>
-        <StoryContainer style={{gap: space(1)}}>
-          <h1>{title}</h1>
-          {description && <p>{description}</p>}
+        <StoryContainer style={{gap: theme.space['2xl']}}>
+          <Flex
+            direction="column"
+            gap="xl"
+            padding={
+              props.story.exports.frontmatter?.layout === 'document'
+                ? '0 0 2xl 0'
+                : undefined
+            }
+          >
+            <Flex direction="row" gap="sm" align="center">
+              <Heading as="h1">{title}</Heading>
+              {props.story.exports.frontmatter?.status ? (
+                props.story.exports.frontmatter.status === 'stable' ? null : (
+                  <Tag
+                    variant={
+                      props.story.exports.frontmatter.status === 'in-progress'
+                        ? 'warning'
+                        : 'promotion'
+                    }
+                  >
+                    {props.story.exports.frontmatter.status === 'in-progress'
+                      ? 'In Progress'
+                      : 'Experimental'}
+                  </Tag>
+                )
+              ) : null}
+            </Flex>
+            {description && (
+              <Text as="p" density="comfortable">
+                {description}
+              </Text>
+            )}
+          </Flex>
 
           <StoryTabList />
         </StoryContainer>
+        <StoryTableOfContentsPlaceholder />
       </StoryGrid>
-    </StoryHeader>
+    </Container>
   );
 }
 
 function StoryTabList() {
   const {story} = useStory();
-  if (!story.filename.endsWith('.mdx')) return null;
+
+  if (!isMDXStory(story)) return null;
+  if (story.exports.frontmatter?.layout === 'document') return null;
 
   return (
     <TabList>
       <TabList.Item key="usage">{t('Usage')}</TabList.Item>
-      {story.exports.types ? <TabList.Item key="api">{t('API')}</TabList.Item> : null}
+      {story.exports.documentation ? (
+        <TabList.Item key="api">{t('API')}</TabList.Item>
+      ) : null}
 
       {isMDXStory(story) && story.exports.frontmatter?.resources ? (
         <TabList.Item key="resources">{t('Resources')}</TabList.Item>
@@ -84,12 +151,20 @@ function StoryTabList() {
 
 function StoryTabPanels() {
   const {story} = useStory();
-  if (!story.filename.endsWith('.mdx')) {
+
+  if (!isMDXStory(story)) {
     return <StoryUsage />;
   }
+
+  // A document is just a single page
+  if (story.exports.frontmatter?.layout === 'document') {
+    return <StoryUsage />;
+  }
+
   return (
-    <TabPanels>
+    <StyledTabPanels>
       <TabPanels.Item key="usage">
+        <StoryModuleExports exports={story.exports.documentation?.exports} />
         <StoryUsage />
       </TabPanels.Item>
       <TabPanels.Item key="api">
@@ -98,10 +173,13 @@ function StoryTabPanels() {
       <TabPanels.Item key="resources">
         <StoryResources />
       </TabPanels.Item>
-    </TabPanels>
+    </StyledTabPanels>
   );
 }
-const EXPECTED_EXPORTS = new Set<keyof StoryExportValues>(['frontmatter', 'types']);
+const EXPECTED_EXPORTS = new Set<keyof StoryExportValues>([
+  'frontmatter',
+  'documentation',
+]);
 
 function StoryUsage() {
   const {
@@ -117,12 +195,12 @@ function StoryUsage() {
         <Storybook.Section>
           <ErrorBoundary
             fallback={
-              <Alert type="error" showIcon={false}>
-                Problem loading <code>{filename}</code>
+              <Alert variant="danger" showIcon={false}>
+                Problem loading <InlineCode>{filename}</InlineCode>
               </Alert>
             }
           >
-            <Story />
+            <Story components={storyMdxComponents} />
           </ErrorBoundary>
         </Storybook.Section>
       )}
@@ -153,61 +231,55 @@ function StoryUsage() {
 
 function StoryAPI() {
   const {story} = useStory();
-  if (!story.exports.types) return null;
 
-  if (
-    typeof story.exports.types === 'object' &&
-    story.exports.types !== null &&
-    'filename' in story.exports.types
-  ) {
-    return (
-      <Storybook.APIReference
-        types={story.exports.types as TypeLoader.ComponentDocWithFilename}
-      />
-    );
+  const documentation = story.exports.documentation as TypeLoader.TypeLoaderResult;
+
+  if (!documentation || !('props' in documentation)) {
+    return null;
   }
 
   return (
     <Fragment>
-      {Object.entries(story.exports.types).map(([key, value]) => {
-        return <Storybook.APIReference key={key} types={value} />;
+      {Object.entries(documentation.props ?? {}).map(([key, value]) => {
+        return <Storybook.APIReference key={key} componentProps={value} />;
       })}
     </Fragment>
   );
 }
 
-const StoryHeader = styled('header')`
-  background: ${p => p.theme.tokens.background.secondary};
-  padding: 32px 0 0 0;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  grid-area: story-head;
-  h1 {
-    font-size: 24px;
-    font-weight: ${p => p.theme.fontWeight.bold};
-  }
-  p {
-    margin-top: 8px;
-    margin-bottom: 16px;
-  }
-`;
+function StoryGrid(props: React.ComponentProps<typeof Grid>) {
+  return (
+    <Grid
+      {...props}
+      columns={{xs: 'minmax(0, 1fr) auto', md: 'minmax(580px, 1fr) minmax(0, 256px)'}}
+      height="100%"
+    />
+  );
+}
 
-const StoryGrid = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr minmax(auto, 360px);
-  flex: 1;
-  height: 100%;
+function StoryModuleExports(props: {
+  exports: TypeLoader.TypeLoaderResult['exports'] | undefined;
+}) {
+  if (!props.exports) return null;
+  return <Storybook.ModuleExports exports={props.exports} />;
+}
+
+const StyledTabPanels = styled(TabPanels)`
+  flex-grow: 1;
+  min-width: 0;
 `;
 
 const StoryContainer = styled('div')`
-  max-width: 820px;
-  width: calc(100vw - 32px);
-  margin-inline: auto;
+  max-width: 580px;
+  width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: ${space(4)};
-  padding-inline: ${space(2)};
-`;
+  gap: ${p => p.theme.space['3xl']};
+  padding-inline: ${p => p.theme.space.xl};
 
-const StoryContent = styled('main')`
-  flex-grow: 1;
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    max-width: 832px;
+    margin-inline: auto;
+  }
 `;

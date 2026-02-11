@@ -9,19 +9,19 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import Access from 'sentry/components/acl/access';
 import ConfigStore from 'sentry/stores/configStore';
 
-describe('Access', function () {
+describe('Access', () => {
   const organization = OrganizationFixture({
     access: ['project:write', 'project:read'],
   });
 
-  describe('as render prop', function () {
+  describe('as render prop', () => {
     const childrenMock = jest.fn().mockReturnValue(null);
 
-    beforeEach(function () {
+    beforeEach(() => {
       childrenMock.mockClear();
     });
 
-    it('has access', function () {
+    it('has access', () => {
       render(<Access access={['project:write', 'project:read']}>{childrenMock}</Access>, {
         organization,
       });
@@ -32,7 +32,7 @@ describe('Access', function () {
       });
     });
 
-    it('has no access', function () {
+    it('has no access', () => {
       render(<Access access={['org:write']}>{childrenMock}</Access>, {
         organization,
       });
@@ -43,7 +43,7 @@ describe('Access', function () {
       });
     });
 
-    it('read access from team', function () {
+    it('read access from team', () => {
       const org = OrganizationFixture({access: []});
 
       const team1 = TeamFixture({access: []});
@@ -79,7 +79,7 @@ describe('Access', function () {
       );
     });
 
-    it('read access from project', function () {
+    it('read access from project', () => {
       const org = OrganizationFixture({access: []});
 
       const proj1 = ProjectFixture({access: []});
@@ -113,7 +113,7 @@ describe('Access', function () {
       );
     });
 
-    it('handles no org', function () {
+    it('handles no org', () => {
       render(<Access access={['org:write']}>{childrenMock}</Access>, {
         organization,
       });
@@ -126,7 +126,7 @@ describe('Access', function () {
       );
     });
 
-    it('handles no user', function () {
+    it('handles no user', () => {
       // Regression test for the share sheet.
       ConfigStore.loadInitialData(
         ConfigFixture({
@@ -142,7 +142,7 @@ describe('Access', function () {
       });
     });
 
-    it('is superuser', function () {
+    it('is superuser', () => {
       ConfigStore.loadInitialData(
         ConfigFixture({
           user: UserFixture({isSuperuser: true}),
@@ -164,7 +164,7 @@ describe('Access', function () {
       });
     });
 
-    it('is not superuser', function () {
+    it('is not superuser', () => {
       ConfigStore.loadInitialData(
         ConfigFixture({
           user: UserFixture({isSuperuser: false}),
@@ -187,8 +187,8 @@ describe('Access', function () {
     });
   });
 
-  describe('as React node', function () {
-    it('has access', function () {
+  describe('as React node', () => {
+    it('has access', () => {
       render(
         <Access access={['project:write']}>
           <p>The Child</p>
@@ -199,7 +199,7 @@ describe('Access', function () {
       expect(screen.getByText('The Child')).toBeInTheDocument();
     });
 
-    it('has no access', function () {
+    it('has no access', () => {
       render(
         <Access access={['org:write']}>
           <p>The Child</p>
@@ -210,7 +210,7 @@ describe('Access', function () {
       expect(screen.queryByText('The Child')).not.toBeInTheDocument();
     });
 
-    it('has superuser', function () {
+    it('has superuser', () => {
       ConfigStore.loadInitialData(
         ConfigFixture({
           user: UserFixture({isSuperuser: true}),
@@ -227,7 +227,7 @@ describe('Access', function () {
       expect(screen.getByText('The Child')).toBeInTheDocument();
     });
 
-    it('has no superuser', function () {
+    it('has no superuser', () => {
       ConfigStore.loadInitialData(
         ConfigFixture({
           user: UserFixture({isSuperuser: false}),

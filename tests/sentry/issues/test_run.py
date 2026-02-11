@@ -21,6 +21,7 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.types.group import PriorityLevel
 from sentry.utils import json
 from sentry.utils.kafka_config import get_topic_definition
@@ -451,6 +452,7 @@ class TestBatchedOccurrenceConsumer(
         side_effect=process_occurrence_group_with_shutdown,
     )
     @mock.patch("sentry.issues.occurrence_consumer.save_issue_occurrence")
+    @thread_leak_allowlist(reason="test_run", issue=98983)
     def test_issue_multiple_status_changes(
         self,
         mock_save_issue_occurrence: mock.MagicMock,

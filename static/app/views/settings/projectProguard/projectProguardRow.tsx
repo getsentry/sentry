@@ -1,14 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Access from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import FileSize from 'sentry/components/fileSize';
 import TimeSince from 'sentry/components/timeSince';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
@@ -16,7 +16,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import type {ProguardMappingAssociation} from 'sentry/views/settings/projectProguard';
-import {ProguardAssociations} from 'sentry/views/settings/projectProguard/associations';
 
 type Props = {
   downloadUrl: string;
@@ -26,13 +25,7 @@ type Props = {
   associations?: ProguardMappingAssociation;
 };
 
-function ProjectProguardRow({
-  associations = {releases: []},
-  mapping,
-  onDelete,
-  downloadUrl,
-  orgSlug,
-}: Props) {
+function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Props) {
   const {hasRole, roleRequired: downloadRole} = useRole({role: 'debugFilesRole'});
   const {id, debugId, uuid, size, dateCreated} = mapping;
 
@@ -42,19 +35,18 @@ function ProjectProguardRow({
 
   return (
     <Fragment>
-      <NameColumn>
+      <Stack justify="center" align="start">
         <Name>{debugId || uuid || `(${t('empty')})`}</Name>
-        <ProguardAssociations associations={associations} />
         <TimeWrapper>
           <IconClock size="sm" />
           <TimeSince date={dateCreated} />
         </TimeWrapper>
-      </NameColumn>
+      </Stack>
       <SizeColumn>
         <FileSize bytes={size} />
       </SizeColumn>
       <ActionsColumn>
-        <ButtonBar gap="xs">
+        <Grid flow="column" align="center" gap="xs">
           <Tooltip
             title={tct(
               'Mappings can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
@@ -99,18 +91,11 @@ function ProjectProguardRow({
               </Tooltip>
             )}
           </Access>
-        </ButtonBar>
+        </Grid>
       </ActionsColumn>
     </Fragment>
   );
 }
-
-const NameColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-`;
 
 const SizeColumn = styled('div')`
   display: flex;
@@ -131,9 +116,9 @@ const TimeWrapper = styled('div')`
   display: grid;
   gap: ${space(0.5)};
   grid-template-columns: min-content 1fr;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(1)};
 `;
 

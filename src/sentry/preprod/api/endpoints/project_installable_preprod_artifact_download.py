@@ -1,15 +1,25 @@
+from __future__ import annotations
+
+import logging
+
 from django.db.models import F
 from django.http.response import FileResponse, HttpResponse, HttpResponseBase
 from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.files.file import File
-from sentry.preprod.models import InstallablePreprodArtifact
+from sentry.models.project import Project
+from sentry.preprod.eap.write import produce_preprod_build_distribution_to_eap
+from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
+from sentry.utils.http import absolute_uri
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -21,7 +31,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
     authentication_classes = ()  # No authentication required
     permission_classes = ()
 
-    def get(self, request: Request, project, url_path) -> HttpResponseBase:
+    def get(self, request: Request, project: Project, url_path: str) -> HttpResponseBase:
         """
         Download an installable preprod artifact or its plist, if not expired.
         """
@@ -30,6 +40,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
             installable = InstallablePreprodArtifact.objects.select_related(
                 "preprod_artifact",
                 "preprod_artifact__project",
+                "preprod_artifact__mobile_app_info",
             ).get(
                 url_path=url_path,
             )
@@ -37,7 +48,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
             return Response({"error": "Installable preprod artifact not found"}, status=404)
 
         # Validate that the URL parameters match the actual organization and project
-        preprod_artifact = installable.preprod_artifact
+        preprod_artifact: PreprodArtifact = installable.preprod_artifact
 
         if preprod_artifact.project.id != project.id:
             return Response({"error": "Project not found"}, status=404)
@@ -55,11 +66,15 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
             return Response({"error": "Installable file not found"}, status=404)
 
         if format_type == "plist":
-            extras = preprod_artifact.extras
-            if not extras:
+            app_id = preprod_artifact.app_id
+
+            mobile_app_info = getattr(preprod_artifact, "mobile_app_info", None)
+            build_version = mobile_app_info.build_version if mobile_app_info else None
+            app_name = mobile_app_info.app_name if mobile_app_info else None
+            if not app_id or not build_version or not app_name:
                 return Response({"error": "App details not found"}, status=404)
 
-            ipa_url = request.build_absolute_uri(
+            ipa_url = absolute_uri(
                 f"/api/0/projects/{project.organization.slug}/{project.slug}/files/installablepreprodartifact/{installable.url_path}/?response_format=ipa"
             )
             plist = f"""<?xml version="1.0" encoding="UTF-8"?>
@@ -81,15 +96,15 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
       <key>metadata</key>
       <dict>
         <key>bundle-identifier</key>
-        <string>{extras.get('bundle_identifier', 'com.emerge.DemoApp')}</string>
+        <string>{app_id}</string>
         <key>bundle-version</key>
-        <string>{preprod_artifact.build_version or ''}</string>
+        <string>{build_version}</string>
         <key>kind</key>
         <string>software</string>
         <key>platform-identifier</key>
         <string>com.apple.platform.iphoneos</string>
         <key>title</key>
-        <string>{extras.get('app_name', 'DemoApp')}</string>
+        <string>{app_name}</string>
       </dict>
     </dict>
   </array>
@@ -100,8 +115,38 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
             InstallablePreprodArtifact.objects.filter(pk=installable.pk).update(
                 download_count=F("download_count") + 1
             )
+
+            # Update build distribution data in EAP with new download count
+            try:
+                organization = project.organization
+                if features.has("organizations:preprod-build-distribution-eap-write", organization):
+                    produce_preprod_build_distribution_to_eap(
+                        artifact=preprod_artifact,
+                        organization=organization,
+                        organization_id=project.organization_id,
+                        project_id=project.id,
+                    )
+            except Exception:
+                logger.exception(
+                    "Failed to write preprod build distribution to EAP after download",
+                    extra={
+                        "preprod_artifact_id": preprod_artifact.id,
+                        "organization_id": project.organization_id,
+                        "project_id": project.id,
+                    },
+                )
+
             fp = file_obj.getfile()
-            filename = "installable.ipa"
+            filename = preprod_artifact.app_id or "app"
+            mobile_app_info = getattr(preprod_artifact, "mobile_app_info", None)
+            build_version = mobile_app_info.build_version if mobile_app_info else None
+            if build_version:
+                filename += f"@{build_version}"
+            build_number = mobile_app_info.build_number if mobile_app_info else None
+            if build_number:
+                filename += f"+{build_number}"
+            ext = format_type if format_type else "bin"
+            filename += f".{ext}"
             response = FileResponse(
                 fp,
                 content_type="application/octet-stream",

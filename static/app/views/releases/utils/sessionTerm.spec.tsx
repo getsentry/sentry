@@ -6,8 +6,8 @@ import {
   SessionTerm,
 } from 'sentry/views/releases/utils/sessionTerm';
 
-describe('Release Health Session Term', function () {
-  it('dotnet terms', function () {
+describe('Release Health Session Term', () => {
+  it('dotnet terms', () => {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(SessionTerm.CRASHES, 'dotnet');
     expect(crashesSessionTerm).toEqual(commonTermsDescription.crashes);
@@ -50,7 +50,7 @@ describe('Release Health Session Term', function () {
     expect(unhandledSessionTerm).toEqual(mobileTermsDescription.unhandled);
   });
 
-  it('java terms', function () {
+  it('java terms', () => {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(SessionTerm.CRASHES, 'java');
     expect(crashesSessionTerm).toEqual(commonTermsDescription.crashes);
@@ -90,7 +90,7 @@ describe('Release Health Session Term', function () {
     expect(unhandledSessionTerm).toEqual(mobileTermsDescription.unhandled);
   });
 
-  it('java-spring terms', function () {
+  it('java-spring terms', () => {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(
       SessionTerm.CRASHES,
@@ -150,7 +150,7 @@ describe('Release Health Session Term', function () {
     expect(unhandledSessionTerm).toEqual(mobileTermsDescription.unhandled);
   });
 
-  it('dotnet-aspnetcore terms', function () {
+  it('dotnet-aspnetcore terms', () => {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(
       SessionTerm.CRASHES,
@@ -210,7 +210,7 @@ describe('Release Health Session Term', function () {
     expect(unhandledSessionTerm).toEqual(mobileTermsDescription.unhandled);
   });
 
-  it('android terms', function () {
+  it('android terms', () => {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(SessionTerm.CRASHES, 'android');
     expect(crashesSessionTerm).toEqual(commonTermsDescription.crashes);
@@ -258,7 +258,7 @@ describe('Release Health Session Term', function () {
     expect(unhandledSessionTerm).toEqual(mobileTermsDescription.unhandled);
   });
 
-  it('cordova terms', function () {
+  it('cordova terms', () => {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(SessionTerm.CRASHES, 'cordova');
     expect(crashesSessionTerm).toEqual(commonTermsDescription.crashes);
@@ -306,7 +306,7 @@ describe('Release Health Session Term', function () {
     expect(unhandledSessionTerm).toEqual(mobileTermsDescription.unhandled);
   });
 
-  it('react-native terms', function () {
+  it('react-native terms', () => {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(
       SessionTerm.CRASHES,
@@ -366,7 +366,7 @@ describe('Release Health Session Term', function () {
     expect(unhandledSessionTerm).toEqual(mobileTermsDescription.unhandled);
   });
 
-  it('flutter terms', function () {
+  it('flutter terms', () => {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(SessionTerm.CRASHES, 'flutter');
     expect(crashesSessionTerm).toEqual(commonTermsDescription.crashes);
@@ -414,7 +414,7 @@ describe('Release Health Session Term', function () {
     expect(unhandledSessionTerm).toEqual(mobileTermsDescription.unhandled);
   });
 
-  it('apple terms', function () {
+  it('apple terms', () => {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(
       SessionTerm.CRASHES,
@@ -481,7 +481,7 @@ describe('Release Health Session Term', function () {
     );
   });
 
-  it('node-express terms', function () {
+  it('node-express terms', () => {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(
       SessionTerm.CRASHES,
@@ -545,7 +545,7 @@ describe('Release Health Session Term', function () {
     );
   });
 
-  it('javascript terms', function () {
+  it('javascript terms', () => {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(
       SessionTerm.CRASHES,
@@ -609,7 +609,7 @@ describe('Release Health Session Term', function () {
     );
   });
 
-  it('rust terms', function () {
+  it('rust terms', () => {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(SessionTerm.CRASHES, 'rust');
     expect(crashesSessionTerm).toEqual(commonTermsDescription.crashes);
@@ -651,7 +651,7 @@ describe('Release Health Session Term', function () {
     expect(unhandledSessionTerm).toEqual(desktopTermDescriptions.unhandled);
   });
 
-  it('apple-ios terms', function () {
+  it('apple-ios terms', () => {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(
       SessionTerm.CRASHES,
@@ -709,7 +709,7 @@ describe('Release Health Session Term', function () {
     expect(unhandledSessionTerm).toEqual(mobileTermsDescription.unhandled);
   });
 
-  it('minidump terms', function () {
+  it('minidump terms', () => {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(SessionTerm.CRASHES, 'minidump');
     expect(crashesSessionTerm).toEqual(commonTermsDescription.crashes);
@@ -755,7 +755,7 @@ describe('Release Health Session Term', function () {
     expect(unhandledSessionTerm).toEqual(desktopTermDescriptions.unhandled);
   });
 
-  it('native terms', function () {
+  it('native terms', () => {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(SessionTerm.CRASHES, 'native');
     expect(crashesSessionTerm).toEqual(commonTermsDescription.crashes);
@@ -798,7 +798,7 @@ describe('Release Health Session Term', function () {
     expect(unhandledSessionTerm).toEqual(desktopTermDescriptions.unhandled);
   });
 
-  it('python terms', function () {
+  it('python terms', () => {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(SessionTerm.CRASHES, 'python');
     expect(crashesSessionTerm).toEqual(commonTermsDescription.crashes);
@@ -841,7 +841,7 @@ describe('Release Health Session Term', function () {
     expect(unhandledSessionTerm).toEqual(mobileTermsDescription.unhandled);
   });
 
-  it('default terms', function () {
+  it('default terms', () => {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(SessionTerm.CRASHES, null);
     expect(crashesSessionTerm).toEqual(commonTermsDescription.crashes);

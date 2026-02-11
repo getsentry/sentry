@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import uuid
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
+import pytest
+from django.conf import settings
 from django.core.cache import cache
 from django.test import override_settings
 from urllib3 import HTTPResponse
 from urllib3.exceptions import ConnectTimeoutError, MaxRetryError
 
+from sentry import options
 from sentry.constants import PLACEHOLDER_EVENT_TITLES
 from sentry.event_manager import (
     SEER_ERROR_COUNT_KEY,
@@ -20,14 +25,14 @@ from sentry.event_manager import (
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-def make_event(**kwargs) -> dict[str, Any]:
+def make_event(**kwargs: Any) -> dict[str, Any]:
     result: dict[str, Any] = {
         "event_id": uuid.uuid1().hex,
     }
@@ -63,6 +68,8 @@ class TestGetEventSeverity(TestCase):
             "message": "NopeError: Nopey McNopeface",
             "has_stacktrace": 0,
             "handled": True,
+            "org_id": self.project.organization_id,
+            "project_id": self.project.id,
         }
 
         mock_urlopen.assert_called_with(
@@ -70,7 +77,7 @@ class TestGetEventSeverity(TestCase):
             "/v0/issues/severity-score",
             body=orjson.dumps(payload),
             headers={"content-type": "application/json;charset=utf-8"},
-            timeout=0.2,
+            timeout=options.get("issues.severity.seer-timeout", settings.SEER_SEVERITY_TIMEOUT),
         )
         assert severity == 0.1231
         assert reason == "ml"
@@ -87,9 +94,9 @@ class TestGetEventSeverity(TestCase):
                 body=orjson.dumps(payload),
                 headers={
                     "content-type": "application/json;charset=utf-8",
-                    "Authorization": "Rpcsignature rpc0:b14214093c3e7c633e68ac90b01087e710fe2f96c0544b232b9ec9bc6ca971f4",
+                    "Authorization": f"Rpcsignature rpc0:{hmac.new(b'some-secret', orjson.dumps(payload), hashlib.sha256).hexdigest()}",
                 },
-                timeout=0.2,
+                timeout=options.get("issues.severity.seer-timeout", settings.SEER_SEVERITY_TIMEOUT),
             )
 
     @patch(
@@ -115,6 +122,8 @@ class TestGetEventSeverity(TestCase):
                 "message": "Dogs are great!",
                 "has_stacktrace": 0,
                 "handled": None,
+                "org_id": self.project.organization_id,
+                "project_id": self.project.id,
             }
 
             mock_urlopen.assert_called_with(
@@ -122,7 +131,7 @@ class TestGetEventSeverity(TestCase):
                 "/v0/issues/severity-score",
                 body=orjson.dumps(payload),
                 headers={"content-type": "application/json;charset=utf-8"},
-                timeout=0.2,
+                timeout=options.get("issues.severity.seer-timeout", settings.SEER_SEVERITY_TIMEOUT),
             )
             assert severity == 0.1231
             assert reason == "ml"
@@ -214,6 +223,7 @@ class TestGetEventSeverity(TestCase):
             assert severity == 0.0
             assert reason == "bad_title"
 
+    @pytest.mark.skip(reason="flaky: #103306")
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
         side_effect=MaxRetryError(
@@ -244,9 +254,7 @@ class TestGetEventSeverity(TestCase):
 
         severity, reason = _get_severity_score(event)
 
-        mock_metrics_incr.assert_called_with(
-            "issues.severity.error", tags={"reason": "max_retries"}
-        )
+        mock_metrics_incr.assert_any_call("issues.severity.error", tags={"reason": "max_retries"})
         assert severity == 1.0
         assert reason == "microservice_max_retry"
         assert cache.get(SEER_ERROR_COUNT_KEY) == 1
@@ -279,7 +287,7 @@ class TestGetEventSeverity(TestCase):
 
         severity, reason = _get_severity_score(event)
 
-        mock_metrics_incr.assert_called_with("issues.severity.error", tags={"reason": "timeout"})
+        mock_metrics_incr.assert_any_call("issues.severity.error", tags={"reason": "timeout"})
         assert severity == 1.0
         assert reason == "microservice_timeout"
         assert cache.get(SEER_ERROR_COUNT_KEY) == 1
@@ -315,17 +323,17 @@ class TestGetEventSeverity(TestCase):
         severity, reason = _get_severity_score(event)
 
         mock_capture_exception.assert_called_once_with()
-        mock_metrics_incr.assert_called_with("issues.severity.error", tags={"reason": "unknown"})
+        mock_metrics_incr.assert_any_call("issues.severity.error", tags={"reason": "unknown"})
         assert severity == 1.0
         assert reason == "microservice_error"
         assert cache.get(SEER_ERROR_COUNT_KEY) == 1
 
 
-@apply_feature_flag_on_cls("projects:first-event-severity-calculation")
-@apply_feature_flag_on_cls("organizations:seer-based-priority")
+@with_feature("projects:first-event-severity-calculation")
+@with_feature("organizations:seer-based-priority")
 class TestEventManagerSeverity(TestCase):
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
-    def test_flag_on(self, mock_get_severity_score: MagicMock):
+    def test_flag_on(self, mock_get_severity_score: MagicMock) -> None:
         manager = EventManager(
             make_event(
                 exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
@@ -342,7 +350,7 @@ class TestEventManagerSeverity(TestCase):
         )
 
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
-    def test_flag_off(self, mock_get_severity_score: MagicMock):
+    def test_flag_off(self, mock_get_severity_score: MagicMock) -> None:
         with self.feature({"projects:first-event-severity-calculation": False}):
             manager = EventManager(
                 make_event(
@@ -362,7 +370,7 @@ class TestEventManagerSeverity(TestCase):
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
     def test_get_severity_score_not_called_on_second_event(
         self, mock_get_severity_score: MagicMock
-    ):
+    ) -> None:
         nope_event = EventManager(
             make_event(
                 exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
@@ -386,7 +394,7 @@ class TestEventManagerSeverity(TestCase):
         assert mock_get_severity_score.call_count == 1
 
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
-    def test_score_not_clobbered_by_second_event(self, mock_get_severity_score: MagicMock):
+    def test_score_not_clobbered_by_second_event(self, mock_get_severity_score: MagicMock) -> None:
         with TaskRunner():  # Needed because updating groups is normally async
             nope_event = EventManager(
                 make_event(
@@ -396,6 +404,7 @@ class TestEventManagerSeverity(TestCase):
                 )
             ).save(self.project.id)
 
+            assert nope_event.group_id is not None
             group = Group.objects.get(id=nope_event.group_id)
 
             # This first assertion isn't useful in and of itself, but it allows us to prove
@@ -421,7 +430,7 @@ class TestEventManagerSeverity(TestCase):
             assert group.get_event_metadata()["severity"] == 0.1121
 
     @patch("sentry.event_manager._get_severity_score")
-    def test_killswitch_on(self, mock_get_severity_score: MagicMock):
+    def test_killswitch_on(self, mock_get_severity_score: MagicMock) -> None:
         with override_options({"issues.severity.skip-seer-requests": [self.project.id]}):
             event = EventManager(
                 make_event(

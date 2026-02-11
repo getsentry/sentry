@@ -21,7 +21,7 @@ from sentry.event_manager import (
     get_event_type,
     save_grouphash_and_group,
 )
-from sentry.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
+from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.priority import PriorityChangeReason, update_priority
@@ -30,10 +30,16 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.release import Release
 from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
+from sentry.services.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
 from sentry.types.group import PriorityLevel
 from sentry.utils import json, metrics, redis
 from sentry.utils.strings import truncatechars
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
+from sentry.workflow_engine.models import IncidentGroupOpenPeriod
+from sentry.workflow_engine.processors.detector import (
+    associate_new_group_with_detector,
+    ensure_association_with_detector,
+)
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS
@@ -64,11 +70,28 @@ def save_issue_occurrence(
     group_info = save_issue_from_occurrence(occurrence, event, release)
     if group_info:
         environment = event.get_environment()
-        _get_or_create_group_environment(environment, release, [group_info])
+        _get_or_create_group_environment(environment, release, [group_info], event.datetime)
         _increment_release_associated_counts(
             group_info.group.project, environment, release, [group_info]
         )
         _get_or_create_group_release(environment, release, event, [group_info])
+
+        # Create IncidentGroupOpenPeriod relationship for metric issues
+        if occurrence.type == MetricIssue:
+            open_period = get_latest_open_period(group_info.group)
+            if open_period:
+                IncidentGroupOpenPeriod.create_from_occurrence(
+                    occurrence, group_info.group, open_period
+                )
+            else:
+                logger.error(
+                    "save_issue_occurrence.no_open_period",
+                    extra={
+                        "group_id": group_info.group.id,
+                        "occurrence_id": occurrence.id,
+                    },
+                )
+
         send_issue_occurrence_to_eventstream(event, occurrence, group_info)
     return occurrence, group_info
 
@@ -140,7 +163,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     """
 
     event_type = get_event_type(event.data)
-    event_metadata = dict(event_type.get_metadata(event.data))
+    event_metadata: dict[str, Any] = dict(event_type.get_metadata(event.data))
     event_metadata = dict(event_metadata)
     # Don't clobber existing metadata
     event_metadata.update(event.get_event_metadata())
@@ -156,6 +179,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
         event_metadata["message"] = occurrence.evidence_data.get("message")
         event_metadata["name"] = occurrence.evidence_data.get("name")
         event_metadata["source"] = occurrence.evidence_data.get("source")
+        event_metadata["summary"] = occurrence.evidence_data.get("summary")
         associated_event_id = occurrence.evidence_data.get("associated_event_id")
         if associated_event_id:
             event_metadata["associated_event_id"] = associated_event_id
@@ -232,6 +256,12 @@ def save_issue_from_occurrence(
             group, is_new, primary_grouphash = save_grouphash_and_group(
                 project, event, primary_hash, **issue_kwargs
             )
+            if is_new:
+                detector_id = None
+                if occurrence.evidence_data:
+                    detector_id = occurrence.evidence_data.get("detector_id")
+                associate_new_group_with_detector(group, detector_id)
+
             open_period = get_latest_open_period(group)
             if open_period is not None:
                 highest_seen_priority = group.priority
@@ -292,6 +322,14 @@ def save_issue_from_occurrence(
         group_event.occurrence = occurrence
         is_regression = _process_existing_aggregate(group, group_event, issue_kwargs, release)
         group_info = GroupInfo(group=group, is_new=False, is_regression=is_regression)
+
+        detector_id = None
+        if occurrence.evidence_data:
+            detector_id = occurrence.evidence_data.get("detector_id")
+        ensure_association_with_detector(group, detector_id)
+
+        # if it's a regression and the priority changed, we should update the existing GroupOpenPeriodActivity
+        # row if applicable. Otherwise, we should record a new row if applicable.
         if (
             issue_kwargs["priority"]
             and group.priority != issue_kwargs["priority"]
@@ -303,6 +341,8 @@ def save_issue_from_occurrence(
                 sender="save_issue_from_occurrence",
                 reason=PriorityChangeReason.ISSUE_PLATFORM,
                 project=project,
+                is_regression=is_regression,
+                event_id=occurrence.event_id,
             )
 
             open_period = get_latest_open_period(group)

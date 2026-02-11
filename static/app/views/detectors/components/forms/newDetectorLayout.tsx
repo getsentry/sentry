@@ -1,155 +1,111 @@
-import {useCallback, useMemo} from 'react';
-import {useNavigate} from 'react-router-dom';
-import styled from '@emotion/styled';
+import {useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import type {OnSubmitCallback} from 'sentry/components/forms/types';
-import * as Layout from 'sentry/components/layouts/thirds';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
-import {
-  StickyFooter,
-  StickyFooterLabel,
-} from 'sentry/components/workflowEngine/ui/footer';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import type {FormProps} from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
+import type {Data} from 'sentry/components/forms/types';
+import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
+import EditLayout from 'sentry/components/workflowEngine/layout/edit';
+import type {
+  BaseDetectorUpdatePayload,
+  DetectorType,
+} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import {
-  DETECTOR_FORM_CONFIG,
-  type DetectorFormData,
-  type EditableDetectorType,
-} from 'sentry/views/detectors/components/forms/config';
+import {NewDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
+import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
+import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
-import {DETECTOR_TYPE_LABELS} from 'sentry/views/detectors/constants';
-import {useCreateDetector} from 'sentry/views/detectors/hooks';
-import {
-  makeMonitorBasePathname,
-  makeMonitorDetailsPathname,
-} from 'sentry/views/detectors/pathnames';
+import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
+import {useCreateDetectorFormSubmit} from 'sentry/views/detectors/hooks/useCreateDetectorFormSubmit';
 
-type NewDetectorLayoutProps = {
+type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   children: React.ReactNode;
-  detectorType: EditableDetectorType;
-  handleSubmit?: OnSubmitCallback;
-  initialFormData?: Partial<DetectorFormData>;
+  detectorType: DetectorType;
+  formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
+  initialFormData: Partial<TFormData>;
+  disabledCreate?: string;
+  environment?: React.ComponentProps<typeof DetectorBaseFields>['environment'];
+  extraFooterButton?: React.ReactNode;
+  mapFormErrors?: (error: any) => any;
   previewChart?: React.ReactNode;
 };
 
-export function NewDetectorLayout({
+export function NewDetectorLayout<
+  TFormData extends Data,
+  TUpdatePayload extends BaseDetectorUpdatePayload,
+>({
   children,
-  handleSubmit,
+  formDataToEndpointPayload,
   initialFormData,
+  disabledCreate,
+  mapFormErrors,
+  environment,
+  extraFooterButton,
   previewChart,
   detectorType,
-}: NewDetectorLayoutProps) {
+}: NewDetectorLayoutProps<TFormData, TUpdatePayload>) {
   const location = useLocation();
-  const organization = useOrganization();
-  const {projects} = useProjects();
-  const navigate = useNavigate();
-  const {mutateAsync: createDetector} = useCreateDetector();
-  const config = DETECTOR_FORM_CONFIG[detectorType];
+  const theme = useTheme();
+  const maxWidth = theme.breakpoints.xl;
+  const formContext = useDetectorFormContext();
 
-  const formSubmitHandler = useCallback<OnSubmitCallback>(
-    async (data, onSubmitSuccess, onSubmitError, event, formModel) => {
-      if (handleSubmit) {
-        handleSubmit(data, onSubmitSuccess, onSubmitError, event, formModel);
-        return;
-      }
+  const formSubmitHandler = useCreateDetectorFormSubmit({
+    detectorType,
+    formDataToEndpointPayload,
+  });
 
-      const hasErrors = formModel.validateForm();
-      if (!hasErrors) {
-        return;
-      }
-
-      try {
-        const detector = await createDetector(
-          config.formDataToEndpointPayload(data as any)
-        );
-        navigate(makeMonitorDetailsPathname(organization.slug, detector.id));
-      } catch (error) {
-        addErrorMessage(t('Unable to create monitor'));
-      }
-    },
-    [config, createDetector, navigate, handleSubmit, organization.slug]
-  );
+  const [formModel] = useState(() => new FormModel());
+  const {onFieldChange} = useFormEagerValidation(formModel);
 
   const initialData = useMemo(() => {
-    if (initialFormData) {
-      return initialFormData;
-    }
-
-    const defaultProjectId = projects.find(p => p.isMember)?.id ?? projects[0]?.id;
-
     return {
-      projectId: (location.query.project as string) ?? defaultProjectId ?? '',
+      projectId: formContext.project.id,
       environment: (location.query.environment as string | undefined) || '',
       name: (location.query.name as string | undefined) || '',
       owner: (location.query.owner as string | undefined) || '',
       workflowIds: [],
-      ...config.getInitialFormData(),
+      ...initialFormData,
     };
   }, [
-    config,
+    formContext.project.id,
     initialFormData,
     location.query.environment,
     location.query.name,
     location.query.owner,
-    location.query.project,
-    projects,
   ]);
 
+  const formProps: FormProps = {
+    model: formModel,
+    initialData,
+    onSubmit: formSubmitHandler,
+    onFieldChange,
+    mapFormErrors,
+  };
+
   return (
-    <FullHeightForm hideFooter initialData={initialData} onSubmit={formSubmitHandler}>
-      <SentryDocumentTitle
-        title={t('New %s Monitor', DETECTOR_TYPE_LABELS[detectorType])}
+    <EditLayout formProps={formProps}>
+      <EditLayout.Header maxWidth={maxWidth}>
+        <EditLayout.HeaderContent>
+          <NewDetectorBreadcrumbs detectorType={detectorType} />
+        </EditLayout.HeaderContent>
+
+        <div>
+          <MonitorFeedbackButton />
+        </div>
+
+        <EditLayout.HeaderFields>
+          <DetectorBaseFields environment={environment} />
+          {previewChart ?? <div />}
+        </EditLayout.HeaderFields>
+      </EditLayout.Header>
+
+      <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
+
+      <NewDetectorFooter
+        maxWidth={maxWidth}
+        disabledCreate={disabledCreate}
+        extras={extraFooterButton}
       />
-      <Layout.Page>
-        <StyledLayoutHeader noActionWrap>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
-                {
-                  label: t('New %s Monitor', DETECTOR_TYPE_LABELS[detectorType]),
-                },
-              ]}
-            />
-          </Layout.HeaderContent>
-          {/* Header actions placeholder - currently unused */}
-          <div />
-          <Flex direction="column" gap={space(2)}>
-            <DetectorBaseFields />
-            {previewChart}
-          </Flex>
-        </StyledLayoutHeader>
-        <Layout.Body>
-          <Layout.Main fullWidth>{children}</Layout.Main>
-        </Layout.Body>
-      </Layout.Page>
-      <StickyFooter>
-        <StickyFooterLabel>{t('Step 2 of 2')}</StickyFooterLabel>
-        <Flex gap={space(1)}>
-          <LinkButton
-            priority="default"
-            to={`${makeMonitorBasePathname(organization.slug)}new/`}
-          >
-            {t('Back')}
-          </LinkButton>
-          <Button priority="primary" type="submit">
-            {t('Create Monitor')}
-          </Button>
-        </Flex>
-      </StickyFooter>
-    </FullHeightForm>
+    </EditLayout>
   );
 }
-
-const StyledLayoutHeader = styled(Layout.Header)`
-  background-color: ${p => p.theme.background};
-`;

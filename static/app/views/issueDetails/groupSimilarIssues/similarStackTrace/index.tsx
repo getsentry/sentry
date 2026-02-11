@@ -12,12 +12,13 @@ import type {SimilarItem} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
+import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 
 import List from './list';
 
@@ -173,6 +174,42 @@ function SimilarStackTrace({project}: Props) {
     (hasSimilarityFeature || hasSimilarityEmbeddingsFeature) &&
     (items.similar.length > 0 || items.filtered.length > 0);
 
+  const {data: event} = useGroupEvent({
+    groupId: params.groupId,
+    eventId: 'latest',
+  });
+
+  const platformSupportsLongStacktraces = [
+    'go',
+    'javascript',
+    'node',
+    'php',
+    'python',
+    'ruby',
+  ].includes(event?.platform ?? '');
+
+  function getEmptyStateWarning() {
+    let message = '';
+    if (!hasSimilarityEmbeddingsFeature && platformSupportsLongStacktraces) {
+      message = t("There don't seem to be any similar issues.");
+    } else if (hasSimilarityEmbeddingsFeature && platformSupportsLongStacktraces) {
+      message = t(
+        "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames."
+      );
+    } else if (!platformSupportsLongStacktraces) {
+      message = t(
+        "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames, or when the stacktrace has over 30 frames."
+      );
+    }
+    return (
+      <Panel>
+        <EmptyStateWarning>
+          <p>{message}</p>
+        </EmptyStateWarning>
+      </Panel>
+    );
+  }
+
   return (
     <Fragment>
       <HeaderWrapper>
@@ -190,34 +227,15 @@ function SimilarStackTrace({project}: Props) {
           onRetry={fetchData}
         />
       )}
-      {status === 'ready' && !hasSimilarItems && !hasSimilarityEmbeddingsFeature && (
-        <Panel>
-          <EmptyStateWarning>
-            <Title>{t("There don't seem to be any similar issues.")}</Title>
-          </EmptyStateWarning>
-        </Panel>
-      )}
-      {status === 'ready' && !hasSimilarItems && hasSimilarityEmbeddingsFeature && (
-        <Panel>
-          <EmptyStateWarning>
-            <p>
-              {t(
-                "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames."
-              )}
-            </p>
-          </EmptyStateWarning>
-        </Panel>
-      )}
+      {status === 'ready' && !hasSimilarItems && getEmptyStateWarning()}
       {status === 'ready' && hasSimilarItems && !hasSimilarityEmbeddingsFeature && (
         <List
           items={items.similar}
           filteredItems={items.filtered}
           onMerge={handleMerge}
-          orgId={organization.slug}
           project={project}
           groupId={params.groupId}
           pageLinks={items.pageLinks}
-          location={location}
           hasSimilarityEmbeddingsFeature={hasSimilarityEmbeddingsFeature}
         />
       )}
@@ -226,11 +244,9 @@ function SimilarStackTrace({project}: Props) {
           items={items.similar.concat(items.filtered)}
           filteredItems={[]}
           onMerge={handleMerge}
-          orgId={organization.slug}
           project={project}
           groupId={params.groupId}
           pageLinks={items.pageLinks}
-          location={location}
           hasSimilarityEmbeddingsFeature={hasSimilarityEmbeddingsFeature}
         />
       )}
@@ -242,7 +258,7 @@ function SimilarStackTrace({project}: Props) {
 export default SimilarStackTrace;
 
 const Title = styled('h4')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   margin-bottom: ${space(0.75)};
 `;
 
@@ -250,6 +266,6 @@ const HeaderWrapper = styled('div')`
   margin-bottom: ${space(2)};
 
   small {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;

@@ -25,7 +25,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
             )
         )
 
-    def test_unassignment_block(self):
+    def test_unassignment_block(self) -> None:
         """
         Test that a Slack message is sent with the expected payload when an issue is unassigned
         and block kit is enabled.
@@ -38,15 +38,10 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
 
         assert fallback_text == f"Issue unassigned by {self.name}"
         assert blocks[0]["text"]["text"] == fallback_text
-        notification_uuid = self.get_notification_uuid(
-            blocks[1]["elements"][0]["elements"][-1]["url"]
+        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
+        assert blocks[1]["text"]["text"] == (
+            f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=unassigned_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
         )
-        emoji = "red_circle"
-        url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=unassigned_activity-slack&notification_uuid={notification_uuid}"
-        text = f"{self.group.title}"
-        assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
-        assert blocks[1]["elements"][0]["elements"][-1]["url"] == url
-        assert blocks[1]["elements"][0]["elements"][-1]["text"] == text
         assert (
             blocks[3]["elements"][0]["text"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=unassigned_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
@@ -54,11 +49,13 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
 
     @responses.activate
     @mock.patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_unassignment_performance_issue_block_with_culprit_blocks(self, occurrence):
+    def test_unassignment_performance_issue_block_with_culprit_blocks(
+        self, occurrence: mock.MagicMock
+    ) -> None:
         """
         Test that a Slack message is sent with the expected payload when a performance issue is unassigned
         and block kit is enabled.
@@ -81,11 +78,11 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
 
     @responses.activate
     @mock.patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_unassignment_generic_issue_block(self, occurrence):
+    def test_unassignment_generic_issue_block(self, occurrence: mock.MagicMock) -> None:
         """
         Test that a Slack message is sent with the expected payload when a generic issue type is unassigned
         and block kit is enabled.

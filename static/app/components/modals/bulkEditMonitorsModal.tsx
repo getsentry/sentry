@@ -2,17 +2,18 @@ import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {BulkEditOperation} from 'sentry/actionCreators/monitors';
 import {bulkEditMonitors} from 'sentry/actionCreators/monitors';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Checkbox} from 'sentry/components/core/checkbox';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import SearchBar from 'sentry/components/searchBar';
-import Text from 'sentry/components/text';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
@@ -126,7 +127,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
         <h3>{t('Manage Monitors')}</h3>
       </Header>
       <Body>
-        <Actions>
+        <Flex justify="between" wrap="wrap" marginBottom="xl" gap="md">
           <ActionButtons>
             {[disableEnableBtnParams, muteUnmuteBtnParams].map(
               ({operation, actionText, ...analyticsProps}, i) => (
@@ -153,7 +154,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
               )
             )}
           </ActionButtons>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <SearchBar
               size="sm"
               placeholder={t('Search Monitors')}
@@ -168,8 +169,8 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
               onChangeSort={({value: sort}) => setSortSelection({...sortSelection, sort})}
               {...sortSelection}
             />
-          </ButtonBar>
-        </Actions>
+          </Grid>
+        </Flex>
         <StyledPanelTable
           headers={headers}
           stickyHeaders
@@ -193,9 +194,17 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
                     />
                     <Text>{monitor.slug}</Text>
                   </MonitorSlug>
-                  <Text>{monitor.status === 'active' ? t('Active') : t('Disabled')}</Text>
-                  <Text>{monitor.isMuted ? t('Yes') : t('No')}</Text>
-                  <Text>{scheduleAsText(monitor.config)}</Text>
+                  <div>
+                    <Text>
+                      {monitor.status === 'active' ? t('Active') : t('Disabled')}
+                    </Text>
+                  </div>
+                  <div>
+                    <Text>{monitor.isMuted ? t('Yes') : t('No')}</Text>
+                  </div>
+                  <div>
+                    <Text>{scheduleAsText(monitor.config)}</Text>
+                  </div>
                 </Fragment>
               ))}
         </StyledPanelTable>
@@ -215,15 +224,9 @@ export const modalCss = css`
   max-width: 900px;
 `;
 
-const Actions = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: ${space(1)};
-  margin-bottom: ${space(2)};
-`;
-
-const ActionButtons = styled(ButtonBar)`
+const ActionButtons = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   margin-right: auto;
 `;
 
@@ -237,7 +240,7 @@ const RowPlaceholder = styled('div')`
   padding: ${space(2)};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 

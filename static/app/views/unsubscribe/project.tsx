@@ -1,26 +1,22 @@
 import {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import ApiForm from 'sentry/components/forms/apiForm';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 
-type RouteParams = {
-  id: string;
-  orgId: string;
-};
-
-type Props = RouteComponentProps<RouteParams>;
-
-function UnsubscribeProject({location}: Props) {
+export default function UnsubscribeProject() {
+  const location = useLocation();
   const signature = decodeScalar(location.query._);
   const params = useParams();
   return (
@@ -51,7 +47,12 @@ type BodyProps = {
 };
 
 function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
-  const endpoint = `/organizations/${orgSlug}/unsubscribe/project/${issueId}/`;
+  const endpoint = getApiUrl(
+    '/organizations/$organizationIdOrSlug/unsubscribe/project/$id/',
+    {
+      path: {organizationIdOrSlug: orgSlug, id: issueId},
+    }
+  );
   const {isPending, isError, data} = useApiQuery<UnsubscribeResponse>(
     [endpoint, {query: {_: signature}}],
     {staleTime: 0}
@@ -63,7 +64,7 @@ function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
   if (isError) {
     return (
       <Alert.Container>
-        <Alert type="error" showIcon={false}>
+        <Alert variant="danger" showIcon={false}>
           {t('There was an error loading unsubscribe data. Your link may have expired.')}
         </Alert>
       </Alert.Container>
@@ -106,5 +107,3 @@ function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
     </Fragment>
   );
 }
-
-export default UnsubscribeProject;

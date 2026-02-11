@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 from requests import HTTPError
@@ -30,7 +30,7 @@ from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 @control_silo_test
 class TestSentryAppAlertRuleActionRequester(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.user = self.create_user(name="foo")
@@ -61,7 +61,7 @@ class TestSentryAppAlertRuleActionRequester(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_makes_successful_request(self, mock_record):
+    def test_makes_successful_request(self, mock_record: MagicMock) -> None:
 
         responses.add(
             method=responses.POST,
@@ -109,7 +109,7 @@ class TestSentryAppAlertRuleActionRequester(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_makes_successful_request_with_message(self, mock_record):
+    def test_makes_successful_request_with_message(self, mock_record: MagicMock) -> None:
         responses.add(
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
@@ -138,7 +138,7 @@ class TestSentryAppAlertRuleActionRequester(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_makes_successful_request_with_malformed_message(self, mock_record):
+    def test_makes_successful_request_with_malformed_message(self, mock_record: MagicMock) -> None:
         responses.add(
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
@@ -166,7 +166,7 @@ class TestSentryAppAlertRuleActionRequester(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_makes_failed_request(self, mock_record):
+    def test_makes_failed_request(self, mock_record: MagicMock) -> None:
 
         responses.add(
             method=responses.POST,
@@ -232,7 +232,7 @@ class TestSentryAppAlertRuleActionRequester(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_makes_failed_request_with_message(self, mock_record):
+    def test_makes_failed_request_with_message(self, mock_record: MagicMock) -> None:
         responses.add(
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
@@ -271,7 +271,7 @@ class TestSentryAppAlertRuleActionRequester(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_makes_failed_request_with_malformed_message(self, mock_record):
+    def test_makes_failed_request_with_malformed_message(self, mock_record: MagicMock) -> None:
         responses.add(
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
@@ -311,7 +311,9 @@ class TestSentryAppAlertRuleActionRequester(TestCase):
     @responses.activate
     @patch("sentry.sentry_apps.external_requests.utils.safe_urlopen")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_makes_failed_request_with_sentry_error(self, mock_record, mock_urlopen):
+    def test_makes_failed_request_with_sentry_error(
+        self, mock_record: MagicMock, mock_urlopen: MagicMock
+    ) -> None:
         mock_urlopen.side_effect = Exception()
         responses.add(
             method=responses.POST,

@@ -60,24 +60,7 @@ repos:
         name: lint-requirements
         entry: python -m tools.lint_requirements
         language: python
-        files: requirements-.*\.txt$
-        # exclude the overrides file from this linter -- it doesn't apply at all
-        exclude: ^requirements-getsentry-overrides\.txt$
-        additional_dependencies: [packaging==24.1]
-      - id: requirements-overrides
-        name: use pinned archives (see comment in file)
-        stages: [pre-commit]
-        language: pygrep
-        entry: |
-          (?x)
-          ^
-          # it's a comment line
-          (?!\#.*$)
-          # it's a blank line
-          (?!$)
-          # it's a pinned archive
-          (?![a-z-]+[ ]@[ ]https://github\.com/getsentry/[^/]+/archive/[a-f0-9]{40}\.zip$)
-        files: ^requirements-getsentry-overrides\.txt$
+        files: (^|/)uv\.lock$
       - id: check-mypy-bypass
         name: do not bypass the type checker
         entry: '(^# *mypy: *ignore-errors|^# *type: *ignore|\bno_type_check\b|ignore\[import-untyped\])'
@@ -182,6 +165,8 @@ repos:
       - id: debug-statements
       - id: name-tests-test
         args: [--pytest-test-first]
+      - id: check-added-large-files
+        args: ['--maxkb=1024']
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.10.0.1

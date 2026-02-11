@@ -55,7 +55,7 @@ def _replay_event(project_id: int, replay_id: str, event: dict[str, Any]) -> str
     )
 
 
-def publish_replay_event(message: str, is_async: bool):
+def publish_replay_event(message: str, is_async: bool) -> None:
     """Publish a replay-event to the replay snuba consumer topic."""
     publisher = initialize_replays_publisher(is_async=is_async)
     publisher.publish("ingest-replay-events", message)

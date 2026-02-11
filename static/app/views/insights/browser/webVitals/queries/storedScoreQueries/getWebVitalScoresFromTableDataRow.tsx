@@ -2,10 +2,10 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
-import type {EAPSpanResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 
 type PerformanceScores = Pick<
-  EAPSpanResponse,
+  SpanResponse,
   | 'performance_score(measurements.score.cls)'
   | 'performance_score(measurements.score.fcp)'
   | 'performance_score(measurements.score.inp)'
@@ -14,7 +14,7 @@ type PerformanceScores = Pick<
 >;
 
 type CountScores = Pick<
-  EAPSpanResponse,
+  SpanResponse,
   | 'count_scores(measurements.score.cls)'
   | 'count_scores(measurements.score.fcp)'
   | 'count_scores(measurements.score.inp)'
@@ -23,14 +23,16 @@ type CountScores = Pick<
   | 'count_scores(measurements.score.total)'
 >;
 
-type TotalPerformanceScore = {'avg(measurements.score.total)': number};
+type TotalPerformanceScore = {'performance_score(measurements.score.total)': number};
+
+export type WebVitalScores = CountScores & PerformanceScores & TotalPerformanceScore;
 
 function getWebVitalScore(data: PerformanceScores, webVital: WebVitals): number {
   return data[`performance_score(measurements.score.${webVital})`] * 100;
 }
 
 function getTotalScore(data: TotalPerformanceScore): number {
-  return data[`avg(measurements.score.total)`] * 100;
+  return data[`performance_score(measurements.score.total)`] * 100;
 }
 
 function getWebVitalScoreCount(data: CountScores, webVital: WebVitals | 'total'): number {
@@ -44,9 +46,7 @@ function hasWebVitalScore(data: CountScores, webVital: WebVitals): boolean {
   return false;
 }
 
-export function getWebVitalScoresFromTableDataRow(
-  data?: CountScores & PerformanceScores & TotalPerformanceScore
-): ProjectScore {
+export function getWebVitalScoresFromTableDataRow(data?: WebVitalScores): ProjectScore {
   if (!data) {
     return {};
   }

@@ -1,11 +1,16 @@
 from urllib.parse import urlencode
 
+import requests
 import responses
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test.client import RequestFactory
 
 from sentry.hybridcloud.apigateway.proxy import proxy_request
-from sentry.silo.util import INVALID_OUTBOUND_HEADERS, PROXY_DIRECT_LOCATION_HEADER
+from sentry.silo.util import (
+    INVALID_OUTBOUND_HEADERS,
+    PROXY_APIGATEWAY_HEADER,
+    PROXY_DIRECT_LOCATION_HEADER,
+)
 from sentry.testutils.helpers.apigateway import (
     ApiGatewayTestCase,
     verify_file_body,
@@ -208,6 +213,30 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
+
+    @responses.activate
+    def test_apply_apigateway_proxy_header(self) -> None:
+        def request_callback(request: requests.PreparedRequest) -> tuple[int, dict[str, str], str]:
+            assert request.headers.get(
+                PROXY_APIGATEWAY_HEADER
+            ), "Proxied requests should have a header added"
+            return 200, {"proxied": "yes"}, json.dumps({"success": True})
+
+        responses.add_callback(
+            responses.POST,
+            "http://us.internal.sentry.io/post",
+            request_callback,
+        )
+
+        request = RequestFactory().post(
+            "http://sentry.io/post",
+            data="",
+            content_type="application/json",
+        )
+
+        resp = proxy_request(request, self.organization.slug, url_name)
+        assert resp.status_code == 200
+        assert resp["proxied"] == "yes"
 
     @responses.activate
     def test_strip_request_headers(self) -> None:

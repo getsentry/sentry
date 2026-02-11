@@ -1,9 +1,19 @@
 import {t} from 'sentry/locale';
 import {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
 
-export const FILTER_MATCH_OPTIONS = [
+export const FILTER_MATCH_OPTIONS: Array<{
+  label: string;
+  value: DataConditionGroupLogicType;
+  alias?: DataConditionGroupLogicType;
+}> = [
   {value: DataConditionGroupLogicType.ALL, label: t('all')},
-  {value: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT, label: t('any')},
+  {
+    value: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+    label: t('any'),
+    // We do not expose ANY as a valid option because it should be equivalent to ANY_SHORT_CIRCUIT.
+    // However, it is valid, so we need to handle it in the UI.
+    alias: DataConditionGroupLogicType.ANY,
+  },
   {value: DataConditionGroupLogicType.NONE, label: t('none')},
 ];
 
@@ -55,7 +65,7 @@ export enum ModelAge {
   NEWEST = 'newest',
 }
 
-export enum Attributes {
+export enum Attribute {
   MESSAGE = 'message',
   PLATFORM = 'platform',
   ENVIRONMENT = 'environment',
@@ -148,7 +158,8 @@ export const MODEL_AGE_CHOICES = [
 
 export const LEVEL_MATCH_CHOICES = [
   {value: MatchType.EQUAL, label: t('equals')},
-  {value: MatchType.NOT_EQUAL, label: t('does not equal')},
+  {value: MatchType.GREATER_OR_EQUAL, label: t('greater than or equal')},
+  {value: MatchType.LESS_OR_EQUAL, label: t('less than or equal')},
 ];
 
 export const LEVEL_CHOICES = [

@@ -4,21 +4,22 @@ import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Link, type LinkProps} from 'sentry/components/core/link';
+import {Button} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex} from '@sentry/scraps/layout';
+import {Link, type LinkProps} from '@sentry/scraps/link';
+
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useHovercardContext} from 'sentry/components/hovercard';
-import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Collapsible} from 'sentry/views/nav/collapsible';
+import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
@@ -49,9 +50,11 @@ interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
 
 export function SecondaryNav({children, className}: SecondaryNavProps) {
   return (
-    <Wrapper className={className} role="navigation" aria-label="Secondary Navigation">
-      {children}
-    </Wrapper>
+    <ErrorBoundary mini>
+      <Wrapper className={className} role="navigation" aria-label="Secondary Navigation">
+        {children}
+      </Wrapper>
+    </ErrorBoundary>
   );
 }
 
@@ -67,11 +70,16 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactN
       <div>{children}</div>
       <div>
         <Button
-          borderless
           size="xs"
           icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
           aria-label={isCollapsed ? t('Expand') : t('Collapse')}
           onClick={() => setIsCollapsed(!isCollapsed)}
+          priority={isCollapsed ? 'primary' : 'transparent'}
+          analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
+          analyticsEventKey="sidebar_secondary_toggle_button_clicked"
+          analyticsParams={{
+            is_collapsed: isCollapsed,
+          }}
         />
       </div>
     </Header>
@@ -103,7 +111,7 @@ function SectionTitle({
     return (
       <SectionTitleCollapsible
         size="sm"
-        borderless
+        priority="transparent"
         isMobile={layout === NavLayout.MOBILE}
         onClick={() => {
           setIsCollapsed(!isCollapsed);
@@ -111,7 +119,7 @@ function SectionTitle({
         isCollapsed={isCollapsed}
       >
         <SectionTitleLabelWrap>{title}</SectionTitleLabelWrap>
-        <TrailingItems>
+        <Flex align="center" flexShrink={0}>
           {trailingItems ? (
             <div
               onClick={e => {
@@ -125,11 +133,11 @@ function SectionTitle({
               <IconChevron
                 direction={isCollapsed ? 'down' : 'up'}
                 size="xs"
-                color="subText"
+                variant="muted"
               />
             )
           )}
-        </TrailingItems>
+        </Flex>
       </SectionTitleCollapsible>
     );
   }
@@ -260,15 +268,13 @@ const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   padding: 0 ${space(1)} 0 ${space(2)};
-  height: 44px;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
 
-  button {
-    color: inherit;
-  }
+  /* This is used in detail pages to match the height of sidebar header. */
+  height: 44px;
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const Body = styled('div')<{layout: NavLayout}>`
@@ -306,8 +312,8 @@ const Section = styled('div')<{layout: NavLayout}>`
 `;
 
 const sectionTitleStyles = (p: {isMobile: boolean; theme: Theme}) => css`
-  font-weight: ${p.theme.fontWeight.bold};
-  color: ${p.theme.textColor};
+  font-weight: ${p.theme.font.weight.sans.medium};
+  color: ${p.theme.tokens.content.primary};
   padding: ${space(0.75)} ${space(1)};
   width: 100%;
   ${p.isMobile &&
@@ -328,7 +334,7 @@ const SectionTitleCollapsible = styled(Button, {
   ${sectionTitleStyles}
   display: flex;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   & > span:last-child {
     flex: 1;
@@ -338,14 +344,12 @@ const SectionTitleCollapsible = styled(Button, {
 `;
 
 const SectionTitleLabelWrap = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: left;
-`;
-
-const TrailingItems = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
 `;
 
 const SeparatorWrapper = styled('div')`
@@ -355,7 +359,8 @@ const SeparatorWrapper = styled('div')`
 
 const Separator = styled('hr')`
   height: 1px;
-  background: ${p => p.theme.innerBorder};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background: ${p => p.theme.tokens.border.secondary};
   margin: 0 ${space(1)};
   border: none;
 `;
@@ -364,15 +369,18 @@ interface ItemProps extends LinkProps {
   layout: NavLayout;
 }
 
-const ChonkItem = chonkStyled(Link)<ItemProps>`
+const Item = styled(Link)<ItemProps>`
   display: flex;
   gap: ${space(0.75)};
   justify-content: center;
   align-items: center;
   position: relative;
-  color: ${p => p.theme.tokens.content.muted};
-  padding: ${p => (p.layout === NavLayout.MOBILE ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px` : `${space(0.75)} ${space(1.5)}`)};
-  border-radius: ${p => p.theme.radius[p.layout === NavLayout.MOBILE ? 'none' : 'md']};
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  padding: ${p =>
+    p.layout === NavLayout.MOBILE
+      ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px`
+      : `${space(0.75)} ${space(1.5)}`};
+  border-radius: ${p => p.theme.radius[p.layout === NavLayout.MOBILE ? '0' : 'md']};
 
   /* Disable interaction state layer */
   > [data-isl] {
@@ -389,88 +397,45 @@ const ChonkItem = chonkStyled(Link)<ItemProps>`
     height: 20px;
     left: -${space(1.5)};
     border-radius: ${p => p.theme.radius['2xs']};
-    background-color: ${p => p.theme.colors.blue400};
+    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
   }
 
   &:hover {
-    color: ${p => p.theme.tokens.content.muted};
-    background-color: ${p => p.theme.colors.gray100};
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
   &[aria-selected='true'] {
-    color: ${p => p.theme.colors.blue400};
-    background-color: ${p => p.theme.colors.blue100};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
 
     &::before {
       opacity: 1;
     }
     /* Override the default hover styles */
     &:hover {
-      background-color: ${p => p.theme.colors.blue100};
+      color: ${p => p.theme.tokens.interactive.link.accent.hover};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.hover};
     }
   }
 `;
-
-const StyledNavItem = styled(Link)<ItemProps>`
-  position: relative;
-  display: flex;
-  padding: 4px ${space(1)};
-  height: 34px;
-  align-items: center;
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  line-height: 177.75%;
-  border-radius: ${p => p.theme.borderRadius};
-  gap: ${space(0.75)};
-
-  &:focus-visible {
-    box-shadow: 0 0 0 2px ${p => p.theme.focusBorder};
-    color: currentColor;
-  }
-
-  &[aria-selected='true'] {
-    color: ${p => p.theme.purple400};
-    font-weight: ${p => p.theme.fontWeight.bold};
-
-    &:hover {
-      color: ${p => p.theme.purple400};
-    }
-  }
-
-  &:hover {
-    color: inherit;
-  }
-
-  [data-isl] {
-    transform: translate(0, 0);
-    top: 1px;
-    bottom: 1px;
-    right: 0;
-    left: 0;
-    width: initial;
-    height: initial;
-  }
-
-  ${p =>
-    p.layout === NavLayout.MOBILE &&
-    css`
-      padding: 0 ${space(1.5)} 0 48px;
-      border-radius: 0;
-    `}
-`;
-
-const Item = withChonk(StyledNavItem, ChonkItem);
 
 const ItemText = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Footer = styled('div')<{layout: NavLayout}>`
   padding: ${space(1)} ${space(1)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 
   ${p =>
     p.layout === NavLayout.MOBILE &&

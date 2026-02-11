@@ -1,20 +1,21 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import ConfirmDelete from 'sentry/components/confirmDelete';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ApiApplication} from 'sentry/types/user';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
 
 const ROUTE_PREFIX = '/settings/account/api/';
@@ -50,14 +51,12 @@ function Row({app, onRemove}: Props) {
 
   return (
     <StyledPanelItem>
-      <ApplicationNameWrapper>
+      <Stack flex="1" marginRight="md">
         <ApplicationName to={`${ROUTE_PREFIX}applications/${app.id}/`}>
-          {getDynamicText({value: app.name, fixed: 'CI_APPLICATION_NAME'})}
+          {app.name}
         </ApplicationName>
-        <ClientId>
-          {getDynamicText({value: app.clientID, fixed: 'CI_CLIENT_ID'})}
-        </ClientId>
-      </ApplicationNameWrapper>
+        <ClientId>{app.clientID}</ClientId>
+      </Stack>
 
       <ConfirmDelete
         message={t(
@@ -79,20 +78,13 @@ const StyledPanelItem = styled(PanelItem)`
   align-items: center;
 `;
 
-const ApplicationNameWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  margin-right: ${space(1)};
-`;
-
 const ApplicationName = styled(Link)`
   margin-bottom: ${space(1)};
 `;
 
 const ClientId = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 export default Row;

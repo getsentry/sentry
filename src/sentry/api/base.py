@@ -24,6 +24,7 @@ from rest_framework.views import APIView
 from sentry_sdk import Scope
 
 from sentry import analytics, options, tsdb
+from sentry.analytics.events.release_set_commits import ReleaseSetCommitsLocalEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.exceptions import StaffRequired, SuperuserRequired
@@ -35,7 +36,6 @@ from sentry.organizations.absolute_url import generate_organization_url
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.snuba.query_sources import QuerySource
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
@@ -72,6 +72,9 @@ __all__ = [
     "StatsMixin",
     "control_silo_endpoint",
     "region_silo_endpoint",
+    "all_silo_endpoint",
+    "internal_region_silo_endpoint",
+    "internal_all_silo_endpoint",
 ]
 
 PAGINATION_DEFAULT_PER_PAGE = 100
@@ -222,12 +225,9 @@ class Endpoint(APIView):
 
     owner: ApiOwner = ApiOwner.UNOWNED
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
-    rate_limits: (
-        RateLimitConfig
-        | dict[str, dict[RateLimitCategory, RateLimit]]
-        | Callable[..., RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]]]
-    ) = DEFAULT_RATE_LIMIT_CONFIG
+    rate_limits: RateLimitConfig = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
+    servers: list[dict[str, Any]] | None = None
 
     def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor) -> str:
         if request.GET.get("cursor") is None:
@@ -648,16 +648,26 @@ class StatsMixin:
 
 class ReleaseAnalyticsMixin:
     def track_set_commits_local(self, request: Request, organization_id=None, project_ids=None):
-        analytics.record(
-            "release.set_commits_local",
-            user_id=request.user.id if request.user and request.user.id else None,
-            organization_id=organization_id,
-            project_ids=project_ids,
-            user_agent=request.META.get("HTTP_USER_AGENT", ""),
-        )
+        try:
+            analytics.record(
+                ReleaseSetCommitsLocalEvent(
+                    user_id=request.user.id if request.user and request.user.id else None,
+                    organization_id=organization_id,
+                    project_ids=project_ids,
+                    user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
 
 class EndpointSiloLimit(SiloLimit):
+    def __init__(self, modes: SiloMode | Iterable[SiloMode], internal: bool = False) -> None:
+        if isinstance(modes, SiloMode):
+            modes = [modes]
+        self.modes = frozenset(modes)
+        self.internal = internal
+
     def modify_endpoint_class(self, decorated_class: type[Endpoint]) -> type:
         dispatch_override = self.create_override(decorated_class.dispatch)
         new_class = type(
@@ -720,9 +730,30 @@ If a request is received and the application is not in REGION
 mode 404s will be returned.
 """
 
-all_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH)
+internal_region_silo_endpoint = EndpointSiloLimit(SiloMode.REGION, internal=True)
+"""
+Apply to endpoints that exist in REGION silo that are internal only.
+Internal endpoints are not subject to URL pattern rules required
+for public endpoints in cells.
+
+If a request is received and the application is not in REGION
+mode 404s will be returned.
+"""
+
+all_silo_endpoint = EndpointSiloLimit([SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH])
 """
 Apply to endpoints that are available in all silo modes.
 
 This should be rarely used, but is relevant for resources like ROBOTS.txt.
+"""
+
+internal_all_silo_endpoint = EndpointSiloLimit(
+    [SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH], internal=True
+)
+"""
+Apply to endpoints that exist in all silo modes that are internal only.
+Internal endpoints are not subject to URL pattern rules required
+for public endpoints in cells.
+
+This should be rarely used.
 """

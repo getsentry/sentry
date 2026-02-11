@@ -31,7 +31,16 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.slack.analytics import (
+    SlackIntegrationApproveMemberInvitation,
+    SlackIntegrationAssign,
+    SlackIntegrationChartUnfurlAction,
+    SlackIntegrationRejectMemberInvitation,
+    SlackIntegrationStatus,
+)
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+from sentry.integrations.slack.message_builder.routing import decode_action_id
+from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -39,15 +48,21 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
 from sentry.integrations.types import ExternalProviderEnum, IntegrationProviderSlug
 from sentry.integrations.utils.scope import bind_org_context_from_integration
+from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
+from sentry.seer.entrypoints.integrations.slack import SlackEntrypoint
+from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models import User
 from sentry.users.services.user import RpcUser
+from sentry.utils import metrics
+from sentry.utils.locking import UnableToAcquireLock
 
 _logger = logging.getLogger(__name__)
 
@@ -102,7 +117,7 @@ def update_group(
 
     resp = update_groups(request=request, groups=[group], user=user, data=data)
     if resp.status_code != 200:
-        _logger.error(
+        _logger.warning(
             "slack.action.update-group-error",
             extra={
                 "group_id": group.id,
@@ -115,13 +130,20 @@ def update_group(
     return resp
 
 
-def get_rule(slack_request: SlackActionRequest) -> Rule | None:
+def get_rule(
+    slack_request: SlackActionRequest, organization: Organization, group_type: int
+) -> Rule | None:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     """Get the rule that fired"""
     rule_id = slack_request.callback_data.get("rule")
     if not rule_id:
         return None
     try:
         rule = Rule.objects.get(id=rule_id)
+        if should_fire_workflow_actions(organization, group_type):
+            # We need to add the legacy_rule_id field to the rule data since the message builder will use it to build the link to the rule
+            rule.data["actions"][0]["legacy_rule_id"] = rule.id
     except Rule.DoesNotExist:
         return None
     return rule
@@ -287,7 +309,7 @@ class SlackActionEndpoint(Endpoint):
             },
             request,
         )
-        analytics.record("integrations.slack.assign", actor_id=user.id)
+        analytics.record(SlackIntegrationAssign(actor_id=user.id))
 
     def on_status(
         self,
@@ -320,11 +342,12 @@ class SlackActionEndpoint(Endpoint):
         update_group(group, user, status, request)
 
         analytics.record(
-            "integrations.slack.status",
-            organization_id=group.project.organization.id,
-            status=status["status"],
-            resolve_type=resolve_type,
-            user_id=user.id,
+            SlackIntegrationStatus(
+                organization_id=group.project.organization.id,
+                status=status["status"],
+                resolve_type=resolve_type,
+                user_id=user.id,
+            )
         )
 
     def _handle_group_actions(
@@ -339,8 +362,7 @@ class SlackActionEndpoint(Endpoint):
         if not group:
             return self.respond(status=403)
 
-        rule = get_rule(slack_request)
-
+        rule = get_rule(slack_request, group.organization, group.type)
         identity = slack_request.get_identity()
         # Determine the acting user by Slack identity.
         identity_user = slack_request.get_identity_user()
@@ -390,11 +412,7 @@ class SlackActionEndpoint(Endpoint):
                     lifecycle.record_failure(MessageInteractionFailureReason.MISSING_ACTION)
                     return self.respond()
 
-                lifecycle.add_extra(
-                    "selection",
-                    selection,
-                )
-
+                lifecycle.add_extra("selection", selection)
                 status_action = MessageAction(name="status", value=selection)
 
                 try:
@@ -464,6 +482,17 @@ class SlackActionEndpoint(Endpoint):
                     ).capture():
                         _ArchiveDialog().open_dialog(slack_request, group)
                     defer_attachment_update = True
+                elif action.name == SlackAction.SEER_AUTOFIX_START:
+                    with self.record_event(
+                        MessagingInteractionType.SEER_AUTOFIX_START, group, request
+                    ).capture():
+                        self.handle_seer_autofix_start(
+                            slack_request=slack_request,
+                            action=action,
+                            group=group,
+                            user=identity_user,
+                        )
+                    defer_attachment_update = True
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, action.name)
             except serializers.ValidationError as error:
@@ -521,44 +550,101 @@ class SlackActionEndpoint(Endpoint):
         )
         if len(organization_integrations) > 0:
             analytics.record(
-                "integrations.slack.chart_unfurl_action",
-                organization_id=organization_integrations[0].id,
-                action=action,
+                SlackIntegrationChartUnfurlAction(
+                    organization_id=organization_integrations[0].id,
+                    action=action,
+                )
             )
         payload = {"delete_original": "true"}
         try:
             requests_.post(slack_request.response_url, json=payload)
         except ApiError:
-            _logger.exception("slack.action.response-error")
+            _logger.warning("slack.action.response-error")
             return self.respond(status=403)
 
         return self.respond()
 
+    def handle_seer_autofix_start(
+        self,
+        *,
+        slack_request: SlackActionRequest,
+        action: BlockKitMessageAction,
+        group: Group,
+        user: RpcUser,
+    ) -> None:
+        entrypoint = SlackEntrypoint(
+            slack_request=slack_request,
+            action=action,
+            group=group,
+            organization_id=group.project.organization_id,
+        )
+        stopping_point = entrypoint.autofix_stopping_point
+        is_continuation = entrypoint.autofix_run_id is not None
+        logging_ctx = {
+            "group_id": group.id,
+            "organization_id": group.project.organization_id,
+            "stopping_point": str(stopping_point),
+            "is_continuation": is_continuation,
+            "user_id": user.id,
+        }
+        _logger.info("seer.slack.trigger_autofix.start", extra=logging_ctx)
+        lock_key = SlackEntrypoint.get_autofix_lock_key(
+            group_id=group.id,
+            stopping_point=stopping_point,
+        )
+        lock = locks.get(lock_key, duration=10, name="autofix_entrypoint_slack")
+        try:
+            with lock.acquire():
+                SeerOperator(entrypoint=entrypoint).trigger_autofix(
+                    group=group,
+                    user=user,
+                    stopping_point=stopping_point,
+                    run_id=entrypoint.autofix_run_id,
+                )
+        except UnableToAcquireLock:
+            # Might be a double click, or Seer is taking it's time confirming the run start.
+            # The entrypoint will handle removing the button once it starts the run anyway.
+            _logger.info("seer.slack.trigger_autofix.lock_contention", extra=logging_ctx)
+            return
+
+        _logger.info("seer.slack.trigger_autofix.complete", extra=logging_ctx)
+        metrics.incr(
+            "seer.slack.trigger_autofix",
+            tags={"stopping_point": str(stopping_point), "is_continuation": str(is_continuation)},
+        )
+
     @classmethod
-    def get_action_option(cls, slack_request: SlackActionRequest) -> str | None:
-        action_option = None
+    def get_action_option(cls, slack_request: SlackActionRequest) -> tuple[str | None, str | None]:
+        action_option, action_id = None, None
         for action_data in slack_request.data.get("actions", []):
             # Get the _first_ value in the action list.
             value = action_data.get("value")
-            if value and not action_option:
+
+            routing_data = decode_action_id(action_data.get("action_id", ""))
+            action_id = routing_data.action or None
+            if value:
                 action_option = value
-        return action_option
+                break
+
+        return action_option, action_id
 
     @classmethod
     def get_action_list(cls, slack_request: SlackActionRequest) -> list[BlockKitMessageAction]:
         action_data = slack_request.data.get("actions")
-        if (
-            not action_data
-            or not isinstance(action_data, list)
-            or not action_data[0].get("action_id")
-        ):
+        if not action_data or not isinstance(action_data, list):
             return []
 
         action_list = []
         for action_data in action_data:
+            routing_data = decode_action_id(action_data.get("action_id", ""))
+            action_name = routing_data.action
+
+            if not action_name:
+                continue
+
             if action_data.get("type") in ("static_select", "external_select"):
                 action = BlockKitMessageAction(
-                    name=action_data["action_id"],
+                    name=action_name,
                     label=action_data["selected_option"]["text"]["text"],
                     type=action_data["type"],
                     value=action_data["selected_option"]["value"],
@@ -571,7 +657,7 @@ class SlackActionEndpoint(Endpoint):
                 # TODO: selected_options is kinda ridiculous, I think this is built to handle multi-select?
             else:
                 action = BlockKitMessageAction(
-                    name=action_data["action_id"],
+                    name=action_name,
                     label=action_data["text"]["text"],
                     type=action_data["type"],
                     value=action_data["value"],
@@ -608,7 +694,7 @@ class SlackActionEndpoint(Endpoint):
 
         # Actions list may be empty when receiving a dialog response.
 
-        action_option = self.get_action_option(slack_request=slack_request)
+        action_option, action_id = self.get_action_option(slack_request=slack_request)
 
         # If a user is just clicking a button link we return a 200
         if action_option in (
@@ -618,6 +704,12 @@ class SlackActionEndpoint(Endpoint):
             "trial_end_warning",
             "link_clicked",
         ):
+            return self.respond()
+
+        if action_id in {
+            SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY.value,
+            SlackAction.SEER_AUTOFIX_VIEW_PR.value,
+        }:
             return self.respond()
 
         if action_option in UNFURL_ACTION_OPTIONS:
@@ -709,7 +801,7 @@ class SlackActionEndpoint(Endpoint):
                 member.reject_member_invitation(identity_user)
         except Exception:
             # shouldn't error but if it does, respond to the user
-            _logger.exception(
+            _logger.warning(
                 "slack.action.member-invitation-error",
                 extra={
                     "organization_id": organization.id,
@@ -721,25 +813,29 @@ class SlackActionEndpoint(Endpoint):
             )
             return self.respond()
 
-        if action == "approve_member":
-            event_name = "integrations.slack.approve_member_invitation"
-            verb = "approved"
-        else:
-            event_name = "integrations.slack.reject_member_invitation"
-            verb = "rejected"
-
         if original_status == InviteStatus.REQUESTED_TO_BE_INVITED:
             invite_type = "Invite"
         else:
             invite_type = "Join"
 
-        analytics.record(
-            event_name,
-            actor_id=identity_user.id,
-            organization_id=member.organization_id,
-            invitation_type=invite_type.lower(),
-            invited_member_id=member_id,
-        )
+        if action == "approve_member":
+            event = SlackIntegrationApproveMemberInvitation(
+                actor_id=identity_user.id,
+                organization_id=member.organization_id,
+                invitation_type=invite_type.lower(),
+                invited_member_id=member.id,
+            )
+            verb = "approved"
+        else:
+            event = SlackIntegrationRejectMemberInvitation(
+                actor_id=identity_user.id,
+                organization_id=member.organization_id,
+                invitation_type=invite_type.lower(),
+                invited_member_id=member.id,
+            )
+            verb = "rejected"
+
+        analytics.record(event)
 
         manage_url = member.organization.absolute_url(
             reverse("sentry-organization-members", args=[member.organization.slug])
@@ -864,7 +960,6 @@ class _ModalDialog(ABC):
         #
         # [1]: https://stackoverflow.com/questions/46629852/update-a-bot-message-after-responding-to-a-slack-dialog#comment80795670_46629852
         org = group.project.organization
-
         callback_id_dict = {
             "issue": group.id,
             "orig_response_url": slack_request.data["response_url"],

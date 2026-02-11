@@ -1,4 +1,3 @@
-from celery.signals import task_postrun
 from django.core.signals import request_finished
 
 from .manager import (
@@ -56,7 +55,6 @@ __all__ = (
 
 # See notes in ``runner.initializer`` regarding lazy cache configuration.
 default_store = OptionsStore(cache=None)
-task_postrun.connect(default_store.maybe_clean_local_cache)
 request_finished.connect(default_store.maybe_clean_local_cache)
 
 default_manager = OptionsManager(store=default_store)
@@ -76,7 +74,7 @@ get_last_update_channel = default_manager.get_last_update_channel
 can_update = default_manager.can_update
 
 
-def load_defaults():
+def load_defaults() -> None:
     from sentry.hybridcloud import options  # NOQA
 
     from . import defaults  # NOQA

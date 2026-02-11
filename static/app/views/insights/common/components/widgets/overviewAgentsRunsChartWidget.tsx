@@ -1,12 +1,20 @@
 import {t} from 'sentry/locale';
-import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
-import {getAgentRunsFilter} from 'sentry/views/insights/agentMonitoring/utils/query';
-import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
+import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
+import {
+  getAgentRunsFilter,
+  getHasAiSpansFilter,
+} from 'sentry/views/insights/pages/agents/utils/query';
+import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {BaseTrafficWidget} from 'sentry/views/insights/pages/platform/shared/baseTrafficWidget';
 
-export default function OverviewAgentsRunsChartWidget(props: LoadableChartWidgetProps) {
-  const query = useCombinedQuery(getAgentRunsFilter());
+export default function OverviewAgentsRunsChartWidget(
+  props: LoadableChartWidgetProps & {hasAgentRuns?: boolean}
+) {
+  const query = useCombinedQuery(
+    props.hasAgentRuns ? getAgentRunsFilter() : getHasAiSpansFilter()
+  );
+
   return (
     <BaseTrafficWidget
       id="overviewAgentsRunsChartWidget"

@@ -2,28 +2,33 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+import {Container} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconChevron, IconFire, IconMegaphone} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
+import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {TimeRanges} from 'sentry/views/replays/detail/ai/utils';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
-import type {SummaryResponse} from './useFetchReplaySummary';
-
 interface Props {
-  summaryData: SummaryResponse;
+  timeRanges: TimeRanges;
 }
 
-export function ChapterList({summaryData}: Props) {
+export function ChapterList({timeRanges}: Props) {
   const replay = useReplayReader();
   const {setCurrentTime} = useReplayContext();
   const onClickChapterTimestamp = useCallback(
@@ -34,18 +39,23 @@ export function ChapterList({summaryData}: Props) {
     [replay, setCurrentTime]
   );
 
+  // do not include chapters that are before the start of the replay;
+  // we filter these crumbs on the frontend anyway
   const chapterData = useMemo(
     () =>
-      summaryData?.data.time_ranges
-        .map(({period_title, period_start, period_end, error, feedback}) => ({
+      timeRanges
+        .filter(
+          ({period_start, period_end}) =>
+            period_start >= (replay?.getStartTimestampMs() ?? 0) &&
+            period_end >= (replay?.getStartTimestampMs() ?? 0)
+        )
+        .map(({period_title, period_start, period_end}) => ({
           title: period_title,
           start: period_start,
           end: period_end,
-          error,
-          feedback,
           breadcrumbs:
             replay
-              ?.getChapterFrames()
+              ?.getSummaryChapterFrames()
               .filter(
                 breadcrumb =>
                   breadcrumb.timestampMs >= period_start &&
@@ -53,22 +63,22 @@ export function ChapterList({summaryData}: Props) {
               ) ?? [],
         }))
         .sort((a, b) => a.start - b.start),
-    [summaryData, replay]
+    [timeRanges, replay]
   );
 
-  if (!chapterData.length) {
+  if (!chapterData?.length) {
     return (
-      <EmptyContainer>
-        <Alert type="info" showIcon={false}>
+      <Container padding="xl">
+        <Alert variant="info" showIcon={false}>
           {t('No chapters available for this replay.')}
         </Alert>
-      </EmptyContainer>
+      </Container>
     );
   }
 
   return (
-    <ChaptersList>
-      {chapterData.map(({title, start, end, breadcrumbs, error, feedback}, i) => (
+    <Container flex="1">
+      {chapterData.map(({title, start, end, breadcrumbs}, i) => (
         <ChapterRow
           key={i}
           title={title}
@@ -76,11 +86,9 @@ export function ChapterList({summaryData}: Props) {
           end={end}
           breadcrumbs={breadcrumbs}
           onClickChapterTimestamp={onClickChapterTimestamp}
-          error={error}
-          feedback={feedback}
         />
       ))}
-    </ChaptersList>
+    </Container>
   );
 }
 
@@ -91,20 +99,18 @@ function ChapterRow({
   breadcrumbs,
   onClickChapterTimestamp,
   className,
-  error,
-  feedback,
 }: {
   breadcrumbs: ReplayFrame[];
   end: number;
-  error: boolean;
-  feedback: boolean;
   onClickChapterTimestamp: (event: React.MouseEvent<Element>, start: number) => void;
   start: number;
   title: string;
   className?: string;
 }) {
   const replay = useReplayReader();
-  const {currentTime} = useReplayContext();
+  const {currentTime, setCurrentTime} = useReplayContext();
+  const organization = useOrganization();
+  const location = useLocation();
   const {onClickTimestamp} = useCrumbHandlers();
   const [currentHoverTime] = useCurrentHoverTime();
   const [isHovered, setIsHovered] = useState(false);
@@ -115,12 +121,13 @@ function ChapterRow({
   const hasOccurred = currentTime >= startOffset;
   const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= startOffset;
 
-  const organization = useOrganization();
+  const isError = breadcrumbs.some(isErrorFrame);
+  const isFeedback = !isError && breadcrumbs.some(isFeedbackFrame);
 
   return (
     <ChapterWrapper
-      data-has-error={Boolean(error)}
-      data-has-feedback={Boolean(feedback)}
+      data-is-error={isError}
+      data-is-feedback={isFeedback}
       className={classNames(className, {
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
@@ -135,32 +142,32 @@ function ChapterRow({
       <Chapter
         onClick={() =>
           trackAnalytics('replay.ai-summary.chapter-clicked', {
-            chapter_type: error ? 'error' : feedback ? 'feedback' : undefined,
+            chapter_type: isError ? 'error' : isFeedback ? 'feedback' : undefined,
             organization,
           })
         }
       >
         <ChapterIconWrapper>
-          {error ? (
+          {isError ? (
             isOpen || isHovered ? (
-              <ChapterIconArrow direction="right" size="xs" color="red300" />
+              <ChapterIconArrow direction="right" size="xs" variant="danger" />
             ) : (
-              <IconFire size="xs" color="red300" />
+              <IconFire size="xs" variant="danger" />
             )
-          ) : feedback ? (
+          ) : isFeedback ? (
             isOpen || isHovered ? (
-              <ChapterIconArrow direction="right" size="xs" color="pink300" />
+              <ChapterIconArrow direction="right" size="xs" variant="promotion" />
             ) : (
-              <IconMegaphone size="xs" color="pink300" />
+              <IconMegaphone size="xs" variant="promotion" />
             )
           ) : (
             <ChapterIconArrow direction="right" size="xs" />
           )}
         </ChapterIconWrapper>
         <ChapterTitle>
-          <span>{title}</span>
+          <span style={{gridArea: 'title'}}>{title}</span>
 
-          <ReplayTimestamp>
+          <ReplayTimestamp style={{gridArea: 'timestamp'}}>
             <TimestampButton
               startTimestampMs={replay?.getStartTimestampMs() ?? 0}
               timestampMs={start}
@@ -168,12 +175,50 @@ function ChapterRow({
                 onClickChapterTimestamp(event, start);
               }}
             />
+            -
+            <TimestampButton
+              startTimestampMs={replay?.getStartTimestampMs() ?? 0}
+              timestampMs={end}
+              onClick={event => {
+                onClickChapterTimestamp(event, end);
+              }}
+            />
           </ReplayTimestamp>
         </ChapterTitle>
       </Chapter>
       <div>
         {!breadcrumbs.length && (
-          <EmptyMessage>{t('No breadcrumbs for this chapter')}</EmptyMessage>
+          <EmptyMessage>
+            {tct(
+              'No breadcrumbs for this chapter, but there may be [consoleLogs: console logs] or [networkRequests: network requests] that occurred during this window.',
+              {
+                consoleLogs: (
+                  <Link
+                    to={{
+                      pathname: location.pathname,
+                      query: {
+                        t_main: TabKey.CONSOLE,
+                        t: startOffset / 1000,
+                      },
+                    }}
+                    onClick={() => setCurrentTime(startOffset)}
+                  />
+                ),
+                networkRequests: (
+                  <Link
+                    to={{
+                      pathname: location.pathname,
+                      query: {
+                        t_main: TabKey.NETWORK,
+                        t: startOffset / 1000,
+                      },
+                    }}
+                    onClick={() => setCurrentTime(startOffset)}
+                  />
+                ),
+              }
+            )}
+          </EmptyMessage>
         )}
         {breadcrumbs.map((breadcrumb, j) => (
           <ChapterBreadcrumbRow
@@ -186,7 +231,6 @@ function ChapterRow({
             allowShowSnippet={false}
             startTimestampMs={replay?.getStartTimestampMs() ?? 0}
             key={`breadcrumb-${j}`}
-            style={{}}
           />
         ))}
       </div>
@@ -200,7 +244,7 @@ const ChapterIconWrapper = styled('div')`
   justify-content: center;
   padding: ${space(0.5)};
   margin-right: ${space(1)};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   border-radius: 50%;
   z-index: 2; /* needs to be above "ChapterWrapper summary::after" */
 `;
@@ -209,11 +253,6 @@ const ChapterIconArrow = styled(IconChevron)`
   details[open] & {
     transform: rotate(180deg);
   }
-`;
-
-const ChaptersList = styled('div')`
-  flex: 1;
-  overflow: auto;
 `;
 
 const ChapterWrapper = styled('details')`
@@ -229,7 +268,8 @@ const ChapterWrapper = styled('details')`
     width: 1px;
     top: 1px;
     bottom: -9px;
-    background: ${p => p.theme.innerBorder};
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    background: ${p => p.theme.tokens.border.secondary};
   }
 
   &:first-child summary::after {
@@ -242,24 +282,28 @@ const ChapterWrapper = styled('details')`
   }
 
   &.activeChapter .beforeCurrentTime:last-child {
-    border-bottom-color: ${p => p.theme.purple300};
+    border-bottom-color: ${p => p.theme.tokens.border.accent.vibrant};
   }
 
   /* the border-top is used to eliminate some of the top gap */
 
   &:hover {
-    border-top: 1px solid ${p => p.theme.backgroundSecondary};
+    border-top: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 
-  [data-has-feedback='true'] {
+  &:active {
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  }
+
+  [data-is-feedback='true'] {
     &:hover {
-      border-top: 1px solid ${p => p.theme.pink100};
+      border-top: 1px solid ${p => p.theme.tokens.border.promotion.muted};
     }
   }
 
-  [data-has-error='true'] {
+  [data-is-error='true'] {
     &:hover {
-      border-top: 1px solid ${p => p.theme.red100};
+      border-top: 1px solid ${p => p.theme.tokens.border.danger.muted};
     }
   }
 `;
@@ -272,7 +316,13 @@ const ChapterBreadcrumbRow = styled(BreadcrumbRow)`
   }
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 
@@ -280,12 +330,18 @@ const Chapter = styled('summary')`
   cursor: pointer;
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   padding: 0 ${space(0.75)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 
   /* sorry */
@@ -298,37 +354,38 @@ const Chapter = styled('summary')`
     display: none;
   }
 
-  [data-has-feedback='true'] & {
-    color: ${p => p.theme.pink300};
+  [data-is-feedback='true'] & {
+    color: ${p => p.theme.tokens.content.promotion};
 
     &:hover {
-      background-color: ${p => p.theme.pink100};
+      background-color: ${p => p.theme.tokens.background.transparent.promotion.muted};
     }
   }
 
-  [data-has-error='true'] & {
-    color: ${p => p.theme.red300};
+  [data-is-error='true'] & {
+    color: ${p => p.theme.tokens.content.danger};
 
     &:hover {
-      background-color: ${p => p.theme.red100};
+      background-color: ${p => p.theme.tokens.background.transparent.danger.muted};
     }
   }
 `;
 
 const ChapterTitle = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: ${space(1)};
+  grid-template-areas: 'title timestamp';
   flex: 1;
   align-items: center;
-  gap: ${space(1)};
-  justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   padding: ${space(1)} 0;
 
   .activeChapter & {
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
   }
 
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   margin-bottom: -1px; /* Compensate for border to fully eliminate gap */
 
   details:last-child:not([open]) & {
@@ -336,13 +393,11 @@ const ChapterTitle = styled('div')`
   }
 `;
 
-// Copied from breadcrumbItem
-const ReplayTimestamp = styled('div')`
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.normal};
-`;
-
-const EmptyContainer = styled('div')`
-  padding: ${space(2)};
+const ReplayTimestamp = styled('span')`
+  display: flex;
+  gap: ${space(0.5)};
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  justify-content: flex-end;
 `;

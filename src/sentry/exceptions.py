@@ -17,7 +17,7 @@ class InvalidOrigin(InvalidRequest):
     def __init__(self, origin):
         self.origin = origin
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Invalid origin: '%s'" % self.origin
 
 

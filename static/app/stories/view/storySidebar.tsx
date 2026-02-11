@@ -1,86 +1,19 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
-import type {StoryTreeNode} from './storyTree';
-import {StoryTree, useStoryTree} from './storyTree';
-import {useStoryBookFiles} from './useStoriesLoader';
+import {CategorizedStoryTree} from './storyTree';
 
 export function StorySidebar() {
-  const {foundations, core, shared} = useStoryBookFilesByCategory();
-
   return (
-    <SidebarContainer>
-      <ul>
-        <li>
-          <h3>Foundations</h3>
-          <StoryTree nodes={foundations} />
-        </li>
-        <li>
-          <h3>Components</h3>
-          <StoryTree nodes={core} />
-        </li>
-        <li>
-          <h3>Product</h3>
-          <StoryTree nodes={shared} />
-        </li>
-      </ul>
+    <SidebarContainer key="sidebar" ref={scrollIntoView}>
+      <CategorizedStoryTree />
     </SidebarContainer>
   );
 }
 
-export function useStoryBookFilesByCategory(): Record<
-  'foundations' | 'core' | 'shared',
-  StoryTreeNode[]
-> {
-  const files = useStoryBookFiles();
-  const filesByOwner = useMemo(() => {
-    // The order of keys here is important and used by the pagination in storyFooter
-    const map: Record<'foundations' | 'core' | 'shared', string[]> = {
-      foundations: [],
-      core: [],
-      shared: [],
-    };
-    for (const file of files) {
-      if (isFoundationFile(file)) {
-        map.foundations.push(file);
-      } else if (isCoreFile(file)) {
-        map.core.push(file);
-      } else {
-        map.shared.push(file);
-      }
-    }
-    return map;
-  }, [files]);
-
-  const foundations = useStoryTree(filesByOwner.foundations, {
-    query: '',
-    representation: 'category',
-  });
-  const core = useStoryTree(filesByOwner.core, {
-    query: '',
-    representation: 'category',
-    type: 'flat',
-  });
-  const shared = useStoryTree(filesByOwner.shared, {
-    query: '',
-    representation: 'category',
-  });
-
-  return {
-    foundations,
-    core,
-    shared,
-  };
-}
-
-function isCoreFile(file: string) {
-  return file.includes('components/core');
-}
-
-function isFoundationFile(file: string) {
-  return file.includes('app/styles') || file.includes('app/icons');
+function scrollIntoView(node: HTMLElement | null) {
+  node
+    ?.querySelector('[aria-current="page"]')
+    ?.scrollIntoView({behavior: 'instant', block: 'nearest'});
 }
 
 const SidebarContainer = styled('nav')`
@@ -90,39 +23,44 @@ const SidebarContainer = styled('nav')`
   grid-column: 1;
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   min-height: 0;
   height: calc(100dvh - 52px);
   z-index: 0;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 1px 0 0 0 ${p => p.theme.tokens.border.primary};
   width: 256px;
   background: ${p => p.theme.tokens.background.primary};
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: ${p => p.theme.tokens.border.primary} ${p => p.theme.background};
+  /* eslint-disable @sentry/scraps/use-semantic-token */
+  scrollbar-color: ${p => p.theme.tokens.border.primary}
+    ${p => p.theme.tokens.background.primary};
+  /* eslint-enable @sentry/scraps/use-semantic-token */
   ul,
   li {
     list-style: none;
   }
   > ul {
-    padding-left: ${space(1)};
-    padding-block: ${space(2)};
+    padding-left: ${p => p.theme.space.md};
+    padding-block: ${p => p.theme.space.xl};
   }
   > ul > li::before {
     display: block;
     content: '';
     height: 1px;
-    background: ${p => p.theme.tokens.border.muted};
-    margin: ${space(2)} ${space(1)};
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    background: ${p => p.theme.tokens.border.secondary};
+    margin: ${p => p.theme.space.xl} ${p => p.theme.space.md};
   }
   > ul > li:first-child::before {
     content: none;
   }
   h3 {
     color: ${p => p.theme.tokens.content.primary};
-    font-size: ${p => p.theme.fontSize.md};
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-size: ${p => p.theme.font.size.md};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
     margin: 0;
-    padding: ${space(1)};
+    padding: ${p => p.theme.space.md};
   }
 `;

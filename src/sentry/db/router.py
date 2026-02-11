@@ -28,7 +28,7 @@ class SiloRouter:
     - Monolith - all tables reside in the same database.
     - Siloed - tables for control and region are separated.
 
-    Within Siloed there are are two flavours:
+    Within Siloed there are two flavours:
 
     - simulated - If the application is configured with `control` and `default`
       connections, then we are in 'simulated' silo environment (like our testsuite).
@@ -68,14 +68,24 @@ class SiloRouter:
     historical_silo_assignments = {
         "authidentity_duplicate": SiloMode.CONTROL,
         "authprovider_duplicate": SiloMode.CONTROL,
+        "feedback_feedback": SiloMode.REGION,
+        "prevent_ai_configuration": SiloMode.REGION,
+        "releases_commit": SiloMode.REGION,
+        "releases_commitfilechange": SiloMode.REGION,
         "sentry_actor": SiloMode.REGION,
         "sentry_alertruleactivations": SiloMode.REGION,
+        "sentry_dashboardwidgetsnapshot": SiloMode.REGION,
+        "sentry_datasecrecywaiver": SiloMode.REGION,
+        "sentry_incidentseen": SiloMode.REGION,
+        "sentry_incidentsubscription": SiloMode.REGION,
         "sentry_monitorlocation": SiloMode.REGION,
         "sentry_notificationsetting": SiloMode.CONTROL,
         "sentry_pagerdutyservice": SiloMode.REGION,
         "sentry_projectavatar": SiloMode.REGION,
         "sentry_scheduledjob": SiloMode.CONTROL,
         "sentry_teamavatar": SiloMode.REGION,
+        "uptime_projectuptimesubscription": SiloMode.REGION,
+        "workflow_engine_actiongroupstatus": SiloMode.REGION,
         "workflow_engine_workflowaction": SiloMode.REGION,
     }
     """

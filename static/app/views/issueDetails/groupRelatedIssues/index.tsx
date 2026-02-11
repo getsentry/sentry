@@ -2,8 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import GroupList from 'sentry/components/issues/groupList';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -11,6 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -40,7 +43,6 @@ interface RelatedIssuesSectionProps {
 function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) {
   const organization = useOrganization();
   // Fetch the list of related issues
-  const hasGlobalViewsFeature = organization.features.includes('global-views');
   const {
     isPending,
     isError,
@@ -48,10 +50,11 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
     refetch,
   } = useApiQuery<RelatedIssuesResponse>(
     [
-      `/issues/${group.id}/related-issues/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/related-issues/', {
+        path: {organizationIdOrSlug: organization.slug, issueId: group.id},
+      }),
       {
         query: {
-          ...(hasGlobalViewsFeature ? undefined : {project: group.project.id}),
           type: relationType,
         },
       },
@@ -70,8 +73,7 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
   if (relationType === 'trace_connected' && traceMeta) {
     ({title, extraInfo, openIssuesButton} = getTraceConnectedContent(
       traceMeta,
-      organization,
-      group
+      organization
     ));
   } else {
     title = t('Issues with similar titles');
@@ -84,7 +86,7 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
         query: {
           // project=-1 allows ensuring that the query will show issues from any projects for the org
           // This is important for traces since issues can be for any project in the org
-          ...(hasGlobalViewsFeature ? {project: '-1'} : {project: group.project.id}),
+          project: '-1',
           query: `issue.id:[${group.id},${issues}]`,
         },
       },
@@ -106,20 +108,20 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
         <Fragment>
           <HeaderWrapper>
             <Title>{title}</Title>
-            <TextButtonWrapper>
+            <Flex justify="between" align="center" marginBottom="md" width="100%">
               <span>{extraInfo}</span>
               {openIssuesButton}
-            </TextButtonWrapper>
+            </Flex>
           </HeaderWrapper>
           <GroupList
             queryParams={{
               query,
-              ...(hasGlobalViewsFeature ? undefined : {project: group.project.id}),
             }}
             source="similar-issues-tab"
             canSelectGroups={false}
             withChart={false}
             withColumns={['event']}
+            numPlaceholderRows={4}
           />
         </Fragment>
       ) : null}
@@ -129,10 +131,8 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
 
 const getTraceConnectedContent = (
   traceMeta: RelatedIssuesResponse['meta'],
-  organization: Organization,
-  group: Group
+  organization: Organization
 ) => {
-  const hasGlobalViewsFeature = organization.features.includes('global-views');
   const title = t('Issues in the same trace');
   const url = `/organizations/${organization.slug}/performance/trace/${traceMeta.trace_id}/?node=error-${traceMeta.event_id}`;
   const extraInfo = (
@@ -148,7 +148,7 @@ const getTraceConnectedContent = (
       query: {
         // project=-1 allows ensuring that the query will show issues from any projects for the org
         // This is important for traces since issues can be for any project in the org
-        ...(hasGlobalViewsFeature ? {project: '-1'} : {project: group.project.id}),
+        project: '-1',
         query: `trace:${traceMeta.trace_id}`,
       },
     },
@@ -176,7 +176,7 @@ const getLinkButton = (to: LocationDescriptor, eventName: string, eventKey: stri
 export {GroupRelatedIssues};
 
 const Title = styled('h4')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   margin-bottom: ${space(0.75)};
 `;
 
@@ -184,14 +184,6 @@ const HeaderWrapper = styled('div')`
   margin-bottom: ${space(2)};
 
   small {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
-`;
-
-const TextButtonWrapper = styled('div')`
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-  width: 100%;
 `;

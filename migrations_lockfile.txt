@@ -5,34 +5,38 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
-discover: 0002_link_migrated_explore_query_in_discover
+discover: 0003_discover_json_field
 
 explore: 0006_add_changed_reason_field_explore
 
-feedback: 0001_squashed_0004_index_together
+feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
-hybridcloud: 0023_correct_webhook_payload_constraint
+hybridcloud: 0024_add_project_distribution_scope
 
 insights: 0002_backfill_team_starred
 
-monitors: 0006_add_is_upserting
+monitors: 0013_delete_monitor_is_muted_field
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notifications: 0001_move_notifications_models
+notifications: 0002_notificationmessage_jsonfield
 
-preprod: 0012_installablepreprod
+preprod: 0026_add_initial_snapshot_models
 
-replays: 0006_add_bulk_delete_job
+prevent: 0004_delete_prevent_ai_configuration_table
 
-sentry: 0953_make_releasefiles_tti
+releases: 0004_cleanup_failed_safe_deletes
+
+replays: 0007_organizationmember_replay_access
+
+sentry: 1026_add_index_groupopenperiodactivity_open_period_type_event_id
 
 social_auth: 0003_social_auth_json_field
 
-tempest: 0001_squashed_0002_make_message_type_nullable
+tempest: 0003_use_encrypted_char_field
 
-uptime: 0001_squashed_0042_extra_uptime_indexes
+uptime: 0054_delete_bad_assertions
 
-workflow_engine: 0081_add_unique_constraint_to_detector_group
+workflow_engine: 0107_fix_email_action_fallthrough_type

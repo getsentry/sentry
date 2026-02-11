@@ -1,14 +1,18 @@
+from typing import Any
+
 from django import forms
 from django.forms.utils import ErrorList
+from django.http import HttpRequest
 from django.utils.encoding import force_str
 from django.utils.translation import gettext_lazy as _
 from onelogin.saml2.idp_metadata_parser import OneLogin_Saml2_IdPMetadataParser
 from requests.exceptions import SSLError
 
+from sentry.auth.helper import AuthHelper
 from sentry.http import safe_urlopen
 
 
-def extract_idp_data_from_parsed_data(data):
+def extract_idp_data_from_parsed_data(data: dict[str, Any]) -> dict[str, Any]:
     """
     Transform data returned by the OneLogin_Saml2_IdPMetadataParser into the
     expected IdP dict shape.
@@ -27,14 +31,14 @@ def extract_idp_data_from_parsed_data(data):
     }
 
 
-def process_url(form):
+def process_url(form: forms.Form) -> dict[str, Any]:
     url = form.cleaned_data["metadata_url"]
     response = safe_urlopen(url)
     data = OneLogin_Saml2_IdPMetadataParser.parse(response.content)
     return extract_idp_data_from_parsed_data(data)
 
 
-def process_xml(form):
+def process_xml(form: forms.Form) -> dict[str, Any]:
     # cast unicode xml to byte string so lxml won't complain when trying to
     # parse a xml document with a type declaration.
     xml = form.cleaned_data["metadata_xml"].encode("utf8")
@@ -60,7 +64,9 @@ class SAMLForm(forms.Form):
     processor = lambda d: d.cleaned_data
 
 
-def process_metadata(form_cls, request, helper):
+def process_metadata(
+    form_cls: type[forms.Form], request: HttpRequest, helper: AuthHelper
+) -> forms.Form | None:
     form = form_cls()
 
     if "action_save" not in request.POST:
@@ -72,15 +78,16 @@ def process_metadata(form_cls, request, helper):
         return form
 
     try:
+        assert hasattr(form_cls, "processor")
         data = form_cls.processor(form)
     except SSLError:
-        errors = form._errors.setdefault("__all__", ErrorList())
+        errors = form.errors.setdefault("__all__", ErrorList())
         errors.append(
             "Could not verify SSL certificate. Ensure that your IdP instance has a valid SSL certificate that is linked to a trusted root certificate."
         )
         return form
     except Exception:
-        errors = form._errors.setdefault("__all__", ErrorList())
+        errors = form.errors.setdefault("__all__", ErrorList())
         errors.append("Failed to parse provided SAML2 metadata")
         return form
 
@@ -92,7 +99,7 @@ def process_metadata(form_cls, request, helper):
         ]
         error_list = ", ".join(field_errors)
 
-        errors = form._errors.setdefault("__all__", ErrorList())
+        errors = form._errors.setdefault("__all__", ErrorList())  # type: ignore[attr-defined] # XXX: ._errors is an internal attr
         errors.append(f"Invalid metadata: {error_list}")
         return form
 

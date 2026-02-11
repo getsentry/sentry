@@ -5,9 +5,9 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-import SeerAutomationRoot from './index';
+import SeerAutomation from 'getsentry/views/seerAutomation/seerAutomation';
 
-describe('SeerAutomation', function () {
+describe('SeerAutomation', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/seer/setup-check/',
@@ -38,9 +38,8 @@ describe('SeerAutomation', function () {
     ProjectsStore.reset();
   });
 
-  it('can update the org default autofix automation tuning setting', async function () {
+  it('can update the org default autofix automation tuning setting', async () => {
     const organization = OrganizationFixture({
-      features: ['trigger-autofix-on-issue-summary'],
       defaultSeerScannerAutomation: true,
     });
     const project = ProjectFixture();
@@ -61,8 +60,18 @@ describe('SeerAutomation', function () {
         autofixAutomationTuning: 'off',
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/seer/onboarding-check/`,
+      method: 'GET',
+      body: {
+        hasSupportedScmIntegration: true,
+        isAutofixEnabled: true,
+        isCodeReviewEnabled: true,
+        isSeerConfigured: true,
+      },
+    });
 
-    render(<SeerAutomationRoot />, {organization});
+    render(<SeerAutomation />, {organization});
 
     // Project details populate the project list
     const projectItem = await screen.findByText(project.slug);
@@ -102,9 +111,8 @@ describe('SeerAutomation', function () {
     );
   });
 
-  it('can update the org default scanner automation setting', async function () {
+  it('can update the org default scanner automation setting', async () => {
     const organization = OrganizationFixture({
-      features: ['trigger-autofix-on-issue-summary'],
       defaultSeerScannerAutomation: false,
     });
     const project = ProjectFixture();
@@ -114,6 +122,17 @@ describe('SeerAutomation', function () {
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
       body: {defaultSeerScannerAutomation: true},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/seer/onboarding-check/`,
+      method: 'GET',
+      body: {
+        hasSupportedScmIntegration: true,
+        isAutofixEnabled: true,
+        isCodeReviewEnabled: true,
+        isSeerConfigured: true,
+      },
     });
 
     // Project details used to populate the project list
@@ -126,7 +145,7 @@ describe('SeerAutomation', function () {
       },
     });
 
-    render(<SeerAutomationRoot />, {organization});
+    render(<SeerAutomation />, {organization});
 
     // Find the toggle for Default for Issue Scans
     const toggle = await screen.findByRole('checkbox', {

@@ -1,6 +1,6 @@
 from collections import namedtuple
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from hashlib import md5
 from unittest import mock
 from unittest.mock import patch
@@ -10,12 +10,13 @@ from django.utils import timezone
 from sentry.api.helpers.group_index.update import handle_priority
 from sentry.constants import LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.incidents.grouptype import MetricIssue, MetricIssueDetectorHandler
+from sentry.incidents.utils.types import AnomalyDetectionUpdate, ProcessedSubscriptionUpdate
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
-    MonitorIncidentType,
     NoiseConfig,
 )
 from sentry.issues.ingest import (
@@ -26,26 +27,33 @@ from sentry.issues.ingest import (
     save_issue_occurrence,
     send_issue_occurrence_to_eventstream,
 )
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupopenperiod import get_latest_open_period
+from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.ratelimits.sliding_windows import RequestedQuota
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import raw_query
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataPacket
+from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
+from sentry.workflow_engine.models.detector_group import DetectorGroup
+from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
@@ -192,6 +200,158 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert group_info is not None
         group = group_info.group
         assert group.priority == PriorityLevel.HIGH
+
+    def test_creates_detector_group(self) -> None:
+        detector = self.create_detector(
+            project=self.project,
+            name="Test Detector",
+            type="error",
+            enabled=True,
+            config={},
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence = self.build_occurrence(
+            event_id=event.event_id,
+            evidence_data={"detector_id": detector.id},
+            type=ErrorGroupType.type_id,
+        )
+
+        saved_occurrence, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
+
+        detector_group = DetectorGroup.objects.get(group_id=group_info.group.id)
+        assert detector_group.detector_id == detector.id
+
+    def test_metric_issue_creates_detector_group(self) -> None:
+        from datetime import timedelta
+
+        # Create models for the detector
+        snuba_query = SnubaQuery.objects.create(
+            type=SnubaQuery.Type.ERROR.value,
+            dataset="events",
+            query="",
+            aggregate="count()",
+            time_window=int(timedelta(minutes=5).total_seconds()),
+            resolution=int(timedelta(minutes=1).total_seconds()),
+        )
+        query_subscription = QuerySubscription.objects.create(
+            project=self.project,
+            snuba_query=snuba_query,
+            type="test_subscription",
+            status=QuerySubscription.Status.ACTIVE.value,
+        )
+        condition_group = DataConditionGroup.objects.create(
+            organization_id=self.project.organization_id
+        )
+        _ = DataCondition.objects.create(
+            type="gt",
+            comparison=10,
+            condition_result=DetectorPriorityLevel.HIGH,
+            condition_group=condition_group,
+        )
+        detector = self.create_detector(
+            project=self.project,
+            name="Test Metric Detector",
+            type="metric_issue",
+            enabled=True,
+            config={"threshold_period": 1, "detection_type": "static"},
+            workflow_condition_group=condition_group,
+        )
+        _ = AlertRuleDetector.objects.create(
+            detector=detector,
+            alert_rule_id=123,
+        )
+
+        # Create event
+        event = self.store_event(data={}, project_id=self.project.id)
+
+        query_subscription_update: ProcessedSubscriptionUpdate = ProcessedSubscriptionUpdate(
+            entity="events",
+            subscription_id=str(query_subscription.id),
+            values={"value": 15},
+            timestamp=datetime.now(UTC),
+        )
+
+        handler = MetricIssueDetectorHandler(detector)
+        data_packet: DataPacket[ProcessedSubscriptionUpdate | AnomalyDetectionUpdate] = DataPacket(
+            str(query_subscription.id), query_subscription_update
+        )
+        eval_result = handler.evaluate(data_packet)
+
+        occurrence = None
+        for result in eval_result.values():
+            if result.result is None:
+                continue
+
+            if (
+                isinstance(result.result, IssueOccurrence)
+                and result.result.evidence_data
+                and "detector_id" in result.result.evidence_data
+            ):
+                occurrence = result.result
+                break
+
+        assert occurrence is not None, "No occurrence was created by the handler"
+
+        # Update the occurrence dict to have the correct event_id
+        occurrence_dict = occurrence.to_dict()
+        occurrence_dict["event_id"] = event.event_id
+
+        with self.tasks(), mock.patch("sentry.issues.ingest.eventstream") as _:
+            saved_occurrence, group_info = save_issue_occurrence(occurrence_dict, event)
+            assert group_info is not None
+
+            detector_group = DetectorGroup.objects.get(detector_id=detector.id)
+            assert detector_group.group_id == group_info.group.id
+
+    def test_no_detector_group_without_detector_id(self) -> None:
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence = self.build_occurrence(
+            event_id=event.event_id,
+            evidence_data={},
+            type=ErrorGroupType.type_id,
+        )
+
+        saved_occurrence, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
+
+        assert not DetectorGroup.objects.filter().exists()
+
+    def test_detector_group_not_created_for_existing_group(self) -> None:
+        detector = self.create_detector(
+            project=self.project,
+            name="Test Detector",
+            type="error",
+            enabled=True,
+            config={},
+        )
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence = self.build_occurrence(
+            event_id=event.event_id,
+            evidence_data={"detector_id": detector.id},
+            type=ErrorGroupType.type_id,
+        )
+
+        # First call - creates group and DetectorGroup
+        saved_occurrence1, group_info1 = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info1 is not None
+
+        # Verify DetectorGroup was created
+        detector_group1 = DetectorGroup.objects.get(detector_id=detector.id)
+        assert detector_group1.group_id == group_info1.group.id
+
+        # Second call - should not create new group or DetectorGroup
+        saved_occurrence2, group_info2 = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info2 is not None
+        assert group_info1.group.id == group_info2.group.id
+
+        # Verify only one DetectorGroup exists (no duplicate created)
+        detector_groups = DetectorGroup.objects.filter(detector_id=detector.id)
+        assert detector_groups.count() == 1
+        item = detector_groups.first()
+        assert item is not None
+        assert item.group_id == group_info1.group.id
 
 
 class ProcessOccurrenceDataTest(OccurrenceTestMixin, TestCase):
@@ -404,6 +564,9 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
             ]
 
     def test_noise_reduction(self) -> None:
+        # Access project before patching registry to ensure it's created with grouptypes registered
+        project_id = self.project.id
+
         with patch("sentry.issues.grouptype.registry", new=GroupTypeRegistry()):
 
             @dataclass(frozen=True)
@@ -415,7 +578,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
                 category_v2 = GroupCategory.MOBILE.value
                 noise_config = NoiseConfig(ignore_limit=2)
 
-            event = self.store_event(data={}, project_id=self.project.id)
+            event = self.store_event(data={}, project_id=project_id)
             occurrence = self.build_occurrence(type=TestGroupType.type_id)
             with mock.patch("sentry.issues.ingest.metrics") as metrics:
                 assert save_issue_from_occurrence(occurrence, event, None) is None
@@ -423,7 +586,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
                     "issues.issue.dropped.noise_reduction", tags={"group_type": "test"}
                 )
 
-            new_event = self.store_event(data={}, project_id=self.project.id)
+            new_event = self.store_event(data={}, project_id=project_id)
             new_occurrence = self.build_occurrence(type=TestGroupType.type_id)
             group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
             assert group_info is not None
@@ -482,7 +645,6 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert group_info is not None
         assert group_info.group.priority == PriorityLevel.HIGH
 
-    @with_feature("organizations:issue-open-periods")
     def test_update_open_period(self) -> None:
         fingerprint = ["some-fingerprint"]
         occurrence = self.build_occurrence(
@@ -533,6 +695,109 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         group.refresh_from_db()
         assert group.priority == PriorityLevel.LOW
         assert group.priority_locked_at is not None
+
+    def test_create_open_period_activity_entry(self) -> None:
+        fingerprint = ["some-fingerprint"]
+        occurrence = self.build_occurrence(
+            initial_issue_priority=PriorityLevel.MEDIUM,
+            fingerprint=fingerprint,
+            type=MetricIssue.type_id,
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        group = group_info.group
+
+        open_period = get_latest_open_period(group)
+        assert open_period is not None
+        activity_updates = GroupOpenPeriodActivity.objects.filter(group_open_period=open_period)
+
+        assert len(activity_updates) == 1
+        assert activity_updates[0].type == OpenPeriodActivityType.OPENED
+        assert activity_updates[0].value == PriorityLevel.MEDIUM
+        assert activity_updates[0].event_id == event.event_id
+
+    def test_update_group_priority_open_period_activity_entry(self) -> None:
+        fingerprint = ["some-fingerprint"]
+        occurrence = self.build_occurrence(
+            initial_issue_priority=PriorityLevel.MEDIUM,
+            fingerprint=fingerprint,
+            type=MetricIssue.type_id,
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        group = group_info.group
+        assert group.priority == PriorityLevel.MEDIUM
+
+        new_event = self.store_event(data={}, project_id=self.project.id)
+        new_occurrence = self.build_occurrence(
+            fingerprint=["some-fingerprint"],
+            type=MetricIssue.type_id,
+            initial_issue_priority=PriorityLevel.HIGH,
+        )
+        with self.tasks():
+            updated_group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
+        assert updated_group_info is not None
+        group.refresh_from_db()
+        assert group.priority == PriorityLevel.HIGH
+
+        open_period = get_latest_open_period(group)
+        assert open_period is not None
+        activity_updates = GroupOpenPeriodActivity.objects.filter(group_open_period=open_period)
+
+        assert len(activity_updates) == 2
+        assert activity_updates[0].type == OpenPeriodActivityType.OPENED
+        assert activity_updates[0].value == PriorityLevel.MEDIUM
+        assert activity_updates[0].event_id == event.event_id
+
+        assert activity_updates[1].type == OpenPeriodActivityType.STATUS_CHANGE
+        assert activity_updates[1].value == PriorityLevel.HIGH
+        assert activity_updates[1].event_id == new_occurrence.event_id
+
+    @mock.patch("sentry.issues.ingest._process_existing_aggregate")
+    def test_update_group_priority_and_unresolve(self, mock_is_regression: mock.MagicMock) -> None:
+        # set up the group opening entry
+        fingerprint = ["some-fingerprint"]
+        occurrence = self.build_occurrence(
+            initial_issue_priority=PriorityLevel.MEDIUM,
+            fingerprint=fingerprint,
+            type=MetricIssue.type_id,
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        group = group_info.group
+
+        open_period = get_latest_open_period(group)
+        assert open_period is not None
+        activity_updates = GroupOpenPeriodActivity.objects.filter(group_open_period=open_period)
+
+        assert len(activity_updates) == 1
+        assert activity_updates[0].type == OpenPeriodActivityType.OPENED
+        assert activity_updates[0].value == PriorityLevel.MEDIUM
+
+        mock_is_regression.return_value = True
+
+        # mock a regression with priority change
+        new_event = self.store_event(data={}, project_id=self.project.id)
+        new_occurrence = self.build_occurrence(
+            fingerprint=["some-fingerprint"],
+            type=MetricIssue.type_id,
+            initial_issue_priority=PriorityLevel.HIGH,
+        )
+        with self.tasks():
+            updated_group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
+        assert updated_group_info is not None
+        group.refresh_from_db()
+        assert group.priority == PriorityLevel.HIGH
+        mock_is_regression.assert_called()
+
+        activity_updates = GroupOpenPeriodActivity.objects.filter(group_open_period=open_period)
+
+        assert len(activity_updates) == 1
+        assert activity_updates[0].type == OpenPeriodActivityType.OPENED
+        assert activity_updates[0].value == PriorityLevel.HIGH
 
 
 class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
@@ -595,6 +860,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
                 "message": "test",
                 "name": "Name Test",
                 "source": "crash report widget",
+                "summary": "test",
             },
         )
         event = self.store_event(data={}, project_id=self.project.id)
@@ -610,6 +876,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "message": "test",
             "name": "Name Test",
             "source": "crash report widget",
+            "summary": "test",
             "initial_priority": occurrence.priority,
         }
 
@@ -621,6 +888,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
                 "message": "test",
                 "name": "Name Test",
                 "source": "crash report widget",
+                "summary": "test",
                 "associated_event_id": "55798fee4d21425c8689c980cde794f2",
             },
         )
@@ -637,6 +905,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "message": "test",
             "name": "Name Test",
             "source": "crash report widget",
+            "summary": "test",
             "initial_priority": occurrence.priority,
             "associated_event_id": "55798fee4d21425c8689c980cde794f2",
         }

@@ -1,6 +1,7 @@
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
+import {AlertLink} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -26,7 +27,7 @@ function OrganizationRepositories({itemList, onRepositoryChange, organization}: 
     <div>
       <SettingsPageHeader title={t('Repositories')} />
       <AlertLink.Container>
-        <AlertLink type="info" to={`/settings/${organization.slug}/integrations/`}>
+        <AlertLink variant="info" to={`/settings/${organization.slug}/integrations/`}>
           {t(
             'Want to add a repository to start tracking commits? Install or configure your version control integration here.'
           )}
@@ -66,17 +67,18 @@ function OrganizationRepositories({itemList, onRepositoryChange, organization}: 
       ) : (
         <Panel>
           <EmptyMessage
-            icon={<IconCommit size="xl" />}
+            icon={<IconCommit />}
             title={t('Sentry is better with commit data')}
-            description={t(
-              'Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.'
-            )}
             action={
               <LinkButton external href="https://docs.sentry.io/learn/releases/">
                 {t('Learn more')}
               </LinkButton>
             }
-          />
+          >
+            {t(
+              'Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.'
+            )}
+          </EmptyMessage>
         </Panel>
       )}
     </div>

@@ -6,11 +6,11 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import DiffModal from 'sentry/components/modals/diffModal';
 
-describe('DiffModal', function () {
-  it('renders', function () {
+describe('DiffModal', () => {
+  it('renders', () => {
     const project = ProjectFixture();
     MockApiClient.addMockResponse({
-      url: '/issues/123/events/latest/',
+      url: '/organizations/org-slug/issues/123/events/latest/',
       body: {
         eventID: '456',
       },
@@ -20,7 +20,7 @@ describe('DiffModal', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/issues/234/events/latest/',
+      url: '/organizations/org-slug/issues/234/events/latest/',
       body: {
         eventID: '789',
       },
@@ -38,7 +38,6 @@ describe('DiffModal', function () {
 
     render(
       <DiffModal
-        orgId="123"
         baseIssueId="123"
         targetIssueId="234"
         project={project}
@@ -47,15 +46,6 @@ describe('DiffModal', function () {
         Header={c => <span>{c.children}</span>}
         CloseButton={({children}) => <div>{children}</div>}
         closeModal={() => {}}
-        location={{
-          pathname: '',
-          query: {cursor: '0:1:1', statsPeriod: '14d'},
-          search: '',
-          hash: '',
-          state: null,
-          action: 'PUSH',
-          key: 'default',
-        }}
       />
     );
   });

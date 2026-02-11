@@ -8,11 +8,11 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from sentry import features
-from sentry.api.fields.actor import ActorField
-from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
+from sentry.api.fields.actor import OwnerActorField
+from sentry.constants import MIGRATED_CONDITIONS, TICKET_ACTIONS
 from sentry.models.environment import Environment
 from sentry.rules import rules
-from sentry.rules.actions.sentry_apps.notify_event import NotifyEventSentryAppAction
+from sentry.rules.actions.sentry_apps.base import SentryAppEventAction
 
 
 @extend_schema_field(field=OpenApiTypes.OBJECT)
@@ -50,12 +50,9 @@ class RuleNodeField(serializers.Field):
         node = cls(project=self.context["project"], data=data)
 
         # Nodes with user-declared fields will manage their own validation
-        if node.id in SENTRY_APP_ACTIONS:
+        if isinstance(node, SentryAppEventAction):
             if not data.get("hasSchemaFormConfig"):
                 raise ValidationError("Please configure your integration settings.")
-            assert isinstance(
-                node, NotifyEventSentryAppAction
-            ), "node must be an instance of NotifyEventSentryAppAction to use self_validate"
             node.self_validate()
             return data
 
@@ -159,7 +156,7 @@ class RuleSerializer(RuleSetSerializer):
     name = serializers.CharField(max_length=256)
     environment = serializers.CharField(max_length=64, required=False, allow_null=True)
     actions = serializers.ListField(child=RuleNodeField(type="action/event"), required=False)
-    owner = ActorField(required=False, allow_null=True)
+    owner = OwnerActorField(required=False, allow_null=True)
 
     def validate_environment(self, environment):
         if environment is None:

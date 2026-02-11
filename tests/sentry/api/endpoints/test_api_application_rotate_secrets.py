@@ -7,15 +7,15 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class ApiApplicationRotateSecretTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.app = ApiApplication.objects.create(owner=self.user, name="a")
         self.path = reverse("sentry-api-0-api-application-rotate-secret", args=[self.app.client_id])
 
-    def test_unauthenticated_call(self):
+    def test_unauthenticated_call(self) -> None:
         response = self.client.post(self.path)
         assert response.status_code == 403
 
-    def test_non_owner_call(self):
+    def test_non_owner_call(self) -> None:
         """
         Tests that an authenticated user cannot rotate the secret for an ApiApplication they don't own.
         """
@@ -27,16 +27,30 @@ class ApiApplicationRotateSecretTest(APITestCase):
         )
         assert response.status_code == 404
 
-    def test_invalid_app_id(self):
+    def test_invalid_app_id(self) -> None:
         self.login_as(self.user)
         path_with_invalid_id = reverse("sentry-api-0-api-application-rotate-secret", args=["abc"])
         response = self.client.post(path_with_invalid_id)
         assert response.status_code == 404
 
-    def test_valid_call(self):
+    def test_valid_call(self) -> None:
         self.login_as(self.user)
         old_secret = self.app.client_secret
+        assert old_secret is not None
         response = self.client.post(self.path, data={})
         new_secret = response.data["clientSecret"]
         assert len(new_secret) == len(old_secret)
         assert new_secret != old_secret
+
+    def test_public_client_cannot_rotate_secret(self) -> None:
+        """
+        Tests that a public client (client_secret=None) cannot have its secret rotated.
+        """
+        self.login_as(self.user)
+        public_app = ApiApplication.objects.create(
+            owner=self.user, name="public-app", client_secret=None
+        )
+        path = reverse("sentry-api-0-api-application-rotate-secret", args=[public_app.client_id])
+        response = self.client.post(path)
+        assert response.status_code == 400
+        assert response.data["detail"] == "Cannot rotate secret for public clients"

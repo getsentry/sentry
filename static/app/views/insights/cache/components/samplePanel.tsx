@@ -1,11 +1,15 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import keyBy from 'lodash/keyBy';
 
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
-import {EapSpanSearchQueryBuilderWrapper} from 'sentry/components/performance/spanSearchQueryBuilder';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -15,10 +19,10 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {CacheHitMissChart} from 'sentry/views/insights/cache/components/charts/hitMissChart';
 import {TransactionDurationChartWithSamples} from 'sentry/views/insights/cache/components/charts/transactionDurationChartWithSamples';
 import {SpanSamplesTable} from 'sentry/views/insights/cache/components/tables/spanSamplesTable';
@@ -35,8 +39,30 @@ import {
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
-import type {EAPSpanResponse, SpanQueryFilters} from 'sentry/views/insights/types';
+import type {SpanQueryFilters, SpanResponse} from 'sentry/views/insights/types';
 import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
+
+interface CacheSamplePanelSearchQueryBuilderProps {
+  handleSearch: (query: string) => void;
+  query: string;
+  selection: PageFilters;
+}
+
+function CacheSamplePanelSearchQueryBuilder({
+  query,
+  selection,
+  handleSearch,
+}: CacheSamplePanelSearchQueryBuilderProps) {
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    projects: selection.projects,
+    initialQuery: query,
+    onSearch: handleSearch,
+    placeholder: t('Search for span attributes'),
+    searchSource: `${ModuleName.CACHE}-sample-panel`,
+  });
+
+  return <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />;
+}
 
 // This is similar to http sample table, its difficult to use the generic span samples sidebar as we require a bunch of custom things.
 export function CacheSamplePanel() {
@@ -115,10 +141,7 @@ export function CacheSamplePanel() {
     ['project.id']: query.project,
   };
 
-  const useIndexedCacheSpans = (
-    isCacheHit: EAPSpanResponse['cache.hit'],
-    limit: number
-  ) =>
+  const useIndexedCacheSpans = (isCacheHit: SpanResponse['cache.hit'], limit: number) =>
     useSpans(
       {
         search: MutableSearch.fromQueryObject({
@@ -328,9 +351,9 @@ export function CacheSamplePanel() {
                 value={query.statusClass}
                 options={CACHE_STATUS_OPTIONS}
                 onChange={handleStatusClassChange}
-                triggerProps={{
-                  prefix: t('Status'),
-                }}
+                trigger={triggerProps => (
+                  <OverlayTrigger.Button {...triggerProps} prefix={t('Status')} />
+                )}
               />
             </ModuleLayout.Full>
             <ModuleLayout.Half>
@@ -341,12 +364,10 @@ export function CacheSamplePanel() {
             </ModuleLayout.Half>
 
             <ModuleLayout.Full>
-              <EapSpanSearchQueryBuilderWrapper
-                searchSource={`${ModuleName.CACHE}-sample-panel`}
-                initialQuery={query.spanSearchQuery}
-                onSearch={handleSearch}
-                placeholder={t('Search for span attributes')}
-                projects={selection.projects}
+              <CacheSamplePanelSearchQueryBuilder
+                query={query.spanSearchQuery}
+                selection={selection}
+                handleSearch={handleSearch}
               />
             </ModuleLayout.Full>
 

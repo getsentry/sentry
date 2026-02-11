@@ -1,14 +1,15 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type {UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
 
 interface UptimeChecksParameters {
+  detectorId: string;
   orgSlug: string;
   projectSlug: string;
-  uptimeAlertId: string;
   cursor?: string;
   end?: string;
   limit?: number;
@@ -19,7 +20,7 @@ interface UptimeChecksParameters {
 function makeUptimeChecksQueryKey({
   orgSlug,
   projectSlug,
-  uptimeAlertId,
+  detectorId,
   cursor,
   limit,
   start,
@@ -27,8 +28,25 @@ function makeUptimeChecksQueryKey({
   statsPeriod,
 }: UptimeChecksParameters): ApiQueryKey {
   return [
-    `/projects/${orgSlug}/${projectSlug}/uptime/${uptimeAlertId}/checks/`,
-    {query: {per_page: limit, cursor, start, end, statsPeriod}},
+    getApiUrl(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/uptime/$uptimeDetectorId/checks/',
+      {
+        path: {
+          organizationIdOrSlug: orgSlug,
+          projectIdOrSlug: projectSlug,
+          uptimeDetectorId: detectorId,
+        },
+      }
+    ),
+    {
+      query: {
+        per_page: limit,
+        cursor,
+        start,
+        end,
+        statsPeriod,
+      },
+    },
   ];
 }
 
@@ -38,7 +56,7 @@ export function useUptimeChecks(
 ) {
   // TODO(Leander): Add querying and sorting, when the endpoint supports it
   return useApiQuery<UptimeCheck[]>(makeUptimeChecksQueryKey(params), {
-    staleTime: 10000,
+    staleTime: 10_000,
     retry: true,
     ...options,
   });

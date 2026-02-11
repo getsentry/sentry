@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import * as qs from 'query-string';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {t} from 'sentry/locale';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -12,11 +13,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ScreensTable} from 'sentry/views/insights/mobile/common/components/tables/screensTable';
-import {type EAPSpanResponse, ModuleName} from 'sentry/views/insights/types';
+import {ModuleName, type SpanResponse} from 'sentry/views/insights/types';
 
 export type Row =
   | Pick<
-      EAPSpanResponse,
+      SpanResponse,
       | 'project.id'
       | 'transaction'
       | 'division(mobile.slow_frames,mobile.total_frames)'
@@ -24,7 +25,7 @@ export type Row =
       | 'avg(mobile.frames_delay)'
     >
   | Pick<
-      EAPSpanResponse,
+      SpanResponse,
       | 'project.id'
       | 'transaction'
       | 'count()'

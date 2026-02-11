@@ -8,14 +8,14 @@ class ProjectProcessingErrorsDetailsEndpointTest(MonitorTestCase, APITestCase):
     endpoint = "sentry-api-0-project-processing-errors-details"
     method = "delete"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_empty(self):
+    def test_empty(self) -> None:
         self.get_error_response(self.organization.slug, self.project.slug, "hi")
 
-    def test(self):
+    def test(self) -> None:
         monitor_error = build_checkin_processing_error(
             [{"type": ProcessingErrorType.CHECKIN_INVALID_GUID}],
             message_overrides={"project_id": self.project.id},
@@ -26,7 +26,7 @@ class ProjectProcessingErrorsDetailsEndpointTest(MonitorTestCase, APITestCase):
         self.get_success_response(self.organization.slug, self.project.slug, monitor_error.id)
         assert len(get_errors_for_projects([self.project])) == 0
 
-    def test_invalid_project(self):
+    def test_invalid_project(self) -> None:
         monitor_error = build_checkin_processing_error(
             [{"type": ProcessingErrorType.CHECKIN_INVALID_GUID}],
             message_overrides={"project_id": self.project.id},

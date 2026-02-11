@@ -1,13 +1,12 @@
 import type React from 'react';
 import {useState} from 'react';
+import omit from 'lodash/omit';
 
-import {
-  FeatureBadge,
-  type FeatureBadgeProps,
-} from 'sentry/components/core/badge/featureBadge';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -54,14 +53,14 @@ function ScreenDetailsPage() {
       key: 'app_start',
       label: t('App Start'),
       content: () => {
-        return <AppStartPage key={'app_start'} />;
+        return <AppStartPage key="app_start" />;
       },
     },
     {
       key: 'screen_load',
       label: t('Screen Load'),
       content: () => {
-        return <ScreenLoadPage key={'screen_load'} />;
+        return <ScreenLoadPage key="screen_load" />;
       },
     },
     {
@@ -69,7 +68,7 @@ function ScreenDetailsPage() {
       label: t('Screen Rendering'),
       featureBadge: 'experimental',
       content: () => {
-        return <UiPage key={'screen_rendering'} />;
+        return <UiPage key="screen_rendering" />;
       },
     },
   ];
@@ -90,12 +89,12 @@ function ScreenDetailsPage() {
 
     navigate({
       pathname: location.pathname,
-      query: newQuery,
+      query: omit(newQuery, 'field', 'query', 'referrer', 'sampling', 'sort', 'span.op'),
     });
   }
 
   const tabList = (
-    <TabList hideBorder>
+    <TabList>
       {tabs.map(tab => {
         const visible =
           tab.feature === undefined || organization.features.includes(tab.feature);
@@ -132,7 +131,7 @@ function ScreenDetailsPage() {
               ]}
             />
             <Layout.Body>
-              <Layout.Main fullWidth>
+              <Layout.Main width="full">
                 <PageAlert />
                 {tabs.filter(tab => tab.key === selectedTabKey).map(tab => tab.content())}
               </Layout.Main>

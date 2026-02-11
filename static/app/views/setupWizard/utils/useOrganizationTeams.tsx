@@ -1,5 +1,6 @@
 import type {Team} from 'sentry/types/organization';
-import {type ApiQueryKey, fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {fetchDataQuery, useQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import type {OrganizationWithRegion} from 'sentry/views/setupWizard/types';
 
 export function useOrganizationTeams({
@@ -9,7 +10,9 @@ export function useOrganizationTeams({
 }) {
   return useQuery({
     queryKey: [
-      `/organizations/${organization?.slug}/teams/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/teams/`, {
+        path: {organizationIdOrSlug: organization?.slug!},
+      }),
       {
         host: organization?.region.url,
       },

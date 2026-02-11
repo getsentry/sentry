@@ -1,9 +1,10 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import * as Storybook from 'sentry/stories';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -16,6 +17,7 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/sampleHTTPRequestTableData';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
+import {Actions} from 'sentry/views/discover/table/cellAction';
 
 export default Storybook.story('TableWidgetVisualization', story => {
   const customColumns: TabularColumn[] = [
@@ -36,10 +38,10 @@ export default Storybook.story('TableWidgetVisualization', story => {
           <Storybook.JSXNode name="TableWidgetVisualization" /> is meant to be a robust
           and eventual replacement to all tables in Dashboards and Insights (and
           potentially more). The inner component of this table is{' '}
-          <Storybook.JSXNode name="GridEditable" />. The table allows for custom
+          <Storybook.JSXNode name="GridEditable" />. The table includes features like
+          sorting, column resizing and cell actions. The table allows for custom
           renderers, but is also able to correctly render fields on its own using
-          fallbacks. Future features planned include sorting, resizing and customizable
-          cell actions.
+          fallbacks.
         </p>
         <p>
           Below is the the most basic example of the table which requires
@@ -50,7 +52,7 @@ export default Storybook.story('TableWidgetVisualization', story => {
     );
   });
 
-  story('Table Data and Optional Table Columns', () => {
+  story('Table Data and Optional Columns', () => {
     const tableWithEmptyData: TabularData = {
       ...sampleHTTPRequestTableData,
       data: [],
@@ -66,11 +68,11 @@ export default Storybook.story('TableWidgetVisualization', story => {
           <code>TabularData</code>. This is a mandatory prop. If the <code>data</code>{' '}
           field is empty, such as
         </p>
-        <CodeSnippet language="json">
+        <CodeBlock language="json">
           {`
 ${JSON.stringify(tableWithEmptyData)}
           `}
-        </CodeSnippet>
+        </CodeBlock>
         <p>Then the table renders empty like this:</p>
         <TableWidgetVisualization tableData={tableWithEmptyData} />
         <p>
@@ -84,11 +86,11 @@ ${JSON.stringify(tableWithEmptyData)}
           tableData={sampleHTTPRequestTableData}
           columns={customColumns}
         />
-        <CodeSnippet language="json">
+        <CodeBlock language="json">
           {`
 ${JSON.stringify(customColumns)}
           `}
-        </CodeSnippet>
+        </CodeBlock>
         <p>
           To pass custom names for a column header, provide the prop <code>aliases</code>{' '}
           which maps column key to the alias. In some cases you may have both field
@@ -104,11 +106,11 @@ ${JSON.stringify(customColumns)}
           tableData={sampleHTTPRequestTableData}
           aliases={aliases}
         />
-        <CodeSnippet language="json">
+        <CodeBlock language="json">
           {`
 ${JSON.stringify(aliases)}
           `}
-        </CodeSnippet>
+        </CodeBlock>
       </Fragment>
     );
   });
@@ -148,7 +150,7 @@ ${JSON.stringify(aliases)}
           <code>columns</code> prop with the field <code>sortable</code> set to true.
           e.g.,
         </p>
-        <CodeSnippet language="tsx">
+        <CodeBlock language="tsx">
           {`
 columns={[{
   key: 'count(span.duration)',
@@ -162,7 +164,7 @@ columns={[{
   type: 'string',
 }]}
           `}
-        </CodeSnippet>
+        </CodeBlock>
         <p>
           This table <b>does not</b> sort entries. Almost all tables in Sentry rely on the{' '}
           <code>sort</code> URL query parameter as a reference for sorting, which is why
@@ -228,7 +230,7 @@ columns={[{
           sort={sort}
           onChangeSort={(newSort: Sort) => onChangeSort(newSort)}
         />
-        <CodeSnippet language="tsx">
+        <CodeBlock language="tsx">
           {`
 const [data, setData] = useState<TabularData>(...);
 const [sort, setSort] = useState<Sort>();
@@ -252,7 +254,7 @@ function onChangeSort(newSort: Sort) {
   setData({data: sortedData, meta: data.meta});
 }
         `}
-        </CodeSnippet>
+        </CodeBlock>
       </Fragment>
     );
   });
@@ -332,11 +334,103 @@ function onChangeSort(newSort: Sort) {
     );
   });
 
+  story('Cell Actions', () => {
+    const [filter, setFilter] = useState<Array<string | number>>([]);
+    return (
+      <Fragment>
+        <p>
+          The default enabled cell actions are copying text to the clipboard and opening
+          external links in a new tab. To customize the list of allowed cell actions for
+          the entire table, use the <code>allowedCellActions</code> prop. For example,
+          passing <code>[]</code> will disable actions completely:
+        </p>
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          allowedCellActions={[]}
+        />
+        <p>
+          If a custom list of cell actions is supplied, then pass the{' '}
+          <code>onTriggerCellAction</code> prop to add behavior when the action is
+          selected by the user. This table only provides default behavior for copying text
+          and opening external links. You are responsible to supply behavior for any
+          custom actions.
+        </p>
+        <p>
+          Current filter: <b>[{filter.toString()}]</b>
+        </p>
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          allowedCellActions={[Actions.ADD, Actions.EXCLUDE]}
+          onTriggerCellAction={(actions: Actions, value: string | number) => {
+            switch (actions) {
+              case Actions.ADD:
+                if (!filter.includes(value)) setFilter([...filter, value]);
+                break;
+              case Actions.EXCLUDE:
+                setFilter(filter.filter(_value => _value !== value));
+                break;
+              default:
+                break;
+            }
+          }}
+        />
+        <CodeBlock language="tsx">
+          {`
+const [filter, setFilter] = useState<Array<string | number>>([]);
+
+function onTriggerCellAction(actions: Actions, value: string | number) {
+  switch (actions) {
+    case Actions.ADD:
+      if (!filter.includes(value)) setFilter([...filter, value]);
+      break;
+    case Actions.EXCLUDE:
+      setFilter(filter.filter(_value => _value !== value));
+      break;
+    default:
+      break;
+  }
+}
+        `}
+        </CodeBlock>
+        <p>
+          To customize actions per cell, use <code>allowedCellActions</code> as a
+          function. This function receives the full cell info, including the column type.
+          There are also default actions defined in <code>ALLOWED_CELL_ACTIONS</code>,
+          it's recommended to use them as a base.
+        </p>
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          allowedCellActions={cellInfo => {
+            if (cellInfo.column.type === 'integer') {
+              return [Actions.SHOW_GREATER_THAN, Actions.SHOW_LESS_THAN];
+            }
+
+            return [Actions.ADD, Actions.EXCLUDE];
+          }}
+        />
+        <CodeBlock language="tsx">
+          {`
+<TableWidgetVisualization
+  tableData={sampleHTTPRequestTableData}
+  allowedCellActions={cellInfo => {
+    if (cellInfo.column.type === 'integer') {
+      return [Actions.SHOW_GREATER_THAN, Actions.SHOW_LESS_THAN];
+    }
+
+    return [Actions.ADD, Actions.EXCLUDE];
+  }}
+/>
+          `}
+        </CodeBlock>
+      </Fragment>
+    );
+  });
+
   story('Using Custom Cell Rendering', () => {
     function getRenderer(fieldName: string) {
       if (fieldName === 'http.request_method') {
         return function (dataRow: TabularRow) {
-          return <Tag>{dataRow[fieldName]}</Tag>;
+          return <Tag variant="muted">{dataRow[fieldName]}</Tag>;
         };
       }
 
@@ -376,7 +470,7 @@ function onChangeSort(newSort: Sort) {
           tableData={sampleHTTPRequestTableData}
           getRenderer={getRenderer}
         />
-        <CodeSnippet language="tsx">
+        <CodeBlock language="tsx">
           {`
 function getRenderer(fieldName: string) {
   if (fieldName === 'http.request_method') {
@@ -392,12 +486,12 @@ function getRenderer(fieldName: string) {
   );
 }
           `}
-        </CodeSnippet>
+        </CodeBlock>
       </Fragment>
     );
   });
 
-  story('Table Loading Placeholder', () => {
+  story('Loading Placeholder', () => {
     return (
       <Fragment>
         <p>

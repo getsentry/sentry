@@ -1,14 +1,13 @@
 import logging
-from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 
 import sentry_sdk
 
-from sentry import quotas
+from sentry import features, quotas
 from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
 from sentry.db.models import Model
 from sentry.dynamic_sampling.rules.biases.base import Bias
-from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
+from sentry.dynamic_sampling.rules.combine import get_relay_biases
 from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_enabled_user_biases
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
@@ -16,6 +15,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, is_project_mode_sampling
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.utils import metrics
 
 # These rules types will always be added to the generated rules, irrespectively of the base sample rate.
 ALWAYS_INCLUDED_RULE_TYPES = {
@@ -82,7 +82,9 @@ def get_guarded_project_sample_rate(organization: Organization, project: Project
     # When using the boosted project sample rate, we want to fall back to the blended sample rate in case there are
     # any issues.
     sample_rate, _ = get_boost_low_volume_projects_sample_rate(
-        org_id=organization.id, project_id=project.id, error_sample_rate_fallback=sample_rate
+        org_id=organization.id,
+        project_id=project.id,
+        error_sample_rate_fallback=sample_rate,
     )
 
     return float(sample_rate)
@@ -92,7 +94,7 @@ def _get_rules_of_enabled_biases(
     project: Project,
     base_sample_rate: float,
     enabled_biases: set[str],
-    combined_biases: OrderedDict[RuleType, Bias],
+    combined_biases: dict[RuleType, Bias],
 ) -> list[PolymorphicRule]:
     rules = []
 
@@ -108,7 +110,15 @@ def _get_rules_of_enabled_biases(
             or (rule_type.value in enabled_biases and rule_type in ALWAYS_ALLOWED_RULE_TYPES)
         ):
             try:
-                rules += bias.generate_rules(project, base_sample_rate)
+                generated_rules = bias.generate_rules(project, base_sample_rate)
+                rules += generated_rules
+                if generated_rules and features.has(
+                    "organizations:dynamic-sampling-count-biases", project.organization
+                ):
+                    metrics.incr(
+                        "dynamic_sampling.rule_emitted",
+                        tags={"bias": bias.__class__.__name__},
+                    )
             except Exception:
                 logger.exception("Rule generator %s failed.", rule_type)
 
@@ -122,11 +132,12 @@ def generate_rules(project: Project) -> list[PolymorphicRule]:
         enabled_user_biases = get_enabled_user_biases(
             project.get_option("sentry:dynamic_sampling_biases", None)
         )
-        combined_biases = get_relay_biases_combinator(organization).get_combined_biases()
+        combined_biases = get_relay_biases(organization)
 
         rules = _get_rules_of_enabled_biases(
             project, base_sample_rate, enabled_user_biases, combined_biases
         )
+
     except Exception as e:
         sentry_sdk.capture_exception(e)
         return []

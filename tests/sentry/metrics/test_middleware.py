@@ -10,7 +10,7 @@ from sentry.metrics.middleware import (
 )
 
 
-def test_filter_tags_dev():
+def test_filter_tags_dev() -> None:
     with override_settings(SENTRY_METRICS_DISALLOW_BAD_TAGS=True):
         _filter_tags("x", {"foo": "bar"})
         with pytest.raises(
@@ -20,7 +20,7 @@ def test_filter_tags_dev():
             _filter_tags("x", {"foo": "bar", "foo_id": 42, "project": 42, "event": 22})
 
 
-def test_filter_tags_prod():
+def test_filter_tags_prod() -> None:
     with override_settings(SENTRY_METRICS_DISALLOW_BAD_TAGS=False):
         assert _filter_tags("x", {"foo": "bar"}) == {"foo": "bar"}
         assert _filter_tags("x", {"foo": "bar", "foo_id": 42, "project": 42, "event": 22}) == {
@@ -28,12 +28,12 @@ def test_filter_tags_prod():
         }
 
 
-def test_global():
+def test_global() -> None:
     assert get_current_global_tags() == {}
 
-    with global_tags(tag_a=123):
+    with global_tags(tags={"tag_a": 123}):
         assert get_current_global_tags() == {"tag_a": 123}
-        add_global_tags(tag_b=123)
+        add_global_tags(tags={"tag_b": 123})
 
         assert get_current_global_tags() == {"tag_a": 123, "tag_b": 123}
 

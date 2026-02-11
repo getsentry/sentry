@@ -1,10 +1,11 @@
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import AutoSelectText from 'sentry/components/autoSelectText';
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -16,26 +17,18 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
-import {useParams} from 'sentry/utils/useParams';
-import withPlugins from 'sentry/utils/withPlugins';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-
-type Props = {
-  organization: Organization;
-  plugins: {loading: boolean; plugins: Plugin[]};
-  project: Project;
-};
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 type TokenResponse = {
   token: string;
@@ -50,35 +43,54 @@ const placeholderData = {
 };
 
 function getReleaseTokenQueryKey(
-  organization: Organization,
-  projectId: string
+  organizationSlug: string,
+  projectSlug: string
 ): ApiQueryKey {
-  return [`/projects/${organization.slug}/${projectId}/releases/token/`];
+  return [
+    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/token/`, {
+      path: {organizationIdOrSlug: organizationSlug, projectIdOrSlug: projectSlug},
+    }),
+  ];
 }
 
-function ProjectReleaseTracking({organization, project, plugins}: Props) {
+export default function ProjectReleaseTracking() {
   const api = useApi({persistInFlight: true});
-  const {projectId} = useParams<{projectId: string}>();
   const queryClient = useQueryClient();
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
 
   const {
     data: releaseTokenData = placeholderData,
     isFetching,
     isError,
     error,
-  } = useApiQuery<TokenResponse>(getReleaseTokenQueryKey(organization, projectId), {
-    staleTime: 0,
-    retry: false,
-  });
+  } = useApiQuery<TokenResponse>(
+    getReleaseTokenQueryKey(organization.slug, project.slug),
+    {
+      staleTime: 0,
+      retry: false,
+    }
+  );
+
+  const {data: fetchedPlugins = [], isPending: isPluginsLoading} = useApiQuery<Plugin[]>(
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   const handleRegenerateToken = () => {
-    api.request(`/projects/${organization.slug}/${projectId}/releases/token/`, {
+    api.request(`/projects/${organization.slug}/${project.slug}/releases/token/`, {
       method: 'POST',
-      data: {project: projectId},
+      data: {project: project.slug},
       success: data => {
         setApiQueryData<TokenResponse>(
           queryClient,
-          getReleaseTokenQueryKey(organization, projectId),
+          getReleaseTokenQueryKey(organization.slug, project.slug),
           data
         );
         addSuccessMessage(
@@ -112,11 +124,11 @@ function ProjectReleaseTracking({organization, project, plugins}: Props) {
   }
 
   // Using isFetching instead of isPending to avoid showing loading indicator when 403
-  if (isFetching || plugins.loading) {
+  if (isFetching || isPluginsLoading) {
     return <LoadingIndicator />;
   }
 
-  const pluginList = plugins.plugins.filter(
+  const pluginList = fetchedPlugins.filter(
     (p: Plugin) => p.type === 'release-tracking' && p.hasConfiguration
   );
 
@@ -133,7 +145,7 @@ function ProjectReleaseTracking({organization, project, plugins}: Props) {
 
       {!hasWrite && (
         <Alert.Container>
-          <Alert type="warning" showIcon={false}>
+          <Alert variant="warning" showIcon={false}>
             {t(
               'You do not have sufficient permissions to access Release tokens, placeholders are displayed below.'
             )}
@@ -220,25 +232,13 @@ function ProjectReleaseTracking({organization, project, plugins}: Props) {
             )}
           </p>
 
-          {getDynamicText({
-            value: (
-              <AutoSelectText>
-                <pre>{getReleaseWebhookIntructions()}</pre>
-              </AutoSelectText>
-            ),
-            fixed: (
-              <pre>
-                {`curl __WEBHOOK_URL__ \\
--X POST \\
--H 'Content-Type: application/json' \\
--d \'{"version": "abcdefg"}\'`}
-              </pre>
-            ),
-          })}
+          <AutoSelectText>
+            <pre>{getReleaseWebhookIntructions()}</pre>
+          </AutoSelectText>
         </PanelBody>
       </Panel>
 
-      <PluginList organization={organization} project={project} pluginList={pluginList} />
+      <PluginList project={project} pluginList={pluginList} />
 
       <Panel>
         <PanelHeader>{t('API')}</PanelHeader>
@@ -259,8 +259,3 @@ function ProjectReleaseTracking({organization, project, plugins}: Props) {
     </div>
   );
 }
-
-export default withPlugins(ProjectReleaseTracking);
-
-// Export for tests
-export {ProjectReleaseTracking};

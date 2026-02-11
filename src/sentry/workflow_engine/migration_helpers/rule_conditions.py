@@ -6,7 +6,7 @@ from sentry.workflow_engine.models.data_condition import Condition, DataConditio
 ConditionAndFilters = tuple[dict[str, Any], list[dict[str, Any]]]
 
 
-def create_reappeared_event_condition(
+def create_escalating_event_condition(
     data_condition: DataCondition,
     is_filter: bool = False,
 ) -> ConditionAndFilters:
@@ -133,12 +133,15 @@ def create_assigned_to_filter(
 def create_issue_category_filter(
     data_condition: DataCondition, is_filter: bool = False
 ) -> ConditionAndFilters:
-    return {}, [
-        {
-            "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
-            "value": data_condition.comparison["value"],
-        }
-    ]
+    payload = {
+        "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
+        "value": data_condition.comparison["value"],
+    }
+    include = data_condition.comparison.get("include")
+    if isinstance(include, bool):
+        payload["include"] = include
+
+    return {}, [payload]
 
 
 def create_issue_occurrences_filter(
@@ -266,7 +269,7 @@ def create_event_unique_user_frequency_condition(
 
 
 data_condition_to_rule_condition_mapping = {
-    Condition.REAPPEARED_EVENT: create_reappeared_event_condition,
+    Condition.REAPPEARED_EVENT: create_escalating_event_condition,
     Condition.REGRESSION_EVENT: create_regression_event_condition,
     Condition.EXISTING_HIGH_PRIORITY_ISSUE: create_existing_high_priority_issue_condition,
     Condition.NEW_HIGH_PRIORITY_ISSUE: create_new_high_priority_issue_condition,

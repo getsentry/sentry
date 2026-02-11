@@ -5,7 +5,6 @@ from sentry.models.rule import Rule
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.rules.conditions.event_frequency import EventFrequencyCondition
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.actor import Actor
 from sentry.users.models.user import User
@@ -21,21 +20,21 @@ from sentry.workflow_engine.models.data_condition import Condition
 
 
 class TestUpdater(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization(name="bloop", owner=self.user)
         self.project = self.create_project(
             teams=[self.create_team()], name="foo", fire_project_created=True
         )
-        self.rule = self.project.rule_set.all()[0]
+        self.rule = self.create_project_rule(project=self.project)
         self.updater = ProjectRuleUpdater(rule=self.rule, project=self.project)
 
-    def test_update_name(self):
+    def test_update_name(self) -> None:
         self.updater.name = "Cool New Rule"
         self.updater.run()
         assert self.rule.label == "Cool New Rule"
 
-    def test_update_owner(self):
+    def test_update_owner(self) -> None:
         self.updater.owner = Actor.from_id(user_id=self.user.id)
         self.updater.run()
         with assume_test_silo_mode_of(User):
@@ -54,25 +53,26 @@ class TestUpdater(TestCase):
         assert self.rule.owner_team_id is None
         assert self.rule.owner_user_id is None
 
-    def test_update_environment(self):
-        self.updater.environment = 3
+    def test_update_environment(self) -> None:
+        new_env = self.create_environment(project=self.project)
+        self.updater.environment = new_env.id
         self.updater.run()
-        assert self.rule.environment_id == 3
+        assert self.rule.environment_id == new_env.id
 
-    def test_update_environment_when_none(self):
+    def test_update_environment_when_none(self) -> None:
         self.rule.environment_id = 3
         self.rule.save()
         assert self.rule.environment_id == 3
         self.updater.run()
         assert self.rule.environment_id is None
 
-    def test_update_project(self):
+    def test_update_project(self) -> None:
         project2 = self.create_project(organization=self.org)
         self.updater.project = project2
         self.updater.run()
         assert self.rule.project == project2
 
-    def test_update_actions(self):
+    def test_update_actions(self) -> None:
         self.updater.actions = [
             {
                 "id": "sentry.rules.actions.notify_event.NotifyEventAction",
@@ -86,17 +86,17 @@ class TestUpdater(TestCase):
             }
         ]
 
-    def test_update_action_match(self):
+    def test_update_action_match(self) -> None:
         self.updater.action_match = "any"
         self.updater.run()
         assert self.rule.data["action_match"] == "any"
 
-    def test_update_filter_match(self):
+    def test_update_filter_match(self) -> None:
         self.updater.filter_match = "any"
         self.updater.run()
         assert self.rule.data["filter_match"] == "any"
 
-    def test_update_conditions(self):
+    def test_update_conditions(self) -> None:
         self.updater.conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -115,15 +115,12 @@ class TestUpdater(TestCase):
             }
         ]
 
-    def test_update_frequency(self):
+    def test_update_frequency(self) -> None:
         self.updater.frequency = 5
         self.updater.run()
         assert self.rule.data["frequency"] == 5
 
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
-    def test_dual_create_workflow_engine(self):
-        IssueAlertMigrator(self.rule, user_id=self.user.id).run()
-
+    def test_dual_update_workflow_engine(self) -> None:
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -189,8 +186,7 @@ class TestUpdater(TestCase):
         action = DataConditionGroupAction.objects.get(condition_group=action_filter).action
         assert action.type == Action.Type.PLUGIN
 
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
-    def test_dual_create_workflow_engine__errors_on_invalid_conditions(self):
+    def test_dual_create_workflow_engine__errors_on_invalid_conditions(self) -> None:
         IssueAlertMigrator(self.rule, user_id=self.user.id).run()
 
         conditions = [

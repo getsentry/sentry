@@ -347,7 +347,47 @@ describe('findConflictingConditions', () => {
         actionFilter3: new Set(['4']),
       },
       conflictReason:
-        'The conditions highlighted in red are in conflict with \"A new issue is created.\"',
+        'The conditions highlighted in red are in conflict with "A new issue is created."',
+    });
+  });
+
+  it('correctly handles conflicting issue priority and priority de-escalating conditions', () => {
+    const triggers: DataConditionGroup = {
+      id: 'triggers',
+      logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+      conditions: [
+        {
+          id: '1',
+          type: DataConditionType.FIRST_SEEN_EVENT,
+          comparison: {comparison_type: 'equals', value: 5},
+        },
+      ],
+    };
+    const actionFilters = [
+      {
+        id: 'actionFilter1',
+        logicType: DataConditionGroupLogicType.ALL,
+        conditions: [
+          {
+            id: '3',
+            type: DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL,
+            comparison: {value: 'high'},
+          },
+          {
+            id: '4',
+            type: DataConditionType.ISSUE_PRIORITY_DEESCALATING,
+            comparison: true,
+          },
+        ],
+      },
+    ];
+
+    const result = findConflictingConditions(triggers, actionFilters);
+    expect(result).toEqual({
+      conflictingConditionGroups: {
+        actionFilter1: new Set(['3', '4']),
+      },
+      conflictReason: 'The issue priority conditions highlighted in red are in conflict.',
     });
   });
 

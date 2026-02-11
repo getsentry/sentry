@@ -1,5 +1,6 @@
-import {Button} from 'sentry/components/core/button';
-import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
+import {CompositeSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -26,7 +27,7 @@ export function ReleasesSort({environments, sortBy, onChange}: Props) {
   return (
     <CompositeSelect
       trigger={triggerProps => (
-        <Button
+        <OverlayTrigger.IconButton
           {...triggerProps}
           size="xs"
           icon={<IconSort />}

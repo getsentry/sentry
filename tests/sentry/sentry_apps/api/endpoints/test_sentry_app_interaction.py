@@ -1,6 +1,7 @@
 from rest_framework import status
 
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 
@@ -8,7 +9,7 @@ COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 class SentryAppInteractionTest(APITestCase):
     endpoint = "sentry-api-0-sentry-app-interaction"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.published_app = self.create_sentry_app(
@@ -24,8 +25,9 @@ class SentryAppInteractionTest(APITestCase):
         )
 
 
+@control_silo_test
 class SentryAppInteractionAuthTest(SentryAppInteractionTest):
-    def test_not_logged_in_not_allowed(self):
+    def test_not_logged_in_not_allowed(self) -> None:
         response = self.get_error_response(
             self.published_app.slug,
             tsdbField="sentry_app_viewed",
@@ -41,7 +43,7 @@ class SentryAppInteractionAuthTest(SentryAppInteractionTest):
         )
         assert response.data["detail"] == "Authentication credentials were not provided."
 
-    def test_superuser_sees_unowned_interactions(self):
+    def test_superuser_sees_unowned_interactions(self) -> None:
         superuser = self.create_user(email="superuser@example.com", is_superuser=True)
         self.login_as(superuser, superuser=True)
 
@@ -51,25 +53,26 @@ class SentryAppInteractionAuthTest(SentryAppInteractionTest):
         assert response.data["componentInteractions"] == {}
 
 
+@control_silo_test
 class GetSentryAppInteractionTest(SentryAppInteractionTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
-    def test_user_sees_owned_interactions(self):
+    def test_user_sees_owned_interactions(self) -> None:
         response = self.get_success_response(self.published_app.slug)
 
         assert len(response.data["views"]) > 0
         assert "issue-link" in response.data["componentInteractions"]
 
-    def test_user_does_not_see_unowned_interactions(self):
+    def test_user_does_not_see_unowned_interactions(self) -> None:
         response = self.get_error_response(
             self.unowned_published_app.slug,
             status_code=status.HTTP_403_FORBIDDEN,
         )
         assert response.data["detail"] == "You do not have permission to perform this action."
 
-    def test_invalid_startend_throws_error(self):
+    def test_invalid_startend_throws_error(self) -> None:
         self.get_error_response(
             self.published_app.slug,
             qs_params={"since": 1569523068, "until": 1566931068},
@@ -77,14 +80,15 @@ class GetSentryAppInteractionTest(SentryAppInteractionTest):
         )
 
 
+@control_silo_test
 class PostSentryAppInteractionTest(SentryAppInteractionTest):
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
-    def test_missing_tsdb_field(self):
+    def test_missing_tsdb_field(self) -> None:
         response = self.get_error_response(
             self.published_app.slug,
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -94,7 +98,7 @@ class PostSentryAppInteractionTest(SentryAppInteractionTest):
             == "The tsdbField must be one of: sentry_app_viewed, sentry_app_component_interacted"
         )
 
-    def test_incorrect_tsdb_field(self):
+    def test_incorrect_tsdb_field(self) -> None:
         response = self.get_error_response(
             self.published_app.slug,
             tsdbField="invalid",
@@ -105,7 +109,7 @@ class PostSentryAppInteractionTest(SentryAppInteractionTest):
             == "The tsdbField must be one of: sentry_app_viewed, sentry_app_component_interacted"
         )
 
-    def test_missing_component_type(self):
+    def test_missing_component_type(self) -> None:
         response = self.get_error_response(
             self.published_app.slug,
             tsdbField="sentry_app_component_interacted",
@@ -116,7 +120,7 @@ class PostSentryAppInteractionTest(SentryAppInteractionTest):
             == f"The field componentType is required and must be one of {COMPONENT_TYPES}"
         )
 
-    def test_incorrect_component_type(self):
+    def test_incorrect_component_type(self) -> None:
         response = self.get_error_response(
             self.published_app.slug,
             tsdbField="sentry_app_component_interacted",
@@ -128,7 +132,7 @@ class PostSentryAppInteractionTest(SentryAppInteractionTest):
             == f"The field componentType is required and must be one of {COMPONENT_TYPES}"
         )
 
-    def test_allows_logged_in_user_who_doesnt_own_app(self):
+    def test_allows_logged_in_user_who_doesnt_own_app(self) -> None:
         self.get_success_response(
             self.unowned_published_app.slug,
             tsdbField="sentry_app_component_interacted",
@@ -141,7 +145,7 @@ class PostSentryAppInteractionTest(SentryAppInteractionTest):
             status_code=status.HTTP_201_CREATED,
         )
 
-    def test_allows_logged_in_user_who_does_own_app(self):
+    def test_allows_logged_in_user_who_does_own_app(self) -> None:
         self.get_success_response(
             self.published_app.slug,
             tsdbField="sentry_app_component_interacted",

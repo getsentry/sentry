@@ -12,7 +12,7 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import type {EAPSpanProperty} from 'sentry/views/insights/types';
+import type {SpanProperty} from 'sentry/views/insights/types';
 
 type TableData = {
   data: Array<Record<string, any>>;
@@ -34,15 +34,11 @@ export function MobileMetricsRibbon({
   referrer,
 }: {
   blocks: BlockProps[];
-  fields: EAPSpanProperty[];
+  fields: SpanProperty[];
   referrer: string;
   filters?: string[];
 }) {
-  const {
-    primaryRelease,
-    secondaryRelease,
-    isLoading: isReleasesLoading,
-  } = useReleaseSelection();
+  const {primaryRelease, isLoading: isReleasesLoading} = useReleaseSelection();
 
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
@@ -53,14 +49,8 @@ export function MobileMetricsRibbon({
       searchQuery.addFilterValue('os.name', selectedPlatform);
     }
 
-    return appendReleaseFilters(searchQuery, primaryRelease, secondaryRelease);
-  }, [
-    filters,
-    isProjectCrossPlatform,
-    primaryRelease,
-    secondaryRelease,
-    selectedPlatform,
-  ]);
+    return appendReleaseFilters(searchQuery, primaryRelease);
+  }, [filters, isProjectCrossPlatform, primaryRelease, selectedPlatform]);
 
   const {isPending, data, meta} = useSpans(
     {

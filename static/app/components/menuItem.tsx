@@ -2,8 +2,10 @@ import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import type {LinkProps} from 'sentry/components/core/link';
-import {Link} from 'sentry/components/core/link';
+import {Flex} from '@sentry/scraps/layout';
+import type {LinkProps} from '@sentry/scraps/link';
+import {Link} from '@sentry/scraps/link';
+
 import {space} from 'sentry/styles/space';
 
 type MenuItemProps = {
@@ -70,8 +72,7 @@ type MenuItemProps = {
 };
 
 interface Props
-  extends MenuItemProps,
-    Omit<React.HTMLAttributes<HTMLLIElement>, 'onSelect'> {}
+  extends MenuItemProps, Omit<React.HTMLAttributes<HTMLLIElement>, 'onSelect'> {}
 
 function MenuItem({
   header,
@@ -122,7 +123,11 @@ function MenuItem({
     if (to) {
       return (
         <MenuLink to={to} {...linkProps} title={title} data-test-id="menu-item">
-          {icon && <MenuIcon>{icon}</MenuIcon>}
+          {icon && (
+            <Flex align="center" marginRight="md">
+              {icon}
+            </Flex>
+          )}
           {children}
         </MenuLink>
       );
@@ -131,7 +136,11 @@ function MenuItem({
     if (href) {
       return (
         <MenuAnchor {...linkProps} href={href} data-test-id="menu-item">
-          {icon && <MenuIcon>{icon}</MenuIcon>}
+          {icon && (
+            <Flex align="center" marginRight="md">
+              {icon}
+            </Flex>
+          )}
           {children}
         </MenuAnchor>
       );
@@ -139,7 +148,11 @@ function MenuItem({
 
     return (
       <MenuTarget role="button" {...linkProps} title={title} data-test-id="menu-item">
-        {icon && <MenuIcon>{icon}</MenuIcon>}
+        {icon && (
+          <Flex align="center" marginRight="md">
+            {icon}
+          </Flex>
+        )}
         {children}
       </MenuTarget>
     );
@@ -190,7 +203,7 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
   if (props.disabled) {
     return css`
       ${common}
-      color: ${props.theme.disabled};
+      color: ${props.theme.tokens.content.disabled};
       background: transparent;
       cursor: not-allowed;
     `;
@@ -199,11 +212,11 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
   if (props.isActive) {
     return css`
       ${common}
-      color: ${props.theme.white};
-      background: ${props.theme.active};
+      color: ${props.theme.colors.white};
+      background: ${props.theme.tokens.background.accent.vibrant};
 
       &:hover {
-        background: ${props.theme.activeHover};
+        background: ${props.theme.tokens.interactive.chonky.embossed.accent.background};
       }
     `;
   }
@@ -212,7 +225,7 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
     ${common}
 
     &:hover {
-      background: ${props.theme.hover};
+      background: ${props.theme.tokens.interactive.transparent.neutral.background.hover};
     }
   `;
 }
@@ -242,7 +255,7 @@ const MenuListItem = styled('li')<MenuListItemProps>`
   ${p =>
     p.withBorder &&
     css`
-      border-bottom: 1px solid ${p.theme.innerBorder};
+      border-bottom: 1px solid ${p.theme.tokens.border.secondary};
 
       &:last-child {
         border-bottom: none;
@@ -254,15 +267,16 @@ const MenuListItem = styled('li')<MenuListItemProps>`
       height: 1px;
       margin: ${space(0.5)} 0;
       overflow: hidden;
-      background-color: ${p.theme.innerBorder};
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      background-color: ${p.theme.tokens.border.secondary};
     `}
   ${p =>
     p.header &&
     css`
       padding: ${space(0.25)} ${space(0.5)};
-      font-size: ${p.theme.fontSize.sm};
+      font-size: ${p.theme.font.size.sm};
       line-height: 1.4;
-      color: ${p.theme.subText};
+      color: ${p.theme.tokens.content.secondary};
     `}
 
   ${getChildStyles}
@@ -272,12 +286,6 @@ const MenuTarget = styled('span')<MenuListItemProps>`
   ${getListItemStyles}
   display: flex;
   align-items: center;
-`;
-
-const MenuIcon = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-right: ${space(1)};
 `;
 
 const MenuLink = styled(Link, {shouldForwardProp})<MenuListItemProps>`

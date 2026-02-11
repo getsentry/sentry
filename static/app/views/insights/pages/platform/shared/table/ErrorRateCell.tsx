@@ -1,9 +1,9 @@
 import {useTheme} from '@emotion/react';
 import type {LocationDescriptor} from 'history';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {space} from 'sentry/styles/space';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {defined} from 'sentry/utils';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -41,12 +41,14 @@ export function ErrorRateCell({
     issuesLink && errorCount > 0 ? (
       <Link to={issuesLink}>({formatAbbreviatedNumber(errorCount)})</Link>
     ) : (
-      <span style={{color: theme.subText}}>({formatAbbreviatedNumber(errorCount)})</span>
+      <span style={{color: theme.tokens.content.secondary}}>
+        ({formatAbbreviatedNumber(errorCount)})
+      </span>
     );
 
   return (
     <ThresholdCell value={errorRate}>
-      <Flex align="center" justify="flex-end" gap={space(0.5)}>
+      <Flex align="center" justify="end" gap="xs">
         {formatPercentage(errorRate, 2, {minimumValue: 0.0001})}
         {defined(errorCount) ? errorCountElement : null}
       </Flex>

@@ -2,12 +2,15 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
 import {HighlightsIconSummary as TransactionEventHighlights} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {IconGlobe} from 'sentry/icons';
 import {IconReleases} from 'sentry/icons/iconReleases';
 import {IconWindow} from 'sentry/icons/iconWindow';
 import {t} from 'sentry/locale';
@@ -215,7 +218,7 @@ function AttributesHighlights({
         }
 
         return {
-          icon: <IconReleases size="sm" color="subText" />,
+          icon: <IconReleases size="sm" variant="muted" />,
           description: (
             <VersionHoverCard
               organization={organization}
@@ -229,6 +232,21 @@ function AttributesHighlights({
       },
     },
     {
+      key: 'uptime-check-region',
+      getSummary: () => {
+        const region = findSpanAttributeValue(attributes, 'region');
+
+        if (!region) {
+          return null;
+        }
+
+        return {
+          icon: <IconGlobe size="sm" variant="muted" />,
+          description: t('Check from %s', region),
+        };
+      },
+    },
+    {
       key: 'environment',
       getSummary: () => {
         const environment = findSpanAttributeValue(attributes, 'environment');
@@ -236,7 +254,7 @@ function AttributesHighlights({
           return null;
         }
         return {
-          icon: <IconWindow size="sm" color="subText" />,
+          icon: <IconWindow size="sm" variant="muted" />,
           description: <Tooltip title={t('Environment')}>{environment}</Tooltip>,
         };
       },
@@ -253,43 +271,39 @@ function AttributesHighlights({
         }
 
         return (
-          <HighlightsContainer key={highlight.key}>
+          <Flex align="center" gap="md" key={highlight.key}>
             <HighlightsIconWrapper>{summary.icon}</HighlightsIconWrapper>
             <HighlightsDescription>{summary.description}</HighlightsDescription>
-          </HighlightsContainer>
+          </Flex>
         );
       })}
     </ScrollCarousel>
   );
 }
 
-const HighlightsContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
 const HighlightsDescription = styled('div')`
   display: flex;
   gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const HighlightsIconWrapper = styled('div')`
+  display: flex;
+  align-items: center;
   flex: none;
   line-height: 1;
 `;
 
 const HighlightsSubtitle = styled(Tooltip)`
   display: block;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledVersion = styled(Version)`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.primary};
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 

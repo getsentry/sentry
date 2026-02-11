@@ -7,6 +7,10 @@ from django.db.models import Q, Subquery
 
 from sentry.api.serializers import Serializer, serialize
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
+from sentry.incidents.endpoints.serializers.utils import (
+    get_fake_id_from_object_id,
+    get_object_id_from_fake_id,
+)
 from sentry.incidents.endpoints.serializers.workflow_engine_data_condition import (
     WorkflowEngineDataConditionSerializer,
 )
@@ -77,9 +81,13 @@ class WorkflowEngineDetectorSerializer(Serializer):
             errors = []
             alert_rule_id = serialized.get("alertRuleId")
             assert alert_rule_id
-            detector_id = AlertRuleDetector.objects.values_list("detector_id", flat=True).get(
-                alert_rule_id=alert_rule_id
-            )
+            try:
+                detector_id = AlertRuleDetector.objects.values_list("detector_id", flat=True).get(
+                    alert_rule_id=alert_rule_id
+                )
+            except AlertRuleDetector.DoesNotExist:
+                detector_id = get_object_id_from_fake_id(int(alert_rule_id))
+
             detector = detectors[int(detector_id)]
             alert_rule_triggers = result[detector].setdefault("triggers", [])
 
@@ -152,7 +160,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             if detector.created_by_id:
                 rpc_user = user_by_user_id.get(detector.created_by_id)
             if not rpc_user:
-                result[detector]["created_by"] = {}
+                result[detector]["created_by"] = None
             else:
                 created_by = dict(
                     id=rpc_user.id, name=rpc_user.get_display_name(), email=rpc_user.email
@@ -275,31 +283,28 @@ class WorkflowEngineDetectorSerializer(Serializer):
         # skipping snapshot data
 
         if "latestIncident" in self.expand:
-            # the most horrible way to map a detector to it's action ids but idk if I can make this less horrible
-            detector_to_workflow_condition_group_ids = {
-                detector: detector.workflow_condition_group.id
-                for detector in detectors.values()
-                if detector.workflow_condition_group
-            }
-            detector_to_detector_triggers = defaultdict(list)
-            for trigger in detector_trigger_data_conditions:
-                for detector, wcg_id in detector_to_workflow_condition_group_ids.items():
-                    if trigger.condition_group.id is wcg_id:
-                        detector_to_detector_triggers[detector].append(trigger)
+            # to get the actions for a detector, we need to go from detector -> workflow -> action filters for that workflow -> actions
+            detector_workflow_values = DetectorWorkflow.objects.filter(
+                detector__in=detector_ids
+            ).values_list("detector_id", "workflow_id")
+            detector_id_to_workflow_ids = defaultdict(list)
+            for detector_id, workflow_id in detector_workflow_values:
+                detector_id_to_workflow_ids[detector_id].append(workflow_id)
 
-            detector_to_action_filters = defaultdict(list)
-            for action_filter in action_filter_data_condition_groups:
-                for detector, detector_triggers in detector_to_detector_triggers.items():
-                    for trigger in detector_triggers:
-                        if action_filter.comparison is trigger.condition_result:
-                            detector_to_action_filters[detector].append(action_filter)
+            workflow_action_values = dcgas.values_list(
+                "condition_group__workflowdataconditiongroup__workflow_id", "action_id"
+            )
+
+            workflow_id_to_action_ids = defaultdict(list)
+            for workflow_id, action_id in workflow_action_values:
+                workflow_id_to_action_ids[workflow_id].append(action_id)
 
             detector_to_action_ids = defaultdict(list)
-            for dcga in dcgas:
-                for detector, action_filters in detector_to_action_filters.items():
-                    for action_filter in action_filters:
-                        if action_filter.condition_group.id is dcga.condition_group.id:
-                            detector_to_action_ids[detector].append(dcga.action.id)
+            for detector_id in detectors:
+                for workflow_id in detector_id_to_workflow_ids.get(detector_id, []):
+                    detector_to_action_ids[detectors[detector_id]].extend(
+                        workflow_id_to_action_ids.get(workflow_id, [])
+                    )
 
             self.add_latest_incident(result, user, detectors, detector_to_action_ids)
 
@@ -316,26 +321,31 @@ class WorkflowEngineDetectorSerializer(Serializer):
             )
             result[detector]["query"] = query_subscription.snuba_query.query
             result[detector]["aggregate"] = query_subscription.snuba_query.aggregate
-            result[detector]["timeWindow"] = query_subscription.snuba_query.time_window
-            result[detector]["resolution"] = query_subscription.snuba_query.resolution
+            result[detector]["timeWindow"] = query_subscription.snuba_query.time_window / 60
+            result[detector]["resolution"] = query_subscription.snuba_query.resolution / 60
 
         return result
 
     def serialize(self, obj: Detector, attrs, user, **kwargs) -> AlertRuleSerializerResponse:
         triggers = attrs.get("triggers", [])
-        alert_rule_detector_id = None
+        alert_rule_id = None
 
         if triggers:
-            alert_rule_detector_id = triggers[0].get("alertRuleId")
+            alert_rule_id = triggers[0].get("alertRuleId")
         else:
-            alert_rule_detector_id = AlertRuleDetector.objects.values_list(
-                "alert_rule_id", flat=True
-            ).get(detector=obj)
+            try:
+                alert_rule_id = AlertRuleDetector.objects.values_list(
+                    "alert_rule_id", flat=True
+                ).get(detector=obj)
+            except AlertRuleDetector.DoesNotExist:
+                # this detector does not have an analog in the old system,
+                # but we need to return *something*
+                alert_rule_id = get_fake_id_from_object_id(obj.id)
 
         data: AlertRuleSerializerResponse = {
-            "id": str(alert_rule_detector_id),
+            "id": str(alert_rule_id),
             "name": obj.name,
-            "organizationId": obj.project.organization_id,
+            "organizationId": str(obj.project.organization_id),
             "status": (
                 AlertRuleStatus.PENDING.value
                 if obj.enabled is True
@@ -345,7 +355,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "aggregate": attrs.get("aggregate"),
             "timeWindow": attrs.get("timeWindow"),
             "resolution": attrs.get("resolution"),
-            "thresholdPeriod": obj.config.get("thresholdPeriod"),
+            "thresholdPeriod": 1,  # unset on detectors
             "triggers": triggers,
             "projects": sorted(attrs.get("projects", [])),
             "owner": attrs.get("owner", None),
@@ -353,7 +363,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by"),
             "description": obj.description if obj.description else "",
-            "detectionType": obj.type,
+            "detectionType": obj.config.get("detection_type"),
         }
         if "latestIncident" in self.expand:
             data["latestIncident"] = attrs.get("latestIncident", None)

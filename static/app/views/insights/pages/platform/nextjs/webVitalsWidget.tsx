@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
@@ -19,9 +20,9 @@ import {getPreviousPeriod} from 'sentry/views/insights/pages/platform/nextjs/uti
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
-import type {EAPSpanProperty} from 'sentry/views/insights/types';
+import type {SpanProperty} from 'sentry/views/insights/types';
 
-const FIELDS: EAPSpanProperty[] = [
+const FIELDS: SpanProperty[] = [
   'avg(measurements.score.total)',
   'performance_score(measurements.score.lcp)',
   'performance_score(measurements.score.fcp)',
@@ -91,8 +92,8 @@ function usePerformanceScoreData({query}: {query?: string}): ProjectScoreQuery {
         projects: pageFilterChartParams.project,
         environments: pageFilterChartParams.environment,
         datetime: {
-          start: previousPeriodParams?.start!,
-          end: previousPeriodParams?.end!,
+          start: previousPeriodParams?.start ?? null,
+          end: previousPeriodParams?.end ?? null,
           period: null,
           utc: !!pageFilterChartParams.utc,
         },
@@ -195,7 +196,7 @@ function WebVitalsWidgetVisualization({
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   return (
-    <WebVitalsWidgetVisualizationContainer>
+    <Flex justify="center" align="center" height="100%">
       <PerformanceScoreRingWithTooltips
         projectScore={projectScore}
         projectData={projectData}
@@ -212,16 +213,9 @@ function WebVitalsWidgetVisualization({
         ringSegmentColors={ringSegmentColors}
         inPerformanceWidget
       />
-    </WebVitalsWidgetVisualizationContainer>
+    </Flex>
   );
 }
 
 WebVitalsWidgetVisualization.LoadingPlaceholder =
   TimeSeriesWidgetVisualization.LoadingPlaceholder;
-
-const WebVitalsWidgetVisualizationContainer = styled('div')`
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;

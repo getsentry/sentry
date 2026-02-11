@@ -1,17 +1,24 @@
 from django.db.models.signals import post_save
 
 from sentry import analytics
+from sentry.analytics.events.user_created import UserCreatedEvent
 from sentry.users.models.user import User
 
 
-def capture_signal(type):
-    def wrapped(instance, created, **kwargs):
-        if created:
-            analytics.record(type, instance)
-
-    return wrapped
+def on_user_post_save(instance: User, created: bool, **kwargs):
+    if created:
+        analytics.record(
+            UserCreatedEvent(
+                id=instance.id,
+                username=instance.username,
+                email=instance.email,
+            )
+        )
 
 
 post_save.connect(
-    capture_signal("user.created"), sender=User, dispatch_uid="analytics.user.created", weak=False
+    on_user_post_save,
+    sender=User,
+    dispatch_uid="analytics.user.created",
+    weak=False,
 )

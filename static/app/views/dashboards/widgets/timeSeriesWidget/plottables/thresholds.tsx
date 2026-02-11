@@ -1,5 +1,8 @@
-import type {SeriesOption} from 'echarts';
-import type {ItemStyleOption} from 'echarts/types/src/util/types';
+import type {
+  MarkAreaComponentOption,
+  MarkLineComponentOption,
+  SeriesOption,
+} from 'echarts';
 
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
@@ -40,7 +43,7 @@ export class Thresholds implements Plottable {
     this.isEmpty = !this.thresholds.max_values.max1 && !this.thresholds.max_values.max2;
   }
 
-  toMarkArea(yAxisRange: [number, number], style?: ItemStyleOption) {
+  toMarkArea(yAxisRange: [number, number], style: MarkAreaComponentOption['itemStyle']) {
     const max = yAxisRange[1] === Infinity ? {y: this.maxOffset} : {yAxis: yAxisRange[1]};
     const min = {yAxis: yAxisRange[0]};
 
@@ -56,7 +59,7 @@ export class Thresholds implements Plottable {
 
     const markAreas = [
       this.toMarkArea([0, max1 ?? Infinity], {
-        color: theme.green300,
+        color: theme.colors.green400,
         opacity: 0.1,
       }),
     ];
@@ -64,7 +67,7 @@ export class Thresholds implements Plottable {
     if (max1) {
       markAreas.push(
         this.toMarkArea([max1, max2 ?? Infinity], {
-          color: theme.yellow300,
+          color: theme.colors.yellow400,
           opacity: 0.1,
         })
       );
@@ -73,7 +76,7 @@ export class Thresholds implements Plottable {
     if (max2) {
       markAreas.push(
         this.toMarkArea([max2, Infinity], {
-          color: theme.red300,
+          color: theme.colors.red400,
           opacity: 0.1,
         })
       );
@@ -82,7 +85,7 @@ export class Thresholds implements Plottable {
     return markAreas;
   }
 
-  toMarkLine(yAxis: number, label: string, style?: ItemStyleOption) {
+  toMarkLine(yAxis: number, label: string, style: MarkLineComponentOption['lineStyle']) {
     return MarkLine({
       animation: false,
       silent: true,
@@ -108,14 +111,14 @@ export class Thresholds implements Plottable {
 
     const markLines = [
       this.toMarkLine(max1 ?? Infinity, t('Good'), {
-        color: theme.green300,
+        color: theme.colors.green400,
       }),
     ];
 
     if (max1) {
       markLines.push(
         this.toMarkLine(max2 ?? Infinity, t('Meh'), {
-          color: theme.yellow300,
+          color: theme.colors.yellow400,
         })
       );
     }
@@ -123,7 +126,7 @@ export class Thresholds implements Plottable {
     if (max2) {
       markLines.push(
         this.toMarkLine(Infinity, t('Poor'), {
-          color: theme.red300,
+          color: theme.colors.red400,
         })
       );
     }

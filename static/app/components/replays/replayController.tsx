@@ -2,17 +2,19 @@ import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import ReplayPreferenceDropdown from 'sentry/components/replays/preferences/replayPreferenceDropdown';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {ReplayFullscreenButton} from 'sentry/components/replays/replayFullscreenButton';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
-import {IconNext, IconRewind10} from 'sentry/icons';
+import {IconChevron, IconRewind10} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
+import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
 const SECOND = 1000;
@@ -31,7 +33,7 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
   const {currentTime, setCurrentTime} = useReplayContext();
 
   return (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       <Button
         size="sm"
         title={t('Rewind 10s')}
@@ -45,7 +47,7 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
         disabled={isLoading}
         size="sm"
         title={t('Next breadcrumb')}
-        icon={<IconNext size="sm" />}
+        icon={<IconChevron size="sm" direction="right" />}
         onClick={() => {
           if (!replay) {
             return;
@@ -61,7 +63,7 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
         }}
         aria-label={t('Fast-forward to next breadcrumb')}
       />
-    </ButtonBar>
+    </Grid>
   );
 }
 
@@ -90,17 +92,19 @@ export default function ReplayController({
   return (
     <ButtonGrid ref={barRef} isCompact={isCompact}>
       <ReplayPlayPauseBar isLoading={isLoading} />
-      <Container>
+
+      <TimelineScaleContextProvider>
         <TimeAndScrubberGrid isCompact={isCompact} showZoom isLoading={isLoading} />
-      </Container>
-      <ButtonBar>
+      </TimelineScaleContextProvider>
+
+      <Grid flow="column" align="center" gap="md">
         <ReplayPreferenceDropdown
           isLoading={isLoading}
           speedOptions={speedOptions}
           hideFastForward={hideFastForward}
         />
         <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
-      </ButtonBar>
+      </Grid>
     </ButtonGrid>
   );
 }
@@ -111,11 +115,4 @@ const ButtonGrid = styled('div')<{isCompact: boolean}>`
   flex-direction: row;
   justify-content: space-between;
   ${p => (p.isCompact ? `flex-wrap: wrap;` : '')}
-`;
-
-const Container = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1;
-  justify-content: center;
 `;

@@ -1,7 +1,8 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import LoadingError from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
@@ -10,10 +11,11 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import AutomationTitleCell from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {parseCursor} from 'sentry/utils/cursor';
 import {useAutomationsQuery} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 
@@ -27,8 +29,9 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
   cursor: string | undefined;
   onCursor: CursorHandler;
   connectedAutomationIds?: Set<string>;
-  emptyMessage?: string;
+  emptyMessage?: React.ReactNode;
   limit?: number | null;
+  openInNewTab?: boolean;
   query?: string;
   toggleConnected?: (params: {automation: Automation}) => void;
 };
@@ -62,11 +65,12 @@ export function ConnectedAutomationsList({
   automationIds,
   connectedAutomationIds,
   toggleConnected,
-  emptyMessage = t('No automations connected'),
+  emptyMessage = t('No alerts connected'),
   cursor,
   onCursor,
   limit = DEFAULT_AUTOMATIONS_PER_PAGE,
   query,
+  openInNewTab,
   ...props
 }: Props) {
   const canEdit = Boolean(
@@ -90,6 +94,25 @@ export function ConnectedAutomationsList({
   );
 
   const pageLinks = getResponseHeader?.('Link');
+  const totalCount = getResponseHeader?.('X-Hits');
+  const totalCountInt = totalCount ? parseInt(totalCount, 10) : 0;
+
+  const paginationCaption = useMemo(() => {
+    if (!automations || automations.length === 0 || isLoading || limit === null) {
+      return undefined;
+    }
+
+    const currentCursor = parseCursor(cursor);
+    const offset = currentCursor?.offset ?? 0;
+    const startCount = offset * limit + 1;
+    const endCount = startCount + automations.length - 1;
+
+    return tct('[start]-[end] of [total]', {
+      start: startCount.toLocaleString(),
+      end: endCount.toLocaleString(),
+      total: totalCountInt.toLocaleString(),
+    });
+  }, [automations, isLoading, cursor, limit, totalCountInt]);
 
   return (
     <Container {...props}>
@@ -123,10 +146,13 @@ export function ConnectedAutomationsList({
           automations.map(automation => (
             <SimpleTable.Row
               key={automation.id}
-              variant={automation.disabled ? 'faded' : 'default'}
+              variant={automation.enabled ? 'default' : 'faded'}
             >
               <SimpleTable.RowCell>
-                <AutomationTitleCell automation={automation} />
+                <AutomationTitleCell
+                  automation={automation}
+                  openInNewTab={openInNewTab}
+                />
               </SimpleTable.RowCell>
               <SimpleTable.RowCell data-column-name="last-triggered">
                 <TimeAgoCell date={automation.lastTriggered} />
@@ -135,7 +161,7 @@ export function ConnectedAutomationsList({
                 <ActionCell actions={getAutomationActions(automation)} />
               </SimpleTable.RowCell>
               {canEdit && (
-                <SimpleTable.RowCell data-column-name="connected" justify="flex-end">
+                <SimpleTable.RowCell data-column-name="connected" justify="end">
                   <Button onClick={() => toggleConnected?.({automation})} size="sm">
                     {connectedAutomationIds?.has(automation.id)
                       ? t('Disconnect')
@@ -146,7 +172,13 @@ export function ConnectedAutomationsList({
             </SimpleTable.Row>
           ))}
       </SimpleTableWithColumns>
-      {limit === null ? null : <Pagination onCursor={onCursor} pageLinks={pageLinks} />}
+      {limit && (
+        <Pagination
+          onCursor={onCursor}
+          pageLinks={pageLinks}
+          caption={totalCountInt > limit ? paginationCaption : null}
+        />
+      )}
     </Container>
   );
 }

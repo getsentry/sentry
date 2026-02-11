@@ -85,7 +85,9 @@ def _validate_rules(project):
 
 @patch("sentry.dynamic_sampling.rules.base.sentry_sdk")
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
-def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
+def test_generate_rules_capture_exception(
+    get_blended_sample_rate: MagicMock, sentry_sdk: MagicMock
+) -> None:
     get_blended_sample_rate.return_value = None
     # since we mock get_blended_sample_rate function
     # no need to create real project in DB
@@ -113,19 +115,18 @@ def test_generate_rules_return_only_always_allowed_rules_if_sample_rate_is_100_a
         0.5,
     )
 
-    with Feature("organizations:ds-org-recalibration"):
-        assert generate_rules(default_old_project) == [
-            {
-                "condition": {"inner": [], "op": "and"},
-                "id": 1000,
-                "samplingValue": {"type": "sampleRate", "value": 1.0},
-                "type": "trace",
-            },
-        ]
-        get_blended_sample_rate.assert_called_with(
-            organization_id=default_old_project.organization.id, project=default_old_project
-        )
-        _validate_rules(default_old_project)
+    assert generate_rules(default_old_project) == [
+        {
+            "condition": {"inner": [], "op": "and"},
+            "id": 1000,
+            "samplingValue": {"type": "sampleRate", "value": 1.0},
+            "type": "trace",
+        },
+    ]
+    get_blended_sample_rate.assert_called_with(
+        organization_id=default_old_project.organization.id, project=default_old_project
+    )
+    _validate_rules(default_old_project)
 
 
 @django_db_all
@@ -483,7 +484,9 @@ def test_generate_rules_return_uniform_rule_with_non_existent_releases(
 
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
-def test_generate_rules_with_zero_base_sample_rate(get_blended_sample_rate, default_old_project):
+def test_generate_rules_with_zero_base_sample_rate(
+    get_blended_sample_rate, default_old_project
+) -> None:
     get_blended_sample_rate.return_value = 0.0
 
     assert generate_rules(default_old_project) == [
@@ -643,27 +646,28 @@ def test_generate_rules_return_uniform_rules_and_recalibrate_orgs_rule(
         default_factor,
     )
 
-    with Feature("organizations:ds-org-recalibration"):
-        assert generate_rules(default_old_project) == [
-            {
-                "condition": {"inner": [], "op": "and"},
-                "id": 1004,
-                "samplingValue": {"type": "factor", "value": default_factor},
-                "type": "trace",
-            },
-            {
-                "condition": {"inner": [], "op": "and"},
-                "id": 1000,
-                "samplingValue": {"type": "sampleRate", "value": 0.1},
-                "type": "trace",
-            },
-        ]
-        _validate_rules(default_project)
+    assert generate_rules(default_old_project) == [
+        {
+            "condition": {"inner": [], "op": "and"},
+            "id": 1004,
+            "samplingValue": {"type": "factor", "value": default_factor},
+            "type": "trace",
+        },
+        {
+            "condition": {"inner": [], "op": "and"},
+            "id": 1000,
+            "samplingValue": {"type": "sampleRate", "value": 0.1},
+            "type": "trace",
+        },
+    ]
+    _validate_rules(default_project)
 
 
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
-def test_generate_rules_return_boost_replay_id(get_blended_sample_rate, default_old_project):
+def test_generate_rules_return_boost_replay_id(
+    get_blended_sample_rate, default_old_project
+) -> None:
     get_blended_sample_rate.return_value = 0.5
     default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
@@ -727,7 +731,7 @@ def test_generate_rules_return_minimum_sample_rate_when_enabled(
                 "condition": {"inner": [], "op": "and"},
                 "id": 1006,
                 "samplingValue": {"type": "minimumSampleRate", "value": 0.3},
-                "type": "transaction",
+                "type": "project",
             },
             {
                 "condition": {"inner": [], "op": "and"},
@@ -885,7 +889,47 @@ def test_generate_rules_minimum_sample_rate_with_100_percent_sample_rate(
 
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
-def test_generate_rules_return_custom_rules(get_blended_sample_rate, default_old_project):
+def test_generate_rules_trace_health_checks_feature_enabled(
+    get_blended_sample_rate, default_old_project
+):
+    get_blended_sample_rate.return_value = 0.4
+    default_old_project.update_option(
+        "sentry:dynamic_sampling_biases",
+        [
+            {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+            {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
+            {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+            {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
+        ],
+    )
+
+    rules = generate_rules(default_old_project)
+    assert len(rules) == 2
+    assert rules[0]["id"] == 1002
+    assert rules[0]["type"] == "transaction"
+    assert rules[0]["condition"]["op"] == "or"
+    assert rules[0]["condition"]["inner"][0]["op"] == "glob"
+    assert rules[0]["condition"]["inner"][0]["name"] == "event.transaction"
+    assert rules[0]["condition"]["inner"][0]["value"] == HEALTH_CHECK_GLOBS
+
+    with Feature({"organizations:ds-health-checks-trace-based": True}):
+        rules = generate_rules(default_old_project)
+        assert len(rules) == 2
+        assert rules[0]["id"] == 1002
+        assert rules[0]["type"] == "trace"
+        assert rules[0]["condition"]["op"] == "or"
+        assert rules[0]["condition"]["inner"][0]["op"] == "glob"
+        assert rules[0]["condition"]["inner"][0]["name"] == "trace.transaction"
+        assert rules[0]["condition"]["inner"][0]["value"] == HEALTH_CHECK_GLOBS
+
+    _validate_rules(default_old_project)
+
+
+@django_db_all
+@patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
+def test_generate_rules_return_custom_rules(get_blended_sample_rate, default_old_project) -> None:
     """
     Tests the generation of custom rules ( from CustomDynamicSamplingRule models )
     """
@@ -991,9 +1035,7 @@ def test_generate_rules_project_mode(
     )
     default_old_project.update_option("sentry:target_sample_rate", 0.2)
 
-    with Feature(
-        {"organizations:ds-org-recalibration": True, "organizations:dynamic-sampling-custom": True}
-    ):
+    with Feature({"organizations:dynamic-sampling-custom": True}):
         assert generate_rules(default_old_project) == [
             {
                 "condition": {"inner": [], "op": "and"},

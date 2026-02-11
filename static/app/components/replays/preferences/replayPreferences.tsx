@@ -36,6 +36,7 @@ export const StaticReplayPreferences: PrefsStrategy = {
   },
 };
 
+/** @internal used in stories */
 export const StaticNoSkipReplayPreferences: PrefsStrategy = {
   _prefs: {...NO_SKIP_PREFS},
   get() {
@@ -57,3 +58,8 @@ export const LocalStorageReplayPreferences: PrefsStrategy = {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(prefs));
   },
 };
+
+export const REPLAY_TIMESTAMP_OPTIONS: Array<'relative' | 'absolute'> = [
+  'relative',
+  'absolute',
+];

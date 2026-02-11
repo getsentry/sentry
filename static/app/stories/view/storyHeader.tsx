@@ -1,17 +1,20 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Heading} from '@sentry/scraps/text';
+
 import {IconGithub, IconLink} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {StorySearch} from './storySearch';
 
-function SentryUiLogo() {
+function ScrapsLogo(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg fill="none" viewBox="0 0 34 36">
+    <svg fill="none" viewBox="0 0 34 36" {...props}>
       <path
         fill="#553DB8"
         d="M.5873 8.4992c-.0482-2.761 2.151-5.0383 4.912-5.0865l21.9948-.3839c2.761-.0482 5.0383 2.151 5.0865 4.912l.384 21.9966c.0482 2.761-2.151 5.0383-4.912 5.0865l-21.9949.384c-2.761.0482-5.0383-2.151-5.0865-4.912L.5872 8.4992Z"
@@ -29,16 +32,20 @@ function SentryUiLogo() {
 }
 
 export function StoryHeader() {
+  const organization = useOrganization();
   return (
     <HeaderGrid>
-      <Link to="/stories">
-        <H1>
-          <SentryUiLogo /> UI
-        </H1>
+      <Link to={normalizeUrl(`/organizations/${organization.slug}/stories/`)}>
+        <Heading as="h1" variant="accent">
+          <Flex align="center" gap="md">
+            <StyledScrapsLogo />
+            Scraps
+          </Flex>
+        </Heading>
       </Link>
 
       <StorySearch />
-      <Flex gap={space(1)} style={{marginLeft: 'auto'}}>
+      <Flex gap="md" marginLeft="auto">
         <LinkButton
           size="xs"
           href="https://github.com/getsentry/sentry"
@@ -56,12 +63,12 @@ export function StoryHeader() {
   );
 }
 
-const HeaderGrid = styled('header')`
+const HeaderGrid = styled('div')`
   display: grid;
-  grid-template-columns: 92px minmax(auto, 820px) auto;
-  gap: ${space(1)};
+  grid-template-columns: 256px minmax(auto, 820px) auto;
+  gap: ${p => p.theme.space.md};
   align-items: center;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   height: 53px;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   position: sticky;
@@ -73,17 +80,7 @@ const HeaderGrid = styled('header')`
   }
 `;
 
-const H1 = styled('h1')`
-  margin: 0;
-  display: flex;
-  gap: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  align-items: center;
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.tokens.content.accent};
-
-  svg {
-    width: 36px;
-    height: 36px;
-  }
+const StyledScrapsLogo = styled(ScrapsLogo)`
+  width: 36px;
+  height: 36px;
 `;

@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Mapping, Sequence
+from typing import Any, Union, get_args, get_origin, get_type_hints
 
 import click
 from arroyo.backends.abstract import Consumer
@@ -22,13 +23,81 @@ from sentry.conf.types.kafka_definition import (
     validate_consumer_definition,
 )
 from sentry.consumers.dlq import DlqStaleMessagesStrategyFactoryWrapper, maybe_build_dlq_producer
+from sentry.consumers.profiler import JoinProfiler
 from sentry.consumers.validate_schema import ValidateSchema
 from sentry.eventstream.types import EventStreamEventType
 from sentry.ingest.types import ConsumerType
+from sentry.utils import json
 from sentry.utils.imports import import_string
 from sentry.utils.kafka_config import get_topic_definition
 
 logger = logging.getLogger(__name__)
+
+
+def apply_processor_args_overrides(
+    consumer_name: str, base_args: dict[str, Any], overrides: Sequence[str]
+) -> dict[str, Any]:
+    """
+    Apply processor args overrides from CLI strings to the base StreamProcessor arguments.
+
+    Args:
+        consumer_name: Name of the consumer
+        base_args: Base arguments dict for StreamProcessor
+        overrides: Raw CLI argument strings in format 'key:value'
+
+    Returns:
+        Updated arguments dict with overrides applied
+    """
+    # Get resolved type hints (handles __future__.annotations)
+    type_hints = get_type_hints(StreamProcessor.__init__)
+
+    for arg in overrides:
+        try:
+            key, value_str = arg.split(":", 1)
+            param_type = type_hints[key]
+
+            # Extract the actual type from Optional[T] (which is Union[T, None])
+            if get_origin(param_type) is Union:
+                # For Optional[T] (Union[T, None]), extract T
+                type_args = get_args(param_type)
+                param_type = next((t for t in type_args if t is not type(None)), str)
+
+            # Try to parse as JSON first, fallback to string
+            try:
+                value = json.loads(value_str)
+            except Exception:
+                value = value_str
+
+            # Validate the type matches what we expect
+            # Allow int->float coercion since JSON parses as int
+            if param_type == float and isinstance(value, int):
+                value = float(value)
+            elif not isinstance(value, param_type):
+                raise ValueError(f"Expected {param_type}, got {type(value)}")
+
+            if key in base_args:
+                logger.info(
+                    "overriding argument %s from CLI: %s -> %s",
+                    key,
+                    base_args[key],
+                    value,
+                    extra={
+                        "consumer_name": consumer_name,
+                    },
+                )
+            base_args[key] = value
+        except Exception as e:
+            logger.warning(
+                "skipping invalid argument %s from CLI: %s",
+                arg,
+                str(e),
+                extra={
+                    "consumer_name": consumer_name,
+                    "valid_params": sorted(type_hints.keys()),
+                },
+            )
+
+    return base_args
 
 
 def convert_max_batch_time(ctx, param, value):
@@ -40,7 +109,8 @@ def convert_max_batch_time(ctx, param, value):
 
 
 def multiprocessing_options(
-    default_max_batch_size: int | None = None, default_max_batch_time_ms: int | None = 1000
+    default_max_batch_size: int | None = None,
+    default_max_batch_time_ms: int | None = 1000,
 ) -> list[click.Option]:
     return [
         click.Option(["--processes", "num_processes"], default=1, type=int),
@@ -79,6 +149,9 @@ def ingest_replay_recordings_options() -> list[click.Option]:
     """Return a list of ingest-replay-recordings options."""
     options = multiprocessing_options(default_max_batch_size=10)
     options.append(click.Option(["--threads", "num_threads"], type=int, default=4))
+    options.append(
+        click.Option(["--max-pending-futures", "max_pending_futures"], type=int, default=100)
+    )
     return options
 
 
@@ -118,7 +191,7 @@ def uptime_options() -> list[click.Option]:
     options = [
         click.Option(
             ["--mode", "mode"],
-            type=click.Choice(["serial", "parallel", "batched-parallel", "thread-queue-parallel"]),
+            type=click.Choice(["serial", "parallel", "batched-parallel"]),
             default="serial",
             help="The mode to process results in. Parallel uses multithreading.",
         ),
@@ -175,19 +248,6 @@ def ingest_events_options() -> list[click.Option]:
     return options
 
 
-def ingest_transactions_options() -> list[click.Option]:
-    options = ingest_events_options()
-    options.append(
-        click.Option(
-            ["--no-celery-mode", "no_celery_mode"],
-            default=False,
-            is_flag=True,
-            help="Save event directly in consumer without celery",
-        )
-    )
-    return options
-
-
 _METRICS_INDEXER_OPTIONS = [
     click.Option(["--input-block-size"], type=int, default=None),
     click.Option(["--output-block-size"], type=int, default=None),
@@ -196,7 +256,9 @@ _METRICS_INDEXER_OPTIONS = [
     click.Option(["max_msg_batch_time", "--max-msg-batch-time-ms"], type=int, default=10000),
     click.Option(["max_parallel_batch_size", "--max-parallel-batch-size"], type=int, default=50),
     click.Option(
-        ["max_parallel_batch_time", "--max-parallel-batch-time-ms"], type=int, default=10000
+        ["max_parallel_batch_time", "--max-parallel-batch-time-ms"],
+        type=int,
+        default=10000,
     ),
     click.Option(
         ["--processes"],
@@ -310,12 +372,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {"dataset": "metrics"},
     },
-    "eap-spans-subscription-results": {
-        "topic": Topic.EAP_SPANS_SUBSCRIPTIONS_RESULTS,
-        "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "events_analytics_platform"},
-    },
     "subscription-results-eap-items": {
         "topic": Topic.EAP_ITEMS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
@@ -356,7 +412,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-transactions": {
         "topic": Topic.INGEST_TRANSACTIONS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestTransactionsStrategyFactory",
-        "click_options": ingest_transactions_options(),
+        "click_options": ingest_events_options(),
         "dlq_topic": Topic.INGEST_TRANSACTIONS_DLQ,
         "stale_topic": Topic.INGEST_TRANSACTIONS_BACKLOG,
     },
@@ -437,6 +493,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
                 help="Maximum number of processes for the span flusher. Defaults to 1.",
             ),
         ],
+        "pass_kafka_slice_id": True,
     },
     "process-segments": {
         "topic": Topic.BUFFERED_SEGMENTS,
@@ -475,8 +532,9 @@ def get_stream_processor(
     group_instance_id: str | None = None,
     max_dlq_buffer_length: int | None = None,
     kafka_slice_id: int | None = None,
-    shutdown_strategy_before_consumer: bool = False,
     add_global_tags: bool = False,
+    profile_consumer_join: bool = False,
+    arroyo_args: Sequence[str] | None = None,
 ) -> StreamProcessor:
     from sentry.utils import kafka_config
 
@@ -512,9 +570,11 @@ def get_stream_processor(
         name=consumer_name, params=list(consumer_definition.get("click_options") or ())
     )
     cmd_context = cmd.make_context(consumer_name, list(consumer_args))
-    extra_kwargs = {}
+    extra_kwargs: dict[str, Any] = {}
     if consumer_definition.get("pass_consumer_group", False):
         extra_kwargs["consumer_group"] = group_id
+    if consumer_definition.get("pass_kafka_slice_id", False):
+        extra_kwargs["kafka_slice_id"] = kafka_slice_id
     strategy_factory = cmd_context.invoke(
         strategy_factory_cls,
         **cmd_context.params,
@@ -543,6 +603,9 @@ def get_stream_processor(
 
         if group_instance_id is not None:
             consumer_config["group.instance.id"] = group_instance_id
+
+        # Set commit interval to 1 second (1000ms)
+        consumer_config["auto.commit.interval.ms"] = 1000
 
         return consumer_config
 
@@ -603,6 +666,9 @@ def get_stream_processor(
             healthcheck_file_path, strategy_factory
         )
 
+    if profile_consumer_join:
+        strategy_factory = JoinProfilerStrategyFactoryWrapper(strategy_factory)
+
     if enable_dlq and consumer_definition.get("dlq_topic"):
         dlq_topic = consumer_definition["dlq_topic"]
     else:
@@ -625,15 +691,21 @@ def get_stream_processor(
     else:
         dlq_policy = None
 
-    return StreamProcessor(
-        consumer=consumer,
-        topic=ArroyoTopic(topic),
-        processor_factory=strategy_factory,
-        commit_policy=ONCE_PER_SECOND,
-        join_timeout=join_timeout,
-        dlq_policy=dlq_policy,
-        shutdown_strategy_before_consumer=shutdown_strategy_before_consumer,
-    )
+    # Build base StreamProcessor arguments
+    processor_args = {
+        "consumer": consumer,
+        "topic": ArroyoTopic(topic),
+        "processor_factory": strategy_factory,
+        "commit_policy": ONCE_PER_SECOND,
+        "join_timeout": join_timeout,
+        "dlq_policy": dlq_policy,
+    }
+
+    # Apply CLI-provided overrides for StreamProcessor arguments
+    if arroyo_args:
+        processor_args = apply_processor_args_overrides(consumer_name, processor_args, arroyo_args)
+
+    return StreamProcessor(**processor_args)
 
 
 class ValidateSchemaStrategyFactoryWrapper(ProcessingStrategyFactory):
@@ -670,7 +742,7 @@ class MinPartitionMetricTagWrapper(ProcessingStrategyFactory):
         # Update the min_partition global tag based on current partition assignment
         if partitions:
             min_partition = min(p.index for p in partitions)
-            add_global_tags(min_partition=str(min_partition))
+            add_global_tags(tags={"min_partition": str(min_partition)})
 
         return self.inner.create_with_partitions(commit, partitions)
 
@@ -683,3 +755,12 @@ class HealthcheckStrategyFactoryWrapper(ProcessingStrategyFactory):
     def create_with_partitions(self, commit, partitions):
         rv = self.inner.create_with_partitions(commit, partitions)
         return Healthcheck(self.healthcheck_file_path, rv)
+
+
+class JoinProfilerStrategyFactoryWrapper(ProcessingStrategyFactory):
+    def __init__(self, inner: ProcessingStrategyFactory):
+        self.inner = inner
+
+    def create_with_partitions(self, commit, partitions):
+        rv = self.inner.create_with_partitions(commit, partitions)
+        return JoinProfiler(rv)

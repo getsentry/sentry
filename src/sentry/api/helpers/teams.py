@@ -1,10 +1,18 @@
+from __future__ import annotations
+
+from collections.abc import Iterable
+
+from django.db.models.query import QuerySet
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
 
 from sentry.auth.superuser import is_active_superuser
 from sentry.exceptions import InvalidParams
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
+from sentry.organizations.services.organization.model import RpcOrganization
 
 
 def is_team_admin(org_member: OrganizationMember, team: Team | None = None) -> bool:
@@ -18,7 +26,11 @@ def is_team_admin(org_member: OrganizationMember, team: Team | None = None) -> b
     return omt.exists()
 
 
-def get_teams(request, organization, teams=None):
+def get_teams(
+    request: Request,
+    organization: Organization | RpcOrganization,
+    teams: Iterable[int | str] | None = None,
+) -> QuerySet[Team]:
     # do normal teams lookup based on request params
     requested_teams = set(request.GET.getlist("team", []) if teams is None else teams)
 
@@ -29,7 +41,7 @@ def get_teams(request, organization, teams=None):
         if is_active_superuser(request):
             # retrieve all teams within the organization
             myteams = Team.objects.filter(
-                organization=organization, status=TeamStatus.ACTIVE
+                organization_id=organization.id, status=TeamStatus.ACTIVE
             ).values_list("id", flat=True)
             verified_ids.update(myteams)
         else:
@@ -41,7 +53,7 @@ def get_teams(request, organization, teams=None):
             raise InvalidParams(f"Invalid Team ID: {team_id}")
     requested_teams.update(verified_ids)
 
-    teams_query = Team.objects.filter(id__in=requested_teams, organization=organization)
+    teams_query = Team.objects.filter(id__in=requested_teams, organization_id=organization.id)
     for team in teams_query:
         if team.id in verified_ids:
             continue

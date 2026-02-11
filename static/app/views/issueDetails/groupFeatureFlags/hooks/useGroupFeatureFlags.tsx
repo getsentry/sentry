@@ -1,7 +1,8 @@
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
   type UseApiQueryResult,
 } from 'sentry/utils/queryClient';
@@ -22,7 +23,9 @@ const makeGroupFlagsQueryKey = ({
   environment,
   limit,
 }: FetchGroupFlagsParams): ApiQueryKey => [
-  `/organizations/${orgSlug}/issues/${groupId}/tags/`,
+  getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/tags/', {
+    path: {organizationIdOrSlug: orgSlug, issueId: groupId},
+  }),
   {query: {environment, limit, useFlagsBackend: '1'}},
 ];
 

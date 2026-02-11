@@ -4,8 +4,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EmailVerificationModal from 'sentry/components/modals/emailVerificationModal';
 
-describe('Email Verification Modal', function () {
-  it('renders', function () {
+describe('Email Verification Modal', () => {
+  it('renders', () => {
     MockApiClient.addMockResponse({
       url: '/users/me/emails/',
       body: [],
@@ -31,7 +31,7 @@ describe('Email Verification Modal', function () {
     expect(screen.getByText('Email Addresses')).toBeInTheDocument();
   });
 
-  it('renders with action param', function () {
+  it('renders with action param', () => {
     const actionMessage = 'accepting the tenet';
     MockApiClient.addMockResponse({
       url: '/users/me/emails/',

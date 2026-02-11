@@ -1,0 +1,180 @@
+import {useMemo} from 'react';
+import moment from 'moment-timezone';
+
+import {Tag} from '@sentry/scraps/badge';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+
+import {t, tct} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+
+import type {BillingConfig, Plan, PlanTier, Subscription} from 'getsentry/types';
+import {
+  isBizPlanFamily,
+  isDeveloperPlan,
+  isNewPayingCustomer,
+  isTrialPlan,
+} from 'getsentry/utils/billing';
+import PlanFeatures from 'getsentry/views/amCheckout/components/planFeatures';
+import PlanSelectCard from 'getsentry/views/amCheckout/components/planSelectCard';
+import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
+import ProductSelect from 'getsentry/views/amCheckout/steps/productSelect';
+import type {CheckoutFormData, StepProps} from 'getsentry/views/amCheckout/types';
+import * as utils from 'getsentry/views/amCheckout/utils';
+
+interface BaseSubstepProps {
+  activePlan: Plan;
+  formData: CheckoutFormData;
+  onUpdate: (data: Partial<CheckoutFormData>) => void;
+}
+
+interface PlanSubstepProps extends BaseSubstepProps {
+  billingConfig: BillingConfig;
+  organization: Organization;
+  subscription: Subscription;
+  checkoutTier?: PlanTier;
+}
+
+interface AdditionalProductsSubstepProps extends BaseSubstepProps {
+  subscription: Subscription;
+}
+
+function PlanSubstep({
+  billingConfig,
+  activePlan,
+  formData,
+  subscription,
+  organization,
+  onUpdate,
+}: PlanSubstepProps) {
+  const planOptions = useMemo(() => {
+    const plans = billingConfig.planList.filter(
+      ({contractInterval, id}) =>
+        contractInterval === activePlan.contractInterval &&
+        !id.includes(billingConfig.freePlan) // TODO(billing): If we ever surface Developer in checkout, we'll need to remove this filter
+    );
+
+    if (plans.length === 0) {
+      throw new Error('Cannot get plan options');
+    }
+
+    // sort by price ascending
+    return plans.sort((a, b) => a.basePrice - b.basePrice);
+  }, [billingConfig, activePlan.contractInterval]);
+
+  const getBadge = (plan: Plan): React.ReactNode | undefined => {
+    if (
+      plan.id === subscription.plan ||
+      // If Developer is surfaced in checkout and the current plan is a trial plan, we should show the `Current` badge
+      // on the Developer plan
+      (isTrialPlan(subscription.plan) && isDeveloperPlan(plan))
+    ) {
+      const copy = t('Current');
+      return <Tag variant="muted">{copy}</Tag>;
+    }
+
+    if (
+      isBizPlanFamily(plan) &&
+      subscription.lastTrialEnd &&
+      !isBizPlanFamily(subscription.planDetails)
+    ) {
+      const lastTrialEnd = moment(subscription.lastTrialEnd).utc().fromNow();
+      const trialExpired: boolean = getDaysSinceDate(subscription.lastTrialEnd) > 0;
+      return (
+        <Tag variant="warning">
+          {subscription.isTrial && !trialExpired
+            ? tct('Trial expires [lastTrialEnd]', {lastTrialEnd})
+            : t('You trialed this plan')}
+        </Tag>
+      );
+    }
+    return undefined;
+  };
+
+  return (
+    <Flex direction="column" gap="xl">
+      <Grid columns={{xs: '1fr', lg: `repeat(${planOptions.length}, 1fr)`}} gap="lg">
+        {planOptions.map(plan => {
+          const isSelected = plan.id === formData.plan;
+          const shouldShowDefaultPayAsYouGo = isNewPayingCustomer(
+            subscription,
+            organization
+          );
+          const basePrice = utils.formatPrice({cents: plan.basePrice});
+          const planContent = utils.getContentForPlan(plan);
+          const badge = getBadge(plan);
+
+          return (
+            <PlanSelectCard
+              key={plan.id}
+              plan={plan}
+              isSelected={isSelected}
+              onUpdate={onUpdate}
+              planValue={plan.name}
+              planName={plan.name}
+              price={basePrice}
+              planContent={planContent}
+              shouldShowDefaultPayAsYouGo={shouldShowDefaultPayAsYouGo}
+              badge={badge}
+            />
+          );
+        })}
+      </Grid>
+      <PlanFeatures planOptions={planOptions} activePlan={activePlan} />
+    </Flex>
+  );
+}
+
+function AdditionalProductsSubstep({
+  activePlan,
+  formData,
+  onUpdate,
+  subscription,
+}: AdditionalProductsSubstepProps) {
+  return (
+    <Flex direction="column" gap="xl" paddingTop="3xl">
+      <Flex direction="column" gap="xl">
+        <ProductSelect
+          activePlan={activePlan}
+          formData={formData}
+          onUpdate={onUpdate}
+          subscription={subscription}
+        />
+      </Flex>
+    </Flex>
+  );
+}
+
+function BuildYourPlan({
+  activePlan,
+  billingConfig,
+  organization,
+  subscription,
+  formData,
+  onUpdate,
+  stepNumber,
+  checkoutTier,
+}: StepProps) {
+  return (
+    <Stack gap="xl" direction="column" id={`step${stepNumber}`}>
+      <StepHeader title={t('Select a plan')} />
+      <PlanSubstep
+        activePlan={activePlan}
+        billingConfig={billingConfig}
+        formData={formData}
+        onUpdate={onUpdate}
+        organization={organization}
+        subscription={subscription}
+        checkoutTier={checkoutTier}
+      />
+      <AdditionalProductsSubstep
+        activePlan={activePlan}
+        formData={formData}
+        onUpdate={onUpdate}
+        subscription={subscription}
+      />
+    </Stack>
+  );
+}
+
+export default BuildYourPlan;

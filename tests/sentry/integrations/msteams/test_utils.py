@@ -2,6 +2,7 @@ import time
 
 import orjson
 import responses
+from requests import PreparedRequest
 
 from sentry.integrations.msteams.utils import get_channel_id
 from sentry.testutils.cases import TestCase
@@ -11,7 +12,7 @@ pytestmark = [requires_snuba]
 
 
 class GetChannelIdTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         responses.reset()
 
         self.integration, _ = self.create_provider_integration_for(
@@ -51,7 +52,10 @@ class GetChannelIdTest(TestCase):
             json={"members": second_users},
         )
 
-        def user_conversation_id_callback(request):
+        def user_conversation_id_callback(
+            request: PreparedRequest,
+        ) -> tuple[int, dict[str, str], str]:
+            assert request.body is not None
             payload = orjson.loads(request.body)
             if payload["members"] == [{"id": "d_p_r"}] and payload["channelData"] == {
                 "tenant": {"id": "3141-5926-5358"}
@@ -65,6 +69,7 @@ class GetChannelIdTest(TestCase):
                 "tenant": {"id": "1618-0339-8874"}
             }:
                 return 200, {}, orjson.dumps({"id": "prepare_to_die"}).decode()
+            raise Exception("Callback invariant violation")
 
         responses.add_callback(
             responses.POST,
@@ -73,30 +78,30 @@ class GetChannelIdTest(TestCase):
         )
 
     @responses.activate
-    def run_valid_test(self, expected, name):
+    def run_valid_test(self, expected: str, name: str) -> None:
         assert expected == get_channel_id(self.organization, self.integration.id, name)
 
     @responses.activate
-    def run_invalid_test(self, name):
+    def run_invalid_test(self, name: str) -> None:
         assert get_channel_id(self.organization, self.integration.id, name) is None
 
-    def test_general_channel_selected(self):
+    def test_general_channel_selected(self) -> None:
         self.run_valid_test("g_c", "general")
 
-    def test_other_channel_selected(self):
+    def test_other_channel_selected(self) -> None:
         self.run_valid_test("p_o_d", "pit of Despair")
 
-    def test_bad_channel_not_selected(self):
+    def test_bad_channel_not_selected(self) -> None:
         self.run_invalid_test("Cliffs of Insanity")
 
-    def test_user_selected(self):
+    def test_user_selected(self) -> None:
         self.run_valid_test("dread_pirate_roberts", "Wesley")
 
-    def test_other_user_selected(self):
+    def test_other_user_selected(self) -> None:
         self.run_valid_test("princess_bride", "Buttercup")
 
-    def test_other_user_selected_continuation(self):
+    def test_other_user_selected_continuation(self) -> None:
         self.run_valid_test("prepare_to_die", "Inigo")
 
-    def test_bad_user_not_selected(self):
+    def test_bad_user_not_selected(self) -> None:
         self.run_invalid_test("Prince Humperdinck")

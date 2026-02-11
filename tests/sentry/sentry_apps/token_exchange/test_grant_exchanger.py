@@ -1,8 +1,9 @@
 from datetime import UTC, datetime, timedelta
-from unittest.mock import PropertyMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 
+from sentry.analytics.events.sentry_app_token_exchanged import SentryAppTokenExchangedEvent
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
@@ -17,12 +18,13 @@ from sentry.testutils.asserts import (
     assert_success_metric,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test
 class TestGrantExchanger(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.install = self.create_sentry_app_installation(prevent_token_exchange=True)
         self.code = self.install.api_grant.code
         assert self.install.sentry_app.application is not None
@@ -34,7 +36,7 @@ class TestGrantExchanger(TestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_happy_path(self, mock_record):
+    def test_happy_path(self, mock_record: MagicMock) -> None:
         assert self.grant_exchanger.run()
 
         # SLO assertions
@@ -49,7 +51,7 @@ class TestGrantExchanger(TestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_adds_token_to_installation(self, mock_record):
+    def test_adds_token_to_installation(self, mock_record: MagicMock) -> None:
         token = self.grant_exchanger.run()
         assert SentryAppInstallation.objects.get(id=self.install.id).api_token == token
 
@@ -65,7 +67,7 @@ class TestGrantExchanger(TestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_grant_must_belong_to_installations(self, mock_record):
+    def test_grant_must_belong_to_installations(self, mock_record: MagicMock) -> None:
         other_install = self.create_sentry_app_installation(prevent_token_exchange=True)
         self.grant_exchanger.code = other_install.api_grant.code
 
@@ -89,7 +91,7 @@ class TestGrantExchanger(TestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_request_user_owns_api_grant(self, mock_record):
+    def test_request_user_owns_api_grant(self, mock_record: MagicMock) -> None:
         self.grant_exchanger.user = self.create_user()
 
         with pytest.raises(SentryAppIntegratorError) as e:
@@ -115,7 +117,7 @@ class TestGrantExchanger(TestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_grant_must_be_active(self, mock_record):
+    def test_grant_must_be_active(self, mock_record: MagicMock) -> None:
         self.install.api_grant.update(expires_at=(datetime.now(UTC) - timedelta(hours=1)))
 
         with pytest.raises(SentryAppIntegratorError) as e:
@@ -139,7 +141,7 @@ class TestGrantExchanger(TestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_grant_must_exist(self, mock_record):
+    def test_grant_must_exist(self, mock_record: MagicMock) -> None:
         self.grant_exchanger.code = "123"
 
         with pytest.raises(SentryAppIntegratorError) as e:
@@ -171,7 +173,9 @@ class TestGrantExchanger(TestCase):
         "sentry.models.ApiGrant.application",
         new_callable=PropertyMock,
     )
-    def test_application_must_exist(self, application, validate, mock_record):
+    def test_application_must_exist(
+        self, application: MagicMock, validate: MagicMock, mock_record: MagicMock
+    ) -> None:
         application.side_effect = ApiApplication.DoesNotExist()
 
         with pytest.raises(SentryAppSentryError) as e:
@@ -199,7 +203,7 @@ class TestGrantExchanger(TestCase):
 
     @patch("sentry.models.ApiApplication.sentry_app", new_callable=PropertyMock)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_sentry_app_must_exist(self, mock_record, sentry_app):
+    def test_sentry_app_must_exist(self, mock_record: MagicMock, sentry_app: MagicMock) -> None:
         sentry_app.side_effect = SentryApp.DoesNotExist()
 
         with pytest.raises(SentryAppSentryError) as e:
@@ -223,7 +227,7 @@ class TestGrantExchanger(TestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_deletes_grant_on_successful_exchange(self, mock_record):
+    def test_deletes_grant_on_successful_exchange(self, mock_record: MagicMock) -> None:
         grant_id = self.install.api_grant_id
         self.grant_exchanger.run()
         assert not ApiGrant.objects.filter(id=grant_id)
@@ -240,7 +244,7 @@ class TestGrantExchanger(TestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_race_condition_on_grant_exchange(self, mock_record):
+    def test_race_condition_on_grant_exchange(self, mock_record: MagicMock) -> None:
         from sentry.locks import locks
         from sentry.utils.locking import UnableToAcquireLock
 
@@ -266,15 +270,17 @@ class TestGrantExchanger(TestCase):
 
     @patch("sentry.analytics.record")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_records_analytics(self, mock_record, record):
+    def test_records_analytics(self, mock_record: MagicMock, record: MagicMock) -> None:
         GrantExchanger(
             install=self.install, client_id=self.client_id, code=self.code, user=self.user
         ).run()
 
-        record.assert_called_with(
-            "sentry_app.token_exchanged",
-            sentry_app_installation_id=self.install.id,
-            exchange_type="authorization",
+        assert_last_analytics_event(
+            record,
+            SentryAppTokenExchangedEvent(
+                sentry_app_installation_id=self.install.id,
+                exchange_type="authorization",
+            ),
         )
 
         # SLO assertions

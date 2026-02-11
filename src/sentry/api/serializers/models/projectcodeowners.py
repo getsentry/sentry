@@ -75,7 +75,7 @@ class ProjectCodeOwnersSerializer(Serializer):
                     rule_owner["name"] = rule_owner.pop("identifier")
 
     def serialize(self, obj, attrs, user, **kwargs):
-        from sentry.api.validators.project_codeowners import validate_codeowners_associations
+        from sentry.api.validators.project_codeowners import build_codeowners_associations
 
         data = {
             "id": str(obj.id),
@@ -96,7 +96,7 @@ class ProjectCodeOwnersSerializer(Serializer):
             data["ownershipSyntax"] = convert_schema_to_rules_text(obj.schema)
 
         if "errors" in self.expand:
-            _, errors = validate_codeowners_associations(obj.raw, obj.project)
+            _, errors = build_codeowners_associations(obj.raw, obj.project)
             data["errors"] = errors
 
         if "renameIdentifier" in self.expand and hasattr(obj, "schema") and obj.schema:

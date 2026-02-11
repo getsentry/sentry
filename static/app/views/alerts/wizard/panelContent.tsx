@@ -199,14 +199,6 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ],
     illustration: diagramTransactionDuration,
   },
-  trace_item_apdex: {
-    description: t(
-      'Apdex is a metric used to track and measure user satisfaction based on your application response times. The Apdex score provides the ratio of satisfactory, tolerable, and frustrated requests in a specific endpoint.'
-    ),
-    examples: [t('When apdex is below 300.')],
-    docsLink: 'https://docs.sentry.io/product/performance/metrics/#apdex',
-    illustration: diagramApdex,
-  },
   trace_item_failure_rate: {
     description: t(
       'Failure rate is the percentage of unsuccessful spans. Sentry treats spans with a status other than “ok,” “canceled,” and “unknown” as failures.'
@@ -231,5 +223,15 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ),
     examples: [t('When the number of error level logs exceeds 10 in 5 minutes.')],
     illustration: diagramThroughput,
+  },
+  trace_item_metrics: {
+    description: t(
+      'Alert on custom metrics that you have defined and are tracking in your application.'
+    ),
+    examples: [
+      t('When a custom counter exceeds 1000 in 5 minutes.'),
+      t('When the average value of a custom gauge drops below a threshold.'),
+    ],
+    illustration: diagramCustomTransaction,
   },
 };

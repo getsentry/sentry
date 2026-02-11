@@ -1,3 +1,4 @@
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {ConfigFixture} from 'sentry-fixture/config';
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {EventFixture} from 'sentry-fixture/event';
@@ -12,10 +13,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueCategory} from 'sentry/types/group';
 import GroupDetails from 'sentry/views/issueDetails/groupDetails';
@@ -149,6 +150,10 @@ describe('groupDetails', () => {
       url: `/projects/${defaultInit.organization.slug}/${project.slug}/`,
       body: project,
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/autofix/setup/`,
+      body: AutofixSetupFixture({}),
+    });
   });
 
   afterEach(() => {
@@ -159,7 +164,7 @@ describe('groupDetails', () => {
     jest.clearAllMocks();
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     act(() => ProjectsStore.reset());
     createWrapper();
 
@@ -174,7 +179,7 @@ describe('groupDetails', () => {
     expect(hasSeenMock).toHaveBeenCalled();
   });
 
-  it('renders error when issue is not found', async function () {
+  it('renders error when issue is not found', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       statusCode: 404,
@@ -195,7 +200,7 @@ describe('groupDetails', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', async function () {
+  it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       statusCode: 403,
@@ -213,7 +218,7 @@ describe('groupDetails', () => {
     ).toBeInTheDocument();
   });
 
-  it('fetches issue details for a given environment', async function () {
+  it('fetches issue details for a given environment', async () => {
     const mock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       body: group,
@@ -242,7 +247,7 @@ describe('groupDetails', () => {
     );
   });
 
-  it('renders substatus badge', async function () {
+  it('renders substatus badge', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       body: {
@@ -256,7 +261,7 @@ describe('groupDetails', () => {
     expect(await screen.findByText('Ongoing')).toBeInTheDocument();
   });
 
-  it('renders alert for sample event', async function () {
+  it('renders alert for sample event', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/tags/`,
       body: [{key: 'sample_event'}],
@@ -267,7 +272,7 @@ describe('groupDetails', () => {
     expect(await screen.findByText(SAMPLE_EVENT_ALERT_TEXT)).toBeInTheDocument();
   });
 
-  it('renders error when project does not exist', async function () {
+  it('renders error when project does not exist', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/other-project-slug/issues/`,
       method: 'PUT',
@@ -288,7 +293,7 @@ describe('groupDetails', () => {
     ).toBeInTheDocument();
   });
 
-  it('uses /recommended endpoint when feature flag is on and no event is provided', async function () {
+  it('uses /recommended endpoint when feature flag is on and no event is provided', async () => {
     const recommendedMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
       statusCode: 200,
@@ -300,7 +305,7 @@ describe('groupDetails', () => {
     await waitFor(() => expect(recommendedMock).toHaveBeenCalledTimes(1));
   });
 
-  it("refires request when recommended endpoint doesn't return an event", async function () {
+  it("refires request when recommended endpoint doesn't return an event", async () => {
     const recommendedWithSearchMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
       query: {
@@ -335,7 +340,7 @@ describe('groupDetails', () => {
     );
   });
 
-  it('does not refire for request with streamlined UI', async function () {
+  it('does not refire for request with streamlined UI', async () => {
     jest.mocked(useHasStreamlinedUI).mockReturnValue(true);
     // Bunch of mocks to load streamlined UI
     MockApiClient.addMockResponse({
@@ -393,7 +398,7 @@ describe('groupDetails', () => {
     await waitFor(() => expect(mockNavigate).not.toHaveBeenCalled());
   });
 
-  it('uses /latest endpoint when default is set to latest', async function () {
+  it('uses /latest endpoint when default is set to latest', async () => {
     ConfigStore.loadInitialData(ConfigFixture({user: latestUser}));
     const latestMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/latest/`,
@@ -406,7 +411,7 @@ describe('groupDetails', () => {
     await waitFor(() => expect(latestMock).toHaveBeenCalledTimes(1));
   });
 
-  it('uses /oldest endpoint when default is set to oldest', async function () {
+  it('uses /oldest endpoint when default is set to oldest', async () => {
     ConfigStore.loadInitialData(ConfigFixture({user: oldestUser}));
     const oldestMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/oldest/`,
@@ -419,7 +424,7 @@ describe('groupDetails', () => {
     await waitFor(() => expect(oldestMock).toHaveBeenCalledTimes(1));
   });
 
-  it('uses /recommended endpoint when default is set to recommended', async function () {
+  it('uses /recommended endpoint when default is set to recommended', async () => {
     ConfigStore.loadInitialData(ConfigFixture({user: recommendedUser}));
     const recommendedMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
@@ -432,7 +437,7 @@ describe('groupDetails', () => {
     await waitFor(() => expect(recommendedMock).toHaveBeenCalledTimes(1));
   });
 
-  it('does not send hasSeen request when user is not a project member', async function () {
+  it('does not send hasSeen request when user is not a project member', async () => {
     const nonMemberProject = ProjectFixture({
       teams: [TeamFixture()],
       isMember: false,

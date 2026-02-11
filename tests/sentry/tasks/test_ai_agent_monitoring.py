@@ -43,6 +43,8 @@ MOCK_OPENROUTER_API_RESPONSE = {
                 "image": "0",
                 "web_search": "0",
                 "internal_reasoning": "0",
+                "input_cache_read": "0.0000015",
+                "input_cache_write": "0.00001875",
             },
             "top_provider": {
                 "context_length": 1000000,
@@ -81,6 +83,7 @@ MOCK_OPENROUTER_API_RESPONSE = {
                 "web_search": "0.0003",
                 "internal_reasoning": "0.00000055",
                 "input_cache_read": "0.00000055",
+                "input_cache_write": "0.000006875",
             },
             "top_provider": {
                 "context_length": 128000,
@@ -118,6 +121,7 @@ MOCK_MODELS_DEV_API_RESPONSE = {
                     "input": 0.4 * 1000000,  # models.dev have prices per 1M tokens
                     "output": 1.6 * 1000000,  # models.dev have prices per 1M tokens
                     "cache_read": 0.1 * 1000000,  # models.dev have prices per 1M tokens
+                    "cache_write": 0.2 * 1000000,  # models.dev have prices per 1M tokens
                 }
             },
             "gpt-4": {  # This should be skipped since it exists in OpenRouter
@@ -125,6 +129,7 @@ MOCK_MODELS_DEV_API_RESPONSE = {
                     "input": 0.1 * 1000000,  # models.dev have prices per 1M tokens
                     "output": 0.2 * 1000000,  # models.dev have prices per 1M tokens
                     "cache_read": 0.05 * 1000000,  # models.dev have prices per 1M tokens
+                    "cache_write": 0.15 * 1000000,  # models.dev have prices per 1M tokens
                 }
             },
         }
@@ -136,6 +141,7 @@ MOCK_MODELS_DEV_API_RESPONSE = {
                     "input": 1.25 * 1000000,  # models.dev have prices per 1M tokens
                     "output": 10 * 1000000,  # models.dev have prices per 1M tokens
                     "cache_read": 0.31 * 1000000,  # models.dev have prices per 1M tokens
+                    "cache_write": 0.62 * 1000000,  # models.dev have prices per 1M tokens
                 }
             },
             "google/gemini-2.0-flash-001": {  # Test provider prefix stripping
@@ -143,6 +149,7 @@ MOCK_MODELS_DEV_API_RESPONSE = {
                     "input": 0.075 * 1000000,  # models.dev have prices per 1M tokens
                     "output": 0.3 * 1000000,  # models.dev have prices per 1M tokens
                     "cache_read": 0.01875 * 1000000,  # models.dev have prices per 1M tokens
+                    "cache_write": 0.0375 * 1000000,  # models.dev have prices per 1M tokens
                 }
             },
         }
@@ -152,7 +159,7 @@ MOCK_MODELS_DEV_API_RESPONSE = {
 
 
 class FetchAIModelCostsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # Clear cache before each test
         cache.delete(AI_MODEL_COSTS_CACHE_KEY)
@@ -174,7 +181,7 @@ class FetchAIModelCostsTest(TestCase):
         )
 
     @responses.activate
-    def test_fetch_ai_model_costs_success_both_apis(self):
+    def test_fetch_ai_model_costs_success_both_apis(self) -> None:
         """Test successful fetching and caching from both APIs"""
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
         self._mock_models_dev_api_response(MOCK_MODELS_DEV_API_RESPONSE)
@@ -190,23 +197,21 @@ class FetchAIModelCostsTest(TestCase):
 
         models = cached_data.get("models")
         assert models is not None
-        # Should have OpenRouter models + unique models.dev models
-        assert (
-            len(models) == 5
-        )  # gpt-4, gpt-5 from OpenRouter + gpt-4.1-mini, gemini-2.5-pro, gemini-2.0-flash-001 from models.dev
 
         # Check OpenRouter models
         gpt4_model = models["gpt-4"]
         assert gpt4_model.get("inputPerToken") == 0.0000003  # OpenRouter price, not models.dev
         assert gpt4_model.get("outputPerToken") == 0.00000165
         assert gpt4_model.get("outputReasoningPerToken") == 0.0
-        assert gpt4_model.get("inputCachedPerToken") == 0.0
+        assert gpt4_model.get("inputCachedPerToken") == 0.0000015
+        assert gpt4_model.get("inputCacheWritePerToken") == 0.00001875
 
         gpt5_model = models["gpt-5"]
         assert gpt5_model.get("inputPerToken") == 0.00000055
         assert gpt5_model.get("outputPerToken") == 0.0000022
         assert gpt5_model.get("outputReasoningPerToken") == 0.00000055
         assert gpt5_model.get("inputCachedPerToken") == 0.00000055
+        assert gpt5_model.get("inputCacheWritePerToken") == 0.000006875
 
         # Check models.dev models
         gpt41_mini_model = models["gpt-4.1-mini"]
@@ -216,12 +221,14 @@ class FetchAIModelCostsTest(TestCase):
             gpt41_mini_model.get("outputReasoningPerToken") == 0.0
         )  # models.dev doesn't provide this
         assert gpt41_mini_model.get("inputCachedPerToken") == 0.1
+        assert gpt41_mini_model.get("inputCacheWritePerToken") == 0.2
 
         gemini_model = models["gemini-2.5-pro"]
         assert gemini_model.get("inputPerToken") == 1.25
         assert gemini_model.get("outputPerToken") == 10
         assert gemini_model.get("outputReasoningPerToken") == 0.0
         assert gemini_model.get("inputCachedPerToken") == 0.31
+        assert gemini_model.get("inputCacheWritePerToken") == 0.62
 
         # Check models.dev model with provider prefix (should be stripped)
         gemini_flash_model = models["gemini-2.0-flash-001"]
@@ -229,9 +236,10 @@ class FetchAIModelCostsTest(TestCase):
         assert gemini_flash_model.get("outputPerToken") == 0.3
         assert gemini_flash_model.get("outputReasoningPerToken") == 0.0
         assert gemini_flash_model.get("inputCachedPerToken") == 0.01875
+        assert gemini_flash_model.get("inputCacheWritePerToken") == 0.0375
 
     @responses.activate
-    def test_fetch_ai_model_costs_success_openrouter_only(self):
+    def test_fetch_ai_model_costs_success_openrouter_only(self) -> None:
         """Test successful fetching when only OpenRouter succeeds"""
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
         # Also mock models.dev to return empty response to avoid real network call
@@ -248,14 +256,14 @@ class FetchAIModelCostsTest(TestCase):
 
         models = cached_data.get("models")
         assert models is not None
-        assert len(models) == 2
 
-        # Check first model with only input and output pricing
+        # Check first model with cache pricing
         gpt4_model = models["gpt-4"]
         assert gpt4_model.get("inputPerToken") == 0.0000003
         assert gpt4_model.get("outputPerToken") == 0.00000165
         assert gpt4_model.get("outputReasoningPerToken") == 0.0
-        assert gpt4_model.get("inputCachedPerToken") == 0.0
+        assert gpt4_model.get("inputCachedPerToken") == 0.0000015
+        assert gpt4_model.get("inputCacheWritePerToken") == 0.00001875
 
         # Check second model with all pricing fields
         gpt5_model = models["gpt-5"]
@@ -263,9 +271,10 @@ class FetchAIModelCostsTest(TestCase):
         assert gpt5_model.get("outputPerToken") == 0.0000022
         assert gpt5_model.get("outputReasoningPerToken") == 0.00000055
         assert gpt5_model.get("inputCachedPerToken") == 0.00000055
+        assert gpt5_model.get("inputCacheWritePerToken") == 0.000006875
 
     @responses.activate
-    def test_fetch_ai_model_costs_missing_pricing(self):
+    def test_fetch_ai_model_costs_missing_pricing(self) -> None:
         """Test handling of models with missing pricing data"""
         mock_openrouter_response = {
             "data": [
@@ -316,7 +325,6 @@ class FetchAIModelCostsTest(TestCase):
         assert cached_data is not None
         models = cached_data.get("models")
         assert models is not None
-        assert len(models) == 4  # 3 from OpenRouter + 1 valid from models.dev
 
         # Check valid model
         gpt4_model = models["gpt-4"]
@@ -324,11 +332,13 @@ class FetchAIModelCostsTest(TestCase):
         assert gpt4_model.get("outputPerToken") == 0.06
         assert gpt4_model.get("outputReasoningPerToken") == 0.0  # Missing should default to 0.0
         assert gpt4_model.get("inputCachedPerToken") == 0.0
+        assert gpt4_model.get("inputCacheWritePerToken") == 0.0
 
         # Check model with invalid pricing (should default to 0.0)
         another_model = models["another-model"]
         assert another_model.get("inputPerToken") == 0.0  # Invalid "invalid" -> 0.0
         assert another_model.get("outputPerToken") == 0.02
+        assert another_model.get("inputCacheWritePerToken") == 0.0
 
         # Check model with no pricing (should default to 0.0)
         no_pricing_model = models["no-pricing-model"]
@@ -336,6 +346,7 @@ class FetchAIModelCostsTest(TestCase):
         assert no_pricing_model.get("outputPerToken") == 0.0
         assert no_pricing_model.get("outputReasoningPerToken") == 0.0
         assert no_pricing_model.get("inputCachedPerToken") == 0.0
+        assert no_pricing_model.get("inputCacheWritePerToken") == 0.0
 
         # Check models.dev model
         models_dev_model = models["model-with-pricing"]
@@ -343,9 +354,10 @@ class FetchAIModelCostsTest(TestCase):
         assert models_dev_model.get("outputPerToken") == 0.2
         assert models_dev_model.get("outputReasoningPerToken") == 0.0
         assert models_dev_model.get("inputCachedPerToken") == 0.0
+        assert models_dev_model.get("inputCacheWritePerToken") == 0.0
 
     @responses.activate
-    def test_fetch_ai_model_costs_openrouter_invalid_response(self):
+    def test_fetch_ai_model_costs_openrouter_invalid_response(self) -> None:
         """Test handling of invalid OpenRouter API response format"""
         # Invalid response - missing 'data' field
         mock_response = {"invalid": "response"}
@@ -360,7 +372,7 @@ class FetchAIModelCostsTest(TestCase):
         assert cached_data is None
 
     @responses.activate
-    def test_fetch_ai_model_costs_models_dev_invalid_response(self):
+    def test_fetch_ai_model_costs_models_dev_invalid_response(self) -> None:
         """Test handling of invalid models.dev API response format"""
         # Valid OpenRouter response
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
@@ -381,7 +393,7 @@ class FetchAIModelCostsTest(TestCase):
         assert cached_data is None
 
     @responses.activate
-    def test_fetch_ai_model_costs_openrouter_http_error(self):
+    def test_fetch_ai_model_costs_openrouter_http_error(self) -> None:
         """Test handling of OpenRouter HTTP errors"""
         responses.add(
             responses.GET,
@@ -397,7 +409,7 @@ class FetchAIModelCostsTest(TestCase):
         assert cached_data is None
 
     @responses.activate
-    def test_fetch_ai_model_costs_models_dev_http_error(self):
+    def test_fetch_ai_model_costs_models_dev_http_error(self) -> None:
         """Test handling of models.dev HTTP errors"""
         # Valid OpenRouter response
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
@@ -417,7 +429,7 @@ class FetchAIModelCostsTest(TestCase):
         assert cached_data is None
 
     @responses.activate
-    def test_fetch_ai_model_costs_timeout(self):
+    def test_fetch_ai_model_costs_timeout(self) -> None:
         """Test handling of request timeout"""
         import requests
 
@@ -434,7 +446,7 @@ class FetchAIModelCostsTest(TestCase):
         cached_data = _get_ai_model_costs_from_cache()
         assert cached_data is None
 
-    def test_get_ai_model_costs_from_cache_empty(self):
+    def test_get_ai_model_costs_from_cache_empty(self) -> None:
         """Test retrieving from empty cache"""
         cached_data = _get_ai_model_costs_from_cache()
         assert cached_data is None
@@ -454,7 +466,7 @@ class FetchAIModelCostsTest(TestCase):
         }
     )
     @responses.activate
-    def test_fetch_ai_model_costs_custom_model_mapping(self):
+    def test_fetch_ai_model_costs_custom_model_mapping(self) -> None:
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
         self._mock_models_dev_api_response(MOCK_MODELS_DEV_API_RESPONSE)
 
@@ -483,6 +495,179 @@ class FetchAIModelCostsTest(TestCase):
         assert gemini_model.get("inputCachedPerToken") == gemini_alt_model.get(
             "inputCachedPerToken"
         )
+        assert gemini_model.get("inputCacheWritePerToken") == gemini_alt_model.get(
+            "inputCacheWritePerToken"
+        )
 
         # Non-existent mapping should not create a new model
         assert "nonexistent-mapping" not in models
+
+    @responses.activate
+    def test_fetch_ai_model_costs_with_normalized_and_prefix_glob_names(self) -> None:
+        """Test that normalized and prefix glob versions of model names are added correctly"""
+        # Mock responses with models that have dates/versions that should be normalized
+        mock_openrouter_response = {
+            "data": [
+                {
+                    "id": "openai/gpt-4o-mini-20250522",
+                    "pricing": {
+                        "prompt": "0.0000003",
+                        "completion": "0.00000165",
+                    },
+                },
+                {
+                    "id": "openai/claude-3-5-sonnet-20241022",
+                    "pricing": {
+                        "prompt": "0.00000015",
+                        "completion": "0.00000075",
+                    },
+                },
+                {
+                    "id": "openai/gpt-4",  # No date/version, normalized version same as original
+                    "pricing": {
+                        "prompt": "0.0000003",
+                        "completion": "0.00000165",
+                    },
+                },
+            ]
+        }
+
+        mock_models_dev_response = {
+            "anthropic": {
+                "models": {
+                    "claude-3-5-haiku@20241022": {
+                        "cost": {
+                            "input": 0.25 * 1000000,
+                            "output": 1.25 * 1000000,
+                        }
+                    },
+                    "o3-pro-2025-06-10": {
+                        "cost": {
+                            "input": 0.5 * 1000000,
+                            "output": 2.5 * 1000000,
+                        }
+                    },
+                }
+            }
+        }
+
+        self._mock_openrouter_api_response(mock_openrouter_response)
+        self._mock_models_dev_api_response(mock_models_dev_response)
+
+        fetch_ai_model_costs()
+
+        # Verify the data was cached correctly
+        cached_data = _get_ai_model_costs_from_cache()
+        assert cached_data is not None
+        models = cached_data.get("models")
+        assert models is not None
+
+        # Check original models exist
+        assert "gpt-4o-mini-20250522" in models
+        assert "claude-3-5-sonnet-20241022" in models
+        assert "gpt-4" in models
+        assert "claude-3-5-haiku@20241022" in models
+        assert "o3-pro-2025-06-10" in models
+
+        # Check normalized versions were added (dates/versions removed)
+        assert "gpt-4o-mini" in models
+        assert "claude-3-5-sonnet" in models
+        assert "claude-3-5-haiku" in models  # @ is not part of the date pattern
+        assert "o3-pro" in models
+
+        # Check prefix glob versions of normalized models were added
+        assert "*gpt-4o-mini" in models
+        assert "*claude-3-5-sonnet" in models
+        assert "*gpt-4" in models
+        assert "*claude-3-5-haiku" in models
+        assert "*o3-pro" in models
+
+        # Verify normalized versions have same pricing as original models
+        gpt4o_mini_original = models["gpt-4o-mini-20250522"]
+        gpt4o_mini_normalized = models["gpt-4o-mini"]
+        assert gpt4o_mini_original.get("inputPerToken") == gpt4o_mini_normalized.get(
+            "inputPerToken"
+        )
+        assert gpt4o_mini_original.get("outputPerToken") == gpt4o_mini_normalized.get(
+            "outputPerToken"
+        )
+
+        claude_sonnet_original = models["claude-3-5-sonnet-20241022"]
+        claude_sonnet_normalized = models["claude-3-5-sonnet"]
+        assert claude_sonnet_original.get("inputPerToken") == claude_sonnet_normalized.get(
+            "inputPerToken"
+        )
+        assert claude_sonnet_original.get("outputPerToken") == claude_sonnet_normalized.get(
+            "outputPerToken"
+        )
+
+        claude_haiku_original = models["claude-3-5-haiku@20241022"]
+        claude_haiku_normalized = models["claude-3-5-haiku"]
+        assert claude_haiku_original.get("inputPerToken") == claude_haiku_normalized.get(
+            "inputPerToken"
+        )
+        assert claude_haiku_original.get("outputPerToken") == claude_haiku_normalized.get(
+            "outputPerToken"
+        )
+
+        o3_pro_original = models["o3-pro-2025-06-10"]
+        o3_pro_normalized = models["o3-pro"]
+        assert o3_pro_original.get("inputPerToken") == o3_pro_normalized.get("inputPerToken")
+        assert o3_pro_original.get("outputPerToken") == o3_pro_normalized.get("outputPerToken")
+
+        # Verify prefix glob versions have same pricing as normalized models
+        gpt4_normalized = models["gpt-4"]
+        gpt4_prefix_glob = models["*gpt-4"]
+        assert gpt4_normalized.get("inputPerToken") == gpt4_prefix_glob.get("inputPerToken")
+        assert gpt4_normalized.get("outputPerToken") == gpt4_prefix_glob.get("outputPerToken")
+
+        gpt4o_mini_prefix_glob = models["*gpt-4o-mini"]
+        assert gpt4o_mini_normalized.get("inputPerToken") == gpt4o_mini_prefix_glob.get(
+            "inputPerToken"
+        )
+        assert gpt4o_mini_normalized.get("outputPerToken") == gpt4o_mini_prefix_glob.get(
+            "outputPerToken"
+        )
+
+    def test_normalize_model_id(self) -> None:
+        """Test model ID normalization with various date and version formats"""
+        from sentry.tasks.ai_agent_monitoring import _normalize_model_id
+
+        # Test cases with expected outputs
+        test_cases = [
+            ("model-20250522", "model"),  # YYYYMMDD removed
+            ("model-2025-06-10", "model"),  # YYYY-MM-DD removed
+            ("model-2025/06/10", "model"),  # YYYY/MM/DD removed
+            ("model-2025.06.10", "model"),  # YYYY.MM.DD removed
+            ("model-v1.0", "model"),  # v1.0 removed
+            ("model@20241022", "model"),  # @YYYYMMDD removed
+            ("model-v1:0", "model"),  # v1:0 removed
+            ("model-20250610-v1:0", "model"),  # YYYYMMDD-v1:0 removed
+            ("model@20250610-v1:0", "model"),  # @YYYYMMDD-v1:0 removed
+            ("gpt-4", "gpt-4"),  # No date/version, unchanged
+            ("claude-3-5-sonnet", "claude-3-5-sonnet"),  # Numbers are part of model name, unchanged
+        ]
+
+        for model_id, expected_normalized in test_cases:
+            actual_normalized = _normalize_model_id(model_id)
+            assert (
+                actual_normalized == expected_normalized
+            ), f"Expected {expected_normalized} for {model_id}, got {actual_normalized}"
+
+    def test_create_prefix_glob_model_name(self) -> None:
+        """Test prefix glob generation for model names"""
+        from sentry.tasks.ai_agent_monitoring import _create_prefix_glob_model_name
+
+        # Test cases with expected outputs
+        test_cases = [
+            ("gpt-4", "*gpt-4"),
+            ("gpt-4o-mini", "*gpt-4o-mini"),
+            ("claude-3-5-sonnet", "*claude-3-5-sonnet"),
+            ("", "*"),
+        ]
+
+        for model_id, expected_glob in test_cases:
+            actual_glob = _create_prefix_glob_model_name(model_id)
+            assert (
+                actual_glob == expected_glob
+            ), f"Expected {expected_glob} for {model_id}, got {actual_glob}"

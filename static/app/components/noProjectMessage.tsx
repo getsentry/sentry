@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+
 import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
@@ -71,10 +72,24 @@ function NoProjectMessage({
   );
 
   return (
-    <Wrapper>
-      <NoProjectEmptyState />
+    <Flex
+      flex="1"
+      align="center"
+      justify="center"
+      gap="3xl"
+      padding="lg"
+      direction={{xs: 'column', sm: 'row'}}
+    >
+      <Flex
+        align="center"
+        justify="center"
+        height="auto"
+        width={{xs: '300px', sm: 'auto'}}
+      >
+        <StyledNoProjectEmptyState />
+      </Flex>
 
-      <Content>
+      <Flex direction="column" justify="center">
         <Layout.Title>{t('Remain Calm')}</Layout.Title>
         <HelpMessage>{t('You need at least one project to use this view')}</HelpMessage>
         <Actions>
@@ -87,31 +102,24 @@ function NoProjectMessage({
             createProjectAction
           )}
         </Actions>
-      </Content>
-    </Wrapper>
+      </Flex>
+    </Flex>
   );
 }
 
 export default NoProjectMessage;
 
+const StyledNoProjectEmptyState = styled(NoProjectEmptyState)`
+  width: 100%;
+  height: auto;
+`;
+
 const HelpMessage = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const Wrapper = styled('div')`
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-`;
-
-const Content = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  margin-left: 40px;
-`;
-
-const Actions = styled(ButtonBar)`
+const Actions = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   width: fit-content;
 `;

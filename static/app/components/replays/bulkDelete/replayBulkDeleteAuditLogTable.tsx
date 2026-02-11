@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/types';
@@ -34,7 +35,7 @@ export default function ReplayBulkDeleteAuditLogTable({
         </SimpleTable.Empty>
       ) : error ? (
         <SimpleTable.Empty>
-          <Alert type="error">
+          <Alert variant="danger">
             {t('Sorry, the list could not be loaded. ')}
             {getErrorMessage(error)}
           </Alert>
@@ -54,14 +55,9 @@ export default function ReplayBulkDeleteAuditLogTable({
                 </dd>
                 <dt>{t('Date Range')}</dt>
                 <dd>
-                  <code>
-                    <DateTime date={row.rangeStart} />
-                  </code>
+                  <code>{row.rangeStart}</code>
                   <br />
-
-                  <code>
-                    <DateTime date={row.rangeEnd} />
-                  </code>
+                  <code>{row.rangeEnd}</code>
                 </dd>
                 <dt>{t('Environments')}</dt>
                 <dd>

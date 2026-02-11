@@ -24,20 +24,20 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
         return None
     if not features.has("organizations:gen-ai-features", group.organization):
         return None
-    if not features.has("organizations:trigger-autofix-on-issue-summary", group.organization):
-        return None
     project = group.project
     if not project.get_option("sentry:seer_scanner_automation"):
         return None
     if group.organization.get_option("sentry:hide_ai_features"):
         return None
-    if not get_seer_org_acknowledgement(org_id=group.organization.id):
+    if not group.organization.get_option("sentry:enable_seer_enhanced_alerts", default=True):
+        return None
+    if not get_seer_org_acknowledgement(group.organization):
         return None
 
     from sentry import quotas
     from sentry.constants import DataCategory
 
-    has_budget: bool = quotas.backend.has_available_reserved_budget(
+    has_budget: bool = quotas.backend.check_seer_quota(
         org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
     )
     if not has_budget:
@@ -59,6 +59,8 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
                 if status_code == 200:
                     return summary_result
                 return None
-    except (concurrent.futures.TimeoutError, Exception) as e:
-        logger.exception("Error generating issue summary: %s", e)
+    except concurrent.futures.TimeoutError:
+        return None
+    except Exception as e:
+        logger.warning("Error generating issue summary: %s", e)
         return None

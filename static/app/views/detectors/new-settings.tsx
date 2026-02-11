@@ -1,37 +1,36 @@
+import orderBy from 'lodash/orderBy';
+import {parseAsString, useQueryState} from 'nuqs';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
-import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {useDetectorTypeQueryState} from 'sentry/views/detectors/components/detectorTypeForm';
 import {NewDetectorForm} from 'sentry/views/detectors/components/forms';
-import {canEditDetector} from 'sentry/views/detectors/components/forms/config';
+import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
+import {
+  getDetectorTypeLabel,
+  isValidDetectorType,
+} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 export default function DetectorNewSettings() {
-  const location = useLocation();
-  const {fetching: isFetchingProjects} = useProjects();
-  const detectorType = location.query.detectorType as DetectorType;
+  const {projects, fetching: isFetchingProjects} = useProjects();
+  const [detectorType] = useDetectorTypeQueryState();
+  const [projectId] = useQueryState('project', parseAsString);
   useWorkflowEngineFeatureGate({redirect: true});
 
-  if (!canEditDetector(detectorType)) {
-    return (
-      <Layout.Page>
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <LoadingError message={t('This monitor type is not editable')} />
-          </Layout.Main>
-        </Layout.Body>
-      </Layout.Page>
-    );
+  if (!detectorType || !isValidDetectorType(detectorType)) {
+    return <LoadingError message={t('Invalid detector type: %s', detectorType ?? '')} />;
   }
 
   if (isFetchingProjects) {
     return (
       <Layout.Page>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <LoadingIndicator />
           </Layout.Main>
         </Layout.Body>
@@ -39,5 +38,20 @@ export default function DetectorNewSettings() {
     );
   }
 
-  return <NewDetectorForm detectorType={detectorType} />;
+  const project = projectId
+    ? projects.find(p => p.id === projectId)
+    : orderBy(projects, ['isMember', 'isBookmarked'], ['desc', 'desc'])[0];
+
+  if (!project) {
+    return <LoadingError message={t('Project not found')} />;
+  }
+
+  return (
+    <DetectorFormProvider detectorType={detectorType} project={project}>
+      <SentryDocumentTitle
+        title={t('New %s Monitor', getDetectorTypeLabel(detectorType))}
+      />
+      <NewDetectorForm detectorType={detectorType} />
+    </DetectorFormProvider>
+  );
 }

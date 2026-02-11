@@ -1,6 +1,7 @@
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
+import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {
   Opportunity,
@@ -11,8 +12,8 @@ import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/qu
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
-  type EAPSpanProperty,
   SpanFields,
+  type SpanProperty,
   type SubregionCode,
 } from 'sentry/views/insights/types';
 
@@ -44,7 +45,7 @@ export const useTransactionWebVitalsScoresQuery = ({
   const sort = useWebVitalsSort({sortName, defaultSort});
 
   const totalOpportunityScoreField =
-    'opportunity_score(measurements.score.total)' satisfies EAPSpanProperty;
+    'opportunity_score(measurements.score.total)' satisfies SpanProperty;
 
   if (sort !== undefined) {
     if (sort.field === 'avg(measurements.score.total)') {
@@ -96,7 +97,7 @@ export const useTransactionWebVitalsScoresQuery = ({
         totalOpportunityScoreField,
       ],
     },
-    'api.performance.browser.web-vitals.transactions-scores'
+    Referrer.WEB_VITAL_TRANSACTIONS_SCORES
   );
 
   const tableData: Array<

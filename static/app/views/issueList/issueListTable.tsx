@@ -29,6 +29,7 @@ interface IssueListTableProps {
   onDelete: () => void;
   onSelectStatsPeriod: (period: string) => void;
   pageLinks: string;
+  pageSize: number;
   paginationAnalyticsEvent: (direction: string) => void;
   paginationCaption: React.ReactNode;
   query: string;
@@ -36,6 +37,7 @@ interface IssueListTableProps {
   refetchGroups: (fetchAllCounts?: boolean) => void;
   selectedProjectIds: number[];
   selection: PageFilters;
+  statsLoading: boolean;
   statsPeriod: string;
 }
 
@@ -51,6 +53,7 @@ function IssueListTable({
   statsPeriod,
   onActionTaken,
   issuesLoading,
+  statsLoading,
   memberList,
   refetchGroups,
   error,
@@ -59,6 +62,7 @@ function IssueListTable({
   onCursor,
   paginationAnalyticsEvent,
   issuesSuccessfullyLoaded,
+  pageSize,
 }: IssueListTableProps) {
   const location = useLocation();
 
@@ -82,42 +86,48 @@ function IssueListTable({
         )}
         disabled={issuesLoading}
       >
-        <ContainerPanel>
-          {groupIds.length !== 0 && (
-            <IssueListActions
-              selection={selection}
-              query={query}
-              queryCount={queryCount}
-              onSelectStatsPeriod={onSelectStatsPeriod}
-              onActionTaken={onActionTaken}
-              onDelete={onDelete}
-              statsPeriod={statsPeriod}
-              groupIds={groupIds}
-              allResultsVisible={allResultsVisible}
-              displayReprocessingActions={displayReprocessingActions}
-            />
-          )}
-          <PanelBody>
-            <VisuallyCompleteWithData
-              hasData={groupIds.length > 0}
-              id="IssueList-Body"
-              isLoading={issuesLoading}
-            >
-              <GroupListBody
-                memberList={memberList}
-                groupStatsPeriod={statsPeriod}
-                groupIds={groupIds}
-                displayReprocessingLayout={displayReprocessingActions}
-                query={query}
-                selectedProjectIds={selection.projects}
-                loading={issuesLoading}
-                error={error}
-                refetchGroups={refetchGroups}
-                onActionTaken={onActionTaken}
-              />
-            </VisuallyCompleteWithData>
-          </PanelBody>
-        </ContainerPanel>
+        {tourProps => (
+          <div {...tourProps}>
+            <ContainerPanel>
+              {(groupIds.length > 0 || issuesLoading) && (
+                <IssueListActions
+                  selection={selection}
+                  query={query}
+                  queryCount={queryCount}
+                  onSelectStatsPeriod={onSelectStatsPeriod}
+                  onActionTaken={onActionTaken}
+                  onDelete={onDelete}
+                  statsPeriod={statsPeriod}
+                  groupIds={groupIds}
+                  allResultsVisible={allResultsVisible}
+                  displayReprocessingActions={displayReprocessingActions}
+                />
+              )}
+              <PanelBody>
+                <VisuallyCompleteWithData
+                  hasData={groupIds.length > 0}
+                  id="IssueList-Body"
+                  isLoading={issuesLoading}
+                >
+                  <GroupListBody
+                    memberList={memberList}
+                    groupStatsPeriod={statsPeriod}
+                    groupIds={groupIds}
+                    displayReprocessingLayout={displayReprocessingActions}
+                    query={query}
+                    selectedProjectIds={selection.projects}
+                    // we need the stats loading and group id check because group ids do not update immediately
+                    loading={issuesLoading || (statsLoading && !groupIds.length)}
+                    error={error}
+                    pageSize={pageSize}
+                    refetchGroups={refetchGroups}
+                    onActionTaken={onActionTaken}
+                  />
+                </VisuallyCompleteWithData>
+              </PanelBody>
+            </ContainerPanel>
+          </div>
+        )}
       </DemoTourElement>
       <StyledPagination
         caption={paginationCaption}

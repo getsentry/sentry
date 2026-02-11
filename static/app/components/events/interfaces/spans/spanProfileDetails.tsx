@@ -1,10 +1,9 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
 import {StackTraceContentPanel} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -41,6 +40,7 @@ export interface SpanProfileDetailsProps {
     end_timestamp: number;
     span_id: string;
     start_timestamp: number;
+    thread_id?: string;
   }>;
   onNoProfileFound?: () => void;
 }
@@ -48,12 +48,16 @@ export interface SpanProfileDetailsProps {
 export function useSpanProfileDetails(
   organization: Organization,
   project: Project | undefined,
-  event: Readonly<EventTransaction>,
+  event: Readonly<EventTransaction | undefined>,
   span: SpanProfileDetailsProps['span']
 ) {
   const profileGroup = useProfileGroup();
 
   const processedEvent = useMemo(() => {
+    if (!event) {
+      return null;
+    }
+
     const entries: EventTransaction['entries'] = [...(event.entries || [])];
     if (profileGroup.images) {
       entries.push({
@@ -65,10 +69,16 @@ export function useSpanProfileDetails(
   }, [event, profileGroup]);
 
   // TODO: Pick another thread if it's more relevant.
-  const threadId = useMemo(
-    () => profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId,
-    [profileGroup]
-  );
+  const threadId = useMemo(() => {
+    const rawThreadId = span.thread_id?.trim();
+    if (rawThreadId) {
+      const maybeThreadId = Number(rawThreadId);
+      if (!isNaN(maybeThreadId)) {
+        return maybeThreadId;
+      }
+    }
+    return profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId;
+  }, [span.thread_id, profileGroup]);
 
   const profile = useMemo(() => {
     if (!defined(threadId)) {
@@ -78,7 +88,7 @@ export function useSpanProfileDetails(
   }, [profileGroup.profiles, threadId]);
 
   const nodes: CallTreeNode[] = useMemo(() => {
-    if (profile === null) {
+    if (profile === null || !event) {
       return [];
     }
 
@@ -133,7 +143,7 @@ export function useSpanProfileDetails(
   }, [nodes]);
 
   const {frames, hasPrevious, hasNext} = useMemo(() => {
-    if (index >= maxNodes) {
+    if (index >= maxNodes || !event) {
       return {frames: [], hasPrevious: false, hasNext: false};
     }
 
@@ -145,7 +155,7 @@ export function useSpanProfileDetails(
   }, [index, maxNodes, event, nodes]);
 
   const profileTarget = useMemo(() => {
-    if (defined(project)) {
+    if (defined(project) && event) {
       const profileContext = event.contexts.profile ?? {};
 
       if (defined(profileContext.profile_id)) {
@@ -169,13 +179,14 @@ export function useSpanProfileDetails(
           query: {
             eventId: event.id,
             spanId: span.span_id,
+            tid: threadId ? String(threadId) : undefined,
           },
         });
       }
     }
 
     return undefined;
-  }, [organization, project, event, span]);
+  }, [organization, project, event, span, threadId]);
 
   return {
     processedEvent,
@@ -214,7 +225,7 @@ export function SpanProfileDetails({
     frames,
   } = useSpanProfileDetails(organization, project, event, span);
 
-  if (!defined(profileTarget)) {
+  if (!defined(profileTarget) || !processedEvent) {
     return null;
   }
 
@@ -253,7 +264,7 @@ export function SpanProfileDetails({
           )}
         />
         <SpanDetailsItem>
-          <ButtonBar merged gap="none">
+          <ButtonBar>
             <Button
               icon={<IconChevron direction="left" />}
               aria-label={t('Previous')}
@@ -433,8 +444,8 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformKey): Frame[
 
 const SpanContainer = styled('div')`
   container: profiling-container / inline-size;
-  border: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 
   ${StackTraceContentPanel} {
@@ -473,6 +484,6 @@ const SpanDetailsItem = styled('span')<{grow?: boolean}>`
 `;
 
 const SectionSubtext = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
 `;

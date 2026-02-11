@@ -5,7 +5,7 @@ from sentry.testutils.cases import ReplaysSnubaTestCase
 
 
 class TestEventLink(ReplaysSnubaTestCase):
-    def test_event_link_types(self):
+    def test_event_link_types(self) -> None:
         replay_id = uuid.uuid4().hex
 
         for level in ["debug", "info", "warning", "error", "fatal"]:

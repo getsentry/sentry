@@ -4,7 +4,7 @@ from rest_framework.exceptions import ValidationError
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 
 
-def test_sortby_parse():
+def test_sortby_parse() -> None:
     SORT_ATTRS = {
         "id": "id",
         "name": "name",

@@ -2,34 +2,38 @@ import type {PropsWithChildren} from 'react';
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
-import performanceWaitingForSpan from 'sentry-images/spot/performance-waiting-for-span.svg';
-import heroImg from 'sentry-images/stories/landing/hero.png';
+import heroImg from 'sentry-images/stories/landing/robopigeon.png';
 
-import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
+import type {LinkButtonProps} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {IconOpen} from 'sentry/icons';
+import {Acronym} from 'sentry/stories/view/landing/acronym';
 import {StoryDarkModeProvider} from 'sentry/stories/view/useStoriesDarkMode';
-import {space} from 'sentry/styles/space';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {Colors, Icons, Typography} from './figures';
 
 const frontmatter = {
-  title: 'Sentry UI',
+  title: 'Scraps',
   hero: {
     title: 'Welcome to {title}',
     tagline:
-      'Resources, guides, and API reference to help you build accessible, consistent user interfaces at Sentry.',
+      'Resources, guides, and reference to help you build accessible, consistent user interfaces at Sentry.',
     image: {
-      alt: 'A floating island with a developer typing on a laptop',
+      alt: 'A robotic pigeon with a leather aviator hat and rocket boosters',
       file: heroImg,
     },
     actions: [
       {
         children: 'Get Started',
-        to: '/stories?name=app/styles/colors.mdx',
+        to: '/stories/principles/tokens/',
         priority: 'primary',
       },
       {
@@ -43,23 +47,30 @@ const frontmatter = {
 };
 
 export function StoryLanding() {
+  const organization = useOrganization();
+
   return (
     <Fragment>
       <StoryDarkModeProvider>
         <Hero>
           <Container>
-            <Flex direction="column" gap={space(3)}>
-              <Flex direction="column" gap={space(1)}>
+            <Flex direction="column" gap="2xl">
+              <Flex direction="column" gap="md">
                 <Border />
                 <h1>
-                  Welcome to <TitleEmphasis>Sentry UI</TitleEmphasis>
+                  Welcome to <TitleEmphasis>Scraps</TitleEmphasis>
                 </h1>
                 <p>{frontmatter.hero.tagline}</p>
               </Flex>
-              <Flex gap={space(1)}>
-                {frontmatter.hero.actions.map(props => (
-                  <LinkButton {...props} key={props.to} />
-                ))}
+              <Flex gap="md">
+                {frontmatter.hero.actions.map(props => {
+                  // Normalize internal paths with organization context
+                  const to =
+                    typeof props.to === 'string' && !props.external
+                      ? normalizeUrl(`/organizations/${organization.slug}${props.to}`)
+                      : props.to;
+                  return <LinkButton {...props} to={to} key={props.to} />;
+                })}
               </Flex>
             </Flex>
             <img
@@ -73,8 +84,12 @@ export function StoryLanding() {
       </StoryDarkModeProvider>
 
       <Container>
-        <Flex as="section" direction="column" gap={space(4)} flex={1}>
-          <Flex direction="column" gap={space(1)}>
+        <Acronym />
+      </Container>
+
+      <Container>
+        <Flex as="section" direction="column" gap="3xl" flex={1}>
+          <Flex direction="column" gap="md">
             <h2>Learn the Foundations</h2>
             <p>
               The following guides will help you understand Sentry's foundational design
@@ -82,27 +97,52 @@ export function StoryLanding() {
             </p>
           </Flex>
           <CardGrid>
-            <Card href="/stories?name=app/styles/colors.mdx" title="Color">
+            <Card
+              to={{
+                pathname: normalizeUrl(
+                  `/organizations/${organization.slug}/stories/principles/tokens/`
+                ),
+              }}
+              title="Tokens"
+            >
               <CardFigure>
                 <Colors />
               </CardFigure>
             </Card>
-            <Card href="/stories/?name=app%2Ficons%2Ficons.stories.tsx" title="Icons">
+            <Card
+              to={{
+                pathname: normalizeUrl(
+                  `/organizations/${organization.slug}/stories/principles/icons/`
+                ),
+              }}
+              title="Icons"
+            >
               <CardFigure>
                 <Icons />
               </CardFigure>
             </Card>
             <Card
-              href="/stories/?name=app%2Fstyles%2Ftypography.stories.tsx"
+              to={{
+                pathname: normalizeUrl(
+                  `/organizations/${organization.slug}/stories/core/text/`
+                ),
+              }}
               title="Typography"
             >
               <CardFigure>
                 <Typography />
               </CardFigure>
             </Card>
-            <Card href="/stories/?name=app%2Fstyles%2Fimages.stories.tsx" title="Images">
+            <Card
+              to={{
+                pathname: normalizeUrl(
+                  `/organizations/${organization.slug}/stories/core/flex/`
+                ),
+              }}
+              title="Layout"
+            >
               <CardFigure>
-                <img src={performanceWaitingForSpan} />
+                <Text>Layout</Text>
               </CardFigure>
             </Card>
           </CardGrid>
@@ -137,7 +177,7 @@ const TitleEmphasis = styled('em')`
 
 const Hero = styled('div')`
   padding: 48px 0;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
   display: flex;
   align-items: center;
   background: ${p => p.theme.tokens.background.secondary};
@@ -146,13 +186,13 @@ const Hero = styled('div')`
 
   h1 {
     font-size: 36px;
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space.md};
   }
 
   p {
-    font-size: ${p => p.theme.fontSize.lg};
+    font-size: ${p => p.theme.font.size.lg};
     text-wrap: balance;
-    color: ${p => p.theme.tokens.content.muted};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 
   img {
@@ -169,9 +209,9 @@ const Container = styled('div')`
   margin-inline: auto;
   display: flex;
   flex-direction: column;
-  gap: ${space(4)};
-  padding-inline: ${space(2)};
-  padding-block: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
+  padding-inline: ${p => p.theme.space.xl};
+  padding-block: ${p => p.theme.space['3xl']};
   align-items: center;
   justify-content: center;
 
@@ -183,17 +223,18 @@ const Container = styled('div')`
 const CardGrid = styled('div')`
   display: flex;
   flex-flow: row wrap;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 interface CardProps {
   children: React.ReactNode;
-  href: string;
   title: string;
+  to: LocationDescriptor;
 }
+
 function Card(props: CardProps) {
   return (
-    <CardLink to={props.href}>
+    <CardLink to={props.to}>
       {props.children}
       <CardTitle>{props.title}</CardTitle>
     </CardLink>
@@ -206,9 +247,9 @@ const CardLink = styled(Link)`
   flex-grow: 1;
   width: calc(100% * 3 / 5);
   aspect-ratio: 2/1;
-  padding: ${space(2)};
-  border: 1px solid ${p => p.theme.tokens.border.muted};
-  border-radius: ${p => p.theme.borderRadius};
+  padding: ${p => p.theme.space.xl};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
+  border-radius: ${p => p.theme.radius.md};
   transition: all 80ms ease-out;
   transition-property: background-color, color, border-color;
 
@@ -234,12 +275,12 @@ const CardLink = styled(Link)`
 const CardTitle = styled('span')`
   margin: 0;
   margin-top: auto;
-  margin-bottom: ${space(2)};
-  padding: ${space(1)} ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   width: 100%;
   height: 24px;
   font-size: 24px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: currentColor;
 `;
 

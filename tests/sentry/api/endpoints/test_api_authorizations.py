@@ -13,14 +13,14 @@ from sentry.testutils.silo import control_silo_test
 class ApiAuthorizationsTest(APITestCase):
     endpoint = "sentry-api-0-api-authorizations"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
 
 @control_silo_test
 class ApiAuthorizationsListTest(ApiAuthorizationsTest):
-    def test_simple(self):
+    def test_simple(self) -> None:
         app = ApiApplication.objects.create(name="test", owner=self.user)
         auth = ApiAuthorization.objects.create(application=app, user=self.user)
         ApiAuthorization.objects.create(
@@ -32,7 +32,7 @@ class ApiAuthorizationsListTest(ApiAuthorizationsTest):
         assert response.data[0]["id"] == str(auth.id)
         assert response.data[0]["organization"] is None
 
-    def test_org_level_auth(self):
+    def test_org_level_auth(self) -> None:
         org = self.create_organization(owner=self.user, slug="test-org-slug")
         app = ApiApplication.objects.create(
             name="test", owner=self.user, requires_org_level_access=True
@@ -48,7 +48,7 @@ class ApiAuthorizationsListTest(ApiAuthorizationsTest):
 class ApiAuthorizationsDeleteTest(ApiAuthorizationsTest):
     method = "delete"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="test@example.com")
         self.login_as(user=self.user)
@@ -59,7 +59,7 @@ class ApiAuthorizationsDeleteTest(ApiAuthorizationsTest):
             application=self.application,
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         app = ApiApplication.objects.create(name="test", owner=self.user)
         auth = ApiAuthorization.objects.create(application=app, user=self.user)
         token = ApiToken.objects.create(application=app, user=self.user)
@@ -68,7 +68,7 @@ class ApiAuthorizationsDeleteTest(ApiAuthorizationsTest):
         assert not ApiAuthorization.objects.filter(id=auth.id).exists()
         assert not ApiToken.objects.filter(id=token.id).exists()
 
-    def test_with_org(self):
+    def test_with_org(self) -> None:
         org1 = self.organization
         org2 = self.create_organization(owner=self.user, slug="test-org-2")
         app_with_org = ApiApplication.objects.create(
@@ -94,7 +94,7 @@ class ApiAuthorizationsDeleteTest(ApiAuthorizationsTest):
         assert ApiAuthorization.objects.filter(id=org2_auth.id).exists()
         assert ApiToken.objects.filter(id=org2_token.id).exists()
 
-    def test_delete_authorization_cleans_up_grants(self):
+    def test_delete_authorization_cleans_up_grants(self) -> None:
         # Create API grants associated with this authorization
         grant_1 = ApiGrant.objects.create(
             user=self.user,
@@ -133,7 +133,7 @@ class ApiAuthorizationsDeleteTest(ApiAuthorizationsTest):
         # Verify associated tokens are deleted
         assert not ApiToken.objects.filter(id=token.id).exists()
 
-    def test_delete_authorization_with_no_grants(self):
+    def test_delete_authorization_with_no_grants(self) -> None:
         """Test that deletion works when there are no associated grants"""
         self.get_success_response(
             authorization=self.authorization.id,
@@ -141,7 +141,7 @@ class ApiAuthorizationsDeleteTest(ApiAuthorizationsTest):
         )
         assert not ApiAuthorization.objects.filter(id=self.authorization.id).exists()
 
-    def test_delete_authorization_with_organization_scoped_grants(self):
+    def test_delete_authorization_with_organization_scoped_grants(self) -> None:
         """Test that only grants for the specific org are deleted"""
         org1 = self.create_organization()
         org2 = self.create_organization()

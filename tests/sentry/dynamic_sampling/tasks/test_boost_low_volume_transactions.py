@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.utils import timezone
 
@@ -14,8 +15,10 @@ from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
     next_totals,
     transactions_zip,
 )
-from sentry.dynamic_sampling.tasks.common import GetActiveOrgs
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.dynamic_sampling.tasks.common import MEASURE_CONFIGS, GetActiveOrgs
+from sentry.dynamic_sampling.types import SamplingMeasure
+from sentry.sentry_metrics import indexer
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -30,7 +33,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
     def now(self):
         return MOCK_DATETIME
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.orgs_info = []
         num_orgs = 3
@@ -50,6 +53,14 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
                     self.store_performance_metric(
                         name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
                         tags={"transaction": name},
+                        minutes_before_now=30,
+                        value=num_transactions,
+                        project_id=p.id,
+                        org_id=org.id,
+                    )
+                    self.store_performance_metric(
+                        name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+                        tags={"transaction": name, "is_segment": "true"},
                         minutes_before_now=30,
                         value=num_transactions,
                         project_id=p.id,
@@ -76,14 +87,14 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         """
         return 1 + 100 + 1000 + 2000 + 3000 + idx * 5, 5
 
-    def test_get_orgs_with_transactions_respects_max_orgs(self):
+    def test_get_orgs_with_transactions_respects_max_orgs(self) -> None:
         actual = list(GetActiveOrgs(2, 20))
 
         orgs = self.org_ids
         # we should return groups of 2 orgs at a time
         assert actual == [[orgs[0], orgs[1]], [orgs[2]]]
 
-    def test_get_orgs_with_transactions_respects_max_projs(self):
+    def test_get_orgs_with_transactions_respects_max_projs(self) -> None:
         actual = list(GetActiveOrgs(10, 5))
 
         orgs = [org["org_id"] for org in self.orgs_info]
@@ -91,7 +102,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         # we should return 2 orgs at a time
         assert actual == [[orgs[0], orgs[1]], [orgs[2]]]
 
-    def test_fetch_transactions_with_total_volumes_large(self):
+    def test_fetch_transactions_with_total_volumes_large(self) -> None:
         """
         Create some transactions in some orgs and project and verify
         that they are correctly returned by fetch_transactions_with_total_volumes
@@ -108,7 +119,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
                     assert name in expected_names
                     assert count == self.get_count_for_transaction(idx, name)
 
-    def test_fetch_transactions_with_total_volumes_small(self):
+    def test_fetch_transactions_with_total_volumes_small(self) -> None:
         """
         Create some transactions in some orgs and project and verify
         that they are correctly returned by fetch_transactions_with_total_volumes
@@ -125,7 +136,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
                     assert name in expected_names
                     assert count == self.get_count_for_transaction(idx, name)
 
-    def test_fetch_transactions_with_total_volumes(self):
+    def test_fetch_transactions_with_total_volumes(self) -> None:
         """
         Create some transactions in some orgs and project and verify
         that the total counts and total transaction types per project are
@@ -139,8 +150,170 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             assert totals["total_num_transactions"] == total_counts
             assert totals["total_num_classes"] == num_classes
 
+    def test_fetch_project_transaction_totals_uses_transaction_metric_by_default(self) -> None:
+        """
+        Verify that FetchProjectTransactionTotals uses the transaction count per root metric
+        by default (when measure=TRANSACTIONS).
+        """
+        orgs = self.org_ids
+        fetcher = FetchProjectTransactionTotals(orgs, measure=SamplingMeasure.TRANSACTIONS)
 
-def test_merge_transactions_full():
+        expected_metric_id = indexer.resolve_shared_org(
+            str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
+        )
+        assert fetcher.metric_id == expected_metric_id
+        assert fetcher.measure == SamplingMeasure.TRANSACTIONS
+        assert fetcher.tag_filters == {}
+
+    def test_fetch_project_transaction_volumes_uses_transaction_metric_by_default(self) -> None:
+        """
+        Verify that FetchProjectTransactionVolumes uses the transaction count per root metric
+        by default (when measure=TRANSACTIONS).
+        """
+        orgs = self.org_ids
+        fetcher = FetchProjectTransactionVolumes(
+            orgs, large_transactions=True, max_transactions=3, measure=SamplingMeasure.TRANSACTIONS
+        )
+
+        expected_metric_id = indexer.resolve_shared_org(
+            str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
+        )
+        assert fetcher.metric_id == expected_metric_id
+        assert fetcher.measure == SamplingMeasure.TRANSACTIONS
+        assert fetcher.tag_filters == {}
+
+    def test_fetch_project_transaction_totals_uses_segment_metric_when_enabled(self) -> None:
+        """
+        Verify that FetchProjectTransactionTotals uses the span count per root metric
+        with is_segment tag when measure=SEGMENTS.
+        """
+        orgs = self.org_ids
+        fetcher = FetchProjectTransactionTotals(orgs, measure=SamplingMeasure.SEGMENTS)
+
+        expected_metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
+        assert fetcher.metric_id == expected_metric_id
+        assert fetcher.measure == SamplingMeasure.SEGMENTS
+        assert fetcher.tag_filters == MEASURE_CONFIGS[SamplingMeasure.SEGMENTS]["tags"]
+
+    def test_fetch_project_transaction_volumes_uses_segment_metric_when_enabled(self) -> None:
+        """
+        Verify that FetchProjectTransactionVolumes uses the span count per root metric
+        with is_segment tag when measure=SEGMENTS.
+        """
+        orgs = self.org_ids
+        fetcher = FetchProjectTransactionVolumes(
+            orgs, large_transactions=True, max_transactions=3, measure=SamplingMeasure.SEGMENTS
+        )
+
+        expected_metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
+        assert fetcher.metric_id == expected_metric_id
+        assert fetcher.measure == SamplingMeasure.SEGMENTS
+        assert fetcher.tag_filters == MEASURE_CONFIGS[SamplingMeasure.SEGMENTS]["tags"]
+
+    @patch("sentry.dynamic_sampling.tasks.boost_low_volume_transactions.raw_snql_query")
+    def test_fetch_project_transaction_totals_query_includes_is_segment_filter_for_segments(
+        self, mock_raw_snql_query
+    ) -> None:
+        """
+        Verify that the query sent to Snuba includes the is_segment=true filter for SEGMENTS measure.
+        """
+        mock_raw_snql_query.return_value = {"data": []}
+
+        orgs = self.org_ids
+        fetcher = FetchProjectTransactionTotals(orgs, measure=SamplingMeasure.SEGMENTS)
+        try:
+            next(fetcher)
+        except StopIteration:
+            pass
+
+        assert mock_raw_snql_query.called
+        call_args = mock_raw_snql_query.call_args
+        request = call_args[0][0]
+
+        query_str = str(request.query)
+        is_segment_id = indexer.resolve_shared_org("is_segment")
+        assert f"tags_raw[{is_segment_id}]" in query_str
+        assert "'true'" in query_str
+
+    @patch("sentry.dynamic_sampling.tasks.boost_low_volume_transactions.raw_snql_query")
+    def test_fetch_project_transaction_totals_query_excludes_is_segment_filter_for_transactions(
+        self, mock_raw_snql_query
+    ) -> None:
+        """
+        Verify that the query sent to Snuba excludes the is_segment filter for TRANSACTIONS measure.
+        """
+        mock_raw_snql_query.return_value = {"data": []}
+
+        orgs = self.org_ids
+        fetcher = FetchProjectTransactionTotals(orgs, measure=SamplingMeasure.TRANSACTIONS)
+        try:
+            next(fetcher)
+        except StopIteration:
+            pass
+
+        assert mock_raw_snql_query.called
+        call_args = mock_raw_snql_query.call_args
+        request = call_args[0][0]
+
+        query_str = str(request.query)
+        is_segment_id = indexer.resolve_shared_org("is_segment")
+        assert f"tags_raw[{is_segment_id}]" not in query_str
+
+    @patch("sentry.dynamic_sampling.tasks.boost_low_volume_transactions.raw_snql_query")
+    def test_fetch_project_transaction_volumes_query_includes_is_segment_filter_for_segments(
+        self, mock_raw_snql_query
+    ) -> None:
+        """
+        Verify that the query sent to Snuba includes the is_segment=true filter for SEGMENTS measure.
+        """
+        mock_raw_snql_query.return_value = {"data": []}
+
+        orgs = self.org_ids
+        fetcher = FetchProjectTransactionVolumes(
+            orgs, large_transactions=True, max_transactions=3, measure=SamplingMeasure.SEGMENTS
+        )
+        try:
+            next(fetcher)
+        except StopIteration:
+            pass
+
+        assert mock_raw_snql_query.called
+        call_args = mock_raw_snql_query.call_args
+        request = call_args[0][0]
+
+        query_str = str(request.query)
+        is_segment_id = indexer.resolve_shared_org("is_segment")
+        assert f"tags_raw[{is_segment_id}]" in query_str
+        assert "'true'" in query_str
+
+    @patch("sentry.dynamic_sampling.tasks.boost_low_volume_transactions.raw_snql_query")
+    def test_fetch_project_transaction_volumes_query_excludes_is_segment_filter_for_transactions(
+        self, mock_raw_snql_query
+    ) -> None:
+        """
+        Verify that the query sent to Snuba excludes the is_segment filter for TRANSACTIONS measure.
+        """
+        mock_raw_snql_query.return_value = {"data": []}
+
+        orgs = self.org_ids
+        fetcher = FetchProjectTransactionVolumes(
+            orgs, large_transactions=True, max_transactions=3, measure=SamplingMeasure.TRANSACTIONS
+        )
+        try:
+            next(fetcher)
+        except StopIteration:
+            pass
+
+        assert mock_raw_snql_query.called
+        call_args = mock_raw_snql_query.call_args
+        request = call_args[0][0]
+
+        query_str = str(request.query)
+        is_segment_id = indexer.resolve_shared_org("is_segment")
+        assert f"tags_raw[{is_segment_id}]" not in query_str
+
+
+def test_merge_transactions_full() -> None:
     t1: ProjectTransactions = {
         "project_id": 1,
         "org_id": 2,
@@ -174,7 +347,7 @@ def test_merge_transactions_full():
     assert actual == expected
 
 
-def test_merge_transactions_missing_totals():
+def test_merge_transactions_missing_totals() -> None:
     t1: ProjectTransactions = {
         "project_id": 1,
         "org_id": 2,
@@ -203,7 +376,7 @@ def test_merge_transactions_missing_totals():
     assert actual == expected
 
 
-def test_merge_transactions_missing_right():
+def test_merge_transactions_missing_right() -> None:
     t1: ProjectTransactions = {
         "project_id": 1,
         "org_id": 2,
@@ -230,7 +403,7 @@ def test_merge_transactions_missing_right():
     assert actual == expected
 
 
-def test_transactions_zip():
+def test_transactions_zip() -> None:
     high = 1
     low = 2
     both = 3
@@ -280,7 +453,7 @@ def test_transactions_zip():
     assert actual == expected
 
 
-def test_same_project():
+def test_same_project() -> None:
     p1: ProjectIdentity = {"project_id": 1, "org_id": 2}
     p1bis: ProjectIdentity = {"project_id": 1, "org_id": 2}
     p2: ProjectIdentity = {"project_id": 1, "org_id": 3}
@@ -293,7 +466,7 @@ def test_same_project():
     assert not is_same_project(p1, p4)
 
 
-def test_project_before():
+def test_project_before() -> None:
     p1: ProjectIdentity = {"project_id": 1, "org_id": 2}
     p1bis: ProjectIdentity = {"project_id": 1, "org_id": 2}
     p2: ProjectIdentity = {"project_id": 1, "org_id": 3}
@@ -317,7 +490,7 @@ def test_project_before():
     assert not is_project_identity_before(p1, p4)
 
 
-def test_next_totals():
+def test_next_totals() -> None:
     def ct(org_id: int, project_id: int) -> ProjectTransactionsTotals:
         return {
             "project_id": project_id,

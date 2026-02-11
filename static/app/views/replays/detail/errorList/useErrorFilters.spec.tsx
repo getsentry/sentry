@@ -31,6 +31,7 @@ const {
       'issue.id': 11,
       issue: 'JAVASCRIPT-RANGE',
       title: 'Invalid time value',
+      level: 'info',
       'project.name': 'javascript',
     }),
     RawReplayErrorFixture({
@@ -40,6 +41,7 @@ const {
       'issue.id': 22,
       issue: 'NEXTJS-TYPE',
       title: `undefined is not an object (evaluating 'e.apply').`,
+      level: 'error',
       'project.name': 'next-js',
     }),
     RawReplayErrorFixture({
@@ -49,6 +51,7 @@ const {
       'issue.id': 22,
       issue: 'JAVASCRIPT-UNDEF',
       title: `Maximum update depth exceeded`,
+      level: 'error',
       'project.name': 'javascript',
     }),
   ]
@@ -90,6 +93,7 @@ describe('useErrorFilters', () => {
       {
         pathname: '/',
         query: {
+          f_e_level: [],
           f_e_project: [PROJECT_OPTION.value],
         },
       },
@@ -152,6 +156,29 @@ describe('useErrorFilters', () => {
     ]);
   });
 
+  it('should filter by level', () => {
+    const errorFrames = [
+      ERROR_1_JS_RANGEERROR!,
+      ERROR_2_NEXTJS_TYPEERROR!,
+      ERROR_3_JS_UNDEFINED!,
+    ];
+
+    mockUseLocation.mockReturnValue({
+      pathname: '/',
+      query: {
+        f_e_level: ['error'],
+      },
+    } as Location<FilterFields>);
+
+    const {result} = renderHook(useErrorFilters, {
+      initialProps: {errorFrames},
+    });
+    expect(result.current.items).toStrictEqual([
+      ERROR_2_NEXTJS_TYPEERROR!,
+      ERROR_3_JS_UNDEFINED!,
+    ]);
+  });
+
   it('should filter by searchTerm', () => {
     const errorFrames = [
       ERROR_1_JS_RANGEERROR!,
@@ -181,7 +208,7 @@ describe('useErrorFilters', () => {
       expect(result.current.getProjectOptions()).toStrictEqual([]);
     });
 
-    it('should return a sorted list of project slugs', () => {
+    it('should return a sorted list of options', () => {
       const errorFrames = [ERROR_2_NEXTJS_TYPEERROR!, ERROR_3_JS_UNDEFINED!];
 
       const {result} = renderHook(useErrorFilters, {
@@ -194,15 +221,52 @@ describe('useErrorFilters', () => {
       ]);
     });
 
-    it('should deduplicate BreadcrumbType', () => {
+    it('should deduplicate ProjectOptions', () => {
       const errorFrames = [ERROR_1_JS_RANGEERROR!, ERROR_3_JS_UNDEFINED!];
 
       const {result} = renderHook(useErrorFilters, {
         initialProps: {errorFrames},
       });
 
+      // Given >1 errorFrames each with the same projectSlug, we should only
+      // have one option in the list.
       expect(result.current.getProjectOptions()).toStrictEqual([
         {label: 'javascript', value: 'javascript', qs: 'f_e_project'},
+      ]);
+    });
+  });
+
+  describe('getLevelOptions', () => {
+    it('should default to having nothing in the list of method types', () => {
+      const {result} = renderHook(useErrorFilters, {
+        initialProps: {errorFrames: []},
+      });
+
+      expect(result.current.getLevelOptions()).toStrictEqual([]);
+    });
+
+    it('should return a sorted list of project slugs', () => {
+      const errorFrames = [ERROR_1_JS_RANGEERROR!, ERROR_3_JS_UNDEFINED!];
+
+      const {result} = renderHook(useErrorFilters, {
+        initialProps: {errorFrames},
+      });
+
+      expect(result.current.getLevelOptions()).toStrictEqual([
+        {label: 'Error', value: 'error', qs: 'f_e_level'},
+        {label: 'Info', value: 'info', qs: 'f_e_level'},
+      ]);
+    });
+
+    it('should deduplicate BreadcrumbType', () => {
+      const errorFrames = [ERROR_2_NEXTJS_TYPEERROR!, ERROR_3_JS_UNDEFINED!];
+
+      const {result} = renderHook(useErrorFilters, {
+        initialProps: {errorFrames},
+      });
+
+      expect(result.current.getLevelOptions()).toStrictEqual([
+        {label: 'Error', value: 'error', qs: 'f_e_level'},
       ]);
     });
   });

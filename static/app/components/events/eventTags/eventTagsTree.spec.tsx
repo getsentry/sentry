@@ -1,7 +1,5 @@
 import {EventFixture} from 'sentry-fixture/event';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -13,9 +11,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {EventTags} from 'sentry/components/events/eventTags';
-import ModalStore from 'sentry/stores/modalStore';
 
-describe('EventTagsTree', function () {
+describe('EventTagsTree', () => {
   const {organization, project} = initializeOrg();
   const tags = [
     {key: 'app', value: 'Sentry'},
@@ -66,8 +63,7 @@ describe('EventTagsTree', function () {
   const referrer = 'event-tags-table';
   let mockDetailedProject: jest.Mock;
 
-  beforeEach(function () {
-    ModalStore.reset();
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     mockDetailedProject = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -75,10 +71,9 @@ describe('EventTagsTree', function () {
     });
   });
 
-  it('renders tag tree', async function () {
+  it('renders tag tree', async () => {
     render(<EventTags projectSlug={project.slug} event={event} />, {
       organization,
-      deprecatedRouterMocks: true,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -126,28 +121,14 @@ describe('EventTagsTree', function () {
     }
   });
 
-  it('renders release tag differently', async function () {
+  it('renders release tag differently', async () => {
     const releaseVersion = 'v1.0';
-
-    const reposRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/repos/`,
-      body: [],
-    });
-    const releasesRequest = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/releases/${releaseVersion}/`,
-      body: [],
-    });
-    const deploysRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/releases/${releaseVersion}/deploys/`,
-      body: [],
-    });
 
     const releaseEvent = EventFixture({
       tags: [{key: 'release', value: releaseVersion}],
     });
     render(<EventTags projectSlug={project.slug} event={releaseEvent} />, {
       organization,
-      deprecatedRouterMocks: true,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -160,9 +141,6 @@ describe('EventTagsTree', function () {
     expect(anchorLink.href).toContain(
       `/mock-pathname/?rd=show&rdRelease=${releaseVersion}&rdSource=release-version-link`
     );
-    expect(reposRequest).toHaveBeenCalled();
-    expect(releasesRequest).toHaveBeenCalled();
-    expect(deploysRequest).toHaveBeenCalled();
     const dropdown = screen.getByLabelText('Tag Actions Menu');
     await userEvent.click(dropdown);
     expect(screen.getByLabelText('View this release')).toBeInTheDocument();
@@ -188,7 +166,7 @@ describe('EventTagsTree', function () {
         const linkElement = screen.getByRole('link', {name: 'def456'});
         expect(linkElement).toHaveAttribute(
           'href',
-          `/organizations/${organization.slug}/replays/def456/?referrer=${referrer}`
+          `/organizations/${organization.slug}/explore/replays/def456/?referrer=${referrer}`
         );
       },
     },
@@ -208,7 +186,6 @@ describe('EventTagsTree', function () {
       const uniqueTagsEvent = EventFixture({tags: [tag], projectID: project.id});
       render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
         organization,
-        deprecatedRouterMocks: true,
       });
       expect(mockDetailedProject).toHaveBeenCalled();
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -220,7 +197,7 @@ describe('EventTagsTree', function () {
     }
   );
 
-  it('renders error message tooltips instead of dropdowns', async function () {
+  it('renders error message tooltips instead of dropdowns', async () => {
     const errorTagEvent = EventFixture({
       _meta: {
         tags: {
@@ -256,7 +233,6 @@ describe('EventTagsTree', function () {
     });
     render(<EventTags projectSlug={project.slug} event={errorTagEvent} />, {
       organization,
-      deprecatedRouterMocks: true,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -269,7 +245,7 @@ describe('EventTagsTree', function () {
     expect(errorRows).toHaveLength(2);
   });
 
-  it('avoids rendering nullish tags', async function () {
+  it('avoids rendering nullish tags', async () => {
     const uniqueTagsEvent = EventFixture({
       tags: [
         {key: null, value: 'null tag'},
@@ -279,7 +255,6 @@ describe('EventTagsTree', function () {
     });
     render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
       organization,
-      deprecatedRouterMocks: true,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -290,7 +265,7 @@ describe('EventTagsTree', function () {
     expect(screen.queryByText('undefined tag')).not.toBeInTheDocument();
   });
 
-  it("renders 'Add to event highlights' option based on highlights", async function () {
+  it("renders 'Add to event highlights' option based on highlights", async () => {
     const highlightsEvent = EventFixture({
       tags: [
         {key: 'useless-tag', value: 'not so much'},
@@ -305,7 +280,6 @@ describe('EventTagsTree', function () {
     });
     render(<EventTags projectSlug={highlightProject.slug} event={highlightsEvent} />, {
       organization,
-      deprecatedRouterMocks: true,
     });
     expect(mockHighlightProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -326,7 +300,7 @@ describe('EventTagsTree', function () {
     expect(screen.queryByLabelText('Add to event highlights')).not.toBeInTheDocument();
   });
 
-  it("renders 'Add to event highlights' option based on permissions", async function () {
+  it("renders 'Add to event highlights' option based on permissions", async () => {
     const readAccessOrganization = OrganizationFixture({
       access: ['org:read'],
     });
@@ -345,7 +319,6 @@ describe('EventTagsTree', function () {
     });
     render(<EventTags projectSlug={highlightProject.slug} event={highlightsEvent} />, {
       organization: readAccessOrganization,
-      deprecatedRouterMocks: true,
     });
     expect(mockHighlightProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -358,20 +331,20 @@ describe('EventTagsTree', function () {
     expect(screen.queryByLabelText('Add to event highlights')).not.toBeInTheDocument();
   });
 
-  it('renders tag details link when on issue details route', async function () {
+  it('renders tag details link when on issue details route', async () => {
     const highlightsEvent = EventFixture({
       tags: [{key: 'useless-tag', value: 'not so much'}],
-    });
-    const issueDetailsRouter = RouterFixture({
-      location: LocationFixture({
-        pathname: `/organizations/${organization.slug}/issues/${event.groupID}/`,
-      }),
     });
 
     render(<EventTags projectSlug={project.slug} event={highlightsEvent} />, {
       organization,
-      router: issueDetailsRouter,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/${event.groupID}/`,
+          query: {},
+        },
+        route: '/organizations/:orgId/issues/:groupId/',
+      },
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 

@@ -7,6 +7,7 @@ import threading
 from collections.abc import Generator, Iterable, Mapping
 from typing import Any, Self
 
+import psycopg2.errors
 import sentry_sdk
 from django import db
 from django.db import DatabaseError, OperationalError, connections, models, router, transaction
@@ -21,7 +22,6 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
-    JSONField,
     Model,
     control_silo_model,
     region_silo_model,
@@ -38,6 +38,7 @@ from sentry.hybridcloud.rpc import REGION_NAME_LENGTH
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.utils import metrics
+from sentry.utils.env import in_test_environment
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.UTC)
 
@@ -140,7 +141,7 @@ class OutboxBase(Model):
         except OperationalError as e:
             # If concurrent locking is happening on the table, gracefully pass and allow
             # that work to process.
-            if "LockNotAvailable" in str(e):
+            if isinstance(e.__cause__, psycopg2.errors.LockNotAvailable):
                 return None
             else:
                 raise
@@ -173,7 +174,7 @@ class OutboxBase(Model):
     object_identifier = BoundedBigIntegerField(null=False)
 
     # payload is used for webhook payloads.
-    payload: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
+    payload = models.JSONField(null=True)
 
     # The point at which this object was scheduled, used as a diff from scheduled_for to determine the intended delay.
     scheduled_from = models.DateTimeField(null=False, default=timezone.now)
@@ -218,7 +219,7 @@ class OutboxBase(Model):
                     .first()
                 )
             except OperationalError as e:
-                if "LockNotAvailable" in str(e):
+                if isinstance(e.__cause__, psycopg2.errors.LockNotAvailable):
                     # If a non task flush process is running already, allow it to proceed without contention.
                     next_shard_row = None
                 else:
@@ -311,10 +312,23 @@ class OutboxBase(Model):
                     try:
                         coalesced.send_signal()
                     except Exception as e:
-                        raise OutboxFlushError(
-                            f"Could not flush shard category={coalesced.category} ({OutboxCategory(coalesced.category).name})",
-                            coalesced,
-                        ) from e
+                        category_number = coalesced.category
+                        category_name = OutboxCategory(category_number).name
+                        error_message = (
+                            f"Could not flush shard category={category_number} ({category_name})"
+                        )
+
+                        if in_test_environment():
+                            orig_error = f"{type(e).__name__}: {e}"
+                            error_message += (
+                                "\n\nNOTE: This error is the last in a chain. If you are seeing "
+                                + "this while running tests, your real problem is likely the error "
+                                + "causing this flush error:"
+                                + f"\n\n\t{orig_error}\n\n"
+                                + "Scroll up to that error for details."
+                            )
+
+                        raise OutboxFlushError(error_message, coalesced) from e
 
                 return True
         return False

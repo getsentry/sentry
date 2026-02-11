@@ -1,4 +1,5 @@
 import orjson
+from rest_framework.response import Response
 
 from sentry.api.serializers.base import serialize
 from sentry.testutils.cases import APITestCase
@@ -11,7 +12,7 @@ class SentryAppsStatsTest(APITestCase):
     endpoint = "sentry-api-0-sentry-apps-stats"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.superuser = self.create_user(is_superuser=True)
         self.org_two = self.create_organization()
 
@@ -26,7 +27,7 @@ class SentryAppsStatsTest(APITestCase):
         self.create_sentry_app_installation(slug=self.app_one.slug, organization=self.organization)
         self.create_sentry_app_installation(slug=self.app_two.slug, organization=self.organization)
 
-    def _check_response(self, response):
+    def _check_response(self, response: Response) -> None:
         assert {
             "id": self.app_two.id,
             "uuid": self.app_two.uuid,
@@ -44,24 +45,28 @@ class SentryAppsStatsTest(APITestCase):
             "avatars": [serialize(self.app_one_avatar)],
         } in orjson.loads(response.content)
 
-    def test_superuser_has_access(self):
+    @override_options({"staff.ga-rollout": False})
+    def test_superuser_has_access(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(status_code=200)
         self._check_response(response)
 
     @override_options({"staff.ga-rollout": True})
-    def test_staff_has_access(self):
+    def test_staff_has_access(self) -> None:
         staff_user = self.create_user(is_staff=True)
         self.login_as(user=staff_user, staff=True)
         response = self.get_success_response(status_code=200)
         self._check_response(response)
 
-    def test_nonsuperusers_have_no_access(self):
+    @override_options({"staff.ga-rollout": True})
+    def test_nonsuperusers_have_no_access(self) -> None:
         self.login_as(user=self.user)
         self.get_error_response(status_code=403)
 
-    def test_per_page(self):
-        self.login_as(user=self.superuser, superuser=True)
+    @override_options({"staff.ga-rollout": True})
+    def test_per_page(self) -> None:
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(user=staff_user, staff=True)
 
         self.create_sentry_app_installation(
             slug=self.app_one.slug, organization=self.create_organization()

@@ -13,6 +13,7 @@ import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
@@ -94,10 +95,19 @@ export function useConfigureSdk({
       }
 
       if (
-        selectedPlatform.type === 'console' &&
-        !organization.enabledConsolePlatforms?.includes(selectedPlatform.key)
+        isDisabledGamingPlatform({
+          platform: {
+            ...selectedPlatform,
+            id: selectedPlatform.key,
+          },
+          enabledConsolePlatforms: organization.enabledConsolePlatforms,
+        })
       ) {
-        openConsoleModal({selectedPlatform});
+        openConsoleModal({
+          organization,
+          selectedPlatform,
+          origin: 'onboarding',
+        });
         return;
       }
 
@@ -111,9 +121,8 @@ export function useConfigureSdk({
         return;
       }
 
-      const {FrameworkSuggestionModal, modalCss} = await import(
-        'sentry/components/onboarding/frameworkSuggestionModal'
-      );
+      const {FrameworkSuggestionModal, modalCss} =
+        await import('sentry/components/onboarding/frameworkSuggestionModal');
 
       openModal(
         deps => (

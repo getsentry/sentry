@@ -4,6 +4,7 @@ export type AgentMonitoringEventParameters = {
     direction: 'asc' | 'desc';
     table: string;
   };
+  'agent-monitoring.copy-llm-prompt-click': Record<string, unknown>;
   'agent-monitoring.drawer.open': Record<string, unknown>;
   'agent-monitoring.drawer.span-select': Record<string, unknown>;
   'agent-monitoring.drawer.view-full-trace-click': Record<string, unknown>;
@@ -17,9 +18,7 @@ export type AgentMonitoringEventParameters = {
   'agent-monitoring.trace.rendered': Record<string, unknown>;
   'agent-monitoring.trace.span-select': Record<string, unknown>;
   'agent-monitoring.trace.view-full-trace-click': Record<string, unknown>;
-  'agent-monitoring.ui-toggle': {
-    isEnabled: boolean;
-  };
+
   'agent-monitoring.view-ai-trace-click': Record<string, unknown>;
 };
 
@@ -27,7 +26,7 @@ export const agentMonitoringEventMap: Record<
   keyof AgentMonitoringEventParameters,
   string
 > = {
-  'agent-monitoring.ui-toggle': 'Agent Monitoring: AI Module Toggle',
+  'agent-monitoring.copy-llm-prompt-click': 'Agent Monitoring: Copy LLM Prompt Click',
   'agent-monitoring.page-view': 'Agent Monitoring: Page View',
   'agent-monitoring.table-switch': 'Agent Monitoring: Table Switch',
   'agent-monitoring.column-sort': 'Agent Monitoring: Column Sort',

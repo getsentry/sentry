@@ -16,7 +16,7 @@ def frozen_time_with_warp():
 
 @pytest.mark.usefixtures("frozen_time_with_warp")
 @pytest.mark.parametrize("configured_delay", [5, 10, 15])
-def test_delay_tick(configured_delay) -> None:
+def test_delay_tick(configured_delay: int) -> None:
     delay_kafka_rebalance(configured_delay)
 
     after_delay_sec = int(time.time())

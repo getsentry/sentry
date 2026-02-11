@@ -8,7 +8,8 @@ all requests in a redirect chain.
 """
 
 import logging
-from collections.abc import MutableMapping
+import uuid
+from collections.abc import MutableMapping, Sequence
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
@@ -22,8 +23,12 @@ from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 from sentry import quotas
 from sentry.models.project import Project
 from sentry.uptime.types import IncidentStatus
+from sentry.utils import json
+from sentry.utils.eap import hex_to_item_id
 
 logger = logging.getLogger(__name__)
+
+UPTIME_NAMESPACE = uuid.UUID("f8d7a4e2-5b3c-4a9d-8e1f-3c2b1a0d9f8e")
 
 
 def _anyvalue(value: bool | str | int | float) -> AnyValue:
@@ -87,6 +92,10 @@ def convert_uptime_request_to_trace_item(
         attributes["status_reason_type"] = _anyvalue(status_reason["type"])
         attributes["status_reason_description"] = _anyvalue(status_reason["description"])
 
+    assertion_failure_data = result.get("assertion_failure_data")
+    if assertion_failure_data is not None:
+        attributes["assertion_failure_data"] = _anyvalue(json.dumps(assertion_failure_data))
+
     if "request_info_list" in result and result["request_info_list"]:
         first_request = result["request_info_list"][0]
         attributes["method"] = _anyvalue(first_request["request_type"])
@@ -98,6 +107,7 @@ def convert_uptime_request_to_trace_item(
     attributes["check_id"] = _anyvalue(result["guid"])
     attributes["request_sequence"] = _anyvalue(request_sequence)
     attributes["incident_status"] = _anyvalue(incident_status.value)
+    attributes["span_id"] = _anyvalue(result["span_id"])
 
     if request_info is not None:
         attributes["request_type"] = _anyvalue(request_info["request_type"])
@@ -154,19 +164,18 @@ def convert_uptime_result_to_trace_items(
     """
     trace_items = []
 
-    request_info_list = result.get("request_info_list", [])  # Optional field
+    request_info_list: Sequence[RequestInfo | None] = result.get("request_info_list", [])
     if not request_info_list:
         request_info = result["request_info"]
-        if request_info is not None:
-            request_info_list = [request_info]
+        request_info_list = [request_info]
 
     for sequence, request_info in enumerate(request_info_list):
         if sequence == 0:
-            # First request uses the span_id directly
-            item_id = result["span_id"].encode("utf-8")[:16].ljust(16, b"\x00")
+            name = result["span_id"]
         else:
-            request_id = f"{result['span_id']}_req_{sequence}"
-            item_id = request_id.encode("utf-8")[:16].ljust(16, b"\x00")
+            name = f"{result['span_id']}_req_{sequence}"
+
+        item_id = hex_to_item_id(uuid.uuid5(UPTIME_NAMESPACE, name).hex)
 
         request_item = convert_uptime_request_to_trace_item(
             project, result, request_info, sequence, item_id, incident_status

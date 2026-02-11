@@ -1,7 +1,9 @@
+import logging
 from dataclasses import dataclass
 from typing import Any
 
 from sentry.discover.models import DiscoverSavedQueryTypes
+from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba import (
     discover,
     errors,
@@ -9,16 +11,20 @@ from sentry.snuba import (
     issue_platform,
     metrics_enhanced_performance,
     metrics_performance,
-    ourlogs,
     profiles,
     spans_indexed,
     spans_metrics,
-    spans_rpc,
     transactions,
-    uptime_checks,
-    uptime_results,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.preprod_size import PreprodSize
+from sentry.snuba.profile_functions import ProfileFunctions
+from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace_metrics import TraceMetrics
+from sentry.snuba.uptime_results import UptimeResults
+
+logger = logging.getLogger(__name__)
 
 # Doesn't map 1:1 with real datasets, but rather what we present to users
 # ie. metricsEnhanced is not a real dataset
@@ -27,24 +33,33 @@ DATASET_OPTIONS = {
     "errors": errors,
     "metricsEnhanced": metrics_enhanced_performance,
     "metrics": metrics_performance,
-    "ourlogs": ourlogs,
-    "uptimeChecks": uptime_checks,
-    "uptime_results": uptime_results,
+    # ourlogs is deprecated, please use logs instead
+    "ourlogs": OurLogs,
+    SupportedTraceItemType.LOGS.value: OurLogs,
+    SupportedTraceItemType.UPTIME_RESULTS.value: UptimeResults,
+    "preprodSize": PreprodSize,
     "profiles": profiles,
     "issuePlatform": issue_platform,
     "profileFunctions": functions,
-    "spans": spans_rpc,
+    SupportedTraceItemType.PROFILE_FUNCTIONS.value: ProfileFunctions,
+    SupportedTraceItemType.SPANS.value: Spans,
     "spansIndexed": spans_indexed,
     "spansMetrics": spans_metrics,
+    SupportedTraceItemType.TRACEMETRICS.value: TraceMetrics,
     "transactions": transactions,
 }
+DEPRECATED_LABELS = {"ourlogs"}
 RPC_DATASETS = {
-    spans_rpc,
-    ourlogs,
-    uptime_results,
-    uptime_checks,
+    ProfileFunctions,
+    PreprodSize,
+    Spans,
+    TraceMetrics,
+    OurLogs,
+    UptimeResults,
 }
-DATASET_LABELS = {value: key for key, value in DATASET_OPTIONS.items()}
+DATASET_LABELS = {
+    value: key for key, value in DATASET_OPTIONS.items() if key not in DEPRECATED_LABELS
+}
 
 
 TRANSACTION_ONLY_FIELDS = [
@@ -101,7 +116,11 @@ ERROR_ONLY_FIELDS = [
 ]
 
 
-def get_dataset(dataset_label: str) -> Any | None:
+def get_dataset(dataset_label: str | None) -> Any | None:
+    if dataset_label in DEPRECATED_LABELS:
+        logger.warning("query.deprecated_dataset.%s", dataset_label)
+    if dataset_label is None:
+        return None
     return DATASET_OPTIONS.get(dataset_label)
 
 

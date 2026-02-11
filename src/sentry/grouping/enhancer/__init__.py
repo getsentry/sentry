@@ -3,8 +3,8 @@ from __future__ import annotations
 import base64
 import logging
 import os
+import re
 import zlib
-from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import cached_property
@@ -13,6 +13,7 @@ from typing import Any, Literal
 import msgpack
 import sentry_sdk
 import zstandard
+from sentry_ophio.enhancers import AssembleResult as RustStacktraceResult
 from sentry_ophio.enhancers import Cache as RustCache
 from sentry_ophio.enhancers import Component as RustFrame
 from sentry_ophio.enhancers import Enhancements as RustEnhancements
@@ -38,10 +39,13 @@ RUST_CACHE = RustCache(1_000)
 # comment is merged
 VERSIONS = [2, 3]
 DEFAULT_ENHANCEMENTS_VERSION = VERSIONS[-1]
+DEFAULT_ENHANCEMENTS_BASE = "all-platforms:2026-01-20"
 
 # A delimiter to insert between rulesets in the base64 represenation of enhancements (by spec,
 # base64 strings never contain '#')
 BASE64_ENHANCEMENTS_DELIMITER = b"#"
+
+HINT_STACKTRACE_RULE_REGEX = re.compile(r"stack trace rule \((.+)\)$")
 
 VALID_PROFILING_MATCHER_PREFIXES = (
     "stack.abs_path",
@@ -57,8 +61,11 @@ VALID_PROFILING_ACTIONS_SET = frozenset(["+app", "-app"])
 
 
 @dataclass
-class EnhancementsConfig:
+class EnhancementsConfigData:
+    # Note: This is not an actual config, just a container to make it easier to pass data between
+    # functions while loading a config.
     rules: list[EnhancementRule]
+    rule_strings: list[str]
     rust_enhancements: RustEnhancements
     version: int | None = None
     bases: list[str] | None = None
@@ -168,12 +175,26 @@ def _can_use_hint(
     return True
 
 
+def _add_rule_source_to_hint(hint: str | None, custom_rules: set[str]) -> str | None:
+    """Add 'custom' or 'built-in' to the rule description in the given hint (if any)."""
+    if not hint:
+        return None
+
+    def _add_type_to_rule(rule_regex_match: re.Match) -> str:
+        rule_str = rule_regex_match.group(1)
+        rule_type = "custom" if rule_str in custom_rules else "built-in"
+        return f"{rule_type} stack trace rule ({rule_str})"
+
+    return HINT_STACKTRACE_RULE_REGEX.sub(_add_type_to_rule, hint)
+
+
 def _get_hint_for_frame(
     variant_name: str,
     frame: dict[str, Any],
     frame_component: FrameGroupingComponent,
     rust_frame: RustFrame,
     desired_hint_type: Literal["in-app", "contributes"],
+    custom_rules: set[str],
 ) -> str | None:
     """
     Determine a hint to use for the frame, handling special-casing and precedence.
@@ -208,12 +229,27 @@ def _get_hint_for_frame(
     if variant_name == "app" and rust_hint_type == "in-app" and rust_in_app == client_in_app:
         can_use_rust_hint = False
 
-    return rust_hint if can_use_rust_hint else incoming_hint if can_use_incoming_hint else None
+    raw_hint = rust_hint if can_use_rust_hint else incoming_hint if can_use_incoming_hint else None
+
+    # Add 'custom' or 'built-in' to any stacktrace rule description as appropriate
+    return _add_rule_source_to_hint(raw_hint, custom_rules)
+
+
+def _get_hint_for_stacktrace(
+    rust_stacktrace_results: RustStacktraceResult, custom_rules: set[str]
+) -> str | None:
+    raw_hint = rust_stacktrace_results.hint
+
+    if not raw_hint:
+        return None
+
+    # Add 'custom' or 'built-in' to any stacktrace rule description as appropriate
+    return _add_rule_source_to_hint(raw_hint, custom_rules)
 
 
 def _split_rules(
     rules: list[EnhancementRule],
-) -> tuple[EnhancementsConfig, EnhancementsConfig]:
+) -> tuple[EnhancementsConfigData, EnhancementsConfigData]:
     """
     Given a list of EnhancementRules, each of which may have both classifier and contributes
     actions, split the rules into separate classifier and contributes rule lists, and return them
@@ -241,15 +277,22 @@ def _split_rules(
         if rule is not None  # mypy appeasment
     ]
 
-    classifier_rules_text = "\n".join(rule.text for rule in classifier_rules)
-    contributes_rules_text = "\n".join(rule.text for rule in contributes_rules)
+    classifier_rule_strings = [rule.text for rule in classifier_rules]
+    contributes_rule_strings = [rule.text for rule in contributes_rules]
+
+    classifier_rules_text = "\n".join(classifier_rule_strings)
+    contributes_rules_text = "\n".join(contributes_rule_strings)
 
     classifier_rust_enhancements = _get_rust_enhancements("config_string", classifier_rules_text)
     contributes_rust_enhancements = _get_rust_enhancements("config_string", contributes_rules_text)
 
     return (
-        EnhancementsConfig(classifier_rules, classifier_rust_enhancements),
-        EnhancementsConfig(contributes_rules, contributes_rust_enhancements),
+        EnhancementsConfigData(
+            classifier_rules, classifier_rule_strings, classifier_rust_enhancements
+        ),
+        EnhancementsConfigData(
+            contributes_rules, contributes_rule_strings, contributes_rust_enhancements
+        ),
     )
 
 
@@ -320,8 +363,8 @@ def keep_profiling_rules(config: str) -> str:
 
 def get_enhancements_version(project: Project, grouping_config_id: str = "") -> int:
     """
-    Decide whether the Enhancements should be from the latest version or the version before. Useful
-    when transitioning between versions.
+    Decide whether the enhancements config should be from the latest version or the version before.
+    Useful when transitioning between versions.
 
     See https://github.com/getsentry/sentry/pull/91695 for a version of this function which
     incorporates sampling.
@@ -329,7 +372,7 @@ def get_enhancements_version(project: Project, grouping_config_id: str = "") -> 
     return DEFAULT_ENHANCEMENTS_VERSION
 
 
-class Enhancements:
+class EnhancementsConfig:
     # NOTE: You must add a version to ``VERSIONS`` any time attributes are added
     # to this class, s.t. no enhancements lacking these attributes are loaded
     # from cache.
@@ -338,7 +381,9 @@ class Enhancements:
     def __init__(
         self,
         rules: list[EnhancementRule],
-        split_enhancement_configs: tuple[EnhancementsConfig, EnhancementsConfig] | None = None,
+        split_enhancement_configs: (
+            tuple[EnhancementsConfigData, EnhancementsConfigData] | None
+        ) = None,
         version: int | None = None,
         bases: list[str] | None = None,
         id: str | None = None,
@@ -357,6 +402,12 @@ class Enhancements:
         )
         self.contributes_rust_enhancements = _merge_rust_enhancements(
             self.bases, contributes_config.rust_enhancements, type="contributes"
+        )
+
+        # We store the rule strings individually in a set so it's quick to test if a given rule
+        # mentioned in a hint is custom or built-in
+        self.custom_rule_strings = set(
+            classifier_config.rule_strings + contributes_config.rule_strings
         )
 
     def apply_category_and_updated_in_app_to_frames(
@@ -401,13 +452,6 @@ class Enhancements:
         platform: str | None,
         exception_data: dict[str, Any] | None = None,
     ) -> StacktraceGroupingComponent:
-        """
-        This assembles a `stacktrace` grouping component out of the given
-        `frame` components and source frames.
-
-        This also handles cases where the entire stacktrace should be discarded.
-        """
-
         with metrics.timer("grouping.enhancements.get_contributes_and_hint") as metrics_timer_tags:
             metrics_timer_tags.update({"split": True, "variant": variant_name})
 
@@ -444,11 +488,6 @@ class Enhancements:
                 )
             )
 
-        # Tally the number of each type of frame in the stacktrace. Later on, this will allow us to
-        # both collect metrics and use the information in decisions about whether to send the event
-        # to Seer
-        frame_counts: Counter[str] = Counter()
-
         # Update frame components with results from rust
         for frame, frame_component, in_app_rust_frame, contributes_rust_frame in zip(
             frames, frame_components, in_app_rust_frames, contributes_rust_frames
@@ -466,39 +505,32 @@ class Enhancements:
 
             in_app_hint = (
                 _get_hint_for_frame(
-                    variant_name, frame, frame_component, in_app_rust_frame, "in-app"
+                    variant_name,
+                    frame,
+                    frame_component,
+                    in_app_rust_frame,
+                    "in-app",
+                    self.custom_rule_strings,
                 )
                 if variant_name == "app"
                 else None  # In-app hints don't apply to the system stacktrace
             )
             contributes_hint = _get_hint_for_frame(
-                variant_name, frame, frame_component, contributes_rust_frame, "contributes"
+                variant_name,
+                frame,
+                frame_component,
+                contributes_rust_frame,
+                "contributes",
+                self.custom_rule_strings,
             )
             hint = _combine_hints(variant_name, frame_component, in_app_hint, contributes_hint)
 
             frame_component.update(hint=hint)
 
-            # Add this frame to our tally
-            key = f"{"in_app" if frame_component.in_app else "system"}_{"contributing" if frame_component.contributes else "non_contributing"}_frames"
-            frame_counts[key] += 1
-
-        # Because of the special case above, in which we ignore the rust-derived `contributes` value
-        # for certain frames, it's possible for the rust-derived `contributes` value for the overall
-        # stacktrace to be wrong, too (if in the process of ignoring rust we turn a stacktrace with
-        # at least one contributing frame into one without any). So we need to special-case here as
-        # well.
-        if variant_name == "app" and frame_counts["in_app_contributing_frames"] == 0:
-            stacktrace_contributes = False
-            stacktrace_hint = None
-        else:
-            stacktrace_contributes = rust_stacktrace_results.contributes
-            stacktrace_hint = rust_stacktrace_results.hint
-
         stacktrace_component = StacktraceGroupingComponent(
             values=frame_components,
-            hint=stacktrace_hint,
-            contributes=stacktrace_contributes,
-            frame_counts=frame_counts,
+            hint=_get_hint_for_stacktrace(rust_stacktrace_results, self.custom_rule_strings),
+            contributes=rust_stacktrace_results.contributes,
         )
 
         return stacktrace_component
@@ -527,7 +559,7 @@ class Enhancements:
         return base64_str
 
     @classmethod
-    def _get_config_from_base64_bytes(cls, bytes_str: bytes) -> EnhancementsConfig:
+    def _get_config_from_base64_bytes(cls, bytes_str: bytes) -> EnhancementsConfigData:
         padded_bytes = bytes_str + b"=" * (4 - (len(bytes_str) % 4))
 
         try:
@@ -549,13 +581,15 @@ class Enhancements:
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid stack trace rule config: %s" % e)
 
-        return EnhancementsConfig(rules, rust_enhancements, version, bases)
+        return EnhancementsConfigData(
+            rules, [rule.text for rule in rules], rust_enhancements, version, bases
+        )
 
     @classmethod
     def from_base64_string(
         cls, base64_string: str | bytes, referrer: str | None = None
-    ) -> Enhancements:
-        """Convert a base64 string into an `Enhancements` object"""
+    ) -> EnhancementsConfig:
+        """Convert a base64 string into an `EnhancementsConfig` object"""
 
         with metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
             metrics_timer_tags.update({"source": "base64_string", "referrer": referrer})
@@ -568,9 +602,9 @@ class Enhancements:
 
             # Split the string to get encoded data for each set of rules: unsplit rules (i.e., rules
             # the way they're stored in project config), classifier rules, and contributes rules.
-            # Older base64 strings - such as those stored in events created before rule-splitting was
-            # introduced - will only have one part and thus will end up unchanged. (The delimiter is
-            # chosen specifically to be a character which can't appear in base64.)
+            # Older base64 strings - such as those stored in events created before rule-splitting
+            # was introduced - will only have one part and thus will end up unchanged by the split.
+            # (The delimiter is chosen specifically to be a character which can't appear in base64.)
             bytes_strs = raw_bytes_str.split(BASE64_ENHANCEMENTS_DELIMITER)
             configs = [cls._get_config_from_base64_bytes(bytes_str) for bytes_str in bytes_strs]
 
@@ -601,15 +635,15 @@ class Enhancements:
         id: str | None = None,
         version: int | None = None,
         referrer: str | None = None,
-    ) -> Enhancements:
-        """Create an `Enhancements` object from a text blob containing stacktrace rules"""
+    ) -> EnhancementsConfig:
+        """Create an `EnhancementsConfig` object from a text blob containing stacktrace rules"""
 
         with metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
             metrics_timer_tags.update(
                 {"split": version == 3, "source": "rules_text", "referrer": referrer}
             )
 
-            return Enhancements(
+            return EnhancementsConfig(
                 rules=parse_enhancements(rules_text),
                 version=version,
                 bases=bases,
@@ -617,7 +651,7 @@ class Enhancements:
             )
 
 
-def _load_configs() -> dict[str, Enhancements]:
+def _load_configs() -> dict[str, EnhancementsConfig]:
     enhancement_bases = {}
     configs_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "enhancement-configs")
     for filename in os.listdir(configs_dir):
@@ -628,7 +662,7 @@ def _load_configs() -> dict[str, Enhancements]:
                 # We cannot use `:` in filenames on Windows but we already have ids with
                 # `:` in their names hence this trickery.
                 filename = filename.replace("@", ":")
-                enhancements = Enhancements.from_rules_text(
+                enhancements = EnhancementsConfig.from_rules_text(
                     f.read(), id=filename, referrer="default_rules"
                 )
                 enhancement_bases[filename] = enhancements
@@ -637,3 +671,10 @@ def _load_configs() -> dict[str, Enhancements]:
 
 ENHANCEMENT_BASES = _load_configs()
 del _load_configs
+
+# TODO: Shim to cover the time period before events which have the old default enhancements name
+# encoded in their base64 grouping config expire. Should be able to be deleted after Nov 2025. (Note
+# that the new name is hard-coded, rather than a reference to `DEFAULT_ENHANCEMENTS_BASE`, because
+# if we make a new default in the meantime, the old name should still point to
+# `all-platforms:2023-01-11`.)
+ENHANCEMENT_BASES["newstyle:2023-01-11"] = ENHANCEMENT_BASES["all-platforms:2023-01-11"]

@@ -1,9 +1,10 @@
-import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconNot} from 'sentry/icons';
 import type {UserIdentityConfig} from 'sentry/types/auth';
@@ -91,7 +92,9 @@ function UserOverview({
           <DetailLabel title="Staff" yesNo={user.isStaff} />
           <DetailLabel title="Permissions">
             {Array.from(user.permissions).map(p => (
-              <Tag key={p}>{p}</Tag>
+              <Tag key={p} variant="muted">
+                {p}
+              </Tag>
             ))}
           </DetailLabel>
         </DetailList>
@@ -102,7 +105,7 @@ function UserOverview({
           <DetailList>
             {identities.map(identity => (
               <DetailLabel key={identity.id} title={identity.provider.name}>
-                <ButtonWrapper>
+                <Flex justify="between">
                   <div>{identityLabel(identity)}</div>
                   <Button
                     icon={<IconNot />}
@@ -110,13 +113,13 @@ function UserOverview({
                     size="xs"
                     title="Disconnect Identity"
                     onClick={() => onIdentityDisconnect(identity)}
-                    aria-label={'Disconnect Identity'}
+                    aria-label="Disconnect Identity"
                     disabled={
                       identity.status !== UserIdentityStatus.CAN_DISCONNECT &&
                       identity.category !== UserIdentityCategory.ORG_IDENTITY
                     }
                   />
-                </ButtonWrapper>
+                </Flex>
 
                 <small>{identity.name}</small>
                 <br />
@@ -142,7 +145,7 @@ function UserOverview({
           <DetailList>
             {user.authenticators.map(auth => (
               <DetailLabel title={auth.type} key={auth.id}>
-                <ButtonWrapper>
+                <Flex justify="between">
                   <div>{auth.name}</div>
                   <Button
                     icon={<IconNot />}
@@ -150,9 +153,9 @@ function UserOverview({
                     size="xs"
                     title="Remove Authenticator"
                     onClick={() => onAuthenticatorRemove(auth)}
-                    aria-label={'Remove Authenticator'}
+                    aria-label="Remove Authenticator"
                   />
-                </ButtonWrapper>
+                </Flex>
                 <small style={{color: '#999999'}}>
                   Last used {auth.dateUsed ? prettyDate(auth.dateUsed) : 'never'}
                 </small>
@@ -174,9 +177,7 @@ function UserOverview({
                 key={token.id}
                 token={token}
                 onRemove={revokeToken}
-                onRemoveConfirmMessage={
-                  "Are you sure you want to revoke this user's token? Doing so may break user's applications, and should usually only be done if the token has been leaked."
-                }
+                onRemoveConfirmMessage="Are you sure you want to revoke this user's token? Doing so may break user's applications, and should usually only be done if the token has been leaked."
               />
             ))}
           </PanelTable>
@@ -191,10 +192,5 @@ function UserOverview({
     </DetailsContainer>
   );
 }
-
-const ButtonWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
 
 export default UserOverview;

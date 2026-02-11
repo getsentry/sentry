@@ -24,7 +24,7 @@ type Props = {
 
 function SampleInfo(props: Props) {
   const {groupId, transactionName, transactionMethod, subregions} = props;
-  const {setPageError} = usePageAlert();
+  const {setPageDanger} = usePageAlert();
 
   const ribbonFilters: SpanQueryFilters = {
     'span.group': groupId,
@@ -51,11 +51,11 @@ function SampleInfo(props: Props) {
       ],
       enabled: Object.values(ribbonFilters).every(value => Boolean(value)),
     },
-    'api.starfish.span-summary-panel-metrics'
+    'api.insights.span-summary-panel-metrics'
   );
 
   if (error) {
-    setPageError(error.message);
+    setPageDanger(error.message);
   }
 
   return (

@@ -8,7 +8,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {makeCloseButton} from 'sentry/components/globalModal/components';
 import {SentryAppPublishRequestModal} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppPublishRequestModal';
 
-describe('SentryAppDetailsModal', function () {
+describe('SentryAppDetailsModal', () => {
   const styledWrapper = styled((c: PropsWithChildren) => c.children);
   const sentryApp = SentryAppFixture();
   const onPublishSubmission = jest.fn();
@@ -16,7 +16,7 @@ describe('SentryAppDetailsModal', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders the modal', async function () {
+  it('renders the modal', async () => {
     render(
       <SentryAppPublishRequestModal
         closeModal={jest.fn()}

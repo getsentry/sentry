@@ -7,7 +7,6 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse
 from sentry.apidocs.constants import (
@@ -18,6 +17,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 
 
@@ -68,27 +68,8 @@ class ShortIdLookupEndpoint(GroupEndpoint):
                         "assignedTo": {
                             "id": "1",
                             "name": "John Doe",
-                            "username": "johndoe",
                             "email": "john@example.com",
-                            "avatarUrl": "https://secure.gravatar.com/avatar/1234567890abcdef",
-                            "isActive": True,
-                            "hasPasswordAuth": True,
-                            "isManaged": False,
-                            "dateJoined": "2018-01-01T00:00:00Z",
-                            "lastLogin": "2023-12-01T10:00:00Z",
-                            "has2fa": False,
-                            "lastActive": "2023-12-01T10:00:00Z",
-                            "isSuperuser": False,
-                            "isStaff": False,
-                            "experiments": {},
-                            "emails": [
-                                {"id": "1", "email": "john@example.com", "is_verified": True}
-                            ],
-                            "avatar": {
-                                "avatarType": "letter_avatar",
-                                "avatarUuid": None,
-                                "avatarUrl": None,
-                            },
+                            "type": "user",
                         },
                         "count": "1",
                         "culprit": "raven.scripts.runner in main",

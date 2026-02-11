@@ -15,7 +15,7 @@ class OrganizationInsightsTreeEndpointTest(
     url_name = "sentry-api-0-organization-insights-tree"
     FEATURES = ["organizations:trace-spans-format"]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
         self.features = {}
@@ -30,7 +30,7 @@ class OrganizationInsightsTreeEndpointTest(
         self._store_nextjs_function_spans()
         self._store_unrelated_spans()
 
-    def _store_nextjs_function_spans(self):
+    def _store_nextjs_function_spans(self) -> None:
         descriptions = [
             "Page Server Component (/app/dashboard/)",
             "Loading Server Component (/app/dashboard/)",
@@ -63,10 +63,10 @@ class OrganizationInsightsTreeEndpointTest(
                 start_ts=self.ten_mins_ago,
             )
             span["sentry_tags"]["op"] = "function.nextjs"
-            self.store_span(span, is_eap=True)
+            self.store_span(span)
             spans.append(span)
 
-    def _store_unrelated_spans(self):
+    def _store_unrelated_spans(self) -> None:
         descriptions = [
             "INSERT value INTO table",
             "SELECT * FROM table",
@@ -81,10 +81,10 @@ class OrganizationInsightsTreeEndpointTest(
                 start_ts=self.ten_mins_ago,
             )
             span["sentry_tags"]["op"] = "db"
-            self.store_span(span, is_eap=True)
+            self.store_span(span)
             spans.append(span)
 
-    def test_get_nextjs_function_data(self):
+    def test_get_nextjs_function_data(self) -> None:
         self.login_as(user=self.user)
         with self.feature(self.FEATURES):
             response = self.client.get(

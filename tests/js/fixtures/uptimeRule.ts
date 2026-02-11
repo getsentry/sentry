@@ -22,7 +22,10 @@ export function UptimeRuleFixture(params: Partial<UptimeRule> = {}): UptimeRule 
     headers: [],
     method: 'GET',
     body: null,
+    assertion: null,
     traceSampling: false,
+    downtimeThreshold: 3,
+    recoveryThreshold: 1,
     ...params,
   };
 }

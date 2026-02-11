@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from . import BaseEventTest
 
@@ -9,7 +9,7 @@ class UrlVerificationEventTest(BaseEventTest):
     @patch(
         "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
     )
-    def test_valid_event(self, check_signing_secret_mock):
+    def test_valid_event(self, check_signing_secret_mock: MagicMock) -> None:
         resp = self.client.post(
             "/extensions/slack/event/",
             {

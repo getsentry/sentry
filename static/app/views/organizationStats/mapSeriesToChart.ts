@@ -13,43 +13,23 @@ import type {ChartStats} from './usageChart';
 import {SeriesTypes} from './usageChart';
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
-// used for estimated dropped continuous profile hours and ui profile hours from profile chunks and profile chunks ui
-export function droppedProfileChunkMultiplier(
-  category: number | string | undefined,
-  outcome: number | string | undefined,
-  shouldEstimateDroppedProfiles?: boolean
-) {
-  if (
-    category === 'profile_chunk' ||
-    category === 'profile_chunk_ui' ||
-    (shouldEstimateDroppedProfiles && category === 'profile')
-  ) {
-    if (outcome === Outcome.ACCEPTED) {
-      return 0;
-    }
-    return 9000;
-  }
-  return 1;
-}
-
 export function mapSeriesToChart({
   orgStats,
   dataCategory,
   chartDateUtc,
   endpointQuery,
   chartDateInterval,
-  shouldEstimateDroppedProfiles = false,
 }: {
   chartDateInterval: IntervalPeriod;
   chartDateUtc: boolean;
   dataCategory: DataCategory;
   endpointQuery: Record<string, unknown>;
   orgStats?: UsageSeries;
-  shouldEstimateDroppedProfiles?: boolean;
 }): {
   cardStats: {
     accepted?: string;
     accepted_stored?: string;
+    clientDiscard?: string;
     filtered?: string;
     invalid?: string;
     rateLimited?: string;
@@ -66,6 +46,7 @@ export function mapSeriesToChart({
     filtered: undefined,
     invalid: undefined,
     rateLimited: undefined,
+    clientDiscard: undefined,
   };
   const chartStats: ChartStats = {
     accepted: [],
@@ -122,13 +103,10 @@ export function mapSeriesToChart({
           countAcceptedStored += group.totals['sum(quantity)']!;
         }
       } else {
-        const value =
-          group.totals['sum(quantity)']! *
-          droppedProfileChunkMultiplier(category, outcome, shouldEstimateDroppedProfiles);
         if (outcome !== Outcome.CLIENT_DISCARD) {
-          count.total += value;
+          count.total += group.totals['sum(quantity)']!;
         }
-        (count as any)[outcome!] += value;
+        (count as any)[outcome!] += group.totals['sum(quantity)']!;
       }
 
       if (category === 'span_indexed' && outcome !== Outcome.ACCEPTED) {
@@ -137,9 +115,6 @@ export function mapSeriesToChart({
       }
 
       group.series['sum(quantity)']!.forEach((stat, i) => {
-        stat =
-          stat *
-          droppedProfileChunkMultiplier(category, outcome, shouldEstimateDroppedProfiles);
         const dataObject = {name: orgStats.intervals[i]!, value: stat};
 
         const strigfiedReason = String(group.by.reason ?? '');
@@ -282,6 +257,11 @@ export function mapSeriesToChart({
         ),
         rateLimited: formatUsageWithUnits(
           count[Outcome.RATE_LIMITED],
+          dataCategory,
+          getFormatUsageOptions(dataCategory)
+        ),
+        clientDiscard: formatUsageWithUnits(
+          count[Outcome.CLIENT_DISCARD],
           dataCategory,
           getFormatUsageOptions(dataCategory)
         ),

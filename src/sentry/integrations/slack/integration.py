@@ -21,9 +21,13 @@ from sentry.integrations.base import (
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.slack.metrics import translate_slack_api_error
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.notifications.platform.provider import IntegrationNotificationClient
+from sentry.notifications.platform.slack.provider import SlackRenderable
+from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
@@ -74,7 +78,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class SlackIntegration(NotifyBasicMixin, IntegrationInstallation):
+class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNotificationClient):
     def get_client(self) -> SlackSdkClient:
         return SlackSdkClient(integration_id=self.model.id)
 
@@ -86,6 +90,9 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation):
         )
         return {"installationType": metadata_.get("installation_type", default_installation)}
 
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["domain_name", "installation_type"]
+
     def send_message(self, channel_id: str, message: str) -> None:
         client = self.get_client()
 
@@ -93,6 +100,73 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation):
             client.chat_postMessage(channel=channel_id, text=message)
         except SlackApiError:
             pass
+
+    def send_notification(
+        self, target: IntegrationNotificationTarget, payload: SlackRenderable
+    ) -> None:
+        client = self.get_client()
+        try:
+            client.chat_postMessage(
+                channel=target.resource_id, blocks=payload["blocks"], text=payload["text"]
+            )
+        except SlackApiError as e:
+            translate_slack_api_error(e)
+
+    def send_threaded_message(
+        self,
+        *,
+        channel_id: str,
+        renderable: SlackRenderable,
+        thread_ts: str,
+    ) -> None:
+        client = self.get_client()
+        try:
+            client.chat_postMessage(
+                channel=channel_id,
+                blocks=renderable["blocks"],
+                text=renderable["text"],
+                thread_ts=thread_ts,
+            )
+        except SlackApiError as e:
+            translate_slack_api_error(e)
+
+    def send_threaded_ephemeral_message(
+        self,
+        *,
+        slack_user_id: str,
+        channel_id: str,
+        renderable: SlackRenderable,
+        thread_ts: str,
+    ) -> None:
+        client = self.get_client()
+        try:
+            client.chat_postEphemeral(
+                channel=channel_id,
+                blocks=renderable["blocks"],
+                text=renderable["text"],
+                thread_ts=thread_ts,
+                user=slack_user_id,
+            )
+        except SlackApiError as e:
+            translate_slack_api_error(e)
+
+    def update_message(
+        self,
+        *,
+        channel_id: str,
+        message_ts: str,
+        renderable: SlackRenderable,
+    ) -> None:
+        client = self.get_client()
+        try:
+            client.chat_update(
+                channel=channel_id,
+                ts=message_ts,
+                text=renderable["text"],
+                blocks=renderable["blocks"],
+            )
+        except SlackApiError as e:
+            translate_slack_api_error(e)
 
 
 class SlackIntegrationProvider(IntegrationProvider):
@@ -154,7 +228,7 @@ class SlackIntegrationProvider(IntegrationProvider):
 
             return sdk_response.get("team")
         except SlackApiError:
-            _logger.exception("slack.install.team-info.error")
+            _logger.warning("slack.install.team-info.error")
             raise IntegrationError("Could not retrieve Slack team information.")
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:

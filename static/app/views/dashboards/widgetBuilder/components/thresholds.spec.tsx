@@ -1,11 +1,11 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {useNavigate} from 'sentry/utils/useNavigate';
 import Thresholds from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
-import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderContext,
+  WidgetBuilderProvider,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
 jest.mock('sentry/utils/useNavigate');
 describe('Thresholds', () => {
@@ -22,15 +22,14 @@ describe('Thresholds', () => {
         <Thresholds dataType="duration" dataUnit="millisecond" />
       </WidgetBuilderProvider>,
       {
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
             query: {
               thresholds: '{"max_values":{"max1":100},"unit":"millisecond"}',
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -50,10 +49,7 @@ describe('Thresholds', () => {
     render(
       <WidgetBuilderProvider>
         <Thresholds dataType="duration" dataUnit="millisecond" />
-      </WidgetBuilderProvider>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      </WidgetBuilderProvider>
     );
 
     await userEvent.type(screen.getByLabelText('First Maximum'), '100');
@@ -76,15 +72,14 @@ describe('Thresholds', () => {
         <Thresholds dataType="duration" dataUnit="millisecond" />
       </WidgetBuilderProvider>,
       {
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
             query: {
               thresholds: '{"max_values":{"max1":100,"max2":200},"unit":"millisecond"}',
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -111,15 +106,14 @@ describe('Thresholds', () => {
         />
       </WidgetBuilderProvider>,
       {
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
             query: {
               thresholds: '{"max_values":{"max1":-200,"max2":100},"unit":"millisecond"}',
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+        },
       }
     );
 
@@ -131,10 +125,7 @@ describe('Thresholds', () => {
     render(
       <WidgetBuilderProvider>
         <Thresholds dataType="duration" dataUnit="millisecond" />
-      </WidgetBuilderProvider>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      </WidgetBuilderProvider>
     );
 
     await userEvent.type(screen.getByLabelText('First Maximum'), '0.5');
@@ -151,5 +142,44 @@ describe('Thresholds', () => {
       }),
       expect.anything()
     );
+  });
+
+  it('sets internal state to null (not undefined) when thresholds are fully wiped', async () => {
+    let capturedState: any = null;
+
+    // Test component that captures the internal state
+    // This lets us more easily test the internal state of the hook where it
+    // deviates from the URL param update (e.g. null vs undefined behavior)
+    function StateCapture() {
+      const {state} = useWidgetBuilderContext();
+      capturedState = state;
+      return null;
+    }
+
+    render(
+      <WidgetBuilderProvider>
+        <StateCapture />
+        <Thresholds dataType="duration" dataUnit="millisecond" />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              thresholds: '{"max_values":{"max1":100},"unit":"millisecond"}',
+            },
+          },
+        },
+      }
+    );
+
+    // Verify initial state has thresholds
+    expect(capturedState.thresholds).not.toBeNull();
+
+    // Clear the threshold value
+    await userEvent.clear(screen.getByLabelText('First Maximum'));
+
+    // Wait for state update and verify it's null, not undefined
+    expect(capturedState.thresholds).toBeNull();
   });
 });

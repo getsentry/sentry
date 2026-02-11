@@ -9,6 +9,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueTitle} from 'sentry/types/group';
 import * as utils from 'sentry/utils/isActiveSuperuser';
 import ProjectPerformance, {
@@ -49,10 +50,17 @@ const manageDetectorData = [
     label: 'HTTP/1.1 Overhead Detection',
     key: 'http_overhead_detection_enabled',
   },
+  {label: 'Web Vitals Detection', key: 'web_vitals_detection_enabled'},
 ];
 
-describe('projectPerformance', function () {
-  const org = OrganizationFixture({features: ['performance-view']});
+describe('projectPerformance', () => {
+  const org = OrganizationFixture({
+    features: [
+      'performance-view',
+      'performance-web-vitals-seer-suggestions',
+      'gen-ai-features',
+    ],
+  });
   const project = ProjectFixture();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
   let getMock: jest.Mock;
@@ -60,15 +68,20 @@ describe('projectPerformance', function () {
   let deleteMock: jest.Mock;
 
   const initialRouterConfig = {
-    routes: ['/organizations/:orgId/settings/projects/:projectId/performance/'],
+    routes: ['/settings/:orgId/projects/:projectId/performance/'],
     location: {
-      pathname: `/organizations/${org.slug}/settings/projects/${project.slug}/performance/`,
+      pathname: `/settings/${org.slug}/projects/${project.slug}/performance/`,
       query: {},
+    },
+    params: {
+      orgId: org.slug,
+      projectId: project.slug,
     },
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
+    ProjectsStore.loadInitialData([project]);
     getMock = MockApiClient.addMockResponse({
       url: configUrl,
       method: 'GET',
@@ -97,7 +110,7 @@ describe('projectPerformance', function () {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'GET',
-      body: {},
+      body: project,
       statusCode: 200,
     });
     MockApiClient.addMockResponse({
@@ -112,9 +125,28 @@ describe('projectPerformance', function () {
       body: {},
       statusCode: 200,
     });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/seer/preferences/',
+      method: 'GET',
+      body: {
+        code_mapping_repos: [
+          {provider: 'github', owner: 'owner', name: 'repo', externalId: '123'},
+        ],
+      },
+      statusCode: 200,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/setup-check/',
+      method: 'GET',
+      body: {
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+        },
+      },
+    });
   });
 
-  it('renders the fields', async function () {
+  it('renders the fields', async () => {
     render(<ProjectPerformance />, {
       initialRouterConfig,
     });
@@ -126,7 +158,7 @@ describe('projectPerformance', function () {
     expect(getMock).toHaveBeenCalledTimes(1);
   });
 
-  it('updates the field', async function () {
+  it('updates the field', async () => {
     render(<ProjectPerformance />, {
       initialRouterConfig,
     });
@@ -149,7 +181,7 @@ describe('projectPerformance', function () {
     expect(input).toHaveValue('400');
   });
 
-  it('clears the data', async function () {
+  it('clears the data', async () => {
     render(<ProjectPerformance />, {
       initialRouterConfig,
     });
@@ -158,7 +190,7 @@ describe('projectPerformance', function () {
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('renders detector threshold configuration - admin ui', async function () {
+  it('renders detector threshold configuration - admin ui', async () => {
     jest.spyOn(utils, 'isActiveSuperuser').mockReturnValue(true);
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
@@ -252,7 +284,7 @@ describe('projectPerformance', function () {
     },
     {
       title: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
-      threshold: DetectorConfigCustomer.LARGE_HTT_PAYLOAD_SIZE,
+      threshold: DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_SIZE,
       allowedValues: allowedSizeValues.slice(1),
       defaultValue: 1000000,
       newValue: 5000000,
@@ -327,6 +359,17 @@ describe('projectPerformance', function () {
         index: 1,
       },
     },
+    {
+      title: IssueTitle.WEB_VITALS,
+      threshold: DetectorConfigCustomer.WEB_VITALS_COUNT,
+      allowedValues: allowedCountValues,
+      defaultValue: 10,
+      newValue: 20,
+      sliderIdentifier: {
+        label: 'Minimum Sample Count',
+        index: 0,
+      },
+    },
   ])(
     'renders detector thresholds settings for $title issue',
     async ({
@@ -350,6 +393,7 @@ describe('projectPerformance', function () {
         large_http_payload_detection_enabled: true,
         n_plus_one_api_calls_detection_enabled: true,
         consecutive_http_spans_detection_enabled: true,
+        web_vitals_detection_enabled: true,
       };
       const performanceIssuesGetMock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/performance-issues/configure/',
@@ -415,7 +459,7 @@ describe('projectPerformance', function () {
     }
   );
 
-  it('test reset all detector thresholds', async function () {
+  it('test reset all detector thresholds', async () => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
       method: 'GET',
@@ -453,7 +497,7 @@ describe('projectPerformance', function () {
 
   it.each(manageDetectorData)(
     'allows project admins to manage $label',
-    async function ({label, key}) {
+    async ({label, key}) => {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
         method: 'GET',
@@ -463,7 +507,11 @@ describe('projectPerformance', function () {
 
       render(<ProjectPerformance />, {
         organization: OrganizationFixture({
-          features: ['performance-view'],
+          features: [
+            'performance-view',
+            'performance-web-vitals-seer-suggestions',
+            'gen-ai-features',
+          ],
         }),
         initialRouterConfig,
       });
@@ -516,7 +564,7 @@ describe('projectPerformance', function () {
 
   it.each(manageDetectorData)(
     'does not allow non-admins to manage $label',
-    async function ({label}) {
+    async ({label}) => {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
         method: 'GET',
@@ -526,7 +574,11 @@ describe('projectPerformance', function () {
 
       render(<ProjectPerformance />, {
         organization: OrganizationFixture({
-          features: ['performance-view'],
+          features: [
+            'performance-view',
+            'performance-web-vitals-seer-suggestions',
+            'gen-ai-features',
+          ],
           access: ['project:read'],
         }),
         initialRouterConfig,

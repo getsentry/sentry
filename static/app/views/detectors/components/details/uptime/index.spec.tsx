@@ -1,47 +1,140 @@
-import {AutomationFixture} from 'sentry-fixture/automations';
 import {UptimeDetectorFixture} from 'sentry-fixture/detectors';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {UptimeSummaryFixture} from 'sentry-fixture/uptimeSummary';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {UptimeDetectorDetails} from 'sentry/views/detectors/components/details/uptime';
+import {UptimeDetectorDetails} from './index';
 
-describe('UptimeDetectorDetails', function () {
-  const defaultProps = {
-    detector: UptimeDetectorFixture(),
-    project: ProjectFixture(),
-  };
+describe('UptimeDetectorDetails', () => {
+  const organization = OrganizationFixture();
+  const project = ProjectFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/workflows/',
-      method: 'GET',
-      body: [AutomationFixture()],
+      url: `/projects/${organization.slug}/${project.slug}/uptime/3/checks/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/1/`,
+      body: UserFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/uptime-summary/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/detectors/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/workflows/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [],
     });
   });
 
-  it('displays correct detector details', async function () {
-    render(<UptimeDetectorDetails {...defaultProps} />);
+  it('renders the detector details sections', async () => {
+    const detector = UptimeDetectorFixture({id: '3'});
 
-    expect(screen.getByText('Three consecutive failed checks.')).toBeInTheDocument();
-    expect(screen.getByText('Three consecutive successful checks.')).toBeInTheDocument();
+    render(<UptimeDetectorDetails detector={detector} project={project} />, {
+      organization,
+    });
 
-    // Interval
-    expect(screen.getByText('Every 1 minute')).toBeInTheDocument();
-    // URL
-    expect(screen.getByText('https://example.com')).toBeInTheDocument();
-    // Method
-    expect(screen.getByText('GET')).toBeInTheDocument();
-    // Environment
-    expect(screen.getByText('production')).toBeInTheDocument();
+    expect(await screen.findByText('Detect')).toBeInTheDocument();
+    expect(screen.getByText('Resolve')).toBeInTheDocument();
+    expect(screen.getByText('Legend')).toBeInTheDocument();
+  });
 
-    // Connected automation
-    expect(await screen.findByText('Automation 1')).toBeInTheDocument();
+  it('renders the checked URL in detect section', async () => {
+    const detector = UptimeDetectorFixture({
+      id: '3',
+      dataSources: [
+        {
+          ...UptimeDetectorFixture().dataSources[0],
+          queryObj: {
+            ...UptimeDetectorFixture().dataSources[0].queryObj,
+            method: 'POST',
+            url: 'https://example.com/api',
+          },
+        },
+      ],
+    });
 
-    // Edit button takes you to the edit page
-    expect(screen.getByRole('button', {name: 'Edit'})).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/issues/monitors/3/edit/'
-    );
+    render(<UptimeDetectorDetails detector={detector} project={project} />, {
+      organization,
+    });
+
+    expect(await screen.findByText('POST https://example.com/api')).toBeInTheDocument();
+  });
+
+  it('displays recent check-ins section', async () => {
+    const detector = UptimeDetectorFixture({id: '3'});
+
+    render(<UptimeDetectorDetails detector={detector} project={project} />, {
+      organization,
+    });
+
+    expect(await screen.findByText('Recent Check-Ins')).toBeInTheDocument();
+  });
+
+  it('renders Duration section with data', async () => {
+    const detector = UptimeDetectorFixture({id: '3'});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/uptime-summary/',
+      body: {
+        '3': UptimeSummaryFixture({avgDurationUs: 150_000}),
+      },
+    });
+
+    render(<UptimeDetectorDetails detector={detector} project={project} />, {
+      organization,
+    });
+
+    expect(await screen.findByText('Duration')).toBeInTheDocument();
+    expect(await screen.findByText('150ms')).toBeInTheDocument();
+  });
+
+  it('renders Uptime section with percentage', async () => {
+    const detector = UptimeDetectorFixture({id: '3'});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/uptime-summary/',
+      body: {
+        '3': UptimeSummaryFixture({
+          totalChecks: 100,
+          downtimeChecks: 5,
+          failedChecks: 0,
+          missedWindowChecks: 0,
+        }),
+      },
+    });
+
+    render(<UptimeDetectorDetails detector={detector} project={project} />, {
+      organization,
+    });
+
+    expect(await screen.findByText('95%')).toBeInTheDocument();
+  });
+
+  it('displays disabled alert with enable button when detector is disabled', async () => {
+    const detector = UptimeDetectorFixture({id: '3', enabled: false});
+
+    render(<UptimeDetectorDetails detector={detector} project={project} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByText('This monitor is disabled and not recording uptime checks.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Enable'})).toBeInTheDocument();
   });
 });

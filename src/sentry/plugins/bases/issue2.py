@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING, NotRequired, TypedDict
 
+import sentry_sdk
 from django.conf import settings
 from django.http.response import HttpResponseBase
 from django.urls import re_path, reverse
@@ -10,14 +11,16 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.analytics.events.issue_tracker_used import IssueTrackerUsedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupEndpoint
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.constants import CELL_API_DEPRECATION_DATE
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 
 # api compat
-from sentry.exceptions import PluginError  # NOQA
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupmeta import GroupMeta
@@ -33,6 +36,50 @@ if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
 
 
+# Plugin endpoints deprecated for cellularization - only non-org-scoped URLs
+DEPRECATED_PLUGIN_URL_NAMES = [
+    # Asana
+    "sentry-api-0-plugins-asana-create",
+    "sentry-api-0-plugins-asana-link",
+    "sentry-api-0-plugins-asana-unlink",
+    "sentry-api-0-plugins-asana-autocomplete",
+    # Bitbucket
+    "sentry-api-0-plugins-bitbucket-create",
+    "sentry-api-0-plugins-bitbucket-link",
+    "sentry-api-0-plugins-bitbucket-unlink",
+    "sentry-api-0-plugins-bitbucket-autocomplete",
+    # GitHub
+    "sentry-api-0-plugins-github-create",
+    "sentry-api-0-plugins-github-link",
+    "sentry-api-0-plugins-github-unlink",
+    "sentry-api-0-plugins-github-autocomplete",
+    # GitLab
+    "sentry-api-0-plugins-gitlab-create",
+    "sentry-api-0-plugins-gitlab-link",
+    "sentry-api-0-plugins-gitlab-unlink",
+    # IssueTrackingPlugin2 (base)
+    "sentry-api-0-plugins-issuetrackingplugin2-create",
+    "sentry-api-0-plugins-issuetrackingplugin2-link",
+    "sentry-api-0-plugins-issuetrackingplugin2-unlink",
+    # Jira
+    "sentry-api-0-plugins-jira-create",
+    "sentry-api-0-plugins-jira-link",
+    "sentry-api-0-plugins-jira-unlink",
+    "sentry-api-0-plugins-jira-autocomplete",
+    # Pivotal
+    "sentry-api-0-plugins-pivotal-create",
+    "sentry-api-0-plugins-pivotal-link",
+    "sentry-api-0-plugins-pivotal-unlink",
+    "sentry-api-0-plugins-pivotal-autocomplete",
+    # Trello
+    "sentry-api-0-plugins-trello-create",
+    "sentry-api-0-plugins-trello-link",
+    "sentry-api-0-plugins-trello-unlink",
+    "sentry-api-0-plugins-trello-autocomplete",
+    "sentry-api-0-plugins-trello-options",
+]
+
+
 @region_silo_endpoint
 class PluginGroupEndpoint(GroupEndpoint):
     publish_status = {
@@ -46,9 +93,11 @@ class PluginGroupEndpoint(GroupEndpoint):
 
         return self.view(request, group, *args, **kwargs)
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=DEPRECATED_PLUGIN_URL_NAMES)
     def get(self, request: Request, group, *args, **kwargs) -> Response:
         return self._handle(request, group, *args, **kwargs)
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=DEPRECATED_PLUGIN_URL_NAMES)
     def post(self, request: Request, group, *args, **kwargs) -> Response:
         return self._handle(request, group, *args, **kwargs)
 
@@ -95,10 +144,10 @@ class IssueTrackingPlugin2(Plugin):
     issue_fields: frozenset[str] | None = None
     # issue_fields = frozenset(['id', 'title', 'url'])
 
-    def get_plugin_type(self):
+    def get_plugin_type(self) -> str:
         return "issue-tracking"
 
-    def has_project_conf(self):
+    def has_project_conf(self) -> bool:
         return True
 
     def get_group_body(self, group, event, **kwargs):
@@ -169,6 +218,9 @@ class IssueTrackingPlugin2(Plugin):
         """
         If overriding, supported properties include 'readonly': true
         """
+        return self._get_new_issue_fields_impl(group, event)
+
+    def _get_new_issue_fields_impl(self, group, event):
         return [
             {
                 "name": "title",
@@ -314,14 +366,18 @@ class IssueTrackingPlugin2(Plugin):
             data=issue_information,
         )
 
-        analytics.record(
-            "issue_tracker.used",
-            user_id=request.user.id,
-            default_user_id=group.project.organization.get_default_owner().id,
-            organization_id=group.project.organization_id,
-            project_id=group.project.id,
-            issue_tracker=self.slug,
-        )
+        try:
+            analytics.record(
+                IssueTrackerUsedEvent(
+                    user_id=request.user.id,
+                    default_user_id=group.project.organization.get_default_owner().id,
+                    organization_id=group.project.organization_id,
+                    project_id=group.project.id,
+                    issue_tracker=self.slug,
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         return Response(
             {

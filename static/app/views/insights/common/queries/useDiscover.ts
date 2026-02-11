@@ -1,20 +1,31 @@
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
-import type {EAPSpanProperty, EAPSpanResponse} from 'sentry/views/insights/types';
+import type {ExtrapolationMode} from 'sentry/views/insights/common/queries/types';
+import {
+  useWrappedDiscoverQuery,
+  useWrappedDiscoverQueryWithoutPageFilters,
+} from 'sentry/views/insights/common/queries/useSpansQuery';
+import type {
+  ErrorProperty,
+  ErrorResponse,
+  SpanProperty,
+  SpanResponse,
+} from 'sentry/views/insights/types';
 
 interface UseDiscoverQueryOptions {
   additonalQueryKey?: string[];
+  refetchInterval?: number;
 }
 
 interface UseDiscoverOptions<Fields> {
   cursor?: string;
   enabled?: boolean;
+  extrapolationMode?: ExtrapolationMode;
   fields?: Fields;
   keepPreviousData?: boolean;
   limit?: number;
@@ -22,6 +33,11 @@ interface UseDiscoverOptions<Fields> {
   orderby?: string | string[];
   pageFilters?: PageFilters;
   projectIds?: number[];
+  /**
+   * If true, the query will be executed without the page filters.
+   * {@link pageFilters} can still be passed and will be used to build the event view on top of the query.
+   */
+  queryWithoutPageFilters?: boolean;
   samplingMode?: SamplingMode;
   /**
    * TODO - ideally this probably would be only `Mutable Search`, but it doesn't handle some situations well
@@ -34,15 +50,18 @@ interface UseDiscoverOptions<Fields> {
 // The default sampling mode for eap queries
 export const DEFAULT_SAMPLING_MODE: SamplingMode = 'NORMAL';
 
-export const useSpans = <Fields extends EAPSpanProperty[]>(
+export const useSpans = <Fields extends SpanProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
-  return useDiscover<Fields, EAPSpanResponse>(
-    options,
-    DiscoverDatasets.SPANS_EAP_RPC,
-    referrer
-  );
+  return useDiscover<Fields, SpanResponse>(options, DiscoverDatasets.SPANS, referrer);
+};
+
+export const useErrors = <Fields extends ErrorProperty[]>(
+  options: UseDiscoverOptions<Fields> = {},
+  referrer: string
+) => {
+  return useDiscover<Fields, ErrorResponse>(options, DiscoverDatasets.ERRORS, referrer);
 };
 
 const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, ResponseType>(
@@ -61,11 +80,9 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     projectIds,
     orderby,
     samplingMode = DEFAULT_SAMPLING_MODE,
+    extrapolationMode,
     useQueryOptions,
   } = options;
-
-  // TODO: remove this check with eap
-  const shouldSetSamplingMode = dataset === DiscoverDatasets.SPANS_EAP_RPC;
 
   const pageFilters = usePageFilters();
 
@@ -79,7 +96,11 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     orderby
   );
 
-  const result = useWrappedDiscoverQuery({
+  const queryFn = options.queryWithoutPageFilters
+    ? useWrappedDiscoverQueryWithoutPageFilters
+    : useWrappedDiscoverQuery;
+
+  const result = queryFn({
     eventView,
     initialData: [],
     limit,
@@ -87,8 +108,10 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     referrer,
     cursor,
     noPagination,
-    samplingMode: shouldSetSamplingMode ? samplingMode : undefined,
+    samplingMode,
+    extrapolationMode,
     additionalQueryKey: useQueryOptions?.additonalQueryKey,
+    refetchInterval: useQueryOptions?.refetchInterval,
     keepPreviousData: options.keepPreviousData,
   });
 

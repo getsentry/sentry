@@ -193,8 +193,10 @@ export type IssueAlertRuleConditionTemplate = IssueAlertRuleActionTemplate;
 /**
  * These are the action or condition data that the user is editing or has saved.
  */
-export interface IssueAlertRuleAction
-  extends Omit<IssueAlertRuleActionTemplate, 'formFields' | 'enabled' | 'label'> {
+export interface IssueAlertRuleAction extends Omit<
+  IssueAlertRuleActionTemplate,
+  'formFields' | 'enabled' | 'label'
+> {
   // These are the same values as the keys in `formFields` for a template
   [key: string]: any;
   dynamic_form_fields?: IssueConfigField[];
@@ -298,14 +300,3 @@ export type NoteType = {
   mentions: string[];
   text: string;
 };
-
-/**
- * Used when determining what types of actions a rule has. The default action is "sentry.mail.actions.NotifyEmailAction"
- * while other actions can be integration (Slack, PagerDuty, etc) actions. We need to know this to determine what kind of muting
- * the alert should have.
- */
-export enum RuleActionsCategories {
-  ALL_DEFAULT = 'all_default',
-  SOME_DEFAULT = 'some_default',
-  NO_DEFAULT = 'no_default',
-}

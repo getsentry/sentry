@@ -13,6 +13,7 @@ from sentry.silo.patches.silo_aware_transaction_patch import patch_silo_aware_at
 from sentry.utils import warnings
 from sentry.utils.arroyo import initialize_arroyo_main
 from sentry.utils.sdk import configure_sdk
+from sentry.utils.security.encrypted_field_key_store import initialize_encrypted_field_key_store
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 
@@ -89,28 +90,6 @@ def init_plugin(plugin: Any) -> None:
 
         for cls in plugin.get_custom_contexts() or ():
             contexttype(cls)
-
-    if hasattr(plugin, "get_cron_schedule") and plugin.is_enabled():
-        schedules = plugin.get_cron_schedule()
-        if schedules:
-            settings.CELERYBEAT_SCHEDULE.update(schedules)
-
-    if hasattr(plugin, "get_worker_imports") and plugin.is_enabled():
-        imports = plugin.get_worker_imports()
-        if imports:
-            settings.CELERY_IMPORTS += tuple(imports)
-
-    if hasattr(plugin, "get_worker_queues") and plugin.is_enabled():
-        from kombu import Queue
-
-        for queue in plugin.get_worker_queues():
-            try:
-                name, routing_key = queue
-            except ValueError:
-                name = routing_key = queue
-            q = Queue(name, routing_key=routing_key)
-            q.durable = False
-            settings.CELERY_QUEUES.append(q)
 
 
 def initialize_receivers() -> None:
@@ -325,11 +304,11 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     # Commonly setups don't correctly configure themselves for production envs
     # so lets try to provide a bit more guidance
-    if settings.CELERY_ALWAYS_EAGER and not settings.DEBUG:
+    if settings.TASKWORKER_ALWAYS_EAGER and not settings.DEBUG:
         warnings.warn(
             "Sentry is configured to run asynchronous tasks in-process. "
             "This is not recommended within production environments. "
-            "See https://develop.sentry.dev/services/queue/ for more information."
+            "See https://develop.sentry.dev/backend/application/domains/tasks/ for more information."
         )
 
     if settings.SENTRY_SINGLE_ORGANIZATION:
@@ -389,6 +368,10 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
     import_grouptype()
 
     initialize_arroyo_main()
+
+    # Encryption keys should be initialized before any
+    # database queries that use encrypted fields are made
+    initialize_encrypted_field_key_store()
 
     # Hacky workaround to dynamically set the CSRF_TRUSTED_ORIGINS for self hosted
     if settings.SENTRY_SELF_HOSTED and not settings.CSRF_TRUSTED_ORIGINS:
@@ -513,29 +496,27 @@ def bind_cache_to_option_store() -> None:
     # loaded at this point, so we can plug in the cache backend before
     # continuing to initialize the remainder of the application.
     from django.core.cache import cache as default_cache
+    from django.core.cache import caches
+    from django.utils.connection import ConnectionProxy
 
     from sentry.options import default_store
 
-    default_store.set_cache_impl(default_cache)
+    # Prefer the 'options' cache profile if defined.
+    # Use a ConnectionProxy as caches['options'] performs
+    # poorly in threaded contexts.
+    # We type ignore because django's types are lies and default_cache
+    # is ConnectionProxy.
+    backend = default_cache
+    if "options" in settings.CACHES:
+        backend = ConnectionProxy(caches, "options")  # type: ignore[assignment]
+    default_store.set_cache_impl(backend)
 
 
 def apply_legacy_settings(settings: Any) -> None:
     from sentry import options
 
-    # SENTRY_USE_QUEUE used to determine if Celery was eager or not
-    if hasattr(settings, "SENTRY_USE_QUEUE"):
-        warnings.warn(
-            DeprecatedSettingWarning(
-                "SENTRY_USE_QUEUE",
-                "CELERY_ALWAYS_EAGER",
-                "https://develop.sentry.dev/services/queue/",
-            )
-        )
-        settings.CELERY_ALWAYS_EAGER = not settings.SENTRY_USE_QUEUE
-
     for old, new in (
         ("SENTRY_ADMIN_EMAIL", "system.admin-email"),
-        ("SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE", "system.rate-limit"),
         ("SENTRY_ENABLE_EMAIL_REPLIES", "mail.enable-replies"),
         ("SENTRY_SMTP_HOSTNAME", "mail.reply-hostname"),
         ("MAILGUN_API_KEY", "mail.mailgun-api-key"),

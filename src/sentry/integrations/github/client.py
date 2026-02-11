@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from datetime import datetime
-from typing import Any
+from datetime import datetime, timedelta
+from enum import StrEnum
+from typing import Any, TypedDict
 
 import orjson
 import sentry_sdk
@@ -14,6 +15,7 @@ from sentry.integrations.github.blame import (
     create_blame_query,
     extract_commits_from_blame_response,
     generate_file_path_mapping,
+    is_graphql_response,
 )
 from sentry.integrations.github.utils import get_jwt, get_next_link
 from sentry.integrations.models.integration import Integration
@@ -25,12 +27,12 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
 from sentry.integrations.source_code_management.repository import RepositoryClient
+from sentry.integrations.source_code_management.status_check import StatusCheckClient
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, IntegrationProviderSlug
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
-from sentry.shared_integrations.response.mapping import MappingApiResponse
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, UnknownHostError
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
@@ -56,6 +58,21 @@ class GithubRateLimitInfo:
 
     def __repr__(self) -> str:
         return f"GithubRateLimitInfo(limit={self.limit},rem={self.remaining},reset={self.reset})"
+
+
+class GitHubReaction(StrEnum):
+    """
+    https://docs.github.com/en/rest/reactions/reactions#about-reactions
+    """
+
+    PLUS_ONE = "+1"
+    MINUS_ONE = "-1"
+    LAUGH = "laugh"
+    CONFUSED = "confused"
+    HEART = "heart"
+    HOORAY = "hooray"
+    ROCKET = "rocket"
+    EYES = "eyes"
 
 
 class GithubSetupApiClient(IntegrationProxyClient):
@@ -116,6 +133,10 @@ class GithubSetupApiClient(IntegrationProxyClient):
 class GithubProxyClient(IntegrationProxyClient):
     integration: Integration | RpcIntegration  # late init
 
+    class AccessTokenData(TypedDict):
+        access_token: str
+        permissions: dict[str, str] | None
+
     def _get_installation_id(self) -> str:
         """
         Returns the Github App installation identifier.
@@ -133,7 +154,7 @@ class GithubProxyClient(IntegrationProxyClient):
         return get_jwt()
 
     @control_silo_function
-    def _refresh_access_token(self) -> str | None:
+    def _refresh_access_token(self) -> AccessTokenData | None:
         integration = Integration.objects.filter(id=self.integration.id).first()
         if not integration:
             return None
@@ -148,18 +169,41 @@ class GithubProxyClient(IntegrationProxyClient):
         data = self.post(f"/app/installations/{self._get_installation_id()}/access_tokens")
         access_token = data["token"]
         expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
-        integration.metadata.update({"access_token": access_token, "expires_at": expires_at})
+        permissions = data.get("permissions")
+        integration.metadata.update(
+            {
+                "access_token": access_token,
+                "expires_at": expires_at,
+                "permissions": permissions,
+            }
+        )
+
+        if integration.debug_data is None:
+            integration.debug_data = {}
+
+        integration.debug_data.update(
+            {
+                "permissions": permissions,
+                "expires_at": expires_at,
+                "last_refresh_at": datetime.utcnow().isoformat(),
+            }
+        )
+
         integration.save()
         logger.info(
             "token.refresh_end",
             extra={
                 "new_expires_at": integration.metadata.get("expires_at"),
+                "new_permissions": integration.metadata.get("permissions"),
                 "integration_id": integration.id,
             },
         )
 
         self.integration = integration
-        return access_token
+        return {
+            "access_token": access_token,
+            "permissions": permissions,
+        }
 
     @control_silo_function
     def _get_token(self, prepared_request: PreparedRequest) -> str | None:
@@ -184,29 +228,49 @@ class GithubProxyClient(IntegrationProxyClient):
             return jwt
 
         # The rest should use access tokens...
-        return self.get_access_token()
+        metadata = self.get_access_token()
+        if not metadata:
+            return None
+        return metadata["access_token"]
 
     @control_silo_function
-    def get_access_token(self) -> str | None:
+    def get_access_token(
+        self, token_minimum_validity_time: timedelta | None = None
+    ) -> AccessTokenData | None:
+        """
+        Retrieves an access token for the given integration with an optional
+        minimum validity time. This will guarantee that the token is valid for
+        at least the timedelta provided.
+        """
+        token_minimum_validity_time = token_minimum_validity_time or timedelta(minutes=0)
         now = datetime.utcnow()
         access_token: str | None = self.integration.metadata.get("access_token")
         expires_at: str | None = self.integration.metadata.get("expires_at")
-        is_expired = (
-            bool(expires_at) and datetime.fromisoformat(expires_at).replace(tzinfo=None) < now
+
+        close_to_expiry = (
+            expires_at
+            and datetime.fromisoformat(expires_at).replace(tzinfo=None)
+            < now + token_minimum_validity_time
         )
-        should_refresh = not access_token or not expires_at or is_expired
+        should_refresh = not access_token or not expires_at or close_to_expiry
 
         if should_refresh:
-            access_token = self._refresh_access_token()
+            return self._refresh_access_token()
 
-        return access_token
+        if access_token:
+            return {
+                "access_token": access_token,
+                "permissions": self.integration.metadata.get("permissions"),
+            }
+
+        return None
 
     @control_silo_function
     def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         integration: RpcIntegration | Integration | None = None
         if hasattr(self, "integration"):
             integration = self.integration
-        elif hasattr(self, "org_integration_id"):
+        elif self.org_integration_id is not None:
             integration = Integration.objects.filter(
                 organizationintegration__id=self.org_integration_id,
                 provider=EXTERNAL_PROVIDERS[ExternalProviders.GITHUB],
@@ -243,7 +307,9 @@ class GithubProxyClient(IntegrationProxyClient):
         return super().is_error_fatal(error)
 
 
-class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient, RepoTreesClient):
+class GitHubBaseClient(
+    GithubProxyClient, RepositoryClient, CommitContextClient, RepoTreesClient, StatusCheckClient
+):
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -294,7 +360,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """
         Get the merge commit sha from a commit sha.
         """
-        response = self.get_pullrequest_from_commit(repo.name, sha)
+        response = self.get_pull_request_from_commit(repo.name, sha)
         if not response or (isinstance(response, list) and len(response) != 1):
             # the response should return a single merged PR, return if multiple
             return None
@@ -309,7 +375,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 
         return pull_request.get("merge_commit_sha")
 
-    def get_pullrequest_from_commit(self, repo: str, sha: str) -> Any:
+    def get_pull_request_from_commit(self, repo: str, sha: str) -> Any:
         """
         https://docs.github.com/en/rest/commits/commits#list-pull-requests-associated-with-a-commit
 
@@ -317,13 +383,21 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """
         return self.get(f"/repos/{repo}/commits/{sha}/pulls")
 
-    def get_pullrequest_files(self, repo: str, pull_number: str) -> Any:
+    def get_pull_request_files(self, repo: str, pull_number: str) -> Any:
         """
         https://docs.github.com/en/rest/pulls/pulls#list-pull-requests-files
 
         Returns up to 30 files associated with a pull request. Responses are paginated.
         """
         return self.get(f"/repos/{repo}/pulls/{pull_number}/files")
+
+    def get_pull_request(self, repo: str, pull_number: int) -> Any:
+        """
+        https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
+
+        Returns a single pull request.
+        """
+        return self.get(f"/repos/{repo}/pulls/{pull_number}")
 
     def get_repo(self, repo: str) -> Any:
         """
@@ -398,7 +472,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 
         return should_count_error
 
-    def get_repos(self) -> list[dict[str, Any]]:
+    def get_repos(self, page_number_limit: int | None = None) -> list[dict[str, Any]]:
         """
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
@@ -406,7 +480,11 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
-        return self.get_with_pagination("/installation/repositories", response_key="repositories")
+        return self._get_with_pagination(
+            "/installation/repositories",
+            response_key="repositories",
+            page_number_limit=page_number_limit,
+        )
 
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
         """
@@ -421,9 +499,9 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """
         https://docs.github.com/en/rest/issues/assignees#list-assignees
         """
-        return self.get_with_pagination(f"/repos/{repo}/assignees")
+        return self._get_with_pagination(f"/repos/{repo}/assignees")
 
-    def get_with_pagination(
+    def _get_with_pagination(
         self, path: str, response_key: str | None = None, page_number_limit: int | None = None
     ) -> list[Any]:
         """
@@ -475,12 +553,57 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """
         return self.get(f"/repos/{repo}/issues/{number}")
 
+    def get_issue_comments(self, repo: str, issue_number: str) -> Any:
+        """
+        https://docs.github.com/en/rest/issues/comments#list-issue-comments
+        """
+        return self.get(f"/repos/{repo}/issues/{issue_number}/comments")
+
+    def get_pull_request_comments(self, repo: str, pull_number: str) -> Any:
+        """
+        https://docs.github.com/en/rest/pulls/comments#list-review-comments-on-a-pull-request
+        """
+        return self.get(f"/repos/{repo}/pulls/{pull_number}/comments")
+
     def create_issue(self, repo: str, data: Mapping[str, Any]) -> Any:
         """
         https://docs.github.com/en/rest/issues/issues#create-an-issue
         """
         endpoint = f"/repos/{repo}/issues"
         return self.post(endpoint, data=data)
+
+    def update_issue_assignees(self, repo: str, issue_number: str, assignees: list[str]) -> Any:
+        """
+        https://docs.github.com/en/rest/issues/issues#update-an-issue
+        """
+        endpoint = f"/repos/{repo}/issues/{issue_number}"
+        return self.patch(endpoint, data={"assignees": assignees})
+
+    def update_issue_status(self, repo: str, issue_number: str, status: str) -> Any:
+        """
+        https://docs.github.com/en/rest/issues/issues#update-an-issue
+        """
+        endpoint = f"/repos/{repo}/issues/{issue_number}"
+        return self.patch(endpoint, data={"state": status})
+
+    def get_issue_reactions(self, repo: str, issue_number: str) -> list[Any]:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#list-reactions-for-an-issue
+        """
+        return self._get_with_pagination(f"/repos/{repo}/issues/{issue_number}/reactions")
+
+    def create_issue_reaction(self, repo: str, issue_number: str, reaction: GitHubReaction) -> Any:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#create-reaction-for-an-issue
+        """
+        endpoint = f"/repos/{repo}/issues/{issue_number}/reactions"
+        return self.post(endpoint, data={"content": reaction.value})
+
+    def delete_issue_reaction(self, repo: str, issue_number: str, reaction_id: str) -> Any:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#delete-an-issue-reaction
+        """
+        return self.delete(f"/repos/{repo}/issues/{issue_number}/reactions/{reaction_id}")
 
     def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> Any:
         """
@@ -508,11 +631,26 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         return self.update_comment(repo.name, pr.key, pr_comment.external_id, data)
 
     def get_comment_reactions(self, repo: str, comment_id: str) -> Any:
+        """
+        https://docs.github.com/en/rest/issues/comments?#get-an-issue-comment
+        """
         endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
         response = self.get(endpoint)
-        reactions = response["reactions"]
-        del reactions["url"]
+        reactions = response.get("reactions", {})
+        reactions.pop("url", None)
         return reactions
+
+    def create_comment_reaction(self, repo: str, comment_id: str, reaction: GitHubReaction) -> Any:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#create-reaction-for-an-issue-comment
+
+        Args:
+            repo: Repository name in "owner/repo" format
+            comment_id: The ID of the comment
+            reaction: The reaction type
+        """
+        endpoint = f"/repos/{repo}/issues/comments/{comment_id}/reactions"
+        return self.post(endpoint, data={"content": reaction.value})
 
     def get_user(self, gh_username: str) -> Any:
         """
@@ -525,7 +663,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         Fetches all labels for a repository.
         https://docs.github.com/en/rest/issues/labels#list-labels-for-a-repository
         """
-        return self.get_with_pagination(f"/repos/{owner}/{repo}/labels")
+        return self._get_with_pagination(f"/repos/{owner}/{repo}/labels")
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
@@ -556,7 +694,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
-    ) -> Sequence[FileBlameInfo]:
+    ) -> list[FileBlameInfo]:
         log_info = {
             **extra,
             "provider": IntegrationProviderSlug.GITHUB,
@@ -573,7 +711,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
                 metrics.incr(
                     "integrations.github.get_blame_for_files.not_enough_requests_remaining"
                 )
-                logger.error(
+                logger.warning(
                     "sentry.integrations.github.get_blame_for_files.rate_limit",
                     extra={
                         "provider": IntegrationProviderSlug.GITHUB,
@@ -604,12 +742,12 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
                     allow_text=False,
                 )
             except ValueError as e:
-                logger.exception(str(e), log_info)
+                logger.warning(str(e), log_info)
                 return []
             else:
                 self.set_cache(cache_key, response, 60)
 
-        if not isinstance(response, MappingApiResponse):
+        if not is_graphql_response(response):
             raise ApiError("Response is not JSON")
 
         errors = response.get("errors", [])
@@ -621,10 +759,23 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
             # usually a missing repo/branch/file which is expected with wrong configurations.
             # If data is not present, the query may be formed incorrectly, so raise an error.
             if not response.get("data"):
-                err_message = ", ".join(
-                    [error.get("message", "") for error in response.get("errors", [])]
-                )
+                err_message = ""
+                for error in response.get("errors", []):
+                    err = error.get("message", "")
+                    err_message += err + "\n"
+
+                    if err and "something went wrong" in err.lower():
+                        raise UnknownHostError(err)
+
                 raise ApiError(err_message)
+
+        detail = str(response.get("detail", ""))
+        if detail and "internal error" in detail.lower():
+            errorId = response.get("errorId", "")
+            logger.info(
+                "github.get_blame_for_files.host_error", extra={**log_info, "errorId": errorId}
+            )
+            raise UnknownHostError("Something went wrong when communicating with GitHub")
 
         return extract_commits_from_blame_response(
             response=response,
@@ -637,6 +788,28 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
             },
         )
 
+    def create_check_run(self, repo: str, data: dict[str, Any]) -> Any:
+        """
+        https://docs.github.com/en/rest/checks/runs#create-a-check-run
+
+        The repo must be in the format of "owner/repo".
+        """
+        endpoint = f"/repos/{repo}/check-runs"
+        return self.post(endpoint, data=data)
+
+    def get_check_runs(self, repo: str, sha: str) -> Any:
+        """
+        https://docs.github.com/en/rest/checks/runs#list-check-runs-for-a-git-reference
+
+        The repo must be in the format of "owner/repo". SHA can be any reference.
+        """
+        endpoint = f"/repos/{repo}/commits/{sha}/check-runs"
+        return self.get(endpoint)
+
+
+class _IntegrationIdParams(TypedDict, total=False):
+    integration_id: int
+
 
 class GitHubApiClient(GitHubBaseClient):
     def __init__(
@@ -647,7 +820,7 @@ class GitHubApiClient(GitHubBaseClient):
         logging_context: Mapping[str, Any] | None = None,
     ) -> None:
         self.integration = integration
-        kwargs = {}
+        kwargs: _IntegrationIdParams = {}
         if hasattr(self.integration, "id"):
             kwargs["integration_id"] = integration.id
 

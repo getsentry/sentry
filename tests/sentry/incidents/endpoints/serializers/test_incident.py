@@ -12,7 +12,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 
 class IncidentSerializerTest(TestCase):
     @freeze_time()
-    def test_simple(self):
+    def test_simple(self) -> None:
         incident = self.create_incident(date_started=timezone.now() - timedelta(minutes=5))
         result = serialize(incident)
 
@@ -31,7 +31,7 @@ class IncidentSerializerTest(TestCase):
 
 
 class DetailedIncidentSerializerTest(TestCase):
-    def test_error_alert_rule(self):
+    def test_error_alert_rule(self) -> None:
         query = "test query"
         incident = self.create_incident(query=query)
 
@@ -43,7 +43,7 @@ class DetailedIncidentSerializerTest(TestCase):
         )
         assert result["discoverQuery"] == f"(event.type:error) AND ({query})"
 
-    def test_error_alert_rule_unicode(self):
+    def test_error_alert_rule_unicode(self) -> None:
         query = "统一码"
         incident = self.create_incident(query=query)
 
@@ -56,7 +56,7 @@ class DetailedIncidentSerializerTest(TestCase):
         )
         assert result["discoverQuery"] == f"(event.type:error) AND ({query})"
 
-    def test_transaction_alert_rule(self):
+    def test_transaction_alert_rule(self) -> None:
         query = "test query"
         alert_rule = self.create_alert_rule(dataset=Dataset.Transactions, query=query)
         incident = self.create_incident(alert_rule=alert_rule)

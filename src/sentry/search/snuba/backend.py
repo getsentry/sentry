@@ -40,6 +40,7 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 
 logger = logging.getLogger(__name__)
 
@@ -250,22 +251,28 @@ def regressed_in_release_filter(versions: Sequence[str], projects: Sequence[Proj
 def seer_actionability_filter(trigger_values: list[float]) -> Q:
     """
     Converts float thresholds for the Seer fixability score into a query of ranges:
-    - "low" -> [0.0, low threshold]
-    - "medium" -> (low threshold, high threshold]
+    - "super_low" -> [0.0, low threshold]
+    - "low" -> (low threshold, medium threshold]
+    - "medium" -> (medium threshold, high threshold]
     - "high" -> (high threshold, super high threshold]
     - "super_high" -> (super high threshold, 1.0]
     """
     query = Q()
 
     for val in set(trigger_values):
-        if val == FixabilityScoreThresholds.LOW.value:
+        if val == FixabilityScoreThresholds.SUPER_LOW.value:
             query |= Q(
                 seer_fixability_score__gte=0.0,
                 seer_fixability_score__lte=FixabilityScoreThresholds.LOW.value,
             )
-        elif val == FixabilityScoreThresholds.MEDIUM.value:
+        if val == FixabilityScoreThresholds.LOW.value:
             query |= Q(
                 seer_fixability_score__gt=FixabilityScoreThresholds.LOW.value,
+                seer_fixability_score__lte=FixabilityScoreThresholds.MEDIUM.value,
+            )
+        elif val == FixabilityScoreThresholds.MEDIUM.value:
+            query |= Q(
+                seer_fixability_score__gt=FixabilityScoreThresholds.MEDIUM.value,
                 seer_fixability_score__lte=FixabilityScoreThresholds.HIGH.value,
             )
         elif val == FixabilityScoreThresholds.HIGH.value:
@@ -333,10 +340,19 @@ class ScalarCondition(Condition):
     def apply(
         self, queryset: BaseQuerySet[Group, Group], search_filter: SearchFilter
     ) -> BaseQuerySet[Group, Group]:
-        django_operator = self._get_operator(search_filter)
+        # Handle has: and !has: filters (where value is empty string)
+        # has:field → operator is "!=", value is "" → want records where field IS NOT NULL
+        # !has:field → operator is "=", value is "" → want records where field IS NULL
+        if search_filter.value.raw_value == "" and search_filter.operator in ("=", "!="):
+            django_operator = "__isnull"
+            value: bool | str | float | datetime | Sequence[float] | Sequence[str] = True
+        else:
+            django_operator = self._get_operator(search_filter)
+            value = search_filter.value.raw_value
+
         qs_method = queryset.exclude if search_filter.operator == "!=" else queryset.filter
 
-        q_dict = {f"{self.field}{django_operator}": search_filter.value.raw_value}
+        q_dict = {f"{self.field}{django_operator}": value}
         if self.extra:
             q_dict.update(self.extra)
 
@@ -372,9 +388,10 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         date_from: datetime | None = None,
         date_to: datetime | None = None,
         max_hits: int | None = None,
-        referrer: str | None = None,
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
+        *,
+        referrer: str,
     ) -> CursorResult[Group]:
         search_filters = search_filters if search_filters is not None else []
         # ensure projects are from same org
@@ -511,6 +528,24 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         raise NotImplementedError
 
 
+def _make_detector_filter(detector_ids: Sequence[int | str]) -> Q:
+    assert not isinstance(detector_ids, str)
+    valid_detector_ids = []
+    for detector_id in detector_ids:
+        if detector_id == "*":
+            continue
+        try:
+            valid_detector_ids.append(int(detector_id))
+        except (ValueError, TypeError):
+            raise InvalidSearchQuery(f"Invalid detector ID: {detector_id}")
+
+    return Q(
+        id__in=DetectorGroup.objects.filter(detector_id__in=valid_detector_ids).values_list(
+            "group_id", flat=True
+        )
+    )
+
+
 class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
     def _get_query_executor(self, *args: Any, **kwargs: Any) -> AbstractQueryExecutor:
         return PostgresSnubaQueryExecutor()
@@ -551,6 +586,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "regressed_in_release": QCallbackCondition(
                 functools.partial(regressed_in_release_filter, projects=projects)
             ),
+            "detector": QCallbackCondition(_make_detector_filter),
             "issue.category": QCallbackCondition(lambda categories: Q(type__in=categories)),
             "issue.type": QCallbackCondition(lambda types: Q(type__in=types)),
             "issue.priority": QCallbackCondition(lambda priorities: Q(priority__in=priorities)),

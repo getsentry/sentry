@@ -1,41 +1,50 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 
-import {SectionHeading} from 'sentry/components/charts/styles';
 import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
-import {t} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {Monitor, MonitorEnvironment} from 'sentry/views/insights/crons/types';
+import {getNextCheckInEnv} from 'sentry/views/alerts/rules/crons/utils';
+import type {MonitorEnvironment} from 'sentry/views/insights/crons/types';
 import {useMonitorCheckIns} from 'sentry/views/insights/crons/utils/useMonitorCheckIns';
 
 import {MonitorCheckInsGrid} from './monitorCheckInsGrid';
 
 type Props = {
-  monitor: Monitor;
   monitorEnvs: MonitorEnvironment[];
+  monitorSlug: string;
+  project: Project;
 };
 
 const PER_PAGE = 10;
 
-export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
+export function MonitorCheckIns({monitorSlug, monitorEnvs, project}: Props) {
   const location = useLocation();
   const organization = useOrganization();
+
+  // Use the nextCheckIn timestamp from the earliest scheduled environment as a
+  // key for forcing a refetch of the check-in list. We do this since we know
+  // when this value changes there are new check-ins present.
+  const nextCheckIn = getNextCheckInEnv(monitorEnvs)?.nextCheckIn;
 
   const {
     data: checkInList,
     getResponseHeader,
     isPending,
     isError,
+    refetch,
   } = useMonitorCheckIns({
     orgSlug: organization.slug,
-    projectSlug: monitor.project.slug,
-    monitorIdOrSlug: monitor.slug,
+    projectSlug: project.slug,
+    monitorIdOrSlug: monitorSlug,
     limit: PER_PAGE,
     expand: 'groups',
     environment: monitorEnvs.map(e => e.name),
     queryParams: {...location.query},
   });
+
+  useEffect(() => void refetch(), [refetch, nextCheckIn]);
 
   if (isError) {
     return <LoadingError />;
@@ -45,12 +54,11 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
 
   return (
     <Fragment>
-      <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
       <MonitorCheckInsGrid
         checkIns={checkInList ?? []}
         isLoading={isPending}
         hasMultiEnv={hasMultiEnv}
-        project={monitor.project}
+        project={project}
       />
       <Pagination pageLinks={getResponseHeader?.('Link')} />
     </Fragment>

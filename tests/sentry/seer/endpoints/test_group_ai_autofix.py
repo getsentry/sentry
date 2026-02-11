@@ -2,11 +2,12 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 
 from sentry.seer.autofix.autofix import TIMEOUT_SECONDS
+from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.constants import AutofixStatus
-from sentry.seer.autofix.utils import AutofixState, CodebaseState
+from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint, CodebaseState
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
@@ -17,13 +18,13 @@ from sentry.utils.samples import load_data
 pytestmark = [requires_snuba]
 
 
-@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@with_feature("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
-    def _get_url(self, group_id: int):
-        return f"/api/0/issues/{group_id}/autofix/"
+    def _get_url(self, group_id: int) -> str:
+        return f"/api/0/organizations/{self.organization.slug}/issues/{group_id}/autofix/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
@@ -35,7 +36,12 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         mock_get_autofix_state.return_value = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={
+                "project_id": 456,
+                "organization_id": group.organization.id,
+                "issue": {"id": 789, "title": "Test Issue"},
+                "repos": [],
+            },
             updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
         )
@@ -52,7 +58,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert "issue_summary" not in response.data["autofix"]["request"]
 
         mock_get_autofix_state.assert_called_once_with(
-            group_id=group.id, check_repo_access=True, is_user_fetching=False
+            group_id=group.id,
+            check_repo_access=True,
+            is_user_fetching=False,
+            organization_id=group.organization.id,
         )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
@@ -69,7 +78,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["autofix"] is None
 
         mock_get_autofix_state.assert_called_once_with(
-            group_id=group.id, check_repo_access=True, is_user_fetching=False
+            group_id=group.id,
+            check_repo_access=True,
+            is_user_fetching=False,
+            organization_id=group.organization.id,
         )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
@@ -83,7 +95,12 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         autofix_state = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={
+                "project_id": 456,
+                "organization_id": group.organization.id,
+                "issue": {"id": 789, "title": "Test Issue"},
+                "repos": [],
+            },
             updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
             codebases={
@@ -135,7 +152,12 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         autofix_state = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={
+                "project_id": 456,
+                "organization_id": group.organization.id,
+                "issue": {"id": 789, "title": "Test Issue"},
+                "repos": [],
+            },
             updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
             codebases={
@@ -213,7 +235,12 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         autofix_state = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={
+                "project_id": 456,
+                "organization_id": group.organization.id,
+                "issue": {"id": 789, "title": "Test Issue"},
+                "repos": [],
+            },
             updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
             codebases={
@@ -258,7 +285,12 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         autofix_state = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={
+                "project_id": 456,
+                "organization_id": group.organization.id,
+                "issue": {"id": 789, "title": "Test Issue"},
+                "repos": [],
+            },
             updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
             # Empty codebases dictionary
@@ -286,7 +318,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # Should have empty repositories list since there are no codebases
         assert len(response.data["autofix"]["repositories"]) == 0
 
-    @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
+    @patch("sentry.seer.explorer.utils.get_from_profiling_service")
     @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
@@ -344,13 +376,16 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert call_kwargs["group"].id == group.id  # Check that the group object matches
 
         # Check that the repos parameter contains the expected data
-        expected_repo = {
+        expected_repo_fields = {
             "provider": "integrations:github",
             "owner": "getsentry",
             "name": "sentry",
             "external_id": "123",
         }
-        assert expected_repo in call_kwargs["repos"]
+        assert any(
+            all(repo.get(key) == value for key, value in expected_repo_fields.items())
+            for repo in call_kwargs["repos"]
+        )
 
         # Check that the instruction was passed correctly
         assert call_kwargs["instruction"] == "Yes"
@@ -366,9 +401,11 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 202
 
-        mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
+        mock_check_autofix_status.assert_called_once_with(
+            args=[123, group.organization.id], countdown=900
+        )
 
-    @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
+    @patch("sentry.seer.explorer.utils.get_from_profiling_service")
     @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
@@ -434,9 +471,11 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 202
 
-        mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
+        mock_check_autofix_status.assert_called_once_with(
+            args=[123, group.organization.id], countdown=900
+        )
 
-    @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
+    @patch("sentry.seer.explorer.utils.get_from_profiling_service")
     @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
@@ -492,13 +531,16 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert call_kwargs["group"].id == group.id  # Check that the group object matches
 
         # Check that the repos parameter contains the expected data
-        expected_repo = {
+        expected_repo_fields = {
             "provider": "integrations:github",
             "owner": "getsentry",
             "name": "sentry",
             "external_id": "123",
         }
-        assert expected_repo in call_kwargs["repos"]
+        assert any(
+            all(repo.get(key) == value for key, value in expected_repo_fields.items())
+            for repo in call_kwargs["repos"]
+        )
 
         # Check that the instruction was passed correctly
         assert call_kwargs["instruction"] == "Yes"
@@ -514,10 +556,12 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 202
 
-        mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
+        mock_check_autofix_status.assert_called_once_with(
+            args=[123, group.organization.id], countdown=900
+        )
 
     @patch("sentry.models.Group.get_recommended_event_for_environments", return_value=None)
-    @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
+    @patch("sentry.seer.explorer.utils.get_from_profiling_service")
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
@@ -572,13 +616,16 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert call_kwargs["group"].id == group.id  # Check that the group object matches
 
         # Check that the repos parameter contains the expected data
-        expected_repo = {
+        expected_repo_fields = {
             "provider": "integrations:github",
             "owner": "getsentry",
             "name": "sentry",
             "external_id": "123",
         }
-        assert expected_repo in call_kwargs["repos"]
+        assert any(
+            all(repo.get(key) == value for key, value in expected_repo_fields.items())
+            for repo in call_kwargs["repos"]
+        )
 
         # Check that the instruction was passed correctly
         assert call_kwargs["instruction"] == "Yes"
@@ -594,7 +641,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 202
 
-        mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
+        mock_check_autofix_status.assert_called_once_with(
+            args=[123, group.organization.id], countdown=900
+        )
 
     @patch("sentry.models.Group.get_recommended_event_for_environments", return_value=None)
     @patch("sentry.models.Group.get_latest_event", return_value=None)
@@ -655,7 +704,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # Verify cache behavior - cache miss should trigger repo access check
         mock_cache.get.assert_called_once_with(f"autofix_access_check:{self.group.id}")
         mock_get_autofix_state.assert_called_once_with(
-            group_id=self.group.id, check_repo_access=True, is_user_fetching=False
+            group_id=self.group.id,
+            check_repo_access=True,
+            is_user_fetching=False,
+            organization_id=self.group.organization.id,
         )
 
         # Verify the cache was set with a 60-second timeout
@@ -686,7 +738,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # Verify cache behavior - cache hit should skip repo access check
         mock_cache.get.assert_called_once_with(f"autofix_access_check:{self.group.id}")
         mock_get_autofix_state.assert_called_once_with(
-            group_id=self.group.id, check_repo_access=False, is_user_fetching=False
+            group_id=self.group.id,
+            check_repo_access=False,
+            is_user_fetching=False,
+            organization_id=self.group.organization.id,
         )
 
         # Verify the cache was not set again
@@ -705,7 +760,12 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # Mock the autofix state
         mock_get_autofix_state.return_value = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={
+                "project_id": 456,
+                "organization_id": group.organization.id,
+                "issue": {"id": 789, "title": "Test Issue"},
+                "repos": [],
+            },
             updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
         )
@@ -719,7 +779,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # Verify first request behavior
         mock_cache.get.assert_called_once_with(f"autofix_access_check:{group.id}")
         mock_get_autofix_state.assert_called_once_with(
-            group_id=group.id, check_repo_access=True, is_user_fetching=False
+            group_id=group.id,
+            check_repo_access=True,
+            is_user_fetching=False,
+            organization_id=group.organization.id,
         )
         mock_cache.set.assert_called_once_with(f"autofix_access_check:{group.id}", True, timeout=60)
 
@@ -736,7 +799,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # Verify second request behavior
         mock_cache.get.assert_called_once_with(f"autofix_access_check:{group.id}")
         mock_get_autofix_state.assert_called_once_with(
-            group_id=group.id, check_repo_access=False, is_user_fetching=False
+            group_id=group.id,
+            check_repo_access=False,
+            is_user_fetching=False,
+            organization_id=group.organization.id,
         )
         mock_cache.set.assert_not_called()
 
@@ -753,6 +819,214 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # Verify third request behavior - should be like the first request
         mock_cache.get.assert_called_once_with(f"autofix_access_check:{group.id}")
         mock_get_autofix_state.assert_called_once_with(
-            group_id=group.id, check_repo_access=True, is_user_fetching=False
+            group_id=group.id,
+            check_repo_access=True,
+            is_user_fetching=False,
+            organization_id=group.organization.id,
         )
         mock_cache.set.assert_called_once_with(f"autofix_access_check:{group.id}", True, timeout=60)
+
+    def test_ai_autofix_post_invalid_stopping_point_string(self, mock_get_seer_org_acknowledgement):
+        group = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"instruction": "test", "stopping_point": "invalid"},
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert "stoppingPoint" in response.data
+        assert "not a valid choice" in str(response.data["stoppingPoint"])
+
+    def test_ai_autofix_post_invalid_stopping_point_type(self, mock_get_seer_org_acknowledgement):
+        group = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"instruction": "test", "stopping_point": 123},
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert "stoppingPoint" in response.data
+        assert "not a valid choice" in str(response.data["stoppingPoint"])
+
+
+@with_feature("organizations:gen-ai-features")
+@with_feature("organizations:seer-explorer")
+@with_feature("organizations:autofix-on-explorer")
+@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
+class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
+    """Tests for feature flag routing to Explorer-based autofix."""
+
+    def _get_url(self, group_id: int, mode: str | None = None) -> str:
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group_id}/autofix/"
+        if mode is not None:
+            url = f"{url}?mode={mode}"
+        return url
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_explorer_state")
+    def test_get_routes_to_explorer_with_both_flags(
+        self, mock_get_explorer_state, mock_get_seer_org_acknowledgement
+    ):
+        """GET routes to explorer when both seer-explorer and autofix-on-explorer flags are enabled."""
+        group = self.create_group()
+        mock_get_explorer_state.return_value = None
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id, mode="explorer"), format="json")
+
+        assert response.status_code == 200, response.data
+        mock_get_explorer_state.assert_called_once_with(group.organization, group.id)
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
+    def test_get_routes_to_legacy_with_mode_param(
+        self, mock_get_autofix_state, mock_get_seer_org_acknowledgement
+    ):
+        """GET routes to legacy when mode=legacy is in query params even with both flags enabled."""
+        group = self.create_group()
+        mock_get_autofix_state.return_value = None
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200, response.data
+        mock_get_autofix_state.assert_called_once()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_explorer")
+    def test_post_routes_to_explorer_with_both_flags(
+        self, mock_trigger_explorer, mock_get_seer_org_acknowledgement
+    ):
+        """POST routes to explorer when both seer-explorer and autofix-on-explorer flags are enabled."""
+        group = self.create_group()
+        mock_trigger_explorer.return_value = 123
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id, mode="explorer"),
+            data={"step": "root_cause"},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        assert response.data["run_id"] == 123
+        mock_trigger_explorer.assert_called_once()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_explorer")
+    def test_stopping_point(self, mock_trigger_explorer, mock_get_seer_org_acknowledgement):
+        """POST routes to explorer and stopping point forces the step to be root_caues"""
+        group = self.create_group()
+        mock_trigger_explorer.return_value = 123
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id, mode="explorer"),
+            data={"step": "coding_agent_handoff", "stopping_point": "code_changes"},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        assert response.data["run_id"] == 123
+        mock_trigger_explorer.assert_called_once_with(
+            group=group,
+            step=AutofixStep.ROOT_CAUSE,
+            stopping_point=AutofixStoppingPoint.CODE_CHANGES,
+            run_id=None,
+            intelligence_level="low",
+        )
+
+    @patch("sentry.seer.autofix.autofix._call_autofix")
+    @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
+    @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
+    def test_post_routes_to_legacy_with_mode_param(
+        self,
+        mock_check_autofix_status,
+        mock_get_trace_tree,
+        mock_call_autofix,
+        mock_get_seer_org_acknowledgement,
+    ):
+        """POST routes to legacy when mode=legacy is in query params even with both flags enabled."""
+        release = self.create_release(project=self.project, version="1.0.0")
+
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(
+            data={
+                **data,
+                "release": release.version,
+                "exception": {"values": [{"type": "exception", "data": {"values": []}}]},
+            },
+            project_id=self.project.id,
+        )
+
+        group = event.group
+
+        mock_get_trace_tree.return_value = None
+        mock_call_autofix.return_value = 123
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"instruction": "test"},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        mock_call_autofix.assert_called_once()
+
+    def test_post_coding_agent_handoff_errors_with_both_provider_and_integration_id(
+        self, mock_get_seer_org_acknowledgement
+    ):
+        """POST returns 400 when both provider and integration_id are specified for coding_agent_handoff."""
+        group = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id, mode="explorer"),
+            data={
+                "step": "coding_agent_handoff",
+                "run_id": 123,
+                "integration_id": 456,
+                "provider": "github_copilot",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Cannot specify both integration_id and provider"
+
+
+@with_feature("organizations:gen-ai-features")
+@with_feature("organizations:seer-explorer")
+@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
+class GroupAutofixEndpointLegacyRoutingTest(APITestCase, SnubaTestCase):
+    """Tests that endpoint routes to legacy when autofix-on-explorer flag is missing."""
+
+    def _get_url(self, group_id: int) -> str:
+        return f"/api/0/organizations/{self.organization.slug}/issues/{group_id}/autofix/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
+    def test_get_routes_to_legacy_without_autofix_on_explorer_flag(
+        self, mock_get_autofix_state, mock_get_seer_org_acknowledgement
+    ):
+        """GET routes to legacy when autofix-on-explorer flag is missing."""
+        group = self.create_group()
+        mock_get_autofix_state.return_value = None
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200, response.data
+        mock_get_autofix_state.assert_called_once()

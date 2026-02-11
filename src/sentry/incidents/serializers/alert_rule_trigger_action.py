@@ -1,8 +1,12 @@
+import sentry_sdk
 from django.forms import ValidationError
 from django.utils.encoding import force_str
 from rest_framework import serializers
 
 from sentry import analytics
+from sentry.analytics.events.metric_alert_with_ui_component_created import (
+    MetricAlertWithUiComponentCreatedEvent,
+)
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.auth.access import Access
 from sentry.incidents.logic import (
@@ -87,6 +91,19 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         target_type = attrs.get("target_type")
         access: Access = self.context["access"]
         identifier = attrs.get("target_identifier")
+
+        # Validate that target_identifier is an integer for USER and TEAM target types
+        if target_type in (
+            AlertRuleTriggerAction.TargetType.USER,
+            AlertRuleTriggerAction.TargetType.TEAM,
+        ):
+            if identifier is not None:
+                try:
+                    int(identifier)
+                except (ValueError, TypeError):
+                    raise serializers.ValidationError(
+                        {"target_identifier": "Must be a valid integer for user or team targets"}
+                    )
 
         if type is not None:
             type_info = AlertRuleTriggerAction.get_registered_factory(type)
@@ -208,12 +225,16 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             # invalid action type
             raise serializers.ValidationError(str(e))
 
-        analytics.record(
-            "metric_alert_with_ui_component.created",
-            user_id=getattr(self.context["user"], "id", None),
-            alert_rule_id=getattr(self.context["alert_rule"], "id"),
-            organization_id=getattr(self.context["organization"], "id"),
-        )
+        try:
+            analytics.record(
+                MetricAlertWithUiComponentCreatedEvent(
+                    user_id=getattr(self.context["user"], "id", None),
+                    alert_rule_id=getattr(self.context["alert_rule"], "id"),
+                    organization_id=getattr(self.context["organization"], "id"),
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         return action
 

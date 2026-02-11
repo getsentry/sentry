@@ -26,7 +26,7 @@ export const slackGeoChartSize = {
 
 export const makeSlackChartDefaults = (theme: Theme) => ({
   grid: Grid({left: 5, right: 5, bottom: 5}),
-  backgroundColor: theme.background,
+  backgroundColor: theme.tokens.background.primary,
   legend: Legend({
     theme,
     itemHeight: 6,

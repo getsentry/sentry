@@ -28,11 +28,14 @@ export function useInteractionViewCheckPoint({
       return;
     }
 
-    if (
-      beforeInteractionConfigView.current &&
-      !beforeInteractionConfigView.current.equals(view.configView)
-    ) {
-      dispatch({type: 'checkpoint', payload: view.configView.clone()});
+    // Check if we are finish the current interaction
+    if (previousInteraction && lastInteraction === null) {
+      if (
+        beforeInteractionConfigView.current &&
+        !beforeInteractionConfigView.current.equals(view.configView)
+      ) {
+        dispatch({type: 'checkpoint', payload: view.configView.clone()});
+      }
     }
   }, [dispatch, lastInteraction, previousInteraction, view]);
 }

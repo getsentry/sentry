@@ -5,6 +5,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
 from sentry.testutils.cases import TestCase as SentryTestCase
+from sentry.testutils.helpers.uptime import MOCK_ASSERTION_FAILURE_DATA
 from sentry.uptime.consumers.eap_converter import (
     _anyvalue,
     convert_uptime_request_to_trace_item,
@@ -12,34 +13,35 @@ from sentry.uptime.consumers.eap_converter import (
     ms_to_us,
 )
 from sentry.uptime.types import IncidentStatus
+from sentry.utils import json
 
 
 class TestHelperFunctions(TestCase):
-    def test_anyvalue_string(self):
+    def test_anyvalue_string(self) -> None:
         result = _anyvalue("test")
         assert result.string_value == "test"
 
-    def test_anyvalue_int(self):
+    def test_anyvalue_int(self) -> None:
         result = _anyvalue(123)
         assert result.int_value == 123
 
-    def test_anyvalue_float(self):
+    def test_anyvalue_float(self) -> None:
         result = _anyvalue(123.45)
         assert result.double_value == 123.45
 
-    def test_anyvalue_bool(self):
+    def test_anyvalue_bool(self) -> None:
         result = _anyvalue(True)
         assert result.bool_value is True
 
-    def test_anyvalue_fallback(self):
+    def test_anyvalue_fallback(self) -> None:
         with pytest.raises(ValueError):
             _anyvalue([1, 2, 3])  # type: ignore[arg-type] # Test with unsupported type
 
-    def test_microseconds_conversion(self):
+    def test_microseconds_conversion(self) -> None:
         assert ms_to_us(1000) == 1000000
         assert ms_to_us(1.5) == 1500
 
-    def test_timestamp_conversion(self):
+    def test_timestamp_conversion(self) -> None:
         timestamp = Timestamp()
         timestamp.FromMilliseconds(1609459200000)
         assert timestamp.ToMilliseconds() == 1609459200000
@@ -59,6 +61,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
             "duration_ms": 150,
             "request_info": None,
             "region": "us-east-1",
+            "assertion_failure_data": None,
             **overrides,
         }
 
@@ -91,7 +94,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
         assert trace_item.timestamp.ToMilliseconds() == int(expected_scheduled_time_ms)
         assert trace_item.received.ToMilliseconds() == int(expected_actual_time_ms)
 
-    def test_convert_single_request_with_denormalized_data(self):
+    def test_convert_single_request_with_denormalized_data(self) -> None:
         result = self._create_base_result()
         request_info = self._create_base_request_info()
 
@@ -122,7 +125,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
         assert attributes["request_body_size_bytes"].int_value == 0
         assert attributes["response_body_size_bytes"].int_value == 1024
 
-    def test_convert_with_status_reason_denormalized(self):
+    def test_convert_with_status_reason_denormalized(self) -> None:
         """Test that status reason is included in denormalized data."""
         result = self._create_base_result(
             status="failure",
@@ -145,7 +148,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
             == "Request timed out after 30 seconds"
         )
 
-    def test_convert_with_timing_breakdown(self):
+    def test_convert_with_timing_breakdown(self) -> None:
         """Test detailed timing breakdown in request data."""
         result = self._create_base_result()
         request_info = self._create_base_request_info(
@@ -175,7 +178,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
         assert attributes["time_to_first_byte_start_us"].int_value == 106000
         assert attributes["time_to_first_byte_duration_us"].int_value == 80000
 
-    def test_timestamp_conversion_accuracy(self):
+    def test_timestamp_conversion_accuracy(self) -> None:
         """Test that timestamps are accurately converted from milliseconds to seconds."""
         custom_scheduled_time = 1609459999000  # Different timestamp
         custom_actual_time = 1609460001000  # Different timestamp
@@ -201,7 +204,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
         assert trace_item.timestamp.ToMilliseconds() == 1609459999000
         assert trace_item.received.ToMilliseconds() == 1609460001000
 
-    def test_complete_timing_breakdown_all_phases(self):
+    def test_complete_timing_breakdown_all_phases(self) -> None:
         """Test all timing phases including send_request and receive_response."""
         result = self._create_base_result()
         request_info = self._create_base_request_info(
@@ -235,7 +238,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
         assert attributes["receive_response_start_us"].int_value == 81000
         assert attributes["receive_response_duration_us"].int_value == 25000
 
-    def test_method_and_original_url_from_request_info_list(self):
+    def test_method_and_original_url_from_request_info_list(self) -> None:
         """Test that method and original_url are set from request_info_list."""
         result = self._create_base_result(
             request_info_list=[
@@ -266,6 +269,58 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
         assert attributes["method"].string_value == "POST"
         assert attributes["original_url"].string_value == "https://original.example.com/path"
 
+    def test_convert_with_no_request_info(self) -> None:
+        """Test that we can create a TraceItem when request_info is None (e.g., for misses)."""
+        result = self._create_base_result(
+            status="missed_window",
+            status_reason={"type": "missed_window", "description": "Check was not executed"},
+        )
+
+        item_id = b"span-789"[:16].ljust(16, b"\x00")
+        trace_item = convert_uptime_request_to_trace_item(
+            self.project, result, None, 0, item_id, IncidentStatus.NO_INCIDENT
+        )
+
+        self._assert_trace_item_base_fields(trace_item)
+        assert trace_item.item_id == item_id
+
+        attributes = trace_item.attributes
+
+        # Check-level metadata should be present
+        assert attributes["guid"].string_value == "test-guid-123"
+        assert attributes["subscription_id"].string_value == "sub-456"
+        assert attributes["check_status"].string_value == "missed_window"
+        assert attributes["region"].string_value == "us-east-1"
+        assert attributes["scheduled_check_time_us"].int_value == 1609459200000000
+        assert attributes["actual_check_time_us"].int_value == 1609459205000000
+        assert attributes["status_reason_type"].string_value == "missed_window"
+        assert attributes["status_reason_description"].string_value == "Check was not executed"
+        assert attributes["check_id"].string_value == "test-guid-123"
+        assert attributes["request_sequence"].int_value == 0
+
+        # Request-specific attributes should NOT be present
+        assert "request_type" not in attributes
+        assert "http_status_code" not in attributes
+        assert "request_url" not in attributes
+        assert "request_duration_us" not in attributes
+        assert "request_body_size_bytes" not in attributes
+        assert "response_body_size_bytes" not in attributes
+
+    def test_convert_with_assertion_failure_data(self) -> None:
+        result = self._create_base_result(
+            assertion_failure_data=MOCK_ASSERTION_FAILURE_DATA,
+        )
+
+        item_id = b"span-789"[:16].ljust(16, b"\x00")
+        trace_item = convert_uptime_request_to_trace_item(
+            self.project, result, None, 0, item_id, IncidentStatus.NO_INCIDENT
+        )
+
+        attributes = trace_item.attributes
+        assert attributes["assertion_failure_data"].string_value == json.dumps(
+            MOCK_ASSERTION_FAILURE_DATA
+        )
+
 
 class TestFullDenormalizedConversion(SentryTestCase):
 
@@ -283,11 +338,12 @@ class TestFullDenormalizedConversion(SentryTestCase):
             "duration_ms": 150,
             "request_info": None,
             "region": "us-east-1",
+            "assertion_failure_data": None,
         }
         base.update(overrides)
         return base
 
-    def test_convert_redirect_chain_denormalized(self):
+    def test_convert_redirect_chain_denormalized(self) -> None:
         result = self._create_base_result(
             duration_ms=250,
             request_info_list=[
@@ -335,7 +391,7 @@ class TestFullDenormalizedConversion(SentryTestCase):
         assert second_item.attributes["http_status_code"].int_value == 200
         assert second_item.attributes["request_duration_us"].int_value == 150000
 
-    def test_convert_legacy_request_info_denormalized(self):
+    def test_convert_legacy_request_info_denormalized(self) -> None:
         result = self._create_base_result(
             region="us-west-2",
             request_info={
@@ -362,13 +418,29 @@ class TestFullDenormalizedConversion(SentryTestCase):
         assert attributes["request_sequence"].int_value == 0
         assert attributes["request_url"].string_value == "https://example.com"
 
-    def test_convert_with_no_requests(self):
-        """Test conversion when there are no requests to convert (e.g., missed_window status)."""
-        result = self._create_base_result()  # Has request_info=None and no request_info_list
+    def test_convert_with_no_requests(self) -> None:
+        """Test conversion when there are no requests (e.g., missed_window status)."""
+        result = self._create_base_result(
+            status="missed_window",
+            status_reason={"type": "missed_window", "description": "Check was not executed"},
+        )  # Has request_info=None and no request_info_list
 
         trace_items = convert_uptime_result_to_trace_items(
             self.project, result, IncidentStatus.NO_INCIDENT
         )
 
-        # Should return empty list when there are legitimately no requests to convert
-        assert len(trace_items) == 0
+        # Should return one item with check-level metadata but no request-specific data
+        assert len(trace_items) == 1
+        trace_item = trace_items[0]
+
+        attributes = trace_item.attributes
+        # Check-level metadata should be present
+        assert attributes["guid"].string_value == "test-guid-123"
+        assert attributes["subscription_id"].string_value == "sub-456"
+        assert attributes["check_status"].string_value == "missed_window"
+        assert attributes["status_reason_type"].string_value == "missed_window"
+
+        # Request-specific attributes should NOT be present
+        assert "request_type" not in attributes
+        assert "http_status_code" not in attributes
+        assert "request_url" not in attributes

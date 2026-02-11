@@ -16,7 +16,7 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
 class StreamGroupSerializerTestCase(
     TestCase, BaseMetricsTestCase, SearchIssueTestMixin, PerformanceIssueTestCase
 ):
-    def test_environment(self):
+    def test_environment(self) -> None:
         group = self.group
 
         environment = Environment.get_or_create(group.project, "production")
@@ -34,7 +34,7 @@ class StreamGroupSerializerTestCase(
             for args, kwargs in get_range.call_args_list:
                 assert kwargs["environment_ids"] == [environment.id]
 
-        def get_invalid_environment():
+        def get_invalid_environment() -> None:
             raise Environment.DoesNotExist()
 
         with mock.patch(
@@ -50,7 +50,7 @@ class StreamGroupSerializerTestCase(
             assert make_series.call_count == 1
 
     @freeze_time(before_now(days=1).replace(hour=13, minute=30, second=0, microsecond=0))
-    def test_perf_issue(self):
+    def test_perf_issue(self) -> None:
         event = self.create_performance_issue()
         group = event.group
         serialized = serialize(
@@ -59,13 +59,13 @@ class StreamGroupSerializerTestCase(
             request=self.make_request(),
         )
         assert serialized["count"] == "1"
-        assert serialized["issueCategory"] == "performance"
+        assert serialized["issueCategory"] == "db_query"
         assert serialized["issueType"] == "performance_n_plus_one_db_queries"
         assert [stat[1] for stat in serialized["stats"]["24h"][:-1]] == [0] * 23
         assert serialized["stats"]["24h"][-1][1] == 1
 
     @freeze_time(before_now(days=1).replace(hour=13, minute=30, second=0, microsecond=0))
-    def test_profiling_issue(self):
+    def test_profiling_issue(self) -> None:
         proj = self.create_project()
         cur_time = before_now(minutes=5)
         event, occurrence, group_info = self.store_search_issue(
@@ -78,7 +78,7 @@ class StreamGroupSerializerTestCase(
             request=self.make_request(),
         )
         assert serialized["count"] == "1"
-        assert serialized["issueCategory"] == str(GroupCategory.PERFORMANCE.name).lower()
+        assert serialized["issueCategory"] == str(GroupCategory.MOBILE.name).lower()
         assert serialized["issueType"] == str(ProfileFileIOGroupType.slug)
         assert [stat[1] for stat in serialized["stats"]["24h"][:-1]] == [0] * 23
         assert serialized["stats"]["24h"][-1][1] == 1

@@ -7,13 +7,13 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.user import User
 
 
-def assert_no_notification_settings():
+def assert_no_notification_settings() -> None:
     assert NotificationSettingOption.objects.all().count() == 0
 
 
 @control_silo_test
 class NotificationSettingTest(TestCase):
-    def test_remove_for_user(self):
+    def test_remove_for_user(self) -> None:
         NotificationSettingOption.objects.create(
             user_id=self.user.id,
             scope_type="user",
@@ -31,7 +31,7 @@ class NotificationSettingTest(TestCase):
 
         assert_no_notification_settings()
 
-    def test_remove_for_team(self):
+    def test_remove_for_team(self) -> None:
         NotificationSettingOption.objects.create(
             team_id=self.team.id,
             scope_type="team",
@@ -49,7 +49,7 @@ class NotificationSettingTest(TestCase):
 
         assert_no_notification_settings()
 
-    def test_remove_for_project(self):
+    def test_remove_for_project(self) -> None:
         NotificationSettingOption.objects.create(
             user_id=self.user.id,
             scope_type="project",
@@ -62,7 +62,7 @@ class NotificationSettingTest(TestCase):
             self.project.delete()
         assert_no_notification_settings()
 
-    def test_remove_for_organization(self):
+    def test_remove_for_organization(self) -> None:
         NotificationSettingOption.objects.create(
             user_id=self.user.id,
             scope_type="organization",

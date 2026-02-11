@@ -13,12 +13,12 @@ function expectMarkdown(test: any) {
   expect(sanitizedMarked(test[0])).toEqual('<p>' + test[1] + '</p>\n');
 }
 
-describe('marked', function () {
+describe('marked', () => {
   beforeAll(async () => {
     await loadPrismLanguage('javascript', {});
   });
 
-  it('normal links get rendered as html', function () {
+  it('normal links get rendered as html', () => {
     for (const test of [
       ['[x](http://example.com)', '<a href="http://example.com">x</a>'],
       ['[x](https://example.com)', '<a href="https://example.com">x</a>'],
@@ -32,11 +32,11 @@ describe('marked', function () {
     }
   });
 
-  it('renders inline code blocks', function () {
+  it('renders inline code blocks', () => {
     expect(sanitizedMarked('`foo`')).toBe('<p><code>foo</code></p>\n');
   });
 
-  it('rejected links should be rendered as plain text', function () {
+  it('rejected links should be rendered as plain text', () => {
     for (const test of [
       ['[x](javascript:foo)', '<a>x</a>'],
       ['[x](java\nscript:foo)', '[x](java\nscript:foo)'],
@@ -47,7 +47,7 @@ describe('marked', function () {
     }
   });
 
-  it('normal images get rendered as html', function () {
+  it('normal images get rendered as html', () => {
     for (const test of [
       ['![](http://example.com)', '<img alt="" src="http://example.com">'],
       ['![x](http://example.com)', '<img alt="x" src="http://example.com">'],
@@ -57,13 +57,13 @@ describe('marked', function () {
     }
   });
 
-  it("rejected images shouldn't be rendered at all", function () {
+  it("rejected images shouldn't be rendered at all", () => {
     for (const test of [['![x](javascript:foo)', '<img alt="x">']]) {
       expectMarkdown(test);
     }
   });
 
-  it('escapes injections', function () {
+  it('escapes injections', () => {
     [
       [
         '[x<b>Bold</b>](https://evil.example.com)',
@@ -81,7 +81,7 @@ describe('marked', function () {
     expect(sanitizedMarked('<script> <img <script> src=x onerror=alert(1) />')).toBe('');
   });
 
-  it('allows custom html within code blocks', function () {
+  it('allows custom html within code blocks', () => {
     expect(sanitizedMarked('```html\n<div>Hello</div>\n```')).toBe(
       `<pre><code class="language-html">&lt;div&gt;Hello&lt;/div&gt;\n</code></pre>\n`
     );
@@ -93,7 +93,7 @@ describe('marked', function () {
     );
   });
 
-  it('single line renderer should not render paragraphs', function () {
+  it('single line renderer should not render paragraphs', () => {
     expect(singleLineRenderer('foo')).toBe('foo');
     expect(sanitizedMarked('foo')).toBe('<p>foo</p>\n');
     expect(singleLineRenderer('Reading `file.py`')).toBe(`Reading <code>file.py</code>`);
@@ -102,7 +102,7 @@ describe('marked', function () {
     );
   });
 
-  it('escapes injections via asyncSanitizedMarked', async function () {
+  it('escapes injections via asyncSanitizedMarked', async () => {
     const tests: Array<[string, string]> = [
       [
         '[x<b>Bold</b>](https://evil.example.com)',
@@ -125,14 +125,14 @@ describe('marked', function () {
     ).toBe('');
   });
 
-  it('does not render syntax highlighting via sanitizedMarked', function () {
+  it('does not render syntax highlighting via sanitizedMarked', () => {
     const markdown = '```javascript\nconst x = 1;\n```';
     expect(sanitizedMarked(markdown)).toBe(
       `<pre><code class="language-javascript">const x = 1;\n</code></pre>\n`
     );
   });
 
-  it('renders syntax highlighting via asyncSanitizedMarked', async function () {
+  it('renders syntax highlighting via asyncSanitizedMarked', async () => {
     const markdown = '```javascript\nconst x = 1;\n```';
     expect(await asyncSanitizedMarked(markdown)).toBe(
       `<pre><code class="language-javascript"><span class="token keyword">const</span> x <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">;</span>\n</code></pre>`

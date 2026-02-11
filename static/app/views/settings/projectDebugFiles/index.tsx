@@ -1,12 +1,13 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Checkbox} from '@sentry/scraps/checkbox';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Checkbox} from 'sentry/components/core/checkbox';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -16,30 +17,26 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
-  type ApiQueryKey,
   useApiQuery,
   useMutation,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import DebugFileRow from './debugFileRow';
 import Sources from './sources';
-
-type Props = RouteComponentProps<{projectId: string}> & {
-  organization: Organization;
-  project: Project;
-};
 
 function makeDebugFilesQueryKey({
   orgSlug,
@@ -50,14 +47,33 @@ function makeDebugFilesQueryKey({
   projectSlug: string;
   query: {cursor: string | undefined; query: string | undefined};
 }): ApiQueryKey {
-  return [`/projects/${orgSlug}/${projectSlug}/files/dsyms/`, {query}];
+  return [
+    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/`, {
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+    }),
+    {query},
+  ];
 }
 
-function makeSymbolSourcesQueryKey({orgSlug}: {orgSlug: string}): ApiQueryKey {
-  return [`/organizations/${orgSlug}/builtin-symbol-sources/`];
+function makeSymbolSourcesQueryKey({
+  orgSlug,
+  platform,
+}: {
+  orgSlug: string;
+  platform?: string;
+}): ApiQueryKey {
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/builtin-symbol-sources/`, {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+    {query: {platform}},
+  ];
 }
 
-function ProjectDebugSymbols({organization, project, location, router, params}: Props) {
+export default function ProjectDebugSymbols() {
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
+  const location = useLocation();
   const navigate = useNavigate();
   const api = useApi();
   const queryClient = useQueryClient();
@@ -75,7 +91,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
     refetch: refetchDebugFiles,
   } = useApiQuery<DebugFile[] | null>(
     makeDebugFilesQueryKey({
-      projectSlug: params.projectId,
+      projectSlug: project.slug,
       orgSlug: organization.slug,
       query: {query, cursor},
     }),
@@ -91,7 +107,10 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
     isError: isErrorSymbolSources,
     refetch: refetchSymbolSources,
   } = useApiQuery<BuiltinSymbolSource[] | null>(
-    makeSymbolSourcesQueryKey({orgSlug: organization.slug}),
+    makeSymbolSourcesQueryKey({
+      orgSlug: organization.slug,
+      platform: project.platform,
+    }),
     {
       staleTime: 0,
       enabled: hasSymbolSourcesFeatureFlag,
@@ -112,7 +131,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
   const {mutate: handleDeleteDebugFile} = useMutation<unknown, RequestError, string>({
     mutationFn: (id: string) => {
       return api.requestPromise(
-        `/projects/${organization.slug}/${params.projectId}/files/dsyms/?id=${id}`,
+        `/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${id}`,
         {
           method: 'DELETE',
         }
@@ -127,7 +146,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
       // invalidate debug files query
       queryClient.invalidateQueries({
         queryKey: makeDebugFilesQueryKey({
-          projectSlug: params.projectId,
+          projectSlug: project.slug,
           orgSlug: organization.slug,
           query: {query, cursor},
         }),
@@ -137,6 +156,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
       queryClient.invalidateQueries({
         queryKey: makeSymbolSourcesQueryKey({
           orgSlug: organization.slug,
+          platform: project.platform,
         }),
       });
     },
@@ -146,7 +166,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
   });
 
   return (
-    <SentryDocumentTitle title={routeTitleGen(t('Debug Files'), params.projectId, false)}>
+    <SentryDocumentTitle title={routeTitleGen(t('Debug Files'), project.slug, false)}>
       <SettingsPageHeader title={t('Debug Information Files')} />
 
       <TextBlock>
@@ -172,7 +192,6 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
             <Sources
               api={api}
               location={location}
-              router={router}
               project={project}
               organization={organization}
               customRepositories={
@@ -233,7 +252,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
           >
             {debugFiles?.length
               ? debugFiles.map(debugFile => {
-                  const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${params.projectId}/files/dsyms/?id=${debugFile.id}`;
+                  const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${debugFile.id}`;
 
                   return (
                     <DebugFileRow
@@ -288,12 +307,10 @@ const Filters = styled('div')`
 `;
 
 const Label = styled('label')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   display: flex;
   align-items: center;
   margin-bottom: 0;
   white-space: nowrap;
   gap: ${space(1)};
 `;
-
-export default ProjectDebugSymbols;

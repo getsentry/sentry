@@ -49,7 +49,7 @@ function WrappedComponent(props: any) {
   );
 }
 
-describe('IssueListActions', function () {
+describe('IssueListActions', () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -65,15 +65,50 @@ describe('IssueListActions', function () {
     });
   });
 
-  describe('Bulk', function () {
-    describe('Total results greater than bulk limit', function () {
-      it('after checking "Select all" checkbox, displays bulk select message', async function () {
+  describe('selection state', () => {
+    it('hides action buttons when nothing is selected', () => {
+      render(<WrappedComponent />);
+
+      expect(screen.queryByRole('button', {name: 'Resolve'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Archive'})).not.toBeInTheDocument();
+    });
+
+    it('shows action buttons when any items are selected', () => {
+      SelectedGroupStore.toggleSelect('1');
+      render(<WrappedComponent />);
+
+      expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
+    });
+
+    it('shows select all checkbox as checked when all items are selected', () => {
+      SelectedGroupStore.toggleSelect('1');
+      SelectedGroupStore.toggleSelect('2');
+      SelectedGroupStore.toggleSelect('3');
+      render(<WrappedComponent />);
+
+      // When all selected, label changes to "Deselect all"
+      expect(screen.getByRole('checkbox', {name: 'Deselect all'})).toBeChecked();
+    });
+
+    it('shows select all checkbox as indeterminate when some items are selected', () => {
+      SelectedGroupStore.toggleSelect('1');
+      render(<WrappedComponent />);
+
+      const checkbox = screen.getByRole('checkbox', {name: 'Select all'});
+      expect(checkbox).toBePartiallyChecked();
+    });
+  });
+
+  describe('Bulk', () => {
+    describe('Total results greater than bulk limit', () => {
+      it('after checking "Select all" checkbox, displays bulk select message', async () => {
         render(<WrappedComponent queryCount={1500} />);
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
       });
 
-      it('bulk resolves', async function () {
+      it('bulk resolves', async () => {
         const apiMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
@@ -103,7 +138,7 @@ describe('IssueListActions', function () {
         );
       });
 
-      it('bulk sets priority', async function () {
+      it('bulk sets priority', async () => {
         const apiMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
@@ -140,8 +175,8 @@ describe('IssueListActions', function () {
       });
     });
 
-    describe('Total results less than bulk limit', function () {
-      it('after checking "Select all" checkbox, displays bulk select message', async function () {
+    describe('Total results less than bulk limit', () => {
+      it('after checking "Select all" checkbox, displays bulk select message', async () => {
         render(<WrappedComponent queryCount={15} />);
 
         const checkbox = screen.getByRole('checkbox', {name: 'Select all'});
@@ -152,7 +187,7 @@ describe('IssueListActions', function () {
         );
       });
 
-      it('bulk resolves', async function () {
+      it('bulk resolves', async () => {
         const apiMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
@@ -186,14 +221,14 @@ describe('IssueListActions', function () {
       });
     });
 
-    describe('Selected on page', function () {
-      it('resolves selected items', async function () {
+    describe('Selected on page', () => {
+      it('resolves selected items', async () => {
         const apiMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
 
-        jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+        SelectedGroupStore.toggleSelect('1');
 
         render(<WrappedComponent groupIds={['1', '2', '3', '6', '9']} />);
 
@@ -215,12 +250,12 @@ describe('IssueListActions', function () {
     });
   });
 
-  it('can set priority', async function () {
+  it('can set priority', async () => {
     const apiMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       method: 'PUT',
     });
-    jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+    SelectedGroupStore.toggleSelect('1');
 
     render(<WrappedComponent {...defaultProps} />);
 
@@ -245,7 +280,7 @@ describe('IssueListActions', function () {
       url: `/organizations/${organization.slug}/issues/`,
       method: 'PUT',
     });
-    jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+    SelectedGroupStore.toggleSelect('1');
 
     render(<WrappedComponent {...defaultProps} />, {organization});
 
@@ -279,7 +314,7 @@ describe('IssueListActions', function () {
       url: `/organizations/${organization.slug}/issues/`,
       method: 'PUT',
     });
-    jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+    SelectedGroupStore.toggleSelect('1');
 
     render(<WrappedComponent {...defaultProps} query="is:archived" />, {
       organization,
@@ -296,10 +331,10 @@ describe('IssueListActions', function () {
     );
   });
 
-  it('can resolve but not merge issues from different projects', async function () {
-    jest
-      .spyOn(SelectedGroupStore, 'getSelectedIds')
-      .mockImplementation(() => new Set(['1', '2', '3']));
+  it('can resolve but not merge issues from different projects', async () => {
+    SelectedGroupStore.toggleSelect('1');
+    SelectedGroupStore.toggleSelect('2');
+    SelectedGroupStore.toggleSelect('3');
     jest.spyOn(GroupStore, 'get').mockImplementation(id => {
       switch (id) {
         case '1':
@@ -313,17 +348,11 @@ describe('IssueListActions', function () {
 
     // Can resolve but not merge issues from multiple projects
     expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
-    await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
-    expect(screen.getByRole('menuitemradio', {name: 'Merge'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    expect(screen.getByRole('button', {name: 'Merge'})).toBeDisabled();
   });
 
-  it('sets the project ID when My Projects is selected', async function () {
-    jest
-      .spyOn(SelectedGroupStore, 'getSelectedIds')
-      .mockImplementation(() => new Set(['1']));
+  it('sets the project ID when My Projects is selected', async () => {
+    SelectedGroupStore.toggleSelect('1');
     jest
       .spyOn(GroupStore, 'get')
       .mockImplementation(id =>
@@ -362,8 +391,8 @@ describe('IssueListActions', function () {
     });
   });
 
-  describe('mark reviewed', function () {
-    it('acknowledges group', async function () {
+  describe('mark reviewed', () => {
+    it('acknowledges group', async () => {
       const mockOnActionTaken = jest.fn();
 
       MockApiClient.addMockResponse({
@@ -371,9 +400,9 @@ describe('IssueListActions', function () {
         method: 'PUT',
       });
 
-      jest
-        .spyOn(SelectedGroupStore, 'getSelectedIds')
-        .mockImplementation(() => new Set(['1', '2', '3']));
+      SelectedGroupStore.toggleSelect('1');
+      SelectedGroupStore.toggleSelect('2');
+      SelectedGroupStore.toggleSelect('3');
       jest.spyOn(GroupStore, 'get').mockImplementation(id => {
         return GroupFixture({
           id,
@@ -393,7 +422,7 @@ describe('IssueListActions', function () {
       expect(mockOnActionTaken).toHaveBeenCalledWith(['1', '2', '3'], {inbox: false});
     });
 
-    it('mark reviewed disabled for group that is already reviewed', async function () {
+    it('mark reviewed disabled for group that is already reviewed', async () => {
       SelectedGroupStore.add(['1']);
       SelectedGroupStore.toggleSelectAll();
       GroupStore.loadInitialData([GroupFixture({id: '1', inbox: null})]);
@@ -407,11 +436,10 @@ describe('IssueListActions', function () {
     });
   });
 
-  describe('performance issues', function () {
+  describe('performance issues', () => {
     it('disables options that are not supported for performance issues', async () => {
-      jest
-        .spyOn(SelectedGroupStore, 'getSelectedIds')
-        .mockImplementation(() => new Set(['1', '2']));
+      SelectedGroupStore.toggleSelect('1');
+      SelectedGroupStore.toggleSelect('2');
       jest.spyOn(GroupStore, 'get').mockImplementation(id => {
         switch (id) {
           case '1':
@@ -431,14 +459,11 @@ describe('IssueListActions', function () {
       expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
       expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
 
+      // Merge is not supported and should be disabled
+      expect(screen.getByRole('button', {name: 'Merge'})).toBeDisabled();
+
       // Open overflow menu
       await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
-
-      // Merge is not supported and should be disabled
-      expect(screen.getByRole('menuitemradio', {name: 'Merge'})).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
 
       // 'Add to Bookmarks' is supported
       expect(
@@ -453,9 +478,8 @@ describe('IssueListActions', function () {
     });
 
     it('disables delete if user does not have permission to delete issues', async () => {
-      jest
-        .spyOn(SelectedGroupStore, 'getSelectedIds')
-        .mockImplementation(() => new Set(['1', '2']));
+      SelectedGroupStore.toggleSelect('1');
+      SelectedGroupStore.toggleSelect('2');
       jest.spyOn(GroupStore, 'get').mockImplementation(id => {
         return GroupFixture({id});
       });
@@ -472,13 +496,13 @@ describe('IssueListActions', function () {
       );
     });
 
-    describe('bulk action performance issues', function () {
+    describe('bulk action performance issues', () => {
       const orgWithPerformanceIssues = OrganizationFixture({
         features: ['performance-issues'],
         access: ['event:admin'],
       });
 
-      it('silently filters out performance issues when bulk deleting', async function () {
+      it('silently filters out performance issues when bulk deleting', async () => {
         const bulkDeleteMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
           method: 'DELETE',
@@ -523,7 +547,7 @@ describe('IssueListActions', function () {
         );
       });
 
-      it('silently filters out performance issues when bulk merging', async function () {
+      it('silently filters out performance issues when bulk merging', async () => {
         const bulkMergeMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
@@ -548,11 +572,7 @@ describe('IssueListActions', function () {
           screen.getByText(/Select all 100 issues that match this search query/)
         );
 
-        await userEvent.click(
-          await screen.findByRole('button', {name: 'More issue actions'})
-        );
-
-        await userEvent.click(screen.getByRole('menuitemradio', {name: 'Merge'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Merge'}));
 
         const modal = screen.getByRole('dialog');
 
@@ -572,6 +592,29 @@ describe('IssueListActions', function () {
             }),
           })
         );
+      });
+
+      it('shows merge button when multiple issues are selected', async () => {
+        // Ensure that all issues have the same project so we can merge
+        jest
+          .spyOn(GroupStore, 'get')
+          .mockReturnValue(GroupFixture({project: ProjectFixture({slug: 'project-1'})}));
+
+        render(
+          <Fragment>
+            <GlobalModal />
+            <IssueListActions {...defaultProps} queryCount={100} />
+          </Fragment>
+        );
+
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
+
+        await userEvent.click(
+          screen.getByText(/Select all 100 issues that match this search query/)
+        );
+
+        // Should show merge button directly when multiple issues are selected
+        expect(screen.getByRole('button', {name: 'Merge'})).toBeInTheDocument();
       });
     });
   });

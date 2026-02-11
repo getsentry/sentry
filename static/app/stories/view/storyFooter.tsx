@@ -1,36 +1,59 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {IconArrow} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {useStoryBookFilesByCategory} from './storySidebar';
+import {IconArrow} from 'sentry/icons';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
+
 import type {StoryTreeNode} from './storyTree';
+import {useFlatStoryList} from './storyTree';
 import {type StoryDescriptor} from './useStoriesLoader';
 import {useStory} from './useStory';
 
 export function StoryFooter() {
   const {story} = useStory();
-  const stories = useStoryBookFilesByCategory();
+  const stories = useFlatStoryList();
   const pagination = findPreviousAndNextStory(story, stories);
+  const organization = useOrganization();
 
   return (
-    <Flex align="center" justify="space-between" gap={space(2)}>
+    <Flex align="center" justify="between" gap="xl">
       {pagination?.prev && (
-        <Card to={pagination.prev.location} icon={<IconArrow direction="left" />}>
-          <CardLabel>Previous</CardLabel>
-          <CardTitle>{pagination.prev.label}</CardTitle>
+        <Card
+          to={{
+            pathname: normalizeUrl(
+              `/organizations/${organization.slug}/stories/${pagination.prev.category}/${pagination.prev.slug}/`
+            ),
+          }}
+          icon={<IconArrow direction="left" />}
+        >
+          <Text variant="muted" as="div">
+            Previous
+          </Text>
+          <Text size="xl" as="div">
+            {pagination.prev.label}
+          </Text>
         </Card>
       )}
       {pagination?.next && (
         <Card
           data-flip
-          to={pagination.next.location}
+          to={{
+            pathname: normalizeUrl(
+              `/organizations/${organization.slug}/stories/${pagination.next.category}/${pagination.next.slug}/`
+            ),
+          }}
           icon={<IconArrow direction="right" />}
         >
-          <CardLabel>Next</CardLabel>
-          <CardTitle>{pagination.next.label}</CardTitle>
+          <Text variant="muted" as="div" align="right">
+            Next
+          </Text>
+          <Text size="xl" as="div" align="right">
+            {pagination.next.label}
+          </Text>
         </Card>
       )}
     </Flex>
@@ -39,12 +62,11 @@ export function StoryFooter() {
 
 function findPreviousAndNextStory(
   story: StoryDescriptor,
-  categories: ReturnType<typeof useStoryBookFilesByCategory>
+  stories: StoryTreeNode[]
 ): {
   next?: StoryTreeNode;
   prev?: StoryTreeNode;
 } | null {
-  const stories = Object.values(categories).flat();
   const currentIndex = stories.findIndex(s => s.filesystemPath === story.filename);
 
   if (currentIndex === -1) {
@@ -62,7 +84,7 @@ const Card = styled(LinkButton)`
   flex-direction: column;
   flex: 1;
   height: 80px;
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
   span:last-child {
     width: 100%;
     display: grid;
@@ -71,7 +93,7 @@ const Card = styled(LinkButton)`
       'icon text';
     grid-template-columns: auto 1fr;
     place-content: center;
-    gap: ${space(1)} ${space(2)};
+    gap: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
   &[data-flip] span:last-child {
     grid-template-areas:
@@ -79,16 +101,8 @@ const Card = styled(LinkButton)`
       'text icon';
     grid-template-columns: 1fr auto;
     justify-content: flex-end;
-    text-align: right;
   }
   span:has(svg) {
     grid-area: icon;
   }
-`;
-const CardLabel = styled('div')`
-  color: ${p => p.theme.tokens.content.muted};
-`;
-const CardTitle = styled('div')`
-  color: ${p => p.theme.tokens.content.primary};
-  font-size: 20px;
 `;

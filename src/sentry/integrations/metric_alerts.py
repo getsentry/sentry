@@ -4,13 +4,13 @@ from datetime import datetime, timedelta
 from typing import NotRequired, TypedDict
 from urllib import parse
 
-import sentry_sdk
 from django.db.models import Max
 from django.urls import reverse
 from django.utils.translation import gettext as _
 
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
+from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.logic import GetMetricIssueAggregatesParams, get_metric_issue_aggregates
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.incidents.models.incident import (
@@ -23,6 +23,7 @@ from sentry.incidents.models.incident import (
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.models.organization import Organization
+from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
 from sentry.snuba.models import SnubaQuery
 from sentry.utils.assets import get_asset_url
@@ -108,7 +109,7 @@ def get_metric_count_from_incident(incident: Incident) -> float | None:
 
 def get_incident_status_text(
     snuba_query: SnubaQuery,
-    threshold_type: AlertRuleThresholdType | None,
+    threshold_type: AlertRuleThresholdType | AnomalyDetectionThresholdType | None,
     comparison_delta: int | None,
     metric_value: str,
 ) -> str:
@@ -133,7 +134,14 @@ def get_incident_status_text(
     # % change alerts have a comparison delta
     if comparison_delta:
         metric_and_agg_text = f"{agg_text.capitalize()} {int(float(metric_value))}%"
-        higher_or_lower = "higher" if threshold_type == AlertRuleThresholdType.ABOVE else "lower"
+        higher_or_lower = (
+            "higher"
+            if (
+                threshold_type == AlertRuleThresholdType.ABOVE
+                or threshold_type == AnomalyDetectionThresholdType.ABOVE
+            )
+            else "lower"
+        )
         comparison_delta_minutes = comparison_delta // 60
         comparison_string = TEXT_COMPARISON_DELTA.get(
             comparison_delta_minutes, f"same time {comparison_delta_minutes} minutes ago"
@@ -231,7 +239,8 @@ def incident_attachment_info(
             if alert_rule_id is None:
                 raise ValueError("Alert rule id not found when querying for AlertRuleDetector")
         except AlertRuleDetector.DoesNotExist:
-            raise ValueError("Alert rule detector not found when querying for AlertRuleDetector")
+            # the corresponding metric detector was not dual written
+            alert_rule_id = get_fake_id_from_object_id(alert_context.action_identifier_id)
 
         workflow_engine_params = title_link_params.copy()
 
@@ -240,27 +249,13 @@ def incident_attachment_info(
                 group_open_period_id=metric_issue_context.open_period_identifier
             )
             workflow_engine_params["alert"] = str(open_period_incident.incident_identifier)
-        except IncidentGroupOpenPeriod.DoesNotExist as e:
-            sentry_sdk.capture_exception(e)
-            # Swallowing the error here since this model isn't being written to just yet
+        except IncidentGroupOpenPeriod.DoesNotExist:
+            # the corresponding metric detector was not dual written
+            workflow_engine_params["alert"] = str(
+                get_fake_id_from_object_id(metric_issue_context.open_period_identifier)
+            )
 
         title_link = build_title_link(alert_rule_id, organization, workflow_engine_params)
-
-    elif features.has("organizations:workflow-engine-ui-links", organization):
-        if metric_issue_context.group is None:
-            raise ValueError("Group is required for workflow engine UI links")
-
-        # We don't need to save the query param the alert rule id here because the link is to the group and not the alert rule
-        # TODO(iamrajjoshi): This this through and perhaps
-        workflow_engine_ui_params = title_link_params.copy()
-        workflow_engine_ui_params.pop("alert", None)
-
-        title_link = build_title_link_workflow_engine_ui(
-            metric_issue_context.group.id,
-            organization,
-            metric_issue_context.group.project.id,
-            workflow_engine_ui_params,
-        )
     else:
         title_link = build_title_link(
             alert_context.action_identifier_id, organization, title_link_params

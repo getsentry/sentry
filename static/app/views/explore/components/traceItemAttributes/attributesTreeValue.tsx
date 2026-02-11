@@ -5,7 +5,9 @@ import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {isUrl} from 'sentry/utils/string/isUrl';
+import {AnnotatedAttributeTooltip} from 'sentry/views/explore/components/annotatedAttributeTooltip';
 import {getAttributeItem} from 'sentry/views/explore/components/traceItemAttributes/utils';
+import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 
 import type {
   AttributesFieldRender,
@@ -45,6 +47,16 @@ export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>
     });
   }
 
+  if (renderExtra.traceItemMeta) {
+    const metaInfo = new TraceItemMetaInfo(renderExtra.traceItemMeta);
+    if (metaInfo.hasRemarks(attributeKey)) {
+      return (
+        <AnnotatedAttributeTooltip fieldKey={attributeKey} extra={renderExtra}>
+          {defaultValue}
+        </AnnotatedAttributeTooltip>
+      );
+    }
+  }
   return isUrl(String(content.value)) ? (
     <AttributeLinkText>
       <ExternalLink
@@ -62,8 +74,8 @@ export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>
 }
 
 const AttributeLinkText = styled('span')`
-  color: ${p => p.theme.linkColor};
-  text-decoration: ${p => p.theme.linkUnderline} underline dotted;
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
+  text-decoration: ${p => p.theme.tokens.interactive.link.accent.rest} underline dotted;
   margin: 0;
   &:hover,
   &:focus {

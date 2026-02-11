@@ -8,7 +8,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class AuditLogEntryTest(TestCase):
-    def test_audit_log_entry(self):
+    def test_audit_log_entry(self) -> None:
         AuditLogEntry.objects.create(
             organization_id=self.organization.id,
             event=audit_log.get_event_id("TEAM_ADD"),

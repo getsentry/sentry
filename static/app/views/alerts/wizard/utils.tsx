@@ -4,6 +4,8 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
+import {canUseMetricsAlertsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
@@ -47,7 +49,6 @@ const alertTypeIdentifiers: Record<
   [Dataset.EVENTS_ANALYTICS_PLATFORM]: {
     trace_item_throughput: 'count(span.duration)',
     trace_item_duration: 'span.duration',
-    trace_item_apdex: 'apdex',
     trace_item_failure_rate: 'failure_rate()',
     trace_item_lcp: 'measurements.lcp',
   },
@@ -84,6 +85,13 @@ export function getAlertTypeFromAggregateDataset({
     ) {
       return 'trace_item_logs';
     }
+    if (
+      organization &&
+      hasTraceMetricsAlerts(organization) &&
+      traceItemType === TraceItemDataset.TRACEMETRICS
+    ) {
+      return 'trace_item_metrics';
+    }
     if (organization && deprecateTransactionAlerts(organization)) {
       return alertType ?? 'eap_metrics';
     }
@@ -93,10 +101,11 @@ export function getAlertTypeFromAggregateDataset({
 }
 
 export function hasLogAlerts(organization: Organization): boolean {
-  return (
-    organization.features.includes('ourlogs-alerts') &&
-    organization.features.includes('ourlogs-enabled')
-  );
+  return isLogsEnabled(organization);
+}
+
+export function hasTraceMetricsAlerts(organization: Organization): boolean {
+  return canUseMetricsAlertsUI(organization);
 }
 
 export function getTraceItemTypeForDatasetAndEventType(
@@ -104,9 +113,13 @@ export function getTraceItemTypeForDatasetAndEventType(
   eventTypes?: EventTypes[]
 ) {
   if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
-    return eventTypes?.includes(EventTypes.TRACE_ITEM_LOG)
-      ? TraceItemDataset.LOGS
-      : TraceItemDataset.SPANS;
+    if (eventTypes?.includes(EventTypes.TRACE_ITEM_LOG)) {
+      return TraceItemDataset.LOGS;
+    }
+    if (eventTypes?.includes(EventTypes.TRACE_ITEM_METRIC)) {
+      return TraceItemDataset.TRACEMETRICS;
+    }
+    return TraceItemDataset.SPANS;
   }
   return null;
 }

@@ -8,7 +8,7 @@ import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import EventsChart from 'sentry/components/charts/eventsChart';
 import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -64,10 +64,6 @@ class ResultsChart extends Component<ResultsChartProps> {
       yAxisValue,
       customMeasurements,
     } = this.props;
-
-    const hasPerformanceChartInterpolation = organization.features.includes(
-      'performance-chart-interpolation'
-    );
 
     const globalSelection = eventView.getPageFilters();
     const start = globalSelection.datetime.start
@@ -147,7 +143,6 @@ class ResultsChart extends Component<ResultsChartProps> {
               orderby={isTopEvents ? decodeScalar(apiPayload.sort) : undefined}
               utc={utc === 'true'}
               confirmedQuery={confirmedQuery}
-              withoutZerofill={hasPerformanceChartInterpolation}
               chartComponent={chartComponent}
               referrer={referrer}
               fromDiscover
@@ -318,6 +313,6 @@ const NoChartContainer = styled('div')<{height?: string}>`
   position: relative;
   border-color: transparent;
   margin-bottom: 0;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.xl};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.xl};
 `;

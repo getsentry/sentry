@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from functools import wraps
 from typing import Any
 
 import sentry_sdk
@@ -10,12 +9,11 @@ from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.authentication import ClientIdSecretAuthentication
+from sentry.api.authentication import ClientIdSecretAuthentication, JWTClientSecretAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
-from sentry.coreapi import APIError
 from sentry.integrations.api.bases.integration import PARANOID_GET
 from sentry.models.organization import OrganizationStatus
 from sentry.organizations.services.organization import (
@@ -24,6 +22,7 @@ from sentry.organizations.services.organization import (
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app import RpcSentryApp, app_service
+from sentry.sentry_apps.services.region.model import RpcSentryAppError
 from sentry.sentry_apps.utils.errors import (
     SentryAppError,
     SentryAppIntegratorError,
@@ -37,17 +36,6 @@ from sentry.utils.strings import to_single_line_str
 COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 
 logger = logging.getLogger(__name__)
-
-
-def catch_raised_errors(func):
-    @wraps(func)
-    def wrapped(self, *args, **kwargs):
-        try:
-            return func(self, *args, **kwargs)
-        except APIError as e:
-            return Response({"detail": e.msg}, status=400)
-
-    return wrapped
 
 
 def ensure_scoped_permission(request: Request, allowed_scopes: Sequence[str] | None) -> bool:
@@ -106,6 +94,17 @@ class SentryAppsAndStaffPermission(StaffPermissionMixin, SentryAppsPermission):
 
 
 class IntegrationPlatformEndpoint(Endpoint):
+
+    def respond_rpc_sentry_app_error(self, rpc_error: RpcSentryAppError) -> Response:
+        """
+        Surfaces errors from the region-side Sentry App RPC to the client.
+        """
+        response_body = rpc_error.get_public_dict()
+        status_code = rpc_error.status_code or 500
+        response = Response(response_body, status=status_code)
+        response.exception = True
+        return response
+
     def handle_exception_with_details(self, request, exc, handler_context=None, scope=None):
         return self._handle_sentry_app_exception(
             exception=exc
@@ -209,16 +208,12 @@ class SentryAppPermission(SentryPermission):
         "DELETE": ("org:admin",),
     }
 
-    published_scope_map = {
+    published_scope_map = scope_map = {
         "GET": PARANOID_GET,
         "PUT": ("org:write", "org:admin"),
         "POST": ("org:admin",),
         "DELETE": ("org:admin",),
     }
-
-    @property
-    def scope_map(self):
-        return self.published_scope_map
 
     def has_object_permission(self, request: Request, view, sentry_app: RpcSentryApp | SentryApp):
         if not hasattr(request, "user") or not request.user:
@@ -468,7 +463,7 @@ class SentryAppAuthorizationsPermission(SentryPermission):
 
 
 class SentryAppAuthorizationsBaseEndpoint(SentryAppInstallationBaseEndpoint):
-    authentication_classes = (ClientIdSecretAuthentication,)
+    authentication_classes = (JWTClientSecretAuthentication, ClientIdSecretAuthentication)
     permission_classes = (SentryAppAuthorizationsPermission,)
 
 

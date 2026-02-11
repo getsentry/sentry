@@ -1,14 +1,16 @@
 import {uuid4} from '@sentry/core';
 
 import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
-import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceSplitResults} from 'sentry/views/performance/newTraceDetails/traceApi/types';
 import {
   isEAPSpanNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 
+import type {BaseNode} from './traceTreeNode/baseNode';
+import type {EapSpanNode} from './traceTreeNode/eapSpanNode';
+import type {TransactionNode} from './traceTreeNode/transactionNode';
 import type {TraceTree} from './traceTree';
-import type {TraceTreeNode} from './traceTreeNode';
 
 export function makeTrace(
   overrides: Partial<TraceSplitResults<TraceTree.Transaction>>
@@ -77,6 +79,7 @@ export function makeEAPSpan(
     event_id: overrides.event_id ?? uuid4(),
     op: 'span.op',
     description: 'span.description',
+    name: 'span.name',
     start_timestamp: 0,
     end_timestamp: 10,
     is_transaction: false,
@@ -86,6 +89,7 @@ export function makeEAPSpan(
     parent_span_id: null,
     children: [],
     errors: [],
+    occurrences: [],
     measurements: {},
     duration: 10,
     ...overrides,
@@ -187,33 +191,88 @@ export function makeSiblingAutogroup(
     autogrouped_by: {
       op: overrides.op ?? 'op',
       description: overrides.description ?? 'description',
+      name: overrides.name ?? 'name',
     },
     ...overrides,
   } as TraceTree.SiblingAutogroup;
 }
 
 export function assertTransactionNode(
-  node: TraceTreeNode<TraceTree.NodeValue> | null
-): asserts node is TraceTreeNode<TraceTree.Transaction> {
+  node: BaseNode | null
+): asserts node is TransactionNode {
   if (!node || !isTransactionNode(node)) {
     throw new Error('node is not a transaction');
   }
 }
 
-export function assertEAPSpanNode(
-  node: TraceTreeNode<TraceTree.NodeValue> | null
-): asserts node is TraceTreeNode<TraceTree.EAPSpan> {
+export function assertEAPSpanNode(node: BaseNode | null): asserts node is EapSpanNode {
   if (!node || !isEAPSpanNode(node)) {
     throw new Error('node is not a eap span');
   }
 }
 
-export function makeNodeMetadata(
-  overrides: Partial<TraceTree.Metadata> = {}
-): TraceTree.Metadata {
+export function makeUptimeCheck(
+  overrides: Partial<TraceTree.UptimeCheck> = {}
+): TraceTree.UptimeCheck {
   return {
-    event_id: undefined,
-    project_slug: undefined,
+    event_id: overrides.event_id ?? uuid4(),
+    event_type: 'uptime_check',
+    op: 'uptime.check',
+    name: 'GET https://example.com',
+    description: 'Uptime check for example.com',
+    start_timestamp: 0,
+    end_timestamp: 1,
+    duration: 1,
+    project_id: 1,
+    project_slug: 'project_slug',
+    children: [],
+    errors: [],
+    occurrences: [],
+    additional_attributes: {
+      dns_lookup_duration_us: '50000',
+      dns_lookup_start_us: '0',
+      tcp_connection_duration_us: '100000',
+      tcp_connection_start_us: '50000',
+      tls_handshake_duration_us: '200000',
+      tls_handshake_start_us: '150000',
+      send_request_duration_us: '25000',
+      send_request_start_us: '350000',
+      time_to_first_byte_duration_us: '500000',
+      time_to_first_byte_start_us: '375000',
+      receive_response_duration_us: '100000',
+      receive_response_start_us: '875000',
+    },
     ...overrides,
-  };
+  } as TraceTree.UptimeCheck;
+}
+
+export function makeUptimeCheckTiming(
+  overrides: Partial<TraceTree.UptimeCheckTiming> = {}
+): TraceTree.UptimeCheckTiming {
+  return {
+    event_id: overrides.event_id ?? uuid4(),
+    event_type: 'uptime_check_timing',
+    op: 'dns.lookup.duration',
+    description: 'DNS lookup',
+    start_timestamp: 0,
+    end_timestamp: 0.05,
+    duration: 0.05,
+    ...overrides,
+  } as TraceTree.UptimeCheckTiming;
+}
+
+export function mockSpansResponse(
+  spans: TraceTree.Span[],
+  project_slug: string,
+  event_id: string
+): jest.Mock<any, any> {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore MockApiClient is not defined in the global scope
+  return MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/events/${project_slug}:${event_id}/?averageColumn=span.self_time&averageColumn=span.duration`,
+    method: 'GET',
+    body: makeEventTransaction({
+      entries: [{type: EntryType.SPANS, data: spans}],
+    }),
+  });
 }

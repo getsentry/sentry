@@ -2,17 +2,18 @@ import type {Query} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 import TagStore from 'sentry/stores/tagStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagValue} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
-  type ApiQueryKey,
   keepPreviousData,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -27,7 +28,7 @@ function tagFetchSuccess(tags: Tag[] | undefined) {
   if (tags.length > MAX_TAGS) {
     AlertStore.addAlert({
       message: t('You have too many unique tags and some have been truncated'),
-      type: 'warning',
+      variant: 'warning',
     });
   }
   TagStore.loadTagsSuccess(trimmedTags);
@@ -165,54 +166,6 @@ export function fetchTagValues({
   });
 }
 
-export function fetchSpanFieldValues({
-  api,
-  orgSlug,
-  fieldKey,
-  endpointParams,
-  projectIds,
-  search,
-  dataset,
-}: {
-  api: Client;
-  fieldKey: string;
-  orgSlug: string;
-  dataset?: 'spans' | 'spansIndexed';
-  endpointParams?: Query;
-  projectIds?: string[];
-  search?: string;
-}): Promise<TagValue[]> {
-  const url = `/organizations/${orgSlug}/spans/fields/${fieldKey}/values/`;
-
-  const query: Query = {};
-  if (search) {
-    query.query = search;
-  }
-  if (projectIds) {
-    query.project = projectIds;
-  }
-  if (endpointParams) {
-    if (endpointParams.start) {
-      query.start = endpointParams.start;
-    }
-    if (endpointParams.end) {
-      query.end = endpointParams.end;
-    }
-    if (endpointParams.statsPeriod) {
-      query.statsPeriod = endpointParams.statsPeriod;
-    }
-  }
-  if (dataset === 'spans') {
-    query.dataset = 'spans';
-    query.type = 'string';
-  }
-
-  return api.requestPromise(url, {
-    method: 'GET',
-    query,
-  });
-}
-
 /**
  * Fetch feature flag values for an organization. This is done by querying ERRORS with useFlagsBackend=1.
  * This only returns feature flags and not tags.
@@ -312,7 +265,14 @@ const makeFetchOrganizationTags = ({
   if (end) {
     query.end = end;
   }
-  return [`/organizations/${orgSlug}/tags/`, {query}];
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/tags/', {
+      path: {
+        organizationIdOrSlug: orgSlug,
+      },
+    }),
+    {query},
+  ];
 };
 
 export const useFetchOrganizationTags = (

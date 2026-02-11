@@ -7,24 +7,7 @@ from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnub
 
 SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     "annotations": [],
-    "assignedTo": {
-        "id": "1",
-        "name": "John Doe",
-        "email": "john.doe@example.com",
-        "username": "john.doe",
-        "avatarUrl": "https://example.com/avatar.png",
-        "isActive": True,
-        "hasPasswordAuth": True,
-        "isManaged": False,
-        "dateJoined": datetime.fromisoformat("2018-11-06T21:19:55Z"),
-        "lastLogin": datetime.fromisoformat("2018-11-06T21:19:55Z"),
-        "has2fa": False,
-        "lastActive": datetime.fromisoformat("2018-11-06T21:19:55Z"),
-        "isSuperuser": False,
-        "isStaff": False,
-        "experiments": {},
-        "emails": [],
-    },
+    "assignedTo": {"type": "user", "id": "1", "name": "John Doe", "email": "john.doe@example.com"},
     "count": "150",
     "culprit": "raven.scripts.runner in main",
     "firstSeen": datetime.fromisoformat("2018-11-06T21:19:55Z"),
@@ -132,7 +115,6 @@ MUTATE_ISSUE_RESULT: MutateIssueResponse = {
         "ignoreUserCount": 10,
         "ignoreUserWindow": 60,
         "inNextRelease": False,
-        "inUpcomingRelease": False,
         "inRelease": "1.0.0",
         "inCommit": {
             "commit": "123def456abc",

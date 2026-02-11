@@ -8,7 +8,7 @@ from sentry.utils.patch_set import (
 )
 
 
-def test_filename_containing_spaces():
+def test_filename_containing_spaces() -> None:
     # regression test for https://sentry.io/organizations/sentry/issues/3279066697
     patch = """\
 diff --git a/has spaces/t.sql b/has spaces/t.sql
@@ -152,7 +152,7 @@ index 0000000..8a9b485
         ),
     ],
 )
-def test_diff_line_counts(diff_text, expected):
+def test_diff_line_counts(diff_text: str, expected: FileModifications) -> None:
     patch = f"""diff --git a/test.py b/test.py
 index 0000001..0000002 100644
 --- a/test.py

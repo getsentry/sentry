@@ -17,7 +17,7 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry.api.issue_search import convert_query_values, convert_status_value
+from sentry.issues.issue_search import convert_query_values, convert_status_value
 from sentry.search.events.builder.discover import (
     DiscoverQueryBuilder,
     TimeseriesQueryBuilder,

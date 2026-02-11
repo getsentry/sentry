@@ -25,7 +25,6 @@ import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {getAggregateAlias, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 type TimeSeriesData = {
@@ -152,6 +151,10 @@ type EventsRequestPartialProps = {
    */
   expired?: boolean;
   /**
+   * The extrapolation mode to apply to the EAP
+   */
+  extrapolationMode?: string;
+  /**
    * List of fields to group with when doing a topEvents request.
    */
   field?: string[];
@@ -184,10 +187,6 @@ type EventsRequestPartialProps = {
    * List of project ids to query
    */
   project?: readonly number[];
-  /**
-   * A container for query batching data and functions.
-   */
-  queryBatching?: QueryBatching;
   /**
    * Extra query parameters to be added.
    */
@@ -223,10 +222,6 @@ type EventsRequestPartialProps = {
    */
   useOnDemandMetrics?: boolean;
   /**
-   * Whether or not to zerofill results
-   */
-  withoutZerofill?: boolean;
-  /**
    * The yAxis being plotted. If multiple yAxis are requested,
    * the child render function will be called with `results`
    */
@@ -234,15 +229,13 @@ type EventsRequestPartialProps = {
 };
 
 interface EventsRequestPropsWithTimeAggregation
-  extends DefaultProps,
-    EventsRequestPartialProps {
+  extends DefaultProps, EventsRequestPartialProps {
   includeTimeAggregation: true;
   timeAggregationSeriesName: string;
 }
 
 interface EventsRequestPropsWithoutTimeAggregation
-  extends DefaultProps,
-    EventsRequestPartialProps {
+  extends DefaultProps, EventsRequestPartialProps {
   includeTimeAggregation?: false;
   timeAggregationSeriesName?: undefined;
 }
@@ -264,7 +257,6 @@ const propNamesToIgnore = [
   'children',
   'organization',
   'loading',
-  'queryBatching',
   'generatePathname',
 ];
 const omitIgnoredProps = (props: EventsRequestProps) =>
@@ -338,7 +330,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       try {
         api.clear();
         timeseriesData = await doEventsRequest<false>(api, props);
-      } catch (resp) {
+      } catch (resp: any) {
         if (resp?.responseJSON?.detail) {
           errorMessage = resp.responseJSON.detail;
         } else {

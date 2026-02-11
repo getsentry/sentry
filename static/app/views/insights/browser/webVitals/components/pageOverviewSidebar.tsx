@@ -1,23 +1,40 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {ExternalLink} from 'sentry/components/core/link';
+import type {AutofixData} from 'sentry/components/events/autofix/types';
+import {
+  getRootCauseCopyText,
+  getRootCauseDescription,
+  getSolutionCopyText,
+  getSolutionDescription,
+  getSolutionIsLoading,
+} from 'sentry/components/events/autofix/utils';
+import {AutofixSummary} from 'sentry/components/group/groupSummaryWithAutofix';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
+import type {Group} from 'sentry/types/group';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import useOrganization from 'sentry/utils/useOrganization';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
+import {useSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useSeerWebVitalsSuggestions';
 import type {SubregionCode} from 'sentry/views/insights/types';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -39,6 +56,7 @@ export function PageOverviewSidebar({
   browserTypes,
   subregions,
 }: Props) {
+  const hasSeerWebVitalsSuggestions = useHasSeerWebVitalsSuggestions();
   const theme = useTheme();
   const pageFilters = usePageFilters();
   const {period, start, end, utc} = pageFilters.selection.datetime;
@@ -51,8 +69,13 @@ export function PageOverviewSidebar({
 
   const shouldDoublePeriod = false;
 
+  const countTimeSeries = data?.timeSeries?.find(ts => ts.yAxis === 'count()');
+  const countData = countTimeSeries
+    ? countTimeSeries.values.map(v => ({name: v.timestamp, value: v.value || 0}))
+    : [];
+
   const {countDiff, currentSeries, currentCount, initialCount} = processSeriesData(
-    data['count()'].data,
+    countData,
     isLoading,
     pageFilters.selection.datetime,
     shouldDoublePeriod
@@ -65,13 +88,20 @@ export function PageOverviewSidebar({
     },
   ];
 
+  const inpTimeSeries = data?.timeSeries?.find(
+    ts => ts.yAxis === 'count_scores(measurements.score.inp)'
+  );
+  const inpData = inpTimeSeries
+    ? inpTimeSeries.values.map(v => ({name: v.timestamp, value: v.value || 0}))
+    : [];
+
   const {
     countDiff: inpCountDiff,
     currentSeries: currentInpSeries,
     currentCount: currentInpCount,
     initialCount: initialInpCount,
   } = processSeriesData(
-    data['count_scores(measurements.score.inp)'].data,
+    inpData,
     isLoading,
     pageFilters.selection.datetime,
     shouldDoublePeriod
@@ -90,21 +120,29 @@ export function PageOverviewSidebar({
     }
     if (diff > 1) {
       if (reverse) {
-        return theme.red300;
+        return theme.colors.red400;
       }
-      return theme.green300;
+      return theme.colors.green400;
     }
     if (diff < 1) {
       if (reverse) {
-        return theme.green300;
+        return theme.colors.green400;
       }
-      return theme.red300;
+      return theme.colors.red400;
     }
     return undefined;
   };
 
   const ringSegmentColors = theme.chart.getColorPalette(4);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
+
+  const {
+    data: {issues, autofix},
+    isLoading: isLoadingAutofix,
+  } = useSeerWebVitalsSuggestions({
+    transaction,
+    enabled: hasSeerWebVitalsSuggestions,
+  });
 
   return (
     <Fragment>
@@ -124,7 +162,7 @@ export function PageOverviewSidebar({
           }
         />
       </SectionHeading>
-      <SidebarPerformanceScoreRingContainer>
+      <Flex justify="center" align="center" marginBottom="md">
         {!projectScoreIsLoading && projectScore && (
           <PerformanceScoreRingWithTooltips
             projectScore={projectScore}
@@ -136,7 +174,15 @@ export function PageOverviewSidebar({
           />
         )}
         {projectScoreIsLoading && <ProjectScoreEmptyLoadingElement />}
-      </SidebarPerformanceScoreRingContainer>
+      </Flex>
+      <SidebarSpacer />
+      {hasSeerWebVitalsSuggestions && (
+        <SeerSuggestionsSection
+          isLoading={isLoadingAutofix}
+          autofix={autofix}
+          issues={issues}
+        />
+      )}
       <SidebarSpacer />
       <SectionHeading>
         {t('Page Loads')}
@@ -225,6 +271,113 @@ export function PageOverviewSidebar({
   );
 }
 
+function SeerSuggestionsSection({
+  isLoading,
+  autofix,
+  issues,
+}: {
+  isLoading: boolean;
+  autofix?: AutofixData[];
+  issues?: Group[];
+}) {
+  return (
+    !isLoading &&
+    autofix &&
+    autofix.length > 0 && (
+      <Fragment>
+        <SectionHeading>{t('Seer Suggestions')}</SectionHeading>
+        <Content>
+          <Stack gap="xs" width="100%" minHeight="40px">
+            {autofix &&
+              issues?.map((issue, index) => (
+                <SeerSuggestion
+                  key={issue.shortId}
+                  issue={issue}
+                  autofix={autofix[index] as AutofixData}
+                  isLoading={isLoading}
+                />
+              ))}
+          </Stack>
+        </Content>
+      </Fragment>
+    )
+  );
+}
+
+function SeerSuggestion({
+  issue,
+  autofix,
+  isLoading,
+}: {
+  autofix: AutofixData;
+  isLoading: boolean;
+  issue: Group;
+}) {
+  const organization = useOrganization();
+
+  const rootCauseDescription = useMemo(
+    () => (autofix ? getRootCauseDescription(autofix) : null),
+    [autofix]
+  );
+
+  const rootCauseCopyText = useMemo(
+    () => (autofix ? getRootCauseCopyText(autofix) : null),
+    [autofix]
+  );
+
+  const solutionDescription = useMemo(
+    () => (autofix ? getSolutionDescription(autofix) : null),
+    [autofix]
+  );
+
+  const solutionCopyText = useMemo(
+    () => (autofix ? getSolutionCopyText(autofix) : null),
+    [autofix]
+  );
+
+  const solutionIsLoading = useMemo(
+    () => (autofix ? getSolutionIsLoading(autofix) : false),
+    [autofix]
+  );
+
+  return (
+    <SeerSuggestionCard key={issue.shortId}>
+      <CardTitle>
+        <CardTitleIcon>
+          <StyledIconSeer size="md" />
+        </CardTitleIcon>
+        <SpanOp>{issue.title}</SpanOp>
+      </CardTitle>
+      <Flex align="center" gap="xs">
+        <CardContent>
+          {isLoading || autofix === undefined || rootCauseDescription === null ? (
+            <Placeholder height="1.5rem" width="100%" />
+          ) : (
+            <AutofixSummary
+              group={issue}
+              rootCauseDescription={rootCauseDescription}
+              solutionDescription={solutionDescription}
+              codeChangesDescription={null}
+              codeChangesIsLoading={false}
+              rootCauseCopyText={rootCauseCopyText}
+              solutionCopyText={solutionCopyText}
+              solutionIsLoading={solutionIsLoading}
+            />
+          )}
+          <ViewIssueButtonContainer>
+            <LinkButton
+              to={`/organizations/${organization.slug}/issues/${issue.id}?seerDrawer=true`}
+              size="sm"
+            >
+              {t('View Suggestion')}
+            </LinkButton>
+          </ViewIssueButtonContainer>
+        </CardContent>
+      </Flex>
+    </SeerSuggestionCard>
+  );
+}
+
 const getChartSubText = (
   diff?: number,
   value?: string | number,
@@ -284,33 +437,81 @@ const processSeriesData = (
   return {countDiff, currentSeries, currentCount, initialCount};
 };
 
-const SidebarPerformanceScoreRingContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: ${space(1)};
-`;
-
 const ChartValue = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 const ChartSubText = styled('div')<{color?: string}>`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.color ?? p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.color ?? p.theme.tokens.content.secondary};
 `;
 
 const SectionHeading = styled('h4')`
   display: inline-grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
   margin: 0;
 `;
 
 const ProjectScoreEmptyLoadingElement = styled('div')`
   width: 220px;
   height: 160px;
+`;
+
+const Content = styled(Flex)`
+  gap: ${p => p.theme.space.xs};
+  position: relative;
+  margin: ${p => p.theme.space.md} 0;
+`;
+
+const SeerSuggestionCard = styled('div')`
+  display: flex;
+  flex-direction: column;
+  border-radius: ${p => p.theme.radius.md};
+  width: 100%;
+  min-height: 0;
+`;
+
+const CardTitle = styled('div')`
+  display: flex;
+  align-items: flex-start;
+  gap: ${p => p.theme.space.xs};
+  padding-bottom: ${p => p.theme.space.xs};
+`;
+
+const SpanOp = styled('p')`
+  margin: 0;
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  display: block;
+`;
+
+const CardTitleIcon = styled('div')`
+  display: flex;
+  align-items: center;
+  color: ${p => p.theme.tokens.content.secondary};
+`;
+
+const CardContent = styled('div')`
+  overflow-wrap: break-word;
+  word-break: break-word;
+  p {
+    margin: 0;
+    white-space: pre-wrap;
+  }
+  code {
+    word-break: break-all;
+  }
+  flex: 1;
+`;
+
+const StyledIconSeer = styled(IconSeer)`
+  color: ${p => p.theme.tokens.content.accent};
+`;
+
+const ViewIssueButtonContainer = styled('div')`
+  margin: ${p => p.theme.space.lg} 0;
 `;

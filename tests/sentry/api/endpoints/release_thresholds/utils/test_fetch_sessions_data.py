@@ -3,6 +3,6 @@ from sentry.testutils.cases import TestCase
 
 
 class FetchSessionsdataTest(TestCase):
-    def test_constructs_query(self):
+    def test_constructs_query(self) -> None:
         # TODO:
         pass

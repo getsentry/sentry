@@ -31,7 +31,6 @@ import {
 import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
-import ModalStore from 'sentry/stores/modalStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
@@ -675,9 +674,13 @@ function setUpMocks(
     url: `/organizations/${organization.slug}/projects/`,
     body: [],
   });
+  MockApiClient.addMockResponse({
+    url: `/customers/${organization.slug}/integrations/`,
+    body: [],
+  });
 }
 
-describe('Customer Details', function () {
+describe('Customer Details', () => {
   const {organization} = initializeOrg();
 
   const mockUser = UserFixture({permissions: new Set([])});
@@ -685,10 +688,9 @@ describe('Customer Details', function () {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
   });
 
-  it('populates chart data', function () {
+  it('populates chart data', () => {
     setUpMocks(organization);
 
     const data = StatsBillingPeriodFixture();
@@ -732,7 +734,7 @@ describe('Customer Details', function () {
           {name: '2021-07-19T00:00:00Z', value: 1000},
           {name: '2021-07-20T00:00:00Z', value: 0},
         ],
-        color: theme.purple300,
+        color: theme.tokens.graphics.accent.vibrant,
       },
       {
         seriesName: 'Filtered (Server)',
@@ -843,7 +845,7 @@ describe('Customer Details', function () {
             ],
           },
         ],
-        color: theme.purple200,
+        color: theme.tokens.graphics.accent.moderate,
       },
       {
         seriesName: 'Over Quota',
@@ -871,12 +873,12 @@ describe('Customer Details', function () {
           {name: '2021-07-19T00:00:00Z', value: 2000},
           {name: '2021-07-20T00:00:00Z', value: 0},
         ],
-        color: theme.pink200,
+        color: theme.tokens.graphics.promotion.moderate,
       },
       {
         seriesName: 'Discarded (Client)',
         data: [],
-        color: theme.yellow300,
+        color: theme.tokens.graphics.warning.vibrant,
       },
       {
         seriesName: 'Dropped (Server)',
@@ -1095,12 +1097,12 @@ describe('Customer Details', function () {
             ],
           },
         ],
-        color: theme.red300,
+        color: theme.tokens.graphics.danger.vibrant,
       },
     ]);
   });
 
-  it('renders correct sections', async function () {
+  it('renders correct sections', async () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
@@ -1116,7 +1118,7 @@ describe('Customer Details', function () {
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -1125,12 +1127,12 @@ describe('Customer Details', function () {
     await screen.findByRole('heading', {name: 'Customers'});
   });
 
-  it('renders correct dropdown options', async function () {
+  it('renders correct dropdown options', async () => {
     setUpMocks(organization);
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -1165,12 +1167,12 @@ describe('Customer Details', function () {
     expect(screen.getByRole('option', {name: /Add Legacy Soft Cap/})).toBeInTheDocument();
   });
 
-  it('renders and hides generic confirmation modals', async function () {
+  it('renders and hides generic confirmation modals', async () => {
     setUpMocks(organization);
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -1202,20 +1204,20 @@ describe('Customer Details', function () {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  describe('change legacy soft cap', function () {
+  describe('change legacy soft cap', () => {
     const softCapOrg = OrganizationFixture({slug: 'soft-cap'});
     const mockBillingAdminUser = UserFixture({
       permissions: new Set(['billing.admin']),
     });
 
-    it('renders disabled without billing.admin permissions', async function () {
+    it('renders disabled without billing.admin permissions', async () => {
       ConfigStore.set('user', mockUser);
 
       setUpMocks(organization, {isBillingAdmin: false});
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -1241,13 +1243,13 @@ describe('Customer Details', function () {
       ).toBeInTheDocument();
     });
 
-    it('renders enabled with billing.admin permissions', async function () {
+    it('renders enabled with billing.admin permissions', async () => {
       ConfigStore.set('user', mockBillingAdminUser);
       setUpMocks(softCapOrg, {isPartner: false});
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${softCapOrg.slug}`,
+          location: {pathname: `/customers/${softCapOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: softCapOrg,
@@ -1264,13 +1266,13 @@ describe('Customer Details', function () {
       expect(screen.getByText('Add Legacy Soft Cap')).toBeInTheDocument();
     });
 
-    it('renders disabled if legacy soft cap already enabled', async function () {
+    it('renders disabled if legacy soft cap already enabled', async () => {
       ConfigStore.set('user', mockBillingAdminUser);
       setUpMocks(softCapOrg, {isPartner: false, hasSoftCap: true});
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${softCapOrg.slug}`,
+          location: {pathname: `/customers/${softCapOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: softCapOrg,
@@ -1287,7 +1289,7 @@ describe('Customer Details', function () {
       expect(screen.getByText('Remove Legacy Soft Cap')).toBeInTheDocument();
     });
 
-    it('enables legacy soft cap', async function () {
+    it('enables legacy soft cap', async () => {
       ConfigStore.set('user', mockBillingAdminUser);
       setUpMocks(softCapOrg, {isPartner: false, hasSoftCap: false});
 
@@ -1299,7 +1301,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${softCapOrg.slug}`,
+          location: {pathname: `/customers/${softCapOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: softCapOrg,
@@ -1332,7 +1334,7 @@ describe('Customer Details', function () {
       );
     });
 
-    it('disables legacy soft cap', async function () {
+    it('disables legacy soft cap', async () => {
       ConfigStore.set('user', mockBillingAdminUser);
       setUpMocks(softCapOrg, {isPartner: false, hasSoftCap: true});
 
@@ -1344,7 +1346,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${softCapOrg.slug}`,
+          location: {pathname: `/customers/${softCapOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: softCapOrg,
@@ -1378,7 +1380,7 @@ describe('Customer Details', function () {
     });
   });
 
-  describe('change overage notifications', function () {
+  describe('change overage notifications', () => {
     const softCapOrg = OrganizationFixture({slug: 'soft-cap'});
     const noNotificationsOrg = OrganizationFixture();
 
@@ -1386,7 +1388,7 @@ describe('Customer Details', function () {
       permissions: new Set(['billing.admin']),
     });
 
-    it('renders disable option with billing.admin permissions', async function () {
+    it('renders disable option with billing.admin permissions', async () => {
       ConfigStore.set('user', mockBillingAdminUser);
       setUpMocks(softCapOrg, {hasOverageNotificationsDisabled: false, hasSoftCap: true});
       setUpMocks(noNotificationsOrg, {
@@ -1396,7 +1398,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${softCapOrg.slug}`,
+          location: {pathname: `/customers/${softCapOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: softCapOrg,
@@ -1413,7 +1415,7 @@ describe('Customer Details', function () {
       expect(screen.getByText('Disable Overage Notification')).toBeInTheDocument();
     });
 
-    it('renders enabled option with billing.admin permissions', async function () {
+    it('renders enabled option with billing.admin permissions', async () => {
       ConfigStore.set('user', mockBillingAdminUser);
       setUpMocks(softCapOrg, {hasOverageNotificationsDisabled: true, hasSoftCap: true});
       setUpMocks(noNotificationsOrg, {
@@ -1423,7 +1425,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${softCapOrg.slug}`,
+          location: {pathname: `/customers/${softCapOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: softCapOrg,
@@ -1440,7 +1442,7 @@ describe('Customer Details', function () {
       expect(screen.getByText('Enable Overage Notification')).toBeInTheDocument();
     });
 
-    it('disables overage notifications', async function () {
+    it('disables overage notifications', async () => {
       ConfigStore.set('user', mockBillingAdminUser);
       setUpMocks(softCapOrg, {hasOverageNotificationsDisabled: false, hasSoftCap: true});
       setUpMocks(noNotificationsOrg, {
@@ -1456,7 +1458,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${softCapOrg.slug}`,
+          location: {pathname: `/customers/${softCapOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: softCapOrg,
@@ -1489,7 +1491,7 @@ describe('Customer Details', function () {
       );
     });
 
-    it('enables overage notifications', async function () {
+    it('enables overage notifications', async () => {
       ConfigStore.set('user', mockBillingAdminUser);
       const updateMock = MockApiClient.addMockResponse({
         url: `/customers/${noNotificationsOrg.slug}/`,
@@ -1504,7 +1506,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${noNotificationsOrg.slug}`,
+          location: {pathname: `/customers/${noNotificationsOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: noNotificationsOrg,
@@ -1538,15 +1540,15 @@ describe('Customer Details', function () {
     });
   });
 
-  describe('clear pending changes', function () {
+  describe('clear pending changes', () => {
     const pendingChangesOrg = OrganizationFixture();
 
-    it('renders in the dropdown when there are pending changes', async function () {
+    it('renders in the dropdown when there are pending changes', async () => {
       setUpMocks(pendingChangesOrg, {pendingChanges: true});
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${pendingChangesOrg.slug}`,
+          location: {pathname: `/customers/${pendingChangesOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: pendingChangesOrg,
@@ -1563,12 +1565,12 @@ describe('Customer Details', function () {
       expect(screen.getByText('Clear Pending Changes')).toBeInTheDocument();
     });
 
-    it('is hidden when there are no changes', async function () {
+    it('is hidden when there are no changes', async () => {
       setUpMocks(organization);
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -1586,15 +1588,15 @@ describe('Customer Details', function () {
     });
   });
 
-  describe('allow trial', function () {
+  describe('allow trial', () => {
     const cannotTrialOrg = OrganizationFixture({slug: 'cannot-trial-org'});
 
-    it('renders Allow Trial in the dropdown', async function () {
+    it('renders Allow Trial in the dropdown', async () => {
       setUpMocks(cannotTrialOrg, {canTrial: false, isTrial: false});
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${cannotTrialOrg.slug}`,
+          location: {pathname: `/customers/${cannotTrialOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: cannotTrialOrg,
@@ -1611,12 +1613,12 @@ describe('Customer Details', function () {
       expect(screen.getByRole('option', {name: /Allow Trial/})).toBeInTheDocument();
     });
 
-    it('hides Allow Trial in the dropdown when not eligible', async function () {
+    it('hides Allow Trial in the dropdown when not eligible', async () => {
       setUpMocks(organization, {canTrial: true, isTrial: false});
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -1633,12 +1635,12 @@ describe('Customer Details', function () {
       expect(screen.queryByRole('option', {name: /Allow Trial/})).not.toBeInTheDocument();
     });
 
-    it('hides Allow Trial in the dropdown when on active trial', async function () {
+    it('hides Allow Trial in the dropdown when on active trial', async () => {
       setUpMocks(organization, {canTrial: false, isTrial: true});
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -1655,7 +1657,7 @@ describe('Customer Details', function () {
       expect(screen.queryByRole('option', {name: /Allow Trial/})).not.toBeInTheDocument();
     });
 
-    it('allows an org to trial', async function () {
+    it('allows an org to trial', async () => {
       const trialMock = MockApiClient.addMockResponse({
         url: `/customers/${cannotTrialOrg.slug}/`,
         method: 'PUT',
@@ -1666,7 +1668,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${cannotTrialOrg.slug}`,
+          location: {pathname: `/customers/${cannotTrialOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: cannotTrialOrg,
@@ -1700,110 +1702,10 @@ describe('Customer Details', function () {
     });
   });
 
-  describe('allow grace period', function () {
-    const gracePeriodOrg = OrganizationFixture({slug: 'grace-period'});
-
-    it('renders in the dropdown', async function () {
-      setUpMocks(gracePeriodOrg);
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: `/customers/${gracePeriodOrg.slug}`,
-          route: `/customers/:orgId`,
-        },
-        organization: gracePeriodOrg,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      expect(screen.getByText('Allow Grace Period')).toBeInTheDocument();
-    });
-
-    it('disabled in the dropdown', async function () {
-      setUpMocks(organization);
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
-          route: `/customers/:orgId`,
-        },
-        organization,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      expect(screen.getByTestId('allowGrace')).toHaveAttribute('aria-disabled', 'true');
-
-      await userEvent.hover(
-        within(screen.getByTestId('allowGrace')).getByText('Allow Grace Period')
-      );
-
-      expect(
-        await screen.findByText('Account may already be in a grace period')
-      ).toBeInTheDocument();
-    });
-
-    it('allows an org to grace period again', async function () {
-      const updateMock = MockApiClient.addMockResponse({
-        url: `/customers/${gracePeriodOrg.slug}/`,
-        method: 'PUT',
-        body: OrganizationFixture(),
-      });
-
-      setUpMocks(gracePeriodOrg, {canGracePeriod: false});
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: `/customers/${gracePeriodOrg.slug}`,
-          route: `/customers/:orgId`,
-        },
-        organization: gracePeriodOrg,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      renderGlobalModal();
-
-      await userEvent.click(screen.getByText('Allow Grace Period'));
-
-      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
-
-      await waitFor(() =>
-        expect(updateMock).toHaveBeenCalledWith(
-          `/customers/${gracePeriodOrg.slug}/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              canGracePeriod: true,
-            },
-          })
-        )
-      );
-    });
-  });
-
-  describe('terminate contract', function () {
+  describe('terminate contract', () => {
     const terminateOrg = OrganizationFixture();
 
-    it('renders dropdown disabled without billing.admin permissions', async function () {
+    it('renders dropdown disabled without billing.admin permissions', async () => {
       ConfigStore.set('user', mockUser);
 
       setUpMocks(terminateOrg, {
@@ -1814,7 +1716,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${terminateOrg.slug}`,
+          location: {pathname: `/customers/${terminateOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: terminateOrg,
@@ -1842,7 +1744,7 @@ describe('Customer Details', function () {
       ).toBeInTheDocument();
     });
 
-    it('renders dropdown enabled with billing.admin permissions', async function () {
+    it('renders dropdown enabled with billing.admin permissions', async () => {
       const mockBillingAdminUser = UserFixture({
         permissions: new Set(['billing.admin']),
       });
@@ -1857,7 +1759,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${terminateOrg.slug}`,
+          location: {pathname: `/customers/${terminateOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: terminateOrg,
@@ -1874,7 +1776,7 @@ describe('Customer Details', function () {
       expect(screen.getByTestId('terminateContract')).toBeEnabled();
     });
 
-    it("terminates an organization's contract", async function () {
+    it("terminates an organization's contract", async () => {
       const mockBillingAdminUser = UserFixture({
         permissions: new Set(['billing.admin']),
       });
@@ -1895,7 +1797,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${terminateOrg.slug}`,
+          location: {pathname: `/customers/${terminateOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: terminateOrg,
@@ -1928,8 +1830,8 @@ describe('Customer Details', function () {
     });
   });
 
-  describe('close account', function () {
-    it('closes an account', async function () {
+  describe('close account', () => {
+    it('closes an account', async () => {
       setUpMocks(organization);
 
       const apiMock = MockApiClient.addMockResponse({
@@ -1940,7 +1842,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -1980,8 +1882,8 @@ describe('Customer Details', function () {
     });
   });
 
-  describe('test vercel api endpoints', function () {
-    it('calls api with extra data for refund', async function () {
+  describe('test vercel api endpoints', () => {
+    it('calls api with extra data for refund', async () => {
       organization.features.push('vc-marketplace-active-customer');
       const subscription = SubscriptionFixture({
         organization,
@@ -2001,7 +1903,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2029,7 +1931,7 @@ describe('Customer Details', function () {
       await userEvent.type(screen.getByRole('textbox', {name: 'Reason'}), 'test');
 
       const apiMock = MockApiClient.addMockResponse({
-        url: `/_admin/${organization.slug}/refund-vercel/`,
+        url: `/customers/${organization.slug}/refund-vercel/`,
         method: 'POST',
         body: {},
       });
@@ -2038,7 +1940,7 @@ describe('Customer Details', function () {
 
       await waitFor(() =>
         expect(apiMock).toHaveBeenCalledWith(
-          `/_admin/${organization.slug}/refund-vercel/`,
+          `/customers/${organization.slug}/refund-vercel/`,
           expect.objectContaining({
             method: 'POST',
             data: {
@@ -2050,7 +1952,7 @@ describe('Customer Details', function () {
       );
     });
 
-    it('does not render if subscription is not self serve partner', async function () {
+    it('does not render if subscription is not self serve partner', async () => {
       organization.features.push('vc-marketplace-active-customer');
       const subscription = SubscriptionFixture({
         organization,
@@ -2070,7 +1972,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2089,7 +1991,7 @@ describe('Customer Details', function () {
       expect(screen.queryByText('Vercel Refund')).not.toBeInTheDocument();
     });
 
-    it('does not render without vc-marketplace-active-customer feature', async function () {
+    it('does not render without vc-marketplace-active-customer feature', async () => {
       organization.features = [];
       const subscription = SubscriptionFixture({
         organization,
@@ -2109,7 +2011,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2129,8 +2031,8 @@ describe('Customer Details', function () {
     });
   });
 
-  describe('fork customer', function () {
-    beforeEach(function () {
+  describe('fork customer', () => {
+    beforeEach(() => {
       ConfigStore.set('regions', [
         {
           name: 'foo',
@@ -2143,7 +2045,7 @@ describe('Customer Details', function () {
       ]);
     });
 
-    it('forks a customer', async function () {
+    it('forks a customer', async () => {
       setUpMocks(organization);
 
       MockApiClient.addMockResponse({
@@ -2182,7 +2084,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2223,15 +2125,15 @@ describe('Customer Details', function () {
     });
   });
 
-  describe('cancel subscription', function () {
+  describe('cancel subscription', () => {
     const cancelSubOrg = OrganizationFixture();
 
-    it('renders in the dropdown', async function () {
+    it('renders in the dropdown', async () => {
       setUpMocks(cancelSubOrg);
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${cancelSubOrg.slug}`,
+          location: {pathname: `/customers/${cancelSubOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: cancelSubOrg,
@@ -2248,7 +2150,7 @@ describe('Customer Details', function () {
       expect(screen.getByText('Cancel Subscription')).toBeInTheDocument();
     });
 
-    it('cancels a subscription', async function () {
+    it('cancels a subscription', async () => {
       setUpMocks(cancelSubOrg);
       const apiMock = MockApiClient.addMockResponse({
         url: `/customers/${cancelSubOrg.slug}/`,
@@ -2258,7 +2160,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${cancelSubOrg.slug}`,
+          location: {pathname: `/customers/${cancelSubOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: cancelSubOrg,
@@ -2296,13 +2198,13 @@ describe('Customer Details', function () {
     });
   });
 
-  describe('change plan', function () {
+  describe('change plan', () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_b_500k',
     });
 
-    it('is enabled for NT customers', async function () {
+    it('is enabled for NT customers', async () => {
       const Subscription = SubscriptionFixture({
         organization,
         plan: 'am2_business',
@@ -2332,7 +2234,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2349,7 +2251,7 @@ describe('Customer Details', function () {
       expect(screen.getByTestId('changePlan')).toBeEnabled();
     });
 
-    it('is enabled for deactivated partner account', async function () {
+    it('is enabled for deactivated partner account', async () => {
       const partnerSubscription = SubscriptionFixture({
         organization,
         plan: 'am2_business',
@@ -2380,7 +2282,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2397,7 +2299,7 @@ describe('Customer Details', function () {
       expect(screen.getByTestId('changePlan')).toBeEnabled();
     });
 
-    it('is disabled for active, non-XX partner account', async function () {
+    it('is disabled for active, non-XX partner account', async () => {
       const partnerSubscription = SubscriptionFixture({
         organization,
         plan: 'am2_business',
@@ -2418,7 +2320,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2435,8 +2337,8 @@ describe('Customer Details', function () {
     });
   });
 
-  describe('early end', function () {
-    it('can end trial early', async function () {
+  describe('early end', () => {
+    it('can end trial early', async () => {
       const trialOrg = OrganizationFixture();
 
       setUpMocks(trialOrg, {isTrial: true});
@@ -2449,7 +2351,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${trialOrg.slug}`,
+          location: {pathname: `/customers/${trialOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: trialOrg,
@@ -2482,12 +2384,12 @@ describe('Customer Details', function () {
       });
     });
 
-    it('is disabled for non-trial org', async function () {
+    it('is disabled for non-trial org', async () => {
       setUpMocks(organization);
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2508,7 +2410,7 @@ describe('Customer Details', function () {
     });
   });
 
-  describe('on demand invoices', function () {
+  describe('on demand invoices', () => {
     const invoicedOrg = OrganizationFixture({slug: 'invoiced'});
     const onDemandInvoicedOrg = OrganizationFixture({slug: 'ondemand-invoiced'});
 
@@ -2518,7 +2420,7 @@ describe('Customer Details', function () {
 
     ConfigStore.set('user', mockBillingAdminUser);
 
-    it('renders disable on demand invoices when enabled', async function () {
+    it('renders disable on demand invoices when enabled', async () => {
       ConfigStore.set('user', mockBillingAdminUser);
 
       setUpMocks(invoicedOrg, {onDemandInvoiced: true});
@@ -2531,12 +2433,13 @@ describe('Customer Details', function () {
           countryCode: 'US',
           expMonth: 12,
           expYear: 2028,
+          brand: 'Visa',
         },
       });
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${onDemandInvoicedOrg.slug}`,
+          location: {pathname: `/customers/${onDemandInvoicedOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: onDemandInvoicedOrg,
@@ -2553,7 +2456,7 @@ describe('Customer Details', function () {
       expect(screen.getByText('Disable On Demand Billing')).toBeInTheDocument();
     });
 
-    it('renders enable on demand invoices when disabled', async function () {
+    it('renders enable on demand invoices when disabled', async () => {
       ConfigStore.set('user', mockBillingAdminUser);
 
       setUpMocks(invoicedOrg, {onDemandInvoiced: false});
@@ -2566,12 +2469,13 @@ describe('Customer Details', function () {
           countryCode: 'US',
           expMonth: 12,
           expYear: 2028,
+          brand: 'Visa',
         },
       });
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${onDemandInvoicedOrg.slug}`,
+          location: {pathname: `/customers/${onDemandInvoicedOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: onDemandInvoicedOrg,
@@ -2588,7 +2492,7 @@ describe('Customer Details', function () {
       expect(screen.getByText('Enable On Demand Billing')).toBeInTheDocument();
     });
 
-    it('does not render on-demand invoices actions when manually invoiced on-demand flag is True', async function () {
+    it('does not render on-demand invoices actions when manually invoiced on-demand flag is True', async () => {
       ConfigStore.set('user', mockBillingAdminUser);
 
       setUpMocks(onDemandInvoicedOrg, {
@@ -2601,12 +2505,13 @@ describe('Customer Details', function () {
           countryCode: 'US',
           expMonth: 12,
           expYear: 2028,
+          brand: 'Visa',
         },
       });
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${onDemandInvoicedOrg.slug}`,
+          location: {pathname: `/customers/${onDemandInvoicedOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: onDemandInvoicedOrg,
@@ -2623,7 +2528,7 @@ describe('Customer Details', function () {
       expect(screen.queryByText('Enable On Demand Billing')).not.toBeInTheDocument();
     });
 
-    it('enables on demand invoices when disabled', async function () {
+    it('enables on demand invoices when disabled', async () => {
       ConfigStore.set('user', mockBillingAdminUser);
 
       setUpMocks(invoicedOrg, {
@@ -2635,6 +2540,7 @@ describe('Customer Details', function () {
           countryCode: 'US',
           expMonth: 12,
           expYear: 2028,
+          brand: 'Visa',
         },
       });
 
@@ -2646,7 +2552,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${invoicedOrg.slug}`,
+          location: {pathname: `/customers/${invoicedOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: invoicedOrg,
@@ -2679,7 +2585,7 @@ describe('Customer Details', function () {
       );
     });
 
-    it('disables on demand invoices when enabled', async function () {
+    it('disables on demand invoices when enabled', async () => {
       ConfigStore.set('user', mockBillingAdminUser);
 
       setUpMocks(onDemandInvoicedOrg, {
@@ -2691,6 +2597,7 @@ describe('Customer Details', function () {
           countryCode: 'US',
           expMonth: 12,
           expYear: 2028,
+          brand: 'Visa',
         },
       });
 
@@ -2702,7 +2609,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${onDemandInvoicedOrg.slug}`,
+          location: {pathname: `/customers/${onDemandInvoicedOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: onDemandInvoicedOrg,
@@ -2736,8 +2643,8 @@ describe('Customer Details', function () {
     });
   });
 
-  describe('converting to sponsored', function () {
-    it('converts a plan to sponsored', async function () {
+  describe('converting to sponsored', () => {
+    it('converts a plan to sponsored', async () => {
       setUpMocks(organization);
 
       const apiMock = MockApiClient.addMockResponse({
@@ -2748,7 +2655,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2788,7 +2695,7 @@ describe('Customer Details', function () {
       );
     });
 
-    it('can convert subscription with active partner account to sponsored', async function () {
+    it('can convert subscription with active partner account to sponsored', async () => {
       const partnerSubscription = SubscriptionFixture({
         organization,
         plan: 'am2_business',
@@ -2814,7 +2721,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2854,7 +2761,7 @@ describe('Customer Details', function () {
       );
     });
 
-    it('cannot convert partner-type subscription to sponsored', async function () {
+    it('cannot convert partner-type subscription to sponsored', async () => {
       const partnerSubscription = SubscriptionFixture({
         organization,
         isPartner: true,
@@ -2863,7 +2770,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2884,13 +2791,13 @@ describe('Customer Details', function () {
     });
   });
 
-  describe('AddGiftEventsAction', function () {
-    it('renders and hides modal', async function () {
+  describe('AddGiftEventsAction', () => {
+    it('renders and hides modal', async () => {
       setUpMocks(organization);
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2920,12 +2827,12 @@ describe('Customer Details', function () {
       }
     });
 
-    it('can gift events - ERRORS', async function () {
+    it('can gift events - ERRORS', async () => {
       setUpMocks(organization);
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -2976,12 +2883,12 @@ describe('Customer Details', function () {
       );
     });
 
-    it('can gift events - TRANSACTIONS', async function () {
+    it('can gift events - TRANSACTIONS', async () => {
       setUpMocks(organization);
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -3033,13 +2940,13 @@ describe('Customer Details', function () {
     });
   });
 
-  it('can gift events - REPLAYS', async function () {
+  it('can gift events - REPLAYS', async () => {
     const am2Sub = SubscriptionFixture({organization, plan: 'am2_f'});
     setUpMocks(organization, am2Sub);
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -3090,13 +2997,13 @@ describe('Customer Details', function () {
     );
   });
 
-  it('can gift events - SPANS', async function () {
+  it('can gift events - SPANS', async () => {
     const am3Sub = SubscriptionFixture({organization, plan: 'am3_f'});
     setUpMocks(organization, am3Sub);
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -3146,13 +3053,13 @@ describe('Customer Details', function () {
       )
     );
   });
-  it('cannot gift events in different units - SPANS_INDEXED', async function () {
+  it('cannot gift events in different units - SPANS_INDEXED', async () => {
     const am3Sub = Am3DsEnterpriseSubscriptionFixture({organization});
     setUpMocks(organization, am3Sub);
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -3171,13 +3078,13 @@ describe('Customer Details', function () {
     expect(item).toBeInTheDocument();
     expect(item).toHaveAttribute('aria-disabled', 'true');
   });
-  it('cannot gift events without checkout category - SPANS_INDEXED', async function () {
+  it('cannot gift events without checkout category - SPANS_INDEXED', async () => {
     const am3Sub = SubscriptionFixture({organization, plan: 'am3_team'});
     setUpMocks(organization, am3Sub);
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -3197,13 +3104,13 @@ describe('Customer Details', function () {
     expect(item).not.toBeInTheDocument();
   });
 
-  it('can gift events - MONITOR SEATS', async function () {
+  it('can gift events - MONITOR SEATS', async () => {
     const am2Sub = SubscriptionFixture({organization, plan: 'am2_f'});
     setUpMocks(organization, am2Sub);
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -3254,21 +3161,21 @@ describe('Customer Details', function () {
     );
   });
 
-  describe('adjust contract end dates', function () {
+  describe('adjust contract end dates', () => {
     const mockBillingAdminUser = UserFixture({
       permissions: new Set(['billing.admin']),
     });
 
     ConfigStore.set('user', mockBillingAdminUser);
 
-    it('ChangeContractEndDateAction not rendered for monthly contract interval', async function () {
+    it('ChangeContractEndDateAction not rendered for monthly contract interval', async () => {
       const invoicedOrg = OrganizationFixture();
 
       setUpMocks(invoicedOrg, {contractInterval: 'monthly', type: BillingType.INVOICED});
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${invoicedOrg.slug}`,
+          location: {pathname: `/customers/${invoicedOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: invoicedOrg,
@@ -3287,14 +3194,14 @@ describe('Customer Details', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('ChangeContractEndDateAction rendered for annual contract interval', async function () {
+    it('ChangeContractEndDateAction rendered for annual contract interval', async () => {
       const invoicedOrg = OrganizationFixture();
 
       setUpMocks(invoicedOrg, {contractInterval: 'annual', type: BillingType.INVOICED});
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${invoicedOrg.slug}`,
+          location: {pathname: `/customers/${invoicedOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: invoicedOrg,
@@ -3312,7 +3219,7 @@ describe('Customer Details', function () {
     });
   });
 
-  describe('unsuspend organization', function () {
+  describe('unsuspend organization', () => {
     const suspendedOrg = OrganizationFixture({slug: 'suspended'});
 
     const mockBillingAdminUser = UserFixture({
@@ -3321,12 +3228,12 @@ describe('Customer Details', function () {
 
     ConfigStore.set('user', mockBillingAdminUser);
 
-    it("doesn't render in the dropdown if already suspended", async function () {
+    it("doesn't render in the dropdown if already suspended", async () => {
       setUpMocks(suspendedOrg, {isSuspended: true});
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${suspendedOrg.slug}`,
+          location: {pathname: `/customers/${suspendedOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: suspendedOrg,
@@ -3343,7 +3250,7 @@ describe('Customer Details', function () {
       expect(screen.queryByText('Suspend Account')).not.toBeInTheDocument();
     });
 
-    it('unsuspends an organization', async function () {
+    it('unsuspends an organization', async () => {
       setUpMocks(suspendedOrg, {isSuspended: true});
 
       const apiMock = MockApiClient.addMockResponse({
@@ -3354,7 +3261,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${suspendedOrg.slug}`,
+          location: {pathname: `/customers/${suspendedOrg.slug}`},
           route: `/customers/:orgId`,
         },
         organization: suspendedOrg,
@@ -3387,7 +3294,7 @@ describe('Customer Details', function () {
       );
     });
 
-    it('suspends an organization', async function () {
+    it('suspends an organization', async () => {
       setUpMocks(organization, {isSuspended: false});
 
       const apiMock = MockApiClient.addMockResponse({
@@ -3398,7 +3305,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -3445,8 +3352,8 @@ describe('Customer Details', function () {
     });
   });
 
-  describe('AddGiftBudgetAction', function () {
-    it('shows gift budget action when org has reserved budgets', async function () {
+  describe('AddGiftBudgetAction', () => {
+    it('shows gift budget action when org has reserved budgets', async () => {
       const am3Sub = Am3DsEnterpriseSubscriptionFixture({
         organization,
       });
@@ -3454,7 +3361,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -3469,7 +3376,7 @@ describe('Customer Details', function () {
       expect(screen.getByText('Gift to reserved budget')).toBeInTheDocument();
     });
 
-    it('hides gift budget action when org has no reserved budgets', async function () {
+    it('hides gift budget action when org has no reserved budgets', async () => {
       const nonDsSub = SubscriptionFixture({
         organization,
       });
@@ -3477,7 +3384,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -3492,7 +3399,7 @@ describe('Customer Details', function () {
       expect(screen.queryByText('Gift to reserved budget')).not.toBeInTheDocument();
     });
 
-    it('can open modal and gift budget', async function () {
+    it('can open modal and gift budget', async () => {
       const am3Sub = Am3DsEnterpriseSubscriptionFixture({
         organization,
       });
@@ -3506,7 +3413,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${organization.slug}`,
+          location: {pathname: `/customers/${organization.slug}`},
           route: `/customers/:orgId`,
         },
         organization,
@@ -3550,15 +3457,14 @@ describe('Customer Details', function () {
     });
   });
 
-  describe('delete billing metric history', function () {
+  describe('delete billing metric history', () => {
     // Add afterEach to clean up after tests
-    afterEach(function () {
+    afterEach(() => {
       MockApiClient.clearMockResponses();
       jest.restoreAllMocks();
-      ModalStore.reset();
     });
 
-    it('shows option when feature flag is enabled', async function () {
+    it('shows option when feature flag is enabled', async () => {
       // Set up organization with the required feature flag
       const orgWithDeleteFeature = OrganizationFixture({
         features: ['delete-billing-metric-history-admin'],
@@ -3567,7 +3473,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${orgWithDeleteFeature.slug}`,
+          location: {pathname: `/customers/${orgWithDeleteFeature.slug}`},
           route: `/customers/:orgId`,
         },
         organization: orgWithDeleteFeature,
@@ -3585,7 +3491,7 @@ describe('Customer Details', function () {
       expect(screen.getByText('Delete Billing Metric History')).toBeInTheDocument();
     });
 
-    it('does not show option when feature flag is missing', async function () {
+    it('does not show option when feature flag is missing', async () => {
       // Set up organization without the feature flag
       const orgWithoutDeleteFeature = OrganizationFixture({
         features: [],
@@ -3594,7 +3500,7 @@ describe('Customer Details', function () {
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
-          location: `/customers/${orgWithoutDeleteFeature.slug}`,
+          location: {pathname: `/customers/${orgWithoutDeleteFeature.slug}`},
           route: `/customers/:orgId`,
         },
         organization: orgWithoutDeleteFeature,
@@ -3611,21 +3517,62 @@ describe('Customer Details', function () {
       expect(screen.queryByText('Delete Billing Metric History')).not.toBeInTheDocument();
     });
   });
+
+  describe('generate spike projections', () => {
+    const org = OrganizationFixture({});
+
+    it('renders generate spike projections in the dropdown', async () => {
+      setUpMocks(org);
+
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${org.slug}`},
+          route: `/customers/:orgId`,
+        },
+        organization: org,
+      });
+
+      await screen.findByRole('heading', {name: 'Customers'});
+
+      await userEvent.click(
+        screen.getAllByRole('button', {
+          name: 'Customers Actions',
+        })[0]!
+      );
+
+      expect(
+        screen.getByRole('option', {name: /Generate Spike Projections/})
+      ).toBeInTheDocument();
+    });
+  });
 });
 
-describe('Gift Categories Availability', function () {
+describe('Gift Categories Availability', () => {
   const {organization} = initializeOrg();
   const customSubscription = SubscriptionFixture({
     organization,
     planDetails: {
       ...SubscriptionFixture({organization}).planDetails,
-      checkoutCategories: [DataCategory.ERRORS, DataCategory.REPLAYS, DataCategory.SPANS],
-      onDemandCategories: [DataCategory.ERRORS, DataCategory.PROFILE_DURATION],
+      checkoutCategories: [
+        DataCategory.ERRORS,
+        DataCategory.REPLAYS,
+        DataCategory.SPANS,
+        DataCategory.SEER_AUTOFIX,
+        DataCategory.SEER_SCANNER,
+      ],
+      onDemandCategories: [
+        DataCategory.ERRORS,
+        DataCategory.PROFILE_DURATION,
+        DataCategory.SEER_AUTOFIX,
+        DataCategory.SEER_SCANNER,
+      ],
       categories: [
         DataCategory.ERRORS,
         DataCategory.REPLAYS,
         DataCategory.PROFILE_DURATION,
         DataCategory.SPANS,
+        DataCategory.SEER_AUTOFIX,
+        DataCategory.SEER_SCANNER,
       ],
     },
     categories: {
@@ -3649,15 +3596,25 @@ describe('Gift Categories Availability', function () {
         reserved: -1, // Unlimited
         order: 4,
       }),
+      seerAutofix: MetricHistoryFixture({
+        category: DataCategory.SEER_AUTOFIX,
+        reserved: 0,
+        order: 5,
+      }),
+      seerScanner: MetricHistoryFixture({
+        category: DataCategory.SEER_SCANNER,
+        reserved: 0,
+        order: 6,
+      }),
     },
   });
 
-  it('enables categories in checkoutCategories but not in onDemandCategories', async function () {
+  it('enables categories in checkoutCategories but not in onDemandCategories', async () => {
     setUpMocks(organization, customSubscription);
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -3678,12 +3635,12 @@ describe('Gift Categories Availability', function () {
     );
   });
 
-  it('enables categories in onDemandCategories but not in checkoutCategories', async function () {
+  it('enables categories in onDemandCategories but not in checkoutCategories', async () => {
     setUpMocks(organization, customSubscription);
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -3704,12 +3661,12 @@ describe('Gift Categories Availability', function () {
     ).not.toHaveAttribute('aria-disabled');
   });
 
-  it('enables categories in both checkoutCategories and onDemandCategories', async function () {
+  it('enables categories in both checkoutCategories and onDemandCategories', async () => {
     setUpMocks(organization, customSubscription);
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -3730,12 +3687,12 @@ describe('Gift Categories Availability', function () {
     );
   });
 
-  it('disables categories with unlimited quota', async function () {
+  it('disables categories with unlimited quota', async () => {
     setUpMocks(organization, customSubscription);
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -3757,12 +3714,12 @@ describe('Gift Categories Availability', function () {
     );
   });
 
-  it('filters out categories in neither checkoutCategories nor onDemandCategories', async function () {
+  it('filters out categories in neither checkoutCategories nor onDemandCategories', async () => {
     setUpMocks(organization, customSubscription);
 
     render(<CustomerDetails />, {
       initialRouterConfig: {
-        location: `/customers/${organization.slug}`,
+        location: {pathname: `/customers/${organization.slug}`},
         route: `/customers/:orgId`,
       },
       organization,
@@ -3780,6 +3737,34 @@ describe('Gift Categories Availability', function () {
 
     expect(
       screen.queryByTestId(`gift-${DataCategory.PROFILE_DURATION_UI}`)
+    ).not.toBeInTheDocument();
+  });
+
+  it('filters out categories that are not giftable', async () => {
+    setUpMocks(organization, customSubscription);
+    render(<CustomerDetails />, {
+      initialRouterConfig: {
+        location: {pathname: `/customers/${organization.slug}`},
+        route: `/customers/:orgId`,
+      },
+      organization,
+    });
+
+    await screen.findByRole('heading', {name: 'Customers'});
+
+    renderGlobalModal();
+
+    await userEvent.click(
+      screen.getAllByRole('button', {
+        name: 'Customers Actions',
+      })[0]!
+    );
+
+    expect(
+      screen.queryByTestId(`gift-${DataCategory.SEER_AUTOFIX}`)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(`gift-${DataCategory.SEER_SCANNER}`)
     ).not.toBeInTheDocument();
   });
 });

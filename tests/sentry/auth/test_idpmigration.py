@@ -1,4 +1,5 @@
 import re
+from typing import cast
 
 from django.urls import reverse
 
@@ -13,7 +14,7 @@ from sentry.utils import json
 
 @control_silo_test
 class IDPMigrationTests(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.login_as(self.user)
@@ -23,7 +24,7 @@ class IDPMigrationTests(TestCase):
 
     IDENTITY_ID = "drgUQCLzOyfHxmTyVs0G"
 
-    def test_send_one_time_account_confirm_link(self):
+    def test_send_one_time_account_confirm_link(self) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             om = OrganizationMember.objects.create(organization=self.org, user_id=self.user.id)
         link = idpmigration.send_one_time_account_confirm_link(
@@ -31,7 +32,8 @@ class IDPMigrationTests(TestCase):
         )
         assert re.match(r"auth:one-time-key:\w{32}", link.verification_key)
 
-        value = json.loads(idpmigration.get_redis_cluster().get(link.verification_key))
+        value = json.loads(cast(str, idpmigration._get_redis_client().get(link.verification_key)))
+
         assert value["user_id"] == self.user.id
         assert value["email"] == self.email
         assert value["member_id"] == om.id
@@ -39,12 +41,13 @@ class IDPMigrationTests(TestCase):
         assert value["identity_id"] == self.IDENTITY_ID
         assert value["provider"] == "dummy"
 
-    def test_send_without_org_membership(self):
+    def test_send_without_org_membership(self) -> None:
         link = idpmigration.send_one_time_account_confirm_link(
             self.user, self.org, self.provider, self.email, self.IDENTITY_ID
         )
 
-        value = json.loads(idpmigration.get_redis_cluster().get(link.verification_key))
+        value = json.loads(cast(str, idpmigration._get_redis_client().get(link.verification_key)))
+
         assert value["user_id"] == self.user.id
         assert value["email"] == self.email
         assert value["member_id"] is None
@@ -52,7 +55,7 @@ class IDPMigrationTests(TestCase):
         assert value["identity_id"] == self.IDENTITY_ID
         assert value["provider"] == "dummy"
 
-    def test_verify_account(self):
+    def test_verify_account(self) -> None:
         link = idpmigration.send_one_time_account_confirm_link(
             self.user, self.org, self.provider, self.email, self.IDENTITY_ID
         )
@@ -66,7 +69,7 @@ class IDPMigrationTests(TestCase):
         assert response.status_code == 200
         assert response.templates[0].name == "sentry/idp_account_verified.html"
 
-    def test_verify_account_wrong_key(self):
+    def test_verify_account_wrong_key(self) -> None:
         idpmigration.send_one_time_account_confirm_link(
             self.user, self.org, self.provider, self.email, self.IDENTITY_ID
         )

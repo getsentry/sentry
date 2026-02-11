@@ -1,12 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import TextField from 'sentry/components/forms/fields/textField';
 import LoadingError from 'sentry/components/loadingError';
@@ -20,6 +22,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ExternalTeam, Integration} from 'sentry/types/integrations';
 import type {Team} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
@@ -77,8 +80,30 @@ function TeamNotificationSettingsPanel({
 
   const hasWriteAccess = hasEveryAccess(['team:write'], {organization, team});
 
-  return externalTeams.map(externalTeam => (
-    <FormFieldWrapper key={externalTeam.id}>
+  const hasValidIntegration = externalTeams.some(
+    externalTeam => integrationsById[externalTeam.integrationId]
+  );
+
+  if (!hasValidIntegration) {
+    return (
+      <EmptyMessage>
+        <div>{t('No teams have been linked yet.')}</div>
+        <NotDisabledSubText>
+          {tct('Head over to Slack and type [code] to get started. [link].', {
+            code: <code>/sentry link team</code>,
+            link: <ExternalLink href={DOCS_LINK}>{t('Learn more')}</ExternalLink>,
+          })}
+        </NotDisabledSubText>
+      </EmptyMessage>
+    );
+  }
+
+  const filteredExternalTeams = externalTeams.filter(
+    externalTeam => integrationsById[externalTeam.integrationId]
+  );
+
+  return filteredExternalTeams.map(externalTeam => (
+    <Flex key={externalTeam.id} align="center" justify="start">
       <StyledFormField
         disabled
         label={
@@ -118,11 +143,11 @@ function TeamNotificationSettingsPanel({
           </Confirm>
         </Tooltip>
       </DeleteButtonWrapper>
-    </FormFieldWrapper>
+    </Flex>
   ));
 }
 
-function TeamNotificationSettings() {
+export default function TeamNotificationSettings() {
   const api = useApi();
   const params = useParams<{teamId: string}>();
   const organization = useOrganization();
@@ -134,7 +159,9 @@ function TeamNotificationSettings() {
     refetch: refetchTeam,
   } = useApiQuery<Team>(
     [
-      `/teams/${organization.slug}/${params.teamId}/`,
+      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/`, {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: params.teamId},
+      }),
       {
         query: {expand: ['externalTeams']},
       },
@@ -151,7 +178,9 @@ function TeamNotificationSettings() {
     refetch: refetchIntegrations,
   } = useApiQuery<Integration[]>(
     [
-      `/organizations/${organization.slug}/integrations/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {includeConfig: '0'},
       },
@@ -213,22 +242,15 @@ function TeamNotificationSettings() {
   );
 }
 
-export default TeamNotificationSettings;
-
 const NotDisabledText = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   line-height: ${space(2)};
 `;
 const NotDisabledSubText = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 1.4;
   margin-top: ${space(1)};
-`;
-const FormFieldWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
 `;
 const StyledFormField = styled(TextField)`
   flex: 1;

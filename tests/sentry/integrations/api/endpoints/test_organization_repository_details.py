@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -12,6 +12,88 @@ from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
+
+
+class OrganizationRepositoryGetTest(APITestCase):
+    def test_get_repository(self) -> None:
+        self.login_as(user=self.user)
+
+        org = self.create_organization(owner=self.user, name="baz")
+        repo = Repository.objects.create(
+            name="example",
+            organization_id=org.id,
+            provider="integrations:github",
+            external_id="abc123",
+        )
+
+        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert response.data["id"] == str(repo.id)
+        assert response.data["name"] == "example"
+        assert response.data["externalId"] == "abc123"
+        assert "settings" not in response.data
+
+    def test_get_repository_not_found(self) -> None:
+        self.login_as(user=self.user)
+
+        org = self.create_organization(owner=self.user, name="baz")
+
+        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, 99999])
+        response = self.client.get(url)
+
+        assert response.status_code == 404
+
+    def test_get_repository_expand_settings(self) -> None:
+        self.login_as(user=self.user)
+
+        org = self.create_organization(owner=self.user, name="baz")
+        repo = Repository.objects.create(
+            name="example",
+            organization_id=org.id,
+            provider="integrations:github",
+        )
+        self.create_repository_settings(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=["on_new_commit", "on_ready_for_review"],
+        )
+
+        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
+        response = self.client.get(url, {"expand": "settings"})
+
+        assert response.status_code == 200
+        assert response.data["id"] == str(repo.id)
+        assert response.data["settings"] is not None
+        assert response.data["settings"]["enabledCodeReview"] is True
+        assert response.data["settings"]["codeReviewTriggers"] == [
+            "on_new_commit",
+            "on_ready_for_review",
+        ]
+
+    def test_get_repository_expand_settings_no_settings_exist(self) -> None:
+        self.login_as(user=self.user)
+
+        org = self.create_organization(owner=self.user, name="baz")
+        repo = Repository.objects.create(
+            name="example",
+            organization_id=org.id,
+            provider="integrations:github",
+        )
+
+        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
+        response = self.client.get(url, {"expand": "settings"})
+
+        assert response.status_code == 200
+        assert response.data["id"] == str(repo.id)
+        # Settings are auto-created for GitHub repos with org defaults
+        assert response.data["settings"] is not None
+        assert response.data["settings"]["enabledCodeReview"] is False
+        assert response.data["settings"]["codeReviewTriggers"] == [
+            "on_ready_for_review",
+            "on_new_commit",
+        ]
 
 
 class OrganizationRepositoryDeleteTest(APITestCase):
@@ -34,7 +116,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             "external_id": external_id,
         }
 
-    def test_delete_no_commits(self):
+    def test_delete_no_commits(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -53,7 +135,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         ).exists()
         self.assert_rename_pending_delete(response, repo)
 
-    def test_delete_with_commits(self):
+    def test_delete_with_commits(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -76,7 +158,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         ).exists()
         self.assert_rename_pending_delete(response, repo, "abc123")
 
-    def test_delete_disabled_no_commits(self):
+    def test_delete_disabled_no_commits(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -101,7 +183,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         ).exists()
         self.assert_rename_pending_delete(response, repo, "abc12345")
 
-    def test_delete_disabled_with_commits(self):
+    def test_delete_disabled_with_commits(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -125,7 +207,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         ).exists()
         self.assert_rename_pending_delete(response, repo)
 
-    def test_put(self):
+    def test_put(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -146,7 +228,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         assert repo.status == ObjectStatus.ACTIVE
         assert repo.integration_id == integration.id
 
-    def test_put_cancel_deletion(self):
+    def test_put_cancel_deletion(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -191,7 +273,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         ).exists()
 
     @patch("sentry.tasks.seer.cleanup_seer_repository_preferences.apply_async")
-    def test_put_hide_repo(self, mock_cleanup_task):
+    def test_put_hide_repo(self, mock_cleanup_task: MagicMock) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -222,7 +304,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         )
 
     @patch("sentry.tasks.seer.cleanup_seer_repository_preferences.apply_async")
-    def test_put_hide_repo_with_commits(self, mock_cleanup_task):
+    def test_put_hide_repo_with_commits(self, mock_cleanup_task: MagicMock) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -250,7 +332,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             }
         )
 
-    def test_put_bad_integration_org(self):
+    def test_put_bad_integration_org(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -267,7 +349,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         assert response.data["detail"] == "Invalid integration id"
         assert Repository.objects.get(id=repo.id).name == "example"
 
-    def test_put_bad_integration_id(self):
+    def test_put_bad_integration_id(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -283,7 +365,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         assert Repository.objects.get(id=repo.id).name == "example"
 
     @patch("sentry.tasks.seer.cleanup_seer_repository_preferences.apply_async")
-    def test_put_hide_repo_triggers_cleanup(self, mock_cleanup_task):
+    def test_put_hide_repo_triggers_cleanup(self, mock_cleanup_task: MagicMock) -> None:
         """Test that hiding a repository triggers Seer cleanup task."""
         self.login_as(user=self.user)
 
@@ -314,7 +396,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         )
 
     @patch("sentry.tasks.seer.cleanup_seer_repository_preferences.apply_async")
-    def test_put_hide_repo_no_cleanup_when_null_fields(self, mock_cleanup_task):
+    def test_put_hide_repo_no_cleanup_when_null_fields(self, mock_cleanup_task: MagicMock) -> None:
         """Test that hiding a repository with null external_id/provider does not trigger Seer cleanup."""
         self.login_as(user=self.user)
 
@@ -339,7 +421,9 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         mock_cleanup_task.assert_not_called()
 
     @patch("sentry.tasks.seer.cleanup_seer_repository_preferences.apply_async")
-    def test_put_hide_repo_no_cleanup_when_external_id_null(self, mock_cleanup_task):
+    def test_put_hide_repo_no_cleanup_when_external_id_null(
+        self, mock_cleanup_task: MagicMock
+    ) -> None:
         """Test that hiding a repository with null external_id does not trigger Seer cleanup."""
         self.login_as(user=self.user)
 
@@ -364,7 +448,9 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         mock_cleanup_task.assert_not_called()
 
     @patch("sentry.tasks.seer.cleanup_seer_repository_preferences.apply_async")
-    def test_put_hide_repo_no_cleanup_when_provider_null(self, mock_cleanup_task):
+    def test_put_hide_repo_no_cleanup_when_provider_null(
+        self, mock_cleanup_task: MagicMock
+    ) -> None:
         """Test that hiding a repository with null provider does not trigger Seer cleanup."""
         self.login_as(user=self.user)
 

@@ -1,4 +1,5 @@
-import {Input} from 'sentry/components/core/input';
+import {Input} from '@sentry/scraps/input';
+
 import {t} from 'sentry/locale';
 import type {Action} from 'sentry/views/alerts/rules/metric/types';
 import {ActionType, TargetType} from 'sentry/views/alerts/rules/metric/types';
@@ -28,6 +29,8 @@ function ActionSpecificTargetSelector({action, disabled, onChange}: Props) {
       value={action.inputChannelId || ''}
       onChange={handleChangeSpecificTargetIdentifier}
       placeholder={t('optional: channel ID or user ID')}
+      // Disable 1Password autocomplete
+      data-1p-ignore
     />
   );
 }

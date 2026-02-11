@@ -8,7 +8,7 @@ from sentry_plugins.github.testutils import INSTALLATION_REPO_EVENT
 
 
 class InstallationRepoInstallEventWebhookTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.project  # force creation
 
         url = "/plugins/github/installations/webhook/"
@@ -38,7 +38,7 @@ class InstallationRepoInstallEventWebhookTest(APITestCase):
             organization_id=project.organization_id,
         ).exists()
 
-    def test_updates_existing_repo(self):
+    def test_updates_existing_repo(self) -> None:
         project = self.project  # force creation
 
         url = "/plugins/github/installations/webhook/"

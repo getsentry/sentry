@@ -10,12 +10,12 @@ from sentry.users.models.userip import UserIP
 class UserIPsTest(APITestCase):
     endpoint = "sentry-api-0-user-ips"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(id=1)
         self.login_as(self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         UserIP.objects.create(
             user=self.user,
             ip_address="127.0.0.2",
@@ -38,6 +38,6 @@ class UserIPsTest(APITestCase):
         assert response.data[1]["ipAddress"] == "127.0.0.2"
 
     @override_options({"demo-mode.enabled": True, "demo-mode.users": [1]})
-    def test_demo_user(self):
+    def test_demo_user(self) -> None:
         response = self.get_response("me")
         assert response.status_code == 403

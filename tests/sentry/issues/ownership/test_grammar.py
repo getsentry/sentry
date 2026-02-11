@@ -1130,3 +1130,117 @@ def test_convert_schema_to_rules_text() -> None:
         )
         == "path:*.js #frontend m@robenolt.com\nurl:http://google.com/* #backend\npath:src/sentry/* david@sentry.io\ntags.foo:bar tagperson@sentry.io\ntags.foo:bar baz tagperson@sentry.io\nmodule:foo.bar #workflow\nmodule:foo bar meow@sentry.io\n"
     )
+
+
+@pytest.mark.parametrize(
+    "pattern, path_details, expected",
+    [
+        # Pattern WITHOUT leading slash
+        # Path WITH leading slash
+        # Does not match
+        (
+            "libs/web/views/index/**",
+            [
+                {"filename": "/libs/web/views/index/src/widget-table.component.tsx"},
+                {"abs_path": "/libs/web/views/index/src/widget-table.component.tsx"},
+            ],
+            False,
+        ),
+        # Pattern WITH leading slash
+        # Path WITH leading slash
+        # Matches
+        (
+            "/libs/web/views/index/**",
+            [
+                {"filename": "/libs/web/views/index/src/widget-table.component.tsx"},
+                {"abs_path": "/libs/web/views/index/src/widget-table.component.tsx"},
+            ],
+            True,
+        ),
+        # Pattern WITHOUT leading slash
+        # Path WITHOUT leading slash
+        # Matches
+        (
+            "libs/web/views/index/**",
+            [
+                {"filename": "libs/web/views/index/src/widget-table.component.tsx"},
+                {"abs_path": "libs/web/views/index/src/widget-table.component.tsx"},
+            ],
+            True,
+        ),
+        # Pattern WITH leading slash
+        # Path WITHOUT leading slash
+        # Matches
+        (
+            "/libs/web/views/index/**",
+            [
+                {"filename": "libs/web/views/index/home.tsx"},
+                {"abs_path": "libs/web/views/index/home.tsx"},
+            ],
+            True,
+        ),
+    ],
+)
+def test_codeowners_leading_slash_matching(
+    pattern: str, path_details: Sequence[Mapping[str, str]], expected: bool
+) -> None:
+    _assert_matcher(Matcher("codeowners", pattern), path_details, expected)
+
+
+@pytest.mark.parametrize(
+    "pattern, path_details, expected",
+    [
+        # These should NOT match - they contain "example.py" as a suffix but
+        # the filename is not exactly "example.py"
+        (
+            "/**/example.py",
+            [{"filename": "/src/bad_example.py"}, {"abs_path": "/src/bad_example.py"}],
+            False,
+        ),
+        (
+            "/**/example.py",
+            [{"filename": "/src/foo/bad_example.py"}, {"abs_path": "/src/foo/bad_example.py"}],
+            False,
+        ),
+        (
+            "/**/example.py",
+            [{"filename": "/src/my_example.py"}, {"abs_path": "/src/my_example.py"}],
+            False,
+        ),
+        (
+            "/**/example.py",
+            [
+                {"filename": "/src/voice/calls/inbound/bad_example.py"},
+                {"abs_path": "/src/voice/calls/inbound/bad_example.py"},
+            ],
+            False,
+        ),
+        (
+            "/**/example.py",
+            [{"filename": "/src/good_example.py"}, {"abs_path": "/src/good_example.py"}],
+            False,
+        ),
+        (
+            "/**/example.py",
+            [{"filename": "/src/test_example.py"}, {"abs_path": "/src/test_example.py"}],
+            False,
+        ),
+        (
+            "**/example.py",
+            [{"filename": "/src/example.py"}, {"abs_path": "/src/example.py"}],
+            True,
+        ),
+        (
+            "**/example.py",
+            [{"filename": "/src/bad_example.py"}, {"abs_path": "/src/bad_example.py"}],
+            False,
+        ),
+    ],
+)
+def test_codeowners_double_star_matching(
+    pattern: str, path_details: Sequence[Mapping[str, str]], expected: bool
+) -> None:
+    """
+    "/**/example.py" pattern should only match files named exactly "example.py" at any directory depth.
+    """
+    _assert_matcher(Matcher("codeowners", pattern), path_details, expected)

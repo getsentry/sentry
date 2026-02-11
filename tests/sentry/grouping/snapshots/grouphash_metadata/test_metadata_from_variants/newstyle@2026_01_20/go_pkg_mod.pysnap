@@ -1,0 +1,58 @@
+---
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "98ba9d44b8e7924ce21654996f92c2eb"
+    contributing component: exception
+    hint: None
+    root_component:
+      app*
+        exception*
+          type*
+            "*pq.Error"
+          stacktrace*
+            frame* (marked in-app by the client)
+              module*
+                "main"
+              function*
+                "background.func2"
+  system*
+    hash: "6bbf86806a0ec54202e633626ae09bd4"
+    contributing component: exception
+    hint: None
+    root_component:
+      system*
+        exception*
+          type*
+            "*pq.Error"
+          stacktrace*
+            frame*
+              module*
+                "github.com/robfig/cron/v3"
+              function*
+                "FuncJob.Run"
+            frame*
+              module*
+                "main"
+              function*
+                "background.func2"

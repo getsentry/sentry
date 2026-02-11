@@ -5,12 +5,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import usePageFilters from 'sentry/utils/usePageFilters';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
-describe('DatabaseSpanDescription', function () {
+describe('DatabaseSpanDescription', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -25,7 +25,7 @@ describe('DatabaseSpanDescription', function () {
   const spanId = 'abfed2aabf';
   const eventId = '65c7d8647b8a76ef8f4c05d41deb7860';
 
-  it('shows preliminary description if no more data is available', async function () {
+  it('shows preliminary description if no more data is available', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: [],
@@ -44,7 +44,7 @@ describe('DatabaseSpanDescription', function () {
     expect(screen.getByText('SELECT USERS FRO*')).toBeInTheDocument();
   });
 
-  it('shows full query from indexed span', async function () {
+  it('shows full query from indexed span', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -74,7 +74,7 @@ describe('DatabaseSpanDescription', function () {
     ).toBeInTheDocument();
   });
 
-  it('shows query source if available', async function () {
+  it('shows query source if available', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -109,7 +109,7 @@ describe('DatabaseSpanDescription', function () {
     ).toBeInTheDocument();
   });
 
-  it('correctly formats and displays MongoDB queries', async function () {
+  it('correctly formats and displays MongoDB queries', async () => {
     const sampleMongoDBQuery = `{"a": "?", "insert": "documents"}`;
 
     MockApiClient.addMockResponse({

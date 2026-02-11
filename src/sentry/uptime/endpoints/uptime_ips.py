@@ -4,10 +4,11 @@ from rest_framework.request import Request
 from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 
 
-@region_silo_endpoint
+# TODO(cells): This endpoint is moving to control
+@all_silo_endpoint
 class UptimeIpsEndpoint(Endpoint):
     owner = ApiOwner.CRONS
     publish_status = {

@@ -1,22 +1,89 @@
-import {IndexRoute, Route} from 'sentry/components/route';
-import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
+import {Outlet} from 'react-router-dom';
 
-export const automationRoutes = (
-  <Route path="automations/">
-    <IndexRoute component={make(() => import('sentry/views/automations/list'))} />
-    <Route path="new">
-      <IndexRoute component={make(() => import('sentry/views/automations/new'))} />
-      <Route
-        path="settings/"
-        component={make(() => import('sentry/views/automations/new-settings'))}
+import Redirect from 'sentry/components/redirect';
+import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
+import type {SentryRouteObject} from 'sentry/router/types';
+import useOrganization from 'sentry/utils/useOrganization';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+
+export const automationRoutes: SentryRouteObject = {
+  path: 'alerts/',
+  children: [
+    {
+      component: RedirectToRuleList,
+      children: [
+        {index: true, component: make(() => import('sentry/views/automations/list'))},
+      ],
+    },
+    {
+      path: 'new',
+      component: RedirectToNewRule,
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/automations/new')),
+        },
+      ],
+    },
+    {
+      path: ':automationId/',
+      component: RedirectToRuleList,
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/automations/detail')),
+        },
+        {
+          path: 'edit/',
+          component: make(() => import('sentry/views/automations/edit')),
+        },
+      ],
+    },
+  ],
+};
+
+function RedirectToRuleList() {
+  const organization = useOrganization();
+
+  const hasRedirectOptOut = organization.features.includes(
+    'workflow-engine-redirect-opt-out'
+  );
+  const shouldRedirect =
+    !hasRedirectOptOut && !organization.features.includes('workflow-engine-ui');
+
+  if (shouldRedirect) {
+    return (
+      <Redirect
+        to={makeAlertsPathname({
+          path: '/rules/',
+          organization,
+        })}
       />
-    </Route>
-    <Route path=":automationId/">
-      <IndexRoute component={make(() => import('sentry/views/automations/detail'))} />
-      <Route
-        path="edit/"
-        component={make(() => import('sentry/views/automations/edit'))}
+    );
+  }
+
+  return <Outlet />;
+}
+
+function RedirectToNewRule() {
+  const organization = useOrganization();
+
+  const hasRedirectOptOut = organization.features.includes(
+    'workflow-engine-redirect-opt-out'
+  );
+  const shouldRedirect =
+    !hasRedirectOptOut && !organization.features.includes('workflow-engine-ui');
+
+  if (shouldRedirect) {
+    return (
+      <Redirect
+        to={makeAlertsPathname({
+          path: '/new/',
+          organization,
+        })}
       />
-    </Route>
-  </Route>
-);
+    );
+  }
+
+  return <Outlet />;
+}

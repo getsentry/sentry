@@ -1,22 +1,14 @@
 import logging
 from datetime import UTC, datetime, timedelta
-from typing import cast
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.github.integration import (
-    GitHubIntegration,
-    GitHubIntegrationProvider,
-    GitHubOpenPRCommentWorkflow,
-)
-from sentry.integrations.github.tasks.pr_comment import (
-    github_comment_reactions,
-    github_comment_workflow,
-)
+from sentry.integrations.github.integration import GitHubIntegration, GitHubIntegrationProvider
+from sentry.integrations.github.tasks.pr_comment import github_comment_workflow
 from sentry.integrations.models.integration import Integration
 from sentry.models.commit import Commit
 from sentry.models.group import Group
@@ -47,15 +39,12 @@ class GithubCommentTestCase(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.installation = get_installation_of_type(
             GitHubIntegration, integration=self.integration, org_id=self.organization.id
         )
         self.pr_comment_workflow = self.installation.get_pr_comment_workflow()
-        self.open_pr_comment_workflow = cast(
-            GitHubOpenPRCommentWorkflow, self.installation.get_open_pr_comment_workflow()
-        )
         self.another_integration = self.create_integration(
             organization=self.organization, external_id="1", provider="gitlab"
         )
@@ -172,7 +161,7 @@ class GithubCommentTestCase(IntegrationTestCase):
 
 
 class TestPrToIssueQuery(GithubCommentTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         """one pr with one issue"""
         commit = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
         pr = self.add_pr_to_commit(commit)
@@ -182,7 +171,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
 
         assert results == [groupowner.group_id]
 
-    def test_multiple_issues(self):
+    def test_multiple_issues(self) -> None:
         """one pr with multiple issues"""
         commit = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
         pr = self.add_pr_to_commit(commit)
@@ -194,7 +183,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
 
         assert results == [groupowner_1.group_id, groupowner_2.group_id, groupowner_3.group_id]
 
-    def test_multiple_prs(self):
+    def test_multiple_prs(self) -> None:
         """multiple eligible PRs with one issue each"""
         commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
         commit_2 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
@@ -209,7 +198,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
         results = self.pr_comment_workflow.get_issue_ids_from_pr(pr=pr_2)
         assert results == [groupowner_2.group_id]
 
-    def test_multiple_commits(self):
+    def test_multiple_commits(self) -> None:
         """Multiple eligible commits with one issue each"""
         commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
         commit_2 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
@@ -222,7 +211,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
 
 
 class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         group1 = [
             self.store_event(
                 {"fingerprint": ["group-1"], "timestamp": before_now(days=1).isoformat()},
@@ -249,7 +238,7 @@ class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
         )
         assert [issue["group_id"] for issue in res] == [group2, group3, group1]
 
-    def test_over_5_issues(self):
+    def test_over_5_issues(self) -> None:
         issue_ids = [
             self.store_event(
                 {"fingerprint": [f"group-{idx}"], "timestamp": before_now(days=1).isoformat()},
@@ -260,7 +249,7 @@ class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
         res = self.pr_comment_workflow.get_top_5_issues_by_count(issue_ids, self.project)
         assert len(res) == 5
 
-    def test_ignore_info_level_issues(self):
+    def test_ignore_info_level_issues(self) -> None:
         group1 = [
             self.store_event(
                 {
@@ -295,7 +284,7 @@ class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
         )
         assert [issue["group_id"] for issue in res] == [group2]
 
-    def test_do_not_ignore_other_issues(self):
+    def test_do_not_ignore_other_issues(self) -> None:
         group1 = [
             self.store_event(
                 {
@@ -336,7 +325,7 @@ class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
 
 
 class TestGetCommentBody(GithubCommentTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         ev1 = self.store_event(
             data={
                 "message": "issue 1",
@@ -366,22 +355,20 @@ class TestGetCommentBody(GithubCommentTestCase):
             [ev1.group.id, ev2.group.id, ev3.group.id]
         )
 
-        expected_comment = f"""## Suspect Issues
-This pull request was deployed and Sentry observed the following issues:
+        expected_comment = f"""## Issues attributed to commits in this pull request
+This pull request was merged and Sentry observed the following issues:
 
 * ‼️ [**issue 1**](http://testserver/organizations/{self.organization.slug}/issues/{ev1.group.id}/?referrer=github-pr-bot) in `dev`
 
 * ‼️ [**issue 2**](http://testserver/organizations/{self.organization.slug}/issues/{ev2.group.id}/?referrer=github-pr-bot)
 
 * ‼️ [**issue 3**](http://testserver/organizations/{self.organization.slug}/issues/{ev3.group.id}/?referrer=github-pr-bot) in `prod`
-
-
-<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+"""
         assert formatted_comment == expected_comment
 
 
 class TestCommentWorkflow(GithubCommentTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user_id = "user_1"
         self.app_id = "app_1"
@@ -393,7 +380,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
     )
     @patch("sentry.integrations.source_code_management.commit_context.metrics")
     @responses.activate
-    def test_comment_workflow(self, mock_metrics, mock_issues):
+    def test_comment_workflow(self, mock_metrics: MagicMock, mock_issues: MagicMock) -> None:
         group_objs = Group.objects.order_by("id").all()
         groups = [g.id for g in group_objs]
         titles = [g.title for g in group_objs]
@@ -409,7 +396,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         github_comment_workflow(self.pr.id, self.project.id)
 
         assert (
-            f'"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n* \\u203c\\ufe0f [**{titles[0]}**](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n\\n* \\u203c\\ufe0f [**{titles[1]}**](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"'.encode()
+            f'"body": "## Issues attributed to commits in this pull request\\nThis pull request was merged and Sentry observed the following issues:\\n\\n* \\u203c\\ufe0f [**{titles[0]}**](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n\\n* \\u203c\\ufe0f [**{titles[1]}**](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n"'.encode()
             in responses.calls[0].request.body
         )
         pull_request_comment_query = PullRequestComment.objects.all()
@@ -424,7 +411,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.integrations.source_code_management.commit_context.metrics")
     @responses.activate
     @freeze_time(datetime(2023, 6, 8, 0, 0, 0, tzinfo=UTC))
-    def test_comment_workflow_updates_comment(self, mock_metrics, mock_issues):
+    def test_comment_workflow_updates_comment(
+        self, mock_metrics: MagicMock, mock_issues: MagicMock
+    ) -> None:
         group_objs = Group.objects.order_by("id").all()
         groups = [g.id for g in group_objs]
         titles = [g.title for g in group_objs]
@@ -457,7 +446,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         github_comment_workflow(self.pr.id, self.project.id)
 
         assert (
-            f'"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n* \\u203c\\ufe0f [**{titles[0]}**](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n\\n* \\u203c\\ufe0f [**{titles[1]}**](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"'.encode()
+            f'"body": "## Issues attributed to commits in this pull request\\nThis pull request was merged and Sentry observed the following issues:\\n\\n* \\u203c\\ufe0f [**{titles[0]}**](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n\\n* \\u203c\\ufe0f [**{titles[1]}**](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n"'.encode()
             in responses.calls[0].request.body
         )
         pull_request_comment.refresh_from_db()
@@ -471,7 +460,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.integrations.source_code_management.tasks.metrics")
     @patch("sentry.integrations.github.integration.metrics")
     @responses.activate
-    def test_comment_workflow_api_error(self, mock_integration_metrics, mock_metrics, mock_issues):
+    def test_comment_workflow_api_error(
+        self, mock_integration_metrics: MagicMock, mock_metrics: MagicMock, mock_issues: MagicMock
+    ) -> None:
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
         mock_issues.return_value = [
             {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
@@ -557,7 +548,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch(
         "sentry.integrations.github.integration.GitHubPRCommentWorkflow.get_top_5_issues_by_count"
     )
-    def test_comment_workflow_missing_org_option(self, mock_issues):
+    def test_comment_workflow_missing_org_option(self, mock_issues: MagicMock) -> None:
         OrganizationOption.objects.set_value(
             organization=self.organization, key="sentry:github_pr_bot", value=False
         )
@@ -570,7 +561,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
     )
     @patch("sentry.models.Project.objects.get_from_cache")
     @patch("sentry.integrations.source_code_management.tasks.metrics")
-    def test_comment_workflow_missing_project(self, mock_metrics, mock_project, mock_issues):
+    def test_comment_workflow_missing_project(
+        self, mock_metrics: MagicMock, mock_project: MagicMock, mock_issues: MagicMock
+    ) -> None:
         # Project.DoesNotExist should trigger the cache to release the key
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
 
@@ -643,183 +636,12 @@ class TestCommentWorkflow(GithubCommentTestCase):
     )
     @patch("sentry.integrations.github.integration.GitHubPRCommentWorkflow.get_comment_body")
     @responses.activate
-    def test_comment_workflow_no_issues(self, mock_get_comment_body, mock_issues):
+    def test_comment_workflow_no_issues(
+        self, mock_get_comment_body: MagicMock, mock_issues: MagicMock
+    ) -> None:
         mock_issues.return_value = []
 
         github_comment_workflow(self.pr.id, self.project.id)
 
         assert mock_issues.called
         assert not mock_get_comment_body.called
-
-
-class TestCommentReactionsTask(GithubCommentTestCase):
-    base_url = "https://api.github.com"
-
-    def setUp(self):
-        super().setUp()
-        self.user_id = "user_1"
-        self.app_id = "app_1"
-        self.pr = self.create_pr_issues()
-        self.comment = PullRequestComment.objects.create(
-            external_id="2",
-            pull_request=self.pr,
-            created_at=timezone.now(),
-            updated_at=timezone.now(),
-            group_ids=[4, 5],
-        )
-        self.expired_pr = self.create_pr_issues()
-        self.expired_pr.date_added = timezone.now() - timedelta(days=35)
-        self.expired_pr.save()
-        self.comment_reactions = {
-            "reactions": {
-                "url": "abcdef",
-                "hooray": 1,
-                "+1": 2,
-                "-1": 0,
-            }
-        }
-
-    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
-    @responses.activate
-    def test_comment_reactions_task(self, mock_metrics):
-        old_comment = PullRequestComment.objects.create(
-            external_id="1",
-            pull_request=self.expired_pr,
-            created_at=timezone.now() - timedelta(days=35),
-            updated_at=timezone.now() - timedelta(days=35),
-            group_ids=[1, 2, 3],
-        )
-
-        responses.add(
-            responses.GET,
-            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
-            json=self.comment_reactions,
-        )
-
-        github_comment_reactions()
-
-        old_comment.refresh_from_db()
-        assert old_comment.reactions is None
-
-        self.comment.refresh_from_db()
-        stored_reactions = self.comment_reactions["reactions"]
-        del stored_reactions["url"]
-        assert self.comment.reactions == stored_reactions
-
-        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.success")
-
-    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
-    @responses.activate
-    def test_comment_reactions_task_missing_repo(self, mock_metrics):
-        self.gh_repo.delete()
-
-        responses.add(
-            responses.GET,
-            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
-            status=400,
-            json={},
-        )
-
-        github_comment_reactions()
-
-        self.comment.refresh_from_db()
-        assert self.comment.reactions is None
-        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.missing_repo")
-
-    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
-    @responses.activate
-    def test_comment_reactions_task_missing_integration(self, mock_metrics):
-        # invalid integration id
-        self.gh_repo.integration_id = 0
-        self.gh_repo.save()
-
-        responses.add(
-            responses.GET,
-            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
-            status=400,
-            json={},
-        )
-
-        github_comment_reactions()
-
-        self.comment.refresh_from_db()
-        assert self.comment.reactions is None
-        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.missing_integration")
-
-    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
-    @responses.activate
-    def test_comment_reactions_task_api_error_one(self, mock_metrics):
-        gh_repo = self.create_repo(
-            name="getsentry/santry",
-            provider="integrations:github",
-            integration_id=self.integration.id,
-            project=self.project,
-            url="https://github.com/getsentry/santry",
-        )
-        no_error_comment = PullRequestComment.objects.create(
-            external_id="3",
-            pull_request=self.create_pr_issues(gh_repo=gh_repo),
-            created_at=timezone.now(),
-            updated_at=timezone.now(),
-            group_ids=[7, 8],
-        )
-
-        responses.add(
-            responses.GET,
-            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
-            status=400,
-            json={},
-        )
-        responses.add(
-            responses.GET,
-            self.base_url + "/repos/getsentry/santry/issues/comments/3",
-            json=self.comment_reactions,
-        )
-
-        github_comment_reactions()
-
-        self.comment.refresh_from_db()
-        assert self.comment.reactions is None
-
-        no_error_comment.refresh_from_db()
-        stored_reactions = self.comment_reactions["reactions"]
-        del stored_reactions["url"]
-        assert no_error_comment.reactions == stored_reactions
-
-        # assert the last metric emitted is a success
-        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.success")
-
-    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
-    @responses.activate
-    def test_comment_reactions_task_api_error_rate_limited(self, mock_metrics):
-        responses.add(
-            responses.GET,
-            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
-            status=400,
-            json={
-                "message": "API rate limit exceeded",
-                "documentation_url": "https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting",
-            },
-        )
-
-        github_comment_reactions()
-
-        self.comment.refresh_from_db()
-        assert self.comment.reactions is None
-        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.rate_limited_error")
-
-    @patch("sentry.integrations.github.tasks.pr_comment.metrics")
-    @responses.activate
-    def test_comment_reactions_task_api_error_404(self, mock_metrics):
-        responses.add(
-            responses.GET,
-            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
-            status=404,
-            json={},
-        )
-
-        github_comment_reactions()
-
-        self.comment.refresh_from_db()
-        assert self.comment.reactions is None
-        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.not_found_error")

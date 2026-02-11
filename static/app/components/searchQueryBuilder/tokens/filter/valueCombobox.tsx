@@ -4,19 +4,23 @@ import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
 
-import {Checkbox} from 'sentry/components/core/checkbox';
-import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
-import {getItemsWithKeys} from 'sentry/components/core/compactSelect/utils';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
+import {getItemsWithKeys} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+
+import {DeviceName} from 'sentry/components/deviceName';
 import {
   ItemType,
   type SearchGroup,
   type SearchItem,
-} from 'sentry/components/deprecatedSmartSearchBar/types';
-import {DeviceName} from 'sentry/components/deviceName';
+} from 'sentry/components/searchBar/types';
+import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
+import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {
-  type CustomComboboxMenu,
   SearchQueryBuilderCombobox,
+  type CustomComboboxMenu,
 } from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
 import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
@@ -41,6 +45,7 @@ import {
 import {getDefaultFilterValue} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {
   isDateToken,
+  isNumericFilterToken,
   recentSearchTypeToLabel,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
@@ -51,15 +56,14 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {
-  type FieldDefinition,
   FieldKey,
   FieldValueType,
   prettifyTagKey,
+  type FieldDefinition,
 } from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
@@ -102,7 +106,10 @@ function getMultiSelectInputValue(token: TokenResult<Token.FILTER>) {
   return items.join(',') + ',';
 }
 
-function prepareInputValueForSaving(valueType: FieldValueType, inputValue: string) {
+export function prepareInputValueForSaving(
+  valueType: FieldValueType,
+  inputValue: string
+) {
   const parsed = parseMultiSelectFilterValue(inputValue);
 
   if (!parsed) {
@@ -125,7 +132,7 @@ function prepareInputValueForSaving(valueType: FieldValueType, inputValue: strin
     : (uniqueValues[0] ?? '""');
 }
 
-function getSelectedValuesFromText(
+export function getSelectedValuesFromText(
   text: string,
   {escaped = true}: {escaped?: boolean} = {}
 ) {
@@ -180,7 +187,7 @@ function getSuggestionDescription(group: SearchGroup | SearchItem) {
   return undefined;
 }
 
-function getPredefinedValues({
+export function getPredefinedValues({
   fieldDefinition,
   key,
   filterValue,
@@ -246,7 +253,7 @@ function getPredefinedValues({
   ];
 }
 
-function tokenSupportsMultipleValues(
+export function tokenSupportsMultipleValues(
   token: TokenResult<Token.FILTER>,
   keys: TagCollection,
   fieldDefinition: FieldDefinition | null
@@ -299,6 +306,7 @@ function useSelectionIndex({
 
   useEffect(() => {
     if (canSelectMultipleValues) {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setSelectionIndex(inputValue.length);
     }
   }, [canSelectMultipleValues, inputValue]);
@@ -356,25 +364,25 @@ function useFilterSuggestions({
   const queryParams = useMemo(
     () =>
       [
-        key ? {key: key.key, name: key.name} : {key: keyName, name: keyName},
+        key
+          ? {key: key.key, name: key.name, kind: key.kind}
+          : {key: keyName, name: keyName, kind: undefined},
         filterValue,
       ] as const,
     [filterValue, key, keyName]
   );
 
   const baseQueryKey = useMemo(
-    () => ['search-query-builder-tag-values', queryParams],
+    () => ['search-query-builder-tag-values', queryParams] as const,
     [queryParams]
   );
   const queryKey = useDebouncedValue(baseQueryKey);
   const isDebouncing = baseQueryKey !== queryKey;
 
   // TODO(malwilley): Display error states
-  const {data, isFetching} = useQuery<string[]>({
-    // disable exhaustive deps because we want to debounce the query key above
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  const {data, isFetching} = useQuery({
     queryKey,
-    queryFn: () => getTagValues(...queryParams),
+    queryFn: ctx => getTagValues(...ctx.queryKey[1]),
     placeholderData: keepPreviousData,
     enabled: shouldFetchValues,
   });
@@ -523,7 +531,7 @@ function ItemCheckbox({
   );
 }
 
-function getInitialInputValue(
+export function getInitialInputValue(
   token: TokenResult<Token.FILTER>,
   canSelectMultipleValues: boolean
 ) {
@@ -532,6 +540,9 @@ function getInitialInputValue(
   }
   if (canSelectMultipleValues) {
     return getMultiSelectInputValue(token);
+  }
+  if (isNumericFilterToken(token)) {
+    return token.value.text;
   }
   return '';
 }
@@ -668,7 +679,7 @@ export function SearchQueryBuilderValueCombobox({
             getFilterValueType(token, fieldDefinition),
             selectedValuesUnescaped
               .filter(v => (v.selected ? v.value !== value : true))
-              .map(v => escapeTagValue(v.value))
+              .map(v => escapeTagValue(v.value, {allowArrayValue: false}))
               .join(',')
           );
 
@@ -842,14 +853,22 @@ export function SearchQueryBuilderValueCombobox({
     useMemo(() => {
       if (!showDatePicker) {
         return function (props) {
+          // Removing the ask seer options from the value list box props as we don't
+          // display and ask seer option in this list box.
+          const hiddenOptions = new Set(props.hiddenOptions);
+          hiddenOptions.delete(ASK_SEER_ITEM_KEY);
+          hiddenOptions.delete(ASK_SEER_CONSENT_ITEM_KEY);
+
           return (
             <ValueListBox
               {...props}
+              hiddenOptions={hiddenOptions}
               wrapperRef={topLevelWrapperRef}
               isMultiSelect={canSelectMultipleValues}
               items={items}
               isLoading={isFetching}
               canUseWildcard={canUseWildcard}
+              token={token}
             />
           );
         };
@@ -909,7 +928,13 @@ export function SearchQueryBuilderValueCombobox({
           });
 
   return (
-    <ValueEditing ref={ref} data-test-id="filter-value-editing">
+    <Flex
+      align="center"
+      maxWidth="400px"
+      height="100%"
+      ref={ref}
+      data-test-id="filter-value-editing"
+    >
       <SearchQueryBuilderCombobox
         ref={inputRef}
         items={items}
@@ -942,22 +967,15 @@ export function SearchQueryBuilderValueCombobox({
           </Section>
         ))}
       </SearchQueryBuilderCombobox>
-    </ValueEditing>
+    </Flex>
   );
 }
-
-const ValueEditing = styled('div')`
-  display: flex;
-  height: 100%;
-  align-items: center;
-  max-width: 400px;
-`;
 
 const TrailingWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const CheckWrap = styled('div')<{visible: boolean}>`
@@ -965,5 +983,8 @@ const CheckWrap = styled('div')<{visible: boolean}>`
   justify-content: center;
   align-items: center;
   opacity: ${p => (p.visible ? 1 : 0)};
-  padding: ${space(0.25)} 0 ${space(0.25)} ${space(0.25)};
+  padding-top: ${p => p.theme.space['2xs']};
+  padding-right: 0;
+  padding-bottom: ${p => p.theme.space['2xs']};
+  padding-left: ${p => p.theme.space['2xs']};
 `;

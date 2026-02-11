@@ -1,40 +1,30 @@
-import styled from '@emotion/styled';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Text} from '@sentry/scraps/text';
 
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {NoAccess} from 'sentry/components/noAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-type RouteParams = {
-  projectId: string;
-};
-type Props = RouteComponentProps<RouteParams> & {
-  organization: Organization;
-  project: Project;
-};
-
-export default function ProjectToolbarSettings({
-  organization,
-  project,
-  params: {projectId},
-}: Props) {
-  const location = useLocation();
-  const domain = decodeScalar(location.query.domain);
+export default function ProjectToolbarSettings() {
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
+  const {domain} = useLocationQuery({
+    fields: {domain: decodeScalar},
+  });
 
   const formGroups: JsonFormObject[] = [
     {
@@ -51,14 +41,14 @@ export default function ProjectToolbarSettings({
           label: t('Allowed Origins'),
           help: (
             <div>
-              <Important>
+              <Text bold size="sm" variant="danger">
                 {t('Only add trusted domains, that you control, to this list.')}
-              </Important>
+              </Text>
               <br />
               {t('Domains where the dev toolbar is allowed to access your data.')}
               <br />
               {t(
-                'Protocol and port are optional; wildcard subdomains (*) are are supported.'
+                'Protocol and port are optional; wildcard subdomains (*) are supported.'
               )}
               <br />
               {tct(
@@ -96,19 +86,24 @@ export default function ProjectToolbarSettings({
         <ProjectPermissionAlert project={project} />
         {domain && (
           <Alert.Container>
-            <Alert type="info">
+            <Alert variant="info">
               {tct(
                 'To enable the Dev Toolbar, copy and paste your domain into the Allowed Origins text box below: [domain] ',
                 {domain: <strong>{domain}</strong>}
               )}
-              <CopyToClipboardButton borderless iconSize="xs" size="zero" text={domain} />
+              <CopyToClipboardButton
+                priority="transparent"
+                size="zero"
+                text={domain}
+                aria-label={t('Copy domain to clipboard')}
+              />
             </Alert>
           </Alert.Container>
         )}
 
         <Form
           apiMethod="PUT"
-          apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
+          apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
           initialData={project.options}
           saveOnBlur
         >
@@ -126,7 +121,3 @@ export default function ProjectToolbarSettings({
     </SentryDocumentTitle>
   );
 }
-
-const Important = styled('strong')`
-  color: ${p => p.theme.red400};
-`;

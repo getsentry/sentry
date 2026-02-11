@@ -1,7 +1,10 @@
 from base64 import b64encode
 
+from rest_framework.response import Response
+
 from sentry import options as options_store
 from sentry.models.files.control_file import ControlFile
+from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializerResponse
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -10,20 +13,23 @@ from sentry.testutils.silo import control_silo_test
 class SentryAppAvatarTestBase(APITestCase):
     endpoint = "sentry-api-0-sentry-app-avatar"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.unpublished_app = self.create_sentry_app(name="Meow", organization=self.organization)
         SentryAppAvatar.objects.create(sentry_app=self.unpublished_app, color=True, avatar_type=0)
         SentryAppAvatar.objects.create(sentry_app=self.unpublished_app, color=False, avatar_type=0)
         self.login_as(self.user)
 
-    def get_avatar(self, resp, is_color=True):
+    def get_avatar(
+        self, resp: Response, is_color: bool = True
+    ) -> SentryAppAvatarSerializerResponse:
         avatars = resp.data["avatars"]
         for avatar in avatars:
             if avatar.get("color") == is_color:
                 return avatar
+        raise AssertionError("Invariant violation: expect avatar to be returned")
 
-    def create_avatar(self, is_color):
+    def create_avatar(self, is_color: bool) -> Response:
         avatar_photo = (
             b64encode(self.load_fixture("rookout-color.png"))
             if is_color is True
@@ -39,7 +45,7 @@ class SentryAppAvatarTestBase(APITestCase):
 
 @control_silo_test
 class SentryAppAvatarGetTest(SentryAppAvatarTestBase):
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.get_success_response(self.unpublished_app.slug)
 
         color_avatar = self.get_avatar(response)
@@ -56,7 +62,7 @@ class SentryAppAvatarGetTest(SentryAppAvatarTestBase):
         assert simple_avatar["photoType"] == "icon"
         assert response.data["uuid"] == str(self.unpublished_app.uuid)
 
-    def test_get_upload_control_file(self):
+    def test_get_upload_control_file(self) -> None:
         self.method = "put"
         self.create_avatar(is_color=True)
 
@@ -86,7 +92,7 @@ class SentryAppAvatarGetTest(SentryAppAvatarTestBase):
 class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
     method = "put"
 
-    def test_upload(self):
+    def test_upload(self) -> None:
         resp = self.create_avatar(is_color=True)
 
         avatar = SentryAppAvatar.objects.get(sentry_app=self.unpublished_app, color=True)
@@ -99,7 +105,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         assert color_avatar["color"] is True
         assert color_avatar["photoType"] == "logo"
 
-    def test_upload_control_file(self):
+    def test_upload_control_file(self) -> None:
         resp = self.create_avatar(is_color=True)
 
         avatar = SentryAppAvatar.objects.get(sentry_app=self.unpublished_app, color=True)
@@ -113,7 +119,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         assert color_avatar["color"] is True
         assert color_avatar["photoType"] == "logo"
 
-    def test_upload_control_with_storage_options(self):
+    def test_upload_control_with_storage_options(self) -> None:
         with self.options(
             {
                 "filestore.control.backend": options_store.get("filestore.backend"),
@@ -132,7 +138,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
             assert color_avatar["color"] is True
             assert color_avatar["photoType"] == "logo"
 
-    def test_upload_both(self):
+    def test_upload_both(self) -> None:
         self.create_avatar(is_color=True)
         resp = self.create_avatar(is_color=False)
 
@@ -157,7 +163,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         assert simple_avatar["avatarUuid"] is not None
         assert simple_avatar["photoType"] == "icon"
 
-    def test_revert_to_default(self):
+    def test_revert_to_default(self) -> None:
         """Test that a user can go back to the default avatars after having uploaded one"""
         self.create_avatar(is_color=True)
         self.create_avatar(is_color=False)
@@ -191,7 +197,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         assert simple_avatar["color"] is False
         assert simple_avatar["photoType"] == "icon"
 
-    def test_upload_color_for_black_white(self):
+    def test_upload_color_for_black_white(self) -> None:
         """Test that we reject a color image meant for the black and white icon"""
         data = {
             "color": False,
@@ -200,7 +206,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         }
         self.get_error_response(self.unpublished_app.slug, **data)
 
-    def test_reject_jpgs(self):
+    def test_reject_jpgs(self) -> None:
         """Test that we reject a non-png file type"""
         data = {
             "color": False,
@@ -209,14 +215,14 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         }
         self.get_error_response(self.unpublished_app.slug, **data)
 
-    def test_put_bad(self):
+    def test_put_bad(self) -> None:
         SentryAppAvatar.objects.create(sentry_app=self.unpublished_app)
         self.get_error_response(self.unpublished_app.slug, avatar_type="upload", status_code=400)
 
 
 @control_silo_test
 class SentryAppAvatarDeleteTest(SentryAppAvatarTestBase):
-    def test_delete(self):
+    def test_delete(self) -> None:
         """Test that when the related sentryapp is deleted (not really deleted, but date_deleted is set), the associated avatars are deleted"""
         self.create_avatar(is_color=True)
         self.create_avatar(is_color=False)

@@ -14,8 +14,7 @@
         "value": {
           "type": "valueText",
           "value": "foo@example.com",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": " "},
@@ -30,8 +29,7 @@
         "value": {
           "type": "valueText",
           "value": "1.2.1",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": " "},
@@ -78,8 +76,7 @@
         "value": {
           "type": "valueText",
           "value": "bye",
-          "quoted": false,
-          "wildcard": false
+          "quoted": false
         }
       },
       {"type": "spaces", "value": ""}

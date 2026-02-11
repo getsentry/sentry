@@ -30,6 +30,7 @@ __all__ = [
     "timer",
     "timing",
     "gauge",
+    "distribution",
     "backend",
     "MutableTags",
     "ensure_crash_rate_in_bounds",
@@ -49,13 +50,6 @@ def get_default_backend() -> MetricsBackend:
 
 
 backend = get_default_backend()
-
-
-def _get_key(key: str) -> str:
-    prefix = settings.SENTRY_METRICS_PREFIX
-    if prefix:
-        return f"{prefix}{key}"
-    return key
 
 
 def _should_sample(sample_rate: float) -> bool:

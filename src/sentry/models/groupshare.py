@@ -9,7 +9,7 @@ from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
-def default_uuid():
+def default_uuid() -> str:
     return uuid4().hex
 
 

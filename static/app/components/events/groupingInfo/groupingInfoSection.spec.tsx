@@ -8,7 +8,7 @@ import {IssueCategory} from 'sentry/types/group';
 
 import {EventGroupingInfoSection} from './groupingInfoSection';
 
-describe('EventGroupingInfo', function () {
+describe('EventGroupingInfo', () => {
   const group = GroupFixture();
   const event = EventFixture({
     groupingConfig: {
@@ -30,18 +30,22 @@ describe('EventGroupingInfo', function () {
     groupingInfoRequest = MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/events/${event.id}/grouping-info/`,
       body: {
-        app: {
-          description: 'variant description',
-          hash: '123',
-          hashMismatch: false,
-          key: 'key',
-          type: EventGroupVariantType.CHECKSUM,
+        grouping_config: 'default:XXXX',
+        variants: {
+          app: {
+            contributes: true,
+            description: 'variant description',
+            hash: '123',
+            hashMismatch: false,
+            key: 'key',
+            type: EventGroupVariantType.CHECKSUM,
+          },
         },
       },
     });
   });
 
-  it('fetches and renders grouping info for errors', async function () {
+  it('fetches and renders grouping info for errors', async () => {
     render(<EventGroupingInfoSection {...defaultProps} />);
     await userEvent.click(
       screen.getByRole('button', {name: 'View Event Grouping Information Section'})
@@ -50,7 +54,7 @@ describe('EventGroupingInfo', function () {
     expect(screen.getByText('123')).toBeInTheDocument();
   });
 
-  it('gets performance grouping info from group/event data', async function () {
+  it('gets performance grouping info from group/event data', async () => {
     const perfEvent = EventFixture({
       type: 'transaction',
       occurrence: {fingerprint: ['123'], evidenceData: {op: 'bad-op'}},
@@ -67,40 +71,58 @@ describe('EventGroupingInfo', function () {
     expect(groupingInfoRequest).not.toHaveBeenCalled();
   });
 
-  it('can switch grouping configs', async function () {
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/grouping-configs/`,
-      body: [
-        {id: 'default:XXXX', hidden: false},
-        {id: 'new:XXXX', hidden: false},
-      ],
-    });
-
-    render(<EventGroupingInfoSection {...defaultProps} showGroupingConfig />);
-
-    // Should show first hash
-    await screen.findByText('123');
-
-    expect(screen.getByText('default:XXXX')).toBeInTheDocument();
-
-    MockApiClient.addMockResponse({
+  it('works with new groupingInfo format', async () => {
+    groupingInfoRequest = MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/events/${event.id}/grouping-info/`,
-      query: {config: 'new:XXXX'},
       body: {
-        app: {
-          description: 'variant description',
-          hash: '789',
-          hashMismatch: false,
-          key: 'key',
-          type: EventGroupVariantType.CHECKSUM,
+        grouping_config: 'default:XXXX',
+        variants: {
+          app: {
+            contributes: true,
+            description: 'variant description',
+            hash: '123',
+            hashMismatch: false,
+            key: 'key',
+            type: EventGroupVariantType.CHECKSUM,
+          },
         },
       },
     });
+    render(<EventGroupingInfoSection {...defaultProps} />);
 
-    await userEvent.click(screen.getAllByRole('button', {name: 'default:XXXX'})[0]!);
-    await userEvent.click(screen.getByRole('option', {name: 'new:XXXX'}));
+    expect(await screen.findByText('variant description')).toBeInTheDocument();
+    expect(screen.getByText('123')).toBeInTheDocument();
+  });
+  it('gets performance new grouping info from group/event data', async () => {
+    groupingInfoRequest = MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/events/${event.id}/grouping-info/`,
+      body: {
+        grouping_config: null,
+        variants: {
+          app: {
+            contributes: true,
+            description: 'variant description',
+            hash: '123',
+            hashMismatch: false,
+            key: 'key',
+            type: EventGroupVariantType.CHECKSUM,
+          },
+        },
+      },
+    });
+    const perfEvent = EventFixture({
+      type: 'transaction',
+      occurrence: {fingerprint: ['123'], evidenceData: {op: 'bad-op'}},
+    });
+    const perfGroup = GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
 
-    // Should show new hash
-    expect(await screen.findByText('789')).toBeInTheDocument();
+    render(
+      <EventGroupingInfoSection {...defaultProps} event={perfEvent} group={perfGroup} />
+    );
+
+    expect(await screen.findByText('performance problem')).toBeInTheDocument();
+    expect(screen.getByText('123')).toBeInTheDocument();
+    // Should not make grouping-info request
+    expect(groupingInfoRequest).not.toHaveBeenCalled();
   });
 });

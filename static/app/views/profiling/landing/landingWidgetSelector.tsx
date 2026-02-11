@@ -2,8 +2,10 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -74,18 +76,24 @@ export function LandingWidgetSelector({
     return conditions.formatString();
   }, []);
 
+  const options = organization.features.includes('profiling-function-trends')
+    ? [...SUSPECT_FUNCTIONS_WIDGET_OPTIONS, ...FUNCTION_TRENDS_WIDGET_OPTIONS]
+    : SUSPECT_FUNCTIONS_WIDGET_OPTIONS;
+
   const header = (
     <StyledCompactSelect
       value={selectedWidget}
-      options={WIDGET_OPTIONS}
+      options={options}
       onChange={onWidgetChange}
-      triggerProps={{borderless: true, size: 'zero'}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} priority="transparent" size="zero" />
+      )}
       offset={4}
     />
   );
 
-  switch (selectedWidget) {
-    case 'regressed functions':
+  if (organization.features.includes('profiling-function-trends')) {
+    if (selectedWidget === 'regressed functions') {
       return (
         <FunctionTrendsWidget
           cursorName={cursorName}
@@ -97,7 +105,9 @@ export function LandingWidgetSelector({
           onDataState={onDataState}
         />
       );
-    case 'improved functions':
+    }
+
+    if (selectedWidget === 'improved functions') {
       return (
         <FunctionTrendsWidget
           cursorName={cursorName}
@@ -109,6 +119,10 @@ export function LandingWidgetSelector({
           onDataState={onDataState}
         />
       );
+    }
+  }
+
+  switch (selectedWidget) {
     case 'slowest functions avg':
       return (
         <SlowestFunctionsWidget
@@ -168,7 +182,7 @@ export function LandingWidgetSelector({
   }
 }
 
-const WIDGET_OPTIONS: Array<SelectOption<WidgetOption>> = [
+const SUSPECT_FUNCTIONS_WIDGET_OPTIONS: Array<SelectOption<WidgetOption>> = [
   {
     label: t('Slowest Functions (breakdown by AVG)'),
     value: 'slowest functions avg' as const,
@@ -189,6 +203,9 @@ const WIDGET_OPTIONS: Array<SelectOption<WidgetOption>> = [
     label: t('Slowest Functions (breakdown by P99)'),
     value: 'slowest functions p99' as const,
   },
+];
+
+const FUNCTION_TRENDS_WIDGET_OPTIONS: Array<SelectOption<WidgetOption>> = [
   {
     label: t('Most Regressed Functions'),
     value: 'regressed functions' as const,

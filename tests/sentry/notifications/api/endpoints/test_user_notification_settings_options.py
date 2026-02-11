@@ -16,11 +16,11 @@ class UserNotificationSettingsOptionsBaseTest(APITestCase):
 
 @control_silo_test
 class UserNotificationSettingsOptionsGetTest(UserNotificationSettingsOptionsBaseTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         other_user = self.create_user()
         NotificationSettingOption.objects.create(
             user_id=self.user.id,
@@ -56,7 +56,7 @@ class UserNotificationSettingsOptionsGetTest(UserNotificationSettingsOptionsBase
         response = self.get_success_response("me").data
         assert len(response) == 2
 
-    def test_invalid_type(self):
+    def test_invalid_type(self) -> None:
         response = self.get_error_response(
             "me",
             type="invalid",
@@ -69,11 +69,11 @@ class UserNotificationSettingsOptionsGetTest(UserNotificationSettingsOptionsBase
 class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBaseTest):
     method = "PUT"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.get_success_response(
             "me",
             user_id=self.user.id,
@@ -92,7 +92,7 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
         )
         assert response.data["id"] == str(row.id)
 
-    def test_user_scope(self):
+    def test_user_scope(self) -> None:
 
         notification_settings = [
             NotificationSettingEnum.QUOTA,
@@ -105,6 +105,8 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
             NotificationSettingEnum.QUOTA_MONITOR_SEATS,
             NotificationSettingEnum.QUOTA_SPANS,
             NotificationSettingEnum.QUOTA_LOG_BYTES,
+            NotificationSettingEnum.QUOTA_SEER_USERS,
+            NotificationSettingEnum.QUOTA_SIZE_ANALYSIS,
         ]
 
         # turn on notification settings
@@ -163,7 +165,7 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
                 "team_id": None,
             }
 
-    def test_invalid_scope_type(self):
+    def test_invalid_scope_type(self) -> None:
         response = self.get_error_response(
             "me",
             user_id=self.user.id,
@@ -175,7 +177,7 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
         )
         assert response.data["scopeType"] == ["Invalid scope type"]
 
-    def test_invalid_value(self):
+    def test_invalid_value(self) -> None:
         response = self.get_error_response(
             "me",
             user_id=self.user.id,
@@ -187,7 +189,7 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
         )
         assert response.data["value"] == ["Invalid value"]
 
-    def test_invalid_value_for_option(self):
+    def test_invalid_value_for_option(self) -> None:
         response = self.get_error_response(
             "me",
             user_id=self.user.id,
@@ -199,7 +201,7 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
         )
         assert response.data["nonFieldErrors"] == ["Invalid type for value"]
 
-    def test_reports(self):
+    def test_reports(self) -> None:
         response = self.get_success_response(
             "me",
             user_id=self.user.id,

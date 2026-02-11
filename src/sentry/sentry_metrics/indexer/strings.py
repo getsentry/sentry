@@ -200,6 +200,9 @@ SHARED_TAG_STRINGS = {
     "cardinality.window": PREFIX + 278,
     "cardinality.limit": PREFIX + 279,
     "cardinality.scope": PREFIX + 280,
+    "has_transaction": PREFIX + 281,
+    "was_transaction": PREFIX + 282,
+    "is_segment": PREFIX + 283,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
@@ -231,6 +234,7 @@ SPAN_METRICS_NAMES = {
     "g:spans/self_time_light@millisecond": PREFIX + 420,
     "g:spans/total_time@millisecond": PREFIX + 421,
     "c:spans/count_per_root_project@none": PREFIX + 422,
+    "c:spans/count_segments_per_root_project@none": PREFIX + 423,
     # Last possible index: 499
 }
 

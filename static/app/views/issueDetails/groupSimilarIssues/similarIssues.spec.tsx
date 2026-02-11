@@ -1,7 +1,6 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {GroupsFixture} from 'sentry-fixture/groups';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   render,
@@ -20,7 +19,7 @@ jest.mock('sentry/utils/useNavigate', () => ({
 }));
 jest.mock('sentry/utils/analytics');
 
-describe('Issues Similar View', function () {
+describe('Issues Similar View', () => {
   let mock: jest.Mock;
 
   const project = ProjectFixture({
@@ -28,9 +27,12 @@ describe('Issues Similar View', function () {
   });
 
   const group = GroupFixture();
-  const router = RouterFixture({
-    params: {orgId: 'org-slug', groupId: group.id},
-  });
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/org-slug/issues/${group.id}/similar/`,
+    },
+    route: `/organizations/:orgId/issues/:groupId/similar/`,
+  };
 
   const scores = [
     {'exception:stacktrace:pairs': 0.375},
@@ -43,7 +45,7 @@ describe('Issues Similar View', function () {
     similar: GroupsFixture().map((issue, i) => [issue, scores[i]]),
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     mock = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/similar/?limit=50`,
       body: mockData.similar,
@@ -57,8 +59,30 @@ describe('Issues Similar View', function () {
       body: {features: ['similarity-view']},
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/related-issues/`,
+      url: `/organizations/org-slug/issues/${group.id}/related-issues/`,
+      match: [
+        MockApiClient.matchQuery({
+          type: 'same_root_cause',
+        }),
+      ],
       body: {data: [], type: 'same_root_cause'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/related-issues/`,
+      match: [
+        MockApiClient.matchQuery({
+          type: 'trace_connected',
+        }),
+      ],
+      body: {data: [], type: 'trace_connected'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/tags/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/events/latest/`,
+      body: {platform: 'python'},
     });
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
@@ -79,10 +103,9 @@ describe('Issues Similar View', function () {
     await userEvent.click(item!);
   };
 
-  it('renders with mocked data', async function () {
+  it('renders with mocked data', async () => {
     render(<GroupSimilarIssues />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -92,7 +115,7 @@ describe('Issues Similar View', function () {
     expect(await screen.findByText('Show 3 issues below threshold')).toBeInTheDocument();
   });
 
-  it('can merge and redirect to new parent', async function () {
+  it('can merge and redirect to new parent', async () => {
     const merge = MockApiClient.addMockResponse({
       method: 'PUT',
       url: '/projects/org-slug/project-slug/issues/',
@@ -102,8 +125,7 @@ describe('Issues Similar View', function () {
     });
 
     render(<GroupSimilarIssues />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
     renderGlobalModal();
 
@@ -125,10 +147,9 @@ describe('Issues Similar View', function () {
     );
   });
 
-  it('correctly shows merge count', async function () {
+  it('correctly shows merge count', async () => {
     render(<GroupSimilarIssues />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
     renderGlobalModal();
 
@@ -140,15 +161,14 @@ describe('Issues Similar View', function () {
     expect(screen.getByText('Merge (0)')).toBeInTheDocument();
   });
 
-  it('shows empty message', async function () {
+  it('shows empty message', async () => {
     mock = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/similar/?limit=50`,
       body: [],
     });
 
     render(<GroupSimilarIssues />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
     renderGlobalModal();
 
@@ -165,7 +185,7 @@ describe('Issues Similar View', function () {
   });
 });
 
-describe('Issues Similar Embeddings View', function () {
+describe('Issues Similar Embeddings View', () => {
   let mock: jest.Mock;
 
   const group = GroupFixture();
@@ -173,9 +193,12 @@ describe('Issues Similar Embeddings View', function () {
     features: ['similarity-view'],
   });
 
-  const router = RouterFixture({
-    params: {orgId: 'org-slug', groupId: group.id},
-  });
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/org-slug/issues/${group.id}/similar/`,
+    },
+    route: `/organizations/:orgId/issues/:groupId/similar/`,
+  };
 
   const similarEmbeddingsScores = [
     {exception: 0.01, shouldBeGrouped: 'Yes'},
@@ -191,7 +214,7 @@ describe('Issues Similar Embeddings View', function () {
     ]),
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     mock = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/similar-issues-embeddings/?k=10&threshold=0.01&useReranking=true`,
       body: mockData.similarEmbeddings,
@@ -205,8 +228,30 @@ describe('Issues Similar Embeddings View', function () {
       body: {features: ['similarity-embeddings']},
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/related-issues/`,
+      url: `/organizations/org-slug/issues/${group.id}/related-issues/`,
+      match: [
+        MockApiClient.matchQuery({
+          type: 'same_root_cause',
+        }),
+      ],
       body: {data: [], type: 'same_root_cause'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/related-issues/`,
+      match: [
+        MockApiClient.matchQuery({
+          type: 'trace_connected',
+        }),
+      ],
+      body: {data: [], type: 'trace_connected'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/tags/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/events/latest/`,
+      body: {platform: 'python'},
     });
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
@@ -227,10 +272,9 @@ describe('Issues Similar Embeddings View', function () {
     await userEvent.click(item!);
   };
 
-  it('renders with mocked data', async function () {
+  it('renders with mocked data', async () => {
     render(<GroupSimilarIssues />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
 
     await waitFor(() => expect(mock).toHaveBeenCalled());
@@ -238,7 +282,7 @@ describe('Issues Similar Embeddings View', function () {
     expect(screen.queryByText('Show 3 issues below threshold')).not.toBeInTheDocument();
   });
 
-  it('can merge and redirect to new parent', async function () {
+  it('can merge and redirect to new parent', async () => {
     const merge = MockApiClient.addMockResponse({
       method: 'PUT',
       url: '/projects/org-slug/project-slug/issues/',
@@ -248,8 +292,7 @@ describe('Issues Similar Embeddings View', function () {
     });
 
     render(<GroupSimilarIssues />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
     renderGlobalModal();
 
@@ -271,10 +314,9 @@ describe('Issues Similar Embeddings View', function () {
     );
   });
 
-  it('correctly shows merge count', async function () {
+  it('correctly shows merge count', async () => {
     render(<GroupSimilarIssues />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
     renderGlobalModal();
 
@@ -286,15 +328,14 @@ describe('Issues Similar Embeddings View', function () {
     expect(screen.getByText('Merge (0)')).toBeInTheDocument();
   });
 
-  it('shows empty message', async function () {
+  it('shows empty message', async () => {
     mock = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/similar-issues-embeddings/?k=10&threshold=0.01&useReranking=true`,
       body: [],
     });
 
     render(<GroupSimilarIssues />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
     renderGlobalModal();
 

@@ -1,11 +1,12 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import FeatureFlagInlineCTA from 'sentry/components/events/featureFlags/cta/featureFlagInlineCTA';
 import {
   CardContainer,
   EventFeatureFlagDrawer,
@@ -22,21 +23,21 @@ import {
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
 import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import useDrawer from 'sentry/components/globalDrawer';
 import {useGroupSuspectFlagScores} from 'sentry/components/issues/suspect/useGroupSuspectFlagScores';
 import useLegacyEventSuspectFlags from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
 import useSuspectFlagScoreThreshold from 'sentry/components/issues/suspect/useSuspectFlagScoreThreshold';
 import {KeyValueData} from 'sentry/components/keyValueData';
-import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
-import {IconMegaphone, IconSearch} from 'sentry/icons';
+import {IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
-import {type Group, IssueCategory} from 'sentry/types/group';
+import {IssueCategory, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
@@ -60,26 +61,22 @@ type EventFeatureFlagSectionProps = {
 function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSectionProps) {
   const organization = useOrganization();
   const environments = useEnvironmentsFromUrl();
+  const theme = useTheme();
+  const isXsScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
 
-  const openForm = useFeedbackForm();
-  const feedbackButton = openForm ? (
-    <Button
+  const feedbackButton = isXsScreen ? null : (
+    <FeedbackButton
       aria-label={t('Give feedback on the feature flag section')}
-      icon={<IconMegaphone />}
-      size={'xs'}
-      onClick={() =>
-        openForm({
-          messagePlaceholder: t('How can we make feature flags work better for you?'),
-          tags: {
-            ['feedback.source']: 'issue_details_feature_flags',
-            ['feedback.owner']: 'replay',
-          },
-        })
-      }
-    >
-      {t('Give Feedback')}
-    </Button>
-  ) : null;
+      size="xs"
+      feedbackOptions={{
+        messagePlaceholder: t('How can we make feature flags work better for you?'),
+        tags: {
+          ['feedback.source']: 'issue_details_feature_flags',
+          ['feedback.owner']: 'replay',
+        },
+      }}
+    />
+  );
 
   // If we're showing the suspect section at all
   const enableSuspectFlags = organization.features.includes('feature-flag-suspect-flags');
@@ -161,10 +158,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     const rawFlags = event.contexts?.flags?.values ?? [];
     return rawFlags.filter(
       (f): f is Required<FeatureFlag> =>
-        f &&
-        typeof f === 'object' &&
-        typeof f.flag === 'string' &&
-        typeof f.result === 'boolean'
+        typeof f?.flag === 'string' && typeof f.result === 'boolean'
     );
   }, [event]);
 
@@ -173,7 +167,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   const hydratedFlags = useMemo(() => {
     // Transform the flags array into something readable by the key-value component.
     // Reverse the flags to show newest at the top by default.
-    return eventFlags.toReversed().map((f: any) => {
+    return eventFlags.toReversed().map(f => {
       return {
         item: {
           key: f.flag,
@@ -186,7 +180,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
               )}
               <FlagActionDropdown
                 flag={f.flag}
-                result={f.result}
+                result={f.result.toString()}
                 generateAction={generateAction}
               />
             </ValueWrapper>
@@ -247,21 +241,13 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     return null;
   }
 
-  // If the project has never ingested flags, either show a CTA or hide the section entirely.
+  // If the project has never ingested flags, hide the section entirely.
   if (!hasFlags && !project.hasFlags) {
-    const showCTA =
-      featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
-      organization.features.includes('feature-flag-cta');
-    return showCTA ? (
-      <FeatureFlagInlineCTA
-        projectId={event.projectID}
-        projectPlatform={project.platform}
-      />
-    ) : null;
+    return null;
   }
 
   const actions = (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       {feedbackButton}
       <FeatureFlagSettingsButton orgSlug={organization.slug} />
       {hasFlags && (
@@ -295,21 +281,25 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
           />
         </Fragment>
       )}
-    </ButtonBar>
+    </Grid>
   );
 
   const NUM_PREVIEW_FLAGS = 20;
 
-  // Split the flags list into two columns for display
+  // Split the flags list into columns for display
   const truncatedItems = sortedFlags({flags: hydratedFlags, sort: orderBy}).slice(
     0,
     NUM_PREVIEW_FLAGS
   );
-  const columnOne = truncatedItems.slice(0, NUM_PREVIEW_FLAGS / 2);
-  let columnTwo: typeof truncatedItems = [];
-  if (truncatedItems.length > NUM_PREVIEW_FLAGS / 2) {
-    columnTwo = truncatedItems.slice(NUM_PREVIEW_FLAGS / 2, NUM_PREVIEW_FLAGS);
-  }
+
+  const shouldUseTwoColumns =
+    !isXsScreen && truncatedItems.length > NUM_PREVIEW_FLAGS / 2;
+  const columnOne = shouldUseTwoColumns
+    ? truncatedItems.slice(0, NUM_PREVIEW_FLAGS / 2)
+    : truncatedItems;
+  const columnTwo = shouldUseTwoColumns
+    ? truncatedItems.slice(NUM_PREVIEW_FLAGS / 2, NUM_PREVIEW_FLAGS)
+    : [];
 
   const extraFlags = hydratedFlags.length - NUM_PREVIEW_FLAGS;
   const label = tn('View 1 More Flag', 'View %s More Flags', extraFlags);
@@ -325,7 +315,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
       actions={actions}
     >
       {hasFlags ? (
-        <CardContainer numCols={columnTwo.length ? 2 : 1}>
+        <CardContainer numCols={shouldUseTwoColumns ? 2 : 1}>
           <KeyValueData.Card expandLeft contentItems={columnOne} />
           <KeyValueData.Card expandLeft contentItems={columnTwo} />
         </CardContainer>
@@ -351,21 +341,32 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
 }
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  border: ${p => p.theme.border} solid 1px;
-  border-radius: ${p => p.theme.borderRadius};
+  border: ${p => p.theme.tokens.border.primary} solid 1px;
+  border-radius: ${p => p.theme.radius.md};
   display: flex;
   flex-direction: column;
   align-items: center;
 `;
 
 const SuspectLabel = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ValueWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr 0.5fr;
   justify-items: start;
+
+  @media (max-width: ${p => p.theme.breakpoints.xs}) {
+    grid-template-columns: 1fr 0.5fr;
+    grid-template-rows: auto auto;
+
+    /* Move suspect label to second row, spanning full width */
+    ${SuspectLabel} {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+  }
 
   .invisible {
     visibility: hidden;

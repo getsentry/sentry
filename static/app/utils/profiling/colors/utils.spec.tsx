@@ -72,7 +72,9 @@ describe('makeStackToColor', () => {
       theme.COLORS.COLOR_BUCKET,
       theme
     );
-    expect(colorBuffer.slice(0, 4)).toEqual([0.9625, 0.7125, 0.7125, 1]);
+    expect(colorBuffer.slice(0, 4)).toEqual([
+      1, 0.6775000000000001, 0.6775000000000001, 1,
+    ]);
     expect(
       getDominantColor(colorBuffer.slice(0, 4) as [number, number, number, number])
     ).toBe('red');

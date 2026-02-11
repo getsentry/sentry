@@ -99,6 +99,12 @@
   "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
   "python.testing.pytestArgs": ["tests"],
   "python.analysis.autoImportCompletions": true,
-  "prettier.configPath": "package.json",
-  "biome.enabled": false
+  "prettier.configPath": "prettier.config.mjs",
+  "biome.enabled": false,
+  "cursorpyright.analysis.autoImportCompletions": true,
+  "mypy-type-checker.path": ["${workspaceFolder}/.venv/bin/mypy"],
+  "mypy-type-checker.args": [
+    "--config-file=${workspaceFolder}/pyproject.toml"
+  ],
+  "mypy-type-checker.cwd": "${workspaceFolder}",
 }

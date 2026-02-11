@@ -4,9 +4,8 @@ import time
 from collections.abc import Mapping
 from typing import Any, overload
 
-from sentry.attachments import attachment_cache
+from sentry.attachments import CachedAttachment, get_attachments_for_event
 from sentry.stacktraces.processing import StacktraceInfo
-from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -103,9 +102,8 @@ def signal_from_data(data):
     return None
 
 
-def get_event_attachment(data, attachment_type):
-    cache_key = cache_key_for_event(data)
-    attachments = attachment_cache.get(cache_key)
+def get_event_attachment(data: Any, attachment_type: str) -> CachedAttachment | None:
+    attachments = get_attachments_for_event(data)
     return next((a for a in attachments if a.type == attachment_type), None)
 
 

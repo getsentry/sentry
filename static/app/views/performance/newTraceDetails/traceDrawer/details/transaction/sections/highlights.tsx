@@ -2,9 +2,10 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {Link} from '@sentry/scraps/link';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Link} from 'sentry/components/core/link';
-import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
+import {PAGE_URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,14 +16,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useTraceAverageTransactionDuration} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceAverageTransactionDuration';
 import {getHighlightedSpanAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/highlightedAttributes';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 type HighlightProps = {
   event: EventTransaction;
-  node: TraceTreeNode<TraceTree.Transaction>;
+  node: TransactionNode;
   organization: Organization;
   project: Project | undefined;
   hideNodeActions?: boolean;
@@ -43,17 +42,13 @@ export function TransactionHighlights(props: HighlightProps) {
     );
   }, [averageDurationQueryResult]);
 
-  if (!isTransactionNode(props.node)) {
-    return null;
-  }
-
   const headerContent = (
     <HeaderContentWrapper>
       <span>{props.node.value.transaction}</span>
       <CopyToClipboardButton
-        borderless
+        priority="transparent"
         size="zero"
-        iconSize="xs"
+        aria-label={t('Copy transaction name to clipboard')}
         text={props.node.value.transaction}
         tooltipProps={{disabled: true}}
       />
@@ -62,7 +57,7 @@ export function TransactionHighlights(props: HighlightProps) {
 
   const bodyContent = (
     <BodyContentWrapper>
-      <Link
+      <StyledLink
         to={transactionSummaryRouteWithQuery({
           organization: props.organization,
           transaction: props.node.value.transaction,
@@ -73,33 +68,32 @@ export function TransactionHighlights(props: HighlightProps) {
           projectID: String(props.node.value.project_id),
         })}
       >
-        <StyledIconGraph type="area" size="xs" />
+        <IconGraph type="area" size="xs" />
         {t('View Summary')}
-      </Link>
+      </StyledLink>
     </BodyContentWrapper>
   );
 
   return (
     <TraceDrawerComponents.Highlights
       node={props.node}
-      transaction={props.event}
       project={props.project}
       avgDuration={avgDurationInSeconds}
       headerContent={headerContent}
       bodyContent={bodyContent}
+      footerContent={<TraceDrawerComponents.HighLightsOpsBreakdown event={props.event} />}
       hideNodeActions={props.hideNodeActions}
+      comparisonDescription={t(
+        'Average duration for this transaction over the last 24 hours'
+      )}
       highlightedAttributes={getHighlightedSpanAttributes({
-        organization: props.organization,
         attributes: props.event.contexts.trace?.data,
+        spanId: props.node.value.span_id,
         op: props.node.value['transaction.op'],
       })}
     />
   );
 }
-
-const StyledIconGraph = styled(IconGraph)`
-  margin-right: ${space(1)};
-`;
 
 const HeaderContentWrapper = styled('div')`
   padding: ${space(1)};
@@ -108,9 +102,15 @@ const HeaderContentWrapper = styled('div')`
   width: 100%;
   justify-content: space-between;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   word-break: break-word;
   line-height: 1.4;
+`;
+
+const StyledLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const BodyContentWrapper = styled('div')`

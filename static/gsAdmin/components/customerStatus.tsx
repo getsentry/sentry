@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {space} from 'sentry/styles/space';
 
 import type {Subscription} from 'getsentry/types';
@@ -43,8 +44,6 @@ const getTooltip = ({planDetails, trialPlan}: Subscription) => (
     )}
     <dt>Base Price:</dt>
     <dd>{formatCurrency(planDetails?.price)}</dd>
-    <dt>On-Demand:</dt>
-    <dd>{formatCurrency(planDetails?.onDemandEventPrice)} / event</dd>
     <dt>Contract:</dt>
     <dd>{planDetails?.contractInterval}</dd>
     <dt>Billed:</dt>

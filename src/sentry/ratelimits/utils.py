@@ -76,6 +76,13 @@ def get_rate_limit_key(
     )
     request_user = getattr(request, "user", None)
 
+    # During impersonation, use the actual_user (the impersonator) for rate limiting
+    # This ensures rate limits are applied to the staff member doing the impersonation,
+    # not the user being impersonated
+    actual_user = getattr(request, "actual_user", None)
+    if actual_user is not None:
+        request_user = actual_user
+
     from django.contrib.auth.models import AnonymousUser
 
     from sentry.auth.system import is_system_auth
@@ -150,7 +157,7 @@ def get_rate_limit_config(
     view_cls: type[object],
     view_args: Any = None,
     view_kwargs: Any = None,
-) -> RateLimitConfig | None:
+) -> RateLimitConfig:
     """Read the rate limit config from the view to be used for the rate limit check.
 
     If there is no rate limit defined on the view_cls, use the rate limit defined for the group

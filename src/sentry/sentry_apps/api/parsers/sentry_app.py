@@ -9,11 +9,8 @@ from sentry.apidocs.parameters import build_typed_list
 from sentry.integrations.models.integration_feature import Feature
 from sentry.models.apiscopes import ApiScopes
 from sentry.sentry_apps.api.parsers.schema import validate_ui_element_schema
-from sentry.sentry_apps.models.sentry_app import (
-    REQUIRED_EVENT_PERMISSIONS,
-    UUID_CHARS_IN_SLUG,
-    VALID_EVENT_RESOURCES,
-)
+from sentry.sentry_apps.models.sentry_app import REQUIRED_EVENT_PERMISSIONS, UUID_CHARS_IN_SLUG
+from sentry.sentry_apps.utils.webhooks import VALID_EVENT_RESOURCES
 
 
 @extend_schema_field(build_typed_list(OpenApiTypes.STR))
@@ -179,10 +176,18 @@ class SentryAppParser(Serializer):
         if not value:
             return value
 
+        from sentry.conf.server import SENTRY_TOKEN_ONLY_SCOPES
+
         validation_errors = []
         for scope in value:
             # if the existing instance already has this scope, skip the check
             if self.instance and self.instance.has_scope(scope):
+                continue
+
+            # Token-only scopes can be granted even if the user doesn't have them.
+            # These are specialized scopes (like project:distribution) that are not
+            # included in any user role but can be granted to integration tokens.
+            if scope in SENTRY_TOKEN_ONLY_SCOPES:
                 continue
 
             assert (

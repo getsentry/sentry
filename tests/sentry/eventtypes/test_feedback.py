@@ -6,7 +6,7 @@ from sentry.eventtypes.feedback import FeedbackEvent
 
 
 class GetMetadataTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         inst = FeedbackEvent()
         data = {
             "contexts": {

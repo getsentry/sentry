@@ -1,18 +1,20 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
-import Redirect from 'sentry/components/redirect';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconMegaphone, IconSort} from 'sentry/icons';
+import {IconAdd, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -20,12 +22,10 @@ import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {unreachable} from 'sentry/utils/unreachable';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
-import AllViewsWelcomeBanner from 'sentry/views/issueList/issueViews/issueViewsList/allViewsWelcomeBanner';
 import {IssueViewsTable} from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsTable';
 import {
   DEFAULT_ENVIRONMENTS,
@@ -40,13 +40,11 @@ import {
   useFetchGroupSearchViews,
 } from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import {
-  type GroupSearchView,
   GroupSearchViewCreatedBy,
   GroupSearchViewSort,
+  type GroupSearchView,
 } from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-import useDefaultProject from 'sentry/views/nav/secondary/sections/issues/issueViews/useDefaultProject';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 type IssueViewSectionProps = {
   createdBy: GroupSearchViewCreatedBy;
@@ -233,7 +231,7 @@ function NoViewsBanner({
         )}
       </BannerText>
       <Feature
-        features={'organizations:issue-views'}
+        features="organizations:issue-views"
         hookName="feature-disabled:issue-views"
         renderDisabled={props => (
           <Hovercard
@@ -281,9 +279,9 @@ function SortDropdown() {
   return (
     <CompactSelect
       value={sort}
-      triggerProps={{
-        icon: <IconSort />,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} icon={<IconSort />} />
+      )}
       onChange={newSort => {
         trackAnalytics('issue_views.table.sort_changed', {
           organization,
@@ -329,22 +327,15 @@ export default function IssueViewsList() {
   const navigate = useNavigate();
   const location = useLocation();
   const query = typeof location.query.query === 'string' ? location.query.query : '';
-  const openFeedbackForm = useFeedbackForm();
   const {mutate: createGroupSearchView, isPending: isCreatingView} =
     useCreateGroupSearchView();
-  const defaultProject = useDefaultProject();
-  const prefersStackedNav = usePrefersStackedNav();
-
-  if (!prefersStackedNav) {
-    return <Redirect to={`/organizations/${organization.slug}/issues/`} />;
-  }
 
   const handleCreateView = () => {
     createGroupSearchView(
       {
         name: t('New View'),
         query: 'is:unresolved',
-        projects: defaultProject,
+        projects: [],
         environments: DEFAULT_ENVIRONMENTS,
         timeFilters: DEFAULT_TIME_FILTERS,
         querySort: IssueSortOptions.DATE,
@@ -374,30 +365,20 @@ export default function IssueViewsList() {
             <Layout.Title>{t('All Views')}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <ButtonBar>
-              {openFeedbackForm ? (
-                <Button
-                  icon={<IconMegaphone />}
-                  size="sm"
-                  onClick={() => {
-                    openFeedbackForm({
-                      formTitle: t('Give Feedback'),
-                      messagePlaceholder: t(
-                        'How can we make issue views better for you?'
-                      ),
-                      tags: {
-                        ['feedback.source']: 'custom_views',
-                        ['feedback.owner']: 'issues',
-                      },
-                    });
-                  }}
-                >
-                  {t('Give Feedback')}
-                </Button>
-              ) : null}
-
+            <Grid flow="column" align="center" gap="md">
+              <FeedbackButton
+                size="sm"
+                feedbackOptions={{
+                  formTitle: t('Give Feedback'),
+                  messagePlaceholder: t('How can we make issue views better for you?'),
+                  tags: {
+                    ['feedback.source']: 'custom_views',
+                    ['feedback.owner']: 'issues',
+                  },
+                }}
+              />
               <Feature
-                features={'organizations:issue-views'}
+                features="organizations:issue-views"
                 hookName="feature-disabled:issue-views"
                 renderDisabled={props => (
                   <Hovercard
@@ -433,11 +414,11 @@ export default function IssueViewsList() {
                   </Button>
                 )}
               </Feature>
-            </ButtonBar>
+            </Grid>
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
-          <MainTableLayout fullWidth>
+          <MainTableLayout width="full">
             <FilterSortBar>
               <SearchBar
                 defaultQuery={query}
@@ -455,7 +436,6 @@ export default function IssueViewsList() {
               />
               <SortDropdown />
             </FilterSortBar>
-            <AllViewsWelcomeBanner />
             <TableHeading>{t('Created by Me')}</TableHeading>
             <IssueViewSection
               createdBy={GroupSearchViewCreatedBy.ME}
@@ -494,24 +474,24 @@ const Banner = styled('div')`
   margin-bottom: 0;
   padding: 12px;
   gap: ${space(1)};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
 
   background: linear-gradient(
     269.35deg,
-    ${p => p.theme.backgroundTertiary} 0.32%,
+    ${p => p.theme.tokens.background.tertiary} 0.32%,
     rgba(245, 243, 247, 0) 99.69%
   );
 `;
 
 const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BannerText = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   flex-shrink: 0;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -542,7 +522,7 @@ const TableHeading = styled('h2')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-top: ${space(3)};
   margin-bottom: ${space(1.5)};
 `;

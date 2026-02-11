@@ -5,17 +5,15 @@ import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/t
 import {
   BooleanOperator,
   FilterType,
+  parseSearch,
+  Token,
   type ParseResult,
   type ParseResultToken,
-  parseSearch,
   type SearchConfig,
-  Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {FieldValueType} from 'sentry/utils/fields';
-
-export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
 
 function getSearchConfigFromKeys(
   keys: TagCollection,
@@ -168,7 +166,8 @@ export function collapseTextTokens(tokens: ParseResult | null) {
       return acc;
     }
 
-    return [...acc, token];
+    acc.push(token);
+    return acc;
   }, []);
 }
 
@@ -196,6 +195,18 @@ export function isDateToken(token: TokenResult<Token.FILTER>) {
   return [FilterType.DATE, FilterType.RELATIVE_DATE, FilterType.SPECIFIC_DATE].includes(
     token.filter
   );
+}
+
+export function isNumericFilterToken(token: TokenResult<Token.FILTER>): boolean {
+  return [
+    FilterType.NUMERIC,
+    FilterType.DURATION,
+    FilterType.SIZE,
+    FilterType.AGGREGATE_NUMERIC,
+    FilterType.AGGREGATE_PERCENTAGE,
+    FilterType.AGGREGATE_DURATION,
+    FilterType.AGGREGATE_SIZE,
+  ].includes(token.filter);
 }
 
 export function recentSearchTypeToLabel(type: SavedSearchType | undefined) {

@@ -3,11 +3,11 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import handle_query_errors
+from sentry.models.organization import Organization
 from sentry.search.events.types import Span
 from sentry.snuba import discover
 
@@ -36,20 +36,12 @@ class SpansHistogramSerializer(serializers.Serializer):
 
 
 @region_silo_endpoint
-class OrganizationEventsSpansHistogramEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationEventsSpansHistogramEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def has_feature(self, organization, request):
-        return features.has(
-            "organizations:performance-span-histogram-view", organization, actor=request.user
-        )
-
-    def get(self, request: Request, organization) -> Response:
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
+    def get(self, request: Request, organization: Organization) -> Response:
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:

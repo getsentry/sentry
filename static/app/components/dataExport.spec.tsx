@@ -25,29 +25,36 @@ const mockContext = (organization: Organization) => {
   return {organization};
 };
 
-describe('DataExport', function () {
-  it('should not render anything for an unauthorized organization', function () {
+describe('DataExport', () => {
+  it('should not render anything for an unauthorized organization', () => {
     render(<DataExport payload={mockPayload} />, {
       ...mockContext(mockUnauthorizedOrg),
     });
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('should render the button for an authorized organization', function () {
+  it('should render the button for an authorized organization', () => {
     render(<DataExport payload={mockPayload} />, {
       ...mockContext(mockAuthorizedOrg),
     });
     expect(screen.getByText(/Export All to CSV/)).toBeInTheDocument();
   });
 
-  it('should render custom children if provided', function () {
+  it('should render the button for an unauthorized organization using flag override', () => {
+    render(<DataExport payload={mockPayload} overrideFeatureFlags />, {
+      ...mockContext(mockUnauthorizedOrg),
+    });
+    expect(screen.getByRole('button')).toBeInTheDocument();
+  });
+
+  it('should render custom children if provided', () => {
     render(<DataExport payload={mockPayload}>This is an example string</DataExport>, {
       ...mockContext(mockAuthorizedOrg),
     });
     expect(screen.getByText(/This is an example string/)).toBeInTheDocument();
   });
 
-  it('should respect the disabled prop and not be clickable', async function () {
+  it('should respect the disabled prop and not be clickable', async () => {
     const postDataExport = MockApiClient.addMockResponse({
       url: `/organizations/${mockAuthorizedOrg.slug}/data-export/`,
       method: 'POST',
@@ -63,7 +70,7 @@ describe('DataExport', function () {
     expect(screen.getByRole('button')).toBeDisabled();
   });
 
-  it('should send a request and disable itself when clicked', async function () {
+  it('should send a request and disable itself when clicked', async () => {
     const postDataExport = MockApiClient.addMockResponse({
       url: `/organizations/${mockAuthorizedOrg.slug}/data-export/`,
       method: 'POST',
@@ -93,7 +100,7 @@ describe('DataExport', function () {
     });
   });
 
-  it('should reset the state when receiving a new payload', async function () {
+  it('should reset the state when receiving a new payload', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockAuthorizedOrg.slug}/data-export/`,
       method: 'POST',
@@ -118,7 +125,7 @@ describe('DataExport', function () {
     });
   });
 
-  it('should display default error message if non provided', async function () {
+  it('should display default error message if non provided', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockAuthorizedOrg.slug}/data-export/`,
       method: 'POST',
@@ -142,7 +149,7 @@ describe('DataExport', function () {
     });
   });
 
-  it('should display provided error message', async function () {
+  it('should display provided error message', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockAuthorizedOrg.slug}/data-export/`,
       method: 'POST',

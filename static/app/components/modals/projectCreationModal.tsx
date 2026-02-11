@@ -4,27 +4,34 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import {PlatformIcon} from 'platformicons';
 
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
+import {
+  openConsoleModal,
+  openProjectCreationModal,
+  type ModalRenderProps,
+} from 'sentry/actionCreators/modal';
 import PlatformPicker, {
   type Category,
   type Platform,
 } from 'sentry/components/platformPicker';
 import type {TeamOption} from 'sentry/components/teamSelector';
-import TeamSelector from 'sentry/components/teamSelector';
+import {TeamSelector} from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -53,12 +60,37 @@ export default function ProjectCreationModal({
   const organization = useOrganization();
 
   function handlePlatformChange(selectedPlatform: Platform | null) {
-    if (selectedPlatform) {
-      setPlatform({
-        ...omit(selectedPlatform, 'id'),
-        key: selectedPlatform.id,
-      });
+    if (!selectedPlatform) {
+      setPlatform(undefined);
+      return;
     }
+
+    if (
+      isDisabledGamingPlatform({
+        platform: selectedPlatform,
+        enabledConsolePlatforms: organization.enabledConsolePlatforms,
+      })
+    ) {
+      openConsoleModal({
+        organization,
+        selectedPlatform: {
+          ...selectedPlatform,
+          key: selectedPlatform.id,
+        },
+        origin: 'project-creation',
+        onClose: () => {
+          openProjectCreationModal({
+            defaultCategory: selectedPlatform.category,
+          });
+        },
+      });
+      return;
+    }
+
+    setPlatform({
+      ...omit(selectedPlatform, 'id'),
+      key: selectedPlatform.id,
+    });
   }
 
   const createProject = useCallback(async () => {
@@ -132,15 +164,12 @@ export default function ProjectCreationModal({
       </Header>
       {step === 0 && (
         <Fragment>
-          <Subtitle>Choose a Platform</Subtitle>
+          <Subtitle>{t('Choose a Platform')}</Subtitle>
           <PlatformPicker
-            defaultCategory={defaultCategory}
+            defaultCategory={platform?.category ?? defaultCategory}
             setPlatform={handlePlatformChange}
             organization={organization}
             platform={platform?.key}
-            showFilterBar={false}
-            navClassName="centered"
-            listClassName="centered"
           />
         </Fragment>
       )}
@@ -160,15 +189,15 @@ export default function ProjectCreationModal({
             }}
           />
           <Subtitle>{t('Name your project and assign it a team')}</Subtitle>
-          <ProjectNameTeamSection>
+          <Flex gap="md">
             <div>
-              <Label>{t('Project name')}</Label>
+              <Label>{t('Project slug')}</Label>
               <ProjectNameInputWrap>
                 <StyledPlatformIcon platform={platform?.key ?? 'other'} size={20} />
                 <ProjectNameInput
                   type="text"
                   name="project-name"
-                  placeholder={t('project-name')}
+                  placeholder={t('project-slug')}
                   autoComplete="off"
                   value={projectName}
                   onChange={e => setProjectName(slugify(e.target.value))}
@@ -181,7 +210,6 @@ export default function ProjectCreationModal({
                 allowCreate
                 name="select-team"
                 aria-label={t('Select a Team')}
-                menuPlacement="auto"
                 clearable={false}
                 value={team}
                 placeholder={t('Select a Team')}
@@ -189,10 +217,10 @@ export default function ProjectCreationModal({
                 teamFilter={(tm: Team) => tm.access.includes('team:admin')}
               />
             </div>
-          </ProjectNameTeamSection>
+          </Flex>
         </Fragment>
       )}
-      <Footer>
+      <Flex justify="right" marginTop="xl" gap="md">
         {step === 1 && <Button onClick={() => setStep(step - 1)}>{t('Back')}</Button>}
         {step === 0 && (
           <Button
@@ -215,23 +243,15 @@ export default function ProjectCreationModal({
             {t('Create Project')}
           </Button>
         )}
-      </Footer>
+      </Flex>
     </Fragment>
   );
 }
 
-const Footer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: right;
-  gap: ${space(1)};
-  margin-top: ${space(2)};
-`;
-
 const StyledPlatformIcon = styled(PlatformIcon)`
   position: absolute;
   top: 50%;
-  left: ${p => p.theme.formPadding.md.paddingLeft}px;
+  left: ${p => p.theme.form.md.paddingLeft}px;
   transform: translateY(-50%);
 `;
 
@@ -239,7 +259,7 @@ const ProjectNameInputWrap = styled('div')`
   position: relative;
 `;
 const ProjectNameInput = styled(Input)`
-  padding-left: calc(${p => p.theme.formPadding.md.paddingLeft}px * 1.5 + 20px);
+  padding-left: calc(${p => p.theme.form.md.paddingLeft}px * 1.5 + 20px);
 `;
 
 export const modalCss = css`
@@ -247,14 +267,8 @@ export const modalCss = css`
   max-width: 1000px;
 `;
 
-const ProjectNameTeamSection = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1)};
-`;
-
 const Label = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)};
 `;
 
@@ -264,6 +278,6 @@ const TeamInput = styled(TeamSelector)`
 
 const Subtitle = styled('p')`
   margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

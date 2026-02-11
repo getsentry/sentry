@@ -1,0 +1,90 @@
+---
+title: useFetchEventsTimeSeries
+description: A family of hooks that interface with the /events-timeseries/ endpoint.
+source: 'sentry/utils/timeSeries/useFetchEventsTimeSeries'
+---
+
+`useFetchEventsTimeSeries` is a hook that fetches data from the `/events-timeseries/` endpoint. These hooks are the preferred way to fetch time series data for use in charts. For example, Insights pages use this hook to fetch and plot throughput, durations, and other data. There also are helper exports for dataset-specific hooks like `useFetchSpanTimeSeries`.
+
+## Basic Usage
+
+The minimum requirements for a request are a Y axis, and a referrer string. The Y axis specifies which data to fetch, and the referrer string helps the backend track the requests and correctly apply rate limiting and tracing:
+
+```jsx
+const {isPending, data, error} = useFetchSpanTimeSeries(
+  {
+    yAxis: 'p99(span.duration)',
+  },
+  'api.storybook.example'
+);
+
+console.log(data?.timeSeries[0]); // {yAxis: "p99(span.duration)", values: [{...
+```
+
+## Multi-Axis
+
+Making a request for multiple Y axes at the same time is simple:
+
+```jsx
+const {isPending, data, error} = useFetchSpanTimeSeries(
+  {
+    yAxis: ['p50(span.duration)', 'p75(span.duration)', 'p99(span.duration)'],
+    interval: '5m', // 5 minutes between data points
+  },
+  'api.storybook.example'
+);
+```
+
+## Top Events
+
+Another common use-case is to ask for a "Top Events" query. For example, to fetch the average duration of a span over time, grouped by the transaction name:
+
+```jsx
+const {isPending, data, error} = useFetchSpanTimeSeries(
+  {
+    yAxis: "avg(span.duration)", // Plot the average span duration
+    topEvents: 5, // Return the top 5 events
+    groupBy: ['transaction'], // Grouped by the transaction name
+    sort: [{field: 'avg(span.duration)', kind: 'desc'], // Sorted descending
+  },
+  "api.storybook.example"
+);
+```
+
+> [!NOTE]
+> It's possible to combine this approach with a multi-axis request, to get a multi-axis top events request.
+
+## Usage With Chart Widgets
+
+`useFetchEventsTimeSeries` is best paired with `TimeSeriesWidgetVisualization`, since the data format is designed to be shared between them:
+
+```jsx
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
+
+...
+
+const Chart () {
+  const {isPending, data, error} = useFetchSpanTimeSeries(
+    {
+      yAxis: ["p50(span.duration)", "p99(span.duration)"],
+      query: "span.category:db",
+    },
+    "api.storybook.example"
+  );
+
+  const lines = data.timeSeries?.map(timeSeries => {
+    return new Line(timeSeries);
+  });
+
+  return (
+    <Widget
+      Title={"Duration Percentiles"}
+      Visualization={<TimeSeriesWidgetVisualization plottables={plottables} />}
+    />
+  );
+}
+```

@@ -4,9 +4,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {GroupStatus} from 'sentry/types/group';
-import {transformIssuesResponseToTable} from 'sentry/views/dashboards/datasetConfig/issues';
+import {
+  transformIssuesResponseToSeries,
+  transformIssuesResponseToTable,
+} from 'sentry/views/dashboards/datasetConfig/issues';
 
-describe('transformIssuesResponseToTable', function () {
+describe('transformIssuesResponseToTable', () => {
   it('transforms issues response', () => {
     expect(
       transformIssuesResponseToTable(
@@ -85,5 +88,22 @@ describe('transformIssuesResponseToTable', function () {
         },
       })
     );
+  });
+  it('transforms issues timeseries response to series', () => {
+    expect(
+      transformIssuesResponseToSeries({
+        timeSeries: [
+          {
+            yAxis: 'count(new_issues)',
+            values: [{timestamp: 1763495560000, value: 10}],
+            meta: {
+              valueType: 'integer',
+              valueUnit: null,
+              interval: 10800000,
+            },
+          },
+        ],
+      })
+    ).toEqual([expect.objectContaining({data: [{name: 1763495560000, value: 10}]})]);
   });
 });

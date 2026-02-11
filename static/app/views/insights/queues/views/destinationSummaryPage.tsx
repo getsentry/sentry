@@ -1,19 +1,21 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
+import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import QueuesSummaryLatencyChartWidget from 'sentry/views/insights/common/components/widgets/queuesSummaryLatencyChartWidget';
 import QueuesSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/queuesSummaryThroughputChartWidget';
@@ -67,9 +69,9 @@ function DestinationSummaryPage() {
         module={ModuleName.QUEUE}
         hideDefaultTabs
       />
-      <ModuleBodyUpsellHook moduleName={ModuleName.QUEUE}>
+      <ModuleFeature moduleName={ModuleName.QUEUE}>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <ModuleLayout.Layout>
               <ModuleLayout.Full>
                 <HeaderContainer>
@@ -92,26 +94,28 @@ function DestinationSummaryPage() {
                       />
                       <MetricReadout
                         title={t('Avg Processing Time')}
-                        value={data[0]?.['avg_if(span.duration,span.op,queue.process)']}
+                        value={
+                          data[0]?.['avg_if(span.duration,span.op,equals,queue.process)']
+                        }
                         unit={DurationUnit.MILLISECOND}
                         isLoading={isPending}
                       />
                       <MetricReadout
                         title={t('Error Rate')}
                         value={errorRate}
-                        unit={'percentage'}
+                        unit="percentage"
                         isLoading={isPending}
                       />
                       <MetricReadout
                         title={t('Published')}
                         value={data[0]?.['count_op(queue.publish)']}
-                        unit={'count'}
+                        unit="count"
                         isLoading={isPending}
                       />
                       <MetricReadout
                         title={t('Processed')}
                         value={data[0]?.['count_op(queue.process)']}
-                        unit={'count'}
+                        unit="count"
                         isLoading={isPending}
                       />
                       <MetricReadout
@@ -136,31 +140,33 @@ function DestinationSummaryPage() {
                   </ModuleLayout.Half>
 
                   <ModuleLayout.Full>
-                    <Flex>
+                    <Stack gap="xl">
                       <TransactionsTable />
-                    </Flex>
+                    </Stack>
                   </ModuleLayout.Full>
                 </Fragment>
               )}
             </ModuleLayout.Layout>
           </Layout.Main>
         </Layout.Body>
-      </ModuleBodyUpsellHook>
+      </ModuleFeature>
     </Fragment>
   );
 }
 
 function PageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+
   return (
-    <ModulePageProviders moduleName="queue" pageTitle={t('Destination Summary')}>
+    <ModulePageProviders
+      moduleName="queue"
+      pageTitle={t('Destination Summary')}
+      maxPickableDays={maxPickableDays.maxPickableDays}
+    >
       <DestinationSummaryPage />
     </ModulePageProviders>
   );
 }
 export default PageWithProviders;
-
-const Flex = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;

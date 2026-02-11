@@ -3,14 +3,18 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
+import {
+  isVisualizeEquation,
+  type Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 function ChartContextMenu({
@@ -26,7 +30,7 @@ function ChartContextMenu({
   setVisible: (visible: boolean) => void;
   visible: boolean;
   visualizeIndex: number;
-  visualizeYAxes: readonly string[];
+  visualizeYAxes: readonly Visualize[];
 }) {
   const {addToDashboard} = useAddToDashboard();
   const organization = useOrganization();
@@ -43,11 +47,16 @@ function ChartContextMenu({
         : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
     if (visualizeYAxes.length === 1) {
-      const yAxis = visualizeYAxes[0]!;
+      const newAlertLabel = organization.features.includes('workflow-engine-ui')
+        ? t('Create a Monitor')
+        : t('Create an Alert');
+
+      const yAxis = visualizeYAxes[0]!.yAxis;
       menuItems.push({
         key: 'create-alert',
-        textValue: t('Create an Alert'),
-        label: t('Create an Alert'),
+        textValue: newAlertLabel,
+        label: newAlertLabel,
+        disabled: isVisualizeEquation(visualizeYAxes[0]!),
         to: getAlertsUrl({
           project,
           query,
@@ -67,14 +76,15 @@ function ChartContextMenu({
         },
       });
     } else {
-      const alertsUrls = visualizeYAxes.map((yAxis, index) => ({
-        key: `${yAxis}-${index}`,
-        label: yAxis,
+      const alertsUrls = visualizeYAxes.map((visualizeYAxis, index) => ({
+        key: `${visualizeYAxis.yAxis}-${index}`,
+        label: visualizeYAxis.yAxis,
+        disabled: isVisualizeEquation(visualizeYAxis),
         to: getAlertsUrl({
           project,
           query,
           pageFilters: pageFilters.selection,
-          aggregate: yAxis,
+          aggregate: visualizeYAxis.yAxis,
           organization,
           dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
           interval,
@@ -89,9 +99,13 @@ function ChartContextMenu({
         },
       }));
 
+      const newAlertLabel = organization.features.includes('workflow-engine-ui')
+        ? t('Create a Monitor for')
+        : t('Create an Alert for');
+
       menuItems.push({
         key: 'create-alert',
-        label: t('Create an alert for'),
+        label: newAlertLabel,
         children: alertsUrls ?? [],
         disabled: !alertsUrls || alertsUrls.length === 0,
         isSubmenu: true,
@@ -163,7 +177,7 @@ function ChartContextMenu({
     <DropdownMenu
       triggerProps={{
         size: 'xs',
-        borderless: true,
+        priority: 'transparent',
         showChevron: false,
         icon: <IconEllipsis />,
       }}
@@ -176,5 +190,5 @@ function ChartContextMenu({
 export default ChartContextMenu;
 
 const DisabledText = styled('span')`
-  color: ${p => p.theme.disabled};
+  color: ${p => p.theme.tokens.content.disabled};
 `;

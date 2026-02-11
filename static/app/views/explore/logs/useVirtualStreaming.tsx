@@ -1,11 +1,17 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
+import {logger} from '@sentry/react';
+import isEqual from 'lodash/isEqual';
 
 import type {ApiResult} from 'sentry/api';
 import type {InfiniteData} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePrevious from 'sentry/utils/usePrevious';
 import {
-  useLogsAutoRefresh,
+  useLogsAutoRefreshContinued,
+  useLogsAutoRefreshEnabled,
   useLogsRefreshInterval,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+  useSetLogsAutoRefresh,
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   MAX_LOG_INGEST_DELAY,
   VIRTUAL_STREAMED_INTERVAL_MS,
@@ -15,6 +21,7 @@ import type {
   OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {useLogsQueryKeyWithInfinite} from 'sentry/views/explore/logs/useLogsQuery';
 
 /**
  * Virtual Streaming
@@ -46,17 +53,46 @@ import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
  *    └─────────────────────────────────────────────────────────────┘
  *
  */
-export function useVirtualStreaming(
-  data: InfiniteData<ApiResult<EventsLogsResult>> | undefined
-) {
-  const autoRefresh = useLogsAutoRefresh();
+export function useVirtualStreaming({
+  data,
+  highFidelity,
+}: {
+  data: InfiniteData<ApiResult<EventsLogsResult>> | undefined;
+  highFidelity?: boolean;
+}) {
+  const organization = useOrganization();
+  const setLogsAutoRefresh = useSetLogsAutoRefresh();
+  const autoRefresh = useLogsAutoRefreshEnabled();
+  const previousAutoRefresh = usePrevious(autoRefresh);
+  const isAutoRefreshContinued = useLogsAutoRefreshContinued();
   const refreshInterval = useLogsRefreshInterval();
   const rafOn = useRef(false);
   const [virtualTimestamp, setVirtualTimestamp] = useState<number | undefined>(undefined);
+  const logsQueryKey = useLogsQueryKeyWithInfinite({
+    referrer: 'api.explore.logs-table',
+    autoRefresh: false,
+    highFidelity,
+  });
+  const warnRef = useRef(() => {});
+  const hasWarnedRef = useRef(false);
+  const queryKeyString = JSON.stringify(logsQueryKey);
+  const previousQueryKeyString = usePrevious(queryKeyString);
+  const boxedVirtualTimestamp = useRef(virtualTimestamp);
+  boxedVirtualTimestamp.current = virtualTimestamp;
+
+  const organizationRef = useRef(organization);
+  const autoRefreshMinuteCountRef = useRef(0);
+
+  useEffect(() => {
+    if (previousQueryKeyString !== queryKeyString) {
+      // We reset the virtual timestamp when the query key changes.
+      setVirtualTimestamp(undefined);
+    }
+  }, [queryKeyString, previousQueryKeyString]);
 
   // If we've received data, initialize the virtual timestamp to be refreshEvery seconds before the max ingest delay timestamp
   const initializeVirtualTimestamp = useCallback(() => {
-    if (!data?.pages?.length || virtualTimestamp !== undefined) {
+    if (!data?.pages?.length) {
       return;
     }
 
@@ -89,21 +125,74 @@ export function useVirtualStreaming(
         );
 
     setVirtualTimestamp(initialTimestamp);
-  }, [data, virtualTimestamp, refreshInterval]);
+  }, [data, refreshInterval]);
 
-  // Initialize when auto refresh is enabled and we have data
-  useEffect(() => {
-    if (autoRefresh && virtualTimestamp === undefined) {
-      initializeVirtualTimestamp();
-    }
-  }, [autoRefresh, initializeVirtualTimestamp, virtualTimestamp]);
-
-  // Reset when auto refresh is disabled
   useEffect(() => {
     if (!autoRefresh) {
-      setVirtualTimestamp(undefined);
+      return;
     }
-  }, [autoRefresh]);
+
+    if (boxedVirtualTimestamp.current === undefined) {
+      initializeVirtualTimestamp();
+      logger.info('Auto-refresh enabled: initializing virtual timestamp', {
+        organization: organization.slug,
+        reinitializedVirtualTimestamp: false,
+        autorefreshLog: true,
+      });
+      return;
+    }
+
+    if (isAutoRefreshContinued) {
+      logger.info('Auto-refresh enabled: continuing with existing virtual timestamp', {
+        organization: organization.slug,
+        reinitializedVirtualTimestamp: false,
+        virtualTimestamp: boxedVirtualTimestamp.current,
+        autorefreshLog: true,
+      });
+      return;
+    }
+    if (!isEqual(autoRefresh, previousAutoRefresh)) {
+      initializeVirtualTimestamp();
+      logger.info('Auto-refresh enabled: reinitializing virtual timestamp', {
+        organization: organization.slug,
+        reinitializedVirtualTimestamp: true,
+        previousVirtualTimestamp: boxedVirtualTimestamp.current,
+        autorefreshLog: true,
+      });
+    }
+  }, [
+    autoRefresh,
+    initializeVirtualTimestamp,
+    boxedVirtualTimestamp,
+    isAutoRefreshContinued,
+    previousAutoRefresh,
+    organization.slug,
+  ]);
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | undefined;
+
+    autoRefreshMinuteCountRef.current = 0;
+
+    if (autoRefresh) {
+      intervalId = setInterval(() => {
+        autoRefreshMinuteCountRef.current += 1;
+        logger.info('Auto-refresh interval tick', {
+          organization: organization.slug,
+          minutesSinceEnabled: autoRefreshMinuteCountRef.current,
+          currentVirtualTimestamp: boxedVirtualTimestamp.current,
+          autorefreshLog: true,
+        });
+      }, 60000);
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      autoRefreshMinuteCountRef.current = 0;
+    };
+  }, [autoRefresh, organization.slug, boxedVirtualTimestamp]);
 
   // Get the newest timestamp from the latest page to calculate how far behind we are
   const getMostRecentPageDataTimestamp = useCallback(() => {
@@ -113,13 +202,36 @@ export function useVirtualStreaming(
 
     const latestPage = data.pages[data.pages.length - 1];
     const latestPageData = latestPage?.[0]?.data;
+    const rawTimestamp = latestPageData?.[0]?.[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
+
+    if (!rawTimestamp) {
+      return null;
+    }
 
     // Since data is always sorted by timestamp descending, the first row (index 0) is the latest timestamp.
-    return Number(
-      BigInt(latestPageData?.[0]?.[OurLogKnownFieldKey.TIMESTAMP_PRECISE] ?? 0n) /
-        1_000_000n
-    );
+    return Number(BigInt(rawTimestamp) / 1_000_000n);
   }, [data]);
+
+  // We only want to warn once per session, also warning shouldn't add to the dependencies of the RAF useEffect.
+  warnRef.current = () => {
+    if (hasWarnedRef.current) {
+      return;
+    }
+    hasWarnedRef.current = true;
+
+    logger.warn(
+      `No most recent page data timestamp found, skipping virtual streaming update`,
+      {
+        logId:
+          data?.pages?.[data.pages.length - 1]?.[0]?.data?.[0]?.[OurLogKnownFieldKey.ID],
+        traceId:
+          data?.pages?.[data.pages.length - 1]?.[0]?.data?.[0]?.[
+            OurLogKnownFieldKey.TRACE_ID
+          ],
+        organization: organization.slug,
+      }
+    );
+  };
 
   // We setup a RAF loop to update the virtual timestamp smoothly to emulate real-time streaming.
   useEffect(() => {
@@ -134,6 +246,18 @@ export function useVirtualStreaming(
 
         const targetVirtualTime = Date.now() - MAX_LOG_INGEST_DELAY - refreshInterval;
         const mostRecentPageDataTimestamp = getMostRecentPageDataTimestamp();
+
+        if (mostRecentPageDataTimestamp === null) {
+          warnRef.current();
+          logger.info(
+            'No most recent page data timestamp found, setting auto-refresh to error',
+            {
+              organization: organizationRef.current.slug,
+            }
+          );
+          setLogsAutoRefresh('error');
+          return;
+        }
 
         setVirtualTimestamp(prev => {
           if (prev === undefined) {
@@ -160,18 +284,10 @@ export function useVirtualStreaming(
         window.cancelAnimationFrame(rafId);
       }
     };
-  }, [autoRefresh, getMostRecentPageDataTimestamp, refreshInterval]);
-
-  const virtualStreamedTimestamp = useMemo(() => {
-    if (!autoRefresh || !virtualTimestamp) {
-      return undefined;
-    }
-
-    return virtualTimestamp;
-  }, [autoRefresh, virtualTimestamp]);
+  }, [autoRefresh, getMostRecentPageDataTimestamp, refreshInterval, setLogsAutoRefresh]);
 
   return {
-    virtualStreamedTimestamp,
+    virtualStreamedTimestamp: virtualTimestamp,
   };
 }
 
@@ -186,10 +302,33 @@ export function isRowVisibleInVirtualStream(
     return true;
   }
 
-  const rowTimestamp = BigInt(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000n;
+  const rowTimestamp = getApproximateTimestamp(row);
 
   // Show rows that are older than or equal to the virtual timestamp
   return rowTimestamp <= virtualStreamedTimestamp;
+}
+
+let timestampHasWarned = false;
+
+function getApproximateTimestamp(row: {
+  [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: number | string;
+  [OurLogKnownFieldKey.TIMESTAMP]: string;
+  [OurLogKnownFieldKey.ID]: string;
+  [OurLogKnownFieldKey.TRACE_ID]: string;
+}): number {
+  if (row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) {
+    return Number(BigInt(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000n);
+  }
+  if (!timestampHasWarned) {
+    timestampHasWarned = true;
+    logger.warn(`No timestamp precise found for log row, using timestamp instead`, {
+      logId: row[OurLogKnownFieldKey.ID],
+      traceId: row[OurLogKnownFieldKey.TRACE_ID],
+      timestamp: row[OurLogKnownFieldKey.TIMESTAMP],
+      timestampPrecise: row[OurLogKnownFieldKey.TIMESTAMP_PRECISE],
+    });
+  }
+  return Number(new Date(row[OurLogKnownFieldKey.TIMESTAMP]).getTime());
 }
 
 /**

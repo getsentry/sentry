@@ -2,8 +2,8 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 
-describe('KeyValueList', function () {
-  it('should render a definition list of key/value pairs', function () {
+describe('KeyValueList', () => {
+  it('should render a definition list of key/value pairs', () => {
     const data = [
       {key: 'a', value: 'x', subject: 'a'},
       {key: 'b', value: 'y', subject: 'b'},
@@ -23,7 +23,7 @@ describe('KeyValueList', function () {
     expect(secondColumn[1]).toHaveTextContent('y');
   });
 
-  it('should sort sort key/value pairs', function () {
+  it('should sort sort key/value pairs', () => {
     const data = [
       {key: 'b', value: 'y', subject: 'b'},
       {key: 'a', value: 'x', subject: 'a'},
@@ -42,7 +42,7 @@ describe('KeyValueList', function () {
     expect(secondColumn[1]).toHaveTextContent('y');
   });
 
-  it('should use a single space for values that are an empty string', function () {
+  it('should use a single space for values that are an empty string', () => {
     const data = [
       {key: 'b', value: 'y', subject: 'b'},
       {key: 'a', value: '', subject: 'a'}, // empty string
@@ -61,7 +61,7 @@ describe('KeyValueList', function () {
     expect(secondColumn[1]).toHaveTextContent('y');
   });
 
-  it('can sort key/value pairs with non-string values', function () {
+  it('can sort key/value pairs with non-string values', () => {
     const data = [
       {key: 'b', value: {foo: 'bar'}, subject: 'b'},
       {key: 'a', value: [3, 2, 1], subject: 'a'},
@@ -79,7 +79,7 @@ describe('KeyValueList', function () {
     expect(secondColumn[0]).toHaveTextContent('b');
   });
 
-  it('should coerce non-strings into strings', function () {
+  it('should coerce non-strings into strings', () => {
     const data = [{key: 'a', value: false, subject: 'a'}];
 
     render(<KeyValueList data={data} />);
@@ -89,7 +89,7 @@ describe('KeyValueList', function () {
     expect(cells[1]).toHaveTextContent('false');
   });
 
-  it("shouldn't blow up on null", function () {
+  it("shouldn't blow up on null", () => {
     const data = [{key: 'a', value: null, subject: 'a'}];
 
     render(<KeyValueList data={data} />);

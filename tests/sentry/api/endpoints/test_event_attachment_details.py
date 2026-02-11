@@ -3,13 +3,14 @@ from django.test import override_settings
 
 from sentry.attachments.base import CachedAttachment
 from sentry.models.activity import Activity
-from sentry.models.eventattachment import EventAttachment
+from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
+from sentry.objectstore import get_attachments_session
 from sentry.testutils.cases import APITestCase, PermissionTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils.skips import requires_objectstore, requires_snuba
 from sentry.types.activity import ActivityType
 
 pytestmark = [requires_snuba]
@@ -18,7 +19,9 @@ ATTACHMENT_CONTENT = b"File contents here" * 10_000
 
 
 class CreateAttachmentMixin(TestCase):
-    def create_attachment(self, content: bytes | None = None, group_id: int | None = None):
+    def create_attachment(
+        self, content: bytes | None = None, group_id: int | None = None
+    ) -> EventAttachment:
         self.project = self.create_project()
         self.release = self.create_release(self.project, self.user)
         min_ago = before_now(minutes=1).isoformat()
@@ -55,7 +58,7 @@ class CreateAttachmentMixin(TestCase):
 
 class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
     @with_feature("organizations:event-attachments")
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         self.create_attachment()
@@ -69,7 +72,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.data["event_id"] == self.event.event_id
 
     @with_feature("organizations:event-attachments")
-    def test_download(self):
+    def test_download(self) -> None:
         self.login_as(user=self.user)
 
         self.create_attachment()
@@ -84,7 +87,52 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert close_streaming_response(response) == ATTACHMENT_CONTENT
 
     @with_feature("organizations:event-attachments")
-    def test_zero_sized_attachment(self):
+    @requires_objectstore
+    def test_doublewrite_objectstore(self) -> None:
+        self.login_as(user=self.user)
+
+        with override_options({"objectstore.double_write.attachments": 1}):
+            attachment = self.create_attachment()
+
+            assert attachment.blob_path is not None
+            object_key = attachment.blob_path.removeprefix(V1_PREFIX + V2_PREFIX)
+            # the file should also be available in objectstore
+            os_response = get_attachments_session(self.organization.id, self.project.id).get(
+                object_key
+            )
+            assert os_response.payload.read() == ATTACHMENT_CONTENT
+
+            path1 = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{attachment.id}/?download"
+            response = self.client.get(path1)
+
+            assert response.status_code == 200, response.content
+            assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
+            assert response.get("Content-Length") == str(attachment.size)
+            assert response.get("Content-Type") == "image/png"
+            assert close_streaming_response(response) == ATTACHMENT_CONTENT
+
+    @with_feature("organizations:event-attachments")
+    @requires_objectstore
+    def test_download_objectstore(self) -> None:
+        self.login_as(user=self.user)
+
+        with override_options({"objectstore.enable_for.attachments": 1}):
+            attachment = self.create_attachment()
+
+            assert attachment.blob_path is not None
+            assert attachment.blob_path.startswith("v2/")
+
+            path1 = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{attachment.id}/?download"
+            response = self.client.get(path1)
+
+            assert response.status_code == 200, response.content
+            assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
+            assert response.get("Content-Length") == str(attachment.size)
+            assert response.get("Content-Type") == "image/png"
+            assert close_streaming_response(response) == ATTACHMENT_CONTENT
+
+    @with_feature("organizations:event-attachments")
+    def test_zero_sized_attachment(self) -> None:
         self.login_as(user=self.user)
 
         self.create_attachment(b"")
@@ -110,7 +158,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert close_streaming_response(response) == b""
 
     @with_feature("organizations:event-attachments")
-    def test_delete(self):
+    def test_delete(self) -> None:
         self.login_as(user=self.user)
 
         self.create_attachment()
@@ -122,7 +170,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert EventAttachment.objects.count() == 0
 
     @with_feature("organizations:event-attachments")
-    def test_delete_activity_no_group(self):
+    def test_delete_activity_no_group(self) -> None:
         self.login_as(user=self.user)
 
         self.create_attachment(group_id=None)
@@ -135,7 +183,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
             Activity.objects.get(type=ActivityType.DELETED_ATTACHMENT.value)
 
     @with_feature("organizations:event-attachments")
-    def test_delete_activity_with_group(self):
+    def test_delete_activity_with_group(self) -> None:
         self.login_as(user=self.user)
 
         group_id = self.create_group().id
@@ -152,31 +200,31 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
 
 
 class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.create_attachment()
         self.path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/?download"
 
     @with_feature("organizations:event-attachments")
-    def test_member_can_access_by_default(self):
+    def test_member_can_access_by_default(self) -> None:
         close_streaming_response(self.assert_member_can_access(self.path))
         close_streaming_response(self.assert_can_access(self.owner, self.path))
 
     @with_feature("organizations:event-attachments")
-    def test_member_cannot_access_for_owner_role(self):
+    def test_member_cannot_access_for_owner_role(self) -> None:
         self.organization.update_option("sentry:attachments_role", "owner")
         self.assert_member_cannot_access(self.path)
         close_streaming_response(self.assert_can_access(self.owner, self.path))
 
     @with_feature("organizations:event-attachments")
-    def test_random_user_cannot_access(self):
+    def test_random_user_cannot_access(self) -> None:
         self.organization.update_option("sentry:attachments_role", "owner")
         user = self.create_user()
 
         self.assert_cannot_access(user, self.path)
 
     @with_feature("organizations:event-attachments")
-    def test_superuser_can_access(self):
+    def test_superuser_can_access(self) -> None:
         self.organization.update_option("sentry:attachments_role", "owner")
         superuser = self.create_user(is_superuser=True)
 
@@ -189,7 +237,7 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
     @with_feature("organizations:event-attachments")
     @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_superuser_read_access(self):
+    def test_superuser_read_access(self) -> None:
         self.organization.update_option("sentry:attachments_role", "owner")
         superuser = self.create_user(is_superuser=True)
 
@@ -200,7 +248,7 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
     @with_feature("organizations:event-attachments")
     @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_superuser_write_can_access(self):
+    def test_superuser_write_can_access(self) -> None:
         self.organization.update_option("sentry:attachments_role", "owner")
         superuser = self.create_user(is_superuser=True)
 

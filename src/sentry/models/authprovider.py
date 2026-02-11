@@ -11,9 +11,10 @@ from bitfield import TypedClassBitField
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import SentryAppStatus
 from sentry.db.models import BoundedPositiveIntegerField, control_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.fields.jsonfield import JSONField
+from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -35,7 +36,7 @@ class AuthProvider(ReplicatedControlModel):
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade", unique=True)
     provider = models.CharField(max_length=128)
-    config: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    config = models.JSONField(default=dict)
 
     date_added = models.DateTimeField(default=timezone.now)
     sync_time = BoundedPositiveIntegerField(null=True)
@@ -86,7 +87,7 @@ class AuthProvider(ReplicatedControlModel):
 
     __repr__ = sane_repr("organization_id", "provider")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.provider
 
     def get_provider(self):
@@ -165,7 +166,6 @@ class AuthProvider(ReplicatedControlModel):
         ]
 
     def disable_scim(self):
-        from sentry import deletions
         from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
             SentryAppInstallationForProvider,
         )
@@ -186,7 +186,8 @@ class AuthProvider(ReplicatedControlModel):
                 assert (
                     sentry_app.is_internal
                 ), "scim sentry apps should always be internal, thus deleting them without triggering InstallationNotifier is correct."
-                deletions.exec_sync(sentry_app)
+                sentry_app.update(status=SentryAppStatus.DELETION_IN_PROGRESS)
+                ScheduledDeletion.schedule(sentry_app, days=0)
             except SentryAppInstallationForProvider.DoesNotExist:
                 pass
             self.flags.scim_enabled = False

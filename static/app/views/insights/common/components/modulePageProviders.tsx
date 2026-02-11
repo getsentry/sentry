@@ -1,11 +1,11 @@
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import type {InsightEventKey} from 'sentry/utils/analytics/insightAnalyticEvents';
 import useOrganization from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -19,6 +19,7 @@ interface Props {
   children: React.ReactNode;
   moduleName: TitleableModuleNames;
   analyticEventName?: InsightEventKey;
+  maxPickableDays?: DatePageFilterProps['maxPickableDays'];
   pageTitle?: string;
 }
 
@@ -27,10 +28,10 @@ export function ModulePageProviders({
   pageTitle,
   children,
   analyticEventName,
+  maxPickableDays,
 }: Props) {
   const organization = useOrganization();
   const moduleTitles = useModuleTitles();
-  const useEap = useInsightsEap();
   const {view} = useDomainViewFilters();
 
   const hasDateRangeQueryLimit = organization.features.includes(
@@ -45,12 +46,12 @@ export function ModulePageProviders({
     .filter(Boolean)
     .join(' — ');
 
-  const storageNamespace = useEap ? view : undefined;
-
   return (
     <PageFiltersContainer
-      maxPickableDays={hasDateRangeQueryLimit ? QUERY_DATE_RANGE_LIMIT : undefined}
-      storageNamespace={storageNamespace}
+      maxPickableDays={
+        maxPickableDays ?? (hasDateRangeQueryLimit ? QUERY_DATE_RANGE_LIMIT : undefined)
+      }
+      storageNamespace={view}
     >
       <SentryDocumentTitle title={fullPageTitle} orgSlug={organization.slug}>
         <Layout.Page>

@@ -2,56 +2,91 @@ import type {ReactNode} from 'react';
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import {Grid} from '@sentry/scraps/layout';
+
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
+import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {
+  useMaxPickableDays,
+  type MaxPickableDaysOptions,
+} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
 import {
-  PageParamsProvider,
-  useExploreId,
-  useExploreTitle,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+  MAX_DAYS_FOR_CROSS_EVENTS,
+  MAX_PERIOD_FOR_CROSS_EVENTS,
+} from 'sentry/views/explore/constants';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {
+  useQueryParamsCrossEvents,
+  useQueryParamsId,
+  useQueryParamsTitle,
+} from 'sentry/views/explore/queryParams/context';
 import {SavedQueryEditMenu} from 'sentry/views/explore/savedQueryEditMenu';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {SpansTabContent, SpansTabOnboarding} from 'sentry/views/explore/spans/spansTab';
 import {
   EXPLORE_SPANS_TOUR_GUIDE_KEY,
-  type ExploreSpansTour,
   ExploreSpansTourContext,
   ORDERED_EXPLORE_SPANS_TOUR,
   useExploreSpansTourModal,
+  type ExploreSpansTour,
 } from 'sentry/views/explore/spans/tour';
 import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
+
+const CROSS_EVENTS_DATE_OVERRIDE: MaxPickableDaysOptions = {
+  defaultPeriod: MAX_PERIOD_FOR_CROSS_EVENTS,
+  maxPickableDays: MAX_DAYS_FOR_CROSS_EVENTS,
+  maxUpgradableDays: MAX_DAYS_FOR_CROSS_EVENTS,
+};
+
+function useHasCrossEvents() {
+  const crossEvents = useQueryParamsCrossEvents();
+  return defined(crossEvents) && crossEvents.length > 0;
+}
 
 export function ExploreContent() {
   Sentry.setTag('explore.visited', 'yes');
 
-  const organization = useOrganization();
-  const datePageFilterProps = limitMaxPickableDays(organization);
+  return (
+    <SpansQueryParamsProvider>
+      <ExploreContentInner />
+    </SpansQueryParamsProvider>
+  );
+}
 
+function ExploreContentInner() {
+  const organization = useOrganization();
+  const hasCrossEvents = useHasCrossEvents();
   const onboardingProject = useOnboardingProject();
+  const dataCategoryMaxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+
+  const maxPickableDays = hasCrossEvents
+    ? CROSS_EVENTS_DATE_OVERRIDE
+    : dataCategoryMaxPickableDays;
+
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
       <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
         <Layout.Page>
           <SpansTabWrapper>
-            <SpansTabHeader organization={organization} />
+            <SpansTabHeader />
             {defined(onboardingProject) ? (
               <SpansTabOnboarding
                 organization={organization}
@@ -72,9 +107,7 @@ function SpansTabWrapper({children}: SpansTabContextProps) {
   return (
     <SpansTabTourProvider>
       <SpansTabTourTrigger />
-      <PageParamsProvider>
-        <ExploreTagsProvider>{children}</ExploreTagsProvider>
-      </PageParamsProvider>
+      <ExploreTagsProvider>{children}</ExploreTagsProvider>
     </SpansTabTourProvider>
   );
 }
@@ -119,20 +152,27 @@ function ExploreTagsProvider({children}: SpansTabContextProps) {
   );
 }
 
-interface SpansTabHeaderProps {
-  organization: Organization;
-}
-
-function SpansTabHeader({organization}: SpansTabHeaderProps) {
-  const prefersStackedNav = usePrefersStackedNav();
-  const id = useExploreId();
-  const title = useExploreTitle();
+function SpansTabHeader() {
+  const id = useQueryParamsId();
+  const title = useQueryParamsTitle();
+  const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(id);
 
+  const hasSavedQueryTitle =
+    defined(id) && defined(savedQuery) && savedQuery.name.length > 0;
+
   return (
-    <Layout.Header unified={prefersStackedNav}>
-      <Layout.HeaderContent unified={prefersStackedNav}>
-        {title && defined(id) ? <ExploreBreadcrumb /> : null}
+    <Layout.Header unified>
+      <Layout.HeaderContent unified>
+        {hasSavedQueryTitle ? (
+          <SentryDocumentTitle
+            title={`${savedQuery.name} — ${t('Traces')}`}
+            orgSlug={organization?.slug}
+          />
+        ) : null}
+        {title && defined(id) ? (
+          <ExploreBreadcrumb traceItemDataset={TraceItemDataset.SPANS} />
+        ) : null}
         <Layout.Title>
           {title ? title : t('Traces')}
           <PageHeadingQuestionTooltip
@@ -145,19 +185,11 @@ function SpansTabHeader({organization}: SpansTabHeaderProps) {
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar>
-          {!prefersStackedNav && (
-            <LinkButton
-              to={`/organizations/${organization.slug}/explore/saved-queries/`}
-              size="sm"
-            >
-              {t('Saved Queries')}
-            </LinkButton>
-          )}
+        <Grid flow="column" align="center" gap="md">
           <StarSavedQueryButton />
           {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
-          <FeedbackWidgetButton />
-        </ButtonBar>
+          <FeedbackButton />
+        </Grid>
       </Layout.HeaderActions>
     </Layout.Header>
   );

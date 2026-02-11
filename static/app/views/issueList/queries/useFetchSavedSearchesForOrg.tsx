@@ -1,7 +1,7 @@
 import type {SavedSearch} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 type FetchSavedSearchesForOrgParameters = {
   orgSlug: string;
@@ -9,22 +9,23 @@ type FetchSavedSearchesForOrgParameters = {
 
 type FetchSavedSearchesForOrgResponse = SavedSearch[];
 
-export const makeFetchSavedSearchesForOrgQueryKey = ({
+const makeFetchSavedSearchesForOrgQueryKey = ({
   orgSlug,
 }: FetchSavedSearchesForOrgParameters) =>
-  [`/organizations/${orgSlug}/searches/`] as const;
+  [
+    getApiUrl('/organizations/$organizationIdOrSlug/searches/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+  ] as const;
 
 export const useFetchSavedSearchesForOrg = (
   {orgSlug}: FetchSavedSearchesForOrgParameters,
   options: Partial<UseApiQueryOptions<FetchSavedSearchesForOrgResponse>> = {}
 ) => {
-  const prefersStackedNav = usePrefersStackedNav();
-
   return useApiQuery<FetchSavedSearchesForOrgResponse>(
     makeFetchSavedSearchesForOrgQueryKey({orgSlug}),
     {
       staleTime: 30000,
-      enabled: !prefersStackedNav,
       ...options,
     }
   );

@@ -1,16 +1,17 @@
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
+from sentry.models.groupowner import PROJECT_OWNERSHIP_VERSION_KEY, GroupOwner
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
 
 
 class ProjectCodeOwnersTestCase(TestCase):
-    def tearDown(self):
+    def tearDown(self) -> None:
         cache.delete(ProjectCodeOwners.get_cache_key(self.project.id))
 
         super().tearDown()
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
         self.team = self.create_team(
@@ -36,7 +37,7 @@ class ProjectCodeOwnersTestCase(TestCase):
             "raw": "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n",
         }
 
-    def test_merge_codeowners(self):
+    def test_merge_codeowners(self) -> None:
         self.code_mapping_2 = self.create_code_mapping(
             project=self.project,
             stack_root="stack/root/",
@@ -88,3 +89,33 @@ class ProjectCodeOwnersTestCase(TestCase):
                 },
             ],
         }
+
+    def test_post_save_sets_ownership_version(self) -> None:
+        cache.delete(PROJECT_OWNERSHIP_VERSION_KEY(self.project.id))
+        assert GroupOwner.get_project_ownership_version(self.project.id) is None
+
+        self.create_codeowners(
+            self.project,
+            self.code_mapping,
+            raw=self.data["raw"],
+        )
+
+        version = GroupOwner.get_project_ownership_version(self.project.id)
+        assert version is not None
+        assert isinstance(version, float)
+
+    def test_post_delete_sets_ownership_version(self) -> None:
+        codeowners = self.create_codeowners(
+            self.project,
+            self.code_mapping,
+            raw=self.data["raw"],
+        )
+
+        cache.delete(PROJECT_OWNERSHIP_VERSION_KEY(self.project.id))
+        assert GroupOwner.get_project_ownership_version(self.project.id) is None
+
+        codeowners.delete()
+
+        version = GroupOwner.get_project_ownership_version(self.project.id)
+        assert version is not None
+        assert isinstance(version, float)

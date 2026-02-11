@@ -76,8 +76,8 @@ function AddWidget({onAddWidget}: Props) {
               'aria-label': t('Add Widget'),
               size: 'md',
               showChevron: false,
-              icon: <IconAdd isCircled size="lg" color="subText" />,
-              borderless: true,
+              icon: <IconAdd size="lg" variant="muted" />,
+              priority: 'transparent',
             }}
           />
         </InnerWrapper>
@@ -91,8 +91,8 @@ export default AddWidget;
 const InnerWrapper = styled('div')<{onClick?: () => void}>`
   width: 100%;
   height: 110px;
-  border: 2px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 2px dashed ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   display: flex;
   align-items: center;
   justify-content: center;

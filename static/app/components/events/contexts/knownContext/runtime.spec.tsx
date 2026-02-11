@@ -28,8 +28,8 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('RuntimeContext', function () {
-  it('returns values and according to the parameters', function () {
+describe('RuntimeContext', () => {
+  it('returns values and according to the parameters', () => {
     expect(getRuntimeContextData({data: MOCK_RUNTIME_CONTEXT})).toEqual([
       {key: 'version', subject: 'Version', value: '1.7.13'},
       {key: 'raw_description', subject: 'Raw Description', value: ''},
@@ -54,7 +54,7 @@ describe('RuntimeContext', function () {
     ]);
   });
 
-  it('renders with meta annotations correctly', function () {
+  it('renders with meta annotations correctly', () => {
     const event = EventFixture({
       _meta: {contexts: {runtime: MOCK_REDACTION}},
     });
@@ -62,8 +62,8 @@ describe('RuntimeContext', function () {
     render(
       <ContextCard
         event={event}
-        type={'runtime'}
-        alias={'runtime'}
+        type="runtime"
+        alias="runtime"
         value={{...MOCK_RUNTIME_CONTEXT, raw_description: ''}}
       />
     );

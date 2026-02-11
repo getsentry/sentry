@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {IconBusiness} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -55,9 +56,7 @@ function TargetedOnboardingHeader({source, subscription}: Props) {
       <SecondaryCTAWrapper>{cta}</SecondaryCTAWrapper>
       <LinkButton
         onClick={trackClickUpgrade}
-        href={normalizeUrl(
-          `/settings/${organization.slug}/billing/checkout/?referrer=upgrade-${source}`
-        )}
+        href={normalizeUrl(`/checkout/${organization.slug}/?referrer=upgrade-${source}`)}
         external
         size="sm"
         icon={<IconBusiness />}
@@ -73,7 +72,9 @@ export default withSubscription(TargetedOnboardingHeader, {
   noLoader: true,
 });
 
-const HeaderActionBar = styled(ButtonBar)`
+const HeaderActionBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   margin-left: ${space(2)};
 `;
 
@@ -90,7 +91,7 @@ const NeedHelpLink = styled(ExternalLink)`
 const ActiveTrialHeader = styled('div')`
   font-size: 14px;
   text-transform: uppercase;
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.tokens.content.accent};
 `;
 
 const ActiveTrialWrapper = styled('div')`

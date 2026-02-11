@@ -1,13 +1,13 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {Flex} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import type {
   BasePlatformOptions,
   PlatformOption,
   SelectedPlatformOptions,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
 
 /**
@@ -95,7 +95,7 @@ export function PlatformOptionsControl({
   };
 
   return (
-    <Options>
+    <Flex wrap="wrap" gap="md">
       {Object.entries(platformOptions).map(([key, platformOption]) => (
         <OptionControl
           key={key}
@@ -104,12 +104,6 @@ export function PlatformOptionsControl({
           onChange={value => handleChange(key, value)}
         />
       ))}
-    </Options>
+    </Flex>
   );
 }
-
-const Options = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(1)};
-`;

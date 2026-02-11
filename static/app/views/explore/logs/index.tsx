@@ -1,13 +1,11 @@
+import {Outlet} from 'react-router-dom';
+
 import Feature from 'sentry/components/acl/feature';
 import {NoAccess} from 'sentry/components/noAccess';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface Props {
-  children: React.ReactNode;
-}
-
-export default function LogsPage({children}: Props) {
+export default function LogsPage() {
   const organization = useOrganization();
 
   return (
@@ -16,7 +14,9 @@ export default function LogsPage({children}: Props) {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
+      <NoProjectMessage organization={organization}>
+        <Outlet />
+      </NoProjectMessage>
     </Feature>
   );
 }

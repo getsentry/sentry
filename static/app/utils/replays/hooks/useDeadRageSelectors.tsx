@@ -1,4 +1,6 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import hydratedSelectorData from 'sentry/utils/replays/hydrateSelectorData';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -15,20 +17,24 @@ export default function useDeadRageSelectors(params: DeadRageSelectorQueryParams
   const {isPending, isError, error, data, getResponseHeader} =
     useApiQuery<DeadRageSelectorListResponse>(
       [
-        `/organizations/${organization.slug}/replay-selectors/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/replay-selectors/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           query: {
             query: '!count_dead_clicks:0',
             cursor: params.cursor,
-            environment: query.environment,
+            environment: decodeList(query.environment),
             project: query.project,
             statsPeriod: query.statsPeriod,
+            start: decodeScalar(query.start),
+            end: decodeScalar(query.end),
             per_page: params.per_page,
             sort: query[params.prefix + 'sort'] ?? params.sort,
           },
         },
       ],
-      {staleTime: Infinity}
+      {staleTime: Infinity, enabled: params.enabled}
     );
 
   return {

@@ -16,7 +16,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class ConditionTestCase(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group, self.event, self.group_event = self.create_group_event()
 
     def translate_to_data_condition(
@@ -27,12 +27,12 @@ class ConditionTestCase(BaseWorkflowTest):
         return data_condition
 
     def assert_passes(
-        self, data_condition: DataCondition, job: WorkflowEventData | DataPacket
+        self, data_condition: DataCondition, job: WorkflowEventData | DataPacket[Any]
     ) -> None:
         assert data_condition.evaluate_value(job) == data_condition.get_condition_result()
 
     def assert_does_not_pass(
-        self, data_condition: DataCondition, job: WorkflowEventData | DataPacket
+        self, data_condition: DataCondition, job: WorkflowEventData | DataPacket[Any]
     ) -> None:
         assert data_condition.evaluate_value(job) != data_condition.get_condition_result()
 
@@ -48,7 +48,7 @@ class ConditionTestCase(BaseWorkflowTest):
 
 
 class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.start = before_now(minutes=5)

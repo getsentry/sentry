@@ -24,7 +24,7 @@ class IssuesByTagProcessor:
     def __init__(
         self,
         project_id: int,
-        group_id: int,
+        group_id: int | str,
         key: str,
         environment_id: int | None,
         tenant_ids: dict[str, str | int] | None = None,
@@ -52,7 +52,7 @@ class IssuesByTagProcessor:
             raise ExportError("Requested project does not exist")
 
     @staticmethod
-    def get_group(group_id: int, project: Project) -> Group:
+    def get_group(group_id: int | str, project: Project) -> Group:
         try:
             group, _ = get_group_with_redirect(
                 group_id, queryset=Group.objects.filter(project=project)
@@ -113,7 +113,12 @@ class IssuesByTagProcessor:
             users = EventUser.for_tags(self.group.project_id, [i.value for i in items])
         else:
             users = {}
-        return [GroupTagValueAndEventUser(item, users.get(item.value)) for item in items]
+        return [
+            GroupTagValueAndEventUser(
+                item, users.get(item.value) if item.value is not None else None
+            )
+            for item in items
+        ]
 
     def get_serialized_data(self, limit: int = 1000, offset: int = 0) -> list[dict[str, str]]:
         """

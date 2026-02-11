@@ -2,13 +2,15 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {Avatar} from '@sentry/scraps/avatar';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {BaseAvatar} from 'sentry/components/core/avatar/baseAvatar';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconAdd, IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -20,6 +22,7 @@ import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 type Installation = {
   avatar_url: string;
+  count: number;
   github_account: string;
   installation_id: string;
 };
@@ -72,7 +75,12 @@ export function GithubInstallationSelect({
   const source = 'github.multi_org';
 
   const doesntRequireUpgrade = (id: SelectKey): boolean => {
-    return hasSCMMultiOrg || isSelfHosted || id === '-1';
+    return (
+      hasSCMMultiOrg ||
+      isSelfHosted ||
+      id === '-1' ||
+      installation_info.find(i => i.installation_id === id)?.count === 0
+    );
   };
 
   const handleSubmit = (e: React.MouseEvent, id?: SelectKey) => {
@@ -107,22 +115,23 @@ export function GithubInstallationSelect({
       value: installation.installation_id,
       textValue: installation.github_account,
       label: (
-        <OptionLabelWrapper>
+        <Flex align="center" gap="md">
           {installation.installation_id === '-1' ? (
             <IconAdd />
           ) : (
-            <StyledAvatar
-              type="upload"
-              uploadUrl={installation.avatar_url}
+            <Avatar
               size={16}
-              title={installation.github_account}
+              type="upload"
+              identifier={installation.installation_id}
+              uploadUrl={installation.avatar_url}
+              name={installation.github_account}
             />
           )}
           <span>{`${installation.github_account}`}</span>
           {!doesntRequireUpgrade(installation.installation_id) && (
             <IconLightning size="xs" />
           )}
-        </OptionLabelWrapper>
+        </Flex>
       ),
     })
   );
@@ -178,12 +187,20 @@ export function GithubInstallationSelect({
           onChange={handleSelect}
           options={selectOptions}
           value={installationID}
-          triggerLabel={installationID ? undefined : 'Choose Installation'}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps}>
+              {installationID ? triggerProps.children : 'Choose Installation'}
+            </OverlayTrigger.Button>
+          )}
         />
-        <ButtonContainer>
+        <Stack alignSelf="flex-end" paddingTop="xl">
           {organization.features.includes('github-multi-org-upsell-modal') ? (
             <InstallButtonHook
-              hasSCMMultiOrg={hasSCMMultiOrg}
+              hasSCMMultiOrg={
+                hasSCMMultiOrg ||
+                installation_info.find(i => i.installation_id === installationID)
+                  ?.count === 0
+              }
               installationID={installationID}
               isSaving={isSaving}
               handleSubmit={handleSubmit}
@@ -191,7 +208,7 @@ export function GithubInstallationSelect({
           ) : (
             renderInstallationButtonOld()
           )}
-        </ButtonContainer>
+        </Stack>
       </StyledContainer>
     </Fragment>
   );
@@ -207,26 +224,9 @@ const StyledContainer = styled('div')`
   margin-top: 10%;
 `;
 
-const ButtonContainer = styled('div')`
-  display: flex;
-  align-self: flex-end;
-  padding-top: ${space(2)};
-  flex-direction: column;
-`;
-
 const StyledHeader = styled('h3')`
   margin-bottom: ${space(2)};
   width: 100%;
-`;
-
-const OptionLabelWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const StyledAvatar = styled(BaseAvatar)`
-  flex-shrink: 0;
 `;
 
 const StyledSelect = styled(CompactSelect)`

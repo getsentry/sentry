@@ -3,23 +3,24 @@ import styled from '@emotion/styled';
 import type {Location, Query} from 'history';
 import moment from 'moment-timezone';
 
-import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
+import {Button} from '@sentry/scraps/button';
+
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {resetPageFilters} from 'sentry/components/pageFilters/actions';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
@@ -46,8 +47,8 @@ type Props = {
   location: Location;
   organization: Organization;
   pageLinks: string;
+  refetchSavedQueries: () => void;
   renderPrebuilt: boolean;
-  router: InjectedRouter;
   savedQueries: SavedQuery[];
   savedQuerySearchQuery: string;
 };
@@ -62,9 +63,10 @@ class QueryList extends Component<Props> {
   }
 
   handleDeleteQuery = (eventView: EventView) => {
-    const {api, organization, location, savedQueries} = this.props;
+    const {api, organization, location, savedQueries, refetchSavedQueries} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
+      refetchSavedQueries();
       if (savedQueries.length === 1 && location.query.cursor) {
         browserHistory.push({
           pathname: location.pathname,
@@ -75,12 +77,13 @@ class QueryList extends Component<Props> {
   };
 
   handleDuplicateQuery = (eventView: EventView, yAxis: string[]) => {
-    const {api, location, organization} = this.props;
+    const {api, location, organization, refetchSavedQueries} = this.props;
 
     eventView = eventView.clone();
     eventView.name = `${eventView.name} copy`;
 
     handleCreateQuery(api, organization, eventView, yAxis).then(() => {
+      refetchSavedQueries();
       browserHistory.push({
         pathname: location.pathname,
         query: {},
@@ -120,7 +123,7 @@ class QueryList extends Component<Props> {
             {...triggerProps}
             aria-label={t('Query actions')}
             size="xs"
-            borderless
+            priority="transparent"
             onClick={e => {
               e.stopPropagation();
               e.preventDefault();
@@ -138,7 +141,7 @@ class QueryList extends Component<Props> {
   }
 
   renderPrebuiltQueries() {
-    const {api, location, organization, savedQuerySearchQuery, router} = this.props;
+    const {api, location, organization, savedQuerySearchQuery} = this.props;
     const views = getPrebuiltQueries(organization);
 
     const hasSearchQuery =
@@ -171,7 +174,11 @@ class QueryList extends Component<Props> {
         hasDatasetSelector(organization) ? view.queryDataset : undefined
       );
 
-      const menuItems = [
+      const deprecateTransactionQuery =
+        organization.features.includes('discover-saved-queries-deprecation') &&
+        view.queryDataset === SavedQueryDatasets.TRANSACTIONS;
+
+      const menuItems: MenuItemProps[] = [
         {
           key: 'add-to-dashboard',
           label: t('Add to Dashboard'),
@@ -182,7 +189,6 @@ class QueryList extends Component<Props> {
               query: view,
               organization,
               yAxis: view?.yAxis,
-              router,
               widgetType: hasDatasetSelector(organization)
                 ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
@@ -191,6 +197,7 @@ class QueryList extends Component<Props> {
                 : undefined,
               source: DashboardWidgetSource.DISCOVERV2,
             }),
+          disabled: deprecateTransactionQuery,
         },
         {
           key: 'set-as-default',
@@ -243,7 +250,7 @@ class QueryList extends Component<Props> {
   }
 
   renderSavedQueries() {
-    const {api, savedQueries, location, organization, router} = this.props;
+    const {api, savedQueries, location, organization} = this.props;
 
     if (!savedQueries || !Array.isArray(savedQueries) || savedQueries.length === 0) {
       return [];
@@ -262,6 +269,10 @@ class QueryList extends Component<Props> {
       const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
       const referrer = `api.discover.${eventView.getDisplayMode()}-chart`;
 
+      const deprecateTransactionQuery =
+        organization.features.includes('discover-saved-queries-deprecation') &&
+        savedQuery.queryDataset === SavedQueryDatasets.TRANSACTIONS;
+
       const menuItems = (canAddToDashboard: boolean): MenuItemProps[] => [
         ...(canAddToDashboard
           ? [
@@ -275,7 +286,6 @@ class QueryList extends Component<Props> {
                     query: savedQuery,
                     organization,
                     yAxis: savedQuery?.yAxis ?? eventView.yAxis,
-                    router,
                     widgetType: hasDatasetSelector(organization)
                       ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
@@ -284,6 +294,7 @@ class QueryList extends Component<Props> {
                       : undefined,
                     source: DashboardWidgetSource.DISCOVERV2,
                   }),
+                disabled: deprecateTransactionQuery,
               },
             ]
           : []),
@@ -304,6 +315,7 @@ class QueryList extends Component<Props> {
           label: t('Duplicate Query'),
           onAction: () =>
             this.handleDuplicateQuery(eventView, decodeList(savedQuery.yAxis)),
+          disabled: deprecateTransactionQuery,
         },
         {
           key: 'delete',

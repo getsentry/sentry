@@ -105,6 +105,16 @@ OPENAPI_TAGS = [
         },
     },
     {
+        "name": "Explore",
+        "x-sidebar-name": "Explore",
+        "description": "Explore allow you to slice and dice your events",
+        "x-display-description": True,
+        "externalDocs": {
+            "description": "Found an error? Let us know.",
+            "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md",
+        },
+    },
+    {
         "name": "Dashboards",
         "x-sidebar-name": "Dashboards",
         "description": "Endpoints for Dashboards",
@@ -145,6 +155,16 @@ OPENAPI_TAGS = [
         },
     },
     {
+        "name": "Monitors",
+        "x-sidebar-name": "Monitors & Alerts",
+        "description": "⚠️ These endpoints are currently in **beta** and may be subject to change. They are supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.",
+        "x-display-description": True,
+        "externalDocs": {
+            "description": "Found an error? Let us know.",
+            "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/monitors/&template=api_error_template.md",
+        },
+    },
+    {
         "name": "Integrations",
         "x-sidebar-name": "Integrations",
         "description": "Endpoints for Integrations",
@@ -182,6 +202,15 @@ OPENAPI_TAGS = [
         "externalDocs": {
             "description": "Found an error? Let us know.",
             "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/prevent/&template=api_error_template.md",
+        },
+    },
+    {
+        "name": "Seer",
+        "description": "Endpoints for Seer features",
+        "x-display-description": False,
+        "externalDocs": {
+            "description": "Found an error? Let us know.",
+            "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/seer/&template=api_error_template.md",
         },
     },
 ]

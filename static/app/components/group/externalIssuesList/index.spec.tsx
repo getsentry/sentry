@@ -26,6 +26,7 @@ describe('ExternalIssuesList', () => {
 
   beforeEach(() => {
     SentryAppInstallationStore.init();
+    mockUseSentryAppComponentsStore.mockReturnValue([]);
   });
 
   afterEach(() => {
@@ -44,10 +45,10 @@ describe('ExternalIssuesList', () => {
       url: `/organizations/${organization.slug}/issues/1/external-issues/`,
       body: [],
     });
-    mockUseSentryAppComponentsStore.mockReturnValue([]);
     render(<ExternalIssuesList group={group} project={project} event={event} />, {
       organization,
     });
+    expect(screen.getByTestId('issue-tracking-loading')).toBeInTheDocument();
     expect(await screen.findByText(setupCTA)).toBeInTheDocument();
   });
 
@@ -70,7 +71,7 @@ describe('ExternalIssuesList', () => {
     render(<ExternalIssuesList group={group} project={project} event={event} />, {
       organization,
     });
-    expect(await screen.findByText('Foo Issue')).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Foo'})).toBeInTheDocument();
     expect(screen.queryByText(setupCTA)).not.toBeInTheDocument();
   });
 
@@ -103,10 +104,10 @@ describe('ExternalIssuesList', () => {
     render(<ExternalIssuesList group={group} project={project} event={event} />, {
       organization,
     });
-    expect(await screen.findByText('Test-Sentry/github-test#13')).toBeInTheDocument();
-    const externalIssues = screen.getAllByTestId('external-issue-item');
-    expect(externalIssues[0]).toHaveTextContent('Test-Sentry/github-test#13');
-    expect(externalIssues[1]).toHaveTextContent('Jira Issue');
+    expect(
+      await screen.findByRole('button', {name: 'Test-Sentry/github-test#13'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Jira'})).toBeInTheDocument();
   });
 
   it('renders group plugin issues', async () => {
@@ -161,6 +162,6 @@ describe('ExternalIssuesList', () => {
       {organization}
     );
 
-    expect(await screen.findByText('TRL-123')).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Trello Issue'})).toBeInTheDocument();
   });
 });

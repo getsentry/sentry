@@ -29,8 +29,8 @@ from snuba_sdk import (
 )
 
 from sentry import features, options, projectoptions
-from sentry.api.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.constants import ObjectStatus
+from sentry.issues.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.statistical_detectors import RegressionType
@@ -58,7 +58,6 @@ from sentry.statistical_detectors.issue_platform_adapter import (
 from sentry.statistical_detectors.redis import RedisDetectorStore
 from sentry.statistical_detectors.store import DetectorStore
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import performance_tasks, profiling_tasks
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
@@ -110,12 +109,8 @@ def all_projects_with_flags() -> Generator[tuple[int, int]]:
 
 @instrumented_task(
     name="sentry.tasks.statistical_detectors.run_detection",
-    queue="performance.statistical_detector",
-    max_retries=0,
-    taskworker_config=TaskworkerConfig(
-        namespace=performance_tasks,
-        processing_deadline_duration=30,
-    ),
+    namespace=performance_tasks,
+    processing_deadline_duration=30,
 )
 def run_detection() -> None:
     if not options.get("statistical_detectors.enable"):
@@ -327,12 +322,8 @@ class FunctionRegressionDetector(RegressionDetector):
 
 @instrumented_task(
     name="sentry.tasks.statistical_detectors.detect_transaction_trends",
-    queue="performance.statistical_detector",
-    max_retries=0,
-    taskworker_config=TaskworkerConfig(
-        namespace=performance_tasks,
-        processing_deadline_duration=30,
-    ),
+    namespace=performance_tasks,
+    processing_deadline_duration=30,
 )
 def detect_transaction_trends(
     _org_ids: list[int], project_ids: list[int], start: str, *args, **kwargs
@@ -373,11 +364,7 @@ def detect_transaction_trends(
 
 @instrumented_task(
     name="sentry.tasks.statistical_detectors.detect_transaction_change_points",
-    queue="performance.statistical_detector",
-    max_retries=0,
-    taskworker_config=TaskworkerConfig(
-        namespace=performance_tasks,
-    ),
+    namespace=performance_tasks,
 )
 def detect_transaction_change_points(
     transactions: list[tuple[int, str | int]], start: str, *args, **kwargs
@@ -427,12 +414,8 @@ def _detect_transaction_change_points(
 
 @instrumented_task(
     name="sentry.tasks.statistical_detectors.detect_function_trends",
-    queue="profiling.statistical_detector",
-    max_retries=0,
-    taskworker_config=TaskworkerConfig(
-        namespace=profiling_tasks,
-        processing_deadline_duration=30,
-    ),
+    namespace=profiling_tasks,
+    processing_deadline_duration=30,
 )
 def detect_function_trends(project_ids: list[int], start: str, *args, **kwargs) -> None:
     if not options.get("statistical_detectors.enable"):
@@ -471,11 +454,7 @@ def detect_function_trends(project_ids: list[int], start: str, *args, **kwargs) 
 
 @instrumented_task(
     name="sentry.tasks.statistical_detectors.detect_function_change_points",
-    queue="profiling.statistical_detector",
-    max_retries=0,
-    taskworker_config=TaskworkerConfig(
-        namespace=profiling_tasks,
-    ),
+    namespace=profiling_tasks,
 )
 def detect_function_change_points(
     functions_list: list[tuple[int, int]], start: str, *args, **kwargs

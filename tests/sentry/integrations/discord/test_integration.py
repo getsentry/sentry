@@ -6,25 +6,39 @@ import responses
 from responses.matchers import header_matcher, json_params_matcher
 
 from sentry import audit_log, options
-from sentry.api.client import ApiError
 from sentry.integrations.discord.client import (
     APPLICATION_COMMANDS_URL,
     DISCORD_BASE_URL,
     GUILD_URL,
     DiscordClient,
 )
-from sentry.integrations.discord.integration import COMMANDS, DiscordIntegrationProvider
+from sentry.integrations.discord.integration import (
+    COMMANDS,
+    DiscordIntegration,
+    DiscordIntegrationProvider,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils.cases import IntegrationTestCase
+from sentry.notifications.platform.discord.provider import DiscordRenderable
+from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.types import (
+    NotificationProviderKey,
+    NotificationTargetResourceType,
+)
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    IntegrationConfigurationError,
+    IntegrationError,
+)
+from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.utils import json
 
 
 class DiscordSetupTestCase(IntegrationTestCase):
     provider = DiscordIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.application_id = "application-id"
         self.public_key = "public-key"
@@ -39,12 +53,12 @@ class DiscordSetupTestCase(IntegrationTestCase):
     @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
     def assert_setup_flow(
         self,
-        mock_set_application_command,
-        guild_id="1234567890",
-        server_name="Cool server",
-        auth_code="auth_code",
-        command_response_empty=True,
-    ):
+        mock_set_application_command: mock.MagicMock,
+        guild_id: str = "1234567890",
+        server_name: str = "Cool server",
+        auth_code: str = "auth_code",
+        command_response_empty: bool = True,
+    ) -> None:
         responses.reset()
 
         resp = self.client.get(self.init_path)
@@ -128,10 +142,10 @@ class DiscordSetupTestCase(IntegrationTestCase):
 
     def assert_setup_flow_from_discord(
         self,
-        guild_id="1234567890",
-        server_name="Cool server",
-        auth_code="auth_code",
-    ):
+        guild_id: str = "1234567890",
+        server_name: str = "Cool server",
+        auth_code: str = "auth_code",
+    ) -> None:
         responses.reset()
 
         resp = self.client.get(self.configure_path)
@@ -202,7 +216,7 @@ class DiscordSetupTestCase(IntegrationTestCase):
 @control_silo_test
 class DiscordSetupIntegrationTest(DiscordSetupTestCase):
     @responses.activate
-    def test_bot_flow(self):
+    def test_bot_flow(self) -> None:
         with self.tasks():
             self.assert_setup_flow()
 
@@ -218,7 +232,7 @@ class DiscordSetupIntegrationTest(DiscordSetupTestCase):
         )
 
     @responses.activate
-    def test_bot_flow_from_discord(self):
+    def test_bot_flow_from_discord(self) -> None:
         with self.tasks():
             self.assert_setup_flow_from_discord()
 
@@ -234,7 +248,7 @@ class DiscordSetupIntegrationTest(DiscordSetupTestCase):
         )
 
     @responses.activate
-    def test_multiple_integrations(self):
+    def test_multiple_integrations(self) -> None:
         with self.tasks():
             self.assert_setup_flow()
         with self.tasks():
@@ -256,14 +270,14 @@ class DiscordSetupIntegrationTest(DiscordSetupTestCase):
 
 
 class DiscordIntegrationTest(DiscordSetupTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user_id = "user1234"
         self.guild_id = "12345"
         self.guild_name = "guild_name"
 
     @responses.activate
-    def test_get_guild_name(self):
+    def test_get_guild_name(self) -> None:
         provider = self.provider()
         responses.add(
             responses.GET,
@@ -295,7 +309,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         assert result["name"] == self.guild_name
 
     @responses.activate
-    def test_build_integration_no_code_in_state(self):
+    def test_build_integration_no_code_in_state(self) -> None:
         provider = self.provider()
         responses.add(
             responses.GET,
@@ -310,7 +324,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
             provider.build_integration({"guild_id": "guild_id", "code": ""})
 
     @responses.activate
-    def test_get_guild_name_failure(self):
+    def test_get_guild_name_failure(self) -> None:
         provider = self.provider()
 
         (responses.add(responses.GET, f"{DISCORD_BASE_URL}/guilds/guild_name", status=500),)
@@ -334,7 +348,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         assert result["name"] == self.guild_id
 
     @responses.activate
-    def test_get_user_insufficient_permission(self):
+    def test_get_user_insufficient_permission(self) -> None:
         provider = self.provider()
 
         responses.add(
@@ -367,7 +381,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
             provider.build_integration({"guild_id": self.guild_id, "code": self.user_id})
 
     @responses.activate
-    def test_get_discord_user_id(self):
+    def test_get_discord_user_id(self) -> None:
         provider = self.provider()
 
         responses.add(
@@ -386,14 +400,14 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         assert result == self.user_id
 
     @responses.activate
-    def test_get_discord_user_id_oauth_failure(self):
+    def test_get_discord_user_id_oauth_failure(self) -> None:
         provider = self.provider()
         responses.add(responses.POST, url=self.token_url, status=500)
         with pytest.raises(IntegrationError):
             provider._get_discord_user_id("auth_code", "1")
 
     @responses.activate
-    def test_get_discord_user_id_oauth_no_token(self):
+    def test_get_discord_user_id_oauth_no_token(self) -> None:
         provider = self.provider()
         responses.add(
             responses.POST,
@@ -404,7 +418,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
             provider._get_discord_user_id("auth_code", "1")
 
     @responses.activate
-    def test_get_discord_user_id_request_fail(self):
+    def test_get_discord_user_id_request_fail(self) -> None:
         provider = self.provider()
         responses.add(
             responses.POST,
@@ -423,7 +437,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
-    def test_post_install(self, mock_set_application_command):
+    def test_post_install(self, mock_set_application_command: mock.MagicMock) -> None:
         provider = self.provider()
 
         responses.add(
@@ -444,7 +458,9 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         assert mock_set_application_command.call_count == 3  # one for each command
 
     @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
-    def test_post_install_missing_credentials(self, mock_set_application_command):
+    def test_post_install_missing_credentials(
+        self, mock_set_application_command: mock.MagicMock
+    ) -> None:
         provider = self.provider()
         provider.application_id = None
         provider.post_install(
@@ -453,7 +469,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         assert mock_set_application_command.call_count == 0
 
     @responses.activate
-    def test_set_commands_failure(self):
+    def test_set_commands_failure(self) -> None:
         provider = self.provider()
 
         responses.add(
@@ -474,7 +490,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
             )
 
     @responses.activate
-    def test_get_commands_failure(self):
+    def test_get_commands_failure(self) -> None:
         provider = self.provider()
 
         responses.add(
@@ -488,7 +504,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
                 integration=self.integration, organization=self.organization, extra={}
             )
 
-    def test_build_integration_invalid_guild_id(self):
+    def test_build_integration_invalid_guild_id(self) -> None:
         provider = self.provider()
 
         with pytest.raises(
@@ -501,3 +517,38 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
                     "code": "some_auth_code",
                 }
             )
+
+
+@control_silo_test
+class DiscordIntegrationSendNotificationTest(TestCase):
+    def setUp(self) -> None:
+        self.integration = self.create_provider_integration(
+            provider="discord", name="Discord", external_id="123456789"
+        )
+        self.installation = DiscordIntegration(self.integration, self.organization.id)
+        self.target = IntegrationNotificationTarget(
+            provider_key=NotificationProviderKey.DISCORD,
+            resource_type=NotificationTargetResourceType.CHANNEL,
+            resource_id="987654321",
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+        )
+
+    @mock.patch("sentry.integrations.discord.client.DiscordClient.send_message")
+    def test_send_notification_success(self, mock_send: mock.MagicMock) -> None:
+        payload: DiscordRenderable = {"content": "Test Discord message"}
+
+        self.installation.send_notification(target=self.target, payload=payload)
+
+        mock_send.assert_called_once_with(channel_id="987654321", message=payload)
+
+    @mock.patch("sentry.integrations.discord.client.DiscordClient.send_message")
+    def test_send_notification_api_error(self, mock_send: mock.MagicMock) -> None:
+        error_payload = json.dumps({"code": 50001, "message": "Missing access"})
+        mock_send.side_effect = ApiError(text=error_payload)
+        payload: DiscordRenderable = {"content": "Test Discord message"}
+
+        with pytest.raises(IntegrationConfigurationError) as e:
+            self.installation.send_notification(target=self.target, payload=payload)
+
+        assert str(e.value) == error_payload

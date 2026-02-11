@@ -5,6 +5,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {getOption, getOptionField} from './options';
@@ -14,7 +15,6 @@ const optionsAvailable = [
   'system.admin-email',
   'system.support-email',
   'system.security-email',
-  'system.rate-limit',
   'auth.allow-registration',
   'auth.ip-rate-limit',
   'auth.user-rate-limit',
@@ -31,7 +31,7 @@ type FieldDef = {
 
 export default function AdminSettings() {
   const {data, isPending, isError} = useApiQuery<Record<string, FieldDef>>(
-    ['/internal/options/'],
+    [getApiUrl('/internal/options/')],
     {
       staleTime: 0,
     }
@@ -65,7 +65,7 @@ export default function AdminSettings() {
 
       <Form
         apiMethod="PUT"
-        apiEndpoint={'/internal/options/'}
+        apiEndpoint="/internal/options/"
         initialData={initialData}
         saveOnBlur
       >
@@ -75,7 +75,6 @@ export default function AdminSettings() {
           {fields['system.admin-email']}
           {fields['system.support-email']}
           {fields['system.security-email']}
-          {fields['system.rate-limit']}
         </Panel>
 
         <Panel>

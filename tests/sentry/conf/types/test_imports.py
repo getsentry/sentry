@@ -15,7 +15,6 @@ ALLOWLIST = frozenset(
         "sentry.conf.types",
         "sentry.conf.types.kafka_definition",
         # these come from sentry.__init__ -- please don't make this longer!
-        "sentry._importchecker",
         "sentry.monkey",
         "sentry.monkey.pickle",
     )
@@ -26,7 +25,7 @@ MODNAMES = ["sentry.conf.types"] + [
 
 
 @pytest.mark.parametrize("modname", MODNAMES)
-def test_module_does_not_import_sentry(modname):
+def test_module_does_not_import_sentry(modname) -> None:
     prog = f"""\
 import json
 import sys

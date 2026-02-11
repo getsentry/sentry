@@ -1,6 +1,8 @@
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 export default function FilterReleaseDropdown({
   filters,
@@ -64,9 +66,9 @@ export default function FilterReleaseDropdown({
   return (
     <CompactSelect
       position="right"
-      triggerProps={{
-        prefix: t('Filter'),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Filter')} />
+      )}
       value={filters}
       onChange={handleValueChange}
       options={options}

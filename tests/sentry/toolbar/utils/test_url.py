@@ -15,7 +15,7 @@ from sentry.toolbar.utils.url import is_origin_allowed, url_matches
         ("https://example.com", "example.com"),
     ],
 )
-def test_url_matches_scheme(referrer, target):
+def test_url_matches_scheme(referrer: str, target: str) -> None:
     assert url_matches(urlparse(referrer), target)
 
 
@@ -26,7 +26,7 @@ def test_url_matches_scheme(referrer, target):
         ("https://example.com", "http://example.com"),
     ],
 )
-def test_url_matches_rejects_mispatched_scheme(referrer, target):
+def test_url_matches_rejects_mispatched_scheme(referrer, target) -> None:
     assert not url_matches(urlparse(referrer), target)
 
 
@@ -43,7 +43,7 @@ def test_url_matches_rejects_mispatched_scheme(referrer, target):
         ("http://foo.bar.example.com", ".bar.example.com"),
     ],
 )
-def test_url_matches_hostname(referrer, target):
+def test_url_matches_hostname(referrer: str, target: str) -> None:
     assert url_matches(urlparse(referrer), target)
 
 
@@ -72,7 +72,7 @@ def test_url_matches_hostname(referrer, target):
         ("http://example.com", ":80"),
     ],
 )
-def test_url_matches_rejects_mismatched_hostname(referrer, target):
+def test_url_matches_rejects_mismatched_hostname(referrer: str, target: str) -> None:
     assert not url_matches(urlparse(referrer), target)
 
 
@@ -97,7 +97,7 @@ def test_url_matches_rejects_mismatched_hostname(referrer, target):
         ("https://example.com:1234", "https://example.com:1234"),
     ],
 )
-def test_url_matches_port(referrer, target):
+def test_url_matches_port(referrer: str, target: str) -> None:
     assert url_matches(urlparse(referrer), target)
 
 
@@ -116,7 +116,7 @@ def test_url_matches_port(referrer, target):
         ("http://example.com", "example.com:abc"),
     ],
 )
-def test_url_matches_reject_mismatched_port(referrer, target):
+def test_url_matches_reject_mismatched_port(referrer: str, target: str) -> None:
     assert not url_matches(urlparse(referrer), target)
 
 
@@ -136,23 +136,23 @@ def test_url_matches_reject_mismatched_port(referrer, target):
         ("http://example.com", "http://example.com?query=foo"),
     ],
 )
-def test_url_matches_with_path_or_query(referrer, target):
+def test_url_matches_with_path_or_query(referrer: str, target: str) -> None:
     assert url_matches(urlparse(referrer), target)
 
 
-def test_is_origin_allowed_allows_some():
+def test_is_origin_allowed_allows_some() -> None:
     assert is_origin_allowed("http://sentry.io", ["http://abc.net", "http://sentry.io"])
     assert is_origin_allowed("http://localhost:5173/", ["localhost:5173"])
 
 
-def test_is_origin_allowed_rejects_all():
+def test_is_origin_allowed_rejects_all() -> None:
     assert not is_origin_allowed("http://sentry.io", ["http://abc.net", "http://xyz.net"])
 
 
-def test_is_origin_allowed_rejects_empty():
+def test_is_origin_allowed_rejects_empty() -> None:
     assert not is_origin_allowed("", ["http://abc.net", "http://xyz.net"])
 
 
-def test_is_origin_allowed_rejects_bad_input_scheme():
+def test_is_origin_allowed_rejects_bad_input_scheme() -> None:
     assert not is_origin_allowed("sentry.io", ["sentry.io"])
     assert not is_origin_allowed("ftp://sentry.io", ["sentry.io"])

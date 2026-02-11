@@ -1,8 +1,10 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -37,7 +39,7 @@ export function FlagDetailsDrawerContent({group}: Props) {
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
 
-  const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
+  const sortArrow = <IconArrow variant="muted" size="xs" direction="down" />;
 
   const {
     data: flagLog,
@@ -78,7 +80,7 @@ export function FlagDetailsDrawerContent({group}: Props) {
 
   if (!flagLog.data.length) {
     return (
-      <EmptyStateContainer>
+      <Stack align="center">
         <StyledEmptyStateWarning withIcon={false} small>
           {t('No audit logs were found for this feature flag.')}
         </StyledEmptyStateWarning>
@@ -91,7 +93,7 @@ export function FlagDetailsDrawerContent({group}: Props) {
         >
           {t('See all flags')}
         </LinkButton>
-      </EmptyStateContainer>
+      </Stack>
     );
   }
 
@@ -174,9 +176,7 @@ function GroupFirstSeenRow({group}: {group: Group}) {
 
 function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
   const organization = useOrganization();
-  const {onClick: handleCopy} = useCopyToClipboard({
-    text: flagValue.flag,
-  });
+  const {copy} = useCopyToClipboard();
   const key = flagValue.flag;
   const [isVisible, setIsVisible] = useState(false);
 
@@ -211,7 +211,8 @@ function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
         {
           key: 'copy-value',
           label: t('Copy flag value to clipboard'),
-          onAction: handleCopy,
+          onAction: () =>
+            copy(flagValue.flag, {successMessage: t('Copied flag value to clipboard')}),
         },
       ]}
     />
@@ -232,8 +233,8 @@ const Table = styled('div')`
 
 const ColumnTitle = styled('div')`
   white-space: nowrap;
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Body = styled('div')`
@@ -243,13 +244,13 @@ const Body = styled('div')`
 `;
 
 const Header = styled(Body)`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   margin: 0 ${space(1)};
 `;
 
 const Row = styled(Body)`
   &:nth-child(even) {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.background.secondary};
   }
   align-items: center;
   border-radius: 4px;
@@ -268,12 +269,6 @@ const Row = styled(Body)`
 
 const LeftAlignedValue = styled('div')`
   text-align: left;
-`;
-
-const EmptyStateContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`

@@ -1,0 +1,31 @@
+{% extends "sentry/bases/modal.html" %}
+{% load crispy_forms_tags %}
+{% load sentry_assets %}
+{% load i18n %}
+
+{% block wrapperclass %} narrow auth {% endblock %}
+{% block modal_header_signout %} {% endblock %}
+
+{% block title %} {% trans "Cursor Agent Setup" %} | {{ block.super }} {% endblock %}
+
+{% block main %}
+<h3>{% trans "Connect Sentry with Cursor AI Agent" %}</h3>
+<p>{% trans "Launch intelligent coding sessions directly from Sentry issues to get AI-powered assistance with debugging, code fixes, and development tasks." %}</p>
+
+  <form action="" method="post" class="form-stacked">
+    {% csrf_token %}
+    <input type="hidden" name="provider" value="cursor" />
+
+    {{ form|as_crispy_errors }}
+
+    {% for field in form %}
+    {{ field|as_crispy_field }}
+    {% endfor %}
+
+    <fieldset class="form-actions clearfix">
+      <div class="pull-right">
+        <button type="submit" class="btn btn-primary" name="save_config" value="submit">{% trans "Connect Cursor Agent" %}</button>
+      </div>
+    </fieldset>
+  </form>
+{% endblock %}

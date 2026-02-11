@@ -1,3 +1,4 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -5,7 +6,11 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import DetectorNew from 'sentry/views/detectors/new';
 
-describe('DetectorNew', function () {
+describe('DetectorNew', () => {
+  const organization = OrganizationFixture({
+    features: ['workflow-engine-ui'],
+  });
+
   const projects = [
     ProjectFixture({
       id: '2',
@@ -16,34 +21,37 @@ describe('DetectorNew', function () {
     }),
     ProjectFixture({id: '1', slug: 'project-1', name: 'Project 1', isMember: true}),
   ];
-  beforeEach(function () {
+  beforeEach(() => {
     ProjectsStore.loadInitialData(projects);
   });
 
-  it('sets query parameters for project, environment, and detectorType', async function () {
-    const {router} = render(<DetectorNew />);
+  it('sets query parameters for project, environment, and detectorType', async () => {
+    const {router} = render(<DetectorNew />, {organization});
 
     // Set detectorType
     await userEvent.click(screen.getByRole('radio', {name: 'Uptime'}));
 
+    expect(router.location.query.detectorType).toBe('uptime_domain_failure');
+
+    expect(screen.getByRole('button', {name: 'Next'})).toBeEnabled();
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     expect(router.location).toEqual(
       expect.objectContaining({
-        pathname: `/organizations/org-slug/issues/monitors/new/settings/`,
-        query: {
+        pathname: `/organizations/org-slug/monitors/new/settings/`,
+        query: expect.objectContaining({
           detectorType: 'uptime_domain_failure',
-          project: '1',
-        },
+        }),
       })
     );
   });
 
-  it('preserves project query parameter when navigating to the next step', async function () {
+  it('preserves project query parameter when navigating to the next step', async () => {
     const {router} = render(<DetectorNew />, {
+      organization,
       initialRouterConfig: {
         location: {
-          pathname: '/organizations/org-slug/issues/monitors/new/',
+          pathname: '/organizations/org-slug/monitors/new/',
           query: {project: '2'},
         },
       },
@@ -51,11 +59,14 @@ describe('DetectorNew', function () {
 
     await userEvent.click(screen.getByRole('radio', {name: 'Uptime'}));
 
+    expect(router.location.query.detectorType).toBe('uptime_domain_failure');
+    expect(router.location.query.project).toBe('2');
+
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     expect(router.location).toEqual(
       expect.objectContaining({
-        pathname: `/organizations/org-slug/issues/monitors/new/settings/`,
+        pathname: `/organizations/org-slug/monitors/new/settings/`,
         query: {
           detectorType: 'uptime_domain_failure',
           project: '2',

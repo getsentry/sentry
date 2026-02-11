@@ -1,16 +1,17 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.example import ExampleRepositoryProvider
 from sentry.models.repository import Repository
+from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.testutils.cases import APITestCase
 
 
 class OrganizationRepositoriesListTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.org = self.create_organization(owner=self.user, name="baz")
@@ -18,7 +19,7 @@ class OrganizationRepositoriesListTest(APITestCase):
 
         self.login_as(user=self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         repo = Repository.objects.create(name="example", organization_id=self.org.id)
 
         response = self.client.get(self.url, format="json")
@@ -28,7 +29,7 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert response.data[0]["id"] == str(repo.id)
         assert response.data[0]["externalSlug"] is None
 
-    def test_get_integration_repository(self):
+    def test_get_integration_repository(self) -> None:
         repo = Repository.objects.create(
             name="getsentry/example",
             organization_id=self.org.id,
@@ -46,7 +47,7 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert first_row["provider"] == {"id": "dummy", "name": "Example"}
         assert first_row["externalSlug"] == str(repo.external_id)
 
-    def test_get_active_repos(self):
+    def test_get_active_repos(self) -> None:
         repo1 = Repository.objects.create(
             name="getsentry/example",
             organization_id=self.org.id,
@@ -77,7 +78,7 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert second_row["provider"] == {"id": "dummy", "name": "Example"}
         assert second_row["externalSlug"] == str(repo2.external_id)
 
-    def test_get_exclude_hidden_repo(self):
+    def test_get_exclude_hidden_repo(self) -> None:
         repo = Repository.objects.create(
             name="getsentry/example",
             organization_id=self.org.id,
@@ -103,7 +104,7 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert first_row["provider"] == {"id": "dummy", "name": "Example"}
         assert first_row["externalSlug"] == str(repo.external_id)
 
-    def test_get_all_repos(self):
+    def test_get_all_repos(self) -> None:
         repo1 = Repository.objects.create(
             name="getsentry/example",
             organization_id=self.org.id,
@@ -137,7 +138,7 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert second_row["provider"] == {"id": "dummy", "name": "Example"}
         assert second_row["externalSlug"] == str(repo2.external_id)
 
-    def test_status_unmigratable(self):
+    def test_status_unmigratable(self) -> None:
         self.url = self.url + "?status=unmigratable"
 
         self.create_integration(
@@ -160,7 +161,7 @@ class OrganizationRepositoriesListTest(APITestCase):
             assert response.status_code == 200, response.content
             assert response.data[0]["name"] == unmigratable_repo.name
 
-    def test_status_unmigratable_missing_org_integration(self):
+    def test_status_unmigratable_missing_org_integration(self) -> None:
         self.url = self.url + "?status=unmigratable"
 
         self.create_integration(
@@ -185,7 +186,7 @@ class OrganizationRepositoriesListTest(APITestCase):
             assert response.status_code == 200, response.content
             assert len(response.data) == 0
 
-    def test_status_unmigratable_disabled_integration(self):
+    def test_status_unmigratable_disabled_integration(self) -> None:
         self.url = self.url + "?status=unmigratable"
 
         self.create_integration(
@@ -215,7 +216,7 @@ class OrganizationRepositoriesListTest(APITestCase):
             # Shouldn't even make the request to get repos
             assert not f.called
 
-    def test_status_unmigratable_disabled_org_integration(self):
+    def test_status_unmigratable_disabled_org_integration(self) -> None:
         self.url = self.url + "?status=unmigratable"
         self.create_integration(
             organization=self.org,
@@ -244,7 +245,7 @@ class OrganizationRepositoriesListTest(APITestCase):
             # Shouldn't even make the request to get repos
             assert not f.called
 
-    def test_passing_integration_id(self):
+    def test_passing_integration_id(self) -> None:
         integration = self.create_integration(
             organization=self.org,
             provider="github",
@@ -268,9 +269,58 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert response.data[0]["id"] == str(repo.id)
         assert response.data[0]["externalSlug"] is None
 
+    def test_without_expand_settings_and_has_settings(self) -> None:
+        repo = Repository.objects.create(name="example", organization_id=self.org.id)
+        self.create_repository_settings(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=[CodeReviewTrigger.ON_NEW_COMMIT],
+        )
+
+        response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(repo.id)
+        assert "settings" not in response.data[0]
+
+    def test_expand_settings_with_settings(self) -> None:
+        repo = Repository.objects.create(name="example", organization_id=self.org.id)
+        self.create_repository_settings(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=[
+                CodeReviewTrigger.ON_NEW_COMMIT,
+                CodeReviewTrigger.ON_READY_FOR_REVIEW,
+            ],
+        )
+
+        response = self.client.get(f"{self.url}?expand=settings", format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(repo.id)
+        assert "settings" in response.data[0]
+        assert response.data[0]["settings"]["enabledCodeReview"] is True
+        assert response.data[0]["settings"]["codeReviewTriggers"] == [
+            "on_new_commit",
+            "on_ready_for_review",
+        ]
+
+    def test_expand_settings_without_settings(self) -> None:
+        repo = Repository.objects.create(name="example", organization_id=self.org.id)
+
+        response = self.client.get(f"{self.url}?expand=settings", format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(repo.id)
+        assert "settings" in response.data[0]
+        assert response.data[0]["settings"] is None
+
 
 class OrganizationRepositoriesCreateTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -286,7 +336,7 @@ class OrganizationRepositoriesCreateTest(APITestCase):
         assert repo.provider == "dummy"
         assert repo.name == "getsentry/sentry"
 
-    def test_admin_ok(self):
+    def test_admin_ok(self) -> None:
         org = self.create_organization(owner=self.user, name="baz")
         team = self.create_team(name="people", organization=org)
 
@@ -301,7 +351,7 @@ class OrganizationRepositoriesCreateTest(APITestCase):
 
         assert response.status_code == 201, (response.status_code, response.content)
 
-    def test_member_ok(self):
+    def test_member_ok(self) -> None:
         org = self.create_organization(owner=self.user, name="baz")
         team = self.create_team(name="people", organization=org)
 
@@ -318,7 +368,7 @@ class OrganizationRepositoriesCreateTest(APITestCase):
 
 
 class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization(owner=self.user, name="baz")
         self.integraiton = self.create_integration(
@@ -337,7 +387,7 @@ class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
     @patch.object(
         ExampleRepositoryProvider, "get_repository_data", return_value={"my_config_key": "some_var"}
     )
-    def test_simple(self, mock_build_repository_config):
+    def test_simple(self, mock_build_repository_config: MagicMock) -> None:
 
         with patch.object(
             ExampleRepositoryProvider, "build_repository_config", return_value=self.repo_config_data
@@ -361,7 +411,7 @@ class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
     @patch.object(
         ExampleRepositoryProvider, "get_repository_data", return_value={"my_config_key": "some_var"}
     )
-    def test_floating_repo(self, mock_build_repository_config):
+    def test_floating_repo(self, mock_build_repository_config: MagicMock) -> None:
         repo = Repository.objects.create(
             organization_id=self.org.id,
             name="getsentry/sentry",
@@ -392,7 +442,7 @@ class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
     @patch.object(
         ExampleRepositoryProvider, "get_repository_data", return_value={"my_config_key": "some_var"}
     )
-    def test_existing_repo(self, mock_build_repository_config):
+    def test_existing_repo(self, mock_build_repository_config: MagicMock) -> None:
         Repository.objects.create(
             organization_id=self.org.id,
             name="getsentry/sentry",

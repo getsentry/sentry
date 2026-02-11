@@ -19,15 +19,15 @@ export function PagerdutyDetails({
 }) {
   const integration = handler.integrations?.find(i => i.id === action.integrationId);
   const service = integration?.services?.find(
-    s => s.id === action.config.target_identifier
+    s => s.id === action.config.targetIdentifier
   );
 
   return tct(
     'Send a [logo] PagerDuty notification to [account] and service [service] with [severity] severity',
     {
       logo: ActionMetadata[ActionType.PAGERDUTY]?.icon,
-      account: integration?.name || action.integrationId,
-      service: service?.name || action.config.target_identifier,
+      account: integration?.name || t('unknown'),
+      service: service?.name || t('unknown'),
       severity: String(action.data.priority),
     }
   );
@@ -69,7 +69,7 @@ export function validatePagerdutyAction(action: Action): string | undefined {
   if (!action.integrationId) {
     return t('You must specify a PagerDuty integration.');
   }
-  if (!action.config.target_identifier) {
+  if (!action.config.targetIdentifier) {
     return t('You must specify a service.');
   }
   if (!action.data.priority) {

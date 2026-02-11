@@ -8,7 +8,7 @@ import omit from 'lodash/omit';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -248,7 +248,7 @@ class ProjectSessionsChartRequest extends Component<
     const timeseriesData = [
       {
         seriesName: t('This Period'),
-        color: theme.green300,
+        color: theme.colors.green400,
         data: responseData.intervals
           .slice(fetchedWithPrevious ? dataMiddleIndex : 0)
           .map((interval, i) => {

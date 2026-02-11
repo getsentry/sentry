@@ -22,8 +22,8 @@ DM_COMMANDS = {
     "unlink": "Unlink your Slack identity from your Sentry account.",
 }
 CHANNEL_COMMANDS = {
-    "link team": "Get your Sentry team's issue alert notifications in this channel.",
-    "unlink team": "Unlink a team from this channel.",
+    "link team [organization_slug]": "Get your Sentry team's issue alert notifications in this channel.",
+    "unlink team [organization_slug]": "Unlink a team from this channel.",
 }
 HELP_COMMANDS = {
     "support": "Get support resources.",
@@ -55,9 +55,10 @@ HELP_COMMANDS_MESSAGE = list_commands(HELP_COMMANDS)
 
 
 class SlackHelpMessageBuilder(BlockSlackMessageBuilder):
-    def __init__(self, command: str | None = None) -> None:
+    def __init__(self, command: str | None = None, integration_id: int | None = None) -> None:
         super().__init__()
         self.command = command
+        self.integration_id = integration_id
 
     def get_header_blocks(self) -> Sequence[SlackBlock]:
         blocks = []

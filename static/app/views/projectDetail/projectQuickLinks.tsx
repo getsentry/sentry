@@ -1,10 +1,11 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -23,7 +24,6 @@ import {
 import {SidebarSection} from './styles';
 
 type Props = {
-  location: Location;
   organization: Organization;
   project?: Project;
 };
@@ -89,10 +89,10 @@ function ProjectQuickLinks({organization, project}: Props) {
             >
               <QuickLink to={to} disabled={disabled}>
                 <IconLink />
-                <QuickLinkTextContainer>
+                <Flex align="center" gap="xs">
                   <QuickLinkText>{title}</QuickLinkText>
                   {showNewBadge && <FeatureBadge type="new" />}
-                </QuickLinkTextContainer>
+                </Flex>
               </QuickLink>
             </Tooltip>
           </div>
@@ -119,20 +119,18 @@ const QuickLink = styled((p: any) =>
   ${p =>
     p.disabled &&
     css`
-      color: ${p.theme.gray200};
+      color: ${p.theme.colors.gray200};
       cursor: not-allowed;
     `}
 `;
 
-const QuickLinkTextContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
 const QuickLinkText = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
-  ${p => p.theme.overflowEllipsis}
+  font-size: ${p => p.theme.font.size.md};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export default ProjectQuickLinks;

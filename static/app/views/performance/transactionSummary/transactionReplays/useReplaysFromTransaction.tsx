@@ -2,11 +2,11 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
+import {DEFAULT_REPLAY_LIST_SORT} from 'sentry/components/replays/table/useReplayTableSort';
 import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {DEFAULT_SORT} from 'sentry/utils/replays/fetchReplayList';
 import useApi from 'sentry/utils/useApi';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
@@ -90,7 +90,7 @@ function useReplaysFromTransaction({
       fields: REPLAY_LIST_FIELDS,
       projects: [],
       query: response.replayIds.length ? `id:[${String(response.replayIds)}]` : undefined,
-      orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
+      orderby: decodeScalar(location.query.sort, DEFAULT_REPLAY_LIST_SORT),
     });
   }, [location.query.sort, response.replayIds]);
 

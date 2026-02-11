@@ -2,17 +2,16 @@ import logging
 from collections.abc import MutableMapping
 from typing import Any
 
-from sentry import ratelimits, tsdb
+from sentry import ratelimits
 from sentry.api.serializers import serialize
-from sentry.eventstore.models import Event
 from sentry.plugins.base import Plugin
-from sentry.tsdb.base import TSDBModel
+from sentry.services.eventstore.models import Event
 
 logger = logging.getLogger(__name__)
 
 
 class DataForwardingPlugin(Plugin):
-    def has_project_conf(self):
+    def has_project_conf(self) -> bool:
         return True
 
     def get_rate_limit(self):
@@ -28,10 +27,10 @@ class DataForwardingPlugin(Plugin):
     def get_event_payload(self, event):
         return serialize(event)
 
-    def get_plugin_type(self):
+    def get_plugin_type(self) -> str:
         return "data-forwarding"
 
-    def get_rl_key(self, event):
+    def get_rl_key(self, event) -> str:
         return f"{self.conf_key}:{event.project.organization_id}"
 
     def initialize_variables(self, event):
@@ -56,12 +55,5 @@ class DataForwardingPlugin(Plugin):
         return False
 
     def post_process(self, *, event, **kwargs) -> None:
-        if self.is_ratelimited(event):
-            return
-
-        payload = self.get_event_payload(event)
-        success = self.forward_event(event, payload)
-        if success is False:
-            # TODO(dcramer): record failure
-            pass
-        tsdb.backend.incr(TSDBModel.project_total_forwarded, event.project.id, count=1)
+        # Plugin data forwarding has been superseded by org-level DataForwarders
+        return

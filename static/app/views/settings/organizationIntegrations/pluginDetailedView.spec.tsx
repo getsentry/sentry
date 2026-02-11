@@ -1,14 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PluginFixture} from 'sentry-fixture/plugin';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {PluginWithProjectList} from 'sentry/types/integrations';
 import PluginDetailedView from 'sentry/views/settings/organizationIntegrations/pluginDetailedView';
 
-describe('PluginDetailedView', function () {
+describe('PluginDetailedView', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   const plugin: PluginWithProjectList = {
@@ -36,30 +35,31 @@ describe('PluginDetailedView', function () {
     });
   });
 
-  it('shows the Integration name and install status', async function () {
-    const router = RouterFixture({
-      params: {orgId: organization.slug, integrationSlug: plugin.slug},
-    });
+  it('shows the Integration name and install status', async () => {
     render(<PluginDetailedView />, {
+      initialRouterConfig: {
+        route: '/settings/:orgId/integrations/:integrationSlug/',
+        location: {
+          pathname: `/settings/${organization.slug}/integrations/${plugin.slug}/`,
+        },
+      },
       organization,
-      router,
-      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByText(plugin.name)).toBeInTheDocument();
     expect(screen.getByText('Installed')).toBeInTheDocument();
   });
 
-  it('view configurations', async function () {
-    const router = RouterFixture({
-      params: {orgId: organization.slug, integrationSlug: plugin.slug},
-      location: {query: {tab: 'configurations'}},
-    });
-
+  it('view configurations', async () => {
     render(<PluginDetailedView />, {
-      router,
+      initialRouterConfig: {
+        route: '/settings/:orgId/integrations/:integrationSlug/',
+        location: {
+          pathname: `/settings/${organization.slug}/integrations/${plugin.slug}/`,
+          query: {tab: 'configurations'},
+        },
+      },
       organization,
-      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByText(plugin.name)).toBeInTheDocument();

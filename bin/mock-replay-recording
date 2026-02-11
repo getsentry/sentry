@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 def get_producer() -> KafkaProducer:
     cluster_name = get_topic_definition(Topic.INGEST_REPLAYS_RECORDINGS)["cluster"]
     producer_config = get_kafka_producer_cluster_options(cluster_name)
+    producer_config["client.id"] = "sentry.bin.mock-replay-recording"
     return KafkaProducer(build_kafka_configuration(default_config=producer_config))
 
 

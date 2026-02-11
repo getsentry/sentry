@@ -8,6 +8,10 @@ from sentry.models.organization import Organization
 
 __all__ = ["get_org_sample_rate"]
 
+import logging
+
+logger = logging.getLogger("sentry.dynamic_sampling")
+
 
 def get_org_sample_rate(
     org_id: int, default_sample_rate: float | None
@@ -35,7 +39,8 @@ def get_org_sample_rate(
         return TARGET_SAMPLE_RATE_DEFAULT, False
 
     # fallback to sliding window calculation
-    return _get_sliding_window_org_sample_rate(org_id, default_sample_rate)
+    sample_rate, is_custom = _get_sliding_window_org_sample_rate(org_id, default_sample_rate)
+    return sample_rate, is_custom
 
 
 def _get_sliding_window_org_sample_rate(

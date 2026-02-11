@@ -2,8 +2,10 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
@@ -14,12 +16,12 @@ import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
+import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 
 type GroupHistory = {
   count: number;
@@ -44,7 +46,16 @@ function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: P
     error,
   } = useApiQuery<GroupHistory[]>(
     [
-      `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/group-history/`,
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/rules/$ruleId/group-history/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project.slug,
+            ruleId: rule.id,
+          },
+        }
+      ),
       {
         query: {
           per_page: 10,
@@ -115,23 +126,15 @@ function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: P
                 <Count value={issue.count} />
               </AlignRight>
               <div>
-                <StyledDateTime
-                  date={getDynamicText({
-                    value: lastTriggered,
-                    fixed: 'Mar 16, 2020 9:10:13 AM UTC',
-                  })}
-                  year
-                  seconds
-                  timeZone
-                />
+                <StyledDateTime date={lastTriggered} year seconds timeZone />
               </div>
             </Fragment>
           );
         })}
       </StyledPanelTable>
-      <PaginationWrapper>
+      <Flex justify="end" align="center" marginBottom="xl">
         <StyledPagination pageLinks={getResponseHeader?.('Link')} size="xs" />
-      </PaginationWrapper>
+      </Flex>
     </Fragment>
   );
 }
@@ -140,7 +143,7 @@ export default AlertRuleIssuesList;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.5fr;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-bottom: ${space(1.5)};
 
   ${p =>
@@ -159,26 +162,26 @@ const AlignRight = styled('div')`
 
 const StyledDateTime = styled(DateTime)`
   white-space: nowrap;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TitleWrapper = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   gap: ${space(0.5)};
   min-width: 200px;
 `;
 
 const MessageWrapper = styled('span')`
-  ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.textColor};
-`;
-
-const PaginationWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  margin-bottom: ${space(2)};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const StyledPagination = styled(Pagination)`

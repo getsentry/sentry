@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from datetime import datetime
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 from sentry.shared_integrations.response.base import BaseApiResponse
 
@@ -46,10 +46,13 @@ class GitLabApiClientPath:
     project_hooks = "/projects/{project}/hooks"
     project_hook = "/projects/{project}/hooks/{hook_id}"
     projects = "/projects"
+    statuses = "/projects/{project}/statuses/{sha}"
+    commit_statuses = "/projects/{project}/repository/commits/{sha}/statuses"
     user = "/user"
+    users = "/users"
 
     @staticmethod
-    def build_api_url(base_url, path):
+    def build_api_url(base_url, path) -> str:
         return f"{base_url.rstrip('/')}{API_VERSION}{path}"
 
     @classmethod
@@ -84,3 +87,25 @@ def get_rate_limit_info_from_response(
     return GitLabRateLimitInfo(
         dict({(k, int(v) if v else 0) for k, v in rate_limit_params.items()})
     )
+
+
+def parse_gitlab_blob_url(repo_url: str, source_url: str) -> tuple[str, str]:
+    """
+    Parse a GitLab blob URL relative to a repository URL and return
+    a tuple of (branch, source_path). If parsing fails, returns ("", "").
+    """
+    repo_path = urlparse(repo_url).path.rstrip("/")
+    path = urlparse(source_url).path
+    if repo_path and path.startswith(repo_path):
+        path = path[len(repo_path) :]
+
+    if "/-/blob/" in path:
+        _, _, after_blob = path.partition("/-/blob/")
+    else:
+        _, _, after_blob = path.partition("/blob/")
+
+    if not after_blob:
+        return "", ""
+
+    branch, _, remainder = after_blob.partition("/")
+    return branch, remainder.lstrip("/")

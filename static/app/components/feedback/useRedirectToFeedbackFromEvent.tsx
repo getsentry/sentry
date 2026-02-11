@@ -1,12 +1,13 @@
 import {useEffect} from 'react';
 
 import type {Event} from 'sentry/types/event';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
+import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 
 export default function useRedirectToFeedbackFromEvent() {
   const organization = useOrganization();
@@ -20,7 +21,15 @@ export default function useRedirectToFeedbackFromEvent() {
   });
 
   const {data: event} = useApiQuery<Event>(
-    [`/projects/${organization.slug}/${projectSlug}/events/${eventId}/`],
+    [
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projectSlug,
+          eventId,
+        },
+      }),
+    ],
     {
       staleTime: Infinity,
       enabled: Boolean(eventId) && Boolean(projectSlug),

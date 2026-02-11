@@ -8,16 +8,19 @@ from .commitauthor import *  # noqa: F401,F403
 from .data_source import *  # noqa: F401,F403
 from .detector import *  # noqa: F401,F403
 from .discoversavedquery import *  # noqa: F401,F403
+from .file import *  # noqa: F401,F403
 from .group import *  # noqa: F401,F403
 from .grouphash import *  # noqa: F401,F403
-from .grouphistory import *  # noqa: F401,F403
 from .incident import *  # noqa: F401,F403
 from .monitor import *  # noqa: F401,F403
+from .monitor_checkin import *  # noqa: F401,F403
 from .monitor_environment import *  # noqa: F401,F403
+from .monitor_incident import *  # noqa: F401,F403
 from .organization import *  # noqa: F401,F403
 from .organizationintegration import *  # noqa: F401,F403
 from .organizationmember import *  # noqa: F401,F403
 from .platform_external_issue import *  # noqa: F401,F403
+from .preprod_artifact import *  # noqa: F401,F403
 from .project import *  # noqa: F401,F403
 from .pullrequest import *  # noqa: F401,F403
 from .querysubscription import *  # noqa: F401,F403
@@ -31,4 +34,5 @@ from .sentry_app_installation import *  # noqa: F401,F403
 from .sentry_app_installation_token import *  # noqa: F401,F403
 from .service_hook import *  # noqa: F401,F403
 from .team import *  # noqa: F401,F403
+from .uptime_subscription import *  # noqa: F401,F403
 from .workflow import *  # noqa: F401,F403

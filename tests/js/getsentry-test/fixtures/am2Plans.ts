@@ -1,14 +1,16 @@
 import {
+  LEGACY_SEER_TIERS,
+  LEGACY_SEER_TIERS_ANNUAL,
+  LEGACY_SEER_TIERS_DEVELOPER,
+  LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
   SEER_TIERS,
-  SEER_TIERS_ANNUAL,
-  SEER_TIERS_DEVELOPER,
-  SEER_TIERS_TRIAL_OR_ENTERPRISE,
 } from 'getsentry-test/fixtures/am3Plans';
+import {AM_ADD_ON_CATEGORIES as AM2_ADD_ON_CATEGORIES} from 'getsentry-test/fixtures/constants';
 import {SeerReservedBudgetCategoryFixture} from 'getsentry-test/fixtures/reservedBudget';
 
 import type {DataCategory} from 'sentry/types/core';
 
-import {ANNUAL, MONTHLY} from 'getsentry/constants';
+import {ANNUAL, MONTHLY, UNLIMITED_RESERVED} from 'getsentry/constants';
 import type {Plan} from 'getsentry/types';
 import {CheckoutType, ReservedBudgetCategoryType} from 'getsentry/types';
 
@@ -19,6 +21,9 @@ const AM2_CHECKOUT_CATEGORIES = [
   'attachments',
   'monitorSeats',
   'uptime',
+  'logBytes',
+  'sizeAnalyses',
+  'installableBuilds',
 ] as DataCategory[];
 
 const AM2_ONDEMAND_CATEGORIES = [
@@ -43,8 +48,15 @@ const AM2_CATEGORY_DISPLAY_NAMES = {
   },
   profileDurationUI: {plural: 'UI profile hours', singular: 'UI profile hour'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
+  logBytes: {singular: 'log', plural: 'logs'},
   seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
+  seerUsers: {singular: 'active contributor', plural: 'active contributors'},
+  sizeAnalyses: {singular: 'size analysis build', plural: 'size analysis builds'},
+  installableBuilds: {
+    singular: 'build distribution install',
+    plural: 'build distribution installs',
+  },
 };
 
 const AM2_AVAILABLE_RESERVED_BUDGET_TYPES = {
@@ -66,7 +78,6 @@ const AM2_TEAM_FEATURES = [
   ...AM2_FREE_FEATURES,
   'codecov-integration',
   'crash-rate-alerts',
-  'dashboards-basic',
   'discover-basic',
   'incidents',
   'integrations-issue-basic',
@@ -88,11 +99,9 @@ const AM2_BUSINESS_FEATURES = [
   'change-alerts',
   'custom-inbound-filters',
   'custom-symbol-sources',
-  'dashboards-edit',
   'data-forwarding',
   'discard-groups',
   'discover-query',
-  'global-views',
   'integrations-codeowners',
   'integrations-enterprise-alert-rule',
   'integrations-enterprise-incident-management',
@@ -110,10 +119,23 @@ const AM2_TRIAL_FEATURES = AM2_BUSINESS_FEATURES.filter(
 );
 
 const BUDGET_TERM = 'on-demand';
+// TODO(isabella): This probably isn't all the common fields
+const commonFields = {
+  addOnCategories: AM2_ADD_ON_CATEGORIES,
+  categories: AM2_CATEGORIES,
+  categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
+  checkoutCategories: AM2_CHECKOUT_CATEGORIES,
+  availableCategories: AM2_CATEGORIES,
+  onDemandCategories: AM2_ONDEMAND_CATEGORIES,
+  hasOnDemandModes: true,
+  budgetTerm: BUDGET_TERM as 'on-demand',
+  availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES, // TODO(isabella): default budgets for sponsored plans is different
+};
 
 // TODO: Update with correct pricing and structure
 const AM2_PLANS: Record<string, Plan> = {
   am2_business: {
+    ...commonFields,
     id: 'am2_business',
     name: 'Business',
     description: '',
@@ -133,12 +155,6 @@ const AM2_PLANS: Record<string, Plan> = {
     allowOnDemand: true,
     reservedMinimum: 50000,
     allowAdditionalReservedEvents: false,
-    categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
-    categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
-    availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: true,
     planCategories: {
       errors: [
         {
@@ -828,12 +844,37 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS,
       ...SEER_TIERS,
     },
-    budgetTerm: BUDGET_TERM,
-    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am2_f: {
+    ...commonFields,
     id: 'am2_f',
     name: 'Developer',
     description: '',
@@ -853,12 +894,6 @@ const AM2_PLANS: Record<string, Plan> = {
     allowOnDemand: false,
     reservedMinimum: 5000,
     allowAdditionalReservedEvents: false,
-    categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
-    categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
-    availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: true,
     planCategories: {
       errors: [
         {
@@ -916,12 +951,37 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
-      ...SEER_TIERS_DEVELOPER,
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS_DEVELOPER,
+      ...SEER_TIERS,
     },
-    budgetTerm: BUDGET_TERM,
-    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: 10,
+    metricDetectorLimit: 20,
   },
   am2_team: {
+    ...commonFields,
     id: 'am2_team',
     name: 'Team',
     description: '',
@@ -941,12 +1001,6 @@ const AM2_PLANS: Record<string, Plan> = {
     allowOnDemand: true,
     reservedMinimum: 50000,
     allowAdditionalReservedEvents: false,
-    categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
-    categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
-    availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: true,
     planCategories: {
       errors: [
         {
@@ -1636,13 +1690,37 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
-
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: 25000,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS,
       ...SEER_TIERS,
     },
-    budgetTerm: BUDGET_TERM,
-    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: 20,
+    metricDetectorLimit: 20,
   },
   am2_t: {
+    ...commonFields,
     id: 'am2_t',
     name: 'Trial',
     description: '',
@@ -1662,12 +1740,6 @@ const AM2_PLANS: Record<string, Plan> = {
     allowOnDemand: false,
     reservedMinimum: 0,
     allowAdditionalReservedEvents: false,
-    categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
-    categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
-    availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: true,
     planCategories: {
       errors: [
         {
@@ -1725,12 +1797,37 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
-      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...SEER_TIERS,
     },
-    budgetTerm: BUDGET_TERM,
-    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: 20,
+    metricDetectorLimit: 20,
   },
   am2_team_auf: {
+    ...commonFields,
     id: 'am2_team_auf',
     name: 'Team',
     description: '',
@@ -1750,14 +1847,6 @@ const AM2_PLANS: Record<string, Plan> = {
     allowOnDemand: true,
     reservedMinimum: 50000,
     allowAdditionalReservedEvents: false,
-    categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
-    categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
-    availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: true,
-    budgetTerm: BUDGET_TERM,
-    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
     planCategories: {
       errors: [
         {
@@ -2410,10 +2499,37 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
-      ...SEER_TIERS_ANNUAL,
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: 25000,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS_ANNUAL,
+      ...SEER_TIERS,
     },
+    dashboardLimit: 20,
+    metricDetectorLimit: 20,
   },
   am2_business_auf: {
+    ...commonFields,
     id: 'am2_business_auf',
     name: 'Business',
     description: '',
@@ -2433,13 +2549,6 @@ const AM2_PLANS: Record<string, Plan> = {
     allowOnDemand: true,
     reservedMinimum: 50000,
     allowAdditionalReservedEvents: false,
-    categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
-    categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
-    availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: true,
-    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -3092,11 +3201,37 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
-      ...SEER_TIERS_ANNUAL,
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS_ANNUAL,
+      ...SEER_TIERS,
     },
-    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am2_sponsored: {
+    ...commonFields,
     // NOTE: being deprecated
     id: 'am2_sponsored',
     name: 'Sponsored',
@@ -3117,11 +3252,6 @@ const AM2_PLANS: Record<string, Plan> = {
     allowOnDemand: true,
     reservedMinimum: 5000000,
     allowAdditionalReservedEvents: false,
-    categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
-    availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: true,
     planCategories: {
       errors: [{events: 5000000, unitPrice: 0.015, price: 0}],
       transactions: [{events: 10000000, unitPrice: 0.0054, price: 0}],
@@ -3131,12 +3261,17 @@ const AM2_PLANS: Record<string, Plan> = {
       uptime: [{events: 500, unitPrice: 0, price: 0}],
       profileDuration: [{events: 0, unitPrice: 0, price: 0}],
       profileDurationUI: [{events: 0, unitPrice: 0, price: 0}],
+      logBytes: [{events: 5, unitPrice: 0.5, price: 0}],
+      sizeAnalyses: [{events: 100, unitPrice: 0, price: 0, onDemandPrice: 0}],
+      installableBuilds: [{events: 25000, unitPrice: 0, price: 0, onDemandPrice: 0}],
     },
-    categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
-    budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: {},
+    addOnCategories: {},
+    dashboardLimit: 20,
+    metricDetectorLimit: 20,
   },
   am2_sponsored_team_auf: {
+    ...commonFields,
     id: 'am2_sponsored_team_auf',
     name: 'Sponsored Team',
     description: '',
@@ -3156,11 +3291,6 @@ const AM2_PLANS: Record<string, Plan> = {
     allowOnDemand: true,
     reservedMinimum: 50_000,
     allowAdditionalReservedEvents: false,
-    categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
-    availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: true,
     planCategories: {
       errors: [{events: 50_000, unitPrice: 0.015, price: 0}],
       transactions: [{events: 100_000, unitPrice: 0.0054, price: 0}],
@@ -3170,12 +3300,17 @@ const AM2_PLANS: Record<string, Plan> = {
       uptime: [{events: 10, unitPrice: 0, price: 0}],
       profileDuration: [{events: 0, unitPrice: 0, price: 0}],
       profileDurationUI: [{events: 0, unitPrice: 0, price: 0}],
+      logBytes: [{events: 5, unitPrice: 0.5, price: 0}],
+      sizeAnalyses: [{events: 100, unitPrice: 0, price: 0, onDemandPrice: 0}],
+      installableBuilds: [{events: 25000, unitPrice: 0, price: 0, onDemandPrice: 0}],
     },
-    categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
-    budgetTerm: BUDGET_TERM,
+    dashboardLimit: 20,
+    metricDetectorLimit: 20,
     availableReservedBudgetTypes: {},
+    addOnCategories: {},
   },
   am2_business_bundle: {
+    ...commonFields,
     id: 'am2_business_bundle',
     name: 'Business Bundle',
     description: '',
@@ -3195,13 +3330,6 @@ const AM2_PLANS: Record<string, Plan> = {
     allowOnDemand: true,
     reservedMinimum: 500000,
     allowAdditionalReservedEvents: false,
-    categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
-    budgetTerm: BUDGET_TERM,
-    categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
-    availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: true,
     planCategories: {
       errors: [
         {
@@ -3664,11 +3792,37 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS,
       ...SEER_TIERS,
     },
-    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am2_business_249_bundle: {
+    ...commonFields,
     id: 'am2_business_249_bundle',
     name: 'Business Bundle',
     description: '',
@@ -3688,13 +3842,6 @@ const AM2_PLANS: Record<string, Plan> = {
     allowOnDemand: true,
     reservedMinimum: 500000,
     allowAdditionalReservedEvents: false,
-    categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
-    categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
-    availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: true,
-    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -4207,11 +4354,37 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS,
       ...SEER_TIERS,
     },
-    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am2_team_bundle: {
+    ...commonFields,
     id: 'am2_team_bundle',
     name: 'Team Bundle',
     description: '',
@@ -4231,13 +4404,6 @@ const AM2_PLANS: Record<string, Plan> = {
     allowOnDemand: true,
     reservedMinimum: 100000,
     allowAdditionalReservedEvents: false,
-    categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
-    categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
-    availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: true,
-    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -4765,11 +4931,37 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: 25000,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS,
       ...SEER_TIERS,
     },
-    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: 20,
+    metricDetectorLimit: 20,
   },
   am2_business_ent_auf: {
+    ...commonFields,
     id: 'am2_business_ent_auf',
     name: 'Enterprise (Business)',
     description: '',
@@ -4789,13 +4981,6 @@ const AM2_PLANS: Record<string, Plan> = {
     allowOnDemand: true,
     reservedMinimum: 0,
     allowAdditionalReservedEvents: true,
-    categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
-    categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
-    availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: false,
-    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -4853,10 +5038,36 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
     },
-    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
+    metricDetectorLimit: -1,
+    hasOnDemandModes: false,
   },
   am2_business_ent: {
+    ...commonFields,
     id: 'am2_business_ent',
     name: 'Enterprise (Business)',
     description: '',
@@ -4876,13 +5087,6 @@ const AM2_PLANS: Record<string, Plan> = {
     allowOnDemand: true,
     reservedMinimum: 0,
     allowAdditionalReservedEvents: true,
-    categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
-    categories: AM2_CATEGORIES,
-    checkoutCategories: AM2_CHECKOUT_CATEGORIES,
-    availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
-    hasOnDemandModes: false,
-    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -4940,9 +5144,35 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
-      ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      logBytes: [
+        {
+          events: 5,
+          unitPrice: 0.5,
+          price: 0,
+        },
+      ],
+      sizeAnalyses: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      installableBuilds: [
+        {
+          events: UNLIMITED_RESERVED,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
+      ...SEER_TIERS,
     },
-    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
+    metricDetectorLimit: -1,
+    hasOnDemandModes: false,
   },
 };
 

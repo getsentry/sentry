@@ -4,8 +4,8 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 jest.unmock('lodash/debounce');
 
-describe('useDebouncedValue', function () {
-  it('properly debounces values changes', function () {
+describe('useDebouncedValue', () => {
+  it('properly debounces values changes', () => {
     jest.useFakeTimers();
 
     const {result, rerender} = renderHook(useDebouncedValue, {

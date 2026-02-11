@@ -38,8 +38,8 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('GPUContext', function () {
-  it('returns values and according to the parameters', function () {
+describe('GPUContext', () => {
+  it('returns values and according to the parameters', () => {
     expect(getGPUContextData({data: MOCK_GPU_CONTEXT})).toEqual([
       {key: 'name', subject: 'Name', value: ''},
       {key: 'version', subject: 'Version', value: 'Metal'},
@@ -81,7 +81,7 @@ describe('GPUContext', function () {
     ]);
   });
 
-  it('renders with meta annotations correctly', function () {
+  it('renders with meta annotations correctly', () => {
     const event = EventFixture({
       _meta: {contexts: {gpu: MOCK_REDACTION}},
     });
@@ -89,8 +89,8 @@ describe('GPUContext', function () {
     render(
       <ContextCard
         event={event}
-        type={'gpu'}
-        alias={'gpu'}
+        type="gpu"
+        alias="gpu"
         value={{...MOCK_GPU_CONTEXT, api_type: ''}}
       />
     );

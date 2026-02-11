@@ -2,7 +2,8 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/alerts-empty-state.svg';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
 
@@ -48,7 +49,9 @@ const AlertsImage = styled('img')`
   }
 `;
 
-const ButtonList = styled(ButtonBar)`
+const ButtonList = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;
 

@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.api.analytics import OrganizationSavedSearchCreatedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -111,9 +112,10 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
             visibility=result["visibility"],
         )
         analytics.record(
-            "organization_saved_search.created",
-            search_type=SearchType(saved_search.type).name,
-            org_id=organization.id,
-            query=saved_search.query,
+            OrganizationSavedSearchCreatedEvent(
+                search_type=SearchType(saved_search.type).name,
+                org_id=organization.id,
+                query=saved_search.query,
+            )
         )
         return Response(serialize(saved_search, request.user))

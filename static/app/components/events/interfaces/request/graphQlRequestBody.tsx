@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import Prism from 'prismjs';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import List from 'sentry/components/list';
 import {t, tn} from 'sentry/locale';
@@ -74,7 +75,7 @@ function ErrorsAlert({errors}: {errors: GraphQlError[]}) {
   return (
     <Alert.Container>
       <StyledAlert
-        type="error"
+        variant="danger"
         expand={
           <List symbol="bullet">
             {errorsWithMessage.map((error, i) => (

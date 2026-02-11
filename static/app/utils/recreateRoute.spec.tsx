@@ -32,8 +32,8 @@ const location = {
   search: '',
 };
 
-describe('recreateRoute', function () {
-  it('returns correct path to a route object', function () {
+describe('recreateRoute', () => {
+  it('returns correct path to a route object', () => {
     expect(recreateRoute(routes[0]!, {routes, params})).toBe('/');
     expect(recreateRoute(routes[1]!, {routes, params})).toBe('/');
     expect(recreateRoute(routes[2]!, {routes, params})).toBe('/settings/');
@@ -48,7 +48,7 @@ describe('recreateRoute', function () {
     ).toBe('/settings/org-slug/project-slug/alerts/');
   });
 
-  it('has correct path with route object with many roots (starts with "/")', function () {
+  it('has correct path with route object with many roots (starts with "/")', () => {
     const r = [
       {path: '/', childRoutes: []},
       {childRoutes: []},
@@ -64,25 +64,25 @@ describe('recreateRoute', function () {
     expect(recreateRoute(r[4]!, {routes: r, params})).toBe('/foo/bar/');
   });
 
-  it('returns correct path to a string (at the end of the routes)', function () {
+  it('returns correct path to a string (at the end of the routes)', () => {
     expect(recreateRoute('test/', {routes, location, params})).toBe(
       '/settings/org-slug/api-keys/test/'
     );
   });
 
-  it('returns correct path to a string after the 2nd to last route', function () {
+  it('returns correct path to a string after the 2nd to last route', () => {
     expect(recreateRoute('test/', {routes, location, params, stepBack: -2})).toBe(
       '/settings/org-slug/test/'
     );
   });
 
-  it('switches to new org but keeps current route', function () {
+  it('switches to new org but keeps current route', () => {
     expect(
       recreateRoute(routes[5]!, {routes, location, params: {orgId: 'new-org'}})
     ).toBe('/settings/new-org/api-keys/');
   });
 
-  it('maintains the query string', function () {
+  it('maintains the query string', () => {
     const withSearch = {
       ...LocationFixture(),
       search: '?key1=foo&key2=bar',

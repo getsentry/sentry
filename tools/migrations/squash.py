@@ -73,13 +73,15 @@ def _migration_root(app: str) -> str:
         return "src/sentry/migrations"
     elif app == "social_auth":
         return "src/social_auth/migrations"
+    elif app == "nodestore":
+        return "src/sentry/services/nodestore/migrations"
     else:
         return f"src/sentry/{app}/migrations"
 
 
 def _migrations(root: str) -> Generator[str]:
     for fname in os.listdir(root):
-        if fname.startswith("0") and fname.endswith(".py"):
+        if fname[0].isdigit() and fname.endswith(".py"):
             yield fname
 
 
@@ -194,7 +196,11 @@ class FixupVisitor(ast.NodeVisitor):
                 and kw.value.func.attr == "ExclusionConstraint"
             ):
                 model_name_kw = _get_kw(node.keywords, "model_name")
-                assert model_name_kw is not None and isinstance(model_name_kw.value, ast.Constant)
+                assert (
+                    model_name_kw is not None
+                    and isinstance(model_name_kw.value, ast.Constant)
+                    and isinstance(model_name_kw.value.value, str)
+                )
                 table = _EXCLUSION_TABLES[model_name_kw.value.value]
                 self.first_exclude_constraint = (table, node.lineno)
 
@@ -202,7 +208,11 @@ class FixupVisitor(ast.NodeVisitor):
 
 
 def _fixup(app: App, squash: dict[str, App]) -> None:
-    os.rename(os.path.join(app.root, "0001_squash.py"), app.squash_fname)
+    squashed = os.path.join(app.root, "0001_squash.py")
+    if not os.path.exists(squashed):
+        return  # all models were deleted in the app
+
+    os.rename(squashed, app.squash_fname)
 
     with open(app.squash_fname, encoding="UTF-8") as f:
         lines = list(f)
@@ -252,7 +262,8 @@ def _write_lockfile(apps: list[App]) -> None:
     with open("migrations_lockfile.txt", "w", encoding="UTF-8") as f:
         f.writelines(lines[:6])
         for app in apps:
-            f.write(f"\n{app.name}: {app.squash_name}\n")
+            if os.path.exists(app.squash_fname):
+                f.write(f"\n{app.name}: {app.squash_name}\n")
 
 
 def main() -> int:

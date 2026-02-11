@@ -4,21 +4,25 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import type {Client, ResponseMeta} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
+import type {Client} from 'sentry/api';
 import {DateTime} from 'sentry/components/dateTime';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
-import withApi from 'sentry/utils/withApi';
-import withProjects from 'sentry/utils/withProjects';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import useProjects from 'sentry/utils/useProjects';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertRuleComparisonType,
@@ -37,16 +41,17 @@ import {ALERT_RULE_STATUS, TIME_OPTIONS, TIME_WINDOWS} from './constants';
 import DetailsHeader from './header';
 import {buildMetricGraphDateRange} from './utils';
 
-interface Props extends RouteComponentProps<{ruleId: string}> {
+interface Props {
   api: Client;
   location: Location;
   organization: Organization;
   projects: Project[];
+  ruleId: string;
   loadingProjects?: boolean;
 }
 
 interface State {
-  error: ResponseMeta | null;
+  error: RequestError | null;
   hasError: boolean;
   isLoading: boolean;
   selectedIncident: Incident | null;
@@ -56,7 +61,12 @@ interface State {
 }
 
 class MetricAlertDetails extends Component<Props, State> {
-  state: State = {isLoading: false, hasError: false, error: null, selectedIncident: null};
+  state: State = {
+    isLoading: false,
+    hasError: false,
+    error: null,
+    selectedIncident: null,
+  };
 
   componentDidMount() {
     const {api, organization} = this.props;
@@ -77,7 +87,7 @@ class MetricAlertDetails extends Component<Props, State> {
     if (
       !isEqual(prevQuery, nextQuery) ||
       prevProps.organization.slug !== this.props.organization.slug ||
-      prevProps.params.ruleId !== this.props.params.ruleId
+      prevProps.ruleId !== this.props.ruleId
     ) {
       this.fetchData();
       this.trackView();
@@ -85,11 +95,11 @@ class MetricAlertDetails extends Component<Props, State> {
   }
 
   trackView() {
-    const {params, organization, location} = this.props;
+    const {ruleId, organization, location} = this.props;
 
     trackAnalytics('alert_rule_details.viewed', {
       organization,
-      rule_id: parseInt(params.ruleId, 10),
+      rule_id: parseInt(ruleId, 10),
       alert: (location.query.alert as string) ?? '',
       has_chartcuterie: organization.features
         .includes('metric-alert-chartcuterie')
@@ -183,12 +193,7 @@ class MetricAlertDetails extends Component<Props, State> {
   };
 
   fetchData = async () => {
-    const {
-      api,
-      organization,
-      params: {ruleId},
-      location,
-    } = this.props;
+    const {api, organization, ruleId, location} = this.props;
 
     this.setState({isLoading: true, hasError: false});
 
@@ -233,7 +238,12 @@ class MetricAlertDetails extends Component<Props, State> {
         hasError: false,
       });
     } catch (error) {
-      this.setState({selectedIncident, isLoading: false, hasError: true, error});
+      this.setState({
+        selectedIncident,
+        isLoading: false,
+        hasError: true,
+        error: error as RequestError,
+      });
     }
   };
 
@@ -243,7 +253,7 @@ class MetricAlertDetails extends Component<Props, State> {
     return (
       <Layout.Page withPadding>
         <Alert.Container>
-          <Alert type="error">
+          <Alert variant="danger">
             {error?.status === 404
               ? t('This alert rule could not be found.')
               : t('An error occurred while fetching the alert rule.')}
@@ -274,7 +284,7 @@ class MetricAlertDetails extends Component<Props, State> {
       >
         {warning && (
           <Alert.Container>
-            <Alert type="warning">{warning}</Alert>
+            <Alert variant="warning">{warning}</Alert>
           </Alert.Container>
         )}
         <SentryDocumentTitle title={rule?.name ?? ''} />
@@ -298,4 +308,21 @@ class MetricAlertDetails extends Component<Props, State> {
   }
 }
 
-export default withApi(withProjects(MetricAlertDetails));
+export default function MetricAlertDetailsWrapper() {
+  const api = useApi();
+  const location = useLocation();
+  const {ruleId} = useParams<{ruleId: string}>();
+  const organization = useOrganization();
+  const {projects, initiallyLoaded} = useProjects();
+
+  return (
+    <MetricAlertDetails
+      api={api}
+      location={location}
+      organization={organization}
+      ruleId={ruleId}
+      projects={projects}
+      loadingProjects={!initiallyLoaded}
+    />
+  );
+}

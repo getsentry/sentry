@@ -1,7 +1,7 @@
 from sentry.replays.usecases.query import _make_ordered
 
 
-def test_make_ordered():
+def test_make_ordered() -> None:
     """Test "_make_ordered" function."""
     # Assert ordered response.
     ordering = _make_ordered(["a", "b"], [{"replay_id": "a"}, {"replay_id": "b"}])

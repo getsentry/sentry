@@ -1,9 +1,10 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
@@ -12,26 +13,34 @@ import {
   ToolbarRow,
   ToolbarSection,
 } from 'sentry/views/explore/components/toolbar/styles';
-import {
-  useExploreFields,
-  useExploreGroupBys,
-  useExploreMode,
-  useExploreSortBys,
-  useExploreVisualizes,
-  useSetExploreSortBys,
-} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useSortByFields} from 'sentry/views/explore/hooks/useSortByFields';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
+import {
+  useQueryParamsAggregateSortBys,
+  useQueryParamsFields,
+  useQueryParamsGroupBys,
+  useQueryParamsMode,
+  useQueryParamsSortBys,
+  useQueryParamsVisualizes,
+  useSetQueryParamsAggregateSortBys,
+  useSetQueryParamsSortBys,
+} from 'sentry/views/explore/queryParams/context';
 
 export function ToolbarSortBy() {
-  const mode = useExploreMode();
-  const fields = useExploreFields();
-  const groupBys = useExploreGroupBys();
-  const visualizes = useExploreVisualizes();
+  const mode = useQueryParamsMode();
+  const fields = useQueryParamsFields();
+  const groupBys = useQueryParamsGroupBys();
+  const visualizes = useQueryParamsVisualizes();
 
-  const sorts = useExploreSortBys();
-  const setSorts = useSetExploreSortBys();
+  const sampleSortBys = useQueryParamsSortBys();
+  const setSampleSortBys = useSetQueryParamsSortBys();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const setAggregateSortBys = useSetQueryParamsAggregateSortBys();
+  const [sorts, setSorts] =
+    mode === Mode.SAMPLES
+      ? [sampleSortBys, setSampleSortBys]
+      : [aggregateSortBys, setAggregateSortBys];
 
   const [tab] = useTab();
 

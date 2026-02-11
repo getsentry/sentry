@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import AvatarList from 'sentry/components/core/avatar/avatarList';
+import {AvatarList} from '@sentry/scraps/avatar';
+
 import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
@@ -29,6 +30,7 @@ import type {Project} from 'sentry/types/project';
 import type {CurrentRelease} from 'sentry/types/release';
 import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {userDisplayName} from 'sentry/utils/formatters';
@@ -67,7 +69,11 @@ export function useFetchAllEnvsGroupData(
 
 function useFetchCurrentRelease(organization: OrganizationSummary, group: Group) {
   return useApiQuery<CurrentRelease>(
-    [`/organizations/${organization.slug}/issues/${group.id}/current-release/`],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/current-release/', {
+        path: {organizationIdOrSlug: organization.slug, issueId: group.id},
+      }),
+    ],
     {staleTime: 30000, gcTime: 30000}
   );
 }
@@ -304,7 +310,7 @@ export default function GroupSidebar({
 }
 
 const Container = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const ExternalIssues = styled('div')`
@@ -319,7 +325,7 @@ const StyledAvatarList = styled(AvatarList)`
 `;
 
 const TitleNumber = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 // Using 22px + space(1) = space(4)

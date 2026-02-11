@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.discover.models import TeamKeyTransaction
 from sentry.insights.models import InsightsStarredSegment
 from sentry.models.organization import Organization
@@ -6,6 +8,7 @@ from sentry.models.team import Team
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("Skipping test b/c test dependency cycle")
 class BackfillUserStarredSegmentsTest(TestMigrations):
     migrate_from = "0001_squashed_0001_add_starred_transactions_model"
     migrate_to = "0002_backfill_team_starred"
@@ -34,7 +37,7 @@ class BackfillUserStarredSegmentsTest(TestMigrations):
             transaction=self.transaction_name,
         )
 
-    def test_migrates_single_entry(self):
+    def test_migrates_single_entry(self) -> None:
         self.team_key_transaction.refresh_from_db()
 
         starred_segment_results = InsightsStarredSegment.objects.filter(

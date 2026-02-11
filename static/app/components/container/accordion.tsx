@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface AccordionItemContent {
   content: React.ReactNode;
@@ -36,7 +36,7 @@ export default function Accordion({
                 aria-label={collapsible && isExpanded ? t('Collapse') : t('Expand')}
                 aria-expanded={isExpanded}
                 size="zero"
-                borderless
+                priority="transparent"
                 onClick={() => setExpandedIndex(collapsible && isExpanded ? -1 : index)}
               />
               <LineItemWrapper
@@ -54,11 +54,11 @@ export default function Accordion({
 }
 
 const AccordionItem = styled('li')`
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
 `;
 
 const AccordionContainer = styled('ul')`
-  padding: ${space(1)} 0 0 0;
+  padding: ${p => p.theme.space.md} 0 0 0;
   margin: 0;
   list-style-type: none;
 `;
@@ -66,14 +66,18 @@ const AccordionContainer = styled('ul')`
 const AccordionHeader = styled('div')`
   display: flex;
   align-items: center;
-  border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSize.md};
-  column-gap: ${space(1.5)};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  /* Margin bottom to compensate for the border so it doesn't cut into previous item's padding */
+  margin-bottom: ${p => p.theme.space.sm};
+  font-size: ${p => p.theme.font.size.md};
+  column-gap: ${p => p.theme.space.md};
 `;
 
-const AccordionContent = styled('div')`
-  padding: 0 ${space(0.25)};
+const AccordionContent = styled('ul')`
+  list-style-type: none;
+  margin: -${p => p.theme.space.md} 0 0 0;
+  padding: 0;
 `;
 
 const LineItemWrapper = styled('div')`

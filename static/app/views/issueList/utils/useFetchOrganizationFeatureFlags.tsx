@@ -1,6 +1,6 @@
 import {
-  type FetchOrganizationTagsParams,
   useFetchOrganizationTags,
+  type FetchOrganizationTagsParams,
 } from 'sentry/actionCreators/tags';
 import type {Tag} from 'sentry/types/group';
 import type {UseApiQueryOptions} from 'sentry/utils/queryClient';

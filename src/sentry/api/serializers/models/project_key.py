@@ -28,6 +28,9 @@ class DSN(TypedDict):
     crons: str
     cdn: str
     playstation: str
+    integration: str
+    otlp_traces: str
+    otlp_logs: str
 
 
 class BrowserSDK(TypedDict):
@@ -38,6 +41,8 @@ class DynamicSDKLoaderOptions(TypedDict):
     hasReplay: bool
     hasPerformance: bool
     hasDebug: bool
+    hasFeedback: bool
+    hasLogsAndMetrics: bool
 
 
 class ProjectKeySerializerResponse(TypedDict):
@@ -96,6 +101,9 @@ class ProjectKeySerializer(Serializer):
                 "crons": obj.crons_endpoint,
                 "cdn": obj.js_sdk_loader_cdn_url,
                 "playstation": obj.playstation_endpoint,
+                "integration": obj.integration_endpoint,
+                "otlp_traces": obj.otlp_traces_endpoint,
+                "otlp_logs": obj.otlp_logs_endpoint,
             },
             "browserSdkVersion": get_selected_browser_sdk_version(obj),
             "browserSdk": {"choices": get_browser_sdk_version_choices(obj.project)},
@@ -106,6 +114,12 @@ class ProjectKeySerializer(Serializer):
                     obj, DynamicSdkLoaderOption.HAS_PERFORMANCE
                 ),
                 "hasDebug": get_dynamic_sdk_loader_option(obj, DynamicSdkLoaderOption.HAS_DEBUG),
+                "hasFeedback": get_dynamic_sdk_loader_option(
+                    obj, DynamicSdkLoaderOption.HAS_FEEDBACK
+                ),
+                "hasLogsAndMetrics": get_dynamic_sdk_loader_option(
+                    obj, DynamicSdkLoaderOption.HAS_LOGS_AND_METRICS
+                ),
             },
         }
 

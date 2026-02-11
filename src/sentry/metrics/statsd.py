@@ -62,6 +62,7 @@ class StatsdMetricsBackend(MetricsBackend):
         unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
+        # NOTE: the statsd client does not have a `distribution` method
         self.timing(key, value, instance, tags, sample_rate)
 
     def event(

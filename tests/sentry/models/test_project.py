@@ -1,10 +1,12 @@
 from collections.abc import Iterable
-from unittest.mock import patch
+from unittest import skip
+from unittest.mock import MagicMock, patch
 
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
@@ -13,11 +15,13 @@ from sentry.models.options.project_template_option import ProjectTemplateOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
+from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
@@ -32,11 +36,12 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import Detector, DetectorWorkflow
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
 class ProjectTest(APITestCase, TestCase):
-    def test_member_set_simple(self):
+    def test_member_set_simple(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
@@ -46,7 +51,7 @@ class ProjectTest(APITestCase, TestCase):
 
         assert list(project.member_set.all()) == [member]
 
-    def test_inactive_global_member(self):
+    def test_inactive_global_member(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
@@ -55,7 +60,7 @@ class ProjectTest(APITestCase, TestCase):
 
         assert list(project.member_set.all()) == []
 
-    def test_transfer_to_organization(self):
+    def test_transfer_to_organization(self) -> None:
         from_org = self.create_organization()
         team = self.create_team(organization=from_org)
         to_org = self.create_organization()
@@ -63,11 +68,10 @@ class ProjectTest(APITestCase, TestCase):
         project = self.create_project(teams=[team])
         project_other = self.create_project(teams=[team])
 
-        rule = Rule.objects.create(
+        rule = self.create_project_rule(
+            name="Golden Rule",
             project=project,
             environment_id=Environment.get_or_create(project, "production").id,
-            label="Golden Rule",
-            data={},
         )
         environment_from_new = self.create_environment(organization=from_org)
         environment_from_existing = self.create_environment(organization=from_org)
@@ -151,7 +155,7 @@ class ProjectTest(APITestCase, TestCase):
         assert existing_monitor.organization_id == to_org.id
         assert existing_monitor.project_id == monitor_to.project_id
 
-    def test_transfer_to_organization_slug_collision(self):
+    def test_transfer_to_organization_slug_collision(self) -> None:
         from_org = self.create_organization()
         team = self.create_team(organization=from_org)
         project = self.create_project(teams=[team], slug="matt")
@@ -171,7 +175,7 @@ class ProjectTest(APITestCase, TestCase):
         assert Project.objects.filter(organization=to_org).count() == 2
         assert Project.objects.filter(organization=from_org).count() == 0
 
-    def test_transfer_to_organization_releases(self):
+    def test_transfer_to_organization_releases(self) -> None:
         from_org = self.create_organization()
         team = self.create_team(organization=from_org)
         to_org = self.create_organization()
@@ -228,7 +232,50 @@ class ProjectTest(APITestCase, TestCase):
         ).exists()
         assert not ReleaseProject.objects.filter(project=project, release=release).exists()
 
-    def test_transfer_to_organization_alert_rules(self):
+    def test_delete_on_transfer_repository_project_path_configs(self) -> None:
+        from_org = self.create_organization()
+        to_org = self.create_organization()
+        team = self.create_team(organization=from_org)
+        project = self.create_project(teams=[team])
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration, org_integration = self.create_provider_integration_for(
+                from_org, self.user, provider="github"
+            )
+
+        repository = Repository.objects.create(
+            organization_id=from_org.id,
+            name="example-repo",
+            integration_id=integration.id,
+        )
+
+        repository_project_path_config = RepositoryProjectPathConfig.objects.create(
+            repository=repository,
+            project=project,
+            organization_integration_id=org_integration.id,
+            organization_id=from_org.id,
+            integration_id=integration.id,
+            stack_root="/app",
+            source_root="/src",
+            default_branch="main",
+        )
+
+        ProjectCodeOwners.objects.create(
+            project=project,
+            repository_project_path_config=repository_project_path_config,
+            raw="*.py @getsentry/test-team",
+        )
+
+        project.transfer_to(organization=to_org)
+
+        assert RepositoryProjectPathConfig.objects.filter(organization_id=from_org.id).count() == 0
+        assert RepositoryProjectPathConfig.objects.filter(organization_id=to_org.id).count() == 0
+
+        assert RepositoryProjectPathConfig.objects.filter(project_id=project.id).count() == 0
+
+        assert ProjectCodeOwners.objects.filter(project_id=project.id).count() == 0
+
+    def test_transfer_to_organization_alert_rules(self) -> None:
         from_org = self.create_organization()
         from_user = self.create_user()
         self.create_member(user=from_user, role="member", organization=from_org)
@@ -249,20 +296,12 @@ class ProjectTest(APITestCase, TestCase):
             environment=environment,
         )
         snuba_query = SnubaQuery.objects.filter(id=alert_rule.snuba_query_id).get()
-        rule1 = Rule.objects.create(label="another test rule", project=project, owner_team=team)
-        rule2 = Rule.objects.create(
-            label="rule4",
-            project=project,
-            owner_user_id=from_user.id,
-        )
+        rule1 = self.create_project_rule(name="another test rule", project=project, owner_team=team)
+        rule2 = self.create_project_rule(name="rule4", project=project, owner_user_id=from_user.id)
 
         # should keep their owners
-        rule3 = Rule.objects.create(label="rule2", project=project, owner_team=to_team)
-        rule4 = Rule.objects.create(
-            label="rule3",
-            project=project,
-            owner_user_id=to_user.id,
-        )
+        rule3 = self.create_project_rule(name="rule2", project=project, owner_team=to_team)
+        rule4 = self.create_project_rule(name="rule3", project=project, owner_user_id=to_user.id)
 
         assert EnvironmentProject.objects.count() == 1
         assert snuba_query.environment is not None
@@ -296,7 +335,7 @@ class ProjectTest(APITestCase, TestCase):
         assert rule4.owner_user_id
         assert rule4.owner_team_id is None
 
-    def test_transfer_to_organization_external_issues(self):
+    def test_transfer_to_organization_external_issues(self) -> None:
         from_org = self.create_organization()
         to_org = self.create_organization()
 
@@ -350,7 +389,7 @@ class ProjectTest(APITestCase, TestCase):
         assert other_ext_issue.organization_id == from_org.id
         assert other_group_link.project_id == other_project.id
 
-    def test_get_absolute_url(self):
+    def test_get_absolute_url(self) -> None:
         url = self.project.get_absolute_url()
         assert (
             url
@@ -364,25 +403,25 @@ class ProjectTest(APITestCase, TestCase):
         )
 
     @with_feature("system:multi-region")
-    def test_get_absolute_url_customer_domains(self):
+    def test_get_absolute_url_customer_domains(self) -> None:
         url = self.project.get_absolute_url()
         assert (
             url == f"http://{self.organization.slug}.testserver/issues/?project={self.project.id}"
         )
 
-    def test_get_next_short_id_simple(self):
+    def test_get_next_short_id_simple(self) -> None:
         with patch("sentry.models.Counter.increment", return_value=1231):
             assert self.project.next_short_id() == 1231
 
-    def test_next_short_id_increments_by_one_if_no_delta_passed(self):
+    def test_next_short_id_increments_by_one_if_no_delta_passed(self) -> None:
         assert self.project.next_short_id() == 1
         assert self.project.next_short_id() == 2
 
-    def test_get_next_short_id_increments_by_delta_value(self):
+    def test_get_next_short_id_increments_by_delta_value(self) -> None:
         assert self.project.next_short_id() == 1
         assert self.project.next_short_id(delta=2) == 3
 
-    def test_add_team(self):
+    def test_add_team(self) -> None:
         team = self.create_team(organization=self.organization)
         assert self.project.add_team(team)
 
@@ -390,7 +429,7 @@ class ProjectTest(APITestCase, TestCase):
         assert team.id in {t.id for t in teams}
 
     @patch("sentry.models.project.locks.get")
-    def test_lock_is_acquired_when_creating_project(self, mock_lock):
+    def test_lock_is_acquired_when_creating_project(self, mock_lock: MagicMock) -> None:
         # self.organization is cached property, which means it will be created
         # only if it is accessed, so we need to simulate access and all potential mock
         # calls before resetting the mock
@@ -398,10 +437,10 @@ class ProjectTest(APITestCase, TestCase):
         # Ensure the mock starts clean before the save operation
         mock_lock.reset_mock()
         Project.objects.create(organization=self.organization)
-        assert mock_lock.call_count == 1
+        assert mock_lock.call_count == 3  # 1 lock for cached org, 2 locks for default detectors
 
     @patch("sentry.models.project.locks.get")
-    def test_lock_is_not_acquired_when_updating_project(self, mock_lock):
+    def test_lock_is_not_acquired_when_updating_project(self, mock_lock: MagicMock) -> None:
         # self.project is cached property, which means it will be created
         # only if it is accessed, so we need to simulate access and all potential mock
         # calls before resetting the mock
@@ -411,11 +450,11 @@ class ProjectTest(APITestCase, TestCase):
         self.project.save()
         assert mock_lock.call_count == 0
 
-    def test_remove_team_clears_alerts(self):
+    def test_remove_team_clears_alerts(self) -> None:
         team = self.create_team(organization=self.organization)
         assert self.project.add_team(team)
 
-        rule = Rule.objects.create(project=self.project, label="issa rule", owner_team_id=team.id)
+        rule = self.create_project_rule(name="issa rule", owner_team_id=team.id)
         alert_rule = self.create_alert_rule(
             organization=self.organization, owner=Actor.from_id(team_id=team.id)
         )
@@ -429,13 +468,168 @@ class ProjectTest(APITestCase, TestCase):
         assert alert_rule.team_id is None
         assert alert_rule.user_id is None
 
-    def test_project_detector(self):
-        project = self.create_project()
-        assert not Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
+    def test_project_detectors(self) -> None:
+        project = self.create_project(create_default_detectors=True)
+        assert Detector.objects.filter(project=project, type=ErrorGroupType.slug).count() == 1
+        assert Detector.objects.filter(project=project, type=IssueStreamGroupType.slug).count() == 1
 
-        with self.feature({"organizations:workflow-engine-issue-alert-dual-write": True}):
-            project = self.create_project()
-            assert Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
+    def test_transfer_to_organization_with_metric_issue_detector_and_workflow(self) -> None:
+        from_org = self.create_organization()
+        team = self.create_team(organization=from_org)
+        to_org = self.create_organization()
+        project = self.create_project(teams=[team])
+
+        detector = self.create_detector(project=project)
+        data_source = self.create_data_source(organization=from_org)
+        data_source.detectors.add(detector)
+        workflow = self.create_workflow(organization=from_org)
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+
+        project.transfer_to(organization=to_org)
+
+        project.refresh_from_db()
+        detector.refresh_from_db()
+        data_source.refresh_from_db()
+        workflow.refresh_from_db()
+
+        assert project.organization_id == to_org.id
+        assert detector.project_id == project.id
+        assert data_source.organization_id == to_org.id
+        assert workflow.organization_id == to_org.id
+        assert DetectorWorkflow.objects.filter(detector=detector, workflow=workflow).exists()
+
+    def test_transfer_to_organization_with_workflow_data_condition_groups(self) -> None:
+        from_org = self.create_organization()
+        team = self.create_team(organization=from_org)
+        to_org = self.create_organization()
+        project = self.create_project(teams=[team])
+
+        detector = self.create_detector(project=project)
+        workflow = self.create_workflow(organization=from_org)
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+        condition_group = self.create_data_condition_group(organization=from_org)
+        self.create_workflow_data_condition_group(
+            workflow=workflow, condition_group=condition_group
+        )
+
+        project.transfer_to(organization=to_org)
+
+        project.refresh_from_db()
+        detector.refresh_from_db()
+        workflow.refresh_from_db()
+        condition_group.refresh_from_db()
+
+        assert project.organization_id == to_org.id
+        assert detector.project_id == project.id
+        assert workflow.organization_id == to_org.id
+        assert condition_group.organization_id == to_org.id
+        wdcg = condition_group.workflowdataconditiongroup_set.first()
+        assert wdcg is not None
+        assert wdcg.workflow_id == workflow.id
+
+    def test_transfer_to_organization_does_not_transfer_shared_workflows(self) -> None:
+        from_org = self.create_organization()
+        team = self.create_team(organization=from_org)
+        to_org = self.create_organization()
+
+        project_a = self.create_project(teams=[team], name="Project A")
+        project_b = self.create_project(teams=[team], organization=from_org, name="Project B")
+
+        detector_a = self.create_detector(project=project_a)
+        detector_b = self.create_detector(project=project_b)
+
+        shared_workflow = self.create_workflow(organization=from_org, name="Shared Workflow")
+        self.create_detector_workflow(detector=detector_a, workflow=shared_workflow)
+        self.create_detector_workflow(detector=detector_b, workflow=shared_workflow)
+
+        exclusive_workflow = self.create_workflow(organization=from_org, name="Exclusive Workflow")
+        self.create_detector_workflow(detector=detector_a, workflow=exclusive_workflow)
+
+        shared_dcg = self.create_data_condition_group(organization=from_org)
+        self.create_workflow_data_condition_group(
+            workflow=shared_workflow, condition_group=shared_dcg
+        )
+
+        exclusive_dcg = self.create_data_condition_group(organization=from_org)
+        self.create_workflow_data_condition_group(
+            workflow=exclusive_workflow, condition_group=exclusive_dcg
+        )
+
+        project_a.transfer_to(organization=to_org)
+
+        project_a.refresh_from_db()
+        project_b.refresh_from_db()
+        detector_a.refresh_from_db()
+        detector_b.refresh_from_db()
+        shared_workflow.refresh_from_db()
+        exclusive_workflow.refresh_from_db()
+        shared_dcg.refresh_from_db()
+        exclusive_dcg.refresh_from_db()
+
+        assert project_a.organization_id == to_org.id
+        assert project_b.organization_id == from_org.id
+        assert detector_a.project_id == project_a.id
+        assert detector_b.project_id == project_b.id
+        assert shared_workflow.organization_id == from_org.id
+        assert exclusive_workflow.organization_id == to_org.id
+        assert shared_dcg.organization_id == from_org.id
+        assert exclusive_dcg.organization_id == to_org.id
+        assert DetectorWorkflow.objects.filter(
+            detector=detector_a, workflow=shared_workflow
+        ).exists()
+        assert DetectorWorkflow.objects.filter(
+            detector=detector_b, workflow=shared_workflow
+        ).exists()
+        assert DetectorWorkflow.objects.filter(
+            detector=detector_a, workflow=exclusive_workflow
+        ).exists()
+
+    def test_transfer_to_organization_with_detector_workflow_condition_group(self) -> None:
+        from_org = self.create_organization()
+        team = self.create_team(organization=from_org)
+        to_org = self.create_organization()
+        project = self.create_project(teams=[team])
+
+        detector = self.create_detector(project=project)
+        workflow_condition_group = self.create_data_condition_group(organization=from_org)
+        detector.workflow_condition_group = workflow_condition_group
+        detector.save()
+
+        project.transfer_to(organization=to_org)
+
+        project.refresh_from_db()
+        detector.refresh_from_db()
+        workflow_condition_group.refresh_from_db()
+
+        assert project.organization_id == to_org.id
+        assert detector.project_id == project.id
+        assert workflow_condition_group.organization_id == to_org.id
+        assert detector.workflow_condition_group_id == workflow_condition_group.id
+
+    def test_transfer_to_organization_with_workflow_when_condition_groups(self) -> None:
+        from_org = self.create_organization()
+        to_org = self.create_organization()
+        team = self.create_team(organization=from_org)
+        project = self.create_project(teams=[team])
+
+        detector = self.create_detector(project=project)
+        when_condition_group = self.create_data_condition_group(organization=from_org)
+        workflow = self.create_workflow(
+            organization=from_org, when_condition_group=when_condition_group
+        )
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+
+        project.transfer_to(organization=to_org)
+
+        project.refresh_from_db()
+        detector.refresh_from_db()
+        workflow.refresh_from_db()
+        when_condition_group.refresh_from_db()
+
+        assert project.organization_id == to_org.id
+        assert detector.project_id == project.id
+        assert workflow.organization_id == to_org.id
+        assert when_condition_group.organization_id == to_org.id
 
 
 class ProjectOptionsTests(TestCase):
@@ -452,7 +646,7 @@ class ProjectOptionsTests(TestCase):
     If a project has an option set, it will override the template option.
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.option_key = "sentry:test_data"
         self.project = self.create_project()
@@ -460,37 +654,38 @@ class ProjectOptionsTests(TestCase):
         self.project_template = self.create_project_template(organization=self.project.organization)
         self.project.template = self.project_template
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
 
         self.project_template.delete()
         self.project.delete()
 
-    def test_get_option(self):
+    def test_get_option(self) -> None:
         assert self.project.get_option(self.option_key) is None
         ProjectOption.objects.set_value(self.project, self.option_key, True)
         assert self.project.get_option(self.option_key) is True
 
-    def test_get_template_option(self):
+    @skip("Template feature is not active at the moment")
+    def test_get_template_option(self) -> None:
         assert self.project.get_option(self.option_key) is None
         ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")
         assert self.project.get_option(self.option_key) == "test"
 
-    def test_get_option__override_template(self):
+    def test_get_option__override_template(self) -> None:
         assert self.project.get_option(self.option_key) is None
         ProjectOption.objects.set_value(self.project, self.option_key, True)
         ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")
 
         assert self.project.get_option(self.option_key) is True
 
-    def test_get_option__without_template(self):
+    def test_get_option__without_template(self) -> None:
         self.project.template = None
         assert self.project.get_option(self.option_key) is None
         ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")
 
         assert self.project.get_option(self.option_key) is None
 
-    def test_get_option__without_template_and_value(self):
+    def test_get_option__without_template_and_value(self) -> None:
         self.project.template = None
         assert self.project.get_option(self.option_key) is None
 
@@ -501,7 +696,7 @@ class ProjectOptionsTests(TestCase):
 
 
 class CopyProjectSettingsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -528,9 +723,9 @@ class CopyProjectSettingsTest(TestCase):
             project=self.other_project, raw='{"hello":"hello"}', schema={"hello": "hello"}
         )
 
-        Rule.objects.create(project=self.other_project, label="rule1")
-        Rule.objects.create(project=self.other_project, label="rule2")
-        Rule.objects.create(project=self.other_project, label="rule3")
+        self.create_project_rule(name="rule1", project=self.other_project)
+        self.create_project_rule(name="rule2", project=self.other_project)
+        self.create_project_rule(name="rule3", project=self.other_project)
         # there is a default rule added to project
         self.rules = Rule.objects.filter(project_id=self.other_project.id).order_by("label")
 
@@ -558,14 +753,14 @@ class CopyProjectSettingsTest(TestCase):
         for rule, other_rule in zip(rules, self.rules):
             assert rule.label == other_rule.label
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project(fire_project_created=True)
 
         assert project.copy_settings_from(self.other_project.id)
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
 
-    def test_copy_with_previous_settings(self):
+    def test_copy_with_previous_settings(self) -> None:
         project = self.create_project(fire_project_created=True)
         project.update_option("sentry:resolve_age", 200)
         ProjectTeam.objects.create(team=self.create_team(), project=project)
@@ -590,14 +785,14 @@ class FilterToSubscribedUsersTest(TestCase):
         expected_recipients = {Actor.from_object(user) for user in expected_users}
         assert actual_recipients == expected_recipients
 
-    def test(self):
+    def test(self) -> None:
         self.run_test([self.user], {self.user})
 
-    def test_global_enabled(self):
+    def test_global_enabled(self) -> None:
         user = self.create_user()
         self.run_test({user}, {user})
 
-    def test_global_disabled(self):
+    def test_global_disabled(self) -> None:
         user = self.create_user()
         NotificationSettingOption.objects.create(
             user_id=user.id,
@@ -608,7 +803,7 @@ class FilterToSubscribedUsersTest(TestCase):
         )
         self.run_test({user}, set())
 
-    def test_project_enabled(self):
+    def test_project_enabled(self) -> None:
         user = self.create_user()
 
         # disable default
@@ -629,7 +824,7 @@ class FilterToSubscribedUsersTest(TestCase):
         )
         self.run_test({user}, {user})
 
-    def test_project_disabled(self):
+    def test_project_disabled(self) -> None:
         user = self.create_user()
         NotificationSettingOption.objects.create(
             user_id=user.id,
@@ -640,7 +835,7 @@ class FilterToSubscribedUsersTest(TestCase):
         )
         self.run_test({user}, set())
 
-    def test_mixed(self):
+    def test_mixed(self) -> None:
         user_global_enabled = self.create_user()
         user_global_disabled = self.create_user()
         NotificationSettingOption.objects.create(
@@ -686,7 +881,7 @@ class FilterToSubscribedUsersTest(TestCase):
 
 
 class ProjectDeletionTest(TestCase):
-    def test_hybrid_cloud_deletion(self):
+    def test_hybrid_cloud_deletion(self) -> None:
         proj = self.create_project()
         user = self.create_user()
         proj_id = proj.id

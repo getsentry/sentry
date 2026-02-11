@@ -1,7 +1,8 @@
 import trimStart from 'lodash/trimStart';
 
-import type {Client, ResponseMeta} from 'sentry/api';
-import type {SearchBarProps} from 'sentry/components/events/searchBar';
+import type {Client} from 'sentry/api';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
@@ -10,14 +11,24 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {
+  AggregationOutputType,
+  DataUnit,
+  QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import {isEquation} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
-import type {DisplayType, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import type {
+  DashboardFilters,
+  DisplayType,
+  Widget,
+  WidgetQuery,
+} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {getNumEquations} from 'sentry/views/dashboards/utils';
+import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -26,19 +37,84 @@ import {ErrorsConfig} from './errors';
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {LogsConfig} from './logs';
+import {MobileAppSizeConfig} from './mobileAppSize';
 import {ReleasesConfig} from './releases';
 import {SpansConfig} from './spans';
+import {TraceMetricsConfig} from './traceMetrics';
 import {TransactionsConfig} from './transactions';
 
 export type WidgetBuilderSearchBarProps = {
-  getFilterWarning: SearchBarProps['getFilterWarning'];
-  onClose: SearchBarProps['onClose'];
-  onSearch: SearchBarProps['onSearch'];
+  getFilterWarning: ((key: string) => React.ReactNode) | undefined;
+  onClose: (value: string, additionalSearchBarState: {validSearch: boolean}) => void;
+  onSearch: (query: string) => void;
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
   dataset?: DiscoverDatasets;
   disabled?: boolean;
+  index?: number;
   portalTarget?: HTMLElement | null;
+};
+
+export type SearchBarDataProviderProps = {
+  pageFilters: PageFilters;
+  widgetQuery?: WidgetQuery;
+};
+
+export interface SearchBarData {
+  getFilterKeySections: () => FilterKeySection[];
+  getFilterKeys: () => TagCollection;
+  getTagValues: GetTagValues;
+}
+
+/**
+ * Parameters passed to hook-based query methods (useSeriesQuery/useTableQuery).
+ * These hooks handle fetching data for all widget queries at once.
+ */
+export type WidgetQueryParams = {
+  /**
+   * Whether the queries should be enabled.
+   */
+  enabled: boolean;
+  /**
+   * The organization context.
+   */
+  organization: Organization;
+  /**
+   * Page filters (projects, environments, datetime).
+   */
+  pageFilters: PageFilters;
+  /**
+   * The widget configuration containing all queries.
+   */
+  widget: Widget;
+  /**
+   * Optional pagination cursor.
+   */
+  cursor?: string;
+  /**
+   * Dashboard-level filters to apply to queries.
+   */
+  dashboardFilters?: DashboardFilters;
+  /**
+   * Optional result limit.
+   */
+  limit?: number;
+  /**
+   * MEP (Metrics Enhanced Performance) setting.
+   */
+  mepSetting?: MEPState | null;
+  /**
+   * On-demand control context for query optimization.
+   */
+  onDemandControlContext?: OnDemandControlContext;
+  /**
+   * Sampling mode for the queries.
+   */
+  samplingMode?: SamplingMode;
+  /**
+   * Skip adding parentheses around widget conditions when applying dashboard filters.
+   */
+  skipDashboardFilterParens?: boolean;
 };
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
@@ -68,7 +144,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     organization: Organization,
     tags?: TagCollection,
     customMeasurements?: CustomMeasurementCollection,
-    api?: Client
+    api?: Client,
+    displayType?: DisplayType
   ) => Record<string, SelectValue<FieldValue>>;
   /**
    * List of supported display types for dataset.
@@ -84,6 +161,21 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     organization: Organization,
     pageFilters: PageFilters
   ) => TableData;
+  /**
+   * Default field to use as the X-axis category for categorical bar charts.
+   * This should be a non-aggregate field name (e.g., 'transaction', 'browser').
+   */
+  defaultCategoryField?: string;
+  /**
+   * Default field to add to the widget query when adding a new field for series display type.
+   */
+  defaultSeriesField?: QueryFieldValue;
+  /**
+   * Default query to display when dataset is selected in the
+   * Widget Builder for series display type. Currently only used
+   * by the issues dataset.
+   */
+  defaultSeriesWidgetQuery?: WidgetQuery;
   /**
    * Configure enabling/disabling sort/direction options with an
    * optional message for why it is disabled.
@@ -133,7 +225,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     field: string,
     meta: MetaType,
     widget?: Widget,
-    organization?: Organization
+    organization?: Organization,
+    dashboardFilters?: DashboardFilters
   ) => ReturnType<typeof getFieldRenderer>;
   /**
    * Generate field header used for mapping column
@@ -141,7 +234,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    */
   getFieldHeaderMap?: (widgetQuery?: WidgetQuery) => Record<string, string>;
   /**
-   * Field options to display in the Group by selector.
+   * Field options to display in the Group by selector and the X axis selector
    */
   getGroupByFieldOptions?: (
     organization: Organization,
@@ -151,21 +244,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     queries?: WidgetQuery[]
   ) => Record<string, SelectValue<FieldValue>>;
   /**
-   * Generate the request promises for fetching
-   * series data.
-   */
-  getSeriesRequest?: (
-    api: Client,
-    widget: Widget,
-    queryIndex: number,
-    organization: Organization,
-    pageFilters: PageFilters,
-    onDemandControlContext?: OnDemandControlContext,
-    referrer?: string,
-    mepSetting?: MEPState | null,
-    samplingMode?: SamplingMode
-  ) => Promise<[SeriesResponse, string | undefined, ResponseMeta | undefined]>;
-  /**
    * Get the result type of the series. ie duration, size, percentage, etc
    */
   getSeriesResultType?: (
@@ -173,22 +251,12 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     widgetQuery: WidgetQuery
   ) => Record<string, AggregationOutputType>;
   /**
-   * Generate the request promises for fetching
-   * tabular data.
+   * Get the result unit of the series. ie milliseconds, bytes, etc
    */
-  getTableRequest?: (
-    api: Client,
-    widget: Widget,
-    query: WidgetQuery,
-    organization: Organization,
-    pageFilters: PageFilters,
-    onDemandControlContext?: OnDemandControlContext,
-    limit?: number,
-    cursor?: string,
-    referrer?: string,
-    mepSetting?: MEPState | null,
-    samplingMode?: SamplingMode
-  ) => Promise<[TableResponse, string | undefined, ResponseMeta | undefined]>;
+  getSeriesResultUnit?: (
+    data: SeriesResponse,
+    widgetQuery: WidgetQuery
+  ) => Record<string, DataUnit>;
   /**
    * Generate the list of sort options for table
    * displays on the 'Sort by' step of the Widget Builder.
@@ -216,7 +284,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * to reset the orderby of the widget query.
    */
   handleOrderByReset?: (widgetQuery: WidgetQuery, newFields: string[]) => WidgetQuery;
-
   /**
    * Transforms timeseries API results into series data that is
    * ingestable by echarts for timeseries visualizations.
@@ -226,6 +293,22 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     widgetQuery: WidgetQuery,
     organization: Organization
   ) => Series[];
+  /**
+   * Data provider hook that provides methods
+   * to retrieve tags and values for the search bar.
+   */
+  useSearchBarDataProvider?: (props: SearchBarDataProviderProps) => SearchBarData;
+
+  /**
+   * Hook-based approach for fetching series data.
+   * Returns transformed data, raw responses for callbacks, and refetch function.
+   */
+  useSeriesQuery?: (params: WidgetQueryParams) => HookWidgetQueryResult;
+  /**
+   * Hook-based approach for fetching table data.
+   * Returns transformed data, raw responses for callbacks, and refetch function.
+   */
+  useTableQuery?: (params: WidgetQueryParams) => HookWidgetQueryResult;
 }
 
 export function getDatasetConfig<T extends WidgetType | undefined>(
@@ -242,7 +325,11 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
           ? typeof LogsConfig
           : T extends WidgetType.SPANS
             ? typeof SpansConfig
-            : typeof ErrorsAndTransactionsConfig;
+            : T extends WidgetType.TRACEMETRICS
+              ? typeof TraceMetricsConfig
+              : T extends WidgetType.PREPROD_APP_SIZE
+                ? typeof MobileAppSizeConfig
+                : typeof ErrorsAndTransactionsConfig;
 
 export function getDatasetConfig(
   widgetType?: WidgetType
@@ -253,7 +340,9 @@ export function getDatasetConfig(
   | typeof ErrorsConfig
   | typeof TransactionsConfig
   | typeof LogsConfig
-  | typeof SpansConfig {
+  | typeof SpansConfig
+  | typeof TraceMetricsConfig
+  | typeof MobileAppSizeConfig {
   switch (widgetType) {
     case WidgetType.ISSUE:
       return IssuesConfig;
@@ -267,6 +356,10 @@ export function getDatasetConfig(
       return LogsConfig;
     case WidgetType.SPANS:
       return SpansConfig;
+    case WidgetType.TRACEMETRICS:
+      return TraceMetricsConfig;
+    case WidgetType.PREPROD_APP_SIZE:
+      return MobileAppSizeConfig;
     case WidgetType.DISCOVER:
     default:
       return ErrorsAndTransactionsConfig;

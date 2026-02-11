@@ -115,7 +115,6 @@ describe('ContinuousProfile', () => {
         span: undefined,
         type: 'flamechart',
         frameFilter: undefined,
-        profileIds: undefined,
       });
 
       expect(profile.profiles[0]!.duration).toBe(0);

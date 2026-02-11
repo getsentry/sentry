@@ -3,11 +3,11 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 
-describe('chartPanel', function () {
+describe('chartPanel', () => {
   const {organization} = initializeOrg({
-    organization: {features: ['insights-alerts', 'insights-initial-modules']},
+    organization: {features: ['insights-alerts', 'insight-modules']},
   });
-  it('should render', function () {
+  it('should render', () => {
     render(
       <ChartPanel title="Average Duration">
         <div />

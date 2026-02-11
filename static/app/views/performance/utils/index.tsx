@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -11,6 +11,7 @@ import type {
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {ReleaseProject} from 'sentry/types/release';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import toArray from 'sentry/utils/array/toArray';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
@@ -269,21 +270,37 @@ export function removeTracingKeysFromSearch(
   }
 ) {
   currentFilter.getFilterKeys().forEach(tagKey => {
-    const searchKey = tagKey.startsWith('!') ? tagKey.substring(1) : tagKey;
-    // Remove aggregates and transaction event fields
-    if (
-      // aggregates
-      searchKey.match(/\w+\(.*\)/) ||
-      // transaction event fields
-      TRACING_FIELDS.includes(searchKey) ||
-      // tags that we don't want to pass to pass to issue search
-      options.excludeTagKeys.has(searchKey)
-    ) {
+    if (shouldExcludeTracingKeys(tagKey, options)) {
       currentFilter.removeFilter(tagKey);
     }
   });
 
   return currentFilter;
+}
+
+export function shouldExcludeTracingKeys(
+  tagKey: string,
+  options: {excludeTagKeys: Set<string>} = {
+    excludeTagKeys: new Set([
+      // event type can be "transaction" but we're searching for issues
+      'event.type',
+      // the project is already determined by the transaction,
+      // and issue search does not support the project filter
+      'project',
+    ]),
+  }
+): boolean {
+  // Remove aggregates and transaction event fields
+  const searchKey = tagKey.startsWith('!') ? tagKey.substring(1) : tagKey;
+
+  // aggregates
+  const condAggregates = searchKey.match(/\w+\(.*\)/) !== null;
+  // transaction event fields
+  const condTransactionEventFields = TRACING_FIELDS.includes(searchKey);
+  // tags that we don't want to pass to pass to issue search
+  const condExcludeTagKeys = options.excludeTagKeys.has(searchKey);
+
+  return condAggregates || condTransactionEventFields || condExcludeTagKeys;
 }
 
 export function addRoutePerformanceContext(selection: PageFilters) {
@@ -372,7 +389,17 @@ export function usePerformanceGeneralProjectSettings(projectId?: number) {
   const project = projects.find(p => p.id === stringProjectId);
 
   return useApiQuery<{enable_images: boolean}>(
-    [`/projects/${organization.slug}/${project?.slug}/performance/configure/`],
+    [
+      getApiUrl(
+        `/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/`,
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project?.slug!,
+          },
+        }
+      ),
+    ],
     {
       staleTime: 0,
       enabled: Boolean(project),

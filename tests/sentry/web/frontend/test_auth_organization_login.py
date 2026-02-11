@@ -3,6 +3,7 @@ from unittest import mock
 from urllib.parse import quote as urlquote
 from urllib.parse import urlencode
 
+from django.contrib.auth import get_user
 from django.test import override_settings
 from django.urls import reverse
 
@@ -12,7 +13,7 @@ from sentry.auth.providers.dummy import PLACEHOLDER_TEMPLATE
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.organization import OrganizationStatus
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
@@ -28,14 +29,14 @@ from sentry.utils import json
 @control_silo_test
 class OrganizationAuthLoginTest(AuthProviderTestCase):
     @cached_property
-    def organization(self):
+    def organization(self) -> Organization:
         return self.create_organization(name="foo", owner=self.user)
 
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return reverse("sentry-auth-organization", args=[self.organization.slug])
 
-    def test_renders_basic(self):
+    def test_renders_basic(self) -> None:
         self.login_as(self.user)
         resp = self.client.get(self.path)
 
@@ -48,7 +49,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert "provider_key" not in resp.context
         assert resp.context["join_request_link"]
 
-    def test_cannot_get_request_join_link_with_setting_disabled(self):
+    def test_cannot_get_request_join_link_with_setting_disabled(self) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             OrganizationOption.objects.create(
                 organization_id=self.organization.id, key="sentry:join_requests", value=False
@@ -60,7 +61,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 200
         assert resp.context["join_request_link"] is None
 
-    def test_renders_session_expire_message(self):
+    def test_renders_session_expire_message(self) -> None:
         self.client.cookies["session_expired"] = "1"
         resp = self.client.get(self.path)
 
@@ -68,7 +69,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(resp, "sentry/organization-login.html")
         assert len(resp.context["messages"]) == 1
 
-    def test_flow_as_anonymous(self):
+    def test_flow_as_anonymous(self) -> None:
         auth_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
@@ -111,7 +112,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not getattr(member.flags, "sso:invalid")
         assert not getattr(member.flags, "member-limit:restricted")
 
-    def test_flow_as_existing_user_with_new_account(self):
+    def test_flow_as_existing_user_with_new_account(self) -> None:
         auth_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
@@ -145,7 +146,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not getattr(member.flags, "sso:invalid")
         assert not getattr(member.flags, "member-limit:restricted")
 
-    def test_flow_as_existing_user_with_new_account_member_limit(self):
+    def test_flow_as_existing_user_with_new_account_member_limit(self) -> None:
         with self.feature({"organizations:invite-members": False}):
             auth_provider = AuthProvider.objects.create(
                 organization_id=self.organization.id, provider="dummy"
@@ -183,7 +184,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             assert not getattr(member.flags, "sso:invalid")
             assert getattr(member.flags, "member-limit:restricted")
 
-    def test_flow_as_existing_identity(self):
+    def test_flow_as_existing_identity(self) -> None:
         user = self.create_user("bar@example.com")
         auth_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
@@ -204,7 +205,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             ("/organizations/foo/issues/", 302),
         ]
 
-    def test_org_redirects_to_relative_next_url(self):
+    def test_org_redirects_to_relative_next_url(self) -> None:
         user = self.create_user("bar@example.com")
         auth_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
@@ -224,7 +225,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         ]
 
     @with_feature("sytem:multi-region")
-    def test_org_redirects_to_next_url_customer_domain(self):
+    def test_org_redirects_to_next_url_customer_domain(self) -> None:
         user = self.create_user("bar@example.com")
         auth_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
@@ -246,7 +247,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             (self.organization.absolute_url(next), 302),
         ]
 
-    def test_org_login_doesnt_redirect_external(self):
+    def test_org_login_doesnt_redirect_external(self) -> None:
         user = self.create_user("bar@example.com")
         auth_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
@@ -268,7 +269,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             ("/organizations/foo/issues/", 302),
         ]
 
-    def test_flow_as_unauthenticated_existing_matched_user_no_merge(self):
+    def test_flow_as_unauthenticated_existing_matched_user_no_merge(self) -> None:
         auth_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
@@ -314,7 +315,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not getattr(member.flags, "sso:invalid")
         assert not getattr(member.flags, "member-limit:restricted")
 
-    def test_flow_as_unauthenticated_existing_matched_user_with_merge(self):
+    def test_flow_as_unauthenticated_existing_matched_user_with_merge(self) -> None:
         user = self.create_user("bar@example.com")
 
         user.update(is_superuser=False)
@@ -366,7 +367,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not getattr(member.flags, "sso:invalid")
         assert not getattr(member.flags, "member-limit:restricted")
 
-    def test_flow_as_unauthenticated_existing_matched_user_via_secondary_email(self):
+    def test_flow_as_unauthenticated_existing_matched_user_via_secondary_email(self) -> None:
         auth_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
@@ -411,7 +412,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not getattr(member.flags, "member-limit:restricted")
 
     @mock.patch("sentry.auth.helper.AuthIdentityHandler.warn_about_ambiguous_email")
-    def test_flow_as_unauthenticated_existing_matched_user_with_ambiguous_email(self, mock_warning):
+    def test_flow_as_unauthenticated_existing_matched_user_with_ambiguous_email(
+        self, mock_warning: mock.MagicMock
+    ) -> None:
         AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         secondary_email = "foo@example.com"
@@ -433,7 +436,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert set(found_users) == users
         assert chosen_user in users
 
-    def test_flow_as_unauthenticated_existing_unmatched_user_with_merge(self):
+    def test_flow_as_unauthenticated_existing_unmatched_user_with_merge(self) -> None:
         auth_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
@@ -478,7 +481,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not getattr(member.flags, "sso:invalid")
         assert not getattr(member.flags, "member-limit:restricted")
 
-    def test_flow_as_unauthenticated_existing_matched_user_with_merge_and_existing_identity(self):
+    def test_flow_as_unauthenticated_existing_matched_user_with_merge_and_existing_identity(
+        self,
+    ) -> None:
         auth_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
@@ -529,7 +534,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not getattr(member.flags, "sso:invalid")
         assert not getattr(member.flags, "member-limit:restricted")
 
-    def test_flow_as_unauthenticated_existing_inactive_user_with_merge_and_existing_identity(self):
+    def test_flow_as_unauthenticated_existing_inactive_user_with_merge_and_existing_identity(
+        self,
+    ) -> None:
         """
         Given an unauthenticated user, and an existing, inactive user account
         with a linked identity, this should claim that identity and create
@@ -583,7 +590,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not getattr(member.flags, "sso:invalid")
         assert not getattr(member.flags, "member-limit:restricted")
 
-    def test_flow_duplicate_users_with_membership_and_verified(self):
+    def test_flow_duplicate_users_with_membership_and_verified(self) -> None:
         """
         Given an existing authenticated user, and an updated identity (e.g.
         the ident changed from the SSO provider), we should be re-linking
@@ -644,7 +651,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not getattr(member.flags, "sso:invalid")
         assert not getattr(member.flags, "member-limit:restricted")
 
-    def test_flow_duplicate_users_without_verified(self):
+    def test_flow_duplicate_users_without_verified(self) -> None:
         """
         Given an existing authenticated user, and an updated identity (e.g.
         the ident changed from the SSO provider), we should be re-linking
@@ -680,7 +687,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # there should be no prompt as we auto merge the identity
         assert resp.status_code == 200
 
-    def test_flow_authenticated_without_verified_without_password(self):
+    def test_flow_authenticated_without_verified_without_password(self) -> None:
         """
         Given an existing authenticated user, and an updated identity (e.g.
         the ident changed from the SSO provider), we should be re-linking
@@ -708,7 +715,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 200
         assert resp.context["existing_user"] == user
 
-    def test_flow_managed_duplicate_users_without_membership(self):
+    def test_flow_managed_duplicate_users_without_membership(self) -> None:
         """
         Given an existing authenticated user, and an updated identity (e.g.
         the ident changed from the SSO provider), we should be prompting to
@@ -741,7 +748,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 200
         assert resp.context["existing_user"].id == user.id
 
-    def test_swapped_identities(self):
+    def test_swapped_identities(self) -> None:
         """
         Given two existing user accounts with mismatched identities, such as:
 
@@ -810,7 +817,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert getattr(member2.flags, "sso:invalid")
         assert not getattr(member2.flags, "member-limit:restricted")
 
-    def test_flow_as_unauthenticated_existing_user_legacy_identity_migration(self):
+    def test_flow_as_unauthenticated_existing_user_legacy_identity_migration(self) -> None:
         user = self.create_user("bar@example.com")
         auth_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
@@ -838,7 +845,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         updated_ident = AuthIdentity.objects.get(id=user_ident.id)
         assert updated_ident.ident == "foo@new-domain.com"
 
-    def test_flow_as_authenticated_user_with_invite_joining(self):
+    def test_flow_as_authenticated_user_with_invite_joining(self) -> None:
         auth_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
@@ -880,7 +887,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})
-    def test_basic_auth_flow_as_not_invited_user(self):
+    def test_basic_auth_flow_as_not_invited_user(self) -> None:
         user = self.create_user("foor@example.com")
 
         self.session["_next"] = reverse(
@@ -895,7 +902,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 403
         self.assertTemplateUsed(resp, "sentry/no-organization-access.html")
 
-    def test_basic_auth_flow_as_not_invited_user_not_single_org_mode(self):
+    def test_basic_auth_flow_as_not_invited_user_not_single_org_mode(self) -> None:
         user = self.create_user("u2@example.com")
         resp = self.client.post(
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
@@ -904,7 +911,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})
-    def test_basic_auth_flow_as_user_with_confirmed_membership(self):
+    def test_basic_auth_flow_as_user_with_confirmed_membership(self) -> None:
         user = self.create_user("foor@example.com")
         self.create_member(organization=self.organization, user_id=user.id)
 
@@ -921,7 +928,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})
-    def test_flow_as_user_without_any_membership(self):
+    def test_flow_as_user_without_any_membership(self) -> None:
         # not sure how this could happen on Single Org Mode
         user = self.create_user("foor@example.com")
         resp = self.client.post(
@@ -931,7 +938,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 403
         self.assertTemplateUsed(resp, "sentry/no-organization-access.html")
 
-    def test_multiorg_login_correct_redirect_basic_auth(self):
+    def test_multiorg_login_correct_redirect_basic_auth(self) -> None:
         user = self.create_user("bar@example.com")
         user.update(is_superuser=False)
 
@@ -951,7 +958,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             (f"/organizations/{org1.slug}/issues/", 302),
         ]
 
-    def test_multiorg_login_correct_redirect_sso(self):
+    def test_multiorg_login_correct_redirect_sso(self) -> None:
         user = self.create_user("bar@example.com")
         user.update(is_superuser=False)
 
@@ -974,7 +981,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})
-    def test_correct_redirect_as_2fa_user_single_org_invited(self):
+    def test_correct_redirect_as_2fa_user_single_org_invited(self) -> None:
         user = self.create_user("foor@example.com")
 
         RecoveryCodeInterface().enroll(user)
@@ -991,10 +998,10 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
         )
 
-        invitation_link = "/" + member.get_invite_link().split("/", 3)[-1]
-        assert resp.redirect_chain == [(invitation_link, 302)]
+        # Users with 2FA should be redirected to 2FA dialog first, even with pending invites
+        assert resp.redirect_chain == [("/auth/2fa/", 302)]
 
-    def test_correct_redirect_as_2fa_user_invited(self):
+    def test_correct_redirect_as_2fa_user_invited(self) -> None:
         user = self.create_user("foor@example.com")
 
         RecoveryCodeInterface().enroll(user)
@@ -1011,12 +1018,12 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
         )
 
-        invitation_link = "/" + member.get_invite_link().split("/", 3)[-1]
-        assert resp.redirect_chain == [(invitation_link, 302)]
+        # Users with 2FA should be redirected to 2FA dialog first, even with pending invites
+        assert resp.redirect_chain == [("/auth/2fa/", 302)]
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})
-    def test_correct_redirect_as_2fa_user_single_org_no_membership(self):
+    def test_correct_redirect_as_2fa_user_single_org_no_membership(self) -> None:
         user = self.create_user("foor@example.com")
 
         RecoveryCodeInterface().enroll(user)
@@ -1028,7 +1035,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert resp.redirect_chain == [("/auth/2fa/", 302)]
 
-    def test_correct_redirect_as_2fa_user_no_membership(self):
+    def test_correct_redirect_as_2fa_user_no_membership(self) -> None:
         user = self.create_user("foor@example.com")
 
         RecoveryCodeInterface().enroll(user)
@@ -1042,7 +1049,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})
-    def test_correct_redirect_as_2fa_user_single_org_member(self):
+    def test_correct_redirect_as_2fa_user_single_org_member(self) -> None:
         user = self.create_user("foor@example.com")
 
         RecoveryCodeInterface().enroll(user)
@@ -1056,7 +1063,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert resp.redirect_chain == [("/auth/2fa/", 302)]
 
-    def test_correct_redirect_as_2fa_user_invited_member(self):
+    def test_correct_redirect_as_2fa_user_invited_member(self) -> None:
         user = self.create_user("foor@example.com")
 
         RecoveryCodeInterface().enroll(user)
@@ -1070,7 +1077,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert resp.redirect_chain == [("/auth/2fa/", 302)]
 
-    def test_anonymous_user_with_automatic_migration(self):
+    def test_anonymous_user_with_automatic_migration(self) -> None:
         AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
         resp = self.client.post(self.path, {"init": True})
         assert resp.status_code == 200
@@ -1081,7 +1088,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path, {"email": "foo@example.com"})
         assert resp.status_code == 200
 
-    def test_org_not_visible(self):
+    def test_org_not_visible(self) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             self.organization.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
 
@@ -1093,7 +1100,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
 @control_silo_test
 class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.owner = self.create_user()
         self.organization = self.create_organization(name="foo", owner=self.owner)
         self.user = self.create_user("bar@example.com", is_managed=False, password="")
@@ -1105,7 +1112,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         UserEmail.objects.filter(user=self.user, email="bar@example.com").update(is_verified=False)
 
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
-    def test_flow_verify_and_link_without_password_sends_email(self, email):
+    def test_flow_verify_and_link_without_password_sends_email(self, email: mock.MagicMock) -> None:
         assert not self.user.has_usable_password()
         self.create_member(organization=self.organization, user_id=self.user.id)
 
@@ -1142,7 +1149,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         assert self.user == auth_identity.user
 
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
-    def test_flow_verify_without_org_membership(self, email):
+    def test_flow_verify_without_org_membership(self, email: mock.MagicMock) -> None:
         assert not self.user.has_usable_password()
         with assume_test_silo_mode(SiloMode.REGION):
             assert not OrganizationMember.objects.filter(
@@ -1185,7 +1192,9 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
             ).exists()
 
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
-    def test_flow_verify_and_link_without_password_login_success(self, email):
+    def test_flow_verify_and_link_without_password_login_success(
+        self, email: mock.MagicMock
+    ) -> None:
         assert not self.user.has_usable_password()
         self.create_member(organization=self.organization, user_id=self.user.id)
 
@@ -1230,7 +1239,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         assert not getattr(member.flags, "member-limit:restricted")
 
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
-    def test_flow_verify_and_link_without_password_need_2fa(self, email):
+    def test_flow_verify_and_link_without_password_need_2fa(self, email: mock.MagicMock) -> None:
         assert not self.user.has_usable_password()
         self.create_member(organization=self.organization, user_id=self.user.id)
         TotpInterface().enroll(self.user)
@@ -1266,12 +1275,12 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
 @control_silo_test
 class OrganizationAuthLoginDemoModeTest(AuthProviderTestCase):
 
-    def setUp(self):
-        self.demo_user = self.create_user(id=1)
-        self.demo_org = self.create_organization(id=1, owner=self.demo_user)
+    def setUp(self) -> None:
+        self.demo_user = self.create_user()
+        self.demo_org = self.create_organization(owner=self.demo_user)
 
-        self.normal_user = self.create_user(id=2)
-        self.normal_org = self.create_organization(id=2, owner=self.normal_user)
+        self.normal_user = self.create_user()
+        self.normal_org = self.create_organization(owner=self.normal_user)
 
     def is_logged_in_to_org(self, response, org):
         return response.status_code == 200 and response.redirect_chain == [
@@ -1285,26 +1294,114 @@ class OrganizationAuthLoginDemoModeTest(AuthProviderTestCase):
             follow=True,
         )
 
-    @override_options({"demo-mode.enabled": False, "demo-mode.users": [1], "demo-mode.orgs": [1]})
-    def test_auto_login_demo_mode_disabled(self):
-        resp = self.fetch_org_login_page(self.demo_org)
-        assert not self.is_logged_in_to_org(resp, self.demo_org)
+    def test_auto_login_demo_mode_disabled(self) -> None:
+        with override_options(
+            {
+                "demo-mode.enabled": False,
+                "demo-mode.users": [self.demo_user.id],
+                "demo-mode.orgs": [self.demo_org.id],
+            }
+        ):
+            resp = self.fetch_org_login_page(self.demo_org)
+            assert not self.is_logged_in_to_org(resp, self.demo_org)
 
-        resp = self.fetch_org_login_page(self.normal_org)
-        assert not self.is_logged_in_to_org(resp, self.normal_org)
+            resp = self.fetch_org_login_page(self.normal_org)
+            assert not self.is_logged_in_to_org(resp, self.normal_org)
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": [1], "demo-mode.orgs": [1]})
-    def test_auto_login_demo_mode(self):
-        resp = self.fetch_org_login_page(self.demo_org)
-        assert self.is_logged_in_to_org(resp, self.demo_org)
+    def test_auto_login_demo_mode(self) -> None:
+        with override_options(
+            {
+                "demo-mode.enabled": True,
+                "demo-mode.users": [self.demo_user.id],
+                "demo-mode.orgs": [self.demo_org.id],
+            }
+        ):
+            resp = self.fetch_org_login_page(self.demo_org)
+            assert self.is_logged_in_to_org(resp, self.demo_org)
 
-        resp = self.fetch_org_login_page(self.normal_org)
-        assert not self.is_logged_in_to_org(resp, self.normal_org)
+            resp = self.fetch_org_login_page(self.normal_org)
+            assert not self.is_logged_in_to_org(resp, self.normal_org)
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": [], "demo-mode.orgs": []})
-    def test_auto_login_not_demo_org(self):
-        resp = self.fetch_org_login_page(self.demo_org)
-        assert not self.is_logged_in_to_org(resp, self.demo_org)
+    def test_auto_login_not_demo_org(self) -> None:
+        with override_options(
+            {"demo-mode.enabled": True, "demo-mode.users": [], "demo-mode.orgs": []}
+        ):
+            resp = self.fetch_org_login_page(self.demo_org)
+            assert not self.is_logged_in_to_org(resp, self.demo_org)
 
-        resp = self.fetch_org_login_page(self.normal_org)
-        assert not self.is_logged_in_to_org(resp, self.normal_org)
+            resp = self.fetch_org_login_page(self.normal_org)
+            assert not self.is_logged_in_to_org(resp, self.normal_org)
+
+    def test_demo_user_joins_existing_sso_organization(self) -> None:
+        """
+        Test that when a demo user is logged in and tries to join an existing SSO organization,
+        they are logged in as a new user with a proper auth identity linked.
+
+        This can happen in production when a user visits the sandbox, gets logged in as a demo user,
+        and then attempts to join an organization that has SSO configured (e.g., via invite link).
+
+        The demo user's session is treated as unauthenticated for the SSO pipeline
+        but the user property still resolves to the demo user as a fallback.
+        When the user chooses "newuser", a completely new account is created with SSO identity.
+        """
+        with override_options(
+            {
+                "demo-mode.enabled": True,
+                "demo-mode.users": [self.demo_user.id],
+                "demo-mode.orgs": [self.demo_org.id],
+            }
+        ):
+            sso_org = self.create_organization(name="sso-org", owner=self.normal_user)
+            # Create an organization with SSO (not the demo org)
+            auth_provider = AuthProvider.objects.create(
+                organization_id=sso_org.id, provider="dummy"
+            )
+
+            # Log in as demo user
+            self.login_as(self.demo_user)
+
+            # Initiate SSO flow
+            path = reverse("sentry-auth-organization", args=[sso_org.slug])
+            resp = self.client.post(path, {"init": True})
+
+            assert resp.status_code == 200
+            assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
+
+            # Complete SSO with a new email
+            sso_path = reverse("sentry-auth-sso")
+            new_email = "newuser@example.com"
+            resp = self.client.post(sso_path, {"email": new_email})
+
+            # Even though demo user is logged in, they're treated as unauthenticated in pipeline
+            # So we get auth-confirm-identity screen, but existing_user still shows the demo user
+            # as a fallback (because user property returns request.user when email doesn't match)
+            self.assertTemplateUsed(resp, "sentry/auth-confirm-identity.html")
+            assert resp.status_code == 200
+
+            # Create new user account
+            resp = self.client.post(sso_path, {"op": "newuser"}, follow=True)
+
+            # Should redirect and log in as the new user
+            assert resp.status_code == 200
+
+            # Verify a new user was created (not the demo user)
+            auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
+            new_user = auth_identity.user
+
+            # Verify it's not the demo user
+            assert new_user.id != self.demo_user.id
+            assert new_user.email == new_email
+
+            logged_in_user = get_user(self.client)
+            assert logged_in_user.id == new_user.id
+
+            # Verify demo user has NO auth identity linked to this provider
+            assert not AuthIdentity.objects.filter(
+                auth_provider=auth_provider, user_id=self.demo_user.id
+            ).exists()
+
+            # Verify the new user has organization membership with SSO linked
+            with assume_test_silo_mode(SiloMode.REGION):
+                member = OrganizationMember.objects.get(organization=sso_org, user_id=new_user.id)
+            assert getattr(member.flags, "sso:linked")
+            assert not getattr(member.flags, "sso:invalid")

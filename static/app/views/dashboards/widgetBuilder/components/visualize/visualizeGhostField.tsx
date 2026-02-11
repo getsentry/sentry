@@ -1,7 +1,8 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,22 +22,21 @@ import {
   ParameterRefinements,
   PrimarySelectRow,
   StyledArithmeticInput,
-  StyledDeleteButton,
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize/index';
 import {ColumnCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
-import {type FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
+import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 
 type VisualizeGhostFieldProps = {
   activeId: number;
   aggregates: Array<SelectValue<FieldValue>>;
   fields: QueryFieldValue[];
   isBigNumberWidget: boolean;
-  isChartWidget: boolean;
+  isTimeSeriesWidget: boolean;
   stringFields: string[];
 };
 
 function VisualizeGhostField({
-  isChartWidget,
+  isTimeSeriesWidget,
   isBigNumberWidget,
   fields,
   activeId,
@@ -96,7 +96,7 @@ function VisualizeGhostField({
           aria-label={t('Drag to reorder')}
           icon={<IconGrabbable size="xs" />}
           size="zero"
-          borderless
+          priority="transparent"
         />
         <FieldBar>
           {draggingField?.kind === FieldValueKind.EQUATION ? (
@@ -194,8 +194,8 @@ function VisualizeGhostField({
             </Fragment>
           )}
         </FieldBar>
-        <FieldExtras isChartWidget={isChartWidget || isBigNumberWidget}>
-          {!isChartWidget && !isBigNumberWidget && (
+        <FieldExtras compact={isTimeSeriesWidget || isBigNumberWidget}>
+          {!isTimeSeriesWidget && !isBigNumberWidget && (
             <LegendAliasInput
               type="text"
               name="name"
@@ -204,8 +204,8 @@ function VisualizeGhostField({
               onChange={() => {}}
             />
           )}
-          <StyledDeleteButton
-            borderless
+          <Button
+            priority="transparent"
             icon={<IconDelete />}
             size="zero"
             disabled
@@ -222,9 +222,9 @@ export default VisualizeGhostField;
 
 const Ghost = styled('div')`
   position: absolute;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding: ${space(0.5)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
   opacity: 0.8;
   cursor: grabbing;

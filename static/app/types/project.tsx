@@ -34,24 +34,24 @@ export type Project = {
   hasInsightsCaches: boolean;
   hasInsightsDb: boolean;
   hasInsightsHttp: boolean;
-  hasInsightsLlmMonitoring: boolean;
   hasInsightsMCP: boolean;
   hasInsightsQueues: boolean;
   hasInsightsScreenLoad: boolean;
   hasInsightsVitals: boolean;
+  hasLogs: boolean;
   hasMinifiedStackTrace: boolean;
   hasMonitors: boolean;
   hasNewFeedbacks: boolean;
   hasProfiles: boolean;
   hasReplays: boolean;
   hasSessions: boolean;
+  hasTraceMetrics: boolean;
   id: string;
   isBookmarked: boolean;
   isInternal: boolean;
   isMember: boolean;
   name: string;
   organization: Organization;
-
   plugins: Plugin[];
   processingIssues: number;
   relayCustomMetricCardinalityLimit: number | null;
@@ -66,12 +66,11 @@ export type Project = {
   team: Team;
   teams: Team[];
   verifySSL: boolean;
+  attachmentsRole?: string | null;
   autofixAutomationTuning?: 'off' | 'super_low' | 'low' | 'medium' | 'high' | 'always';
   builtinSymbolSources?: string[];
+  debugFilesRole?: string | null;
   defaultEnvironment?: string;
-  eventProcessing?: {
-    symbolicationDegraded?: boolean;
-  };
   hasUserReports?: boolean;
   highlightContext?: Record<string, string[]>;
   highlightPreset?: {
@@ -82,6 +81,12 @@ export type Project = {
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
+  preprodDistributionEnabledByCustomer?: boolean;
+  preprodDistributionEnabledQuery?: string | null;
+  preprodSizeEnabledByCustomer?: boolean;
+  preprodSizeEnabledQuery?: string | null;
+  preprodSizeStatusChecksEnabled?: boolean;
+  preprodSizeStatusChecksRules?: unknown[];
   securityToken?: string;
   securityTokenHeader?: string;
   seerScannerAutomation?: boolean;
@@ -93,7 +98,6 @@ export type Project = {
   stats?: TimeseriesValue[];
   subjectPrefix?: string;
   symbolSources?: string;
-  tempestFetchDumps?: boolean;
   tempestFetchScreenshots?: boolean;
   transactionStats?: TimeseriesValue[];
 } & AvatarProject;
@@ -111,7 +115,10 @@ export type ProjectKey = {
     cdn: string;
     crons: string;
     csp: string;
+    integration: string;
     minidump: string;
+    otlp_logs: string;
+    otlp_traces: string;
     playstation: string;
     public: string;
     secret: string;
@@ -120,6 +127,8 @@ export type ProjectKey = {
   };
   dynamicSdkLoaderOptions: {
     hasDebug: boolean;
+    hasFeedback: boolean;
+    hasLogsAndMetrics: boolean;
     hasPerformance: boolean;
     hasReplay: boolean;
   };
@@ -256,6 +265,7 @@ export type PlatformKey =
   | 'node-fastify'
   | 'node-gcpfunctions'
   | 'node-hapi'
+  | 'node-hono'
   | 'node-koa'
   | 'node-nestjs'
   | 'node-nodeawslambda'
@@ -319,4 +329,8 @@ export type PlatformIntegration = {
   link: string | null;
   name: string;
   type: string;
+  deprecated?: boolean;
+  iconConfig?: {
+    withLanguageIcon: boolean;
+  };
 };

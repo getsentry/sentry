@@ -1,10 +1,11 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import {useSetupWizardCompletedAnalytics} from 'sentry/views/setupWizard/utils/setupWizardAnalytics';
@@ -50,12 +51,12 @@ export function WaitingForWizardToConnect({
   }, [checkFinished]);
 
   return finished ? (
-    <SuccessWrapper>
-      <SuccessCheckmark color="green300" size="xl" isCircled />
+    <Flex align="center" gap="2xl">
+      <SuccessCheckmark variant="success" size="xl" />
       <SuccessHeading>
         {t('Return to your terminal to complete your setup.')}
       </SuccessHeading>
-    </SuccessWrapper>
+    </Flex>
   ) : (
     <LoadingIndicator style={{margin: '2em auto'}}>
       <h5>{t('Waiting for wizard to connect')}</h5>
@@ -69,10 +70,4 @@ const SuccessCheckmark = styled(IconCheckmark)`
 
 const SuccessHeading = styled('h5')`
   margin: 0;
-`;
-
-const SuccessWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(3)};
 `;

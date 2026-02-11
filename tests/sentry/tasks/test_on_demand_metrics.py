@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from typing import Any
 from unittest import mock
 
@@ -463,7 +462,7 @@ def test_process_widget_specs(
     raw_snql_query: Any,
     feature_flags: dict[str, bool],
     option_enable: bool,
-    widget_query_ids: Sequence[int],
+    widget_query_ids: list[int],
     set_high_cardinality: bool,
     expected_discover_queries_run: int,
     expected_low_cardinality: bool,
