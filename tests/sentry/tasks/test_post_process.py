@@ -2976,23 +2976,15 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_and_run_automation.assert_not_called()
 
 
+@patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
 class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
     """Tests for the triage signals V0 flow."""
 
-    def setUp(self):
-        super().setUp()
-        self.seat_based_tier_patcher = patch(
-            "sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True
-        )
-        self.seat_based_tier_patcher.start()
-
-    def tearDown(self):
-        self.seat_based_tier_patcher.stop()
-        super().tearDown()
-
     @patch("sentry.tasks.autofix.generate_issue_summary_only.delay")
     @with_feature({"organizations:gen-ai-features": True})
-    def test_triage_signals_event_count_less_than_10_no_cache(self, mock_generate_summary_only):
+    def test_triage_signals_event_count_less_than_10_no_cache(
+        self, mock_generate_summary_only, mock_seat_based_tier
+    ):
         """Test that with event count < 10 and no cached summary, we generate summary only (no automation)."""
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
@@ -3018,7 +3010,9 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
 
     @patch("sentry.tasks.autofix.generate_issue_summary_only.delay")
     @with_feature({"organizations:gen-ai-features": True})
-    def test_triage_signals_event_count_less_than_10_with_cache(self, mock_generate_summary_only):
+    def test_triage_signals_event_count_less_than_10_with_cache(
+        self, mock_generate_summary_only, mock_seat_based_tier
+    ):
         """Test that with event count < 10 and cached summary exists, we do nothing."""
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
@@ -3050,7 +3044,7 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
     @patch("sentry.tasks.autofix.run_automation_only_task.delay")
     @with_feature({"organizations:gen-ai-features": True})
     def test_triage_signals_event_count_gte_10_with_cache(
-        self, mock_run_automation, mock_has_repos
+        self, mock_run_automation, mock_has_repos, mock_seat_based_tier
     ):
         """Test that with event count >= 10 and cached summary exists, we run automation directly."""
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -3100,6 +3094,7 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         self,
         mock_generate_summary_and_run_automation,
         mock_has_repos,
+        mock_seat_based_tier,
     ):
         """Test that with event count >= 10 and no cached summary, we generate summary + run automation."""
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -3145,6 +3140,7 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         self,
         mock_generate_summary_and_run_automation,
         mock_has_repos,
+        mock_seat_based_tier,
     ):
         """Test that with event count >= 10 but no connected repos, we skip automation."""
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -3180,7 +3176,7 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
     @patch("sentry.tasks.autofix.run_automation_only_task.delay")
     @with_feature({"organizations:gen-ai-features": True})
     def test_triage_signals_event_count_gte_10_skips_with_seer_last_triggered(
-        self, mock_run_automation
+        self, mock_run_automation, mock_seat_based_tier
     ):
         """Test that with event count >= 10 and seer_autofix_last_triggered set, we skip automation."""
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -3224,7 +3220,7 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
     @patch("sentry.tasks.autofix.run_automation_only_task.delay")
     @with_feature({"organizations:gen-ai-features": True})
     def test_triage_signals_event_count_gte_10_skips_with_existing_fixability_score(
-        self, mock_run_automation
+        self, mock_run_automation, mock_seat_based_tier
     ):
         """Test that with event count >= 10 and seer_fixability_score below MEDIUM threshold, we skip automation."""
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -3273,6 +3269,7 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         self,
         mock_run_automation,
         mock_generate_summary_and_run_automation,
+        mock_seat_based_tier,
     ):
         """Test that automation is skipped for issues older than 14 days."""
         self.project.update_option("sentry:seer_scanner_automation", True)
