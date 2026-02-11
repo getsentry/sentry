@@ -13,7 +13,7 @@ import pytest
 import requests
 
 from sentry.runner.commands.devservices import get_docker_client
-from sentry.testutils.pytest.sentry import _get_xdist_redis_db
+from sentry.testutils.pytest.sentry import _get_xdist_kafka_topic, _get_xdist_redis_db
 
 _log = logging.getLogger(__name__)
 
@@ -23,6 +23,10 @@ RELAY_TEST_IMAGE = environ.get("RELAY_TEST_IMAGE", "ghcr.io/getsentry/relay:nigh
 
 
 def _relay_server_container_name() -> str:
+    """Under xdist, each worker gets its own container to avoid name conflicts."""
+    worker_id = environ.get("PYTEST_XDIST_WORKER")
+    if worker_id:
+        return f"sentry_test_relay_server_{worker_id}"
     return "sentry_test_relay_server"
 
 
@@ -84,6 +88,8 @@ def relay_server_setup(live_server, tmpdir_factory):
         "KAFKA_HOST": "kafka",
         "REDIS_HOST": "redis",
         "REDIS_DB": redis_db,
+        "KAFKA_TOPIC_EVENTS": _get_xdist_kafka_topic("ingest-events"),
+        "KAFKA_TOPIC_OUTCOMES": _get_xdist_kafka_topic("outcomes"),
     }
 
     for source in sources:

@@ -61,6 +61,19 @@ def _get_xdist_redis_db() -> int:
     return TEST_REDIS_DB
 
 
+def _get_xdist_kafka_topic(base_name: str) -> str:
+    """Under xdist, each worker uses a unique Kafka topic to prevent cross-contamination.
+
+    Without per-worker topics, Worker A's Relay writes events to 'ingest-events' and
+    Worker B's Relay also writes to 'ingest-events'. When Worker A's consumer reads
+    from 'ingest-events', it might consume Worker B's events, causing spurious failures.
+    """
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER")
+    if worker_id:
+        return f"{base_name}-{worker_id}"
+    return base_name
+
+
 def _use_monolith_dbs() -> bool:
     return os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
 
@@ -547,14 +560,10 @@ def _triggers_snuba_reset(item: pytest.Item) -> bool:
     return False
 
 
-# With per-worker ClickHouse databases, each xdist worker has its own isolated
-# database and can safely TRUNCATE without affecting other workers. This eliminates
-# the need for FORCE_SERIAL_FILES (broad-query tests are no longer a problem).
-#
-# Only relay_integration tests still need serial execution: they use the
-# Relay→Kafka→Consumer pipeline which writes to the default (shared) database,
-# not the per-worker database. Plus the per-test Docker container restart.
-FORCE_SERIAL_DIRS: tuple[str, ...] = ("tests/relay_integration/",)
+# With per-worker ClickHouse databases AND per-worker Relay containers (each with
+# its own Kafka topics), all tests can run in parallel under xdist. Each worker
+# has fully isolated Snuba, Relay, and Kafka state.
+FORCE_SERIAL_DIRS: tuple[str, ...] = ()
 
 
 def _force_serial(item: pytest.Item) -> bool:
