@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1026_remove_group_open_period_event_id"),
+        ("sentry", "1028_remove_group_open_period_event_id"),
     ]
 
     operations = [
