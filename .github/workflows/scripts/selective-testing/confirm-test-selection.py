@@ -38,7 +38,7 @@ def main() -> int:
         response = input(prompt).strip().lower()
     except (EOFError, KeyboardInterrupt):
         print("\nAborted.")
-        return 2
+        return 1
 
     if response in ("y", "yes"):
         return 0

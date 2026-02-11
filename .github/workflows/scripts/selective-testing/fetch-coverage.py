@@ -102,7 +102,7 @@ def main() -> int:
     commits = get_commit_list(base_ref)
     if not commits:
         print("No commits found to check", file=sys.stderr)
-        return 2
+        return 1
 
     for sha in commits:
         print(f"  Checking {sha[:12]}...", end=" ")
