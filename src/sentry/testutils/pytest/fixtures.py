@@ -335,6 +335,11 @@ def call_snuba(settings):
 
 @pytest.fixture
 def reset_snuba(call_snuba):
+    # In tier1 (no Snuba), skip truncation for reclassified SnubaTestCase tests
+    # that don't actually need Snuba at runtime.
+    if os.environ.get("SENTRY_SKIP_SNUBA_RESET") == "1":
+        return
+
     # With per-worker ClickHouse databases, each xdist worker has its own Snuba
     # instance pointing to its own database. TRUNCATE TABLE is safe because it
     # only affects the current worker's data — no cross-worker interference.

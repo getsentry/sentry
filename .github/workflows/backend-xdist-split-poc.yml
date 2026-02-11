@@ -6,6 +6,7 @@ on:
     branches:
       - mchen/tiered-xdist-hybrid
       - mchen/per-worker-snuba-db
+      - mchen/reclassified-tiers-poc
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -35,13 +36,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Download from most recent successful classify-services run
-          RUN_ID=$(gh run list --workflow=classify-services.yml --status=success --limit=1 --json databaseId --jq '.[0].databaseId')
-          if [ -z "$RUN_ID" ]; then
-            echo "ERROR: No successful classify-services run found"
-            exit 1
-          fi
-          echo "Downloading classification from run $RUN_ID"
+          # Use the reclassified report from experiment D (conditional reset_snuba)
+          # This report has 1,862 fewer snuba-tagged tests (8,729 vs 10,591)
+          RUN_ID=21925785204
+          echo "Downloading reclassified report from run $RUN_ID"
           gh run download "$RUN_ID" --name test-service-classification --dir /tmp/classification
           ls -la /tmp/classification/
 
@@ -126,6 +124,10 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
       # Fixed hash seed ensures deterministic collection across xdist workers
       PYTHONHASHSEED: '0'
+      # Allow reclassified SnubaTestCase tests to run without Snuba in tier1.
+      # These tests inherit @requires_snuba/reset_snuba but don't actually
+      # connect to Snuba at runtime (validated by experiment D classification).
+      SENTRY_SKIP_SNUBA_RESET: '1'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
