@@ -42,7 +42,10 @@ function WidgetTemplatesList({
 
   const widgetTemplateId = decodeScalar(location.query?.widgetTemplateId);
   const initialSelectedIndex = widgetTemplateId
-    ? widgets.findIndex(w => w.id === widgetTemplateId)
+    ? Math.max(
+        0,
+        widgets.findIndex(w => w.id === widgetTemplateId)
+      )
     : 0;
   const [selectedWidget, setSelectedWidget] = useState<number | null>(
     initialSelectedIndex
