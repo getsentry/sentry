@@ -28,10 +28,6 @@ type Props = Omit<
 };
 
 class ProjectBaseEventsChart extends Component<Props> {
-  static defaultProps = {
-    dataset: DiscoverDatasets.METRICS_ENHANCED,
-  };
-
   componentDidMount() {
     this.fetchTotalCount();
   }
@@ -43,8 +39,14 @@ class ProjectBaseEventsChart extends Component<Props> {
   }
 
   async fetchTotalCount() {
-    const {api, organization, selection, onTotalValuesChange, query, dataset} =
-      this.props;
+    const {
+      api,
+      organization,
+      selection,
+      onTotalValuesChange,
+      query,
+      dataset = DiscoverDatasets.METRICS_ENHANCED,
+    } = this.props;
     const {projects, environments, datetime} = selection;
 
     try {
@@ -74,7 +76,7 @@ class ProjectBaseEventsChart extends Component<Props> {
       field,
       title,
       help,
-      dataset,
+      dataset = DiscoverDatasets.METRICS_ENHANCED,
       ...eventsChartProps
     } = this.props;
     const {projects, environments, datetime} = selection;
