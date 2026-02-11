@@ -8,7 +8,6 @@ import {Container} from '@sentry/scraps/layout';
 
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme} from 'sentry/utils/theme/theme';
@@ -245,7 +244,7 @@ const Header = styled('div')<{isFloating: boolean}>`
   ${p =>
     p.isFloating
       ? css`
-          gap: ${space(0.25)};
+          gap: ${p.theme.space['2xs']};
           justify-content: flex-end;
           position: absolute;
           top: 0;
@@ -253,11 +252,11 @@ const Header = styled('div')<{isFloating: boolean}>`
           width: max-content;
           height: max-content;
           max-height: 100%;
-          padding: ${space(0.5)};
+          padding: ${p.theme.space.xs};
         `
       : css`
-          gap: ${space(0.75)};
-          padding: ${space(0.5)} ${space(0.5)} 0 ${space(1)};
+          gap: ${p.theme.space.sm};
+          padding: ${p.theme.space.xs} ${p.theme.space.xs} 0 ${p.theme.space.md};
           border-bottom: solid 1px ${p.theme.tokens.border.primary};
         `}
 `;
@@ -281,7 +280,7 @@ const Tab = styled('button')<{isSelected: boolean}>`
   margin: 0;
   border: none;
   background: none;
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   color: var(--prism-comment);
   ${p =>
     p.isSelected
