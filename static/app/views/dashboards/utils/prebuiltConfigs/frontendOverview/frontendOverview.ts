@@ -8,9 +8,9 @@ import {
   FRONTEND_SDK_NAMES,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
+import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
 import {getResourcesEventViewQuery} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
-import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {
   OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS,
@@ -93,49 +93,7 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       ],
       widgetType: WidgetType.SPANS,
     },
-    {
-      id: 'score-breakdown-wheel',
-      title: t('Performance Score'),
-      displayType: DisplayType.WHEEL,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: DEFAULT_QUERY_FILTER,
-          fields: [
-            'performance_score(measurements.score.lcp)',
-            'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.inp)',
-            'performance_score(measurements.score.cls)',
-            'performance_score(measurements.score.ttfb)',
-            'performance_score(measurements.score.total)',
-            'count_scores(measurements.score.total)',
-            'count_scores(measurements.score.lcp)',
-            'count_scores(measurements.score.fcp)',
-            'count_scores(measurements.score.inp)',
-            'count_scores(measurements.score.cls)',
-            'count_scores(measurements.score.ttfb)',
-          ],
-          aggregates: [],
-          columns: [
-            'performance_score(measurements.score.lcp)',
-            'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.inp)',
-            'performance_score(measurements.score.cls)',
-            'performance_score(measurements.score.ttfb)',
-            'performance_score(measurements.score.total)',
-            'count_scores(measurements.score.total)',
-            'count_scores(measurements.score.lcp)',
-            'count_scores(measurements.score.fcp)',
-            'count_scores(measurements.score.inp)',
-            'count_scores(measurements.score.cls)',
-            'count_scores(measurements.score.ttfb)',
-          ],
-          orderby: '',
-        },
-      ],
-    },
+    SCORE_BREAKDOWN_WHEEL_WIDGET,
   ],
   0
 );

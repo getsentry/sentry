@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -20,15 +21,16 @@ import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import EventWaiter from 'sentry/utils/eventWaiter';
 import {decodeInteger} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIndicator';
 
 export function SetupTitle({project}: {project: Project}) {
   return (
@@ -41,6 +43,37 @@ export function SetupTitle({project}: {project: Project}) {
         ),
       })}
     </BodyTitle>
+  );
+}
+
+function WaitingIndicator({project}: {project: Project}) {
+  const organization = useOrganization();
+
+  return (
+    <EventWaiter organization={organization} project={project} eventType="error">
+      {({firstIssue}) =>
+        firstIssue ? (
+          <LinkButton
+            onClick={() =>
+              trackAnalytics('growth.onboarding_take_to_error', {
+                organization,
+                platform: project.platform,
+              })
+            }
+            to={`/organizations/${organization.slug}/issues/${
+              firstIssue && firstIssue !== true && 'id' in firstIssue
+                ? `${firstIssue.id}/`
+                : ''
+            }?referrer=onboarding-first-event-indicator`}
+            priority="primary"
+          >
+            {t('Take me to my error')}
+          </LinkButton>
+        ) : (
+          <EventWaitingIndicator />
+        )
+      }
+    </EventWaiter>
   );
 }
 
@@ -160,34 +193,20 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
             >
               {steps.map((step, index) => {
                 const title = step.title ?? StepTitles[step.type ?? 'install'];
+                const isLastStep = index === steps.length - 1;
                 return (
                   <GuidedSteps.Step key={index} stepKey={title} title={title}>
                     <ContentBlocksRenderer
                       contentBlocks={step.content}
                       spacing={space(1)}
                     />
-                    {index === steps.length - 1 ? (
-                      <FirstEventIndicator
-                        organization={organization}
-                        project={project}
-                        eventType="error"
-                      >
-                        {({indicator, firstEventButton}) => (
-                          <FirstEventWrapper>
-                            <IndicatorWrapper>{indicator}</IndicatorWrapper>
-                            <StyledButtonBar>
-                              <GuidedSteps.BackButton size="md" />
-                              {firstEventButton}
-                            </StyledButtonBar>
-                          </FirstEventWrapper>
-                        )}
-                      </FirstEventIndicator>
-                    ) : (
-                      <GuidedSteps.ButtonWrapper>
-                        <GuidedSteps.BackButton size="md" />
-                        <GuidedSteps.NextButton size="md" />
-                      </GuidedSteps.ButtonWrapper>
-                    )}
+                    <GuidedSteps.ButtonWrapper>
+                      <GuidedSteps.BackButton size="md" />
+                      <GuidedSteps.NextButton size="md" />
+                      {isLastStep && <WaitingIndicator project={project} />}
+                    </GuidedSteps.ButtonWrapper>
+                    {/* This spacer ensures the whole pulse effect is visible, as the parent has overflow: hidden */}
+                    {isLastStep && <PulseSpacer />}
                   </GuidedSteps.Step>
                 );
               })}
@@ -208,6 +227,33 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     </AuthTokenGeneratorProvider>
   );
 }
+
+const PulsingIndicator = styled('div')`
+  ${pulsingIndicatorStyles};
+  flex-shrink: 0;
+`;
+
+function EventWaitingIndicator() {
+  return (
+    <EventWaitingIndicatorContainer
+      align="center"
+      position="relative"
+      padding="0 md"
+      paddingRight="3xl"
+      gap="md"
+      flexGrow={1}
+    >
+      {t("Waiting for this project's first error")}
+      <PulsingIndicator />
+    </EventWaitingIndicatorContainer>
+  );
+}
+
+const EventWaitingIndicatorContainer = styled(Flex)`
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.promotion};
+  z-index: 10;
+`;
 
 const ProjectBadgeWrapper = styled('div')`
   display: inline-block;
@@ -298,18 +344,6 @@ const Arcade = styled('iframe')`
   color-scheme: auto;
 `;
 
-const StyledButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  display: flex;
-`;
-
-const IndicatorWrapper = styled('div')`
-  width: 300px;
-  max-width: 100%;
-  margin-bottom: ${space(1)};
-`;
-
-const FirstEventWrapper = styled('div')`
-  padding-top: ${space(1)};
+const PulseSpacer = styled('div')`
+  height: ${p => p.theme.space['3xl']};
 `;

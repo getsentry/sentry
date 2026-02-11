@@ -35,8 +35,8 @@ class TestDebugTraceLogger:
         assert extra["project_and_trace"] == "123:trace456"
         assert extra["parent_span_id"] == "abc123"
         assert extra["num_spans_in_subsegment"] == 1
-        assert extra["zunion_span_key_count"] == 0
-        assert extra["zunion_existing_key_count"] == 0
+        assert extra["sunion_span_key_count"] == 0
+        assert extra["sunion_existing_key_count"] == 0
         assert extra["set_sizes"] == {}
         assert extra["total_set_sizes"] == 0
         assert extra["subsegment_spans"] == [
@@ -74,8 +74,8 @@ class TestDebugTraceLogger:
         assert extra["project_and_trace"] == "456:trace789"
         assert extra["parent_span_id"] == "parent123"
         assert extra["num_spans_in_subsegment"] == 3
-        assert extra["zunion_span_key_count"] == 2
-        assert extra["zunion_existing_key_count"] == 1
+        assert extra["sunion_span_key_count"] == 2
+        assert extra["sunion_existing_key_count"] == 1
         assert extra["total_set_sizes"] == 5
         assert len(extra["set_sizes"]) == 2
         assert len(extra["subsegment_spans"]) == 3
@@ -101,9 +101,9 @@ class TestDebugTraceLogger:
             subsegment=subsegment,
         )
 
-        expected_key = b"span-buf:z:{111:trace222}:B"
-        mock_pipeline.zcard.assert_called_once_with(expected_key)
+        expected_key = b"span-buf:s:{111:trace222}:B"
+        mock_pipeline.scard.assert_called_once_with(expected_key)
 
         extra = mock_logger.info.call_args[1]["extra"]
-        assert "span-buf:z:{111:trace222}:B" in extra["set_sizes"]
-        assert extra["set_sizes"]["span-buf:z:{111:trace222}:B"] == 3
+        assert "span-buf:s:{111:trace222}:B" in extra["set_sizes"]
+        assert extra["set_sizes"]["span-buf:s:{111:trace222}:B"] == 3
