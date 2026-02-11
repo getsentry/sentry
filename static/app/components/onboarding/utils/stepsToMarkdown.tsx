@@ -254,7 +254,7 @@ export function contentBlockToMarkdown(
       return reactNodeToText(block.text);
 
     case 'code': {
-      if ('tabs' in block && block.tabs) {
+      if ('tabs' in block && block.tabs && block.tabs.length > 0) {
         const selectedValue =
           options?.tabSelectionsMap?.get(
             deriveTabKey(block.tabs, options?.stepIndex, options?.blockPath)
