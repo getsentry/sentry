@@ -170,7 +170,7 @@ def trigger_autofix_explorer(
     artifact_schema = config.artifact_schema
 
     if run_id is None:
-        metadata = {"group_id": group.id, "project_id": group.project.id}
+        metadata: dict[str, int | str] = {"group_id": group.id, "project_id": group.project.id}
         if stopping_point:
             metadata["stopping_point"] = stopping_point.value
         run_id = client.start_run(
