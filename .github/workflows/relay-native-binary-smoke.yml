@@ -41,6 +41,47 @@ jobs:
         with:
           mode: backend-ci
 
+      - name: Test Relay binary manually
+        run: |
+          echo "=== Testing Relay binary ==="
+          /tmp/relay --version
+          echo ""
+
+          # Create a minimal test config
+          TEST_DIR=$(mktemp -d)
+          cat > "$TEST_DIR/config.yml" <<'CONF'
+          relay:
+            mode: managed
+            upstream: http://127.0.0.1:8000/
+            host: 0.0.0.0
+            port: 44444
+          logging:
+            level: INFO
+          limits:
+            shutdown_timeout: 0
+          processing:
+            enabled: true
+            kafka_config:
+              - {name: 'bootstrap.servers', value: '127.0.0.1:9092'}
+            topics:
+              events: ingest-events
+              attachments: ingest-events
+              transactions: ingest-events
+              outcomes: outcomes
+            redis: redis://127.0.0.1:6379/0
+          CONF
+
+          # Generate credentials
+          /tmp/relay -c "$TEST_DIR" credentials generate 2>&1 || echo "credentials generate failed"
+          ls -la "$TEST_DIR/"
+          cat "$TEST_DIR/config.yml"
+
+          echo ""
+          echo "=== Attempting to start Relay (5s timeout) ==="
+          timeout 5 /tmp/relay -c "$TEST_DIR" run 2>&1 || echo "Exit code: $?"
+          echo ""
+          echo "=== Manual test complete ==="
+
       - name: Run relay_integration tests (native binary)
         run: |
           echo "=== Relay Native Binary Smoke Test ==="
@@ -57,8 +98,22 @@ jobs:
             -o junit_suite_name=pytest-relay-native-binary
 
       - name: Inspect failure
-        if: failure()
+        if: always()
         run: |
+          echo "=== Relay config files in /tmp ==="
+          find /tmp -name "config.yml" -path "*relay*" 2>/dev/null | head -5 | while read f; do
+            echo "--- $f ---"
+            cat "$f"
+            echo ""
+          done
+
+          echo "=== Relay log files in /tmp ==="
+          find /tmp -name "relay-*.log" 2>/dev/null | head -10 | while read f; do
+            echo "--- $f ---"
+            cat "$f"
+            echo ""
+          done
+
           if command -v devservices; then
-            devservices logs
+            devservices logs 2>&1 | tail -30
           fi
