@@ -11,9 +11,23 @@ env:
   SNUBA_NO_WORKERS: 1
 
 jobs:
-  smoke-test:
+  relay-test:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: 0
+            label: 'js-plugin (27 tests)'
+            paths: 'tests/relay_integration/lang/javascript/test_plugin.py'
+          - shard: 1
+            label: 'integration+filters (25 tests)'
+            paths: 'tests/relay_integration/test_integration.py tests/relay_integration/test_message_filters.py'
+          - shard: 2
+            label: 'java+sdk+metrics+example (23 tests)'
+            paths: 'tests/relay_integration/lang/java/test_plugin.py tests/relay_integration/test_sdk.py tests/relay_integration/test_metrics_extraction.py tests/relay_integration/lang/javascript/test_example.py'
+    name: shard-${{ matrix.shard }} (${{ matrix.label }})
     env:
       XDIST_PER_WORKER_SNUBA: '1'
       XDIST_WORKERS: '2'
@@ -72,13 +86,9 @@ jobs:
             done
           done
 
-      - name: Run ALL relay_integration tests (class-scoped, -n 2)
+      - name: 'Run shard ${{ matrix.shard }}: ${{ matrix.label }}'
         run: |
-          echo "=== Full relay_integration suite with class-scoped containers ==="
-          echo "75 tests across 7 files, -n 2 xdist workers"
-          echo "Class-scoped containers + Relay model re-insertion + per-worker Kafka"
-          echo ""
-          py.test tests/relay_integration/ \
+          py.test ${{ matrix.paths }} \
             -n "$XDIST_WORKERS" \
             --dist=loadfile \
             -v \
