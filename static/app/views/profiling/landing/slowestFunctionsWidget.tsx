@@ -4,7 +4,10 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -61,6 +64,9 @@ const DEFAULT_CURSOR_NAME = 'slowFnCursor';
 
 type BreakdownFunction = 'avg()' | 'p50()' | 'p75()' | 'p95()' | 'p99()';
 type ChartFunctions<F extends BreakdownFunction> = F | 'all_examples()';
+type SortOption = 'sum()' | 'avg()' | 'p50()' | 'p75()' | 'p95()' | 'p99()';
+
+const DEFAULT_SORTING_OPTION: SortOption = 'sum()';
 
 interface SlowestFunctionsWidgetProps<F extends BreakdownFunction> {
   breakdownFunction: F;
@@ -81,6 +87,12 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
 }: SlowestFunctionsWidgetProps<F>) {
   const location = useLocation();
   const organization = useOrganization();
+
+  const [sortFunction, setSortFunction] = useState<SortOption>(DEFAULT_SORTING_OPTION);
+
+  useEffect(() => {
+    setSortFunction(DEFAULT_SORTING_OPTION);
+  }, [breakdownFunction, setSortFunction]);
 
   // strip the parenthesis to stay consistent in analytics
   const analyticsSource = breakdownFunction.slice(0, -2);
@@ -114,10 +126,10 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   );
 
   const functionsQuery = useProfileFunctions<FunctionsField>({
-    fields: functionsFields,
+    fields: [...functionsFields, sortFunction],
     referrer: 'api.profiling.suspect-functions.list',
     sort: {
-      key: 'sum()',
+      key: sortFunction,
       order: 'desc',
     },
     query: userQuery,
@@ -184,7 +196,27 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
     <WidgetContainer height={widgetHeight}>
       <HeaderContainer>
         {header ?? <HeaderTitleLegend>{t('Slowest Functions')}</HeaderTitleLegend>}
-        <Subtitle>{t('Slowest functions by total self time spent.')}</Subtitle>
+        <Subtitle>
+          <Flex gap="xs" align="center">
+            {tct('Slowest functions sorted by [sorting].', {
+              sorting: (
+                <StyledCompactSelect
+                  value={sortFunction}
+                  options={WIDGET_SORTING_OPTIONS}
+                  onChange={option => setSortFunction(option.value as SortOption)}
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button
+                      {...triggerProps}
+                      priority="transparent"
+                      size="zero"
+                    />
+                  )}
+                  offset={4}
+                />
+              ),
+            })}
+          </Flex>
+        </Subtitle>
         <StyledPagination
           pageLinks={functionsQuery.getResponseHeader?.('Link') ?? null}
           size="xs"
@@ -499,11 +531,38 @@ const functionsFields = [
   'sum()',
 ] as const;
 
-type FunctionsField = (typeof functionsFields)[number];
+type FunctionsField = (typeof functionsFields)[number] | SortOption;
 
 const totalsFields = ['project.id', 'sum()'] as const;
 
 type TotalsField = (typeof totalsFields)[number];
+
+const WIDGET_SORTING_OPTIONS: Array<SelectOption<SortOption>> = [
+  {
+    label: t('total self time spent'),
+    value: 'sum()' as const,
+  },
+  {
+    label: t('average self time spent'),
+    value: 'avg()' as const,
+  },
+  {
+    label: t('p50 self time spent'),
+    value: 'p50()' as const,
+  },
+  {
+    label: t('p75 self time spent'),
+    value: 'p75()' as const,
+  },
+  {
+    label: t('p95 self time spent'),
+    value: 'p95()' as const,
+  },
+  {
+    label: t('p99 self time spent'),
+    value: 'p99()' as const,
+  },
+];
 
 const StyledPagination = styled(Pagination)`
   margin: 0;
@@ -511,4 +570,11 @@ const StyledPagination = styled(Pagination)`
 
 const FunctionName = styled(TextOverflow)`
   flex: 1 1 auto;
+`;
+
+const StyledCompactSelect = styled(CompactSelect)`
+  > button {
+    border: None;
+    padding: 0;
+  }
 `;
