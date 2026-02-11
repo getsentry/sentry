@@ -95,13 +95,10 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         """
         Send webhook for the completed step.
 
-        Determines which step just completed based on artifacts and sends
-        the appropriate webhook event.
+        Determines which step just completed and sends the appropriate webhook event.
         """
         current_step = cls._get_current_step(state)
 
-        # Determine which artifact was just created and send appropriate webhook
-        # We check in reverse priority order (most recent step first)
         webhook_payload = {"run_id": run_id}
 
         # Iterate through blocks in reverse order (most recent first)
@@ -205,7 +202,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
 
     @classmethod
     def _get_current_step(cls, state: SeerRunState) -> AutofixStep | None:
-        """Determine which step just completed based on artifacts and state."""
+        """Determine which step just completed."""
         for block in reversed(state.blocks):
             message = block.message
             if message.metadata is not None:
