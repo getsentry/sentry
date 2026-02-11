@@ -168,7 +168,8 @@ export function CategoricalSeriesWidgetVisualization(
       // @ts-expect-error: ECharts types `showMaxLabel` incorrect as a boolean, the documentation also allows `null`
       showMinLabel: null,
       rotate: shouldRotate ? ROTATED_LABEL_ANGLE : 0,
-      ...(shouldRotate ? {interval: 0, hideOverlap: false} : {}),
+      ...(shouldRotate ? {interval: 0} : {}),
+      hideOverlap: true,
       formatter: (value: string) => formattedLabels.get(value) ?? value,
     },
     axisLine: {
