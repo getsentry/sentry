@@ -71,6 +71,13 @@ class SiloUtilityTest(TestCase):
         for header in retained_headers:
             assert self.headers[header] == cleaned[header]
 
+    def test_clean_proxy_headers_preserves_authorization(self) -> None:
+        """Ensure that Authorization headers are always preserved when proxying requests"""
+        cleaned = clean_proxy_headers(self.headers)
+        assert "Authorization" in self.headers
+        assert "Authorization" in cleaned
+        assert cleaned["Authorization"] == self.headers["Authorization"]
+
     def test_clean_outbound_headers(self) -> None:
         cleaned = clean_outbound_headers(self.headers)
         for header in INVALID_OUTBOUND_HEADERS:

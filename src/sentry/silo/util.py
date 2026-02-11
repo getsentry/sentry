@@ -24,6 +24,9 @@ INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS | {
     PROXY_PATH,
 }
 
+# Headers that must always be preserved when proxying requests to ensure proper authentication
+REQUIRED_PROXY_HEADERS = {"Authorization"}
+
 DEFAULT_REQUEST_BODY = b""
 
 
@@ -34,21 +37,27 @@ def trim_leading_slashes(path: str) -> str:
 
 
 def clean_headers(
-    headers: Mapping[str, str] | None, invalid_headers: Iterable[str]
+    headers: Mapping[str, str] | None,
+    invalid_headers: Iterable[str],
+    required_headers: Iterable[str] | None = None,
 ) -> MutableMapping[str, str]:
     if not headers:
         headers = {}
     normalized_invalid = {h.lower() for h in invalid_headers}
+    normalized_required = {h.lower() for h in required_headers} if required_headers else set()
     modified_headers = {
         h: v
         for h, v in headers.items()
-        if h.lower() not in normalized_invalid and not is_hop_by_hop(h)
+        if h.lower() in normalized_required
+        or (h.lower() not in normalized_invalid and not is_hop_by_hop(h))
     }
     return modified_headers
 
 
 def clean_proxy_headers(headers: Mapping[str, str] | None) -> MutableMapping[str, str]:
-    return clean_headers(headers, invalid_headers=INVALID_PROXY_HEADERS)
+    return clean_headers(
+        headers, invalid_headers=INVALID_PROXY_HEADERS, required_headers=REQUIRED_PROXY_HEADERS
+    )
 
 
 def clean_outbound_headers(headers: Mapping[str, str] | None) -> MutableMapping[str, str]:

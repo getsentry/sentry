@@ -239,6 +239,30 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp["proxied"] == "yes"
 
     @responses.activate
+    def test_authorization_header_forwarded(self) -> None:
+        """Ensure that Authorization headers are forwarded in proxied requests to region silos"""
+
+        def request_callback(request: requests.PreparedRequest) -> tuple[int, dict[str, str], str]:
+            assert (
+                request.headers.get("Authorization") == "Bearer test-token-12345"
+            ), "Authorization header must be forwarded to region silo"
+            return 200, {"test": "header"}, json.dumps({"success": True})
+
+        responses.add_callback(
+            responses.GET,
+            "http://us.internal.sentry.io/get",
+            request_callback,
+        )
+
+        request = RequestFactory().get(
+            "http://sentry.io/get",
+            HTTP_AUTHORIZATION="Bearer test-token-12345",
+        )
+
+        resp = proxy_request(request, self.organization.slug, url_name)
+        assert resp.status_code == 200
+
+    @responses.activate
     def test_strip_request_headers(self) -> None:
         request_body = {"foo": "bar", "nested": {"int_list": [1, 2, 3]}}
         responses.add_callback(
