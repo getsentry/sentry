@@ -5,13 +5,12 @@ import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {SpanFields} from 'sentry/views/insights/types';
 
-const TRANSACTION_CONDITION = 'is_transaction:true transaction.op:[ui.load,navigation]';
-const SPAN_OPERATIONS_CONDITION =
-  'transaction.op:[ui.load,navigation] has:span.description span.op:[file.read,file.write,ui.load,navigation,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]';
+const TRANSACTION_CONDITION = `is_transaction:true ${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
+const SPAN_OPERATIONS_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation] has:${SpanFields.SPAN_DESCRIPTION} ${SpanFields.SPAN_OP}:[file.read,file.write,ui.load,navigation,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]`;
 
-const avgTTIDBigNumberWidget: Widget = {
+const AVG_TTID_BIG_NUMBER_WIDGET: Widget = {
   id: 'avg-ttid-big-number',
-  title: 'Average TTID',
+  title: t('Average TTID'),
   description: '',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
@@ -36,9 +35,9 @@ const avgTTIDBigNumberWidget: Widget = {
   },
 };
 
-const avgTTFDBigNumberWidget: Widget = {
+const AVG_TTFD_BIG_NUMBER_WIDGET: Widget = {
   id: 'avg-ttfd-big-number',
-  title: 'Average TTFD',
+  title: t('Average TTFD'),
   description: '',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
@@ -63,9 +62,9 @@ const avgTTFDBigNumberWidget: Widget = {
   },
 };
 
-const totalCountBigNumberWidget: Widget = {
+const TOTAL_COUNT_BIG_NUMBER_WIDGET: Widget = {
   id: 'total-count-big-number',
-  title: 'Total Count',
+  title: t('Total Count'),
   description: '',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
@@ -90,9 +89,9 @@ const totalCountBigNumberWidget: Widget = {
   },
 };
 
-const averageTTIDLineWidget: Widget = {
+const AVG_TTID_LINE_WIDGET: Widget = {
   id: 'average-ttid-line',
-  title: 'Average TTID',
+  title: t('Average TTID'),
   description: '',
   displayType: DisplayType.LINE,
   widgetType: WidgetType.SPANS,
@@ -118,9 +117,9 @@ const averageTTIDLineWidget: Widget = {
   },
 };
 
-const averageTTFDLineWidget: Widget = {
+const AVG_TTFD_LINE_WIDGET: Widget = {
   id: 'average-ttfd-line',
-  title: 'Average TTFD',
+  title: t('Average TTFD'),
   description: '',
   displayType: DisplayType.LINE,
   widgetType: WidgetType.SPANS,
@@ -146,9 +145,9 @@ const averageTTFDLineWidget: Widget = {
   },
 };
 
-const totalCountLineWidget: Widget = {
+const TOTAL_COUNT_LINE_WIDGET: Widget = {
   id: 'total-count-line',
-  title: 'Total Count',
+  title: t('Total Count'),
   description: '',
   displayType: DisplayType.LINE,
   widgetType: WidgetType.SPANS,
@@ -174,9 +173,9 @@ const totalCountLineWidget: Widget = {
   },
 };
 
-const TTIDBarChartWidget: Widget = {
+const TTID_BAR_CHART_WIDGET: Widget = {
   id: 'ttid-device-class-bar',
-  title: 'TTID by Device Class',
+  title: t('TTID by Device Class'),
   description: '',
   displayType: DisplayType.CATEGORICAL_BAR,
   widgetType: WidgetType.SPANS,
@@ -205,9 +204,9 @@ const TTIDBarChartWidget: Widget = {
   },
 };
 
-const TTFDBarChartWidget: Widget = {
+const TTFD_BAR_CHART_WIDGET: Widget = {
   id: 'ttfd-device-class-br',
-  title: 'TTFD by Device Class',
+  title: t('TTFD by Device Class'),
   description: '',
   displayType: DisplayType.CATEGORICAL_BAR,
   widgetType: WidgetType.SPANS,
@@ -236,9 +235,9 @@ const TTFDBarChartWidget: Widget = {
   },
 };
 
-const spanOperationsTable: Widget = {
+const SPAN_OPERATIONS_TABLE: Widget = {
   id: 'span-operations-table',
-  title: 'Span Operations',
+  title: t('Span Operations'),
   description: '',
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
@@ -283,29 +282,29 @@ const spanOperationsTable: Widget = {
   },
 };
 
-const headerRowWidgets: Widget[] = [
-  avgTTIDBigNumberWidget,
-  avgTTFDBigNumberWidget,
-  totalCountBigNumberWidget,
+const HEADER_ROW_WIDGETS: Widget[] = [
+  AVG_TTID_BIG_NUMBER_WIDGET,
+  AVG_TTFD_BIG_NUMBER_WIDGET,
+  TOTAL_COUNT_BIG_NUMBER_WIDGET,
 ];
 
-const secondRowWidgets: Widget[] = [
-  averageTTIDLineWidget,
-  averageTTFDLineWidget,
-  totalCountLineWidget,
+const SECOND_ROW_WIDGETS: Widget[] = [
+  AVG_TTID_LINE_WIDGET,
+  AVG_TTFD_LINE_WIDGET,
+  TOTAL_COUNT_LINE_WIDGET,
 ];
 
-const thirdRowWidgets: Widget[] = [TTIDBarChartWidget, TTFDBarChartWidget];
+const THIRD_ROW_WIDGETS: Widget[] = [TTID_BAR_CHART_WIDGET, TTFD_BAR_CHART_WIDGET];
 
 export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   title: t('Mobile Vitals Screen Loads'),
   projects: [],
   widgets: [
-    ...headerRowWidgets,
-    ...secondRowWidgets,
-    ...thirdRowWidgets,
-    spanOperationsTable,
+    ...HEADER_ROW_WIDGETS,
+    ...SECOND_ROW_WIDGETS,
+    ...THIRD_ROW_WIDGETS,
+    SPAN_OPERATIONS_TABLE,
   ],
   filters: {
     globalFilter: [

@@ -5,21 +5,17 @@ import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {SpanFields} from 'sentry/views/insights/types';
 
-const TRANSACTION_OP_CONDITION = 'transaction.op:[ui.load,navigation]';
-const COLD_START_CONDITION =
-  'span.op:app.start.cold span.description:["Cold Start","Cold App Start"]';
-const WARM_START_CONDITION =
-  'span.op:app.start.warm span.description:["Warm Start","Warm App Start"]';
+const TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
+const COLD_START_CONDITION = `${SpanFields.SPAN_OP}:app.start.cold ${SpanFields.SPAN_DESCRIPTION}:["Cold Start","Cold App Start"]`;
+const WARM_START_CONDITION = `${SpanFields.SPAN_OP}:app.start.warm ${SpanFields.SPAN_DESCRIPTION}:["Warm Start","Warm App Start"]`;
 
-const COLD_START_TABLE_OPERATIONS_CONDITION =
-  '!span.description:"Cold Start" !span.description:"Warm Start" !span.description:"Cold App Start" !span.description:"Warm App Start" !span.description:"Initial Frame Render" has:span.description transaction.op:[ui.load,navigation] has:ttid app_start_type:cold span.op:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]';
+const COLD_START_TABLE_OPERATIONS_CONDITION = `!${SpanFields.SPAN_DESCRIPTION}:"Cold Start" !${SpanFields.SPAN_DESCRIPTION}:"Warm Start" !${SpanFields.SPAN_DESCRIPTION}:"Cold App Start" !${SpanFields.SPAN_DESCRIPTION}:"Warm App Start" !${SpanFields.SPAN_DESCRIPTION}:"Initial Frame Render" has:${SpanFields.SPAN_DESCRIPTION} ${SpanFields.TRANSACTION_OP}:[ui.load,navigation] has:ttid app_start_type:cold ${SpanFields.SPAN_OP}:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]`;
 
-const WARM_START_TABLE_OPERATIONS_CONDITION =
-  '!span.description:"Cold Start" !span.description:"Warm Start" !span.description:"Cold App Start" !span.description:"Warm App Start" !span.description:"Initial Frame Render" has:span.description transaction.op:[ui.load,navigation] has:ttid app_start_type:warm span.op:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]';
+const WARM_START_TABLE_OPERATIONS_CONDITION = `!${SpanFields.SPAN_DESCRIPTION}:"Cold Start" !${SpanFields.SPAN_DESCRIPTION}:"Warm Start" !${SpanFields.SPAN_DESCRIPTION}:"Cold App Start" !${SpanFields.SPAN_DESCRIPTION}:"Warm App Start" !${SpanFields.SPAN_DESCRIPTION}:"Initial Frame Render" has:${SpanFields.SPAN_DESCRIPTION} ${SpanFields.TRANSACTION_OP}:[ui.load,navigation] has:ttid app_start_type:warm ${SpanFields.SPAN_OP}:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]`;
 
-const avgColdStartsBigNumberWidget: Widget = {
+const AVG_COLD_STARTS_BIG_NUMBER_WIDGET: Widget = {
   id: 'avg-cold-starts-big-number',
-  title: 'Average Cold Start',
+  title: t('Average Cold Start'),
   description: '',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
@@ -44,9 +40,9 @@ const avgColdStartsBigNumberWidget: Widget = {
   },
 };
 
-const totalColdStartCountBigNumberWidget: Widget = {
+const TOTAL_COLD_START_COUNT_BIG_NUMBER_WIDGET: Widget = {
   id: 'total-cold-start-count-big-number',
-  title: 'Cold Start Count',
+  title: t('Cold Start Count'),
   description: '',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
@@ -71,9 +67,9 @@ const totalColdStartCountBigNumberWidget: Widget = {
   },
 };
 
-const avgWarmStartsBigNumberWidget: Widget = {
+const AVG_WARM_STARTS_BIG_NUMBER_WIDGET: Widget = {
   id: 'avg-warm-starts-big-number',
-  title: 'Average Warm Start',
+  title: t('Average Warm Start'),
   description: '',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
@@ -98,9 +94,9 @@ const avgWarmStartsBigNumberWidget: Widget = {
   },
 };
 
-const totalWarmStartCountBigNumberWidget: Widget = {
+const TOTAL_WARM_START_COUNT_BIG_NUMBER_WIDGET: Widget = {
   id: 'total-warm-start-count-big-number',
-  title: 'Warm Start Count',
+  title: t('Warm Start Count'),
   description: '',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
@@ -125,9 +121,9 @@ const totalWarmStartCountBigNumberWidget: Widget = {
   },
 };
 
-const avgColdStartLineWidget: Widget = {
+const AVG_COLD_START_LINE_WIDGET: Widget = {
   id: 'avg-cold-start-line',
-  title: 'Average Cold Start',
+  title: t('Average Cold Start'),
   description: '',
   displayType: DisplayType.LINE,
   widgetType: WidgetType.SPANS,
@@ -153,9 +149,9 @@ const avgColdStartLineWidget: Widget = {
   },
 };
 
-const avgWarmStartLineWidget: Widget = {
+const AVG_WARM_START_LINE_WIDGET: Widget = {
   id: 'avg-warm-start-line',
-  title: 'Average Warm Start',
+  title: t('Average Warm Start'),
   description: '',
   displayType: DisplayType.LINE,
   widgetType: WidgetType.SPANS,
@@ -181,9 +177,9 @@ const avgWarmStartLineWidget: Widget = {
   },
 };
 
-const coldStartDeviceDistributionWidget: Widget = {
+const COLD_START_DEVICE_DISTRIBUTION_WIDGET: Widget = {
   id: 'cold-start-device-distribution-bar',
-  title: 'Cold Start Device Distribution',
+  title: t('Cold Start Device Distribution'),
   description: '',
   displayType: DisplayType.CATEGORICAL_BAR,
   widgetType: WidgetType.SPANS,
@@ -208,9 +204,9 @@ const coldStartDeviceDistributionWidget: Widget = {
   },
 };
 
-const warmStartDeviceDistributionWidget: Widget = {
+const WARM_START_DEVICE_DISTRIBUTION_WIDGET: Widget = {
   id: 'warm-start-device-distribution-bar',
-  title: 'Warm Start Device Distribution',
+  title: t('Warm Start Device Distribution'),
   description: '',
   displayType: DisplayType.CATEGORICAL_BAR,
   widgetType: WidgetType.SPANS,
@@ -235,9 +231,9 @@ const warmStartDeviceDistributionWidget: Widget = {
   },
 };
 
-const coldOperationsTable: Widget = {
+const COLD_OPERATIONS_TABLE: Widget = {
   id: 'cold-operations-table',
-  title: 'Cold Start Operations',
+  title: t('Cold Start Operations'),
   description: '',
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
@@ -259,17 +255,17 @@ const coldOperationsTable: Widget = {
     },
   ],
   layout: {
-    x: 0,
-    minH: 6,
-    w: 3,
-    y: 5,
     h: 6,
+    x: 0,
+    y: 5,
+    w: 3,
+    minH: 2,
   },
 };
 
-const warmOperationsTable: Widget = {
+const WARM_OPERATIONS_TABLE: Widget = {
   id: 'warm-operations-table',
-  title: 'Warm Start Operations',
+  title: t('Warm Start Operations'),
   description: '',
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
@@ -291,26 +287,29 @@ const warmOperationsTable: Widget = {
     },
   ],
   layout: {
-    x: 3,
-    minH: 6,
-    w: 3,
-    y: 5,
     h: 6,
+    x: 3,
+    y: 5,
+    w: 3,
+    minH: 2,
   },
 };
 
-const headerRowWidgets: Widget[] = [
-  avgColdStartsBigNumberWidget,
-  avgWarmStartsBigNumberWidget,
-  totalColdStartCountBigNumberWidget,
-  totalWarmStartCountBigNumberWidget,
+const HEADER_ROW_WIDGETS: Widget[] = [
+  AVG_COLD_STARTS_BIG_NUMBER_WIDGET,
+  AVG_WARM_STARTS_BIG_NUMBER_WIDGET,
+  TOTAL_COLD_START_COUNT_BIG_NUMBER_WIDGET,
+  TOTAL_WARM_START_COUNT_BIG_NUMBER_WIDGET,
 ];
 
-const firstRowWidgets: Widget[] = [avgColdStartLineWidget, avgWarmStartLineWidget];
+const FIRST_ROW_WIDGETS: Widget[] = [
+  AVG_COLD_START_LINE_WIDGET,
+  AVG_WARM_START_LINE_WIDGET,
+];
 
-const secondRowWidgets: Widget[] = [
-  coldStartDeviceDistributionWidget,
-  warmStartDeviceDistributionWidget,
+const SECOND_ROW_WIDGETS: Widget[] = [
+  COLD_START_DEVICE_DISTRIBUTION_WIDGET,
+  WARM_START_DEVICE_DISTRIBUTION_WIDGET,
 ];
 
 export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
@@ -318,10 +317,11 @@ export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
   title: t('Mobile Vitals App Starts'),
   projects: [],
   widgets: [
-    ...headerRowWidgets,
-    ...firstRowWidgets,
-    ...secondRowWidgets,
-    ...[coldOperationsTable, warmOperationsTable],
+    ...HEADER_ROW_WIDGETS,
+    ...FIRST_ROW_WIDGETS,
+    ...SECOND_ROW_WIDGETS,
+    COLD_OPERATIONS_TABLE,
+    WARM_OPERATIONS_TABLE,
   ],
   filters: {
     globalFilter: [

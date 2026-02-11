@@ -5,12 +5,11 @@ import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {SpanFields} from 'sentry/views/insights/types';
 
-const SPAN_OPERATIONS_CONDITION =
-  'span.op:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]';
+const SPAN_OPERATIONS_CONDITION = `${SpanFields.SPAN_OP}:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]`;
 
-const spanOperationsTable: Widget = {
+const SPAN_OPERATIONS_TABLE: Widget = {
   id: 'span-operations-table',
-  title: 'Span Operations',
+  title: t('Span Operations'),
   description: '',
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
@@ -50,9 +49,9 @@ const spanOperationsTable: Widget = {
       fieldMeta: [
         null,
         null,
-        {valueType: 'integer', valueUnit: null},
-        {valueType: 'integer', valueUnit: null},
-        {valueType: 'integer', valueUnit: null},
+        null,
+        null,
+        null,
         {valueType: 'percentage', valueUnit: null},
         {valueType: 'percentage', valueUnit: null},
         null,
@@ -62,11 +61,11 @@ const spanOperationsTable: Widget = {
     },
   ],
   layout: {
-    y: 0,
     h: 7,
     x: 0,
-    minH: 2,
+    y: 0,
     w: 6,
+    minH: 2,
   },
 };
 
@@ -74,7 +73,7 @@ export const MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG: PrebuiltDashboard =
   dateCreated: '',
   title: t('Mobile Vitals Screen Rendering'),
   projects: [],
-  widgets: [spanOperationsTable],
+  widgets: [SPAN_OPERATIONS_TABLE],
   filters: {
     globalFilter: [
       {

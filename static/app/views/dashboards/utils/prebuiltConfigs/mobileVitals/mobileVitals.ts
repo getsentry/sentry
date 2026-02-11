@@ -2,14 +2,14 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {Widget} from 'sentry/views/dashboards/types';
-import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {SpanFields} from 'sentry/views/insights/types';
 
-const TRANSACTION_OP_CONDITION = 'transaction.op:[ui.load,navigation]';
+const TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
 
-const coldStartBigNumberWidget: Widget = {
+const COLD_START_BIG_NUMBER_WIDGET: Widget = {
   id: 'cold-start-big-number',
-  title: 'Avg. Cold App Start',
+  title: t('Avg. Cold App Start'),
   description: 'Average cold app start duration',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
@@ -32,17 +32,17 @@ const coldStartBigNumberWidget: Widget = {
     },
   ],
   layout: {
-    y: 1,
     h: 1,
     x: 0,
-    minH: 1,
+    y: 1,
     w: 1,
+    minH: 1,
   },
 };
 
-const warmStartBigNumberWidget: Widget = {
+const WARM_START_BIG_NUMBER_WIDGET: Widget = {
   id: 'warm-start-big-number',
-  title: 'Avg. Warm App Start',
+  title: t('Avg. Warm App Start'),
   description: 'Average warm app start duration',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
@@ -65,17 +65,17 @@ const warmStartBigNumberWidget: Widget = {
     },
   ],
   layout: {
-    y: 1,
     h: 1,
     x: 1,
-    minH: 1,
+    y: 1,
     w: 1,
+    minH: 1,
   },
 };
 
-const avgTTIDBigNumberWidget: Widget = {
+const AVG_TTID_BIG_NUMBER_WIDGET: Widget = {
   id: 'avg-ttid-big-number',
-  title: 'Avg. TTID',
+  title: t('Avg. TTID'),
   description: 'Average time to initial display',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
@@ -92,17 +92,17 @@ const avgTTIDBigNumberWidget: Widget = {
     },
   ],
   layout: {
-    y: 1,
     h: 1,
     x: 2,
-    minH: 1,
+    y: 1,
     w: 1,
+    minH: 1,
   },
 };
 
-const avgTTFDBigNumberWidget: Widget = {
+const AVG_TTFD_BIG_NUMBER_WIDGET: Widget = {
   id: 'avg-ttfd-big-number',
-  title: 'Avg. TTFD',
+  title: t('Avg. TTFD'),
   description: 'Average time to full display',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
@@ -119,17 +119,17 @@ const avgTTFDBigNumberWidget: Widget = {
     },
   ],
   layout: {
-    y: 1,
     h: 1,
     x: 3,
-    minH: 1,
+    y: 1,
     w: 1,
+    minH: 1,
   },
 };
 
-const slowFrameRateWidget: Widget = {
+const SLOW_FRAME_RATE_WIDGET: Widget = {
   id: 'slow-frame-rate-big-number',
-  title: 'Slow Frame Rate',
+  title: t('Slow Frame Rate'),
   description: 'The percentage of frames that were slow',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
@@ -163,17 +163,17 @@ const slowFrameRateWidget: Widget = {
     },
   ],
   layout: {
-    y: 0,
     h: 1,
     x: 0,
-    minH: 1,
+    y: 0,
     w: 2,
+    minH: 1,
   },
 };
 
-const frozenFrameRateWidget: Widget = {
+const FROZEN_FRAME_RATE_WIDGET: Widget = {
   id: 'frozen-frame-rate-big-number',
-  title: 'Frozen Frame Rate',
+  title: t('Frozen Frame Rate'),
   description: 'The percentage of frames that were frozen',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
@@ -207,17 +207,17 @@ const frozenFrameRateWidget: Widget = {
     },
   ],
   layout: {
-    y: 0,
     h: 1,
     x: 2,
-    minH: 1,
+    y: 0,
     w: 2,
+    minH: 1,
   },
 };
 
-const avgFrameDelayWidget: Widget = {
+const AVG_FRAME_DELAY_WIDGET: Widget = {
   id: 'avg-frame-delay-big-number',
-  title: 'Avg. Frame Delay',
+  title: t('Avg. Frame Delay'),
   description: 'Average frame delay',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
@@ -234,17 +234,17 @@ const avgFrameDelayWidget: Widget = {
     },
   ],
   layout: {
-    y: 0,
     h: 1,
     x: 4,
-    minH: 1,
+    y: 0,
     w: 2,
+    minH: 1,
   },
 };
 
-const appStartTable: Widget = {
+const APP_START_TABLE: Widget = {
   id: 'app-start-table',
-  title: 'App Starts',
+  title: t('App Starts'),
   description: '',
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
@@ -278,17 +278,17 @@ const appStartTable: Widget = {
     },
   ],
   layout: {
-    x: 0,
     h: 3,
+    x: 0,
     y: 2,
-    minH: 2,
     w: 6,
+    minH: 2,
   },
 };
 
-const screenRenderingTable: Widget = {
+const SCREEN_RENDERING_TABLE: Widget = {
   id: 'screen-rendering-table',
-  title: 'Screen Rendering',
+  title: t('Screen Rendering'),
   description: '',
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
@@ -326,29 +326,29 @@ const screenRenderingTable: Widget = {
       ],
       fieldMeta: [
         null,
-        {valueType: 'integer', valueUnit: null},
-        {valueType: 'integer', valueUnit: null},
-        {valueType: 'integer', valueUnit: null},
+        null,
+        null,
+        null,
         {valueType: 'percentage', valueUnit: null},
         {valueType: 'percentage', valueUnit: null},
-        {valueType: 'integer', valueUnit: null},
+        null,
       ],
       conditions: TRANSACTION_OP_CONDITION,
       orderby: `-count(${SpanFields.SPAN_DURATION})`,
     },
   ],
   layout: {
-    x: 0,
     h: 3,
+    x: 0,
     y: 8,
-    minH: 2,
     w: 6,
+    minH: 2,
   },
 };
 
-const screenLoadTable: Widget = {
+const SCREEN_LOAD_TABLE: Widget = {
   id: 'screen-load-table',
-  title: 'Screen Loads',
+  title: t('Screen Loads'),
   description: '',
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
@@ -382,25 +382,25 @@ const screenLoadTable: Widget = {
     },
   ],
   layout: {
-    x: 0,
     h: 3,
+    x: 0,
     y: 5,
-    minH: 2,
     w: 6,
+    minH: 2,
   },
 };
 
-const firstRowWidgets: Widget[] = [
-  slowFrameRateWidget,
-  frozenFrameRateWidget,
-  avgFrameDelayWidget,
+const FIRST_ROW_WIDGETS: Widget[] = [
+  SLOW_FRAME_RATE_WIDGET,
+  FROZEN_FRAME_RATE_WIDGET,
+  AVG_FRAME_DELAY_WIDGET,
 ];
 
-const secondRowWidgets: Widget[] = [
-  coldStartBigNumberWidget,
-  warmStartBigNumberWidget,
-  avgTTIDBigNumberWidget,
-  avgTTFDBigNumberWidget,
+const SECOND_ROW_WIDGETS: Widget[] = [
+  COLD_START_BIG_NUMBER_WIDGET,
+  WARM_START_BIG_NUMBER_WIDGET,
+  AVG_TTID_BIG_NUMBER_WIDGET,
+  AVG_TTFD_BIG_NUMBER_WIDGET,
 ];
 
 export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
@@ -408,11 +408,11 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   title: t('Mobile Vitals as a Dashboard'),
   projects: [],
   widgets: [
-    ...firstRowWidgets,
-    ...secondRowWidgets,
-    appStartTable,
-    screenLoadTable,
-    screenRenderingTable,
+    ...FIRST_ROW_WIDGETS,
+    ...SECOND_ROW_WIDGETS,
+    APP_START_TABLE,
+    SCREEN_LOAD_TABLE,
+    SCREEN_RENDERING_TABLE,
   ],
   filters: {
     globalFilter: [
