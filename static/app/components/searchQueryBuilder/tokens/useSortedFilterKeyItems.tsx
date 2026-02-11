@@ -21,7 +21,7 @@ import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
-import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
+import {useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -183,11 +183,10 @@ export function useSortedFilterKeyItems({
   // Async key fetching with debounce when getTagKeys is provided
   const shouldFetchAsync = !!getTagKeys;
   const debouncedFilterValue = useDebouncedValue(filterValue);
-  const {data: asyncKeys, isFetching: isQueryLoading} = useQuery({
+  const {data: asyncKeys, isLoading: isQueryLoading} = useQuery({
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: ['search-query-builder-tag-keys', debouncedFilterValue],
     queryFn: ctx => getTagKeys!(ctx.queryKey[1] ?? ''),
-    placeholderData: keepPreviousData,
     enabled: shouldFetchAsync,
   });
 
