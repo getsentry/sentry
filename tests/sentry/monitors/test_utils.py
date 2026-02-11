@@ -1,13 +1,24 @@
+from datetime import datetime, timezone
+from unittest import mock
 from unittest.mock import patch
+from uuid import uuid4
 
 from django.db import IntegrityError
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
+    TraceItemColumnValues,
+    TraceItemTableResponse,
+)
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue
 
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.monitors.utils import (
+    _fetch_associated_groups_eap,
     ensure_cron_detector,
     ensure_cron_detector_deletion,
+    fetch_associated_groups,
     get_detector_for_monitor,
 )
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 
@@ -205,3 +216,181 @@ class EnsureCronDetectorDeletionTest(TestCase):
 
         assert DataSource.objects.filter(id=data_source.id).exists()
         assert Detector.objects.filter(id=detector.id).exists()
+
+
+class FetchAssociatedGroupsEAPTest(TestCase):
+    @mock.patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
+    def test_eap_returns_group_id_trace_mapping(self, mock_table_rpc: mock.MagicMock) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+
+        trace_id_1 = uuid4().hex
+        trace_id_2 = uuid4().hex
+
+        mock_response = TraceItemTableResponse(
+            column_values=[
+                TraceItemColumnValues(
+                    attribute_name="group_id",
+                    results=[
+                        AttributeValue(val_int=100),
+                        AttributeValue(val_int=200),
+                        AttributeValue(val_int=100),
+                    ],
+                ),
+                TraceItemColumnValues(
+                    attribute_name="trace",
+                    results=[
+                        AttributeValue(val_str=trace_id_1),
+                        AttributeValue(val_str=trace_id_1),
+                        AttributeValue(val_str=trace_id_2),
+                    ],
+                ),
+                TraceItemColumnValues(
+                    attribute_name="count()",
+                    results=[
+                        AttributeValue(val_double=5.0),
+                        AttributeValue(val_double=3.0),
+                        AttributeValue(val_double=1.0),
+                    ],
+                ),
+            ]
+        )
+        mock_table_rpc.return_value = [mock_response]
+
+        now = datetime.now(tz=timezone.utc)
+        result = _fetch_associated_groups_eap(
+            trace_ids=[trace_id_1, trace_id_2],
+            organization_id=organization.id,
+            project_id=project.id,
+            start=now,
+            end=now,
+        )
+
+        assert result == {
+            100: {trace_id_1, trace_id_2},
+            200: {trace_id_1},
+        }
+        mock_table_rpc.assert_called_once()
+
+    @mock.patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
+    def test_eap_returns_empty_on_empty_response(self, mock_table_rpc: mock.MagicMock) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+
+        mock_response = TraceItemTableResponse(column_values=[])
+        mock_table_rpc.return_value = [mock_response]
+
+        now = datetime.now(tz=timezone.utc)
+        result = _fetch_associated_groups_eap(
+            trace_ids=[uuid4().hex],
+            organization_id=organization.id,
+            project_id=project.id,
+            start=now,
+            end=now,
+        )
+
+        assert result == {}
+
+    @mock.patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
+    def test_eap_returns_empty_on_exception(self, mock_table_rpc: mock.MagicMock) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+
+        mock_table_rpc.side_effect = Exception("RPC failed")
+
+        now = datetime.now(tz=timezone.utc)
+        result = _fetch_associated_groups_eap(
+            trace_ids=[uuid4().hex],
+            organization_id=organization.id,
+            project_id=project.id,
+            start=now,
+            end=now,
+        )
+
+        assert result == {}
+
+
+class FetchAssociatedGroupsDoubleReadTest(TestCase):
+    @mock.patch("sentry.monitors.utils._fetch_associated_groups_eap")
+    @mock.patch("sentry.monitors.utils._fetch_associated_groups_snuba")
+    def test_uses_snuba_as_source_of_truth(
+        self,
+        mock_snuba: mock.MagicMock,
+        mock_eap: mock.MagicMock,
+    ) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        group1 = self.create_group(project=project)
+        group2 = self.create_group(project=project)
+
+        trace_id = uuid4().hex
+        mock_snuba.return_value = {group1.id: {trace_id}, group2.id: {trace_id}}
+        mock_eap.return_value = {group1.id: {trace_id}}
+
+        now = datetime.now(tz=timezone.utc)
+        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
+            result = fetch_associated_groups([trace_id], organization.id, project.id, now, now)
+
+        # Snuba result is used (both groups present)
+        assert trace_id in result
+        result_group_ids = {g["id"] for g in result[trace_id]}
+        assert result_group_ids == {group1.id, group2.id}
+        mock_snuba.assert_called_once()
+        mock_eap.assert_called_once()
+
+    @mock.patch("sentry.monitors.utils._fetch_associated_groups_eap")
+    @mock.patch("sentry.monitors.utils._fetch_associated_groups_snuba")
+    def test_uses_eap_as_source_of_truth_when_allowlisted(
+        self,
+        mock_snuba: mock.MagicMock,
+        mock_eap: mock.MagicMock,
+    ) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        group1 = self.create_group(project=project)
+        group2 = self.create_group(project=project)
+
+        trace_id = uuid4().hex
+        mock_snuba.return_value = {group1.id: {trace_id}, group2.id: {trace_id}}
+        mock_eap.return_value = {group1.id: {trace_id}}
+
+        now = datetime.now(tz=timezone.utc)
+        with self.options(
+            {
+                EAPOccurrencesComparator._should_eval_option_name(): True,
+                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
+                    "monitors.fetch_associated_groups"
+                ],
+            }
+        ):
+            result = fetch_associated_groups([trace_id], organization.id, project.id, now, now)
+
+        # EAP result is used (only group1)
+        assert trace_id in result
+        result_group_ids = {g["id"] for g in result[trace_id]}
+        assert result_group_ids == {group1.id}
+        mock_snuba.assert_called_once()
+        mock_eap.assert_called_once()
+
+    @mock.patch("sentry.monitors.utils._fetch_associated_groups_eap")
+    @mock.patch("sentry.monitors.utils._fetch_associated_groups_snuba")
+    def test_eap_not_called_when_experiment_disabled(
+        self,
+        mock_snuba: mock.MagicMock,
+        mock_eap: mock.MagicMock,
+    ) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        group = self.create_group(project=project)
+
+        trace_id = uuid4().hex
+        mock_snuba.return_value = {group.id: {trace_id}}
+
+        now = datetime.now(tz=timezone.utc)
+        result = fetch_associated_groups([trace_id], organization.id, project.id, now, now)
+
+        assert trace_id in result
+        result_group_ids = {g["id"] for g in result[trace_id]}
+        assert result_group_ids == {group.id}
+        mock_snuba.assert_called_once()
+        mock_eap.assert_not_called()

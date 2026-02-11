@@ -18,6 +18,7 @@ from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.signals import (
     cron_monitor_created,
     first_cron_checkin_received,
@@ -120,17 +121,17 @@ def get_checkin_margin(checkin_margin: int | None) -> timedelta:
     return timedelta(minutes=int(checkin_margin or DEFAULT_CHECKIN_MARGIN))
 
 
-def fetch_associated_groups(
-    trace_ids: list[str], organization_id: int, project_id: int, start: datetime, end
-) -> dict[str, list[dict[str, int | str]]]:
+def _fetch_associated_groups_snuba(
+    trace_ids: list[str],
+    organization_id: int,
+    project_id: int,
+    start: datetime,
+    end: datetime,
+) -> dict[int, set[str]]:
     """
-    Returns serializer appropriate group_ids corresponding with check-in trace ids
-    :param trace_ids: list of trace_ids from the given check-ins
-    :param organization_id: organization id
-    :param project_id: project id
-    :param start: timestamp of the beginning of the specified date range
-    :param end: timestamp of the end of the specified date range
-    :return:
+    Snuba implementation of fetch_associated_groups.
+
+    Returns a mapping of group_id to set of trace_ids.
     """
     from snuba_sdk import (
         Column,
@@ -160,7 +161,6 @@ def fetch_associated_groups(
     cols = [col.value.event_name for col in EventStorage.minimal_columns[dataset]]
     cols.append(Columns.TRACE_ID.value.event_name)
 
-    # query snuba for related errors and their associated issues
     snql_request = Request(
         dataset=dataset.value,
         app_id="eventstore",
@@ -202,19 +202,115 @@ def fetch_associated_groups(
     )
 
     group_id_data: dict[int, set[str]] = defaultdict(set)
-    trace_groups: dict[str, list[dict[str, int | str]]] = defaultdict(list)
 
     result = raw_snql_query(snql_request, "api.serializer.checkins.trace-ids", use_cache=False)
-    # if query completes successfully, add an array of objects with group id and short id
-    # otherwise, return an empty dict to return an empty array through the serializer
     if "error" not in result:
         for event in result["data"]:
             trace_id_event_name = Columns.TRACE_ID.value.event_name
             assert trace_id_event_name is not None
-
-            # create dict with group_id and trace_id
             group_id_data[event["group_id"]].add(event[trace_id_event_name])
 
+    return dict(group_id_data)
+
+
+def _fetch_associated_groups_eap(
+    trace_ids: list[str],
+    organization_id: int,
+    project_id: int,
+    start: datetime,
+    end: datetime,
+) -> dict[int, set[str]]:
+    """
+    EAP implementation of fetch_associated_groups.
+
+    Returns a mapping of group_id to set of trace_ids.
+    """
+    from sentry.models.organization import Organization
+    from sentry.search.eap.types import SearchResolverConfig
+    from sentry.search.events.types import SnubaParams
+    from sentry.snuba.occurrences_rpc import Occurrences
+    from sentry.snuba.referrer import Referrer
+
+    query_start = start - timedelta(minutes=30)
+    query_end = end + timedelta(minutes=30)
+
+    try:
+        organization = Organization.objects.get(id=organization_id)
+        project = Project.objects.get(id=project_id)
+
+        snuba_params = SnubaParams(
+            start=query_start,
+            end=query_end,
+            organization=organization,
+            projects=[project],
+            environments=[],
+        )
+
+        # Exclude issue platform events (type:generic) to match Dataset.Events
+        # which only contains error-category events (error, default, csp, etc.)
+        query_string = f"!type:generic trace:[{','.join(trace_ids)}]"
+
+        result = Occurrences.run_table_query(
+            params=snuba_params,
+            query_string=query_string,
+            selected_columns=["group_id", "trace", "count()"],
+            orderby=None,
+            offset=0,
+            limit=100,
+            referrer=Referrer.API_SERIALIZER_CHECKINS_TRACE_IDS.value,
+            config=SearchResolverConfig(),
+        )
+
+        group_id_data: dict[int, set[str]] = defaultdict(set)
+        for row in result["data"]:
+            group_id = row.get("group_id")
+            trace_id = row.get("trace")
+            if group_id is not None and trace_id is not None:
+                group_id_data[int(group_id)].add(str(trace_id))
+        return dict(group_id_data)
+    except Exception:
+        logger.exception(
+            "Fetching associated groups from EAP failed",
+            extra={
+                "organization_id": organization_id,
+                "project_id": project_id,
+            },
+        )
+        return {}
+
+
+def fetch_associated_groups(
+    trace_ids: list[str], organization_id: int, project_id: int, start: datetime, end: datetime
+) -> dict[str, list[dict[str, int | str]]]:
+    """
+    Returns serializer appropriate group_ids corresponding with check-in trace ids.
+
+    Performs a double-read from both Snuba (control) and EAP (experimental) when the
+    EAP occurrences experiment is enabled, using the rollout comparator to choose which
+    result to use.
+    """
+    snuba_result = _fetch_associated_groups_snuba(
+        trace_ids, organization_id, project_id, start, end
+    )
+    group_id_data = snuba_result
+
+    callsite = "monitors.fetch_associated_groups"
+    if EAPOccurrencesComparator.should_check_experiment(callsite):
+        eap_result = _fetch_associated_groups_eap(
+            trace_ids, organization_id, project_id, start, end
+        )
+        group_id_data = EAPOccurrencesComparator.check_and_choose(
+            snuba_result,
+            eap_result,
+            callsite,
+            is_experimental_data_a_null_result=len(eap_result) == 0,
+            reasonable_match_comparator=lambda snuba, eap: (
+                eap.keys() <= snuba.keys() and all(eap[gid] <= snuba[gid] for gid in eap)
+            ),
+        )
+
+    trace_groups: dict[str, list[dict[str, int | str]]] = defaultdict(list)
+    if group_id_data:
         group_ids = group_id_data.keys()
         groups_queryset = Group.objects.filter(
             project_id=project_id, id__in=group_ids
