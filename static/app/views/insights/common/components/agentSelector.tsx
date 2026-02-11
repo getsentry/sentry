@@ -5,10 +5,10 @@ import {parseAsArrayOf, parseAsString, useQueryStates} from 'nuqs';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';

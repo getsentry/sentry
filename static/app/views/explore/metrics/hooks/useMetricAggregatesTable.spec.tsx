@@ -2,7 +2,7 @@ import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/utils/usePageFilters';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {MockMetricQueryParamsContext} from 'sentry/views/explore/metrics/hooks/testUtils';
@@ -11,7 +11,7 @@ import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('useMetricAggregatesTable', () => {
   beforeEach(() => {

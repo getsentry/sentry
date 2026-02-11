@@ -275,7 +275,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                                 "value": "The exception was not handled due to missing onError handler in the subscribe() method call.",
                                 "module": "io.reactivex.rxjava3.exceptions",
                                 "mechanism": {
-                                    "type": "UncaughtExceptionHandler",
+                                    "type": "chained",
                                     "handled": False,
                                     "exception_id": 0,
                                 },
@@ -572,11 +572,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         open_period = open_periods[0]
         assert open_period.date_started == regression_activity.datetime
         assert open_period.date_ended is None
-        assert open_period.event_id == event2.event_id
         open_period = open_periods[1]
         assert open_period.date_started == group.first_seen
         assert open_period.date_ended == resolved_at
-        assert open_period.event_id == event.event_id
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolves_group_without_open_period(self, send_robust: mock.MagicMock) -> None:

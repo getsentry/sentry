@@ -39,12 +39,15 @@ function identityLabel(identity: UserIdentityConfig) {
   }
 
   let text: string;
-  if (identity.category === UserIdentityCategory.GLOBAL_IDENTITY) {
+  if (
+    identity.category === UserIdentityCategory.GLOBAL_IDENTITY ||
+    identity.category === UserIdentityCategory.GITHUB_COPILOT_IDENTITY
+  ) {
     text = identity.isLogin ? 'Global Login' : 'App Integration';
   } else if (identity.category === UserIdentityCategory.SOCIAL_IDENTITY) {
     text = 'Legacy Integration';
   } else {
-    throw new Error('Invalid category');
+    text = identity.category;
   }
   return <span style={{fontVariant: 'small-caps'}}>{text}</span>;
 }

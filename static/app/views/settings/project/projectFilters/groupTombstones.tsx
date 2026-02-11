@@ -57,6 +57,13 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
           />
         </StyledBox>
         <RightAlignedColumn>
+          {data.dateAdded ? (
+            <TimeSince date={data.dateAdded} unitStyle="short" suffix="ago" />
+          ) : (
+            '-'
+          )}
+        </RightAlignedColumn>
+        <RightAlignedColumn>
           {data.lastSeen && defined(data.timesSeen) && data.timesSeen > 0 ? (
             <TimeSince
               date={data.lastSeen}
@@ -224,7 +231,10 @@ function GroupTombstones({project}: GroupTombstonesProps) {
             {hasGrouptombstonesHitCounter(organization) ? (
               <StyledPanelTable
                 headers={[
-                  <LeftAlignedColumn key="lastSeen">{t('Issue')}</LeftAlignedColumn>,
+                  <LeftAlignedColumn key="issue">{t('Issue')}</LeftAlignedColumn>,
+                  <RightAlignedColumn key="dateDiscarded">
+                    {t('Date Discarded')}
+                  </RightAlignedColumn>,
                   <RightAlignedColumn key="lastSeen">
                     {t('Last Seen')}
                   </RightAlignedColumn>,
@@ -275,7 +285,7 @@ const StyledBox = styled('div')`
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns:
     minmax(220px, 1fr)
-    max-content max-content max-content max-content;
+    max-content max-content max-content max-content max-content;
 `;
 
 const Column = styled('div')`

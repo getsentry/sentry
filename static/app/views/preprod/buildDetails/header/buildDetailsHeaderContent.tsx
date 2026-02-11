@@ -203,7 +203,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
                 size="sm"
                 icon={<IconSettings />}
                 aria-label={t('Settings')}
-                to={`/settings/${organization.slug}/projects/${project?.slug}/mobile-builds/`}
+                to={`/settings/${organization.slug}/projects/${project.slug}/mobile-builds/`}
               />
             )}
           </Feature>

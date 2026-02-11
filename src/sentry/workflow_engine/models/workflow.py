@@ -54,7 +54,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     __relocation_scope__ = RelocationScope.Organization
 
     objects: ClassVar[WorkflowManager] = WorkflowManager()
-    objects_for_deletion: ClassVar[BaseManager] = BaseManager()
+    objects_for_deletion: ClassVar[BaseManager[Workflow]] = BaseManager()
 
     name = models.CharField(max_length=256)
     organization = FlexibleForeignKey("sentry.Organization")

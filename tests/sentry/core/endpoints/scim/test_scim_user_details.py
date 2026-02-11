@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.test import override_settings
@@ -747,7 +747,7 @@ class SCIMMemberSaasPrivilegeRevocationTests(SCIMTestCase):
             is_staff=False,
         )
 
-        with self.settings(SENTRY_DEFAULT_ORGANIZATION_ID=self.organization.id):
+        with self.settings(SUPERUSER_ORG_ID=self.organization.id):
             self.get_success_response(self.organization.slug, member.id, method="delete")
 
         # Membership should be deleted
@@ -786,7 +786,7 @@ class SCIMMemberSaasPrivilegeRevocationTests(SCIMTestCase):
             is_staff=True,
         )
 
-        with self.settings(SENTRY_DEFAULT_ORGANIZATION_ID=self.organization.id):
+        with self.settings(SUPERUSER_ORG_ID=self.organization.id):
             self.get_success_response(self.organization.slug, member.id, method="delete")
 
         # Membership should be deleted
@@ -825,7 +825,7 @@ class SCIMMemberSaasPrivilegeRevocationTests(SCIMTestCase):
             is_staff=True,
         )
 
-        with self.settings(SENTRY_DEFAULT_ORGANIZATION_ID=self.organization.id):
+        with self.settings(SUPERUSER_ORG_ID=self.organization.id):
             self.get_success_response(self.organization.slug, member.id, method="delete")
 
         # Membership should be deleted
@@ -850,7 +850,7 @@ class SCIMMemberSaasPrivilegeRevocationTests(SCIMTestCase):
         member = self.create_member(user=regular_user, organization=self.organization)
 
         # Regular user deletion should proceed normally (not matching default org ID)
-        with self.settings(SENTRY_DEFAULT_ORGANIZATION_ID=999999):
+        with self.settings(SUPERUSER_ORG_ID=999999):
             self.get_success_response(self.organization.slug, member.id, method="delete")
 
         # Membership should be deleted
@@ -885,7 +885,7 @@ class SCIMMemberSaasPrivilegeRevocationTests(SCIMTestCase):
             "Operations": [{"op": "Replace", "path": "active", "value": False}],
         }
 
-        with self.settings(SENTRY_DEFAULT_ORGANIZATION_ID=self.organization.id):
+        with self.settings(SUPERUSER_ORG_ID=self.organization.id):
             self.get_success_response(
                 self.organization.slug, member.id, raw_data=patch_req, method="patch"
             )
@@ -931,7 +931,7 @@ class SCIMMemberSaasPrivilegeRevocationTests(SCIMTestCase):
             "Operations": [{"op": "Replace", "value": {"active": False}}],
         }
 
-        with self.settings(SENTRY_DEFAULT_ORGANIZATION_ID=self.organization.id):
+        with self.settings(SUPERUSER_ORG_ID=self.organization.id):
             self.get_success_response(
                 self.organization.slug, member.id, raw_data=patch_req, method="patch"
             )
@@ -948,6 +948,28 @@ class SCIMMemberSaasPrivilegeRevocationTests(SCIMTestCase):
                 "is_staff": False,
             },
         )
+
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    @patch("sentry.core.endpoints.scim.members.user_service")
+    def test_delete_staff_without_superuser_org_configured_preserves_privileges(
+        self, mock_user_service: MagicMock
+    ) -> None:
+        """When SUPERUSER_ORG_ID is None (not configured), SCIM deletion doesn't revoke privileges"""
+        staff_user = self.create_user(
+            email="staff_user@example.com", is_superuser=False, is_staff=True
+        )
+        member = self.create_member(user=staff_user, organization=self.organization)
+
+        # SUPERUSER_ORG_ID defaults to None, don't override it
+        # Even though we're in SaaS mode, privileges should NOT be revoked
+        self.get_success_response(self.organization.slug, member.id, method="delete")
+
+        # Membership should be deleted
+        with pytest.raises(OrganizationMember.DoesNotExist):
+            OrganizationMember.objects.get(organization=self.organization, id=member.id)
+
+        # Verify user_service.update_user was NOT called (privileges preserved)
+        mock_user_service.update_user.assert_not_called()
 
 
 @no_silo_test

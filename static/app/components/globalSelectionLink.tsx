@@ -4,7 +4,7 @@ import * as qs from 'query-string';
 import type {LinkProps} from '@sentry/scraps/link';
 import {Link} from '@sentry/scraps/link';
 
-import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {useLocation} from 'sentry/utils/useLocation';
 
 interface Props {

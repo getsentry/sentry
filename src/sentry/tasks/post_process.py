@@ -71,7 +71,6 @@ class PostProcessJob(TypedDict, total=False):
     group_state: GroupState
     is_reprocessed: bool
     has_reappeared: bool
-    has_alert: bool
     has_escalated: bool
 
 
@@ -649,7 +648,6 @@ def post_process_group(
                     "group_state": group_state,
                     "is_reprocessed": is_reprocessed,
                     "has_reappeared": bool(not group_state["is_new"]),
-                    "has_alert": False,
                     "has_escalated": kwargs.get("has_escalated", False),
                 }
             )
@@ -992,16 +990,6 @@ def process_workflow_engine(job: PostProcessJob) -> None:
         return
 
 
-def _should_single_process_event(job: PostProcessJob) -> bool:
-    org = job["event"].project.organization
-
-    return (
-        features.has("organizations:workflow-engine-single-process-workflows", org)
-        and job["event"].group.type
-        in options.get("workflow_engine.issue_alert.group.type_id.rollout")
-    ) or job["event"].group.type in options.get("workflow_engine.issue_alert.group.type_id.ga")
-
-
 def process_workflow_engine_issue_alerts(job: PostProcessJob) -> None:
     """
     Call for process_workflow_engine with the issue alert feature flag
@@ -1010,8 +998,7 @@ def process_workflow_engine_issue_alerts(job: PostProcessJob) -> None:
         return
 
     # process workflow engine if we are single processing or dual processing for a specific org
-    if _should_single_process_event(job):
-        process_workflow_engine(job)
+    process_workflow_engine(job)
 
 
 def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
@@ -1022,50 +1009,6 @@ def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
         return
 
     process_workflow_engine(job)
-
-
-def process_rules(job: PostProcessJob) -> None:
-    if job["is_reprocessed"]:
-        return
-
-    if _should_single_process_event(job):
-        # we are only processing through workflow engine
-        return
-
-    metrics.incr(
-        "post_process.rules_processor_events", tags={"group_type": job["event"].group.type}
-    )
-
-    from sentry.rules.processing.processor import RuleProcessor
-
-    group_event = job["event"]
-    is_new = job["group_state"]["is_new"]
-    is_regression = job["group_state"]["is_regression"]
-    is_new_group_environment = job["group_state"]["is_new_group_environment"]
-    has_reappeared = job["has_reappeared"]
-    has_escalated = job["has_escalated"]
-
-    has_alert = False
-
-    rp = RuleProcessor(
-        group_event,
-        is_new,
-        is_regression,
-        is_new_group_environment,
-        has_reappeared,
-        has_escalated,
-    )
-    with sentry_sdk.start_span(op="tasks.post_process_group.rule_processor_callbacks"):
-        # TODO(dcramer): ideally this would fanout, but serializing giant
-        # objects back and forth isn't super efficient
-        callback_and_futures = rp.apply()
-
-        for callback, futures in callback_and_futures:
-            has_alert = True
-            safe_execute(callback, group_event, futures)
-
-    job["has_alert"] = has_alert
-    return
 
 
 def process_code_mappings(job: PostProcessJob) -> None:
@@ -1208,19 +1151,6 @@ def handle_auto_assignment(job: PostProcessJob) -> None:
     )
 
 
-def process_service_hooks(job: PostProcessJob) -> None:
-    if job["is_reprocessed"]:
-        return
-
-    if _should_single_process_event(job):
-        # we will kick off service hooks in the workflow engine task
-        return
-
-    from sentry.sentry_apps.tasks.service_hooks import kick_off_service_hooks
-
-    kick_off_service_hooks(job["event"], job["has_alert"])
-
-
 def process_resource_change_bounds(job: PostProcessJob) -> None:
     if not should_process_resource_change_bounds(job):
         return
@@ -1271,9 +1201,6 @@ def process_data_forwarding(job: PostProcessJob) -> None:
         return
 
     event = job["event"]
-
-    if not features.has("organizations:data-forwarding-revamp-access", event.project.organization):
-        return
 
     if not features.has("organizations:data-forwarding", event.project.organization):
         return
@@ -1630,7 +1557,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
 
         generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
     else:
-        # Triage signals V0 behaviour
+        # Seat-based tier behaviour
         # If event count < 10, only generate summary (no automation)
         if group.times_seen_with_pending < 10:
             # Check if summary exists in cache
@@ -1662,7 +1589,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             if group.first_seen < (timezone.now() - timedelta(days=14)):
                 return
 
-            # Triage signals will not run issues if they are not fixable at MEDIUM threshold
+            # Will not run issues if they are not fixable at MEDIUM threshold
             if group.seer_fixability_score is not None:
                 if (
                     group.seer_fixability_score < FixabilityScoreThresholds.MEDIUM.value
@@ -1712,9 +1639,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         handle_owner_assignment,
         handle_auto_assignment,
         kick_off_seer_automation,
-        process_rules,
         process_workflow_engine_issue_alerts,
-        process_service_hooks,
         process_resource_change_bounds,
         process_data_forwarding,
         process_plugins,
@@ -1731,12 +1656,16 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),
         feedback_filter_decorator(process_inbox_adds),
-        feedback_filter_decorator(process_rules),
         feedback_filter_decorator(process_workflow_engine_issue_alerts),
         feedback_filter_decorator(process_resource_change_bounds),
     ],
     GroupCategory.METRIC_ALERT: [
         process_workflow_engine_metric_issues,
+    ],
+    GroupCategory.INSTRUMENTATION: [
+        process_snoozes,
+        process_inbox_adds,
+        kick_off_seer_automation,
     ],
 }
 
@@ -1744,7 +1673,6 @@ GENERIC_POST_PROCESS_PIPELINE = [
     process_snoozes,
     process_inbox_adds,
     kick_off_seer_automation,
-    process_rules,
     process_workflow_engine_issue_alerts,
     process_resource_change_bounds,
     process_data_forwarding,

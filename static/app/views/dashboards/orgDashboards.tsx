@@ -89,6 +89,7 @@ function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) {
     selectedDashboard = {
       ...selectedDashboard,
       ...prebuiltDashboard,
+      id: selectedDashboard.id,
     };
   }
 

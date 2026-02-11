@@ -1,8 +1,8 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import type {SelectionCallbackParams} from 'sentry/components/charts/useChartXRangeSelection';
+import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUtcDateString} from 'sentry/utils/dates';

@@ -115,7 +115,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 SectionBlock(text=data.error_title),
                 SectionBlock(text=MarkdownTextObject(text=f">{data.error_message}")),
             ],
-            text=f"Error while Seer was attempting a fix: {data.error_title}",
+            text=f"Seer encountered an error: {data.error_title}",
         )
 
     @classmethod
@@ -175,7 +175,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
         if data.has_progressed and data.current_point != AutofixStoppingPoint.OPEN_PR:
             blocks.extend(cls.render_footer_blocks(data=data))
-        return SlackRenderable(blocks=blocks, text="Seer has an update on fixing the issue!")
+        return SlackRenderable(blocks=blocks, text="Seer has an update on fixing the issue")
 
     @classmethod
     def _render_link_button(
@@ -223,27 +223,10 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         ]
 
     @classmethod
-    def render_alert_autofix_element(cls, group: Group) -> InteractiveElement:
+    def render_autofix_button(cls, group: Group) -> InteractiveElement:
         """
-        Returns either an autofix button or a link to the autofix panel in Sentry.
-        When automation will run, shows a link (updates will be threaded later).
-        When automation won't run, shows an autofix button for manual RCA trigger.
+        Returns an autofix button for manual RCA trigger.
         """
-        from sentry.seer.autofix.issue_summary import is_group_triggering_automation
-        from sentry.seer.entrypoints.integrations.slack import SlackEntrypoint
-
-        try:
-            is_triggering = is_group_triggering_automation(group)
-        except Exception:
-            is_triggering = False
-
-        if is_triggering:
-            return cls._render_link_button(
-                organization_id=group.project.organization_id,
-                project_id=group.project_id,
-                group_link=SlackEntrypoint.get_group_link(group),
-                text="Watch Seer Work :sparkles:",
-            )
 
         return cls._render_autofix_button(
             data=SeerAutofixTrigger(

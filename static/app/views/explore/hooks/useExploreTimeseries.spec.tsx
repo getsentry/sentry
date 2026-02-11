@@ -4,12 +4,12 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/utils/usePageFilters';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;

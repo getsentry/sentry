@@ -122,6 +122,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
                 if features.has("organizations:preprod-build-distribution-eap-write", organization):
                     produce_preprod_build_distribution_to_eap(
                         artifact=preprod_artifact,
+                        organization=organization,
                         organization_id=project.organization_id,
                         project_id=project.id,
                     )

@@ -27,16 +27,6 @@ describe('CancelSubscription', () => {
       method: 'GET',
       body: subscription,
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-      method: 'POST',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/prompts-activity/`,
-      method: 'PUT',
-      body: {},
-    });
   });
 
   it('renders', async () => {

@@ -1,9 +1,9 @@
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {Event} from 'sentry/types/event';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {
   getGroupEventQueryKey,

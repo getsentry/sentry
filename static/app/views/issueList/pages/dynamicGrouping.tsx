@@ -22,11 +22,12 @@ import useDrawer from 'sentry/components/globalDrawer';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Redirect from 'sentry/components/redirect';
 import TimeSince from 'sentry/components/timeSince';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {
   IconArrow,
   IconCalendar,
@@ -56,7 +57,6 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {
@@ -550,7 +550,7 @@ function ClusterCard({
               </Tooltip>
             )}
             <Flex align="center" gap="md">
-              <ButtonBar merged gap="0">
+              <ButtonBar>
                 <SeerButton
                   size="sm"
                   priority="primary"

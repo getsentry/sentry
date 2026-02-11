@@ -1,7 +1,12 @@
 /**
- * Font size constraint for typography.
+ * Font size constraint for body typography.
  */
-export type FontSize = SizeRange<'xs', '2xl'>;
+export type TextSize = SizeRange<'xs', '2xl'>;
+
+/**
+ * Font size constraint for heading typography.
+ */
+export type HeadingSize = SizeRange<'xs', '4xl'>;
 
 /**
  * Responsive breakpoint size constraint.
@@ -104,7 +109,7 @@ export type AlertVariant = 'muted' | 'info' | 'warning' | 'success' | 'danger';
 // Internal types
 // -----------------------------------------------------------------------------
 
-type SizeKeys = readonly ['0', '2xs', 'xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'];
+type SizeKeys = readonly ['0', '2xs', 'xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl', '4xl'];
 type Size = SizeKeys[number];
 
 // Extracts a contiguous range of keys from the size scale

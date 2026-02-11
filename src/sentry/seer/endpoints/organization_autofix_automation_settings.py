@@ -15,11 +15,9 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
-from sentry.constants import ObjectStatus
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.repository import Repository
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -30,6 +28,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.endpoints.project_seer_preferences import BranchOverrideSerializer
 from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.utils import filter_repo_by_provider
 
 
 def merge_repositories(existing: list[dict], new: list[dict]) -> list[dict]:
@@ -263,12 +262,8 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
 
                 repo_data["organization_id"] = organization.id
 
-                repo_exists = Repository.objects.filter(
-                    Q(provider=provider) | Q(provider=f"integrations:{provider}"),
-                    organization_id=organization.id,
-                    external_id=external_id,
-                    name=f"{owner}/{name}",
-                    status=ObjectStatus.ACTIVE,
+                repo_exists = filter_repo_by_provider(
+                    organization.id, provider, external_id, owner, name
                 ).exists()
                 if not repo_exists:
                     return Response({"detail": "Invalid repository"}, status=400)

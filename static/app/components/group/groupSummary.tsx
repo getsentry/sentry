@@ -489,6 +489,7 @@ const CardLineDecorationWrapper = styled('div')`
 const CardLineDecoration = styled('div')`
   width: 1px;
   align-self: stretch;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.border.primary};
 `;
 

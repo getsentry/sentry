@@ -508,6 +508,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self._is_compact = features.has(
             "organizations:slack-compact-alerts", self.group.organization
         )
+        self._has_autofix = SeerOperator.has_access(
+            organization=self.group.organization, entrypoint_key=SeerEntrypointKey.SLACK
+        ) and SeerOperator.can_trigger_autofix(group=self.group)
 
     def get_title_block(
         self,
@@ -834,10 +837,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                     )
                 )
 
-        if SeerOperator.has_access(
-            organization=self.group.project.organization, entrypoint_key=SeerEntrypointKey.SLACK
-        ):
-            autofix_button = SeerSlackRenderer.render_alert_autofix_element(group=self.group)
+        if self._has_autofix:
+            autofix_button = SeerSlackRenderer.render_autofix_button(group=self.group)
             # We have to coerce this since we're not using the proper SlackSDK client to emit this
             # notification yet, it just takes JSON.
             actions.append(autofix_button.to_dict())

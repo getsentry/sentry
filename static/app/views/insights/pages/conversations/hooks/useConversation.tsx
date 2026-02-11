@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {getGenAiOperationTypeFromSpanOp} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -15,6 +15,8 @@ import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceMo
 
 export interface UseConversationsOptions {
   conversationId: string;
+  endTimestamp?: number;
+  startTimestamp?: number;
 }
 
 /**
@@ -32,6 +34,7 @@ interface ConversationApiSpan {
   'span.status': string;
   span_id: string;
   trace: string;
+  'gen_ai.cost.total_tokens'?: number;
   'gen_ai.input.messages'?: string;
   'gen_ai.operation.type'?: string;
   'gen_ai.output.messages'?: string;
@@ -39,6 +42,8 @@ interface ConversationApiSpan {
   'gen_ai.response.object'?: string;
   'gen_ai.response.text'?: string;
   'gen_ai.tool.name'?: string;
+  'gen_ai.usage.total_tokens'?: number;
+  'span.name'?: string;
   'user.email'?: string;
   'user.id'?: string;
   'user.ip'?: string;
@@ -79,7 +84,7 @@ function createNodeFromApiSpan(
     event_type: 'span',
     is_transaction: false,
     op: apiSpan['span.op'],
-    description: apiSpan['span.description'],
+    description: apiSpan['span.description'] || apiSpan['span.name'],
     start_timestamp: apiSpan['precise.start_ts'],
     end_timestamp: apiSpan['precise.finish_ts'],
     project_id: apiSpan['project.id'],
@@ -90,7 +95,7 @@ function createNodeFromApiSpan(
     sdk_name: '',
     transaction: '',
     transaction_id: '',
-    name: apiSpan['span.description'],
+    name: apiSpan['span.name'] || apiSpan['span.description'],
     errors: [],
     occurrences: [],
     additional_attributes: {
@@ -102,6 +107,8 @@ function createNodeFromApiSpan(
       [SpanFields.GEN_AI_RESPONSE_OBJECT]: apiSpan['gen_ai.response.object'] ?? '',
       [SpanFields.GEN_AI_RESPONSE_TEXT]: apiSpan['gen_ai.response.text'] ?? '',
       [SpanFields.GEN_AI_TOOL_NAME]: apiSpan['gen_ai.tool.name'] ?? '',
+      [SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: apiSpan['gen_ai.usage.total_tokens'] ?? 0,
+      [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: apiSpan['gen_ai.cost.total_tokens'] ?? 0,
       [SpanFields.SPAN_STATUS]: apiSpan['span.status'],
       [SpanFields.USER_EMAIL]: apiSpan['user.email'] ?? '',
       [SpanFields.USER_ID]: apiSpan['user.id'] ?? '',
@@ -172,11 +179,24 @@ export function useConversation(
       },
     }
   );
-  const queryParams = {
-    project: selection.projects,
-    environment: selection.environments,
-    ...normalizeDateTimeParams(selection.datetime),
-  };
+
+  // Use conversation timestamps when available (with 1-hour padding), falling back to page filters
+  const ONE_HOUR_MS = 60 * 60 * 1000;
+  const hasConversationTimestamps =
+    conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined;
+
+  const queryParams = hasConversationTimestamps
+    ? {
+        project: selection.projects,
+        environment: selection.environments,
+        start: new Date(conversation.startTimestamp! - ONE_HOUR_MS).toISOString(),
+        end: new Date(conversation.endTimestamp! + ONE_HOUR_MS).toISOString(),
+      }
+    : {
+        project: selection.projects,
+        environment: selection.environments,
+        ...normalizeDateTimeParams(selection.datetime),
+      };
 
   const conversationQuery = useApiQuery<ConversationApiSpan[]>(
     [queryUrl, {query: queryParams}],

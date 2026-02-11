@@ -53,10 +53,6 @@ describe('StreamlinedSidebar', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: false,
-          userHasAcknowledged: false,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),
