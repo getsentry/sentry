@@ -128,8 +128,8 @@ def relay_server_setup(live_server, tmpdir_factory):
 
 
 @pytest.fixture(scope="class")
-def relay_server(relay_server_setup, settings):
-    adjust_settings_for_relay_tests(settings)
+def _relay_server_container(relay_server_setup):
+    """Class-scoped: start Relay container once per test class."""
     options = relay_server_setup["options"]
     with get_docker_client() as docker_client:
         container_name = _relay_server_container_name()
@@ -155,6 +155,13 @@ def relay_server(relay_server_setup, settings):
         raise ValueError("relay did not start in time")
 
     yield {"url": relay_server_setup["url"]}
+
+
+@pytest.fixture(scope="function")
+def relay_server(_relay_server_container, settings):
+    """Function-scoped: adjusts Django settings per test, reuses class-scoped container."""
+    adjust_settings_for_relay_tests(settings)
+    yield _relay_server_container
 
 
 @pytest.fixture(scope="function", autouse=True)
