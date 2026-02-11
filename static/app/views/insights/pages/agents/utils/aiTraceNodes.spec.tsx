@@ -1,7 +1,7 @@
 import {SpanFields} from 'sentry/views/insights/types';
 
-import type {AITraceSpanNode} from './types';
 import {hasError} from './aiTraceNodes';
+import type {AITraceSpanNode} from './types';
 
 function makeNode({
   errorCount = 0,
