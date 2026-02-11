@@ -5,7 +5,6 @@ from typing import Any
 
 import jsonschema
 import orjson
-import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
 from rest_framework.request import Request
@@ -103,11 +102,10 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 {"detail": "offset must be >= 0, limit must be > 0 and <= 100"}, status=400
             )
 
-        with sentry_sdk.start_span(op="preprod_artifact.get_snapshot_data"):
-            return Response(
-                {},
-                status=200,
-            )
+        return Response(
+            {},
+            status=200,
+        )
 
     def post(self, request: Request, project: Project) -> Response:
         if not settings.IS_DEV and not features.has(
@@ -137,12 +135,12 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             if head_sha and provider and head_repo_name and head_ref:
                 commit_comparison, _ = CommitComparison.objects.get_or_create(
                     organization_id=project.organization_id,
-                    head_sha=head_sha.lower(),
-                    base_sha=base_sha.lower() if base_sha else None,
                     head_repo_name=head_repo_name,
+                    head_sha=head_sha,
+                    base_sha=base_sha,
                     defaults={
                         "provider": provider,
-                        "base_repo_name": base_repo_name or head_repo_name,
+                        "base_repo_name": base_repo_name,
                         "head_ref": head_ref,
                         "base_ref": base_ref,
                         "pr_number": pr_number,
