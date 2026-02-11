@@ -26,7 +26,9 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
 
     def _validate_logic_type(self, condition_data: list[dict[str, Any]], logic_type: str) -> None:
         """
-        Validate that if we're passed a "trigger" it has the logic type 'any-short'
+        Validate that if we're passed a "trigger" it has the logic type 'any-short'. We only validate on create
+        because we have conditions grandfathered into logic type 'all' that were migrated from issue alerts that would
+        break upon updating.
         """
         for condition in condition_data:
             if (condition.get("type") in TRIGGER_CONDITIONS) and (
@@ -70,27 +72,6 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
         if instance.organization_id != context_org.id:
             raise serializers.ValidationError(f"Condition group with id {instance.id} not found.")
 
-        logic_type = validated_data.get("logic_type")
-        if not logic_type:
-            logic_type = instance.logic_type
-
-        condition_data = validated_data.get("conditions", [])
-        if not condition_data:
-            conditions = DataCondition.objects.filter(
-                condition_group=instance,
-            )
-            for condition in conditions:
-                condition_data.append(
-                    {
-                        "type": condition.type,
-                        # don't actually need the last 2, just making it look legitimate
-                        "comparison": condition.comparison,
-                        "conditionResult": condition.condition_result,
-                    }
-                )
-
-        self._validate_logic_type(condition_data, logic_type)
-
         remove_items_by_api_input(validated_data.get("conditions", []), instance.conditions, "id")
         conditions = validated_data.pop("conditions", None)
         if conditions:
@@ -104,9 +85,7 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
         return instance
 
     def create(self, validated_data: dict[str, Any]) -> DataConditionGroup:
-        logic_type = validated_data.get("logic_type")
-        if not logic_type:
-            logic_type = DataConditionGroup.Type.ANY.value
+        logic_type = validated_data.get("logic_type", DataConditionGroup.Type.ANY.value)
         self._validate_logic_type(validated_data.get("conditions", []), logic_type)
 
         with transaction.atomic(router.db_for_write(DataConditionGroup)):
