@@ -335,6 +335,13 @@ const SCREEN_RENDERING_TABLE: Widget = {
       ],
       conditions: TRANSACTION_OP_CONDITION,
       orderby: `-count(${SpanFields.SPAN_DURATION})`,
+      linkedDashboards: [
+        {
+          field: 'transaction',
+          dashboardId: '-1',
+          staticDashboardId: 11,
+        },
+      ],
     },
   ],
   layout: {
