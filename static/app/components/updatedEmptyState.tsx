@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -231,22 +232,27 @@ const PulsingIndicator = styled('div')`
   ${pulsingIndicatorStyles};
   flex-shrink: 0;
 `;
-const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
-  <div {...p}>
-    {t("Waiting for this project's first error")}
-    <PulsingIndicator />
-  </div>
-))`
-  display: flex;
-  align-items: center;
-  position: relative;
-  padding: 0 ${p => p.theme.space.md};
-  z-index: 10;
-  gap: ${p => p.theme.space.md};
-  flex-grow: 1;
+
+function EventWaitingIndicator() {
+  return (
+    <EventWaitingIndicatorContainer
+      align="center"
+      position="relative"
+      padding="0 md"
+      paddingRight="3xl"
+      gap="md"
+      flexGrow={1}
+    >
+      {t("Waiting for this project's first error")}
+      <PulsingIndicator />
+    </EventWaitingIndicatorContainer>
+  );
+}
+
+const EventWaitingIndicatorContainer = styled(Flex)`
   font-size: ${p => p.theme.font.size.md};
-  color: ${p => p.theme.colors.pink500};
-  padding-right: ${p => p.theme.space['3xl']};
+  color: ${p => p.theme.tokens.content.promotion};
+  z-index: 10;
 `;
 
 const ProjectBadgeWrapper = styled('div')`
