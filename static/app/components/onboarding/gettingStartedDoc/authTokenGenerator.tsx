@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {t} from 'sentry/locale';
 import type {OrgAuthToken} from 'sentry/types/user';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
@@ -66,7 +67,7 @@ export function AuthTokenGeneratorProvider({
     <AuthTokenGeneratorContext
       value={{authToken, isLoading: isPending, generateAuthToken}}
     >
-      {children}
+      <TabSelectionScope>{children}</TabSelectionScope>
     </AuthTokenGeneratorContext>
   );
 }

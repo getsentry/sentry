@@ -3,7 +3,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useAuthToken} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {getTabSelections} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
+import {useTabRegistry} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import type {OnboardingStep} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {stepsToMarkdown} from 'sentry/components/onboarding/gettingStartedDoc/utils/stepsToMarkdown';
 import {IconCopy} from 'sentry/icons';
@@ -67,10 +67,11 @@ export function OnboardingCopyMarkdownButton({
   source,
 }: OnboardingCopyMarkdownButtonProps) {
   const authToken = useAuthToken();
+  const {getSelections} = useTabRegistry();
 
   const getMarkdown = () =>
     stepsToMarkdown(steps, {
-      tabSelections: getTabSelections(),
+      tabSelections: getSelections(),
       authToken,
     });
 

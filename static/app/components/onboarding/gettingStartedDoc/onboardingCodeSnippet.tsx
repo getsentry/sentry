@@ -5,7 +5,7 @@ import beautify from 'js-beautify';
 import {CodeBlock} from '@sentry/scraps/code';
 
 import {AuthTokenGenerator} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {registerTabSelection} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
+import {useTabRegistry} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {PACKAGE_LOADING_PLACEHOLDER} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 interface OnboardingCodeSnippetProps extends Omit<
@@ -110,9 +110,11 @@ export function TabbedCodeSnippet({
   const selectedLabelRef = useRef(resolvedTab.label);
   selectedLabelRef.current = resolvedTab.label;
 
+  const {register} = useTabRegistry();
+
   useEffect(() => {
-    return registerTabSelection(() => selectedLabelRef.current);
-  }, []);
+    return register(() => selectedLabelRef.current);
+  }, [register]);
 
   return (
     <OnboardingCodeSnippet

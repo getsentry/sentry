@@ -1,36 +1,74 @@
 /**
  * Registration-based store for tracking selected code tabs across
- * onboarding code snippets.
+ * onboarding code snippets, scoped per guide instance.
  *
  * Each TabbedCodeSnippet registers a getter via useEffect on mount.
  * Registration order matches React render order (tree-order, depth-first),
  * which aligns with the order stepsToMarkdown iterates content blocks.
  * This lets us do positional matching without keys or labels.
+ *
+ * Scoping: A `TabSelectionScope` context provider isolates registrations
+ * to the guide they belong to, preventing cross-guide contamination when
+ * multiple guides are rendered simultaneously. The scope is embedded
+ * inside `AuthTokenGeneratorProvider` so most surfaces get it for free.
+ * Surfaces without a provider fall back to a global registry.
  */
+
+import {createContext, useCallback, useContext, useRef} from 'react';
+import type {MutableRefObject} from 'react';
 
 type TabSelectionGetter = () => string;
 
-const _registrations: TabSelectionGetter[] = [];
+/** Global fallback for when no TabSelectionScope provider is present. */
+const _globalRegistrations: TabSelectionGetter[] = [];
+
+const TabRegistryContext = createContext<MutableRefObject<TabSelectionGetter[]> | null>(
+  null
+);
 
 /**
- * Register a getter that returns the currently selected tab label.
- * Called by TabbedCodeSnippet on mount. Returns a cleanup function
- * that removes the registration on unmount.
+ * Scopes tab selection registrations to a specific guide instance.
+ * Rendered inside AuthTokenGeneratorProvider so most onboarding
+ * surfaces inherit scoping automatically.
  */
-export function registerTabSelection(getter: TabSelectionGetter): () => void {
-  _registrations.push(getter);
-  return () => {
-    const idx = _registrations.indexOf(getter);
-    if (idx !== -1) {
-      _registrations.splice(idx, 1);
-    }
-  };
+export function TabSelectionScope({children}: {children: React.ReactNode}) {
+  const registryRef = useRef<TabSelectionGetter[]>([]);
+  return (
+    <TabRegistryContext.Provider value={registryRef}>
+      {children}
+    </TabRegistryContext.Provider>
+  );
 }
 
 /**
- * Collect all current tab selections in registration (render) order.
- * Called by OnboardingCopyMarkdownButton at click time.
+ * Returns scoped register/getSelections functions for the nearest
+ * TabSelectionScope (or the global fallback).
+ *
+ * - `register(getter)` — called by TabbedCodeSnippet in a useEffect.
+ *   Returns a cleanup function.
+ * - `getSelections()` — called by OnboardingCopyMarkdownButton at
+ *   click time. Returns an ordered array of selected tab labels.
  */
-export function getTabSelections(): string[] {
-  return _registrations.map(fn => fn());
+export function useTabRegistry() {
+  const registryRef = useContext(TabRegistryContext);
+  const registry = registryRef?.current ?? _globalRegistrations;
+
+  const register = useCallback(
+    (getter: TabSelectionGetter): (() => void) => {
+      registry.push(getter);
+      return () => {
+        const idx = registry.indexOf(getter);
+        if (idx !== -1) {
+          registry.splice(idx, 1);
+        }
+      };
+    },
+    [registry]
+  );
+
+  const getSelections = useCallback((): string[] => {
+    return registry.map(fn => fn());
+  }, [registry]);
+
+  return {register, getSelections};
 }
