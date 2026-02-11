@@ -96,8 +96,9 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                 team_list = list(Team.objects.filter(organization_id=org))
                 queryset = Project.objects.filter(teams__in=team_list)
             else:
+                # Return 401 instead of 400 to indicate authentication issue
                 return Response(
-                    {"detail": "Current access does not point to " "organization."}, status=400
+                    {"detail": "Current access does not point to organization."}, status=401
                 )
         else:
             queryset = Project.objects.filter(organization=organization)
