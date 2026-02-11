@@ -169,31 +169,49 @@ def relay_server(relay_server_setup, settings):
         # Native binary mode: run Relay as a subprocess.
         binary = relay_server_setup["binary"]
         config_path = relay_server_setup["config_path"]
-        _log.info("Starting Relay native binary: %s", binary)
+        _log.info("Starting Relay native binary: %s (config: %s)", binary, config_path)
+
+        # Write stdout/stderr to files so we can read them on failure
+        stdout_path = path.join(config_path, "relay-stdout.log")
+        stderr_path = path.join(config_path, "relay-stderr.log")
+        stdout_f = open(stdout_path, "w")
+        stderr_f = open(stderr_path, "w")
+
         process = subprocess.Popen(
             [binary, "run", "--config", config_path],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=stdout_f,
+            stderr=stderr_f,
         )
 
         try:
-            for i in range(8):
+            for i in range(10):
+                # Check if process died
+                ret = process.poll()
+                if ret is not None:
+                    stdout_f.flush()
+                    stderr_f.flush()
+                    with open(stderr_path) as f:
+                        stderr_output = f.read()
+                    with open(stdout_path) as f:
+                        stdout_output = f.read()
+                    raise ValueError(
+                        f"relay native binary exited immediately with code {ret}.\n"
+                        f"Binary: {binary}\nConfig: {config_path}\n"
+                        f"STDERR:\n{stderr_output}\nSTDOUT:\n{stdout_output}"
+                    )
                 try:
                     requests.get(url)
                     break
                 except Exception as ex:
-                    if i == 7:
-                        _log.exception(str(ex))
-                        stderr_output = ""
-                        if process.stderr:
-                            # Non-blocking read of whatever stderr is available
-                            import select
-
-                            if select.select([process.stderr], [], [], 0)[0]:
-                                stderr_output = process.stderr.read(4096).decode(errors="replace")
+                    if i == 9:
+                        stdout_f.flush()
+                        stderr_f.flush()
+                        with open(stderr_path) as f:
+                            stderr_output = f.read()
                         raise ValueError(
                             f"relay native binary did not start in time "
-                            f"(now: {datetime.datetime.now().isoformat()}) {url}:\n{stderr_output}"
+                            f"(now: {datetime.datetime.now().isoformat()}) {url}\n"
+                            f"STDERR:\n{stderr_output}"
                         ) from ex
                     time.sleep(0.1 * 2**i)
             else:
@@ -209,6 +227,8 @@ def relay_server(relay_server_setup, settings):
                 _log.warning("Relay process did not exit in time, killing")
                 process.kill()
                 process.wait(timeout=5)
+            stdout_f.close()
+            stderr_f.close()
     else:
         # Docker mode: run Relay in a container.
         from sentry.runner.commands.devservices import get_docker_client
