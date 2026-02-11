@@ -646,7 +646,12 @@ export const widgetFetchesOwnData = (widgetType: DisplayType) => {
   return widgetType === DisplayType.SERVER_TREE;
 };
 
-// Custom widgets for prebuilt dashboards are not editable at this time
-export const isWidgetEditable = (widgetType: DisplayType) => {
+// Custom widgets for prebuilt dashboards that do not have menu options
+export const widgetHasMenuOptions = (widgetType: DisplayType) => {
   return widgetType !== DisplayType.SERVER_TREE;
+};
+
+// Custom widgets from the widget library that are not editable but still have menu options
+export const isWidgetEditable = (widgetType: DisplayType) => {
+  return widgetType !== DisplayType.WHEEL;
 };
