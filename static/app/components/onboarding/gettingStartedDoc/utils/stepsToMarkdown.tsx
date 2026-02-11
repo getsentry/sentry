@@ -146,7 +146,8 @@ export function reactNodeToText(node: React.ReactNode): string {
 
     // Convert known HTML elements to markdown
     if (typeof elementType === 'string') {
-      const href = (props.href ?? props.to) as string | undefined;
+      const rawHref = props.href ?? props.to;
+      const href = typeof rawHref === 'string' ? rawHref : undefined;
       if ((elementType === 'a' || href) && href && childText) {
         return `[${childText}](${href})`;
       }
@@ -164,7 +165,8 @@ export function reactNodeToText(node: React.ReactNode): string {
 
     // Component elements (function/class) — check for href/to props
     // (handles components like ExternalLink that pass through href)
-    const href = (props.href ?? props.to) as string | undefined;
+    const rawHref = props.href ?? props.to;
+    const href = typeof rawHref === 'string' ? rawHref : undefined;
     if (href && childText) {
       return `[${childText}](${href})`;
     }
