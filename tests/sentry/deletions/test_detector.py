@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 
 from sentry.constants import ObjectStatus
@@ -135,3 +137,55 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
             detector.refresh_from_db()
         with pytest.raises(UptimeSubscription.DoesNotExist):
             uptime_sub.refresh_from_db()
+
+    @mock.patch("sentry.quotas.backend.remove_seat")
+    def test_delete_uptime_detector_calls_remove_seat(
+        self, mock_remove_seat: mock.MagicMock
+    ) -> None:
+        """Verify remove_seat is called when an uptime detector is deleted."""
+        detector = self.create_uptime_detector()
+        self.ScheduledDeletion.schedule(instance=detector, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Detector.objects.filter(id=detector.id).exists()
+        assert mock_remove_seat.call_count >= 1
+
+    @mock.patch("sentry.uptime.subscriptions.subscriptions.remove_uptime_seat")
+    def test_delete_uptime_detector_succeeds_when_remove_seat_fails(
+        self, mock_remove_seat: mock.MagicMock
+    ) -> None:
+        """Detector deletion succeeds even if remove_uptime_seat raises in DetectorDeletionTask."""
+        # First call (from UptimeSubscriptionDeletionTask during child cascade) succeeds.
+        # Second call (from DetectorDeletionTask.delete_instance) fails.
+        mock_remove_seat.side_effect = [None, Exception("seat error")]
+        detector = self.create_uptime_detector()
+        detector_id = detector.id
+        self.ScheduledDeletion.schedule(instance=detector, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Detector.objects.filter(id=detector_id).exists()
+
+    def test_delete_uptime_subscription_without_detector(self) -> None:
+        """UptimeSubscription deletion proceeds when the detector no longer exists."""
+        detector = self.create_uptime_detector()
+        uptime_sub = get_uptime_subscription(detector)
+        uptime_sub_id = uptime_sub.id
+
+        # Delete the detector and its data sources directly so the
+        # UptimeSubscription is orphaned (no detector to find via get_detector).
+        DataSourceDetector.objects.filter(detector=detector).delete()
+        DataSource.objects.filter(
+            source_id=str(uptime_sub.id),
+        ).delete()
+        detector.delete()
+
+        self.ScheduledDeletion.schedule(instance=uptime_sub, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not UptimeSubscription.objects.filter(id=uptime_sub_id).exists()
