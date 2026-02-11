@@ -735,8 +735,8 @@ class SpansBuffer:
                         fetched_payloads = p.execute()
 
                     # fetched_payloads is a list of sets of payloads
-                    for fetched_payloads in fetched_payloads:
-                        for payload in fetched_payloads:
+                    for fetched_payload in fetched_payloads:
+                        for payload in fetched_payload:
                             if payload is not None:
                                 decompressed_spans.extend(self._decompress_batch(payload))
 
