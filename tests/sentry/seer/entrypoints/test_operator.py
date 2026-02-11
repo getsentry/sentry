@@ -239,7 +239,7 @@ class SeerOperatorTest(TestCase):
         )
 
     @patch("sentry.seer.entrypoints.operator.update_autofix")
-    def test_solution_stopping_point_continues_to_code_changes(self, mock_update_autofix):
+    def test_solution_stopping_point_sends_select_root_cause(self, mock_update_autofix):
         mock_update_autofix.return_value = Response({"run_id": MOCK_RUN_ID}, status=202)
 
         self.operator.trigger_autofix(
@@ -254,7 +254,7 @@ class SeerOperatorTest(TestCase):
         assert call_kwargs["organization_id"] == self.group.organization.id
         payload = call_kwargs["payload"]
         assert payload["type"] == "select_root_cause"
-        assert payload["stopping_point"] == "code_changes"
+        assert payload["cause_id"] == 0
 
     def test_can_trigger_autofix_returns_false_without_seer_access(self):
         assert SeerOperator.can_trigger_autofix(group=self.group) is False

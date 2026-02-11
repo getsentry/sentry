@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, TypedDict
 
 
 class AutofixPostResponse(TypedDict):
@@ -18,7 +18,6 @@ class AutofixStateResponse(TypedDict):
 class AutofixSelectRootCausePayload(TypedDict):
     type: Literal["select_root_cause"]
     cause_id: int
-    stopping_point: NotRequired[Literal["solution", "code_changes", "open_pr"]]
 
 
 class AutofixSelectSolutionPayload(TypedDict):
