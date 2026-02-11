@@ -2,9 +2,9 @@ name: '[POC] per-worker DB smoke test'
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - mchen/per-worker-snuba-db
+  # push:
+  #   branches:
+  #     - mchen/per-worker-snuba-db
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}

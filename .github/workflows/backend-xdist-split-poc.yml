@@ -187,10 +187,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 16
+      MATRIX_INSTANCE_TOTAL: 17
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       # Enable per-worker Snuba database routing
@@ -306,7 +306,7 @@ jobs:
           SELECTED_TESTS_FILE: /tmp/tier2-tests.txt
         run: |
           echo "=== Tier 2: Per-worker ClickHouse databases ==="
-          echo "Shard ${{ matrix.instance }} of 16, xdist workers: 3"
+          echo "Shard ${{ matrix.instance }} of 17, xdist workers: 3"
           echo "Test files: $(wc -l < /tmp/tier2-tests.txt)"
           python3 -b -m pytest \
             tests \
