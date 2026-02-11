@@ -473,11 +473,11 @@ def run_listener(
         return None
 
     if isinstance(event, CheckRunEvent):
-        tracked_exception(scm_event_stream.check_run_listeners[listener], event, record_count)
+        exec_listener(listener, scm_event_stream.check_run_listeners, event, record_count)
     elif isinstance(event, CommentEvent):
-        tracked_exception(scm_event_stream.comment_listeners[listener], event, record_count)
+        exec_listener(listener, scm_event_stream.comment_listeners, event, record_count)
     else:
-        tracked_exception(scm_event_stream.pull_request_listeners[listener], event, record_count)
+        exec_listener(listener, scm_event_stream.pull_request_listeners, event, record_count)
 
     end = get_current_time()
     received = event.subscription_event["received_at"]
@@ -500,16 +500,21 @@ def run_listener(
     record_timer(f"{METRIC_PREFIX}.real_time", received - start, {"fn": listener})
 
 
-def tracked_exception[T](
-    fn: Callable[[T], None],
+def exec_listener[T](
+    listener: str,
+    listeners: dict[str, Callable[[T], None]],
     arg: T,
     record_count: Callable[[str, int, dict[str, str]], None],
 ) -> None:
     """Record error metrics before raising."""
+    if listener not in listeners:
+        record_count(f"{METRIC_PREFIX}.failed", 1, {"reason": "not-found", "fn": listener})
+        return None
+
     try:
-        return fn(arg)
+        return listeners[listener](arg)
     except Exception:
-        record_count(f"{METRIC_PREFIX}.failed", 1, {"reason": "internal", "fn": fn.__name__})
+        record_count(f"{METRIC_PREFIX}.failed", 1, {"reason": "internal", "fn": listener})
         raise
 
 

@@ -49,13 +49,13 @@ class GitHubIssueComment(msgspec.Struct, gc=False):
     body: str | None = None
 
 
-class GitHubIssue(msgspec.Struct, gc=False):
-    number: int
-    pull_request: "GitHubIssueCommentPullRequest" | None = None
-
-
 class GitHubIssueCommentPullRequest(msgspec.Struct, gc=False):
     pass
+
+
+class GitHubIssue(msgspec.Struct, gc=False):
+    number: int
+    pull_request: GitHubIssueCommentPullRequest | None = None
 
 
 class GitHubPullRequestEvent(msgspec.Struct, gc=False):
