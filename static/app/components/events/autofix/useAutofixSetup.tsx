@@ -21,10 +21,6 @@ export interface AutofixSetupResponse {
     reason: string | null;
   };
   seerReposLinked: boolean;
-  setupAcknowledgement: {
-    orgHasAcknowledged: boolean;
-    userHasAcknowledged: boolean;
-  };
   githubWriteIntegration?: {
     ok: boolean;
     repos: AutofixSetupRepoDefinition[];
@@ -60,10 +56,7 @@ export function useAutofixSetup(
   return {
     ...queryData,
     autofixEnabled: Boolean(queryData.data?.autofixEnabled),
-    canStartAutofix: Boolean(
-      queryData.data?.integration.ok &&
-      queryData.data?.setupAcknowledgement.orgHasAcknowledged
-    ),
+    canStartAutofix: Boolean(queryData.data?.integration.ok),
     canCreatePullRequests: Boolean(queryData.data?.githubWriteIntegration?.ok),
     hasAutofixQuota: Boolean(queryData.data?.billing?.hasAutofixQuota),
     seerReposLinked: Boolean(queryData.data?.seerReposLinked),

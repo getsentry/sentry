@@ -50,9 +50,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const hasAutofixQuota = isGroupMode
     ? groupSetup.hasAutofixQuota
     : orgSetup.billing.hasAutofixQuota;
-  const orgHasAcknowledged = isGroupMode
-    ? setupData?.setupAcknowledgement.orgHasAcknowledged
-    : orgSetup.setupAcknowledgement.orgHasAcknowledged;
+  const orgHasAcknowledged = true;
   const refetch = isGroupMode ? groupSetup.refetch : orgSetup.refetch;
 
   // Get the appropriate Seer category (SEER_USER for seat-based, SEER_AUTOFIX for legacy)

@@ -471,9 +471,6 @@ def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
     """
     Check if organization has Seer seat-based pricing via billing.
     """
-    if features.has("organizations:triage-signals-v0-org", organization):
-        return True
-
     cache_key = get_seer_seat_based_tier_cache_key(organization.id)
     cached_value = cache.get(cache_key)
     if cached_value is not None:

@@ -553,7 +553,7 @@ function RelocationDetails() {
         panelTitle="Relocated Customers"
         path={`/_admin/relocations/${relocationData.uuid}/`}
         api={regionApi}
-        endpoint="/customers/"
+        endpoint={`/_admin/cells/${regionName}/customers/`}
         method="GET"
         columns={[
           <th key="customer">Customer</th>,

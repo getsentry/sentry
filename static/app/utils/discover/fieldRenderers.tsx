@@ -45,6 +45,7 @@ import {
   parseFunction,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+  stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
@@ -1371,6 +1372,16 @@ function getFieldRendererBase(
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SPECIAL_FIELDS[field].renderFunc;
+  }
+
+  if (isEquation(field)) {
+    const strippedField = stripEquationPrefix(field);
+    if (SPECIAL_FIELDS.hasOwnProperty(strippedField)) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      const specialRenderer = SPECIAL_FIELDS[strippedField].renderFunc;
+      return (data: EventData, baggage: RenderFunctionBaggage) =>
+        specialRenderer({...data, [strippedField]: data[field]}, baggage);
+    }
   }
 
   if (isRelativeSpanOperationBreakdownField(field)) {

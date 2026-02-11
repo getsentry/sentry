@@ -394,12 +394,6 @@ class TestIsSeerSeatBasedTierEnabled(TestCase):
         super().tearDown()
         cache.delete(f"seer:seat-based-tier:{self.organization.id}")
 
-    def test_returns_true_when_triage_signals_enabled(self):
-        """Test returns True when triage-signals-v0-org feature flag is enabled."""
-        with self.feature("organizations:triage-signals-v0-org"):
-            result = is_seer_seat_based_tier_enabled(self.organization)
-            assert result is True
-
     @patch("sentry.seer.autofix.utils.features.has")
     def test_returns_true_when_seat_based_seer_enabled(self, mock_features_has):
         """Test returns True when seat-based-seer-enabled feature flag is enabled and caches the result."""
