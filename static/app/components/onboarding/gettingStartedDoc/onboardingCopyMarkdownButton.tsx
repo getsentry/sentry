@@ -32,7 +32,12 @@ export function CopyMarkdownButton({
   source,
 }: CopyMarkdownButtonProps) {
   return (
-    <Tooltip title={t('Let an LLM do all the work instead')} position="right">
+    <Tooltip
+      title={t(
+        'Copies all steps and code examples as Markdown, optimized for use with an LLM.'
+      )}
+      position="right"
+    >
       <Button
         icon={<IconCopy />}
         onClick={() => {
@@ -44,7 +49,7 @@ export function CopyMarkdownButton({
           copyToClipboard(getMarkdown());
         }}
       >
-        {t('Copy as Markdown')}
+        {t('Copy setup instructions')}
       </Button>
     </Tooltip>
   );
