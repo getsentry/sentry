@@ -267,9 +267,9 @@ def fetch_issues(
     external_id: str,
     filename: str,
     function_name: str,
+    owner: str,
+    name: str,
     max_num_issues_per_file: int = MAX_NUM_ISSUES_PER_FILE_DEFAULT,
-    owner: str | None = None,
-    name: str | None = None,
     run_id: int | None = None,
 ) -> utils.SeerResponse | utils.SeerResponseError:
     """

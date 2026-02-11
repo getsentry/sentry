@@ -4,8 +4,8 @@ import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {
@@ -275,7 +275,7 @@ export function TourElementContent<T extends TourEnumType>({
 
   const defaultActions = useMemo(
     () => (
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         {hasPreviousStep && (
           <TextTourAction size="xs" onClick={previousStep}>
             {t('Previous')}
@@ -301,7 +301,7 @@ export function TourElementContent<T extends TourEnumType>({
             {t('Finish tour')}
           </TourAction>
         )}
-      </ButtonBar>
+      </Grid>
     ),
     [
       hasPreviousStep,

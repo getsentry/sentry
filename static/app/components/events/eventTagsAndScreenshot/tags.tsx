@@ -1,7 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
@@ -69,7 +69,7 @@ export function EventTagsDataSection({
   }, [event.tags]);
 
   const actions = (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       {additionalActions}
       <SegmentedControl
         size="xs"
@@ -81,7 +81,7 @@ export function EventTagsDataSection({
           <SegmentedControl.Item key={v}>{`${v}`}</SegmentedControl.Item>
         ))}
       </SegmentedControl>
-    </ButtonBar>
+    </Grid>
   );
 
   return (

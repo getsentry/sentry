@@ -82,7 +82,7 @@ export default function TokensPage() {
       </Text>
       <RepoTokenTable response={response} sort={sort} />
       <Flex justify="right">
-        <ButtonBar merged gap="0">
+        <ButtonBar>
           <Button
             icon={<IconChevron direction="left" />}
             aria-label={t('Previous')}

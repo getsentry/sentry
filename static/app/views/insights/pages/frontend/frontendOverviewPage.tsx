@@ -10,8 +10,9 @@ import {NoAccess} from 'sentry/components/noAccess';
 import {
   DatePageFilter,
   type DatePageFilterProps,
-} from 'sentry/components/organizations/datePageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+} from 'sentry/components/pageFilters/date/datePageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -25,7 +26,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -62,8 +62,8 @@ import useHasPlatformizedFrontendOverview from 'sentry/views/insights/pages/fron
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
 import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
-import {PlatformizedNextjsFrontendOverviewPage} from 'sentry/views/insights/pages/platform/nextjs/platformizedNextjsFrontendOverviewPage';
-import useHasPlatformizedNextjsFrontendOverview from 'sentry/views/insights/pages/platform/nextjs/useHasPlatformizedNextjsFrontendOverview';
+import {PlatformizedNextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs/platformizedNextJsOverviewPage';
+import useHasPlatformizedNextJsOverview from 'sentry/views/insights/pages/platform/nextjs/useHasPlatformizedNextJsOverview';
 import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
@@ -252,16 +252,15 @@ function FrontendOverviewPageWithProviders() {
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   const hasPlatformizedFrontendOverview = useHasPlatformizedFrontendOverview();
-  const hasPlatformizedNextjsFrontendOverview =
-    useHasPlatformizedNextjsFrontendOverview();
+  const hasPlatformizedNextJsOverview = useHasPlatformizedNextJsOverview();
   const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
   const useEap = useInsightsEap();
 
   let overviewPage = (
     <Am1FrontendOverviewPage datePageFilterProps={datePageFilterProps} />
   );
-  if (isNextJsPageEnabled && hasPlatformizedNextjsFrontendOverview) {
-    overviewPage = <PlatformizedNextjsFrontendOverviewPage />;
+  if (isNextJsPageEnabled && hasPlatformizedNextJsOverview) {
+    overviewPage = <PlatformizedNextJsOverviewPage />;
   } else if (isNextJsPageEnabled) {
     overviewPage = <NextJsOverviewPage datePageFilterProps={datePageFilterProps} />;
   } else if (useEap && hasPlatformizedFrontendOverview) {

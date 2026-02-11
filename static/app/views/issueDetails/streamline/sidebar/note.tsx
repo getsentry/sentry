@@ -5,7 +5,8 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {mentionStyle} from 'sentry/components/activity/note/mentionStyle';
 import type {
@@ -176,7 +177,7 @@ function StreamlinedNoteInput({
         />
       </MentionsInput>
       {(isSubmitVisible || existingItem) && (
-        <ButtonBar gap="xs">
+        <Grid flow="column" align="center" gap="xs">
           {existingItem && (
             <Button size="xs" onClick={onCancel}>
               {t('Cancel')}
@@ -191,7 +192,7 @@ function StreamlinedNoteInput({
           >
             {existingItem ? t('Save') : t('Comment')}
           </Button>
-        </ButtonBar>
+        </Grid>
       )}
     </NoteInputForm>
   );

@@ -2,7 +2,8 @@ import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import ReplayPreferenceDropdown from 'sentry/components/replays/preferences/replayPreferenceDropdown';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -32,7 +33,7 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
   const {currentTime, setCurrentTime} = useReplayContext();
 
   return (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       <Button
         size="sm"
         title={t('Rewind 10s')}
@@ -62,7 +63,7 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
         }}
         aria-label={t('Fast-forward to next breadcrumb')}
       />
-    </ButtonBar>
+    </Grid>
   );
 }
 
@@ -96,14 +97,14 @@ export default function ReplayController({
         <TimeAndScrubberGrid isCompact={isCompact} showZoom isLoading={isLoading} />
       </TimelineScaleContextProvider>
 
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         <ReplayPreferenceDropdown
           isLoading={isLoading}
           speedOptions={speedOptions}
           hideFastForward={hideFastForward}
         />
         <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
-      </ButtonBar>
+      </Grid>
     </ButtonGrid>
   );
 }

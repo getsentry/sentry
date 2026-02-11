@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import NumberField from 'sentry/components/forms/fields/numberField';
@@ -78,12 +79,12 @@ export default function CustomIgnoreCountModal(props: Props) {
         />
       </Body>
       <Footer>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button priority="primary" onClick={handleSubmit}>
             {t('Ignore')}
           </Button>
-        </ButtonBar>
+        </Grid>
       </Footer>
     </Fragment>
   );

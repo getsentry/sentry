@@ -1,7 +1,8 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {
   isWebVitalsEvent,
@@ -180,7 +181,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       type={SectionKey.TRACE}
       title={t('Trace Preview')}
       actions={
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <LinkButton
             size="xs"
             to={getTraceLinkForIssue(traceTarget)}
@@ -189,7 +190,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
           >
             {t('View Full Trace')}
           </LinkButton>
-        </ButtonBar>
+        </Grid>
       }
     >
       <OneOtherIssueEvent event={event} />

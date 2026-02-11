@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 
-import {ButtonBar} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
@@ -33,9 +32,9 @@ export default function PreprodSettings() {
         <SettingsPageHeader
           title={t('Mobile Builds')}
           action={
-            <ButtonBar gap="lg">
+            <Grid flow="column" align="center" gap="lg">
               <FeedbackButton />
-            </ButtonBar>
+            </Grid>
           }
         />
         <TextBlock>

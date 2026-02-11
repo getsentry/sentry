@@ -27,9 +27,9 @@ export const ListWrap = styled('ul')`
   }
 
   /* Remove top padding if preceded by search input, since search input already has
-  vertical padding */
-  input ~ &&:first-of-type,
-  input ~ div > &&:first-of-type {
+  vertical padding. Account for InputGroup wrapper div. */
+  div:has(input) ~ &&:first-of-type,
+  div:has(input) ~ div > &&:first-of-type {
     padding-top: 0;
   }
 

@@ -8,7 +8,6 @@ import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {
   ActionType,
-  SentryAppIdentifier,
   type Action,
   type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
@@ -70,13 +69,8 @@ function findActionHandler(
   availableActions: ActionHandler[]
 ): ActionHandler | undefined {
   if (action.type === ActionType.SENTRY_APP) {
-    if (action.config.sentryAppIdentifier === SentryAppIdentifier.SENTRY_APP_ID) {
-      return availableActions.find(
-        handler => handler.sentryApp?.id === action.config.targetIdentifier
-      );
-    }
     return availableActions.find(
-      handler => handler.sentryApp?.installationUuid === action.config.targetIdentifier
+      handler => handler.sentryApp?.id === action.config.targetIdentifier
     );
   }
   return availableActions.find(handler => handler.type === action.type);

@@ -17,7 +17,6 @@ import {useRecentSearchFilters} from 'sentry/components/searchQueryBuilder/token
 import {
   ALL_CATEGORY,
   ALL_CATEGORY_VALUE,
-  createAskSeerConsentItem,
   createAskSeerItem,
   createLogicFilterItem,
   createRecentFilterItem,
@@ -211,7 +210,6 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
     setAutoSubmitSeer,
     setDisplayAskSeer,
     enableAISearch,
-    gaveSeerConsent,
     currentInputValueRef,
     disallowLogicalOperators,
   } = useSearchQueryBuilder();
@@ -223,9 +221,6 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
   });
 
   const organization = useOrganization();
-  const hasAskSeerConsentFlowChanges = organization.features.includes(
-    'gen-ai-consent-flow-removal'
-  );
   const hasConditionalsInCombobox = organization.features.includes(
     'search-query-builder-conditionals-combobox-menus'
   );
@@ -235,13 +230,7 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
 
     const askSeerItem = [];
     if (enableAISearch) {
-      askSeerItem.push(
-        hasAskSeerConsentFlowChanges
-          ? createAskSeerItem()
-          : gaveSeerConsent
-            ? createAskSeerItem()
-            : createAskSeerConsentItem()
-      );
+      askSeerItem.push(createAskSeerItem());
     }
 
     if (selectedSection === RECENT_SEARCH_CATEGORY_VALUE) {
@@ -280,9 +269,7 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
     disallowLogicalOperators,
     enableAISearch,
     filterKeys,
-    gaveSeerConsent,
     getFieldDefinition,
-    hasAskSeerConsentFlowChanges,
     hasConditionalsInCombobox,
     recentFilters,
     recentSearches,

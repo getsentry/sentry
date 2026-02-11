@@ -66,7 +66,7 @@ export function MotionPlayground() {
           </Control>
         </Grid>
         <Control label="Animation">
-          <ButtonBar merged gap="0">
+          <ButtonBar>
             {animations.map(value => (
               <Button
                 key={value}

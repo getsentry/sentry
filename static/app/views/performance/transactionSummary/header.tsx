@@ -2,7 +2,7 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {ButtonBar} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {TabList} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -278,7 +278,7 @@ function TransactionHeader({
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Feature organization={organization} features="incidents">
             {({hasFeature}) =>
               hasFeature &&
@@ -314,7 +314,7 @@ function TransactionHeader({
             />
           </GuideAnchor>
           <FeedbackButton />
-        </ButtonBar>
+        </Grid>
       </Layout.HeaderActions>
       <TabList
         outerWrapStyles={{

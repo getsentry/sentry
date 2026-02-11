@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import pickBy from 'lodash/pickBy';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
@@ -14,7 +15,6 @@ import {
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   type DatasetConfig,
   type SearchBarData,

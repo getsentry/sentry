@@ -1,5 +1,6 @@
 import {useState} from 'react';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -7,7 +8,6 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   DisplayType,
   WidgetType,
