@@ -180,7 +180,7 @@ def run_trace_instrumentation_detector() -> None:
 
     for project_id in project_ids:
         try:
-            project = Project.objects.get(id=project_id)
+            project = Project.objects.get(id=project_id, status=ObjectStatus.ACTIVE)
         except Project.DoesNotExist:
             logger.warning(
                 "trace_instrumentation_detector.project_not_found",
