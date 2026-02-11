@@ -185,17 +185,24 @@ export function reactNodeToText(node: React.ReactNode): string {
  * stepsToMarkdown-side reads use the same key.
  */
 function deriveTabKey(
-  tabs: ReadonlyArray<{label: string; code?: string}>,
-  stepIndex?: number
+  tabs: ReadonlyArray<{label: string}>,
+  stepIndex?: number,
+  blockPath?: string
 ): string {
   const labelPart = tabs.map(t => t.label).join('\0');
-  const codeFp = tabs[0]?.code?.slice(0, 50) ?? '';
-  const base = codeFp ? `${labelPart}\x01${codeFp}` : labelPart;
+  const pathPart = blockPath ? `\x01${blockPath}` : '';
+  const base = `${labelPart}${pathPart}`;
   return stepIndex === undefined ? base : `${stepIndex}:${base}`;
 }
 
 interface MarkdownOptions {
   authToken?: string;
+  /**
+   * Block path tracking the position within the content tree.
+   * Built recursively: "1" for top-level block 1, "2_1" for block 1
+   * inside conditional block 2. Set by stepsToMarkdown/contentBlockToMarkdown.
+   */
+  blockPath?: string;
   /**
    * Per-block tab selection. Used when calling contentBlockToMarkdown directly
    * (e.g. in tests). For full step conversion, use `tabSelectionsMap` instead.
@@ -260,8 +267,9 @@ export function contentBlockToMarkdown(
     case 'code': {
       if ('tabs' in block && block.tabs) {
         const selectedValue =
-          options?.tabSelectionsMap?.get(deriveTabKey(block.tabs, options?.stepIndex)) ??
-          options?.selectedTabValue;
+          options?.tabSelectionsMap?.get(
+            deriveTabKey(block.tabs, options?.stepIndex, options?.blockPath)
+          ) ?? options?.selectedTabValue;
         return renderTabbedCodeBlock(block.tabs, selectedValue, options);
       }
       // Single code block
@@ -291,7 +299,12 @@ export function contentBlockToMarkdown(
         return '';
       }
       return block.content
-        .map(b => contentBlockToMarkdown(b, options))
+        .map((b, childIndex) => {
+          const childPath = options?.blockPath
+            ? `${options.blockPath}_${childIndex}`
+            : `${childIndex}`;
+          return contentBlockToMarkdown(b, {...options, blockPath: childPath});
+        })
         .filter(Boolean)
         .join('\n\n');
 
@@ -327,7 +340,13 @@ export function stepsToMarkdown(
     .map((step, index) => {
       const heading = `## ${stepTitle(step)}`;
       const body = step.content
-        .map(b => contentBlockToMarkdown(b, {...options, stepIndex: index}))
+        .map((b, blockIndex) =>
+          contentBlockToMarkdown(b, {
+            ...options,
+            stepIndex: index,
+            blockPath: String(blockIndex),
+          })
+        )
         .filter(Boolean)
         .join('\n\n');
       return `${heading}\n\n${body}`;

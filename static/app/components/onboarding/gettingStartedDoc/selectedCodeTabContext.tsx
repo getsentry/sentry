@@ -20,6 +20,14 @@ const TabRegistryContext = createContext<TabSelectionsState | null>(null);
 const StepIndexContext = createContext<number | undefined>(undefined);
 
 /**
+ * Tracks the position of a content block within the step's content tree.
+ * Builds a path like "1" (top-level block 1) or "2_1" (block 1 inside
+ * conditional block 2). Used to disambiguate tabbed code blocks that
+ * share identical labels within the same step.
+ */
+const BlockPathContext = createContext<string>('');
+
+/**
  * Provides the current step index to descendant TabbedCodeSnippets.
  * Rendered by the Step component so that tab selection keys include the
  * step index, preventing collisions when different steps have tabs with
@@ -36,25 +44,41 @@ export function StepIndexProvider({
 }
 
 /**
+ * Wraps a content block to extend the block path with its index.
+ * Used by renderBlocks to build nested paths like "2_1" for blocks
+ * inside conditional blocks.
+ */
+export function BlockPathProvider({
+  index,
+  children,
+}: {
+  children: React.ReactNode;
+  index: number;
+}) {
+  const parentPath = useContext(BlockPathContext);
+  const path = parentPath ? `${parentPath}_${index}` : `${index}`;
+  return <BlockPathContext.Provider value={path}>{children}</BlockPathContext.Provider>;
+}
+
+/**
  * Derives a stable key from a set of tab labels, optionally prefixed
- * with a step index for disambiguation. When multiple tabbed blocks
- * in the same step share identical labels (e.g. dotnet's two
- * "Package Manager / .NET Core CLI" groups), a fingerprint of the
- * first tab's code content is appended to make the key unique.
+ * with a step index and block path for disambiguation.
+ *
+ * The block path differentiates multiple tabbed blocks with identical
+ * labels within the same step (e.g. dotnet install step has two
+ * "Package Manager / .NET Core CLI" tab groups at paths "1" and "2_1").
  *
  * Used to match component-side selections with content-block-side
  * lookups in stepsToMarkdown.
  */
 export function deriveTabKey(
-  tabs: ReadonlyArray<{label: string; code?: string}>,
-  stepIndex?: number
+  tabs: ReadonlyArray<{label: string}>,
+  stepIndex?: number,
+  blockPath?: string
 ): string {
   const labelPart = tabs.map(t => t.label).join('\0');
-  // Include a code fingerprint to disambiguate tabbed blocks with
-  // identical labels within the same step (e.g. dotnet install step
-  // has two "Package Manager / .NET Core CLI" tab groups).
-  const codeFp = tabs[0]?.code?.slice(0, 50) ?? '';
-  const base = codeFp ? `${labelPart}\x01${codeFp}` : labelPart;
+  const pathPart = blockPath ? `\x01${blockPath}` : '';
+  const base = `${labelPart}${pathPart}`;
   return stepIndex === undefined ? base : `${stepIndex}:${base}`;
 }
 
@@ -91,11 +115,12 @@ export function TabSelectionScope({children}: {children: React.ReactNode}) {
  * Returns [selectedValue, setSelectedValue] like useState.
  */
 export function useRegisteredTabSelection(
-  tabs: ReadonlyArray<{label: string; value: string; code?: string}>
+  tabs: ReadonlyArray<{label: string; value: string}>
 ): [string, (value: string) => void] {
   const ctx = useContext(TabRegistryContext);
   const stepIndex = useContext(StepIndexContext);
-  const key = deriveTabKey(tabs, stepIndex);
+  const blockPath = useContext(BlockPathContext);
+  const key = deriveTabKey(tabs, stepIndex, blockPath || undefined);
 
   // value === label (set in defaultRenderers.tsx), so we store and
   // return values directly without conversion.

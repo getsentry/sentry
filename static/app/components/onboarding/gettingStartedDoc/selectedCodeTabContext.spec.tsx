@@ -4,6 +4,7 @@ import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import type {CodeSnippetTab} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {
+  BlockPathProvider,
   StepIndexProvider,
   TabSelectionScope,
 } from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
@@ -174,12 +175,16 @@ describe('identical labels in same step', () => {
     render(
       <TabSelectionScope>
         <StepIndexProvider index={0}>
-          <div data-test-id="sdk-tabs">
-            <TabbedCodeSnippet tabs={DOTNET_SDK_TABS} />
-          </div>
-          <div data-test-id="profiling-tabs">
-            <TabbedCodeSnippet tabs={DOTNET_PROFILING_TABS} />
-          </div>
+          <BlockPathProvider index={0}>
+            <div data-test-id="sdk-tabs">
+              <TabbedCodeSnippet tabs={DOTNET_SDK_TABS} />
+            </div>
+          </BlockPathProvider>
+          <BlockPathProvider index={1}>
+            <div data-test-id="profiling-tabs">
+              <TabbedCodeSnippet tabs={DOTNET_PROFILING_TABS} />
+            </div>
+          </BlockPathProvider>
         </StepIndexProvider>
       </TabSelectionScope>
     );

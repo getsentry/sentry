@@ -470,13 +470,13 @@ describe('stepsToMarkdown', () => {
       },
     ];
 
-    // Build key using deriveTabKey so it includes the code fingerprint
+    // Build key using deriveTabKey with blockPath "0" (first block in step)
     const installTabs = (
       steps[0]!.content[0]! as Extract<ContentBlock, {type: 'code'}> & {
         tabs: Array<{code: string; label: string}>;
       }
     ).tabs;
-    const tabSelectionsMap = new Map([[deriveTabKey(installTabs, 0), 'yarn']]);
+    const tabSelectionsMap = new Map([[deriveTabKey(installTabs, 0, '0'), 'yarn']]);
     const result = stepsToMarkdown(steps, {tabSelectionsMap});
     expect(result).toContain('```bash\nyarn add @sentry/node\n```');
     expect(result).not.toContain('npm install');
@@ -518,7 +518,7 @@ describe('stepsToMarkdown', () => {
       },
     ];
 
-    // Build keys using deriveTabKey so they include code fingerprints
+    // Build keys using deriveTabKey with blockPath "0" (first block in each step)
     const installTabs = (
       steps[0]!.content[0]! as Extract<ContentBlock, {type: 'code'}> & {
         tabs: Array<{code: string; label: string}>;
@@ -530,8 +530,8 @@ describe('stepsToMarkdown', () => {
       }
     ).tabs;
     const tabSelectionsMap = new Map([
-      [deriveTabKey(installTabs, 0), 'yarn'],
-      [deriveTabKey(configureTabs, 1), 'CJS'],
+      [deriveTabKey(installTabs, 0, '0'), 'yarn'],
+      [deriveTabKey(configureTabs, 1, '0'), 'CJS'],
     ]);
     const result = stepsToMarkdown(steps, {tabSelectionsMap});
     expect(result).toContain('yarn add @sentry/node');

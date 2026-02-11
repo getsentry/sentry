@@ -31,17 +31,14 @@ export function Step({
   stepIndex,
   ...props
 }: Omit<React.HTMLAttributes<HTMLDivElement>, 'content'> &
-  OnboardingStep & {stepIndex?: number}) {
+  OnboardingStep & {stepIndex: number}) {
   const [showOptionalConfig, setShowOptionalConfig] = useState(false);
 
-  const blockRenderer = <ContentBlocksRenderer contentBlocks={content} />;
   const config = (
     <ContentWrapper>
-      {stepIndex === undefined ? (
-        blockRenderer
-      ) : (
-        <StepIndexProvider index={stepIndex}>{blockRenderer}</StepIndexProvider>
-      )}
+      <StepIndexProvider index={stepIndex}>
+        <ContentBlocksRenderer contentBlocks={content} />
+      </StepIndexProvider>
     </ContentWrapper>
   );
 
