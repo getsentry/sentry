@@ -71,10 +71,6 @@ export function AuthTokenGeneratorProvider({
   );
 }
 
-export function useAuthToken() {
-  return useContext(AuthTokenGeneratorContext).authToken;
-}
-
 export function AuthTokenGenerator() {
   const {authToken, isLoading, generateAuthToken} = useContext(AuthTokenGeneratorContext);
 
