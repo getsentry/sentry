@@ -7,57 +7,35 @@ concurrency:
   group: relay-class-scope-v2-${{ github.sha }}
   cancel-in-progress: true
 
+env:
+  SNUBA_NO_WORKERS: 1
+
 jobs:
   smoke-test:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     env:
-      MIGRATIONS_TEST_MIGRATE: 0
-      PYTEST_ADDOPTS: '--no-header -q'
-      SENTRY_SKIP_BACKEND_VALIDATION: 1
       XDIST_PER_WORKER_SNUBA: '1'
       XDIST_WORKERS: '2'
       PYTHONHASHSEED: '0'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Set up Python 3.13.1
-        uses: actions/setup-python@v5
+      - name: Setup sentry env (Full Snuba stack)
+        uses: ./.github/actions/setup-sentry
+        id: setup
         with:
-          python-version: 3.13.1
-
-      - name: Set up outputs
-        id: config
-        env:
-          MATRIX_INSTANCE: 0
-        run: echo "matrix-instance-number=$(($MATRIX_INSTANCE + 1))" >> "$GITHUB_OUTPUT"
-
-      - name: Install system deps
-        run: sudo apt-get update && sudo apt-get install -y libxmlsec1-dev libmaxminddb-dev
-
-      - name: Set up pip
-        uses: ./.github/actions/setup-pip
-        id: pip
-
-      - name: pip install
-        run: |
-          python -m pip install --upgrade pip wheel
-          pip install -e ".[dev]"
-
-      - name: Set up devservices (backend-ci)
-        env:
-          NEED_KAFKA: 'true'
-          NEED_SNUBA: 'true'
-        run: |
-          sentry init
-          sentry devservices up --mode backend-ci
+          mode: backend-ci
 
       - name: Create per-worker ClickHouse databases and Snuba instances
         run: |
           echo "Setting up $XDIST_WORKERS per-worker ClickHouse databases + Snuba instances ..."
-          SNUBA_IMAGE=$(docker inspect --format='{{.Config.Image}}' sentry_snuba 2>/dev/null || echo "ghcr.io/getsentry/snuba:nightly")
+          SNUBA_IMAGE=$(docker inspect sentry_snuba --format '{{.Config.Image}}' 2>/dev/null || docker inspect snuba-snuba-1 --format '{{.Config.Image}}' 2>/dev/null || echo "ghcr.io/getsentry/snuba:nightly")
           echo "Using Snuba image: $SNUBA_IMAGE"
+
+          SNUBA_NETWORK=$(docker inspect sentry_snuba --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}' 2>/dev/null || docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}' 2>/dev/null || echo "devservices")
+          echo "Using network: $SNUBA_NETWORK"
 
           for i in $(seq 0 $(($XDIST_WORKERS - 1))); do
             DB_NAME="default_gw${i}"
@@ -65,11 +43,12 @@ jobs:
             CONTAINER_NAME="sentry_snuba_gw${i}"
 
             echo "--- Worker gw${i}: db=$DB_NAME, port=$SNUBA_PORT ---"
-            docker exec sentry_clickhouse clickhouse-client --query "CREATE DATABASE IF NOT EXISTS ${DB_NAME}"
+            docker exec sentry_clickhouse clickhouse-client --query "CREATE DATABASE IF NOT EXISTS ${DB_NAME}" 2>/dev/null || \
+              docker exec clickhouse-clickhouse-1 clickhouse-client --query "CREATE DATABASE IF NOT EXISTS ${DB_NAME}"
 
             docker run -d \
               --name "$CONTAINER_NAME" \
-              --network devservices \
+              --network "$SNUBA_NETWORK" \
               -p "${SNUBA_PORT}:1218" \
               -e SNUBA_SETTINGS=docker \
               -e CLICKHOUSE_HOST=clickhouse \
@@ -83,7 +62,6 @@ jobs:
             echo "Bootstrapping Snuba for $DB_NAME ..."
             docker exec "$CONTAINER_NAME" snuba migrations migrate --force || true
 
-            echo "Health check for $CONTAINER_NAME on port $SNUBA_PORT ..."
             for attempt in $(seq 1 15); do
               if curl -s "http://127.0.0.1:${SNUBA_PORT}/health" | grep -q "ok"; then
                 echo "  Snuba gw${i} is healthy"
@@ -124,4 +102,5 @@ jobs:
 
           echo ""
           echo "=== Kafka topics ==="
-          docker exec sentry_kafka kafka-topics --list --bootstrap-server localhost:9093 2>/dev/null || true
+          docker exec sentry_kafka kafka-topics --list --bootstrap-server localhost:9093 2>/dev/null || \
+            docker exec kafka-kafka-1 kafka-topics --list --bootstrap-server localhost:9093 2>/dev/null || true
