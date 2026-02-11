@@ -347,6 +347,29 @@ const getDefaultWidgets = (organization: Organization) => {
         },
       ],
     },
+    ...(organization.features.includes('dashboards-categorical-bar-charts')
+      ? [
+          {
+            id: 'error-count-by-transaction',
+            title: t('Error Count By Transaction'),
+            description: t('Compare error volume across your top transactions.'),
+            displayType: DisplayType.CATEGORICAL_BAR,
+            widgetType: WidgetType.ERRORS,
+            interval: '5m',
+            limit: 20,
+            queries: [
+              {
+                name: '',
+                conditions: '',
+                fields: ['transaction', 'count()'],
+                aggregates: ['count()'],
+                columns: ['transaction'],
+                orderby: '-count()',
+              },
+            ],
+          },
+        ]
+      : []),
   ];
 
   return isSelfHostedErrorsOnly
