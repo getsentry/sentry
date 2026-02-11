@@ -198,14 +198,14 @@ const TTID_BAR_CHART_WIDGET: Widget = {
   layout: {
     h: 2,
     x: 0,
-    y: 4,
+    y: 3,
     w: 2,
     minH: 2,
   },
 };
 
 const TTFD_BAR_CHART_WIDGET: Widget = {
-  id: 'ttfd-device-class-br',
+  id: 'ttfd-device-class-bar',
   title: t('TTFD by Device Class'),
   description: '',
   displayType: DisplayType.CATEGORICAL_BAR,
@@ -229,7 +229,7 @@ const TTFD_BAR_CHART_WIDGET: Widget = {
   layout: {
     h: 2,
     x: 2,
-    y: 4,
+    y: 3,
     w: 2,
     minH: 2,
   },
@@ -276,7 +276,7 @@ const SPAN_OPERATIONS_TABLE: Widget = {
   layout: {
     h: 4,
     x: 0,
-    y: 6,
+    y: 5,
     w: 6,
     minH: 2,
   },
