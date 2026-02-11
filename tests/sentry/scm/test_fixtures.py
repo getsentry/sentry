@@ -481,7 +481,7 @@ class BaseTestProvider(Provider):
                 head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                 base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
             ),
-            provider="test",
+            provider="github",
             raw=raw,
         )
 
@@ -497,7 +497,7 @@ class BaseTestProvider(Provider):
                     body="Test comment",
                     author={"id": "1", "username": "testuser"},
                 ),
-                provider="test",
+                provider="github",
                 raw={},
             )
         ]
@@ -520,7 +520,7 @@ class BaseTestProvider(Provider):
                     body="PR review comment",
                     author={"id": "2", "username": "reviewer"},
                 ),
-                provider="test",
+                provider="github",
                 raw={},
             )
         ]
@@ -616,14 +616,14 @@ class BaseTestProvider(Provider):
     def get_branch(self, repository: Repository, branch: str) -> GitRefActionResult:
         return GitRefActionResult(
             git_ref=GitRef(ref=f"refs/heads/{branch}", sha="abc123def456"),
-            provider="test",
+            provider="github",
             raw={},
         )
 
     def create_branch(self, repository: Repository, branch: str, sha: str) -> GitRefActionResult:
         return GitRefActionResult(
             git_ref=GitRef(ref=f"refs/heads/{branch}", sha=sha),
-            provider="test",
+            provider="github",
             raw={},
         )
 
@@ -639,7 +639,7 @@ class BaseTestProvider(Provider):
     ) -> GitBlobActionResult:
         return GitBlobActionResult(
             git_blob=GitBlob(sha="blob123abc"),
-            provider="test",
+            provider="github",
             raw={},
         )
 
@@ -656,7 +656,7 @@ class BaseTestProvider(Provider):
                 encoding="base64",
                 size=11,
             ),
-            provider="test",
+            provider="github",
             raw={},
         )
 
@@ -672,7 +672,7 @@ class BaseTestProvider(Provider):
                 ),
                 files=[CommitFile(filename="src/main.py", status="modified", patch="@@ -1 +1 @@")],
             ),
-            provider="test",
+            provider="github",
             raw={},
         )
 
@@ -690,7 +690,7 @@ class BaseTestProvider(Provider):
     ) -> CommitComparisonActionResult:
         return CommitComparisonActionResult(
             comparison=CommitComparison(ahead_by=3, behind_by=1),
-            provider="test",
+            provider="github",
             raw={},
         )
 
@@ -708,7 +708,7 @@ class BaseTestProvider(Provider):
                 ],
                 truncated=False,
             ),
-            provider="test",
+            provider="github",
             raw={},
         )
 
@@ -719,7 +719,7 @@ class BaseTestProvider(Provider):
                 tree=GitCommitTree(sha="tree456"),
                 message="Initial commit",
             ),
-            provider="test",
+            provider="github",
             raw={},
         )
 
@@ -739,7 +739,7 @@ class BaseTestProvider(Provider):
                 ],
                 truncated=False,
             ),
-            provider="test",
+            provider="github",
             raw={},
         )
 
@@ -756,7 +756,7 @@ class BaseTestProvider(Provider):
                 tree=GitCommitTree(sha=tree_sha),
                 message=message,
             ),
-            provider="test",
+            provider="github",
             raw={},
         )
 
@@ -776,7 +776,7 @@ class BaseTestProvider(Provider):
                     previous_filename=None,
                 )
             ],
-            provider="test",
+            provider="github",
             raw=[],
         )
 
@@ -795,7 +795,7 @@ class BaseTestProvider(Provider):
                     ),
                 )
             ],
-            provider="test",
+            provider="github",
             raw=[],
         )
 
@@ -804,7 +804,7 @@ class BaseTestProvider(Provider):
     ) -> PullRequestDiffActionResult:
         return PullRequestDiffActionResult(
             diff="diff --git a/file.py b/file.py\n--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new",
-            provider="test",
+            provider="github",
         )
 
     def list_pull_requests(
@@ -825,7 +825,7 @@ class BaseTestProvider(Provider):
                     head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                     base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
                 ),
-                provider="test",
+                provider="github",
                 raw=raw,
             )
         ]
@@ -854,7 +854,7 @@ class BaseTestProvider(Provider):
                 head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                 base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
             ),
-            provider="test",
+            provider="github",
             raw=raw,
         )
 
@@ -885,7 +885,7 @@ class BaseTestProvider(Provider):
                 head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                 base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
             ),
-            provider="test",
+            provider="github",
             raw=raw,
         )
 
@@ -917,7 +917,7 @@ class BaseTestProvider(Provider):
                 path=raw["path"],
                 body=raw["body"],
             ),
-            provider="test",
+            provider="github",
             raw=raw,
         )
 
@@ -934,7 +934,7 @@ class BaseTestProvider(Provider):
         raw = make_github_review()
         return ReviewActionResult(
             review=Review(id=raw["id"], html_url=raw["html_url"]),
-            provider="test",
+            provider="github",
             raw=raw,
         )
 
@@ -962,7 +962,7 @@ class BaseTestProvider(Provider):
                 conclusion=raw["conclusion"],
                 html_url=raw["html_url"],
             ),
-            provider="test",
+            provider="github",
             raw=raw,
         )
 
@@ -980,7 +980,7 @@ class BaseTestProvider(Provider):
                 conclusion=raw["conclusion"],
                 html_url=raw["html_url"],
             ),
-            provider="test",
+            provider="github",
             raw=raw,
         )
 
@@ -1005,7 +1005,7 @@ class BaseTestProvider(Provider):
                 conclusion=raw["conclusion"],
                 html_url=raw["html_url"],
             ),
-            provider="test",
+            provider="github",
             raw=raw,
         )
 

@@ -24,7 +24,7 @@ class TestFetchRepository(TestCase):
         repo = RepositoryModel.objects.create(
             organization_id=self.organization.id,
             name="test-org/test-repo",
-            provider="integrations:github",
+            provider="github",
             external_id="12345",
             status=ObjectStatus.ACTIVE,
         )
@@ -46,7 +46,7 @@ class TestFetchRepository(TestCase):
         repo = RepositoryModel.objects.create(
             organization_id=other_org.id,
             name="other-org/other-repo",
-            provider="integrations:github",
+            provider="github",
             external_id="67890",
             status=ObjectStatus.ACTIVE,
         )
@@ -59,18 +59,18 @@ class TestFetchRepository(TestCase):
         RepositoryModel.objects.create(
             organization_id=self.organization.id,
             name="test-org/test-repo",
-            provider="integrations:github",
+            provider="github",
             external_id="12345",
             status=ObjectStatus.ACTIVE,
         )
 
-        result = fetch_repository(self.organization.id, ("integrations:github", "12345"))
+        result = fetch_repository(self.organization.id, ("github", "12345"))
 
         assert result is not None
         assert result["name"] == "test-org/test-repo"
 
     def test_fetch_by_provider_and_external_id_returns_none_for_nonexistent(self):
-        result = fetch_repository(self.organization.id, ("integrations:github", "nonexistent"))
+        result = fetch_repository(self.organization.id, ("github", "nonexistent"))
 
         assert result is None
 
@@ -86,7 +86,7 @@ class TestMapRepositoryModelToRepository(TestCase):
         repo = RepositoryModel.objects.create(
             organization_id=self.organization.id,
             name="test-org/test-repo",
-            provider="integrations:github",
+            provider="github",
             external_id="12345",
             status=ObjectStatus.ACTIVE,
             integration_id=integration.id,
@@ -132,7 +132,7 @@ class TestMapIntegrationToProvider(TestCase):
                 get_installation=lambda _, oid: MagicMock(),
             )
 
-        assert exc_info.value.code == "integration_not_found"
+        assert exc_info.value.code == "unsupported_integration"
 
 
 class TestFetchServiceProvider(TestCase):
@@ -158,7 +158,7 @@ class TestFetchServiceProvider(TestCase):
         with pytest.raises(SCMCodedError) as exc_info:
             fetch_service_provider(self.organization.id, 99999)
 
-        assert exc_info.value.code == "integration_not_found"
+        assert exc_info.value.code == "unsupported_integration"
 
 
 class TestIsRateLimited(TestCase):
