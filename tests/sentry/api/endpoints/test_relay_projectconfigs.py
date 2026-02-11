@@ -237,22 +237,15 @@ def test_parse_retentions_with_transactions(call_endpoint, default_project):
 
 @django_db_all
 def test_parse_trimming(call_endpoint, default_project):
-    with patch("sentry.quotas.backend") as quotas_mock:
-        quotas_mock.get_trimming_settings = lambda x: {
-            DataCategory.SPAN: TrimmingSettings(max_size=17),
-        }
-
-        # TODO: Remove these. Without them the test fails because
-        # the generated project config contains `MagicMock` values
-        # for `eventRetention` and `downsampledEventRetention`.
-        quotas_mock.get_event_retention = lambda x: 45
-        quotas_mock.get_downsampled_event_retention = lambda x: 90
-
+    with patch.object(
+        quotas.backend,
+        "get_trimming_settings",
+        return_value={DataCategory.SPAN: TrimmingSettings(max_size=17)},
+    ):
         result, status_code = call_endpoint()
         assert status_code < 400
         assert_no_snakecase_key(result)
         cfg = safe.get_path(result, "configs", str(default_project.id))
-
         assert safe.get_path(cfg, "config", "trimming") == {
             "span": {"maxSize": 17},
         }
