@@ -45,10 +45,6 @@ describe('ProjectSeer', () => {
       url: `/organizations/${organization.slug}/seer/setup-check/`,
       method: 'GET',
       body: {
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         billing: {
           hasAutofixQuota: true,
           hasScannerQuota: true,
@@ -436,10 +432,6 @@ describe('ProjectSeer', () => {
       url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
       method: 'GET',
       body: {
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         billing: {
           hasAutofixQuota: true,
           hasScannerQuota: true,
@@ -585,7 +577,6 @@ describe('ProjectSeer', () => {
         url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
         method: 'GET',
         body: {
-          setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
           billing: {hasAutofixQuota: true, hasScannerQuota: true},
         },
       });
@@ -665,7 +656,6 @@ describe('ProjectSeer', () => {
         url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
         method: 'GET',
         body: {
-          setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
           billing: {hasAutofixQuota: true, hasScannerQuota: true},
         },
       });
@@ -774,7 +764,6 @@ describe('ProjectSeer', () => {
         url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
         method: 'GET',
         body: {
-          setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
           billing: {hasAutofixQuota: true, hasScannerQuota: true},
         },
       });
@@ -865,7 +854,6 @@ describe('ProjectSeer', () => {
         url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
         method: 'GET',
         body: {
-          setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
           billing: {hasAutofixQuota: true, hasScannerQuota: true},
         },
       });
@@ -989,7 +977,6 @@ describe('ProjectSeer', () => {
         url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
         method: 'GET',
         body: {
-          setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
           billing: {hasAutofixQuota: true, hasScannerQuota: true},
         },
       });

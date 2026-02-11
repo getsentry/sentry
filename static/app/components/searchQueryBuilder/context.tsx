@@ -10,7 +10,6 @@ import {
 } from 'react';
 import * as Sentry from '@sentry/react';
 
-import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import type {
   GetTagValues,
   SearchQueryBuilderProps,
@@ -55,7 +54,8 @@ interface SearchQueryBuilderContextData {
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
-  gaveSeerConsent: boolean;
+  // @deprecated: remove this, it's constant now
+  gaveSeerConsent: true;
   getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
   getSuggestedFilterKey: (key: string) => string | null;
   getTagValues: GetTagValues;
@@ -140,8 +140,6 @@ export function SearchQueryBuilderProvider({
     Boolean(enableAISearchProp) &&
     !organization.hideAiFeatures &&
     organization.features.includes('gen-ai-features');
-
-  const {setupAcknowledgement} = useOrganizationSeerSetup({enabled: enableAISearch});
 
   const [displayAskSeerState, setDisplayAskSeerState] = useState(false);
   const displayAskSeer = enableAISearch ? displayAskSeerState : false;
@@ -271,7 +269,7 @@ export function SearchQueryBuilderProvider({
       replaceRawSearchKeys,
       matchKeySuggestions,
       filterKeyAliases,
-      gaveSeerConsent: setupAcknowledgement.orgHasAcknowledged,
+      gaveSeerConsent: true,
       currentInputValueRef,
       displayAskSeerFeedback,
       setDisplayAskSeerFeedback,
@@ -307,7 +305,6 @@ export function SearchQueryBuilderProvider({
     namespace,
     replaceRawSearchKeys,
     searchSource,
-    setupAcknowledgement.orgHasAcknowledged,
     size,
     stableFieldDefinitionGetter,
     stableFilterKeys,

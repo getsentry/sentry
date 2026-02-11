@@ -660,6 +660,7 @@ export const widgetHasMenuOptions = (widgetType: DisplayType) => {
   ];
   return !nonEditableWidgetTypes.includes(widgetType);
 };
+
 // Custom widgets from the widget library that are not editable but still have menu options
 export const isWidgetEditable = (widgetType: DisplayType) => {
   return widgetType !== DisplayType.WHEEL;
