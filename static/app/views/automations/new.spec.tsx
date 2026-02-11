@@ -434,7 +434,6 @@ describe('AutomationNewSettings', () => {
           targetType: 'sentry_app',
           targetIdentifier: 'sentry-app-1',
           targetDisplay: 'My Sentry App',
-          sentryAppIdentifier: 'sentry_app_id',
         },
       },
       github: {

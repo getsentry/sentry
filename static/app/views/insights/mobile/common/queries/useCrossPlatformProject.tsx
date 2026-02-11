@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {isCrossPlatform} from 'sentry/views/insights/mobile/screenload/utils';
 

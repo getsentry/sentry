@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import {t} from 'sentry/locale';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ActionSelector} from 'sentry/views/insights/common/views/spans/selectors/actionSelector';

@@ -12,7 +12,7 @@ export default function JumpToOffsetButtonBar({intervals}: Props) {
   const userAction = useReplayUserAction();
 
   return (
-    <ButtonBar merged gap="0">
+    <ButtonBar>
       {intervals.map(interval => {
         const intervalMs = intervalToMilliseconds(interval);
         return (

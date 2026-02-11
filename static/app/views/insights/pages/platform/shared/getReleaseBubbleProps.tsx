@@ -1,4 +1,4 @@
-import usePageFilters from 'sentry/utils/usePageFilters';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 

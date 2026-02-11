@@ -19,6 +19,7 @@ from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_do
 from .organization_preprod_artifact_assemble import ProjectPreprodArtifactAssembleEndpoint
 from .organization_preprod_list_builds import OrganizationPreprodListBuildsEndpoint
 from .organization_preprod_quota import OrganizationPreprodQuotaEndpoint
+from .organization_preprod_retention import OrganizationPreprodRetentionEndpoint
 from .preprod_artifact_admin_batch_delete import PreprodArtifactAdminBatchDeleteEndpoint
 from .preprod_artifact_admin_info import PreprodArtifactAdminInfoEndpoint
 from .preprod_artifact_rerun_analysis import (
@@ -132,6 +133,11 @@ preprod_organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/preprod/quota/$",
         OrganizationPreprodQuotaEndpoint.as_view(),
         name="sentry-api-0-organization-preprod-quota",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprod/retention/$",
+        OrganizationPreprodRetentionEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-retention",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/list-builds/$",

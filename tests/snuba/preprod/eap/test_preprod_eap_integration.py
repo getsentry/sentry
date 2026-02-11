@@ -60,6 +60,7 @@ class PreprodEAPIntegrationTest(SnubaTestCase):
 
         produce_preprod_size_metric_to_eap(
             size_metric=size_metric,
+            organization=self.organization,
             organization_id=self.organization.id,
             project_id=self.project.id,
         )
@@ -155,12 +156,14 @@ class PreprodEAPIntegrationTest(SnubaTestCase):
 
         produce_preprod_size_metric_to_eap(
             size_metric=size_metric_main,
+            organization=self.organization,
             organization_id=self.organization.id,
             project_id=self.project.id,
         )
 
         produce_preprod_size_metric_to_eap(
             size_metric=size_metric_watch,
+            organization=self.organization,
             organization_id=self.organization.id,
             project_id=self.project.id,
         )
