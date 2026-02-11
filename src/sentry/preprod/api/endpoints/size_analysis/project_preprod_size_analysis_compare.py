@@ -278,6 +278,10 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
         ):
             return Response({"detail": "Feature not enabled"}, status=403)
 
+        cutoff = get_size_retention_cutoff(project.organization)
+        if head_artifact.date_added < cutoff or base_artifact.date_added < cutoff:
+            return Response({"detail": "This build's size data has expired."}, status=404)
+
         logger.info(
             "preprod.size_analysis.compare.api.post",
             extra={"head_artifact_id": head_artifact_id, "base_artifact_id": base_artifact_id},
