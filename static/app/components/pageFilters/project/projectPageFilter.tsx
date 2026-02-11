@@ -43,6 +43,7 @@ export interface ProjectPageFilterProps extends Partial<
     | 'menuFooterMessage'
     | 'checkboxWrapper'
     | 'shouldCloseOnInteractOutside'
+    | 'sizeLimitMessage'
   >
 > {
   /**
@@ -67,7 +68,6 @@ export function ProjectPageFilter({
   onReset,
   disabled,
   sizeLimit,
-  sizeLimitMessage,
   emptyMessage,
   menuTitle,
   menuWidth,
@@ -387,7 +387,6 @@ export function ProjectPageFilter({
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       disableCommit={selectionLimitExceeded}
       sizeLimit={sizeLimit ?? 25}
-      sizeLimitMessage={sizeLimitMessage}
       emptyMessage={emptyMessage ?? t('No projects found')}
       menuTitle={menuTitle ?? t('Filter Projects')}
       menuWidth={menuWidth ?? defaultMenuWidth}
@@ -396,11 +395,11 @@ export function ProjectPageFilter({
         hasProjectWrite ? (
           <LinkButton
             size="xs"
-            aria-label={t('Add Project')}
+            aria-label={t('Create Project')}
             to={makeProjectsPathname({path: '/new/', organization})}
             icon={<IconAdd />}
           >
-            {t('Project')}
+            {t('Create Project')}
           </LinkButton>
         ) : undefined
       }

@@ -49,11 +49,6 @@ interface ListBoxProps<T extends ObjectLike>
   listState: ListState<T>;
   children?: CollectionChildren<T>;
   /**
-   * Whether the list is filtered by search query or not.
-   * Used to determine whether to show the size limit message or not.
-   */
-  hasSearch?: boolean;
-  /**
    * Set of keys that are hidden from the user (e.g. because not matching search query)
    */
   hiddenOptions?: Set<SelectKey>;
@@ -82,6 +77,10 @@ interface ListBoxProps<T extends ObjectLike>
    */
   overlayIsOpen?: boolean;
   ref?: React.Ref<HTMLUListElement>;
+  /**
+   * Whether the select has a search input field.
+   */
+  searchable?: boolean;
   /**
    * When false, hides option details.
    */
@@ -129,7 +128,7 @@ export function ListBox<T extends ObjectLike>({
   keyDownHandler = DEFAULT_KEY_DOWN_HANDLER,
   label,
   hiddenOptions = EMPTY_SET,
-  hasSearch,
+  searchable,
   overlayIsOpen,
   showSectionHeaders = true,
   showDetails = true,
@@ -234,7 +233,7 @@ export function ListBox<T extends ObjectLike>({
                 );
               })}
 
-            {!hasSearch && hiddenOptions.size > 0 && (
+            {!searchable && hiddenOptions.size > 0 && (
               <SizeLimitMessage>
                 {sizeLimitMessage ?? t('Use search to find more options…')}
               </SizeLimitMessage>

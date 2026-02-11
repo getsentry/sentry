@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {isMac} from '@react-aria/utils';
 import xor from 'lodash/xor';
 
 import {Button} from '@sentry/scraps/button';
@@ -14,11 +13,9 @@ import type {
 } from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
-import {IconInfo} from 'sentry/icons/iconInfo';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {isModifierKeyPressed} from 'sentry/utils/isModifierKeyPressed';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
 export interface HybridFilterProps<Value extends SelectKey> extends Omit<
   MultipleSelectProps<Value>,
@@ -262,35 +259,18 @@ export function HybridFilter<Value extends SelectKey>({
     checkboxWrapper,
   ]);
 
-  const [modifierTipSeen, setModifierTipSeen] = useSyncedLocalStorageState(
-    'hybrid-filter:modifier-tip-seen',
-    false
-  );
-
   const renderFooter = useMemo(() => {
-    const showModifierTip =
-      multiple && options.length > 1 && !hasStagedChanges && !modifierTipSeen;
     const footerMessage =
       typeof menuFooterMessage === 'function'
         ? menuFooterMessage(hasStagedChanges)
         : menuFooterMessage;
 
-    return menuFooter || footerMessage || hasStagedChanges || showModifierTip
+    return menuFooter || footerMessage || hasStagedChanges
       ? ({closeOverlay}: any) => (
           <Fragment>
             {footerMessage && <FooterMessage>{footerMessage}</FooterMessage>}
             <FooterWrap>
               <FooterInnerWrap>{menuFooter as React.ReactNode}</FooterInnerWrap>
-              {showModifierTip && (
-                <FooterTip>
-                  <IconInfo size="xs" />
-                  <FooterTipMessage>
-                    {isMac()
-                      ? t('Command-click to select multiple')
-                      : t('Ctrl-click to select multiple')}
-                  </FooterTipMessage>
-                </FooterTip>
-              )}
               {hasStagedChanges && (
                 <FooterInnerWrap>
                   <Button
@@ -321,16 +301,13 @@ export function HybridFilter<Value extends SelectKey>({
         )
       : null;
   }, [
-    options,
     commit,
     stagedValue,
     removeStagedChanges,
     menuFooter,
     menuFooterMessage,
     hasStagedChanges,
-    multiple,
     disableCommit,
-    modifierTipSeen,
   ]);
 
   const sectionToggleWasPressed = useRef(false);
@@ -367,9 +344,6 @@ export function HybridFilter<Value extends SelectKey>({
 
       // A modifier key is being pressed --> enter multiple selection mode
       if (multiple && modifierKeyPressed) {
-        if (!modifierTipSeen) {
-          setModifierTipSeen(true);
-        }
         toggleOption(diff[0]!);
         return;
       }
@@ -378,16 +352,7 @@ export function HybridFilter<Value extends SelectKey>({
       onReplace?.(diff[0]!);
       commit(diff);
     },
-    [
-      commit,
-      stagedValue,
-      toggleOption,
-      onReplace,
-      multiple,
-      modifierKeyPressed,
-      modifierTipSeen,
-      setModifierTipSeen,
-    ]
+    [commit, stagedValue, toggleOption, onReplace, multiple, modifierKeyPressed]
   );
 
   const menuHeaderTrailingItems = useCallback(
@@ -474,30 +439,6 @@ const FooterMessage = styled('p')`
   background: ${p => p.theme.colors.yellow100};
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.font.size.sm};
-`;
-
-const FooterTip = styled('p')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${space(0.5)};
-  align-items: center;
-  justify-content: center;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-  margin: 0;
-
-  /* Right-align content if there's non-empty content to the left */
-  div:not(:empty) ~ & {
-    justify-content: end;
-  }
-`;
-
-const FooterTipMessage = styled('span')`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 `;
 
 const FooterInnerWrap = styled('div')`
