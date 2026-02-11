@@ -3,12 +3,15 @@ import partition from 'lodash/partition';
 import {PlatformIcon} from 'platformicons';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {CopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {
+  CopyMarkdownButton,
+  CopySetupInstructionsGate,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -284,13 +287,13 @@ export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
         onChange={({value}) => setSelectedGuide(value)}
         size="sm"
       />
-      <Container>
+      <CopySetupInstructionsGate>
         <CopyMarkdownButton
           getMarkdown={getGuideMarkdown}
           organization={org}
           source="crons_onboarding"
         />
-      </Container>
+      </CopySetupInstructionsGate>
       <div ref={guideContainerRef}>
         <Guide {...guideProps} />
       </div>

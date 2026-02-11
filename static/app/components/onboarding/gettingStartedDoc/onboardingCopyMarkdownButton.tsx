@@ -1,4 +1,5 @@
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useAuthToken} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
@@ -10,6 +11,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface CopyMarkdownButtonProps {
   getMarkdown: () => string;
@@ -91,4 +93,19 @@ export function OnboardingCopyMarkdownButton({
       source={source}
     />
   );
+}
+
+const FEATURE_FLAG = 'onboarding-copy-setup-instructions';
+
+/**
+ * Feature-gated wrapper that renders its children only when the
+ * `onboarding-copy-setup-instructions` flag is enabled. Includes spacing
+ * so callsites don't render an empty Container when the flag is off.
+ */
+export function CopySetupInstructionsGate({children}: {children: React.ReactNode}) {
+  const organization = useOrganization();
+  if (!organization.features.includes(FEATURE_FLAG)) {
+    return null;
+  }
+  return <Container paddingBottom="md">{children}</Container>;
 }

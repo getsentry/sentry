@@ -1,11 +1,14 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import FeedbackConfigToggle from 'sentry/components/feedback/feedbackOnboarding/feedbackConfigToggle';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {
+  CopySetupInstructionsGate,
+  OnboardingCopyMarkdownButton,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -150,13 +153,13 @@ export function FeedbackOnboardingLayout({
       <TabSelectionScope>
         <Wrapper>
           {introduction && <Stack marginBottom="3xl">{introduction}</Stack>}
-          <Container paddingBottom="md">
+          <CopySetupInstructionsGate>
             <OnboardingCopyMarkdownButton
               steps={transformedSteps}
               organization={organization}
               source="feedback_onboarding"
             />
-          </Container>
+          </CopySetupInstructionsGate>
           <Steps>
             {transformedSteps.map((step, index) => (
               <Step key={step.title ?? step.type} stepIndex={index} {...step} />
