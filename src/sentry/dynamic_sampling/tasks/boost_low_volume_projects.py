@@ -142,12 +142,13 @@ def boost_low_volume_projects() -> None:
             measure=SamplingMeasure.SEGMENTS,
         ):
             orgs_by_measure = _partition_orgs_by_measure(orgs)
-            _record_partitioning_metrics(orgs_by_measure)
+
             # Process SEGMENTS and SPANS from this scan. TRANSACTIONS orgs
             # will be discovered by the TRANSACTIONS scan below.
             for measure, org_ids in orgs_by_measure.items():
                 if measure == SamplingMeasure.TRANSACTIONS:
                     continue
+                _record_partitioning_metrics({measure: org_ids})
                 _process_orgs_for_boost(org_ids, measure)
                 processed_org_ids.update(org_ids)
 
@@ -157,12 +158,12 @@ def boost_low_volume_projects() -> None:
         measure=SamplingMeasure.TRANSACTIONS,
     ):
         orgs_by_measure = _partition_orgs_by_measure(orgs)
-        _record_partitioning_metrics(orgs_by_measure)
 
         for measure, org_ids in orgs_by_measure.items():
             if measure == SamplingMeasure.SEGMENTS:
                 continue
             remaining = [oid for oid in org_ids if oid not in processed_org_ids]
+            _record_partitioning_metrics({measure: remaining})
             _process_orgs_for_boost(remaining, measure)
 
 
