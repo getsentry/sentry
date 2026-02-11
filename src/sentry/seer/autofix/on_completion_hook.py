@@ -72,16 +72,13 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             )
             return
 
-        current_step = cls._get_current_step(state)
-
         # Send webhook for the completed step
-        cls._send_step_webhook(organization, run_id, state, current_step)
+        cls._send_step_webhook(organization, run_id, state)
 
-        if current_step == AutofixStep.ROOT_CAUSE:
-            cls._maybe_trigger_supergroups_embedding(organization, run_id, state)
+        cls._maybe_trigger_supergroups_embedding(organization, run_id, state)
 
         # Continue the automated pipeline if stopping_point hasn't been reached
-        cls._maybe_continue_pipeline(organization, run_id, state, current_step)
+        cls._maybe_continue_pipeline(organization, run_id, state)
 
     @classmethod
     def find_latest_artifact_for_step(cls, state: SeerRunState, key: str) -> Artifact | None:
@@ -94,15 +91,14 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         return None
 
     @classmethod
-    def _send_step_webhook(
-        cls, organization, run_id, state: SeerRunState, current_step: AutofixStep | None
-    ):
+    def _send_step_webhook(cls, organization, run_id, state: SeerRunState):
         """
         Send webhook for the completed step.
 
         Determines which step just completed based on artifacts and sends
         the appropriate webhook event.
         """
+        current_step = cls._get_current_step(state)
 
         # Determine which artifact was just created and send appropriate webhook
         # We check in reverse priority order (most recent step first)
@@ -168,6 +164,10 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         state: SeerRunState,
     ) -> None:
         """Trigger supergroups embedding if feature flag is enabled."""
+        current_step = cls._get_current_step(state)
+        if current_step != AutofixStep.ROOT_CAUSE:
+            return
+
         group_id = state.metadata.get("group_id") if state.metadata else None
         if group_id is None:
             return
@@ -237,7 +237,6 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         organization: Organization,
         run_id: int,
         state: SeerRunState,
-        current_step: AutofixStep | None,
     ) -> None:
         """
         Continue to the next step if stopping_point hasn't been reached.
@@ -247,6 +246,8 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             run_id: The run ID
             state: The current run state
         """
+        current_step = cls._get_current_step(state)
+
         # Get pipeline metadata from state
         metadata = state.metadata
         if not metadata or "stopping_point" not in metadata:
