@@ -173,27 +173,23 @@ def sample_trace_for_instrumentation_analysis(
     processing_deadline_duration=60,
 )
 def run_trace_instrumentation_detector() -> None:
-    """Main scheduled task that coordinates trace instrumentation detection across organizations."""
-    organization_allowlist = options.get("autopilot.organization-allowlist")
-    if not organization_allowlist:
+    """Main scheduled task that coordinates trace instrumentation detection across projects."""
+    project_ids = options.get("autopilot.trace-instrumentation.projects-allowlist")
+    if not project_ids:
         return
 
-    organizations = Organization.objects.filter(slug__in=organization_allowlist)
+    for project_id in project_ids:
+        try:
+            project = Project.objects.get(id=project_id, status=ObjectStatus.ACTIVE)
+        except Project.DoesNotExist:
+            logger.warning(
+                "trace_instrumentation_detector.project_not_found",
+                extra={"project_id": project_id},
+            )
+            continue
 
-    for organization in organizations:
-        run_trace_instrumentation_detector_for_organization(organization)
-
-
-def run_trace_instrumentation_detector_for_organization(organization: Organization) -> None:
-    """Queue per-project trace instrumentation detection tasks for active projects."""
-    projects = Project.objects.filter(
-        organization=organization,
-        status=ObjectStatus.ACTIVE,
-    )
-
-    for project in projects:
         run_trace_instrumentation_detector_for_project_task.apply_async(
-            args=(organization.id, project.id),
+            args=(project.organization_id, project.id),
             headers={"sentry-propagate-traces": False},
         )
 
