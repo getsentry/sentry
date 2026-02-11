@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -305,11 +306,13 @@ export function Onboarding() {
       <SetupTitle project={project} />
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <ContinuousProfilingBillingRequirementBanner project={project} />
-      <OnboardingCopyMarkdownButton
-        steps={steps}
-        organization={organization}
-        source="profiling_onboarding"
-      />
+      <Container paddingBottom="md">
+        <OnboardingCopyMarkdownButton
+          steps={steps}
+          organization={organization}
+          source="profiling_onboarding"
+        />
+      </Container>
       <GuidedSteps>
         {steps.map((step, index) => (
           <StepRenderer

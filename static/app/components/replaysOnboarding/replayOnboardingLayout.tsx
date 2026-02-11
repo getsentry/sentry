@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
@@ -141,11 +141,13 @@ export function ReplayOnboardingLayout({
       <TabSelectionScope>
         <Wrapper>
           {introduction && <Stack margin="0 0 xl 0">{introduction}</Stack>}
-          <OnboardingCopyMarkdownButton
-            steps={transformedSteps}
-            organization={organization}
-            source="replay_onboarding"
-          />
+          <Container paddingBottom="md">
+            <OnboardingCopyMarkdownButton
+              steps={transformedSteps}
+              organization={organization}
+              source="replay_onboarding"
+            />
+          </Container>
           <Stack gap="lg">
             {transformedSteps.map((step, index) => (
               <Step key={step.title ?? step.type} stepIndex={index} {...step} />

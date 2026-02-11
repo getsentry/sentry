@@ -1,5 +1,4 @@
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useAuthToken} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
@@ -81,12 +80,10 @@ export function OnboardingCopyMarkdownButton({
   };
 
   return (
-    <Flex justify="start" paddingBottom="md">
-      <CopyMarkdownButton
-        getMarkdown={getMarkdown}
-        organization={organization}
-        source={source}
-      />
-    </Flex>
+    <CopyMarkdownButton
+      getMarkdown={getMarkdown}
+      organization={organization}
+      source={source}
+    />
   );
 }

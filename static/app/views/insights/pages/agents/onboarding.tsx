@@ -5,6 +5,7 @@ import {PlatformIcon} from 'platformicons';
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -345,11 +346,13 @@ export function Onboarding() {
         <PlatformOptionDropdown platformOptions={integrationOptions} />
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
-      <OnboardingCopyMarkdownButton
-        steps={steps}
-        organization={organization}
-        source="agent_monitoring_onboarding"
-      />
+      <Container paddingBottom="md">
+        <OnboardingCopyMarkdownButton
+          steps={steps}
+          organization={organization}
+          source="agent_monitoring_onboarding"
+        />
+      </Container>
       <GuidedSteps
         initialStep={decodeInteger(location.query.guidedStep)}
         onStepChange={step => {

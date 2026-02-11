@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import FeedbackConfigToggle from 'sentry/components/feedback/feedbackOnboarding/feedbackConfigToggle';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
@@ -150,11 +150,13 @@ export function FeedbackOnboardingLayout({
       <TabSelectionScope>
         <Wrapper>
           {introduction && <Stack marginBottom="3xl">{introduction}</Stack>}
-          <OnboardingCopyMarkdownButton
-            steps={transformedSteps}
-            organization={organization}
-            source="feedback_onboarding"
-          />
+          <Container paddingBottom="md">
+            <OnboardingCopyMarkdownButton
+              steps={transformedSteps}
+              organization={organization}
+              source="feedback_onboarding"
+            />
+          </Container>
           <Steps>
             {transformedSteps.map((step, index) => (
               <Step key={step.title ?? step.type} stepIndex={index} {...step} />
