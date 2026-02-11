@@ -7,11 +7,7 @@ from typing import TYPE_CHECKING, Any, TypedDict
 from slack_sdk.models.blocks.blocks import Block
 
 from sentry import features
-from sentry.constants import (
-    ENABLE_SEER_CODING_DEFAULT,
-    ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
-    ObjectStatus,
-)
+from sentry.constants import ENABLE_SEER_ENHANCED_ALERTS_DEFAULT, ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.locks import locks
@@ -27,7 +23,6 @@ from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
 from sentry.notifications.platform.templates.seer import SeerAutofixError, SeerAutofixUpdate
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
 from sentry.notifications.utils.actions import BlockKitMessageAction
-from sentry.organizations.services.organization.service import organization_service
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import entrypoint_registry
@@ -250,17 +245,6 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                 logger.info("seer.entrypoint.slack.unsupported_event_type", extra=logging_ctx)
                 return
 
-        # Special case for solution stopping point, we progress beyond it if coding is enabled
-        # (if triggered manually, we always respect automation stopping point)
-        if data_kwargs["current_point"] == AutofixStoppingPoint.SOLUTION:
-            has_coding_enabled = organization_service.get_option(
-                organization_id=cache_payload["organization_id"],
-                key="sentry:enable_seer_coding",
-            )
-            if has_coding_enabled is None:
-                has_coding_enabled = ENABLE_SEER_CODING_DEFAULT
-            data_kwargs["has_progressed"] = has_coding_enabled
-
         data = SeerAutofixUpdate(**data_kwargs)
         schedule_all_thread_updates(
             threads=cache_payload["threads"],
@@ -460,7 +444,6 @@ def update_existing_message(
         if data.current_point == AutofixStoppingPoint.ROOT_CAUSE
         else remove_all_buttons_transformer
     )
-
     try:
         message_data = request.data["message"]
         original_blocks = message_data["blocks"]
