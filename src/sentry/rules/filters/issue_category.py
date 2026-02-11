@@ -11,11 +11,13 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.types.condition_activity import ConditionActivity
 
 CATEGORY_CHOICES = OrderedDict([(f"{gc.value}", str(gc.name).lower()) for gc in GroupCategory])
-INCLUDE_CHOICES = OrderedDict([("1", "equal to"), ("0", "not equal to")])
+INCLUDE_CHOICES = OrderedDict([("true", "equal to"), ("false", "not equal to")])
 
 
 class IssueCategoryForm(forms.Form):
-    include = forms.ChoiceField(choices=list(INCLUDE_CHOICES.items()), required=False, initial="1")
+    include = forms.ChoiceField(
+        choices=list(INCLUDE_CHOICES.items()), required=False, initial="true"
+    )
     value = forms.ChoiceField(choices=list(CATEGORY_CHOICES.items()))
 
 
@@ -25,7 +27,7 @@ class IssueCategoryFilter(EventFilter):
         "include": {
             "type": "choice",
             "choices": list(INCLUDE_CHOICES.items()),
-            "initial": "1",
+            "initial": "true",
         },
         "value": {"type": "choice", "choices": list(CATEGORY_CHOICES.items())},
     }
