@@ -9,6 +9,7 @@ import {
 } from 'sentry/components/pageFilters/actions';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -25,11 +26,25 @@ export function DesyncedFilterMessage() {
       <Flex marginTop="md" gap="xs" width="100%">
         <Button
           size="xs"
-          onClick={() => revertToPinnedFilters(organization.slug, router)}
+          onClick={() => {
+            revertToPinnedFilters(organization.slug, router);
+            trackAnalytics('page_filters.desynced_filter.restore_previous_values', {
+              organization,
+            });
+          }}
         >
           {t('Restore Previous Values')}
         </Button>
-        <Button size="xs" priority="primary" onClick={saveDesyncedFilters}>
+        <Button
+          size="xs"
+          priority="primary"
+          onClick={() => {
+            saveDesyncedFilters();
+            trackAnalytics('page_filters.desynced_filter.acknowledge', {
+              organization,
+            });
+          }}
+        >
           {t('Got It')}
         </Button>
       </Flex>

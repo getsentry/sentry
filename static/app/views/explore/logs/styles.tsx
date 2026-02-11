@@ -404,12 +404,14 @@ export const LogsSidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
   ${p =>
     p.sidebarOpen &&
     css`
-      margin-left: -13px;
+      margin-left: -17px;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
 
       &::after {
         border-left-color: ${p.theme.tokens.border.primary};
-        border-top-left-radius: 0px;
-        border-bottom-left-radius: 0px;
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
       }
     `}
 `;

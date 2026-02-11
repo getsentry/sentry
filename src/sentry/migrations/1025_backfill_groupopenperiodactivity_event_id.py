@@ -42,6 +42,8 @@ def backfill_event_id_to_activity(apps: StateApps, schema_editor: BaseDatabaseSc
     GroupOpenPeriodActivity = apps.get_model("sentry", "GroupOpenPeriodActivity")
 
     cursor = connection.cursor()
+    total_processed = 0
+    total_updated = 0
 
     for chunk in chunked(
         RangeQuerySetWrapperWithProgressBarApprox(
@@ -57,7 +59,14 @@ def backfill_event_id_to_activity(apps: StateApps, schema_editor: BaseDatabaseSc
             for activity_id, open_period_id, type_, event_id in chunk
             if type_ == OPENED and event_id is None
         ]
+        total_processed += BATCH_SIZE
         if not chunk:
+            if total_processed % (BATCH_SIZE * 10) == 0:
+                logger.info(
+                    "backfill_event_id_to_activity: processed %d rows, updated %d",
+                    total_processed,
+                    total_updated,
+                )
             continue
 
         open_period_ids = [open_period_id for _, open_period_id in chunk]
@@ -76,6 +85,20 @@ def backfill_event_id_to_activity(apps: StateApps, schema_editor: BaseDatabaseSc
 
         if batch:
             _flush_batch(cursor, batch)
+            total_updated += len(batch)
+
+        if total_processed % (BATCH_SIZE * 10) == 0:
+            logger.info(
+                "backfill_event_id_to_activity: processed %d rows, updated %d",
+                total_processed,
+                total_updated,
+            )
+
+    logger.info(
+        "backfill_event_id_to_activity: complete, processed %d rows, updated %d",
+        total_processed,
+        total_updated,
+    )
 
 
 class Migration(CheckedMigration):

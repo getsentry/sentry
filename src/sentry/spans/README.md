@@ -153,11 +153,10 @@ the python code and:
 **Spans payload**
 
 ```
-span-buf:z:{PROJECT_AND_TRACE}:{PARENT_SPAN_ID}
+span-buf:s:{PROJECT_AND_TRACE}:{PARENT_SPAN_ID}
 ```
 
-This is a sorted set that contains the spans payload corresponding to a segment
-sorted by span timestamp.
+This is an unsorted set that contains the spans payload corresponding to a segment.
 
 - The python code stores the subsegments, while the LUA code merges subsegments
   along the way.
@@ -172,7 +171,7 @@ sorted by span timestamp.
 **Redirect set**
 
 ```
-span-buf:sr:{PROJECT_AND_TRACE}
+span-buf:ssr:{PROJECT_AND_TRACE}
 
 Example:
 - 3 segments a,b,c
