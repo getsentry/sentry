@@ -81,6 +81,13 @@ ProjectVolumes = tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
 OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, DecisionDropCount]
 
 
+def _use_segments_for_all_orgs() -> bool:
+    """
+    Returns True if segment metrics should be used for ALL orgs in this task.
+    """
+    return bool(options.get("dynamic-sampling.boost_low_volume_projects.segment-metric.enabled"))
+
+
 def _get_segments_org_ids() -> set[int]:
     """
     Returns the set of organization IDs that should use SEGMENTS measure.
@@ -100,6 +107,24 @@ def _partition_orgs_by_measure(
     filtered_org_ids = {
         org_id for org_id, mode in modes_per_org.items() if mode != DynamicSamplingMode.PROJECT
     }
+
+    use_segments_globally = _use_segments_for_all_orgs()
+
+    if use_segments_globally:
+        if not options.get("dynamic-sampling.check_span_feature_flag"):
+            return {
+                SamplingMeasure.TRANSACTIONS: [],
+                SamplingMeasure.SEGMENTS: sorted(filtered_org_ids),
+            }
+        span_org_ids: set[int] = set(options.get("dynamic-sampling.measure.spans") or [])
+        filtered_span_org_ids: set[int] = span_org_ids & filtered_org_ids
+        remaining_org_ids: set[int] = filtered_org_ids - filtered_span_org_ids
+        return {
+            SamplingMeasure.SEGMENTS: sorted(remaining_org_ids),
+            SamplingMeasure.SPANS: sorted(filtered_span_org_ids),
+            SamplingMeasure.TRANSACTIONS: [],
+        }
+
     segments_org_ids: set[int] = _get_segments_org_ids()
     filtered_segments_org_ids: set[int] = filtered_org_ids & segments_org_ids
     transactions_org_ids: set[int] = filtered_org_ids - segments_org_ids
@@ -109,8 +134,8 @@ def _partition_orgs_by_measure(
             SamplingMeasure.TRANSACTIONS: sorted(transactions_org_ids),
             SamplingMeasure.SEGMENTS: sorted(filtered_segments_org_ids),
         }
-    span_org_ids: set[int] = set(options.get("dynamic-sampling.measure.spans") or [])
-    filtered_span_org_ids: set[int] = span_org_ids & filtered_org_ids
+    span_org_ids = set(options.get("dynamic-sampling.measure.spans") or [])
+    filtered_span_org_ids = span_org_ids & filtered_org_ids
     filtered_segments_org_ids = filtered_segments_org_ids - filtered_span_org_ids
     filtered_transactions_org_ids = transactions_org_ids - filtered_span_org_ids
 
@@ -135,8 +160,9 @@ def boost_low_volume_projects() -> None:
     """
     processed_org_ids: set[int] = set()
 
+    use_segments_globally = _use_segments_for_all_orgs()
     segments_org_ids = _get_segments_org_ids()
-    if segments_org_ids:
+    if use_segments_globally or segments_org_ids:
         for orgs in GetActiveOrgs(
             max_projects=MAX_PROJECTS_PER_QUERY,
             granularity=Granularity(60),
@@ -153,19 +179,21 @@ def boost_low_volume_projects() -> None:
                 _process_orgs_for_boost(org_ids, measure)
                 processed_org_ids.update(org_ids)
 
-    for orgs in GetActiveOrgs(
-        max_projects=MAX_PROJECTS_PER_QUERY,
-        granularity=Granularity(60),
-        measure=SamplingMeasure.TRANSACTIONS,
-    ):
-        orgs_by_measure = _partition_orgs_by_measure(orgs)
+    # Process orgs using transaction metrics (skip entirely when global switch is on)
+    if not use_segments_globally:
+        for orgs in GetActiveOrgs(
+            max_projects=MAX_PROJECTS_PER_QUERY,
+            granularity=Granularity(60),
+            measure=SamplingMeasure.TRANSACTIONS,
+        ):
+            orgs_by_measure = _partition_orgs_by_measure(orgs)
 
-        for measure, org_ids in orgs_by_measure.items():
-            if measure == SamplingMeasure.SEGMENTS:
-                continue
-            remaining = [oid for oid in org_ids if oid not in processed_org_ids]
-            _record_partitioning_metrics({measure: remaining})
-            _process_orgs_for_boost(remaining, measure)
+            for measure, org_ids in orgs_by_measure.items():
+                if measure == SamplingMeasure.SEGMENTS:
+                    continue
+                remaining = [oid for oid in org_ids if oid not in processed_org_ids]
+                _record_partitioning_metrics({measure: remaining})
+                _process_orgs_for_boost(remaining, measure)
 
 
 def _process_orgs_for_boost(

@@ -82,6 +82,13 @@ class ProjectTransactionsTotals(ProjectIdentity, total=True):
     total_num_classes: int | float
 
 
+def _use_segments_for_all_orgs() -> bool:
+    """
+    Returns True if segment metrics should be used for ALL orgs in this task.
+    """
+    return bool(options.get("dynamic-sampling.transactions.segment-metric.enabled"))
+
+
 def _get_segments_org_ids() -> set[int]:
     """
     Returns the set of organization IDs that should use SEGMENTS measure.
@@ -105,17 +112,21 @@ def boost_low_volume_transactions() -> None:
         options.get("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions")
     )
 
+    use_segments_globally = _use_segments_for_all_orgs()
     segments_org_ids = _get_segments_org_ids()
 
-    # Process orgs using segment metrics (opted-in via option)
-    if segments_org_ids:
+    # Process orgs using segment metrics (all orgs when global switch is on, or opted-in via option)
+    if use_segments_globally or segments_org_ids:
         for orgs in GetActiveOrgs(
             max_projects=MAX_PROJECTS_PER_QUERY,
             granularity=Granularity(60),
             measure=SamplingMeasure.SEGMENTS,
         ):
-            # Filter to only orgs in the segments option
-            segment_orgs = [org_id for org_id in orgs if org_id in segments_org_ids]
+            segment_orgs = (
+                orgs
+                if use_segments_globally
+                else [org_id for org_id in orgs if org_id in segments_org_ids]
+            )
             metrics.incr(
                 "dynamic_sampling.boost_low_volume_transactions.orgs_partitioned",
                 tags={"metric_type": "segment"},
@@ -126,26 +137,26 @@ def boost_low_volume_transactions() -> None:
                     segment_orgs, num_big_trans, num_small_trans, measure=SamplingMeasure.SEGMENTS
                 )
 
-    # Process orgs using transaction metrics (default)
-    for orgs in GetActiveOrgs(
-        max_projects=MAX_PROJECTS_PER_QUERY,
-        granularity=Granularity(60),
-        measure=SamplingMeasure.TRANSACTIONS,
-    ):
-        # Filter out orgs that use segment metrics
-        transaction_orgs = [org_id for org_id in orgs if org_id not in segments_org_ids]
-        metrics.incr(
-            "dynamic_sampling.boost_low_volume_transactions.orgs_partitioned",
-            tags={"metric_type": "transaction"},
-            amount=len(transaction_orgs),
-        )
-        if transaction_orgs:
-            _process_orgs_for_boost_low_volume_transactions(
-                transaction_orgs,
-                num_big_trans,
-                num_small_trans,
-                measure=SamplingMeasure.TRANSACTIONS,
+    # Process orgs using transaction metrics (skip entirely when global switch is on)
+    if not use_segments_globally:
+        for orgs in GetActiveOrgs(
+            max_projects=MAX_PROJECTS_PER_QUERY,
+            granularity=Granularity(60),
+            measure=SamplingMeasure.TRANSACTIONS,
+        ):
+            transaction_orgs = [org_id for org_id in orgs if org_id not in segments_org_ids]
+            metrics.incr(
+                "dynamic_sampling.boost_low_volume_transactions.orgs_partitioned",
+                tags={"metric_type": "transaction"},
+                amount=len(transaction_orgs),
             )
+            if transaction_orgs:
+                _process_orgs_for_boost_low_volume_transactions(
+                    transaction_orgs,
+                    num_big_trans,
+                    num_small_trans,
+                    measure=SamplingMeasure.TRANSACTIONS,
+                )
 
 
 def _process_orgs_for_boost_low_volume_transactions(
