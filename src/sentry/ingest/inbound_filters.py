@@ -137,10 +137,8 @@ def get_filter_state(filter_id, project):
 
     if filter_state is None:
         raise ValueError(
-            "Could not find filter state for filter {}."
-            " You need to register default filter state in projectoptions.defaults.".format(
-                filter_id
-            )
+            f"Could not find filter state for filter {filter_id}."
+            " You need to register default filter state in projectoptions.defaults."
         )
 
     if flt == _legacy_browsers_filter:
