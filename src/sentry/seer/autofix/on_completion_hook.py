@@ -108,7 +108,6 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         # to find which step just completed
         webhook_action_type: SeerActionType | None = None
 
-        current_step = cls._get_current_step(state)
         if current_step is not None:
             artifact = cls.find_latest_artifact_for_step(state, current_step)
             if artifact is not None:
