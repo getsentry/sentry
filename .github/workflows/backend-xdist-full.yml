@@ -1,42 +1,40 @@
-name: relay-class-scope-v2-smoke
+name: backend-xdist-full
 on:
   push:
     branches: ['mchen/relay-class-scope-v2']
 
 concurrency:
-  group: relay-class-scope-v2-${{ github.sha }}
+  group: backend-xdist-full-${{ github.sha }}
   cancel-in-progress: true
 
 env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   SNUBA_NO_WORKERS: 1
 
 jobs:
-  relay-test:
+  backend-test:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - shard: 0
-            label: 'js-plugin (27 tests)'
-            paths: 'tests/relay_integration/lang/javascript/test_plugin.py'
-          - shard: 1
-            label: 'integration+filters (25 tests)'
-            paths: 'tests/relay_integration/test_integration.py tests/relay_integration/test_message_filters.py'
-          - shard: 2
-            label: 'java+sdk+metrics+example (23 tests)'
-            paths: 'tests/relay_integration/lang/java/test_plugin.py tests/relay_integration/test_sdk.py tests/relay_integration/test_metrics_extraction.py tests/relay_integration/lang/javascript/test_example.py'
-    name: shard-${{ matrix.shard }} (${{ matrix.label }})
+        # Mirror the real backend CI: 4 shards (reduced from 22 for this experiment)
+        instance: [0, 1, 2, 3]
+
     env:
+      # xdist configuration
       XDIST_PER_WORKER_SNUBA: '1'
-      XDIST_WORKERS: '4'
+      XDIST_WORKERS: '2'
       PYTHONHASHSEED: '0'
+      # Shard configuration (mirrors real CI)
+      MATRIX_INSTANCE: ${{ matrix.instance }}
+      MATRIX_INSTANCE_TOTAL: 4
+      TEST_GROUP_STRATEGY: roundrobin
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Setup sentry env (Full Snuba stack)
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
@@ -86,14 +84,20 @@ jobs:
             done
           done
 
-      - name: 'Run shard ${{ matrix.shard }}: ${{ matrix.label }}'
+      - name: Run backend test (shard ${{ matrix.instance }} of ${{ env.MATRIX_INSTANCE_TOTAL }})
         run: |
-          py.test ${{ matrix.paths }} \
+          python3 -b -m pytest \
+            tests \
             -n "$XDIST_WORKERS" \
             --dist=loadfile \
+            --reuse-db \
+            --ignore tests/acceptance \
+            --ignore tests/apidocs \
+            --ignore tests/js \
+            --ignore tests/tools \
             -v \
             --tb=short \
-            2>&1 | tail -120
+            2>&1 | tail -200
 
       - name: Inspect failure
         if: failure()
