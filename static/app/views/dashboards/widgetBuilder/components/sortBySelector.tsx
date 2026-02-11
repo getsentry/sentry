@@ -75,23 +75,32 @@ function WidgetBuilderSortBySelector() {
     DisplayType.AREA,
   ].includes(displayType);
 
-  const isCategoricalBarWidget = displayType === DisplayType.CATEGORICAL_BAR;
-
-  const maxLimit = isTimeseriesChart
-    ? getResultsLimit(widget.queries.length, widget.queries[0]!.aggregates.length)
-    : isCategoricalBarWidget
-      ? MAX_CATEGORICAL_BAR_LIMIT
-      : 0;
+  let maxLimit: number;
+  switch (displayType) {
+    case DisplayType.LINE:
+    case DisplayType.BAR:
+    case DisplayType.AREA:
+      maxLimit = getResultsLimit(
+        widget.queries.length,
+        widget.queries[0]!.aggregates.length
+      );
+      break;
+    case DisplayType.CATEGORICAL_BAR:
+      maxLimit = MAX_CATEGORICAL_BAR_LIMIT;
+      break;
+    default:
+      maxLimit = 0;
+  }
 
   // handles when the maxLimit changes to a value less than the current selected limit
   useEffect(() => {
     if (!state.limit) {
       return;
     }
-    if ((isTimeseriesChart || isCategoricalBarWidget) && state.limit > maxLimit) {
+    if (maxLimit > 0 && state.limit > maxLimit) {
       dispatch({type: BuilderStateAction.SET_LIMIT, payload: maxLimit});
     }
-  }, [state.limit, maxLimit, dispatch, isTimeseriesChart, isCategoricalBarWidget]);
+  }, [state.limit, maxLimit, dispatch]);
 
   function handleSortByChange(newSortBy: string, sortDirection: 'asc' | 'desc') {
     dispatch({
@@ -118,7 +127,7 @@ function WidgetBuilderSortBySelector() {
           stacked
         >
           <Flex direction="column" gap="sm">
-            {(isTimeseriesChart || isCategoricalBarWidget) && state.limit && (
+            {maxLimit > 0 && state.limit && (
               <Select
                 disabled={disableSortDirection && disableSort}
                 name="resultsLimit"
