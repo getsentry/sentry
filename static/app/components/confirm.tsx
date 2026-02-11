@@ -2,7 +2,8 @@ import {cloneElement, Fragment, isValidElement, useRef, useState} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import type {ButtonProps} from '@sentry/scraps/button';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -326,7 +327,7 @@ function ConfirmModal({
         {makeConfirmMessage()}
       </Body>
       <Footer>
-        <ButtonBar gap="xl">
+        <Grid flow="column" align="center" gap="xl">
           {renderCancelButton ? (
             renderCancelButton({
               closeModal,
@@ -358,7 +359,7 @@ function ConfirmModal({
               {confirmText ?? t('Confirm')}
             </Button>
           )}
-        </ButtonBar>
+        </Grid>
       </Footer>
     </Fragment>
   );

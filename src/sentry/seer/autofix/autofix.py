@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from sentry import features, quotas, tagstore
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory, ObjectStatus
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import WebVitalsGroup
@@ -36,7 +36,6 @@ from sentry.seer.autofix.utils import (
     get_autofix_repos_from_project_code_mappings,
 )
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
-from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -457,7 +456,7 @@ def _call_autofix(
                 "comment_on_pr_with_url": pr_to_comment_on_url,
                 "auto_run_source": auto_run_source,
                 "disable_coding_step": not group.organization.get_option(
-                    "sentry:enable_seer_coding", default=True
+                    "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
                 ),
                 "stopping_point": stopping_point,
             },
@@ -601,12 +600,6 @@ def trigger_autofix(
 
     if group.organization.get_option("sentry:hide_ai_features"):
         return _respond_with_error("AI features are disabled for this organization.", 403)
-
-    if not get_seer_org_acknowledgement(group.organization):
-        return _respond_with_error(
-            "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer.",
-            403,
-        )
 
     # check billing quota for autofix
     has_budget: bool = quotas.backend.check_seer_quota(

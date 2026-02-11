@@ -3,7 +3,8 @@ import {useQueries} from '@tanstack/react-query';
 import chunk from 'lodash/chunk';
 
 import type {ApiResult} from 'sentry/api';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {GroupSubstatus} from 'sentry/types/group';
 import type {Group} from 'sentry/types/group';
 import {
@@ -13,7 +14,6 @@ import {
   type UseQueryResult,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 import type {ClusterSummary} from './topIssuesDrawer';
 

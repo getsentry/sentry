@@ -362,5 +362,8 @@ class MetricIssue(GroupType):
         return True
 
     @classmethod
-    def build_visible_feature_name(cls) -> str:
-        return "organizations:workflow-engine-ui"
+    def build_visible_feature_name(cls) -> list[str]:
+        return [
+            "organizations:workflow-engine-ui",
+            "organizations:workflow-engine-metric-issue-ui",
+        ]

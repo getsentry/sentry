@@ -279,22 +279,27 @@ def truncate_denormalizations(project: Project, group: Group) -> None:
 
 def collect_group_environment_data(
     events: Sequence[GroupEvent],
-) -> dict[tuple[int, str], str | None]:
+) -> dict[tuple[int, str], tuple[str | None, datetime]]:
     """\
-    Find the first release for a each group and environment pair from a
-    date-descending sorted list of events.
+    Find the first release and first seen datetime for each group and
+    environment pair from a date-descending sorted list of events.
     """
-    results: dict[tuple[int, str], str | None] = {}
+    results: dict[tuple[int, str], tuple[str | None, datetime]] = {}
     for event in events:
-        results[(event.group_id, get_environment_name(event))] = event.get_tag("sentry:release")
+        results[(event.group_id, get_environment_name(event))] = (
+            event.get_tag("sentry:release"),
+            event.datetime,
+        )
     return results
 
 
 def repair_group_environment_data(
     caches: Mapping[str, Any], project: Project, events: Sequence[GroupEvent]
 ) -> None:
-    for (group_id, env_name), first_release in collect_group_environment_data(events).items():
-        fields = {}
+    for (group_id, env_name), (first_release, first_seen) in collect_group_environment_data(
+        events
+    ).items():
+        fields: dict[str, Any] = {"first_seen": first_seen}
         if first_release:
             fields["first_release"] = caches["Release"](project.organization_id, first_release)
 

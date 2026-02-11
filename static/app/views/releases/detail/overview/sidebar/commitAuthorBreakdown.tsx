@@ -99,7 +99,7 @@ function CommitAuthorBreakdown({orgId, projectSlug, version}: Props) {
         >
           {sortedAuthorsByNumberOfCommits.map(({commitCount, author}, index) => (
             <AuthorLine key={author?.email ?? index}>
-              <UserAvatar user={author} size={20} hasTooltip />
+              {author ? <UserAvatar user={author} size={20} hasTooltip /> : null}
               <AuthorName>{userDisplayName(author || {}, false)}</AuthorName>
               <Commits>{tn('%s commit', '%s commits', commitCount)}</Commits>
               <Percent>{getDisplayPercent(commitCount)}</Percent>

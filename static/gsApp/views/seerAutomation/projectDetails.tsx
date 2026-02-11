@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -7,6 +5,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
@@ -42,17 +41,19 @@ function SeerProjectDetails() {
 
   if (!organization.features.includes('autofix-seer-preferences')) {
     return (
-      <FeatureDisabled
-        featureName={t('Autofix')}
-        features={['autofix-seer-preferences']}
-        hideHelpToggle
-        message={t('Autofix is not enabled for this organization.')}
-      />
+      <AnalyticsArea name="project-details">
+        <FeatureDisabled
+          featureName={t('Autofix')}
+          features={['autofix-seer-preferences']}
+          hideHelpToggle
+          message={t('Autofix is not enabled for this organization.')}
+        />
+      </AnalyticsArea>
     );
   }
 
   return (
-    <Fragment>
+    <AnalyticsArea name="project-details">
       <SentryDocumentTitle
         title={t('Project Seer Settings')}
         projectSlug={project.slug}
@@ -115,6 +116,6 @@ function SeerProjectDetails() {
           />
         </Stack>
       )}
-    </Fragment>
+    </AnalyticsArea>
   );
 }

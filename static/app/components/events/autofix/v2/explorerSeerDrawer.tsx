@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
@@ -449,6 +449,7 @@ const SeerDrawerNavigator = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   z-index: 1;
   min-height: ${MIN_NAV_HEIGHT}px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: ${p => p.theme.tokens.border.transparent.neutral.muted} 0 1px;
 `;
 
@@ -459,11 +460,6 @@ const SeerDrawerBody = styled(DrawerBody)`
   scroll-margin: 0 ${p => p.theme.space.xl};
   display: flex;
   flex-direction: column;
-  direction: rtl;
-
-  > * {
-    direction: ltr;
-  }
 `;
 
 const Header = styled('h3')`
@@ -483,7 +479,9 @@ const ShortId = styled('div')`
   line-height: 1;
 `;
 
-const ButtonWrapper = styled(ButtonBar)`
+const ButtonWrapper = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   margin-left: auto;
 `;
 

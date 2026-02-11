@@ -4,8 +4,9 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
+import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 
@@ -267,7 +268,7 @@ class TransactionThresholdModal extends Component<Props, State> {
           {this.renderModalFields()}
         </Body>
         <Footer>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <Button
               priority="default"
               onClick={this.handleReset}
@@ -283,7 +284,7 @@ class TransactionThresholdModal extends Component<Props, State> {
             >
               {t('Apply')}
             </Button>
-          </ButtonBar>
+          </Grid>
         </Footer>
       </Fragment>
     );

@@ -46,9 +46,12 @@ TIMEZONE_CHOICES = get_timezone_choices()
 
 
 def user_can_elevate(target_user: User) -> bool:
+    if settings.SUPERUSER_ORG_ID is None:
+        return False
+
     try:
         org_member_exists = OrganizationMemberMapping.objects.filter(
-            organization_id=settings.SENTRY_DEFAULT_ORGANIZATION_ID,
+            organization_id=settings.SUPERUSER_ORG_ID,
             user=target_user,
         ).exists()
     except Exception:

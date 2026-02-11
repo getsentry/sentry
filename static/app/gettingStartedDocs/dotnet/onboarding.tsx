@@ -7,6 +7,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {logsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
+import {metricsVerify} from 'sentry/gettingStartedDocs/dotnet/metrics';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -230,6 +231,8 @@ export const onboarding: OnboardingConfig = {
           language: 'csharp',
           code: 'SentrySdk.CaptureMessage("Something went wrong");',
         },
+        logsVerify(params),
+        metricsVerify(params),
       ],
     },
     ...(params.isPerformanceSelected
@@ -262,14 +265,6 @@ export const onboarding: OnboardingConfig = {
             ],
           },
         ] satisfies OnboardingStep[])
-      : []),
-    ...(params.isLogsSelected
-      ? [
-          {
-            title: t('Verify Logs'),
-            content: [logsVerify(params)],
-          },
-        ]
       : []),
     {
       title: t('Samples'),

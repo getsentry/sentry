@@ -1,7 +1,8 @@
-minVersion: '0.23.1'
+minVersion: '2.20.0'
 releaseBranchPrefix: releases
-changelog: CHANGES
-changelogPolicy: auto
+changelog:
+  filePath: CHANGES
+  policy: auto
 statusProvider:
   name: github
   config:
@@ -13,3 +14,5 @@ artifactProvider:
   name: none
 targets:
   - name: github
+versioning:
+  policy: calver

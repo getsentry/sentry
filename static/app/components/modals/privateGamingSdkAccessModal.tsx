@@ -2,7 +2,8 @@ import {Fragment, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Prose} from '@sentry/scraps/text';
 
@@ -429,7 +430,7 @@ export function PrivateGamingSdkAccessModal({
         )}
       </Body>
       <Footer>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           {hasNewGitHubFlow ? (
             // New flow footer
             showSuccessView ? (
@@ -465,7 +466,7 @@ export function PrivateGamingSdkAccessModal({
               </Button>
             </Fragment>
           )}
-        </ButtonBar>
+        </Grid>
       </Footer>
     </Fragment>
   );

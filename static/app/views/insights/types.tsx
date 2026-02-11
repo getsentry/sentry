@@ -80,6 +80,7 @@ export enum SpanFields {
   THREAD_ID = 'thread.id',
   COMMAND = 'command',
   REQUEST_METHOD = 'request.method',
+  SENTRY_ORIGIN = 'sentry.origin',
 
   // Cache fields
   CACHE_HIT = 'cache.hit',
@@ -323,7 +324,8 @@ export type SpanStringFields =
   | SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME
   | SpanFields.USER
   | SpanFields.PROFILER_ID
-  | SpanFields.USER_DISPLAY;
+  | SpanFields.USER_DISPLAY
+  | SpanFields.SENTRY_ORIGIN;
 
 type WebVitalsMeasurements =
   | SpanFields.CLS_SCORE

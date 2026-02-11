@@ -7,7 +7,7 @@ import {Badge} from '@sentry/scraps/badge';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
+import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
 import {useTestSuites} from 'sentry/components/prevent/testSuiteDropdown/useTestSuites';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
