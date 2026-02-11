@@ -1,3 +1,5 @@
+from unittest import mock
+
 import msgspec
 import pytest
 
@@ -204,6 +206,7 @@ def test_run_listener_metrics_recorded():
     """
     Test that success metrics and timing metrics are properly recorded.
     """
+    distributions = None
     metrics = []
     timers = []
 
@@ -223,6 +226,10 @@ def test_run_listener_metrics_recorded():
     def record_count(key, amount, tags):
         metrics.append((key, amount, tags))
 
+    def record_distribution(key, amount, tags, unit):
+        nonlocal distributions
+        distributions = (key, amount, tags, unit)
+
     def record_timer(key, amount, tags):
         timers.append((key, amount, tags))
 
@@ -234,16 +241,23 @@ def test_run_listener_metrics_recorded():
         get_current_time=lambda: 200.0,
         report_error=lambda e: None,
         record_count=record_count,
+        record_distribution=record_distribution,
         record_timer=record_timer,
     )
 
     assert ("sentry.scm.run_listener.success", 1, {"fn": "handler"}) in metrics
+    assert distributions == (
+        "sentry.scm.run_listener.message.size",
+        len(message),
+        {"provider": "github", "event_type_hint": "check_run"},
+        "byte",
+    )
     assert any(key == "sentry.scm.run_listener.start_time" for key, _, _ in timers)
     assert any(key == "sentry.scm.run_listener.task_time" for key, _, _ in timers)
     assert any(key == "sentry.scm.run_listener.real_time" for key, _, _ in timers)
 
 
-def test_run_listener_not_found_no_exception():
+def test_run_listener_not_found():
     """
     Test that calling a non-existent listener doesn't raise an exception.
     """
@@ -609,13 +623,9 @@ def test_deserialize_event_dispatches_correctly():
     )
     pr_bytes = msgspec.json.encode(pr_parser).decode("utf-8")
 
-    check_run_result = deserialize_event(check_run_bytes, "check_run")
-    comment_result = deserialize_event(comment_bytes, "comment")
-    pr_result = deserialize_event(pr_bytes, "pull_request")
-
-    assert isinstance(check_run_result, CheckRunEvent)
-    assert isinstance(comment_result, CommentEvent)
-    assert isinstance(pr_result, PullRequestEvent)
+    assert isinstance(deserialize_event(check_run_bytes, "check_run"), CheckRunEvent)
+    assert isinstance(deserialize_event(comment_bytes, "comment"), CommentEvent)
+    assert isinstance(deserialize_event(pr_bytes, "pull_request"), PullRequestEvent)
 
 
 def test_produce_to_listeners_check_run():
@@ -636,12 +646,6 @@ def test_produce_to_listeners_check_run():
         "type": "github",
     }
 
-    # Mock deserialize_raw_event and scm_event_stream
-    import sentry.scm.private.ipc as ipc_module
-
-    original_deserialize = ipc_module.deserialize_raw_event
-    original_stream = ipc_module.scm_event_stream
-
     def mock_deserialize(event):
         return CheckRunEvent(
             action="completed",
@@ -659,20 +663,14 @@ def test_produce_to_listeners_check_run():
     def listener_two(e):
         pass
 
-    ipc_module.deserialize_raw_event = mock_deserialize
-    ipc_module.scm_event_stream = mock_stream
-
-    try:
-        produce_to_listeners(subscription_event, "control", mock_produce)
+    with mock.patch("sentry.scm.private.ipc.deserialize_raw_event", mock_deserialize):
+        produce_to_listeners(subscription_event, "control", mock_produce, stream=mock_stream)
 
         assert len(produced_messages) == 2
         assert all(event_type == "check_run" for _, event_type, _, _ in produced_messages)
         assert all(silo == "control" for _, _, _, silo in produced_messages)
         listener_names = {listener_name for _, _, listener_name, _ in produced_messages}
         assert listener_names == {"listener_one", "listener_two"}
-    finally:
-        ipc_module.deserialize_raw_event = original_deserialize
-        ipc_module.scm_event_stream = original_stream
 
 
 def test_produce_to_listeners_comment():
@@ -686,17 +684,12 @@ def test_produce_to_listeners_comment():
 
     subscription_event = {
         "event": "{}",
-        "event_type_hint": None,
+        "event_type_hint": "comment",
         "extra": {},
         "received_at": 0,
         "sentry_meta": None,
         "type": "github",
     }
-
-    import sentry.scm.private.ipc as ipc_module
-
-    original_deserialize = ipc_module.deserialize_raw_event
-    original_stream = ipc_module.scm_event_stream
 
     def mock_deserialize(event):
         return CommentEvent(
@@ -712,18 +705,12 @@ def test_produce_to_listeners_comment():
     def comment_listener(e):
         pass
 
-    ipc_module.deserialize_raw_event = mock_deserialize
-    ipc_module.scm_event_stream = mock_stream
-
-    try:
-        produce_to_listeners(subscription_event, "region", mock_produce)
+    with mock.patch("sentry.scm.private.ipc.deserialize_raw_event", mock_deserialize):
+        produce_to_listeners(subscription_event, "region", mock_produce, stream=mock_stream)
 
         assert len(produced_messages) == 1
         assert produced_messages[0][1] == "comment"
         assert produced_messages[0][3] == "region"
-    finally:
-        ipc_module.deserialize_raw_event = original_deserialize
-        ipc_module.scm_event_stream = original_stream
 
 
 def test_produce_to_listeners_pull_request():
@@ -736,18 +723,13 @@ def test_produce_to_listeners_pull_request():
         produced_messages.append((message, event_type_hint, listener_name, silo))
 
     subscription_event = {
-        "event": "{}",
-        "event_type_hint": None,
+        "event": "",
+        "event_type_hint": "pull_request",
         "extra": {},
         "received_at": 0,
         "sentry_meta": None,
         "type": "github",
     }
-
-    import sentry.scm.private.ipc as ipc_module
-
-    original_deserialize = ipc_module.deserialize_raw_event
-    original_stream = ipc_module.scm_event_stream
 
     def mock_deserialize(event):
         return PullRequestEvent(
@@ -770,18 +752,12 @@ def test_produce_to_listeners_pull_request():
     def pr_listener(e):
         pass
 
-    ipc_module.deserialize_raw_event = mock_deserialize
-    ipc_module.scm_event_stream = mock_stream
-
-    try:
-        produce_to_listeners(subscription_event, "control", mock_produce)
+    with mock.patch("sentry.scm.private.ipc.deserialize_raw_event", mock_deserialize):
+        produce_to_listeners(subscription_event, "control", mock_produce, stream=mock_stream)
 
         assert len(produced_messages) == 1
         assert produced_messages[0][1] == "pull_request"
         assert produced_messages[0][3] == "control"
-    finally:
-        ipc_module.deserialize_raw_event = original_deserialize
-        ipc_module.scm_event_stream = original_stream
 
 
 def test_produce_to_listeners_returns_none_for_unsupported_events():
@@ -802,15 +778,7 @@ def test_produce_to_listeners_returns_none_for_unsupported_events():
         "type": "github",
     }
 
-    import sentry.scm.private.ipc as ipc_module
-
-    original_deserialize = ipc_module.deserialize_raw_event
-    ipc_module.deserialize_raw_event = lambda event: None
-
-    try:
+    with mock.patch("sentry.scm.private.ipc.deserialize_raw_event", lambda e: None):
         result = produce_to_listeners(subscription_event, "region", mock_produce)
-
         assert result is None
         assert len(produced_messages) == 0
-    finally:
-        ipc_module.deserialize_raw_event = original_deserialize

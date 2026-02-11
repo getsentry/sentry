@@ -29,7 +29,7 @@ class TestProduceToListenerIntegration(TestCase):
         with patch(
             "sentry.scm.private.ipc.run_webhook_handler_control_task.delay"
         ) as mock_control_delay:
-            produce_to_listener(b"", "check_run", "test_listener", "control")
+            produce_to_listener("", "check_run", "test_listener", "control")
             mock_control_delay.assert_called_once_with("test_listener", b"", "check_run")
 
     def test_produce_to_listener_region_silo(self):
@@ -39,7 +39,7 @@ class TestProduceToListenerIntegration(TestCase):
         with patch(
             "sentry.scm.private.ipc.run_webhook_handler_region_task.delay"
         ) as mock_region_delay:
-            produce_to_listener(b"", "check_run", "my_handler", "region")
+            produce_to_listener("", "check_run", "my_handler", "region")
             mock_region_delay.assert_called_once_with("my_handler", b"", "check_run")
 
 
@@ -111,7 +111,7 @@ class TestWebhookHandlerRegionTaskIntegration(TestCase):
         assert "region_listener" in scm.check_run_listeners
 
         check_run_event = CheckRunEventParser(
-            action="requested",
+            action="completed",
             check_run=CheckRunEventDataParser("ext-999", "https://example.com/check4"),
             subscription_event=SubscriptionEventParser(
                 "check_run", b"data", {}, 400, None, "github"

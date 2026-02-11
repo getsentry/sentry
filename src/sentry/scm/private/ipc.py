@@ -365,6 +365,7 @@ def produce_to_listeners(
     event: SubscriptionEvent,
     silo: HybridCloudSilo,
     produce_to_listener: Callable[[str, EventTypeHint, str, HybridCloudSilo], None],
+    stream: SourceCodeManagerEventStream = scm_event_stream,
 ) -> None:
     """
     Accepts a raw SubscriptionEvent and attempts to determine its type before sending it to the
@@ -385,13 +386,13 @@ def produce_to_listeners(
 
     if isinstance(parsed_event, CheckRunEvent):
         event_type_hint = "check_run"
-        listeners = list(scm_event_stream.check_run_listeners.keys())
+        listeners = list(stream.check_run_listeners.keys())
     elif isinstance(parsed_event, CommentEvent):
         event_type_hint = "comment"
-        listeners = list(scm_event_stream.comment_listeners.keys())
+        listeners = list(stream.comment_listeners.keys())
     else:
         event_type_hint = "pull_request"
-        listeners = list(scm_event_stream.pull_request_listeners.keys())
+        listeners = list(stream.pull_request_listeners.keys())
 
     for listener in listeners:
         produce_to_listener(message, cast(EventTypeHint, event_type_hint), listener, silo)
@@ -426,6 +427,7 @@ def run_webhook_handler_control_task(
         get_current_time=time.monotonic,
         report_error=report_error_to_sentry,
         record_count=record_count_metric,
+        record_distribution=record_distribution_metric,
         record_timer=record_timer_metric,
     )
 
@@ -447,6 +449,7 @@ def run_webhook_handler_region_task(
         get_current_time=time.monotonic,
         report_error=report_error_to_sentry,
         record_count=record_count_metric,
+        record_distribution=record_distribution_metric,
         record_timer=record_timer_metric,
     )
 
@@ -459,6 +462,11 @@ def report_error_to_sentry(e: Exception) -> None:
 def record_count_metric(key: str, amount: int, tags: dict[str, str]) -> None:
     """Typing wrapper around metrics.incr."""
     metrics.incr(key, amount, tags=tags)
+
+
+def record_distribution_metric(key: str, amount: int, tags: dict[str, str], unit: str) -> None:
+    """Typing wrapper around metrics.distribution."""
+    metrics.distribution(key, amount, tags=tags, unit=unit)
 
 
 def record_timer_metric(key: str, amount: float, tags: dict[str, str]) -> None:
@@ -478,6 +486,9 @@ def run_listener(
     get_current_time: Callable[[], float] = time.monotonic,
     report_error: Callable[[Exception], None] = report_error_to_sentry,
     record_count: Callable[[str, int, dict[str, str]], None] = record_count_metric,
+    record_distribution: Callable[
+        [str, int, dict[str, str], str], None
+    ] = record_distribution_metric,
     record_timer: Callable[[str, float, dict[str, str]], None] = record_timer_metric,
 ) -> None:
     """Execute an SCM platform listener."""
@@ -513,7 +524,12 @@ def run_listener(
     #   * start_time identifies the time from webhook received to task started. It measures total
     #     system latency.
     record_count(f"{METRIC_PREFIX}.success", 1, {"fn": listener})
-    record_count(f"{METRIC_PREFIX}.message_size", len(event_data), {"fn": listener})
+    record_distribution(
+        f"{METRIC_PREFIX}.message.size",
+        len(event_data),
+        {"provider": event.subscription_event["type"], "event_type_hint": event_type_hint},
+        "byte",
+    )
     record_timer(f"{METRIC_PREFIX}.start_time", start - received, {"fn": listener})
     record_timer(f"{METRIC_PREFIX}.task_time", end - start, {"fn": listener})
     record_timer(f"{METRIC_PREFIX}.real_time", received - start, {"fn": listener})
