@@ -38,7 +38,7 @@ const spanOperationsTable: Widget = {
       ],
       columns: [SpanFields.SPAN_OP, SpanFields.SPAN_DESCRIPTION],
       fieldAliases: [
-        'Operaton',
+        'Operation',
         'Span Description',
         'Slow Frames',
         'Frozen Frames',
