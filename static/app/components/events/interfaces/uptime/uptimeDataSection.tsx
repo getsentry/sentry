@@ -1,7 +1,8 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
@@ -130,7 +131,7 @@ export function UptimeDataSection({group, event, project}: Props) {
   const bucketedData = detectorId ? (uptimeStats?.[detectorId] ?? []) : [];
 
   const actions = (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       {defined(detectorId) && (
         <LinkButton
           icon={<IconSettings />}
@@ -144,7 +145,7 @@ export function UptimeDataSection({group, event, project}: Props) {
         </LinkButton>
       )}
       <ResolutionSelector />
-    </ButtonBar>
+    </Grid>
   );
 
   return (

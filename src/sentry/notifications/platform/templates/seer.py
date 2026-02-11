@@ -77,7 +77,6 @@ class SeerAutofixUpdate(NotificationData):
     pull_requests: list[SeerAutofixPullRequest] = field(default_factory=list)
     summary: str | None = None
     has_progressed: bool = False
-    automation_stopping_point: AutofixStoppingPoint | None = None
     source: NotificationSource = NotificationSource.SEER_AUTOFIX_UPDATE
 
     @property

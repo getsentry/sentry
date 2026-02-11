@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {growIn} from 'sentry/styles/animations';
 import type {StrictCSSObject, Theme} from 'sentry/utils/theme';
 
-export interface RadioProps extends Omit<
+interface RadioProps extends Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
   'type' | 'size'
 > {

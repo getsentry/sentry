@@ -204,7 +204,7 @@ function ReleaseActions({projectSlug, release, releaseMeta, refetchData}: Props)
           </Button>
         </Container>
       ) : null}
-      <ButtonBar merged gap="0">
+      <ButtonBar>
         <LinkButton
           size="sm"
           to={replaceReleaseUrl(release.currentProjectMeta.firstReleaseVersion)}

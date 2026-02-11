@@ -6,9 +6,9 @@ import sortBy from 'lodash/sortBy';
 
 import {AvatarList, CollapsedAvatars, TeamAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 import {InnerWrap, LeadingItems} from '@sentry/scraps/menuListItem';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -288,7 +288,7 @@ function EditAccessSelector({
 
   // Save and Cancel Buttons
   const dropdownFooterButtons = (
-    <FilterButtons gap="lg">
+    <FilterButtons>
       <Button
         size="sm"
         onClick={() => {
@@ -435,7 +435,9 @@ const StyledBadge = styled(Tag)<{size: number}>`
   margin-left: 0px;
 `;
 
-const FilterButtons = styled(ButtonBar)`
+const FilterButtons = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="lg" {...props} />
+))`
   margin-top: ${space(0.5)};
   margin-bottom: ${space(0.5)};
   justify-content: flex-end;

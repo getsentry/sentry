@@ -33,6 +33,7 @@ import {
   createIngestionSeries,
   getIngestionDelayBucketCount,
 } from 'sentry/components/metrics/chart/chart';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconWarning} from 'sentry/icons';
 import type {
   EChartClickHandler,
@@ -51,7 +52,6 @@ import {
 } from 'sentry/utils/discover/charts';
 import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 

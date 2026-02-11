@@ -2,8 +2,8 @@ import type {Location} from 'history';
 import * as Papa from 'papaparse';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';

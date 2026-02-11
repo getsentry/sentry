@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Image} from '@sentry/scraps/image';
@@ -36,7 +36,7 @@ export function TeamsPreview({
     <DebugNotificationsPreview
       title="MS Teams"
       actions={
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Button
             size="xs"
             onClick={() =>
@@ -57,7 +57,7 @@ export function TeamsPreview({
           >
             Designer
           </LinkButton>
-        </ButtonBar>
+        </Grid>
       }
     >
       <Container border="primary" radius="md">

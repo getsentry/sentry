@@ -1,4 +1,5 @@
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
@@ -62,7 +63,7 @@ export function MergedToolbar({groupId, project, onUnmerge, onToggleCollapse}: P
 
   return (
     <PanelHeader hasButtons>
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         <Confirm
           disabled={unmergeDisabled}
           onConfirm={onUnmerge}
@@ -91,7 +92,7 @@ export function MergedToolbar({groupId, project, onUnmerge, onToggleCollapse}: P
         >
           {t('Compare')}
         </Button>
-      </ButtonBar>
+      </Grid>
       <Button size="xs" onClick={onToggleCollapse}>
         {unmergeLastCollapsed ? t('Expand All') : t('Collapse All')}
       </Button>

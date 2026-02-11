@@ -22,6 +22,7 @@ jest.mock('sentry/views/dashboards/widgetLibrary/data', () => ({
       displayType: 'line',
       widgetType: 'transactions-like',
       queries: [],
+      isCustomizable: true,
     },
   ]),
 }));

@@ -19,6 +19,9 @@ export const MAX_WIDGETS = 30;
 
 export const DEFAULT_TABLE_LIMIT = 5;
 
+export const DEFAULT_CATEGORICAL_BAR_LIMIT = 20;
+export const MAX_CATEGORICAL_BAR_LIMIT = 25;
+
 export const DEFAULT_WIDGET_NAME = t('Custom Widget');
 
 export enum DisplayType {
@@ -29,6 +32,7 @@ export enum DisplayType {
   BIG_NUMBER = 'big_number',
   DETAILS = 'details',
   SERVER_TREE = 'server_tree',
+  RAGE_AND_DEAD_CLICKS = 'rage_and_dead_clicks',
   TOP_N = 'top_n',
   WHEEL = 'wheel',
   CATEGORICAL_BAR = 'categorical_bar',

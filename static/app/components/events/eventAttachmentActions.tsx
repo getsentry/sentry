@@ -1,4 +1,5 @@
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {useRole} from 'sentry/components/acl/useRole';
 import Confirm from 'sentry/components/confirm';
@@ -31,7 +32,7 @@ function EventAttachmentActions({
   const hasPreview = hasInlineAttachmentRenderer(attachment);
 
   return (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       {withPreviewButton && (
         <Button
           size="xs"
@@ -81,7 +82,7 @@ function EventAttachmentActions({
           }
         />
       </Confirm>
-    </ButtonBar>
+    </Grid>
   );
 }
 
