@@ -388,6 +388,14 @@ describe('contentBlockToMarkdown', () => {
     expect(contentBlockToMarkdown(block)).toBe('');
   });
 
+  it('returns empty string for tabbed CodeBlock with empty tabs array', () => {
+    const block: ContentBlock = {
+      type: 'code',
+      tabs: [],
+    };
+    expect(contentBlockToMarkdown(block)).toBe('');
+  });
+
   it('converts CustomBlock with string content', () => {
     const block: ContentBlock = {
       type: 'custom',
