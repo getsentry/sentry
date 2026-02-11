@@ -2287,6 +2287,12 @@ register(
     type=Sequence,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When enabled, use segment metrics for ALL orgs in boost low volume transactions.
+register(
+    "dynamic-sampling.transactions.segment-metric.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # List of organization IDs that should be using segment metrics for recalibrate_orgs.
 register(
@@ -2295,12 +2301,38 @@ register(
     type=Sequence,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When enabled, use segment metrics for ALL orgs in recalibrate_orgs.
+register(
+    "dynamic-sampling.recalibrate_orgs.segment-metric.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # List of organization IDs that should be using segment metrics for sliding_window_org.
 register(
     "dynamic-sampling.sliding_window_org.segment-metric-orgs",
     default=[],
     type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When enabled, use segment metrics for ALL orgs in sliding_window_org.
+register(
+    "dynamic-sampling.sliding_window_org.segment-metric.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# List of organization IDs that should be using segment metrics for boost_low_volume_projects.
+register(
+    "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When enabled, use segment metrics for ALL orgs in boost_low_volume_projects.
+register(
+    "dynamic-sampling.boost_low_volume_projects.segment-metric.enabled",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3177,7 +3209,7 @@ register(
 # ZSET to SET migration options.
 register(
     "spans.buffer.write-to-zset",
-    default=True,
+    default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3187,7 +3219,7 @@ register(
 )
 register(
     "spans.buffer.read-from-set",
-    default=False,
+    default=True,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3959,6 +3991,14 @@ register(
 # Project ID allowlist to enable missing SDK integration detector for specific projects.
 register(
     "autopilot.missing-sdk-integration.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Project ID allowlist to enable trace instrumentation detector for specific projects.
+register(
+    "autopilot.trace-instrumentation.projects-allowlist",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,

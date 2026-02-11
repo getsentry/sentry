@@ -1,4 +1,7 @@
-import {hasError} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getStringAttr,
+  hasError,
+} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
@@ -261,8 +264,4 @@ export function extractTextFromMessage(msg: RequestMessage): string | null {
   }
 
   return null;
-}
-
-function getStringAttr(node: AITraceSpanNode, field: SpanFields): string | undefined {
-  return node.attributes?.[field] as string | undefined;
 }
