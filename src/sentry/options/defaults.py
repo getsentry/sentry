@@ -3195,7 +3195,7 @@ register(
 )
 register(
     "spans.buffer.read-from-set",
-    default=False,
+    default=True,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
