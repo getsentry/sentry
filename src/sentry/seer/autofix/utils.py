@@ -487,23 +487,25 @@ def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
     return has_seat_based_seer
 
 
-def is_issue_eligible_for_seer_automation(group: Group) -> bool:
-    """Check if Seer automation is allowed for a given group based on permissions and issue type."""
-    from sentry import quotas
+def is_issue_category_eligible(group: Group) -> bool:
+    """Check if the issue category is eligible for Seer."""
     from sentry.issues.grouptype import GroupCategory
 
-    # check currently supported issue categories for Seer
-    if group.issue_category not in [
+    return group.issue_category in {
         GroupCategory.ERROR,
         GroupCategory.PERFORMANCE,
         GroupCategory.MOBILE,
         GroupCategory.FRONTEND,
         GroupCategory.DB_QUERY,
         GroupCategory.HTTP_CLIENT,
-    ] or group.issue_category in [
-        GroupCategory.REPLAY,
-        GroupCategory.FEEDBACK,
-    ]:
+    }
+
+
+def is_issue_eligible_for_seer_automation(group: Group) -> bool:
+    """Check if Seer automation is allowed for a given group based on permissions and issue type."""
+    from sentry import quotas
+
+    if not is_issue_category_eligible(group):
         return False
 
     if not features.has("organizations:gen-ai-features", group.organization):
