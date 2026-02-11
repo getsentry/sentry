@@ -47,8 +47,8 @@ const avgTTFDBigNumberWidget: Widget = {
   queries: [
     {
       name: '',
-      fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
-      aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY})`],
+      fields: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY})`],
+      aggregates: [`avg(${SpanFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY})`],
       columns: [],
       conditions: TRANSACTION_CONDITION,
       orderby: '',
