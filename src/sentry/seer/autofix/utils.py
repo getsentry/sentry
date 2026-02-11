@@ -491,17 +491,14 @@ def is_issue_category_eligible(group: Group) -> bool:
     """Check if the issue category is eligible for Seer."""
     from sentry.issues.grouptype import GroupCategory
 
-    return group.issue_category in [
+    return group.issue_category in {
         GroupCategory.ERROR,
         GroupCategory.PERFORMANCE,
         GroupCategory.MOBILE,
         GroupCategory.FRONTEND,
         GroupCategory.DB_QUERY,
         GroupCategory.HTTP_CLIENT,
-    ] and group.issue_category not in [
-        GroupCategory.REPLAY,
-        GroupCategory.FEEDBACK,
-    ]
+    }
 
 
 def is_issue_eligible_for_seer_automation(group: Group) -> bool:

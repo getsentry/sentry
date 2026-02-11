@@ -264,7 +264,6 @@ class SeerOperatorTest(TestCase):
         with self.feature(
             {
                 "organizations:gen-ai-features": True,
-                "organizations:gen-ai-consent-flow-removal": True,
             }
         ):
             assert SeerOperator.can_trigger_autofix(group=self.group) is True
@@ -277,7 +276,6 @@ class SeerOperatorTest(TestCase):
         with self.feature(
             {
                 "organizations:gen-ai-features": True,
-                "organizations:gen-ai-consent-flow-removal": True,
             }
         ):
             assert SeerOperator.can_trigger_autofix(group=feedback_group) is False
@@ -287,7 +285,6 @@ class SeerOperatorTest(TestCase):
         with self.feature(
             {
                 "organizations:gen-ai-features": True,
-                "organizations:gen-ai-consent-flow-removal": True,
             }
         ):
             assert SeerOperator.can_trigger_autofix(group=self.group) is False
