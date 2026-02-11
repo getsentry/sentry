@@ -68,7 +68,7 @@ class Migration(CheckedMigration):
                 ),
                 ("provider_key", models.CharField(max_length=32)),
                 ("target_id", models.CharField(max_length=255)),
-                ("message_id", models.CharField(max_length=255)),
+                ("message_id", models.CharField(db_index=True, max_length=255)),
                 ("error_details", models.JSONField(null=True)),
                 ("date_added", models.DateTimeField(auto_now_add=True)),
                 ("date_updated", models.DateTimeField(auto_now=True)),

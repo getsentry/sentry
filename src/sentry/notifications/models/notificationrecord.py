@@ -36,7 +36,7 @@ class NotificationRecord(DefaultFieldsModel):
     target_id = models.CharField(max_length=255)  # channel_id, conversation_id, etc.
 
     # Message identifier (provider-specific)
-    message_id = models.CharField(max_length=255)
+    message_id = models.CharField(max_length=255, db_index=True)
 
     # Error tracking - populated when send fails
     error_details = models.JSONField(null=True)
