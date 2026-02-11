@@ -11,9 +11,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {ReleasesSortOption} from 'sentry/constants/releases';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import ReleasesList from 'sentry/views/releases/list/';
 import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';

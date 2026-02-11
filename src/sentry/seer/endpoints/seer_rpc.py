@@ -228,7 +228,7 @@ class SeerRpcServiceEndpoint(Endpoint):
         sentry_sdk.set_tag("rpc.method", method_name)
         seer_referrer = request.headers.get("X-Seer-Referrer")
         if seer_referrer is not None:
-            sentry_sdk.set_tag("seer_referrer", seer_referrer)
+            sentry_sdk.set_tag("rpc.referrer", seer_referrer)
 
         if not self._is_authorized(request):
             raise PermissionDenied

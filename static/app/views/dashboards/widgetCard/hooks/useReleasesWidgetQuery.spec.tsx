@@ -5,7 +5,7 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {SessionField} from 'sentry/types/sessions';
 import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {DisplayType} from 'sentry/views/dashboards/types';

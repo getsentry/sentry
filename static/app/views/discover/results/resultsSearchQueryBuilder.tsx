@@ -12,7 +12,8 @@ import {
   STATIC_SEMVER_TAGS,
   STATIC_SPAN_TAGS,
 } from 'sentry/components/events/searchBarFieldConstants';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {
   SearchQueryBuilderProvider,
@@ -50,7 +51,6 @@ import type Measurements from 'sentry/utils/measurements/measurements';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useTags from 'sentry/utils/useTags';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';

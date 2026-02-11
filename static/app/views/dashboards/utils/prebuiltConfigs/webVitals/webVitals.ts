@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -25,8 +26,8 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'span.system',
-          name: 'span.system',
+          key: 'user.geo.subregion',
+          name: 'user.geo.subregion',
           kind: FieldKind.TAG,
         },
         value: '',
@@ -34,17 +35,8 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'span.action',
-          name: 'span.action',
-          kind: FieldKind.TAG,
-        },
-        value: '',
-      },
-      {
-        dataset: WidgetType.SPANS,
-        tag: {
-          key: 'span.domain',
-          name: 'span.domain',
+          key: 'browser.name',
+          name: 'browser.name',
           kind: FieldKind.TAG,
         },
         value: '',
@@ -53,48 +45,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   },
   widgets: [
     {
-      id: 'score-breakdown-wheel',
-      description: t('The overall performance rating of this page.'),
-      title: t('Performance Score'),
-      displayType: DisplayType.WHEEL,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: DEFAULT_QUERY_FILTER,
-          fields: [
-            'performance_score(measurements.score.lcp)',
-            'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.inp)',
-            'performance_score(measurements.score.cls)',
-            'performance_score(measurements.score.ttfb)',
-            'performance_score(measurements.score.total)',
-            'count_scores(measurements.score.total)',
-            'count_scores(measurements.score.lcp)',
-            'count_scores(measurements.score.fcp)',
-            'count_scores(measurements.score.inp)',
-            'count_scores(measurements.score.cls)',
-            'count_scores(measurements.score.ttfb)',
-          ],
-          aggregates: [],
-          columns: [
-            'performance_score(measurements.score.lcp)',
-            'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.inp)',
-            'performance_score(measurements.score.cls)',
-            'performance_score(measurements.score.ttfb)',
-            'performance_score(measurements.score.total)',
-            'count_scores(measurements.score.total)',
-            'count_scores(measurements.score.lcp)',
-            'count_scores(measurements.score.fcp)',
-            'count_scores(measurements.score.inp)',
-            'count_scores(measurements.score.cls)',
-            'count_scores(measurements.score.ttfb)',
-          ],
-          orderby: '',
-        },
-      ],
+      ...SCORE_BREAKDOWN_WHEEL_WIDGET,
       layout: {
         y: 0,
         w: 2,

@@ -18,8 +18,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import AutomationsList from 'sentry/views/automations/list';
 

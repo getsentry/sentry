@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {EventsStatsSeries} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -10,7 +11,6 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 interface UseProfileTopEventsStatsOptions<F> {
   dataset: 'profileFunctions';

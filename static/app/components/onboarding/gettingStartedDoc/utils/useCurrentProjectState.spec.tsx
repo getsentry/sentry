@@ -4,13 +4,13 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {
   feedbackOnboardingPlatforms,
   replayOnboardingPlatforms,
   replayPlatforms,
 } from 'sentry/data/platformCategories';
 import {OnboardingDrawerKey} from 'sentry/stores/onboardingDrawerStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 

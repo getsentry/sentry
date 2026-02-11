@@ -8,13 +8,17 @@ import {Text} from '@sentry/scraps/text';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import Count from 'sentry/components/count';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChat, IconFire, IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {hasError} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getNumberAttr,
+  getStringAttr,
+  hasError,
+} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 import {
   getIsAiGenerationSpan,
@@ -38,7 +42,7 @@ interface ConversationAggregates {
 }
 
 function getGenAiOpType(node: AITraceSpanNode): string | undefined {
-  return node.attributes?.[SpanFields.GEN_AI_OPERATION_TYPE] as string | undefined;
+  return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
 }
 
 function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
@@ -53,8 +57,8 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
 
     if (getIsAiGenerationSpan(opType)) {
       llmCalls++;
-      totalTokens += Number(node.attributes?.[SpanFields.GEN_AI_USAGE_TOTAL_TOKENS] ?? 0);
-      totalCost += Number(node.attributes?.[SpanFields.GEN_AI_COST_TOTAL_TOKENS] ?? 0);
+      totalTokens += getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS) ?? 0;
+      totalCost += getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) ?? 0;
     } else if (getIsExecuteToolSpan(opType)) {
       toolCalls++;
     }

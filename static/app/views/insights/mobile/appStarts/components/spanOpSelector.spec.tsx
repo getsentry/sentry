@@ -4,10 +4,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/utils/usePageFilters';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {SpanOpSelector} from 'sentry/views/insights/mobile/appStarts/components/spanOpSelector';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('SpanOpSelector', () => {
   const organization = OrganizationFixture();
