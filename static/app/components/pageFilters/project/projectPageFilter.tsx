@@ -4,8 +4,10 @@ import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
@@ -41,7 +43,6 @@ export interface ProjectPageFilterProps extends Partial<
     | 'menuBody'
     | 'menuFooter'
     | 'menuFooterMessage'
-    | 'checkboxWrapper'
     | 'shouldCloseOnInteractOutside'
     | 'sizeLimitMessage'
   >
@@ -240,9 +241,20 @@ export function ProjectPageFilter({
     const getProjectItem = (project: Project) => {
       return {
         value: parseInt(project.id, 10),
-        label: project.slug,
-        leadingItems: (
-          <ProjectBadge project={project} avatarSize={16} hideName disableLink />
+        leadingItems: ({isSelected}) => (
+          <Checkbox
+            size="sm"
+            checked={isSelected}
+            onChange={() => handleChange([...value, parseInt(project.id, 10)])}
+            aria-label={t('Select %s', project.slug)}
+            tabIndex={-1}
+          />
+        ),
+        label: (
+          <Flex align="center" gap="sm">
+            <ProjectBadge project={project} avatarSize={16} hideName disableLink />
+            <Text ellipsis>{project.slug}</Text>
+          </Flex>
         ),
         trailingItems: (props: {isFocused: boolean}) => {
           return (
@@ -324,6 +336,8 @@ export function ProjectPageFilter({
     nonMemberProjects,
     mapURLValueToNormalValue,
     pageFilterValue,
+    handleChange,
+    value,
   ]);
 
   const desynced = desyncedFilters.has('projects');
@@ -374,7 +388,6 @@ export function ProjectPageFilter({
     <HybridFilter
       {...selectProps}
       searchable
-      checkboxPosition="trailing"
       multiple
       options={options}
       value={value}

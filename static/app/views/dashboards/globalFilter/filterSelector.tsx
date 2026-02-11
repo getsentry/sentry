@@ -347,7 +347,6 @@ function FilterSelector({
 
   return (
     <HybridFilter
-      checkboxPosition="leading"
       searchable
       disabled={false}
       options={translatedOptions}

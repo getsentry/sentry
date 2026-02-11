@@ -34,7 +34,6 @@ export interface EnvironmentPageFilterProps extends Partial<
     | 'menuBody'
     | 'menuFooter'
     | 'menuFooterMessage'
-    | 'checkboxWrapper'
     | 'shouldCloseOnInteractOutside'
     | 'triggerProps'
   >
@@ -196,7 +195,6 @@ export function EnvironmentPageFilter({
   return (
     <HybridFilter
       {...selectProps}
-      checkboxPosition="leading"
       searchable
       multiple
       options={options}

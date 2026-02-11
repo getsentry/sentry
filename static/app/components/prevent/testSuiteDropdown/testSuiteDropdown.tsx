@@ -81,7 +81,6 @@ export function TestSuiteDropdown() {
 
   return (
     <HybridFilter
-      checkboxPosition="leading"
       searchable
       multiple
       options={options}
