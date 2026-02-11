@@ -439,7 +439,7 @@ describe('stepsToMarkdown', () => {
     expect(result).toContain('Install the SDK.');
     expect(result).toContain('```bash\nnpm install @sentry/node\n```');
 
-    expect(result).toContain('## Configure');
+    expect(result).toContain('## Configure SDK');
     expect(result).toContain('Configure Sentry in your app.');
 
     expect(result).toContain('## Verify');

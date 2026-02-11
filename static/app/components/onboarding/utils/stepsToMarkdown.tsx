@@ -2,6 +2,7 @@ import type React from 'react';
 
 import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 import {deriveTabKey} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
+import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {OnboardingStep} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
 // &amp; must be decoded last to avoid double-decoding (e.g. &amp;lt; → &lt; → <)
@@ -311,9 +312,7 @@ function stepTitle(step: OnboardingStep): string {
     return step.title;
   }
   if (step.type) {
-    // Capitalize the step type enum value
-    const typeStr = step.type as string;
-    return typeStr.charAt(0).toUpperCase() + typeStr.slice(1);
+    return StepTitles[step.type];
   }
   return 'Step';
 }
