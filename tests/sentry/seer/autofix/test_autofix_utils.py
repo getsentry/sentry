@@ -307,18 +307,14 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
     def test_returns_true_for_supported_issue_categories(self):
         """Test returns True for supported issue categories when all conditions are met."""
         with self.feature("organizations:gen-ai-features"):
-            with patch(
-                "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner"
-            ) as mock_ack:
-                with patch("sentry.quotas.backend.check_seer_quota") as mock_budget:
-                    mock_ack.return_value = True
-                    mock_budget.return_value = True
-                    self.project.update_option("sentry:seer_scanner_automation", True)
+            with patch("sentry.quotas.backend.check_seer_quota") as mock_budget:
+                mock_budget.return_value = True
+                self.project.update_option("sentry:seer_scanner_automation", True)
 
-                    # Test supported categories - using default error group
-                    result = is_issue_eligible_for_seer_automation(self.group)
+                # Test supported categories - using default error group
+                result = is_issue_eligible_for_seer_automation(self.group)
 
-                    assert result is True
+                assert result is True
 
     def test_returns_false_when_gen_ai_features_not_enabled(self):
         """Test returns False when organizations:gen-ai-features feature flag is not enabled."""
@@ -339,27 +335,11 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
             result = is_issue_eligible_for_seer_automation(self.group)
             assert result is False
 
-    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner")
-    def test_returns_false_when_org_not_acknowledged(self, mock_get_acknowledgement):
-        """Test returns False when organization has not acknowledged Seer for scanner."""
-        with self.feature("organizations:gen-ai-features"):
-            self.project.update_option("sentry:seer_scanner_automation", True)
-            mock_get_acknowledgement.return_value = False
-
-            result = is_issue_eligible_for_seer_automation(self.group)
-
-            assert result is False
-            mock_get_acknowledgement.assert_called_once_with(self.organization)
-
-    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner")
     @patch("sentry.quotas.backend.check_seer_quota")
-    def test_returns_false_when_no_budget_available(
-        self, mock_has_budget, mock_get_acknowledgement
-    ):
+    def test_returns_false_when_no_budget_available(self, mock_has_budget):
         """Test returns False when organization has no available budget for scanner."""
         with self.feature("organizations:gen-ai-features"):
             self.project.update_option("sentry:seer_scanner_automation", True)
-            mock_get_acknowledgement.return_value = True
             mock_has_budget.return_value = False
 
             result = is_issue_eligible_for_seer_automation(self.group)
@@ -369,33 +349,31 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
                 org_id=self.organization.id, data_category=DataCategory.SEER_SCANNER
             )
 
-    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner")
     @patch("sentry.quotas.backend.check_seer_quota")
-    def test_returns_true_when_all_conditions_met(self, mock_has_budget, mock_get_acknowledgement):
+    def test_returns_true_when_all_conditions_met(self, mock_has_budget):
         """Test returns True when all eligibility conditions are met."""
         with self.feature("organizations:gen-ai-features"):
             self.project.update_option("sentry:seer_scanner_automation", True)
-            mock_get_acknowledgement.return_value = True
+
             mock_has_budget.return_value = True
 
             result = is_issue_eligible_for_seer_automation(self.group)
 
             assert result is True
-            mock_get_acknowledgement.assert_called_once_with(self.organization)
             mock_has_budget.assert_called_once_with(
                 org_id=self.organization.id, data_category=DataCategory.SEER_SCANNER
             )
 
-    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner")
     @patch("sentry.quotas.backend.check_seer_quota")
     def test_returns_true_when_issue_type_always_triggers(
-        self, mock_has_budget, mock_get_acknowledgement
+        self,
+        mock_has_budget,
     ):
         """Test returns True when issue type has always_trigger_seer_automation even if scanner automation is disabled."""
         with self.feature("organizations:gen-ai-features"):
             # Disable scanner automation
             self.project.update_option("sentry:seer_scanner_automation", False)
-            mock_get_acknowledgement.return_value = True
+
             mock_has_budget.return_value = True
 
             # Mock the group's issue_type to always trigger
