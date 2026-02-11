@@ -96,7 +96,12 @@ def relay_server_setup(live_server, tmpdir_factory):
     template_path = _get_template_dir()
     sources = ["config.yml", "credentials.json"]
 
-    relay_port = ephemeral_port_reserve.reserve(ip="127.0.0.1", port=33331)
+    # Use a worker-specific port hint to avoid collisions under xdist.
+    # Each worker offsets by 100 so their ephemeral_port_reserve searches
+    # don't overlap (gw0→33331, gw1→33431, gw2→33531, etc.)
+    worker_id = environ.get("PYTEST_XDIST_WORKER", "gw0")
+    worker_num = int(worker_id.replace("gw", ""))
+    relay_port = ephemeral_port_reserve.reserve(ip="127.0.0.1", port=33331 + worker_num * 100)
 
     redis_db = _get_xdist_redis_db()
 
