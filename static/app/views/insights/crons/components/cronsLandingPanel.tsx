@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment, useEffect, useRef, type ComponentType} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -13,6 +13,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import MonitorCreateForm from 'sentry/views/insights/crons/components/monitorCreateForm';
@@ -20,29 +21,57 @@ import MonitorCreateForm from 'sentry/views/insights/crons/components/monitorCre
 import {PlatformPickerPanel} from './platformPickerPanel';
 import {useCronsUpsertGuideState} from './useCronsUpsertGuideState';
 
-export function CronsLandingPanel() {
-  const organization = useOrganization();
-  const guideContainerRef = useRef<HTMLDivElement>(null);
-
-  const {platformKey, guideKey, platform, setPlatformGuide} = useCronsUpsertGuideState();
-  const guideVisibile = platform && guideKey;
-
-  const activeGuide = platform?.guides.find(g => g.key === guideKey);
+/**
+ * Wrapper that gives each guide tab its own ref for innerHTML-based
+ * markdown copying. Without this, a shared ref would always point to
+ * the last rendered tab panel instead of the active one.
+ */
+function GuideWithCopy({
+  Guide,
+  organization,
+  source,
+}: {
+  Guide: ComponentType;
+  organization: Organization;
+  source: string;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // TODO: Migrate crons guides to the content block system so we can use
   // structured stepsToMarkdown() instead of innerHTML scraping. The innerHTML
   // approach may include rendered UI chrome and won't substitute auth tokens.
-  const getGuideMarkdown = () => {
-    if (!guideContainerRef.current) {
+  const getMarkdown = () => {
+    if (!containerRef.current) {
       return '';
     }
     try {
-      const html = guideContainerRef.current.innerHTML;
-      return simpleHtmlToMarkdown(html);
+      return simpleHtmlToMarkdown(containerRef.current.innerHTML);
     } catch {
       return '';
     }
   };
+
+  return (
+    <GuideContainer>
+      <Container>
+        <CopyMarkdownButton
+          getMarkdown={getMarkdown}
+          organization={organization}
+          source={source}
+        />
+      </Container>
+      <div ref={containerRef}>
+        <Guide />
+      </div>
+    </GuideContainer>
+  );
+}
+
+export function CronsLandingPanel() {
+  const organization = useOrganization();
+
+  const {platformKey, guideKey, platform, setPlatformGuide} = useCronsUpsertGuideState();
+  const guideVisibile = platform && guideKey;
 
   const OnboardingPanelHook = HookOrDefault({
     hookName: 'component:crons-onboarding-panel',
@@ -97,18 +126,11 @@ export function CronsLandingPanel() {
               {[
                 ...platform.guides.map(({key, Guide}) => (
                   <TabPanels.Item key={key}>
-                    <GuideContainer ref={guideContainerRef}>
-                      <Container>
-                        {activeGuide && (
-                          <CopyMarkdownButton
-                            getMarkdown={getGuideMarkdown}
-                            organization={organization}
-                            source="crons_upsert_guide"
-                          />
-                        )}
-                      </Container>
-                      <Guide />
-                    </GuideContainer>
+                    <GuideWithCopy
+                      Guide={Guide}
+                      organization={organization}
+                      source="crons_upsert_guide"
+                    />
                   </TabPanels.Item>
                 )),
                 <TabPanels.Item key="manual">

@@ -335,7 +335,7 @@ export function Onboarding() {
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <OnboardingCopyMarkdownButton
-        steps={steps}
+        steps={steps.filter(s => !s.collapsible)}
         organization={organization}
         source="mcp_onboarding"
       />

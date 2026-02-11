@@ -306,7 +306,7 @@ export function Onboarding() {
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <ContinuousProfilingBillingRequirementBanner project={project} />
       <OnboardingCopyMarkdownButton
-        steps={steps}
+        steps={steps.filter(s => !s.collapsible)}
         organization={organization}
         source="profiling_onboarding"
       />

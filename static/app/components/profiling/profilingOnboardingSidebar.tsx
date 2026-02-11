@@ -10,6 +10,7 @@ import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {DeprecatedPlatformInfo} from 'sentry/components/onboarding/gettingStartedDoc/deprecatedPlatformInfo';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
@@ -361,21 +362,23 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
   const steps = [...doc.install(docParams), ...doc.configure(docParams)];
 
   return (
-    <TabSelectionScope>
-      <Wrapper>
-        {doc.introduction && <Introduction>{doc.introduction(docParams)}</Introduction>}
-        <OnboardingCopyMarkdownButton
-          steps={steps}
-          organization={props.organization}
-          source="profiling_sidebar_onboarding"
-        />
-        <Steps>
-          {steps.map((step, index) => {
-            return <Step key={step.title ?? step.type} stepIndex={index} {...step} />;
-          })}
-        </Steps>
-      </Wrapper>
-    </TabSelectionScope>
+    <AuthTokenGeneratorProvider projectSlug={props.project.slug}>
+      <TabSelectionScope>
+        <Wrapper>
+          {doc.introduction && <Introduction>{doc.introduction(docParams)}</Introduction>}
+          <OnboardingCopyMarkdownButton
+            steps={steps}
+            organization={props.organization}
+            source="profiling_sidebar_onboarding"
+          />
+          <Steps>
+            {steps.map((step, index) => {
+              return <Step key={step.title ?? step.type} stepIndex={index} {...step} />;
+            })}
+          </Steps>
+        </Wrapper>
+      </TabSelectionScope>
+    </AuthTokenGeneratorProvider>
   );
 }
 

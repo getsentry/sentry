@@ -1,9 +1,17 @@
 import type React from 'react';
-import {renderToStaticMarkup} from 'react-dom/server';
 
 import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 import {deriveTabKey} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import type {OnboardingStep} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
+// Lazy-load react-dom/server to keep it out of the main client bundle (~40KB).
+// The dynamic import starts immediately when this module is first imported and
+// resolves well before the user clicks "Copy". Falls back to direct tree
+// walking (extractTextFromReactNode) if not yet loaded.
+let _renderToStaticMarkup: ((element: React.ReactElement) => string) | undefined;
+import('react-dom/server').then(mod => {
+  _renderToStaticMarkup = mod.renderToStaticMarkup;
+});
 
 const HTML_ENTITIES: Record<string, string> = {
   '&amp;': '&',
@@ -169,14 +177,19 @@ export function reactNodeToText(node: React.ReactNode): string {
     return String(node);
   }
 
-  try {
-    const html = renderToStaticMarkup(node as React.ReactElement);
-    return simpleHtmlToMarkdown(html);
-  } catch {
-    // Fallback: walk the element tree directly when renderToStaticMarkup fails
-    // (e.g. components needing router context like <Link>)
-    return extractTextFromReactNode(node);
+  if (_renderToStaticMarkup) {
+    try {
+      const html = _renderToStaticMarkup(node as React.ReactElement);
+      return simpleHtmlToMarkdown(html);
+    } catch {
+      // Fallback: walk the element tree directly when renderToStaticMarkup fails
+      // (e.g. components needing router context like <Link>)
+      return extractTextFromReactNode(node);
+    }
   }
+
+  // react-dom/server not yet loaded — fall back to direct tree walking
+  return extractTextFromReactNode(node);
 }
 
 interface MarkdownOptions {
