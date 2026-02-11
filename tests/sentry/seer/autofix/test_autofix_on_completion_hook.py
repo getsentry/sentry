@@ -576,3 +576,61 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         call_kwargs = mock_trigger.call_args.kwargs
         assert call_kwargs["run_id"] == 123
         assert call_kwargs["integration_id"] == 123
+
+
+class AutofixOnCompletionHookTest(TestCase):
+    """Test the AutofixOnCompletionHook behavior."""
+
+    @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_explorer")
+    def test_next_step_not_triggered_when_coding_disabled(
+        self, mock_trigger_autofix, mock_fetch_run_status
+    ):
+        """Test that next step is not triggered if next step is CODE_CHANGES and sentry:enable_seer_coding is disabled."""
+        self.organization.update_option("sentry:enable_seer_coding", False)
+        group = self.create_group(project=self.project)
+
+        # Mock run state: SOLUTION step just completed
+        state = run_state(
+            blocks=[solution_memory_block()],
+            metadata={
+                "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
+                "group_id": group.id,
+            },
+        )
+        mock_fetch_run_status.return_value = state
+
+        # Execute the hook
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        # Verify: trigger_autofix_explorer was NOT called (next step blocked)
+        mock_trigger_autofix.assert_not_called()
+
+    @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_explorer")
+    def test_next_step_triggered_when_coding_enabled(
+        self, mock_trigger_autofix, mock_fetch_run_status
+    ):
+        """Test that next step IS triggered when next step is CODE_CHANGES and sentry:enable_seer_coding is enabled."""
+        self.organization.update_option("sentry:enable_seer_coding", True)
+        group = self.create_group(project=self.project)
+
+        # Mock run state: SOLUTION step just completed
+        state = run_state(
+            blocks=[solution_memory_block()],
+            metadata={
+                "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
+                "group_id": group.id,
+            },
+        )
+        mock_fetch_run_status.return_value = state
+
+        # Execute the hook
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        # Verify: trigger_autofix_explorer WAS called with CODE_CHANGES step
+        mock_trigger_autofix.assert_called_once()
+        call_kwargs = mock_trigger_autofix.call_args.kwargs
+        assert call_kwargs["step"] == AutofixStep.CODE_CHANGES
+        assert call_kwargs["group"] == group
+        assert call_kwargs["run_id"] == 123
