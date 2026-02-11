@@ -1,7 +1,8 @@
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {useFormTypingAnimation} from 'sentry/components/events/autofix/useFormTypingAnimation';
 import FormModel from 'sentry/components/forms/model';
+
+import {useFormTypingAnimation} from './useFormTypingAnimation';
 
 describe('useFormTypingAnimation', () => {
   function useTestHook(props: {speed?: number}) {
