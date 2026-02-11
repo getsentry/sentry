@@ -2,17 +2,14 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {TOP_N} from 'sentry/utils/discover/types';
-import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-
-type WidgetTemplate = Widget & {
-  description: string;
-};
+import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';
+import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
 
 const getDefaultWidgets = (organization: Organization) => {
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
-  const transactionsWidgets = [
+  const transactionsWidgets: WidgetTemplate[] = [
     {
       id: 'duration-distribution',
       title: t('Duration Distribution'),
@@ -20,6 +17,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.LINE,
       widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -46,6 +44,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.TOP_N,
       widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -65,6 +64,7 @@ const getDefaultWidgets = (organization: Organization) => {
       widgetType: WidgetType.RELEASE,
       interval: '5m',
       limit: 8,
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -83,6 +83,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.RELEASE,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -101,6 +102,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -119,6 +121,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -139,6 +142,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.BAR,
       widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -157,7 +161,7 @@ const getDefaultWidgets = (organization: Organization) => {
       ],
     },
   ];
-  const spanWidgets = [
+  const spanWidgets: WidgetTemplate[] = [
     {
       id: 'duration-distribution',
       title: t('Duration Distribution'),
@@ -165,6 +169,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.LINE,
       widgetType: WidgetType.SPANS,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -183,6 +188,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.TOP_N,
       widgetType: WidgetType.SPANS,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -202,6 +208,7 @@ const getDefaultWidgets = (organization: Organization) => {
       widgetType: WidgetType.RELEASE,
       interval: '5m',
       limit: 8,
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -220,6 +227,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.RELEASE,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -238,6 +246,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.SPANS,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -256,6 +265,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: 'Slow Transactions',
@@ -277,8 +287,9 @@ const getDefaultWidgets = (organization: Organization) => {
         },
       ],
     },
+    SCORE_BREAKDOWN_WHEEL_WIDGET,
   ];
-  const errorsWidgets = [
+  const errorsWidgets: WidgetTemplate[] = [
     {
       id: 'issue-for-review',
       title: t('Issues For Review'),
@@ -286,6 +297,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.ISSUE,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -304,6 +316,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.TOP_N,
       widgetType: WidgetType.ERRORS,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
@@ -322,6 +335,7 @@ const getDefaultWidgets = (organization: Organization) => {
       displayType: DisplayType.LINE,
       widgetType: WidgetType.ERRORS,
       interval: '5m',
+      isCustomizable: true,
       queries: [
         {
           name: '',
