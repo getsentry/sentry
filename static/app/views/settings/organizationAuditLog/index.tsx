@@ -111,9 +111,39 @@ function OrganizationAuditLog() {
           query: payload,
         }
       );
+
+      // Optional: prepend sample repo-settings audit messages for screenshot (e.g. ?seed_repo_settings=1)
+      const seedRepoSettings = decodeScalar(location.query.seed_repo_settings);
+      const hundredRepos = Array.from(
+        {length: 200},
+        (_, i) => `org-${(i % 5) + 1}/repo-${i + 1}`
+      ).join(', ');
+      const repoSettingsSamples: AuditLog[] = seedRepoSettings
+        ? [
+            'updated repository settings for getsentry/sentry, getsentry/relay, getsentry/getsentry (enabled code review)',
+            'updated repository settings for my-org/my-app (disabled code review)',
+            'updated repository settings for org/repo (added code review on_ready_for_review)',
+            'updated repository settings for org/repo (removed code review on_ready_for_review)',
+            'updated repository settings for org/repo (added code review on_ready_for_review; removed code review on_new_commit)',
+            'updated repository settings for org/repo (triggers set to on_new_commit, on_ready_for_review)',
+            'updated repository settings for getsentry/sentry, getsentry/relay, getsentry/getsentry, getsentry/symbolic, getsentry/php-toolkit, acme/backend, acme/frontend, acme/mobile, acme/docs, acme/infra, team-alpha/api, team-alpha/web, team-beta/services, team-beta/workers (enabled code review)',
+            `updated repository settings for ${hundredRepos} (enabled code review)`,
+          ].map((note, i) => ({
+            note,
+            targetObject: 1,
+            targetUser: null,
+            data: {},
+            dateCreated: new Date(Date.now() - (i + 1) * 3600000).toISOString(),
+            ipAddress: '127.0.0.1',
+            id: `seed-repo-${i}`,
+            actor: {name: 'Demo User', email: 'demo@example.com'},
+            event: 'repo-settings.edit',
+          }))
+        : [];
+
       setState(prevState => ({
         ...prevState,
-        entryList: data.rows,
+        entryList: [...repoSettingsSamples, ...(data.rows ?? [])],
         eventTypes: data.options,
         isLoading: false,
         entryListPageLinks: response?.getResponseHeader('Link') ?? null,

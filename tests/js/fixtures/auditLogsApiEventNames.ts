@@ -39,5 +39,6 @@ export function AuditLogsApiEventNamesFixture(params: string[] = []): string[] {
     'integration.add',
     'integration.edit',
     'integration.remove',
+    'repo-settings.edit',
   ];
 }
