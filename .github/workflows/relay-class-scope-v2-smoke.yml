@@ -13,7 +13,7 @@ env:
 jobs:
   smoke-test:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       XDIST_PER_WORKER_SNUBA: '1'
       XDIST_WORKERS: '2'
@@ -72,12 +72,18 @@ jobs:
             done
           done
 
-      - name: Run smoke test (class-scoped relay, 4 tests, -n 2)
+      - name: Run ALL relay_integration tests (class-scoped, -n 2)
         run: |
-          py.test tests/relay_integration/test_message_filters.py \
+          echo "=== Full relay_integration suite with class-scoped containers ==="
+          echo "75 tests across 7 files, -n 2 xdist workers"
+          echo "Class-scoped containers + Relay model re-insertion + per-worker Kafka"
+          echo ""
+          py.test tests/relay_integration/ \
             -n "$XDIST_WORKERS" \
-            -k "test_filters_are_applied_browser_extension or test_filters_ensure_disabled_not_applied or test_filters_are_applied_legacy_browsers or test_filter_web_crawlers" \
-            --dist=loadfile -x -vvv 2>&1 | tail -80
+            --dist=loadfile \
+            -v \
+            --tb=short \
+            2>&1 | tail -120
 
       - name: Inspect failure
         if: failure()
