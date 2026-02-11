@@ -288,14 +288,17 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         This endpoint although documented is still experimental and the payload may change in the future.
         """
         if request.GET.get("drawerViewed"):
-            analytics.record(
-                AiAutofixDrawerViewedEvent(
-                    organization_id=group.organization.id,
-                    project_id=group.project_id,
-                    group_id=group.id,
+            try:
+                analytics.record(
+                    AiAutofixDrawerViewedEvent(
+                        organization_id=group.organization.id,
+                        project_id=group.project_id,
+                        group_id=group.id,
+                    )
                 )
-            )
-            return Response(status=202)
+            except Exception:
+                logger.exception("Failed to record drawer viewed analytics")
+            return Response(status=200)
 
         if self._should_use_explorer(request, group.organization):
             return self._get_explorer(request, group)
