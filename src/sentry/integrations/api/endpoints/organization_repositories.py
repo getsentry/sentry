@@ -1,4 +1,5 @@
 from django.db.models import Q
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,7 +12,13 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.repository import RepositorySerializer
+from sentry.api.serializers.models.repository import (
+    RepositorySerializer,
+    RepositorySerializerResponse,
+)
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository.model import RpcRepository
@@ -41,6 +48,51 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         group="CLI", limit_overrides={"POST": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
     )
 
+    @extend_schema(
+        operation_id="List an Organization's Repositories",
+        description="Return a list of version control repositories for a given organization.",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                name="query",
+                location="query",
+                required=False,
+                type=str,
+                description="Filter repositories by name.",
+            ),
+            OpenApiParameter(
+                name="status",
+                location="query",
+                required=False,
+                type=str,
+                enum=["active", "deleted", "unmigratable"],
+                description="Filter repositories by status. Defaults to 'active'.",
+            ),
+            OpenApiParameter(
+                name="integration_id",
+                location="query",
+                required=False,
+                type=str,
+                description="Filter repositories by integration ID.",
+            ),
+            OpenApiParameter(
+                name="expand",
+                location="query",
+                required=False,
+                type=str,
+                enum=["settings"],
+                description="Expand related data. Currently supports 'settings'.",
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationRepositoriesResponse", list[RepositorySerializerResponse]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Repositories
