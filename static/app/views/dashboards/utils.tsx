@@ -49,6 +49,7 @@ import {
   WIDGET_TYPE_TO_SAVED_QUERY_DATASET,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 
 type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
@@ -658,4 +659,14 @@ export const isWidgetEditable = (widgetType: DisplayType) => {
     DisplayType.RAGE_AND_DEAD_CLICKS,
   ];
   return !nonEditableWidgetTypes.includes(widgetType);
+};
+
+// Get the widget template for a given display type
+// This is intended to be used for static widget display types that are not meant to be configurable
+export const getWidgetTemplateByDisplayType = (
+  organization: Organization,
+  widgetType: DisplayType
+) => {
+  const widgetTemplates = getTopNConvertedDefaultWidgets(organization);
+  return widgetTemplates.find(widget => widget.displayType === widgetType);
 };

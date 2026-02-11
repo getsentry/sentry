@@ -158,4 +158,60 @@ describe('WidgetTemplatesList', () => {
     // show we're still on the widget templates list
     expect(await screen.findByText('Add to dashboard')).toBeInTheDocument();
   });
+
+  it('should pre-select widget based on widgetTemplateId query parameter', async () => {
+    const {
+      getTopNConvertedDefaultWidgets,
+    } = require('sentry/views/dashboards/widgetLibrary/data');
+
+    getTopNConvertedDefaultWidgets.mockReturnValue([
+      {
+        id: 'duration-distribution',
+        title: 'Duration Distribution',
+        description: 'First widget',
+        displayType: 'line',
+        widgetType: 'transactions-like',
+        queries: [],
+        isCustomizable: true,
+      },
+      {
+        id: 'high-throughput-transactions',
+        title: 'High Throughput Transactions',
+        description: 'Second widget',
+        displayType: 'area',
+        widgetType: 'transactions-like',
+        queries: [],
+        isCustomizable: true,
+      },
+    ]);
+
+    render(
+      <WidgetBuilderProvider>
+        <WidgetTemplatesList
+          onSave={onSave}
+          setOpenWidgetTemplates={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          setCustomizeFromLibrary={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboards/new/widget/0/',
+            query: {
+              widgetTemplateId: 'high-throughput-transactions',
+            },
+          },
+        },
+      }
+    );
+
+    // Wait for the component to render
+    expect(await screen.findByText('Duration Distribution')).toBeInTheDocument();
+    expect(await screen.findByText('High Throughput Transactions')).toBeInTheDocument();
+
+    // The second widget should be pre-selected and show action buttons
+    expect(screen.getByText('Customize')).toBeInTheDocument();
+    expect(screen.getByText('Add to dashboard')).toBeInTheDocument();
+  });
 });

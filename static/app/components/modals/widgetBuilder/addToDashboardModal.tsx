@@ -58,6 +58,8 @@ import {
   getDashboardFiltersFromURL,
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
+  getWidgetTemplateByDisplayType,
+  isWidgetEditable,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
@@ -205,6 +207,15 @@ function AddToDashboardModal({
       page === 'builder' ? `${dashboardsPath}${builderSuffix}` : dashboardsPath;
 
     const widgetAsQueryParams = convertWidgetToBuilderStateParams(widget);
+
+    // For non-customizable widgets (e.g., Performance Score), open the widget library
+    // instead of the widget builder
+    const shouldOpenWidgetLibrary = isWidgetEditable(widget.displayType);
+    const widgetTemplate = getWidgetTemplateByDisplayType(
+      organization,
+      widget.displayType
+    );
+
     navigate(
       normalizeUrl({
         pathname,
@@ -216,6 +227,11 @@ function AddToDashboardModal({
           ...(selectedDashboard
             ? getSavedPageFilters(selectedDashboard)
             : pageFiltersToQueryParams(selection)),
+          ...(shouldOpenWidgetLibrary &&
+            widgetTemplate && {
+              openWidgetTemplates: 'true',
+              widgetTemplateId: widgetTemplate.id,
+            }),
         },
       }),
       {state: {widgets: widgetsState ?? []}}
