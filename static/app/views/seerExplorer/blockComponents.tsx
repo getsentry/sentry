@@ -288,6 +288,7 @@ function BlockComponent({
   const trackThumbsFeedback = useCallback(
     (type: 'positive' | 'negative') => {
       // Guard against missing runId (shouldn't happen with showActions check, but be defensive)
+      // Do this instead of hiding buttons to prevent flickering while data's loading for this edge case.
       if (!feedbackSubmitted && runId !== undefined) {
         trackAnalytics('seer.explorer.feedback_submitted', {
           organization,
