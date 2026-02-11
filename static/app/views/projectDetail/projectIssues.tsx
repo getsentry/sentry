@@ -5,20 +5,20 @@ import pick from 'lodash/pick';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import * as qs from 'query-string';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import type {Client} from 'sentry/api';
 import DiscoverButton from 'sentry/components/discoverButton';
 import GroupList from 'sentry/components/issues/groupList';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -287,7 +287,9 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
   );
 }
 
-const OpenInButtonBar = styled(ButtonBar)`
+const OpenInButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   margin-top: ${space(1)};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {

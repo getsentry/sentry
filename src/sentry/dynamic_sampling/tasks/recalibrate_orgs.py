@@ -35,6 +35,13 @@ from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.taskworker.retry import Retry
 
 
+def _use_segments_for_all_orgs() -> bool:
+    """
+    Returns True if segment metrics should be used for ALL orgs in this task.
+    """
+    return bool(options.get("dynamic-sampling.recalibrate_orgs.segment-metric.enabled"))
+
+
 def _get_segments_org_ids() -> set[int]:
     """
     Returns the set of organization IDs that should use SEGMENTS measure (new).
@@ -51,19 +58,24 @@ def _get_segments_org_ids() -> set[int]:
 )
 @dynamic_sampling_task
 def recalibrate_orgs() -> None:
+    use_segments_globally = _use_segments_for_all_orgs()
     segments_org_ids = _get_segments_org_ids()
 
-    # Process orgs using segment metrics (opted-in via option)
-    if segments_org_ids:
+    # Process orgs using segment metrics (all orgs when global switch is on, or opted-in via option)
+    if use_segments_globally:
+        for segment_volumes in GetActiveOrgsVolumes(measure=SamplingMeasure.SEGMENTS):
+            _process_orgs_volumes(segment_volumes)
+    elif segments_org_ids:
         for segment_volumes in GetActiveOrgsVolumes(
             measure=SamplingMeasure.SEGMENTS, orgs=list(segments_org_ids)
         ):
             _process_orgs_volumes(segment_volumes)
 
-    # Process orgs using transaction metrics (default)
-    for transaction_volumes in GetActiveOrgsVolumes(measure=SamplingMeasure.TRANSACTIONS):
-        filtered_volumes = [v for v in transaction_volumes if v.org_id not in segments_org_ids]
-        _process_orgs_volumes(filtered_volumes)
+    # Process orgs using transaction metrics (skip entirely when global switch is on)
+    if not use_segments_globally:
+        for transaction_volumes in GetActiveOrgsVolumes(measure=SamplingMeasure.TRANSACTIONS):
+            filtered_volumes = [v for v in transaction_volumes if v.org_id not in segments_org_ids]
+            _process_orgs_volumes(filtered_volumes)
 
 
 def _process_orgs_volumes(org_volumes: Sequence[OrganizationDataVolume]) -> None:

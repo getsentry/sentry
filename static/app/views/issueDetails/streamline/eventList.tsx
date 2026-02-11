@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {ButtonBar} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -115,7 +115,7 @@ export function EventList({group}: EventListProps) {
                 />
               </HeaderItem>
               <HeaderItem>
-                <ButtonBar gap="2xs">
+                <Grid flow="column" align="center" gap="2xs">
                   <PaginationButton
                     aria-label={t('Previous Page')}
                     priority="transparent"
@@ -144,7 +144,7 @@ export function EventList({group}: EventListProps) {
                     }}
                     disabled={isPending || nextDisabled}
                   />
-                </ButtonBar>
+                </Grid>
               </HeaderItem>
             </Header>
           );

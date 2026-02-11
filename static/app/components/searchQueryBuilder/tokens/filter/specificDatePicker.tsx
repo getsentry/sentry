@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import moment from 'moment-timezone';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {DatePicker} from 'sentry/components/calendar';
 import {Overlay} from 'sentry/components/overlay';
@@ -180,7 +180,7 @@ function SpecificDatePicker({
               </Flex>
             </ControlsWrapper>
             <ButtonsFooter>
-              <ButtonBar>
+              <Grid flow="column" align="center" gap="md">
                 <Button
                   size="xs"
                   icon={<IconArrow direction="left" />}
@@ -198,7 +198,7 @@ function SpecificDatePicker({
                 >
                   {t('Save')}
                 </Button>
-              </ButtonBar>
+              </Grid>
             </ButtonsFooter>
           </Fragment>
         ) : null}

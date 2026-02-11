@@ -2,11 +2,11 @@ import type {ReactNode} from 'react';
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {ButtonBar} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TourContextProvider} from 'sentry/components/tours/components';
@@ -185,11 +185,11 @@ function SpansTabHeader() {
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <StarSavedQueryButton />
           {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
           <FeedbackButton />
-        </ButtonBar>
+        </Grid>
       </Layout.HeaderActions>
     </Layout.Header>
   );

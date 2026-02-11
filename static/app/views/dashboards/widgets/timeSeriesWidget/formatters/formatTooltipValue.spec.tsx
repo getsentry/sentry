@@ -83,9 +83,9 @@ describe('formatTooltipValue', () => {
       [0, '$0'],
       [17, '$17'],
       [171, '$171'],
-      [17111, '$17.11k'],
-      [17_000_110, '$17m'],
-      [1_000_110_000, '$1b'],
+      [17111, '$17.11K'],
+      [17_000_110, '$17M'],
+      [1_000_110_000, '$1B'],
     ])('Formats %s as %s', (value, formattedValue) => {
       expect(formatTooltipValue(value, 'currency')).toEqual(formattedValue);
     });

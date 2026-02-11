@@ -8,7 +8,6 @@ import {t} from 'sentry/locale';
 import {
   ActionGroup,
   ActionType,
-  SentryAppIdentifier,
   type Action,
   type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
@@ -46,16 +45,10 @@ function getActionHandler(
       if (handler.type !== ActionType.SENTRY_APP) {
         return false;
       }
-      const {sentryAppIdentifier, targetIdentifier} = action.config;
+      const {targetIdentifier} = action.config;
       const sentryApp = handler.sentryApp;
 
-      const isMatchingAppId =
-        sentryAppIdentifier === SentryAppIdentifier.SENTRY_APP_ID &&
-        targetIdentifier === sentryApp?.id;
-      const isMatchingInstallationUuid =
-        sentryAppIdentifier === SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID &&
-        targetIdentifier === sentryApp?.installationUuid;
-      return isMatchingAppId || isMatchingInstallationUuid;
+      return targetIdentifier === sentryApp?.id;
     });
   }
   return availableActions.find(handler => handler.type === action.type);

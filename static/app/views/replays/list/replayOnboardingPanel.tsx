@@ -3,13 +3,14 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container, Grid, type GridProps} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Accordion from 'sentry/components/container/accordion';
 import HookOrDefault from 'sentry/components/hookOrDefault';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import ReplayUnsupportedAlert from 'sentry/components/replays/alerts/replayUnsupportedAlert';
 import {replayPlatforms} from 'sentry/data/platformCategories';
@@ -18,7 +19,6 @@ import {space} from 'sentry/styles/space';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useNavContext} from 'sentry/views/nav/context';
 import {HeaderContainer, WidgetContainer} from 'sentry/views/profiling/landing/styles';
@@ -340,7 +340,9 @@ const HeroImage = styled('img')<{breakpoints: Breakpoints}>`
   }
 `;
 
-const ButtonList = styled(ButtonBar)`
+const ButtonList = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;
 

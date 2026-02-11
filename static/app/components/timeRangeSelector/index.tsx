@@ -10,7 +10,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
+import {DesyncedFilterIndicator} from 'sentry/components/pageFilters/desyncedFilter';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';

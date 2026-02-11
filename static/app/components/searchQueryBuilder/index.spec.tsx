@@ -1,7 +1,6 @@
 import type {ComponentProps} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   act,
@@ -4891,75 +4890,6 @@ describe('SearchQueryBuilder', () => {
       expect(askSeer).toBeInTheDocument();
     });
 
-    it('renders enable ai button when user has not given consent', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/seer/setup-check/',
-        body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: false,
-            userHasAcknowledged: false,
-          },
-        }),
-      });
-
-      render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
-        organization: {
-          features: ['gen-ai-features'],
-        },
-      });
-
-      await userEvent.click(getLastInput());
-
-      const enableAi = await screen.findByText(/Enable Gen AI/);
-      expect(enableAi).toBeInTheDocument();
-    });
-
-    describe('user clicks on enable gen ai button', () => {
-      it('calls promptsUpdate', async () => {
-        const organization = OrganizationFixture({
-          slug: 'org-slug',
-          features: ['gen-ai-features'],
-        });
-        const promptsUpdateMock = MockApiClient.addMockResponse({
-          url: `/organizations/${organization.slug}/prompts-activity/`,
-          method: 'PUT',
-        });
-        MockApiClient.addMockResponse({
-          url: `/organizations/${organization.slug}/seer/setup-check/`,
-          body: AutofixSetupFixture({
-            setupAcknowledgement: {
-              orgHasAcknowledged: false,
-              userHasAcknowledged: false,
-            },
-          }),
-        });
-
-        render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {organization});
-
-        await userEvent.click(getLastInput());
-
-        const enableAi = await screen.findByRole('option', {name: /Enable Gen AI/});
-        expect(enableAi).toBeInTheDocument();
-
-        await userEvent.hover(enableAi);
-        await userEvent.keyboard('{enter}');
-
-        await waitFor(() => {
-          expect(promptsUpdateMock).toHaveBeenCalledWith(
-            expect.any(String),
-            expect.objectContaining({
-              data: {
-                feature: 'seer_autofix_setup_acknowledged',
-                organization_id: organization.id,
-                project_id: undefined,
-                status: 'dismissed',
-              },
-            })
-          );
-        });
-      });
-    });
-
     describe('user clicks on ask seer button', () => {
       it('renders the seer combobox', async () => {
         MockApiClient.addMockResponse({
@@ -5149,7 +5079,7 @@ describe('SearchQueryBuilder', () => {
           <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
           {
             organization: {
-              features: ['gen-ai-features', 'gen-ai-consent-flow-removal'],
+              features: ['gen-ai-features'],
             },
           }
         );

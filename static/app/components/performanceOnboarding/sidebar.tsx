@@ -17,6 +17,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {shouldShowPerformanceTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {withoutPerformanceSupport} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
@@ -24,7 +25,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import OnboardingDrawerStore, {
   OnboardingDrawerKey,
 } from 'sentry/stores/onboardingDrawerStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';

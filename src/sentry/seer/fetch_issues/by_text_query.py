@@ -48,6 +48,8 @@ def fetch_issues(
     provider: str,
     external_id: str,
     query: str,
+    owner: str,
+    name: str,
     sort_by: str = SORT_BY_DEFAULT,
     limit: int = utils.MAX_NUM_ISSUES_DEFAULT,
     max_num_days_ago: int = utils.MAX_NUM_DAYS_AGO_DEFAULT,
@@ -57,7 +59,12 @@ def fetch_issues(
     Fetch issues whose message contains `query`.
     """
     repo_projects = utils.get_repo_and_projects(
-        organization_id, provider, external_id, run_id=run_id
+        organization_id,
+        provider,
+        external_id,
+        owner=owner,
+        name=name,
+        run_id=run_id,
     )
     groups = _fetch_issues_from_repo_projects(
         repo_projects,

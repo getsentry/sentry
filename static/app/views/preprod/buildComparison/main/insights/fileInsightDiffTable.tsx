@@ -202,7 +202,7 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
           <Text size="sm" variant="muted">
             {t('Page %s of %s', safeCurrentPage + 1, totalPages)}
           </Text>
-          <ButtonBar merged gap="0">
+          <ButtonBar>
             <Button
               size="xs"
               icon={<IconChevron direction="left" />}

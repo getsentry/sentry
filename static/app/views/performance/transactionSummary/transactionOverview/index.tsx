@@ -4,6 +4,7 @@ import type {Location} from 'history';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
@@ -24,7 +25,6 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
 import {
   decodeFilterFromLocation,

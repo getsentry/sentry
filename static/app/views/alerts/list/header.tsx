@@ -1,16 +1,17 @@
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {TabList} from '@sentry/scraps/tabs';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
@@ -57,7 +58,7 @@ function AlertHeader({activeTab}: Props) {
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <CreateAlertButton
             organization={organization}
             iconProps={{size: 'sm'}}
@@ -80,7 +81,7 @@ function AlertHeader({activeTab}: Props) {
             icon={<IconSettings size="sm" />}
             aria-label={t('Settings')}
           />
-        </ButtonBar>
+        </Grid>
       </Layout.HeaderActions>
       <Layout.HeaderTabs value={activeTab}>
         <TabList>

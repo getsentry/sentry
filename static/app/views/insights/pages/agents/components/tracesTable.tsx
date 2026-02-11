@@ -9,6 +9,7 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Pagination from 'sentry/components/pagination';
 import Placeholder from 'sentry/components/placeholder';
 import GridEditable, {
@@ -23,7 +24,6 @@ import {t} from 'sentry/locale';
 import {isOverflown} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {getExploreUrl} from 'sentry/views/explore/utils';
