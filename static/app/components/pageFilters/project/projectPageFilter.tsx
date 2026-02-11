@@ -1,11 +1,11 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
 import {LinkButton} from '@sentry/scraps/button';
 import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
@@ -15,7 +15,7 @@ import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter
 import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
 import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import BookmarkStar from 'sentry/components/projects/bookmarkStar';
+import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
 import {IconAdd, IconOpen, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -244,44 +244,54 @@ export function ProjectPageFilter({
         leadingItems: (
           <ProjectBadge project={project} avatarSize={16} hideName disableLink />
         ),
-        trailingItems: ({isFocused}: any) => (
-          <Fragment>
-            <TrailingButton
-              priority="transparent"
-              size="zero"
-              icon={<IconOpen />}
-              title={t('Project Details')}
-              aria-label={t('Project Details')}
-              to={
-                makeProjectsPathname({
-                  path: `/${project.slug}/`,
-                  organization,
-                }) + `?project=${project.id}`
-              }
-              visible={isFocused}
-            />
-            <TrailingButton
-              priority="transparent"
-              size="zero"
-              icon={<IconSettings />}
-              title={t('Project Settings')}
-              aria-label={t('Project Settings')}
-              to={`/settings/${organization.slug}/projects/${project.slug}/`}
-              visible={isFocused}
-            />
-            <StyledBookmarkStar
-              project={project}
-              organization={organization}
-              visible={isFocused}
-              onToggle={(isBookmarked: boolean) => {
-                trackAnalytics('projectselector.bookmark_toggle', {
-                  bookmarked: isBookmarked,
-                  organization,
-                });
-              }}
-            />
-          </Fragment>
-        ),
+        trailingItems: (props: {isFocused: boolean}) => {
+          return (
+            <Flex align="center">
+              {props.isFocused ? (
+                <Fragment>
+                  <LinkButton
+                    size="xs"
+                    priority="transparent"
+                    icon={<IconOpen variant="muted" />}
+                    title={t('Open Project Details')}
+                    aria-label={t('Open Project Details')}
+                    tooltipProps={{delay: 400}}
+                    to={
+                      makeProjectsPathname({
+                        path: `/${project.slug}/`,
+                        organization,
+                      }) + `?project=${project.id}`
+                    }
+                  />
+                  <LinkButton
+                    size="xs"
+                    priority="transparent"
+                    icon={<IconSettings variant="muted" />}
+                    title={t('Open Project Settings')}
+                    tooltipProps={{delay: 400}}
+                    aria-label={t('Open Project Settings')}
+                    to={`/settings/${organization.slug}/projects/${project.slug}/`}
+                  />
+                </Fragment>
+              ) : null}
+              {props.isFocused || project.isBookmarked ? (
+                <BookmarkStar
+                  size="xs"
+                  project={project}
+                  organization={organization}
+                  tooltipProps={{delay: 400}}
+                  title={project.isBookmarked ? t('Remove Bookmark') : t('Bookmark')}
+                  onToggle={(isBookmarked: boolean) => {
+                    trackAnalytics('projectselector.bookmark_toggle', {
+                      bookmarked: isBookmarked,
+                      organization,
+                    });
+                  }}
+                />
+              ) : null}
+            </Flex>
+          );
+        },
       } satisfies SelectOptionOrSection<number>;
     };
 
@@ -377,13 +387,13 @@ export function ProjectPageFilter({
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       disableCommit={selectionLimitExceeded}
       sizeLimit={sizeLimit ?? 25}
-      sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more projects…')}
+      sizeLimitMessage={sizeLimitMessage}
       emptyMessage={emptyMessage ?? t('No projects found')}
       menuTitle={menuTitle ?? t('Filter Projects')}
       menuWidth={menuWidth ?? defaultMenuWidth}
       menuBody={desynced && <DesyncedFilterMessage />}
       menuFooter={
-        hasProjectWrite && (
+        hasProjectWrite ? (
           <LinkButton
             size="xs"
             aria-label={t('Add Project')}
@@ -392,7 +402,7 @@ export function ProjectPageFilter({
           >
             {t('Project')}
           </LinkButton>
-        )
+        ) : undefined
       }
       menuFooterMessage={menuFooterMessage}
       trigger={
@@ -421,15 +431,3 @@ function shouldCloseOnInteractOutside(target: Element) {
   );
   return !powerHovercard && !disabledFeatureHovercard;
 }
-
-const TrailingButton = styled(LinkButton)<{visible: boolean}>`
-  color: ${p => p.theme.tokens.content.secondary};
-  display: ${p => (p.visible ? 'block' : 'none')};
-`;
-
-const StyledBookmarkStar = styled(BookmarkStar)<{visible: boolean}>`
-  display: ${p => (p.visible ? 'block' : 'none')};
-  &[aria-pressed='true'] {
-    display: block;
-  }
-`;
