@@ -1,6 +1,7 @@
 import msgspec
 import pytest
 
+from sentry.scm.private.event_stream import SourceCodeManagerEventStream
 from sentry.scm.private.ipc import (
     CheckRunEventDataParser,
     CheckRunEventParser,
@@ -8,6 +9,7 @@ from sentry.scm.private.ipc import (
     exec_listener,
     run_listener,
 )
+from sentry.scm.types import CheckRunEvent
 
 
 def test_exec_listener():
@@ -63,13 +65,34 @@ def test_exec_listener_failed():
 
 
 def test_run_listener():
+    event = None
+
+    scm = SourceCodeManagerEventStream()
+
+    @scm.listen_for("check_run")
+    def call_me_maybe(e):
+        nonlocal event
+        event = e
+
     check_run_event = CheckRunEventParser(
         action="completed",
         check_run=CheckRunEventDataParser("1", "2"),
         subscription_event=SubscriptionEventParser(None, b"", {}, 0, [], "github"),
     )
     message = msgspec.msgpack.encode(check_run_event)
-    run_listener("")
+
+    run_listener(
+        "call_me_maybe",
+        message,
+        "check_run",
+        stream=scm,
+        get_current_time=lambda: 0.0,
+        report_error=lambda e: None,
+        record_count=lambda a, b, c: None,
+        record_timer=lambda a, b, c: None,
+    )
+
+    assert isinstance(event, CheckRunEvent), "Parsing from type hint failed."
 
 
 def test_run_listener_malformed():
@@ -88,6 +111,7 @@ def test_run_listener_malformed():
         "t",
         b"",
         "check_run",
+        stream=SourceCodeManagerEventStream(),
         get_current_time=lambda: 0.0,
         report_error=report_error,
         record_count=record_count,

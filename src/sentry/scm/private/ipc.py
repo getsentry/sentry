@@ -16,7 +16,7 @@ from typing import cast
 import msgspec
 import sentry_sdk
 
-from sentry.scm.private.event_stream import scm_event_stream
+from sentry.scm.private.event_stream import SourceCodeManagerEventStream, scm_event_stream
 from sentry.scm.private.webhooks.github import deserialize_github_event
 from sentry.scm.types import (
     CheckRunAction,
@@ -422,6 +422,7 @@ def run_webhook_handler_control_task(
         listener,
         message,
         event_type_hint,
+        stream=scm_event_stream,
         get_current_time=time.monotonic,
         report_error=report_error_to_sentry,
         record_count=record_count_metric,
@@ -442,11 +443,27 @@ def run_webhook_handler_region_task(
         listener,
         message,
         event_type_hint,
+        stream=scm_event_stream,
         get_current_time=time.monotonic,
         report_error=report_error_to_sentry,
         record_count=record_count_metric,
         record_timer=record_timer_metric,
     )
+
+
+def report_error_to_sentry(e: Exception) -> None:
+    """Typing wrapper around sentry_sdk.capture_exception."""
+    sentry_sdk.capture_exception(e)
+
+
+def record_count_metric(key: str, amount: int, tags: dict[str, str]) -> None:
+    """Typing wrapper around metrics.incr."""
+    metrics.incr(key, amount, tags=tags)
+
+
+def record_timer_metric(key: str, amount: float, tags: dict[str, str]) -> None:
+    """Typing wrapper around metrics.distribution."""
+    metrics.distribution(key, amount, tags=tags)
 
 
 METRIC_PREFIX = "sentry.scm.run_listener"
@@ -457,10 +474,11 @@ def run_listener(
     event_bytes: bytes,
     event_type_hint: EventTypeHint,
     *,
-    get_current_time: Callable[[], float],
-    report_error: Callable[[Exception], None],
-    record_count: Callable[[str, int, dict[str, str]], None],
-    record_timer: Callable[[str, float, dict[str, str]], None],
+    stream: SourceCodeManagerEventStream,
+    get_current_time: Callable[[], float] = time.monotonic,
+    report_error: Callable[[Exception], None] = report_error_to_sentry,
+    record_count: Callable[[str, int, dict[str, str]], None] = record_count_metric,
+    record_timer: Callable[[str, float, dict[str, str]], None] = record_timer_metric,
 ) -> None:
     """Execute an SCM platform listener."""
     start = get_current_time()
@@ -473,11 +491,11 @@ def run_listener(
         return None
 
     if isinstance(event, CheckRunEvent):
-        exec_listener(listener, scm_event_stream.check_run_listeners, event, record_count)
+        exec_listener(listener, stream.check_run_listeners, event, record_count)
     elif isinstance(event, CommentEvent):
-        exec_listener(listener, scm_event_stream.comment_listeners, event, record_count)
+        exec_listener(listener, stream.comment_listeners, event, record_count)
     else:
-        exec_listener(listener, scm_event_stream.pull_request_listeners, event, record_count)
+        exec_listener(listener, stream.pull_request_listeners, event, record_count)
 
     end = get_current_time()
     received = event.subscription_event["received_at"]
@@ -516,18 +534,3 @@ def exec_listener[T](
     except Exception:
         record_count(f"{METRIC_PREFIX}.failed", 1, {"reason": "internal", "fn": listener})
         raise
-
-
-def report_error_to_sentry(e: Exception) -> None:
-    """Typing wrapper around sentry_sdk.capture_exception."""
-    sentry_sdk.capture_exception(e)
-
-
-def record_count_metric(key: str, amount: int, tags: dict[str, str]) -> None:
-    """Typing wrapper around metrics.incr."""
-    metrics.incr(key, amount, tags=tags)
-
-
-def record_timer_metric(key: str, amount: float, tags: dict[str, str]) -> None:
-    """Typing wrapper around metrics.distribution."""
-    metrics.distribution(key, amount, tags=tags)
