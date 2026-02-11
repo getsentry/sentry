@@ -63,6 +63,7 @@ export function convertWidgetToBuilderStateParams(
       traceMetric = {
         name: func?.arguments?.[1] ?? '',
         type: func?.arguments?.[2] ?? '',
+        unit: func?.arguments?.[3],
       };
     }
   }

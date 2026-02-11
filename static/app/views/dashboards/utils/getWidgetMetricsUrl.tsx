@@ -104,8 +104,9 @@ function extractTraceMetricFromWidget(widget: Widget): TraceMetric | null {
 
   const name = parsedFunction.arguments[1] ?? '';
   const type = parsedFunction.arguments[2] ?? '';
+  const unit = parsedFunction.arguments[3];
 
-  return {name, type};
+  return {name, type, unit};
 }
 
 function getChartTypeFromDisplayType(displayType: DisplayType): ChartType {

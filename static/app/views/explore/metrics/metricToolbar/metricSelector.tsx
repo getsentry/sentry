@@ -42,8 +42,8 @@ export function MetricSelector({
       metricName: traceMetric.name,
       trailingItems: () => (
         <Fragment>
-          <MetricTypeBadge metricType={traceMetric.type as TraceMetricTypeValue} />
           {traceMetric.unit && <Tag variant="muted">{traceMetric.unit}</Tag>}
+          <MetricTypeBadge metricType={traceMetric.type as TraceMetricTypeValue} />
         </Fragment>
       ),
     }),
@@ -70,10 +70,10 @@ export function MetricSelector({
         metricUnit: option[TraceMetricKnownFieldKey.METRIC_UNIT],
         trailingItems: () => (
           <Fragment>
-            <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />
             {option[TraceMetricKnownFieldKey.METRIC_UNIT] && (
               <Tag variant="muted">{option[TraceMetricKnownFieldKey.METRIC_UNIT]}</Tag>
             )}
+            <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />
           </Fragment>
         ),
       })) ?? []),
