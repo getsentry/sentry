@@ -81,7 +81,12 @@ from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
-from sentry.spans.buffer_logger import BufferLogger, EvalshaData, emit_observability_metrics
+from sentry.spans.buffer_logger import (
+    BufferLogger,
+    EvalshaData,
+    SlowlogLogger,
+    emit_observability_metrics,
+)
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.spans.debug_trace_logger import DebugTraceLogger
 from sentry.utils import metrics, redis
@@ -169,6 +174,7 @@ class SpansBuffer:
         self._zstd_compressor: zstandard.ZstdCompressor | None = None
         self._zstd_decompressor = zstandard.ZstdDecompressor()
         self._buffer_logger = BufferLogger()
+        self._slowlog_logger = SlowlogLogger()
         self._debug_trace_logger: DebugTraceLogger | None = None
 
     @cached_property
@@ -374,6 +380,11 @@ class SpansBuffer:
             emit_observability_metrics(latency_metrics, gauge_metrics, longest_evalsha_data)
         except Exception as e:
             logger.exception("Error emitting observability metrics: %s", e)
+
+        # Only fetch SLOWLOG from one consumer to avoid duplicate logs.
+        # SLOWLOG is server-side so all consumers would see the same entries.
+        if 0 in self.assigned_shards:
+            self._slowlog_logger.log(self.client)
 
     def _ensure_script(self) -> str:
         """

@@ -3,7 +3,12 @@ from __future__ import annotations
 from unittest import mock
 from unittest.mock import call
 
-from sentry.spans.buffer_logger import BufferLogger, emit_observability_metrics
+from sentry.spans.buffer_logger import (
+    MAX_ENTRIES,
+    BufferLogger,
+    SlowlogLogger,
+    emit_observability_metrics,
+)
 from sentry.testutils.helpers.options import override_options
 
 
@@ -269,3 +274,86 @@ class TestEmitObservabilityMetrics:
                 call("spans.buffer.process_spans.longest_evalsha.spopcalls", 55.0),
             ]
         )
+
+
+@mock.patch("sentry.spans.buffer_logger.logger")
+@mock.patch("sentry.spans.buffer_logger.time")
+def test_slowlog_logger_fetches_and_logs_entries(mock_time, mock_logger):
+    from sentry_redis_tools.clients import RedisCluster
+
+    with override_options({"spans.buffer.slowlog-logger-enabled": True}):
+        mock_time.time.return_value = 1000.0
+
+        mock_client = mock.MagicMock(spec=RedisCluster)
+        mock_client.slowlog_get.return_value = {
+            "node1:6379": [
+                {
+                    "id": 1,
+                    "duration": 50000,
+                    "command": b"EVALSHA abc123 1 key1 key2",
+                    "start_time": 1000,
+                },
+                {
+                    "id": 2,
+                    "duration": 30000,
+                    "command": b"SSCAN span-buf:s:{1:abc}:def 0",
+                    "start_time": 1000,
+                },
+            ],
+            "node2:6380": [],
+        }
+
+        slowlog_logger = SlowlogLogger()
+        slowlog_logger.log(mock_client)
+
+        mock_client.slowlog_get.assert_called_once_with(MAX_ENTRIES)
+        # node2 is empty, so only 1 log call
+        assert mock_logger.info.call_count == 1
+
+        call_args = mock_logger.info.call_args
+        assert call_args[0][0] == "spans.buffer.redis_slowlog"
+        extra = call_args[1]["extra"]
+        assert extra["node"] == "node1:6379"
+        assert extra["num_entries"] == 2
+        assert len(extra["entries"]) == 2
+        assert "EVALSHA abc123 1" in extra["entries"][0]
+        assert "50000us" in extra["entries"][0]
+
+
+@mock.patch("sentry.spans.buffer_logger.logger")
+@mock.patch("sentry.spans.buffer_logger.time")
+def test_slowlog_logger_interval(mock_time, mock_logger):
+    from sentry_redis_tools.clients import RedisCluster
+
+    with override_options({"spans.buffer.slowlog-logger-enabled": True}):
+        mock_client = mock.MagicMock(spec=RedisCluster)
+        mock_client.slowlog_get.return_value = {
+            "node1:6379": [
+                {"id": 1, "duration": 50000, "command": b"EVALSHA abc 1 key1", "start_time": 1000},
+            ],
+        }
+
+        slowlog_logger = SlowlogLogger()
+
+        mock_time.time.return_value = 1000.0
+        slowlog_logger.log(mock_client)
+        assert mock_client.slowlog_get.call_count == 1
+
+        mock_time.time.return_value = 1030.0
+        slowlog_logger.log(mock_client)
+        assert mock_client.slowlog_get.call_count == 1
+
+        mock_time.time.return_value = 1061.0
+        slowlog_logger.log(mock_client)
+        assert mock_client.slowlog_get.call_count == 2
+
+
+@mock.patch("sentry.spans.buffer_logger.logger")
+def test_slowlog_logger_disabled_by_default(mock_logger):
+    with override_options({"spans.buffer.slowlog-logger-enabled": False}):
+        mock_client = mock.MagicMock()
+        slowlog_logger = SlowlogLogger()
+        slowlog_logger.log(mock_client)
+
+        mock_client.slowlog_get.assert_not_called()
+        mock_logger.info.assert_not_called()

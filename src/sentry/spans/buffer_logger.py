@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 import time
 
+from sentry_redis_tools.clients import RedisCluster, StrictRedis
+
 from sentry import options
 from sentry.utils import metrics
 
@@ -71,6 +73,55 @@ class BufferLogger:
                 )
             self._data.clear()
             self._last_log_time = None
+
+
+class SlowlogLogger:
+    """
+    Periodically fetches Redis SLOWLOG entries from all cluster nodes and logs them.
+    """
+
+    def __init__(self) -> None:
+        self._last_fetch_time: float | None = None
+
+    @staticmethod
+    def _format_command(command: bytes | str) -> str:
+        if isinstance(command, bytes):
+            command = command.decode("utf-8", errors="replace")
+        return " ".join(command.split()[:3])
+
+    def log(self, client: RedisCluster[bytes] | StrictRedis[bytes]) -> None:
+        if not options.get("spans.buffer.slowlog-logger-enabled"):
+            return
+
+        now = time.time()
+        if self._last_fetch_time is not None and now - self._last_fetch_time < LOGGING_INTERVAL:
+            return
+        self._last_fetch_time = now
+
+        try:
+            if isinstance(client, RedisCluster):
+                results = client.slowlog_get(MAX_ENTRIES)
+            else:
+                # StrictRedis
+                results = {"main": client.slowlog_get(MAX_ENTRIES)}
+
+            for node_id, entries in results.items():
+                if not entries:
+                    continue
+                formatted = [
+                    f"{e['id']}:{e['duration']}us:{self._format_command(e['command'])}"
+                    for e in entries
+                ]
+                logger.info(
+                    "spans.buffer.redis_slowlog",
+                    extra={
+                        "node": node_id,
+                        "entries": formatted,
+                        "num_entries": len(entries),
+                    },
+                )
+        except Exception:
+            logger.exception("Failed to fetch Redis SLOWLOG")
 
 
 type DataPoint = tuple[bytes, float]
