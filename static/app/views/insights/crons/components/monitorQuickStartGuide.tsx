@@ -3,7 +3,7 @@ import partition from 'lodash/partition';
 import {PlatformIcon} from 'platformicons';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
@@ -274,23 +274,23 @@ export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
           }
         )}
       </Text>
-      <Flex align="center" justify="between">
-        <CompactSelect
-          trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} prefix={t('Guide')} />
-          )}
-          searchable
-          options={exampleOptions}
-          value={selectedGuide}
-          onChange={({value}) => setSelectedGuide(value)}
-          size="sm"
-        />
+      <CompactSelect
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps} prefix={t('Guide')} />
+        )}
+        searchable
+        options={exampleOptions}
+        value={selectedGuide}
+        onChange={({value}) => setSelectedGuide(value)}
+        size="sm"
+      />
+      <Container>
         <CopyMarkdownButton
           getMarkdown={getGuideMarkdown}
           organization={org}
           source="crons_onboarding"
         />
-      </Flex>
+      </Container>
       <div ref={guideContainerRef}>
         <Guide {...guideProps} />
       </div>
