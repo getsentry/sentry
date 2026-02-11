@@ -119,10 +119,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3]
+        instance: [0, 1, 2, 3, 4]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 4
+      MATRIX_INSTANCE_TOTAL: 5
       TEST_GROUP_STRATEGY: roundrobin
       # Fixed hash seed ensures deterministic collection across xdist workers
       PYTHONHASHSEED: '0'
@@ -142,12 +142,12 @@ jobs:
         with:
           mode: migrations
 
-      - name: Run tier 1 tests (xdist -n 4)
+      - name: Run tier 1 tests (xdist -n 3)
         env:
           SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
         run: |
           echo "=== Tier 1: Postgres + Redis only (no Snuba stack) ==="
-          echo "Shard ${{ matrix.instance }} of 4, xdist workers: 3"
+          echo "Shard ${{ matrix.instance }} of 5, xdist workers: 3"
           echo "Test files: $(wc -l < /tmp/tier1-tests.txt)"
           python3 -b -m pytest \
             tests \
@@ -156,7 +156,7 @@ jobs:
             --ignore tests/apidocs \
             --ignore tests/js \
             --ignore tests/tools \
-            -n 4 \
+            -n 3 \
             --dist=loadfile \
             --json-report \
             --json-report-file=".artifacts/pytest.json" \
@@ -171,10 +171,11 @@ jobs:
             devservices logs
           fi
 
-  # ─── Tier 2 Parallel: Full Snuba stack, per-worker ClickHouse databases ─
-  # ~28% of tests (Snuba-dependent), excluding relay_integration.
+  # ─── Tier 2: Full Snuba stack, per-worker ClickHouse databases ──────
+  # ~29% of tests (Snuba-dependent), including relay_integration.
   # Each xdist worker gets its own Snuba instance + ClickHouse database,
   # so reset_snuba (TRUNCATE TABLE) is safe and per-worker isolated.
+  # Relay tests use class-scoped containers + per-worker Kafka topics.
   tier2-parallel-test:
     needs: split-tiers
     name: 'tier2-parallel (${{ matrix.instance }})'
@@ -186,10 +187,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 15
+      MATRIX_INSTANCE_TOTAL: 16
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       # Enable per-worker Snuba database routing
@@ -304,9 +305,9 @@ jobs:
         env:
           SELECTED_TESTS_FILE: /tmp/tier2-tests.txt
         run: |
-          echo "=== Tier 2 Parallel: Per-worker ClickHouse databases ==="
-          echo "Shard ${{ matrix.instance }} of 15, xdist workers: 2"
-          echo "Test files: $(wc -l < /tmp/tier2-tests.txt) (tier2 total, filtered by --xdist-group)"
+          echo "=== Tier 2: Per-worker ClickHouse databases ==="
+          echo "Shard ${{ matrix.instance }} of 16, xdist workers: 3"
+          echo "Test files: $(wc -l < /tmp/tier2-tests.txt)"
           python3 -b -m pytest \
             tests \
             --reuse-db \
@@ -314,14 +315,13 @@ jobs:
             --ignore tests/apidocs \
             --ignore tests/js \
             --ignore tests/tools \
-            --xdist-group=parallel \
             -n 3 \
             --dist=loadfile \
             --json-report \
             --json-report-file=".artifacts/pytest.json" \
             --json-report-omit=log \
             --junit-xml=".artifacts/pytest.junit.xml" \
-            -o junit_suite_name=pytest-tier2-parallel
+            -o junit_suite_name=pytest-tier2
 
       - name: Inspect failure
         if: failure()
@@ -332,69 +332,6 @@ jobs:
             docker logs "$name" 2>&1 | tail -30
           done
           echo ""
-          if command -v devservices; then
-            devservices logs
-          fi
-
-  # ─── Tier 2 Serial: Relay integration tests only ────────────────────
-  # relay_integration tests (~75 tests) use the Relay→Kafka→Consumer pipeline
-  # which writes to the default (shared) ClickHouse database, not per-worker.
-  # Plus each test restarts a Relay Docker container (~12-18s per test).
-  tier2-serial-test:
-    needs: split-tiers
-    name: 'tier2-serial (${{ matrix.instance }})'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    permissions:
-      contents: read
-      id-token: write
-    strategy:
-      fail-fast: false
-      matrix:
-        instance: [0, 1]
-
-    env:
-      MATRIX_INSTANCE_TOTAL: 2
-      TEST_GROUP_STRATEGY: roundrobin
-
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Download tier file lists
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: tier-file-lists
-          path: /tmp/
-
-      - name: Setup sentry env (Full Snuba stack)
-        uses: ./.github/actions/setup-sentry
-        id: setup
-        with:
-          mode: backend-ci
-
-      - name: Run tier 2 serial tests (relay_integration only)
-        env:
-          SELECTED_TESTS_FILE: /tmp/tier2-tests.txt
-        run: |
-          echo "=== Tier 2 Serial: relay_integration tests, normal reset_snuba ==="
-          echo "Shard ${{ matrix.instance }} of 2, single-threaded"
-          python3 -b -m pytest \
-            tests \
-            --reuse-db \
-            --ignore tests/acceptance \
-            --ignore tests/apidocs \
-            --ignore tests/js \
-            --ignore tests/tools \
-            --xdist-group=serial \
-            --json-report \
-            --json-report-file=".artifacts/pytest.json" \
-            --json-report-omit=log \
-            --junit-xml=".artifacts/pytest.junit.xml" \
-            -o junit_suite_name=pytest-tier2-serial
-
-      - name: Inspect failure
-        if: failure()
-        run: |
           if command -v devservices; then
             devservices logs
           fi
