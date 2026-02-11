@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 import subprocess
 import sys
 import urllib.request
@@ -14,8 +15,7 @@ DEFAULT_MAX_COMMITS = 30
 
 
 def detect_base_ref() -> str:
-    """Auto-detect the base ref by checking for origin/master or origin/main."""
-    for ref in ("origin/master", "origin/main"):
+    for ref in "origin/master":
         result = subprocess.run(
             ["git", "rev-parse", "--verify", ref],
             capture_output=True,
@@ -25,15 +25,14 @@ def detect_base_ref() -> str:
         if result.returncode == 0:
             return ref
 
-    print("Error: Could not find origin/master or origin/main", file=sys.stderr)
+    print("Error: Could not find origin/master", file=sys.stderr)
     print("Make sure you have fetched from the remote (git fetch origin)", file=sys.stderr)
     sys.exit(1)
 
 
-def get_commit_list(base_ref: str, max_commits: int) -> list[str]:
-    """Get list of commit SHAs to check for coverage data."""
+def get_commit_list(base_ref: str) -> list[str]:
     result = subprocess.run(
-        ["git", "rev-list", base_ref, f"--max-count={max_commits}"],
+        ["git", "rev-list", base_ref, f"--max-count={DEFAULT_MAX_COMMITS}"],
         capture_output=True,
         text=True,
         check=True,
@@ -41,15 +40,7 @@ def get_commit_list(base_ref: str, max_commits: int) -> list[str]:
     return [sha.strip() for sha in result.stdout.strip().splitlines() if sha.strip()]
 
 
-def get_cache_dir() -> Path:
-    """Get the cache directory for coverage data."""
-    cache_home = Path.home() / ".cache" / "sentry" / "coverage"
-    cache_home.mkdir(parents=True, exist_ok=True)
-    return cache_home
-
-
 def check_coverage_exists(sha: str) -> bool:
-    """Check if coverage data exists for a commit via HTTP HEAD request."""
     url = f"{GCS_BASE_URL}/{sha}/{COVERAGE_FILENAME}"
     req = urllib.request.Request(url, method="HEAD")
     try:
@@ -63,17 +54,14 @@ def check_coverage_exists(sha: str) -> bool:
 
 
 def download_coverage(sha: str, output_path: Path) -> bool:
-    """Download coverage database from GCS via HTTP GET."""
-    # Check local cache first
-    cache_dir = get_cache_dir()
+    cache_dir = Path.home() / ".cache" / "sentry" / "coverage"
+    cache_dir.mkdir(parents=True, exist_ok=True)
     cached_file = cache_dir / sha / COVERAGE_FILENAME
 
     if cached_file.exists():
         print(f"Using cached coverage data for {sha[:12]}")
         output_path.parent.mkdir(parents=True, exist_ok=True)
         # Copy from cache (symlink would break if cache is cleaned)
-        import shutil
-
         shutil.copy2(cached_file, output_path)
         return True
 
@@ -88,8 +76,6 @@ def download_coverage(sha: str, output_path: Path) -> bool:
 
     # Cache the download
     cached_file.parent.mkdir(parents=True, exist_ok=True)
-    import shutil
-
     shutil.copy2(output_path, cached_file)
     print(f"Cached coverage data at {cached_file}")
 
@@ -109,20 +95,14 @@ def main() -> int:
         default=".cache/coverage.db",
         help="Output path for the coverage database (default: .cache/coverage.db)",
     )
-    parser.add_argument(
-        "--max-commits",
-        type=int,
-        default=DEFAULT_MAX_COMMITS,
-        help=f"Maximum number of commits to check (default: {DEFAULT_MAX_COMMITS})",
-    )
     args = parser.parse_args()
 
     base_ref = args.base_ref or detect_base_ref()
     output_path = Path(args.output)
 
-    print(f"Looking for coverage data from {base_ref} (up to {args.max_commits} commits)")
+    print(f"Looking for coverage data from {base_ref} (up to {DEFAULT_MAX_COMMITS} commits)")
 
-    commits = get_commit_list(base_ref, args.max_commits)
+    commits = get_commit_list(base_ref)
     if not commits:
         print("No commits found to check", file=sys.stderr)
         return 2
@@ -140,7 +120,7 @@ def main() -> int:
         else:
             print("no coverage")
 
-    print(f"No coverage data found in last {args.max_commits} commits", file=sys.stderr)
+    print(f"No coverage data found in last {DEFAULT_MAX_COMMITS} commits", file=sys.stderr)
     return 2
 
 
