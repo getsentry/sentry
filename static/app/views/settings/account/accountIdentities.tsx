@@ -38,6 +38,7 @@ function itemOrder(a: UserIdentityConfig, b: UserIdentityConfig) {
     return [
       UserIdentityCategory.GLOBAL_IDENTITY,
       UserIdentityCategory.SOCIAL_IDENTITY,
+      UserIdentityCategory.GITHUB_COPILOT_IDENTITY,
       UserIdentityCategory.ORG_IDENTITY,
     ].indexOf(c.category);
   }
