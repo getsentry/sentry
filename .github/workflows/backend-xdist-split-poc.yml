@@ -120,10 +120,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0]
+        instance: [0, 1, 2, 3, 4]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 1
+      MATRIX_INSTANCE_TOTAL: 5
       TEST_GROUP_STRATEGY: roundrobin
       # Fixed hash seed ensures deterministic collection across xdist workers
       PYTHONHASHSEED: '0'
@@ -189,10 +189,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0]
+        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 1
+      MATRIX_INSTANCE_TOTAL: 17
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       # Enable per-worker Snuba database routing
