@@ -11,7 +11,6 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -336,34 +335,32 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   ];
 
   return (
-    <AuthTokenGeneratorProvider projectSlug={currentProject.slug}>
-      <TabSelectionScope>
-        {performanceDocs.introduction && (
-          <Introduction>{performanceDocs.introduction(docParams)}</Introduction>
-        )}
-        <OnboardingCopyMarkdownButton
-          steps={steps}
-          organization={organization}
-          source="performance_sidebar_onboarding"
-        />
-        <Steps>
-          {steps.map((step, index) => {
-            return <Step key={step.title ?? step.type} stepIndex={index} {...step} />;
-          })}
-        </Steps>
-        <EventWaiter
-          api={api}
-          organization={organization}
-          project={currentProject}
-          eventType="transaction"
-          onIssueReceived={() => {
-            setReceived(true);
-          }}
-        >
-          {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
-        </EventWaiter>
-      </TabSelectionScope>
-    </AuthTokenGeneratorProvider>
+    <TabSelectionScope>
+      {performanceDocs.introduction && (
+        <Introduction>{performanceDocs.introduction(docParams)}</Introduction>
+      )}
+      <OnboardingCopyMarkdownButton
+        steps={steps}
+        organization={organization}
+        source="performance_sidebar_onboarding"
+      />
+      <Steps>
+        {steps.map((step, index) => {
+          return <Step key={step.title ?? step.type} stepIndex={index} {...step} />;
+        })}
+      </Steps>
+      <EventWaiter
+        api={api}
+        organization={organization}
+        project={currentProject}
+        eventType="transaction"
+        onIssueReceived={() => {
+          setReceived(true);
+        }}
+      >
+        {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
+      </EventWaiter>
+    </TabSelectionScope>
   );
 }
 
