@@ -254,22 +254,21 @@ export function contentBlockToMarkdown(
       return reactNodeToText(block.text);
 
     case 'code': {
-      if ('tabs' in block && block.tabs && block.tabs.length > 0) {
-        const selectedValue =
-          options?.tabSelectionsMap?.get(
-            deriveTabKey(block.tabs, options?.stepIndex, options?.blockPath)
-          ) ?? options?.selectedTabValue;
-        return renderTabbedCodeBlock(block.tabs, selectedValue, options);
+      if ('tabs' in block) {
+        if (block.tabs && block.tabs.length > 0) {
+          const selectedValue =
+            options?.tabSelectionsMap?.get(
+              deriveTabKey(block.tabs, options?.stepIndex, options?.blockPath)
+            ) ?? options?.selectedTabValue;
+          return renderTabbedCodeBlock(block.tabs, selectedValue, options);
+        }
+        // MultipleCodeBlock with empty tabs — nothing to render
+        return '';
       }
-      // Single code block
-      const singleBlock = block as Extract<ContentBlock, {type: 'code'}> & {
-        code: string;
-        language: string;
-        filename?: string;
-      };
-      const filenameComment = singleBlock.filename ? `// ${singleBlock.filename}\n` : '';
+      // Single code block (SingleCodeBlock has code/language directly)
+      const filenameComment = block.filename ? `// ${block.filename}\n` : '';
       return replaceAuthToken(
-        `\`\`\`${singleBlock.language}\n${filenameComment}${singleBlock.code}\n\`\`\``,
+        `\`\`\`${block.language}\n${filenameComment}${block.code}\n\`\`\``,
         options
       );
     }
