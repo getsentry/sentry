@@ -31,6 +31,8 @@ export function Step({
   stepIndex,
   ...props
 }: Omit<React.HTMLAttributes<HTMLDivElement>, 'content'> &
+  // stepIndex is required so StepIndexProvider can disambiguate tab
+  // selection keys across steps (used by the Copy as Markdown feature).
   OnboardingStep & {stepIndex: number}) {
   const [showOptionalConfig, setShowOptionalConfig] = useState(false);
 

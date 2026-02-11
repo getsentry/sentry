@@ -119,10 +119,12 @@ export function simpleHtmlToMarkdown(html: string): string {
 }
 
 /**
- * Walks a React element tree and extracts text content from props,
- * converting known HTML element types to their markdown equivalents.
+ * Converts a React.ReactNode to a markdown-formatted string by walking
+ * the element tree directly. Handles primitives, arrays, and React
+ * elements with known HTML types (strong, em, code, a). Components
+ * like ExternalLink are detected via href/to props.
  */
-function extractTextFromReactNode(node: React.ReactNode): string {
+export function reactNodeToText(node: React.ReactNode): string {
   if (node === null || node === undefined || typeof node === 'boolean') {
     return '';
   }
@@ -133,13 +135,13 @@ function extractTextFromReactNode(node: React.ReactNode): string {
     return String(node);
   }
   if (Array.isArray(node)) {
-    return node.map(extractTextFromReactNode).join('');
+    return node.map(reactNodeToText).join('');
   }
   // React element — extract props and recurse into children
   if (typeof node === 'object' && 'props' in node) {
     const element = node as React.ReactElement;
     const props = element.props as Record<string, unknown>;
-    const childText = extractTextFromReactNode(props.children as React.ReactNode);
+    const childText = reactNodeToText(props.children as React.ReactNode);
     const elementType = element.type;
 
     // Convert known HTML elements to markdown
@@ -170,15 +172,6 @@ function extractTextFromReactNode(node: React.ReactNode): string {
     return childText;
   }
   return '';
-}
-
-/**
- * Converts a React.ReactNode to a markdown-formatted string by walking
- * the element tree directly. Handles primitives, arrays, and React
- * elements with known HTML types (strong, em, code, a).
- */
-export function reactNodeToText(node: React.ReactNode): string {
-  return extractTextFromReactNode(node);
 }
 
 interface MarkdownOptions {

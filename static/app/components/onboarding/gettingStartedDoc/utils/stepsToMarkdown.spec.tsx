@@ -152,11 +152,9 @@ describe('reactNodeToText', () => {
     expect(reactNodeToText(element)).toBe('Install the `@sentry/node` package.');
   });
 
-  it('falls back to extracting text from React tree when renderToStaticMarkup fails', () => {
-    // Simulate a component that requires context (like react-router's <Link>)
-    // by using a component that calls a hook, which will throw in renderToStaticMarkup
+  it('extracts text from component elements by walking the React tree', () => {
+    // Component elements (function/class) are walked via props.children
     function ContextDependentLink({to, children}: React.PropsWithChildren<{to: string}>) {
-      // This will throw during renderToStaticMarkup because hooks need React runtime
       const [_state] = React.useState(0);
       return React.createElement('a', {href: to}, children);
     }
@@ -180,8 +178,8 @@ describe('reactNodeToText', () => {
     expect(result).toContain('page.');
   });
 
-  it('falls back to extracting text with href links from React tree', () => {
-    // Simulate ExternalLink-like component that fails renderToStaticMarkup
+  it('converts component elements with href prop to markdown links', () => {
+    // Components like ExternalLink that pass through href are detected via props
     function ExternalLink({href, children}: React.PropsWithChildren<{href: string}>) {
       const [_s] = React.useState(0);
       return React.createElement('a', {href}, children);
