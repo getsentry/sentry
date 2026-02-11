@@ -371,7 +371,12 @@ class SpansIndexedDatasetConfig(DatasetConfig):
 
     @property
     def orderby_converter(self) -> Mapping[str, Callable[[Direction], OrderBy]]:
-        return {}
+        return {
+            constants.DEVICE_CLASS_ALIAS: self._device_class_orderby_converter,
+        }
+
+    def _device_class_orderby_converter(self, direction: Direction) -> OrderBy:
+        return OrderBy(self.builder.column("device.class"), direction)
 
     def _message_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.message_filter_converter(self.builder, search_filter)
