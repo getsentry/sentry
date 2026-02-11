@@ -43,6 +43,8 @@ function identityLabel(identity: UserIdentityConfig) {
     text = identity.isLogin ? 'Global Login' : 'App Integration';
   } else if (identity.category === UserIdentityCategory.SOCIAL_IDENTITY) {
     text = 'Legacy Integration';
+  } else if (identity.category === UserIdentityCategory.GITHUB_COPILOT_IDENTITY) {
+    text = 'GitHub Copilot';
   } else {
     throw new Error('Invalid category');
   }
