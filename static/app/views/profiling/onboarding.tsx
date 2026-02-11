@@ -298,7 +298,7 @@ export function Onboarding() {
     ...profilingDocs.install(docParams),
     ...profilingDocs.configure(docParams),
     ...profilingDocs.verify(docParams),
-  ];
+  ].filter(s => !s.collapsible);
 
   return (
     <OnboardingPanel project={project}>
@@ -306,24 +306,20 @@ export function Onboarding() {
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <ContinuousProfilingBillingRequirementBanner project={project} />
       <OnboardingCopyMarkdownButton
-        steps={steps.filter(s => !s.collapsible)}
+        steps={steps}
         organization={organization}
         source="profiling_onboarding"
       />
       <GuidedSteps>
-        {steps
-          .map((step, i) => ({step, originalIndex: i}))
-          // Only show non-optional steps
-          .filter(({step}) => !step.collapsible)
-          .map(({step, originalIndex}, index, filtered) => (
-            <StepRenderer
-              key={originalIndex}
-              project={project}
-              step={step}
-              stepIndex={originalIndex}
-              isLastStep={index === filtered.length - 1}
-            />
-          ))}
+        {steps.map((step, index) => (
+          <StepRenderer
+            key={index}
+            project={project}
+            step={step}
+            stepIndex={index}
+            isLastStep={index === steps.length - 1}
+          />
+        ))}
       </GuidedSteps>
     </OnboardingPanel>
   );

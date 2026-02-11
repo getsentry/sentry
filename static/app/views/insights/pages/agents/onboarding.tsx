@@ -336,7 +336,7 @@ export function Onboarding() {
     ...(agentMonitoringDocs.install?.(docParams) || []),
     ...(agentMonitoringDocs.configure?.(docParams) || []),
     ...(agentMonitoringDocs.verify?.(docParams) || []),
-  ];
+  ].filter(s => !s.collapsible);
 
   return (
     <OnboardingPanel project={project}>
@@ -346,7 +346,7 @@ export function Onboarding() {
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <OnboardingCopyMarkdownButton
-        steps={steps.filter(s => !s.collapsible)}
+        steps={steps}
         organization={organization}
         source="agent_monitoring_onboarding"
       />
@@ -362,19 +362,15 @@ export function Onboarding() {
           });
         }}
       >
-        {steps
-          .map((step, i) => ({step, originalIndex: i}))
-          // Only show non-collapsible steps
-          .filter(({step}) => !step.collapsible)
-          .map(({step, originalIndex}, index, filtered) => (
-            <StepRenderer
-              key={step.title || step.type}
-              project={project}
-              step={step}
-              stepIndex={originalIndex}
-              isLastStep={index === filtered.length - 1}
-            />
-          ))}
+        {steps.map((step, index) => (
+          <StepRenderer
+            key={step.title || step.type}
+            project={project}
+            step={step}
+            stepIndex={index}
+            isLastStep={index === steps.length - 1}
+          />
+        ))}
       </GuidedSteps>
     </OnboardingPanel>
   );
