@@ -12,7 +12,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
-import {StepIndexProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
+import {
+  StepIndexProvider,
+  TabSelectionScope,
+} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   ProductSolution,
@@ -118,41 +121,47 @@ function OnboardingPanel({
     <Panel>
       <PanelBody>
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
-          <div>
-            <HeaderWrapper>
-              <HeaderText>
-                <Title>{t('Your Source for Log-ical Data')}</Title>
-                <SubTitle>
-                  {t(
-                    "It's about time we offered something a bit more robust than breadcrumbs. With logs, you'll be able to have a lot more control and context over all your data."
-                  )}
-                </SubTitle>
-                <BulletList>
-                  <li>{t('Access logs in real time and query them by any attribute')}</li>
-                  <li>
-                    {t('Correlate your logs with errors and traces for full context')}
-                  </li>
-                  <li>{t('Build alerts and dashboard widgets based on log queries')}</li>
-                </BulletList>
-              </HeaderText>
-              <Image src={connectDotsImg} />
-            </HeaderWrapper>
-            <Divider />
-            <Body>
-              <Setup>
-                {children}
-                <LogDrainsLink project={project} />
-              </Setup>
-              <Preview>
-                <BodyTitle>{t('Preview a Sentry Log')}</BodyTitle>
-                <Arcade
-                  src="https://demo.arcade.software/dLjHGrPJITrt7JKpmX5V?embed"
-                  loading="lazy"
-                  allowFullScreen
-                />
-              </Preview>
-            </Body>
-          </div>
+          <TabSelectionScope>
+            <div>
+              <HeaderWrapper>
+                <HeaderText>
+                  <Title>{t('Your Source for Log-ical Data')}</Title>
+                  <SubTitle>
+                    {t(
+                      "It's about time we offered something a bit more robust than breadcrumbs. With logs, you'll be able to have a lot more control and context over all your data."
+                    )}
+                  </SubTitle>
+                  <BulletList>
+                    <li>
+                      {t('Access logs in real time and query them by any attribute')}
+                    </li>
+                    <li>
+                      {t('Correlate your logs with errors and traces for full context')}
+                    </li>
+                    <li>
+                      {t('Build alerts and dashboard widgets based on log queries')}
+                    </li>
+                  </BulletList>
+                </HeaderText>
+                <Image src={connectDotsImg} />
+              </HeaderWrapper>
+              <Divider />
+              <Body>
+                <Setup>
+                  {children}
+                  <LogDrainsLink project={project} />
+                </Setup>
+                <Preview>
+                  <BodyTitle>{t('Preview a Sentry Log')}</BodyTitle>
+                  <Arcade
+                    src="https://demo.arcade.software/dLjHGrPJITrt7JKpmX5V?embed"
+                    loading="lazy"
+                    allowFullScreen
+                  />
+                </Preview>
+              </Body>
+            </div>
+          </TabSelectionScope>
         </AuthTokenGeneratorProvider>
       </PanelBody>
     </Panel>

@@ -11,7 +11,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
-import {StepIndexProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
+import {
+  StepIndexProvider,
+  TabSelectionScope,
+} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   DocsParams,
@@ -151,49 +154,51 @@ function OnboardingPanel({
     <Panel>
       <PanelBody>
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
-          <div>
-            <HeaderWrapper>
-              <HeaderText>
-                <Title>{t('Monitor MCP Servers')}</Title>
-                <SubTitle>
-                  {t(
-                    'Monitor MCP server connections, resource access, tool executions, and errors across your entire pipeline—from client requests to server responses.'
-                  )}
-                </SubTitle>
-                <BulletList>
-                  <li>
+          <TabSelectionScope>
+            <div>
+              <HeaderWrapper>
+                <HeaderText>
+                  <Title>{t('Monitor MCP Servers')}</Title>
+                  <SubTitle>
                     {t(
-                      'Trace complete request flows to identify where connections are breaking'
+                      'Monitor MCP server connections, resource access, tool executions, and errors across your entire pipeline—from client requests to server responses.'
                     )}
-                  </li>
-                  <li>
-                    {t(
-                      'Debug resource requests and server responses when data is outdated or malformed'
-                    )}
-                  </li>
-                  <li>
-                    {t(
-                      'Identify performance bottlenecks in server startup, resource fetching, or tool execution'
-                    )}
-                  </li>
-                </BulletList>
-              </HeaderText>
-              <Image src={emptyTraceImg} />
-            </HeaderWrapper>
-            <Divider />
+                  </SubTitle>
+                  <BulletList>
+                    <li>
+                      {t(
+                        'Trace complete request flows to identify where connections are breaking'
+                      )}
+                    </li>
+                    <li>
+                      {t(
+                        'Debug resource requests and server responses when data is outdated or malformed'
+                      )}
+                    </li>
+                    <li>
+                      {t(
+                        'Identify performance bottlenecks in server startup, resource fetching, or tool execution'
+                      )}
+                    </li>
+                  </BulletList>
+                </HeaderText>
+                <Image src={emptyTraceImg} />
+              </HeaderWrapper>
+              <Divider />
 
-            <Body>
-              <Setup>{children}</Setup>
-              <Preview>
-                <BodyTitle>{t('Preview MCP Insights')}</BodyTitle>
-                <Arcade
-                  src="https://demo.arcade.software/dMIA7maXWbgcaAGP79ah?embed"
-                  loading="lazy"
-                  allowFullScreen
-                />
-              </Preview>
-            </Body>
-          </div>
+              <Body>
+                <Setup>{children}</Setup>
+                <Preview>
+                  <BodyTitle>{t('Preview MCP Insights')}</BodyTitle>
+                  <Arcade
+                    src="https://demo.arcade.software/dMIA7maXWbgcaAGP79ah?embed"
+                    loading="lazy"
+                    allowFullScreen
+                  />
+                </Preview>
+              </Body>
+            </div>
+          </TabSelectionScope>
         </AuthTokenGeneratorProvider>
       </PanelBody>
     </Panel>

@@ -11,7 +11,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
-import {StepIndexProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
+import {
+  StepIndexProvider,
+  TabSelectionScope,
+} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   ProductSolution,
@@ -66,32 +69,34 @@ function OnboardingPanel({
     <Panel>
       <PanelBody>
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
-          <div>
-            <HeaderWrapper>
-              <HeaderText>
-                <Title>{t('Measure what matters with Metrics')}</Title>
-                <SubTitle>
-                  {t(
-                    'Track application metrics with powerful aggregation and visualization capabilities. Metrics will be connected to your errors, logs and spans enabling easier debugging'
-                  )}
-                </SubTitle>
-                {isUnsupportedPlatform && <div>{children}</div>}
-              </HeaderText>
-              <Image src={connectDotsImg} />
-            </HeaderWrapper>
-            <Divider />
-            <Body isUnsupportedPlatform={isUnsupportedPlatform}>
-              {!isUnsupportedPlatform && <Setup>{children}</Setup>}
-              <Preview isUnsupportedPlatform={isUnsupportedPlatform}>
-                <BodyTitle>{t('Preview a Sentry Metric')}</BodyTitle>
-                <Arcade
-                  src="https://demo.arcade.software/wNDJOXTJw64xiuVi7Hp6?embed"
-                  loading="lazy"
-                  allowFullScreen
-                />
-              </Preview>
-            </Body>
-          </div>
+          <TabSelectionScope>
+            <div>
+              <HeaderWrapper>
+                <HeaderText>
+                  <Title>{t('Measure what matters with Metrics')}</Title>
+                  <SubTitle>
+                    {t(
+                      'Track application metrics with powerful aggregation and visualization capabilities. Metrics will be connected to your errors, logs and spans enabling easier debugging'
+                    )}
+                  </SubTitle>
+                  {isUnsupportedPlatform && <div>{children}</div>}
+                </HeaderText>
+                <Image src={connectDotsImg} />
+              </HeaderWrapper>
+              <Divider />
+              <Body isUnsupportedPlatform={isUnsupportedPlatform}>
+                {!isUnsupportedPlatform && <Setup>{children}</Setup>}
+                <Preview isUnsupportedPlatform={isUnsupportedPlatform}>
+                  <BodyTitle>{t('Preview a Sentry Metric')}</BodyTitle>
+                  <Arcade
+                    src="https://demo.arcade.software/wNDJOXTJw64xiuVi7Hp6?embed"
+                    loading="lazy"
+                    allowFullScreen
+                  />
+                </Preview>
+              </Body>
+            </div>
+          </TabSelectionScope>
         </AuthTokenGeneratorProvider>
       </PanelBody>
     </Panel>

@@ -12,7 +12,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
-import {StepIndexProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
+import {
+  StepIndexProvider,
+  TabSelectionScope,
+} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   DocsParams,
@@ -173,46 +176,50 @@ function OnboardingPanel({
     <Panel>
       <PanelBody>
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
-          <div>
-            <HeaderWrapper>
-              <HeaderText>
-                <Title>{t('Monitor AI Agents')}</Title>
-                <SubTitle>
-                  {t(
-                    'Get comprehensive visibility into your AI agents and LLM applications to understand performance, costs, and user interactions.'
-                  )}
-                </SubTitle>
-                <BulletList>
-                  <li>
-                    {t('Track token usage, costs, and latency across all your LLM calls')}
-                  </li>
-                  <li>
+          <TabSelectionScope>
+            <div>
+              <HeaderWrapper>
+                <HeaderText>
+                  <Title>{t('Monitor AI Agents')}</Title>
+                  <SubTitle>
                     {t(
-                      'Monitor agent conversations, tool usage, and decision-making processes'
+                      'Get comprehensive visibility into your AI agents and LLM applications to understand performance, costs, and user interactions.'
                     )}
-                  </li>
-                  <li>
-                    {t(
-                      'Debug failed requests and optimize prompt performance with detailed traces'
-                    )}
-                  </li>
-                </BulletList>
-              </HeaderText>
-              <Image src={emptyTraceImg} />
-            </HeaderWrapper>
-            <Divider />
-            <Body>
-              <Setup>{children}</Setup>
-              <Preview>
-                <BodyTitle>{t('Preview Agent Insights')}</BodyTitle>
-                <Arcade
-                  src="https://demo.arcade.software/0NzB6M1Wn8sDsFDAj4sE?embed"
-                  loading="lazy"
-                  allowFullScreen
-                />
-              </Preview>
-            </Body>
-          </div>
+                  </SubTitle>
+                  <BulletList>
+                    <li>
+                      {t(
+                        'Track token usage, costs, and latency across all your LLM calls'
+                      )}
+                    </li>
+                    <li>
+                      {t(
+                        'Monitor agent conversations, tool usage, and decision-making processes'
+                      )}
+                    </li>
+                    <li>
+                      {t(
+                        'Debug failed requests and optimize prompt performance with detailed traces'
+                      )}
+                    </li>
+                  </BulletList>
+                </HeaderText>
+                <Image src={emptyTraceImg} />
+              </HeaderWrapper>
+              <Divider />
+              <Body>
+                <Setup>{children}</Setup>
+                <Preview>
+                  <BodyTitle>{t('Preview Agent Insights')}</BodyTitle>
+                  <Arcade
+                    src="https://demo.arcade.software/0NzB6M1Wn8sDsFDAj4sE?embed"
+                    loading="lazy"
+                    allowFullScreen
+                  />
+                </Preview>
+              </Body>
+            </div>
+          </TabSelectionScope>
         </AuthTokenGeneratorProvider>
       </PanelBody>
     </Panel>

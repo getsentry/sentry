@@ -9,7 +9,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
-import {StepIndexProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
+import {
+  StepIndexProvider,
+  TabSelectionScope,
+} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   DocsPageLocation,
@@ -141,48 +144,50 @@ function OnboardingPanel({
     <Panel>
       <PanelBody>
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
-          <div>
-            <HeaderWrapper>
-              <HeaderText>
-                <Title>{t('Find Slow Code')}</Title>
-                <SubTitle>
-                  {t(
-                    'Use aggregated profiling data to find the slowest code paths in your app and to identify functions that have regressed in performance.'
-                  )}
-                </SubTitle>
-                <BulletList>
-                  <li>
+          <TabSelectionScope>
+            <div>
+              <HeaderWrapper>
+                <HeaderText>
+                  <Title>{t('Find Slow Code')}</Title>
+                  <SubTitle>
                     {t(
-                      'Find and optimize resource-intensive code paths that cause excessive infrastructure cost for running your backend services'
+                      'Use aggregated profiling data to find the slowest code paths in your app and to identify functions that have regressed in performance.'
                     )}
-                  </li>
-                  <li>
-                    {t(
-                      'Debug unresponsive interactions and janky scrolling in your mobile and browser apps'
-                    )}
-                  </li>
-                  <li>
-                    {t(
-                      'Augment traces & spans with function-level visibility into the code that is causing increased latency'
-                    )}
-                  </li>
-                </BulletList>
-              </HeaderText>
-              <Image src={emptyTraceImg} />
-            </HeaderWrapper>
-            <Divider />
-            <Body>
-              <Setup>{children}</Setup>
-              <Preview>
-                <BodyTitle>{t('Preview a Sentry Profile')}</BodyTitle>
-                <Arcade
-                  src="https://demo.arcade.software/BSKubAMPPaF4N5hujNbi?embed"
-                  loading="lazy"
-                  allowFullScreen
-                />
-              </Preview>
-            </Body>
-          </div>
+                  </SubTitle>
+                  <BulletList>
+                    <li>
+                      {t(
+                        'Find and optimize resource-intensive code paths that cause excessive infrastructure cost for running your backend services'
+                      )}
+                    </li>
+                    <li>
+                      {t(
+                        'Debug unresponsive interactions and janky scrolling in your mobile and browser apps'
+                      )}
+                    </li>
+                    <li>
+                      {t(
+                        'Augment traces & spans with function-level visibility into the code that is causing increased latency'
+                      )}
+                    </li>
+                  </BulletList>
+                </HeaderText>
+                <Image src={emptyTraceImg} />
+              </HeaderWrapper>
+              <Divider />
+              <Body>
+                <Setup>{children}</Setup>
+                <Preview>
+                  <BodyTitle>{t('Preview a Sentry Profile')}</BodyTitle>
+                  <Arcade
+                    src="https://demo.arcade.software/BSKubAMPPaF4N5hujNbi?embed"
+                    loading="lazy"
+                    allowFullScreen
+                  />
+                </Preview>
+              </Body>
+            </div>
+          </TabSelectionScope>
         </AuthTokenGeneratorProvider>
       </PanelBody>
     </Panel>

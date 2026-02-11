@@ -6,6 +6,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
+import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -105,52 +106,54 @@ export function ReplayOnboardingLayout({
 
   return (
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
-      <Wrapper>
-        {introduction && <Stack margin="0 0 xl 0">{introduction}</Stack>}
-        <OnboardingCopyMarkdownButton
-          steps={steps}
-          organization={organization}
-          source="replay_onboarding"
-        />
-        <Stack gap="lg">
-          {steps
-            // TODO(aknaus): Move inserting the toggle into the docs definitions
-            // once the content blocks migration is done. This logic here is very brittle.
-            .map(step => {
-              if (step.type !== StepType.CONFIGURE || hideMaskBlockToggles) {
-                return step;
-              }
-
-              if (step.content) {
-                // Insert the feedback config toggle before the code block
-                const codeIndex = step.content?.findIndex(b => b.type === 'code');
-                if (codeIndex === -1) {
+      <TabSelectionScope>
+        <Wrapper>
+          {introduction && <Stack margin="0 0 xl 0">{introduction}</Stack>}
+          <OnboardingCopyMarkdownButton
+            steps={steps}
+            organization={organization}
+            source="replay_onboarding"
+          />
+          <Stack gap="lg">
+            {steps
+              // TODO(aknaus): Move inserting the toggle into the docs definitions
+              // once the content blocks migration is done. This logic here is very brittle.
+              .map(step => {
+                if (step.type !== StepType.CONFIGURE || hideMaskBlockToggles) {
                   return step;
                 }
-                const newContent = [...step.content];
-                if (codeIndex !== undefined) {
-                  newContent.splice(codeIndex, 0, {
-                    type: 'custom',
-                    bottomMargin: false,
-                    content: replayConfigToggle,
-                  });
+
+                if (step.content) {
+                  // Insert the feedback config toggle before the code block
+                  const codeIndex = step.content?.findIndex(b => b.type === 'code');
+                  if (codeIndex === -1) {
+                    return step;
+                  }
+                  const newContent = [...step.content];
+                  if (codeIndex !== undefined) {
+                    newContent.splice(codeIndex, 0, {
+                      type: 'custom',
+                      bottomMargin: false,
+                      content: replayConfigToggle,
+                    });
+                  }
+                  return {
+                    ...step,
+                    content: newContent,
+                  };
                 }
+
                 return {
                   ...step,
-                  content: newContent,
+                  codeHeader: replayConfigToggle,
                 };
-              }
-
-              return {
-                ...step,
-                codeHeader: replayConfigToggle,
-              };
-            })
-            .map((step, index) => (
-              <Step key={step.title ?? step.type} stepIndex={index} {...step} />
-            ))}
-        </Stack>
-      </Wrapper>
+              })
+              .map((step, index) => (
+                <Step key={step.title ?? step.type} stepIndex={index} {...step} />
+              ))}
+          </Stack>
+        </Wrapper>
+      </TabSelectionScope>
     </AuthTokenGeneratorProvider>
   );
 }
