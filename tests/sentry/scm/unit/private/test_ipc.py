@@ -92,9 +92,9 @@ def test_run_check_run_listener():
     check_run_event = CheckRunEventParser(
         action="completed",
         check_run=CheckRunEventDataParser("1", "2"),
-        subscription_event=SubscriptionEventParser(None, b"", {}, 0, [], "github"),
+        subscription_event=SubscriptionEventParser(None, "", {}, 0, [], "github"),
     )
-    message = msgspec.msgpack.encode(check_run_event)
+    message = msgspec.json.encode(check_run_event).decode("utf-8")
 
     run_listener(
         "call_me_maybe",
@@ -131,9 +131,9 @@ def test_run_comment_listener():
             body="Test comment",
             author=AuthorParser(id="456", username="testuser"),
         ),
-        subscription_event=SubscriptionEventParser(None, b"", {}, 0, [], "github"),
+        subscription_event=SubscriptionEventParser(None, "", {}, 0, [], "github"),
     )
-    message = msgspec.msgpack.encode(comment_event)
+    message = msgspec.json.encode(comment_event).decode("utf-8")
 
     run_listener(
         "comment_handler",
@@ -177,9 +177,9 @@ def test_run_pull_request_listener():
             is_private_repo=False,
             author=AuthorParser(id="456", username="testuser"),
         ),
-        subscription_event=SubscriptionEventParser(None, b"", {}, 0, [], "github"),
+        subscription_event=SubscriptionEventParser(None, "", {}, 0, [], "github"),
     )
-    message = msgspec.msgpack.encode(pr_event)
+    message = msgspec.json.encode(pr_event).decode("utf-8")
 
     run_listener(
         "pr_handler",
@@ -216,9 +216,9 @@ def test_run_listener_metrics_recorded():
     check_run_event = CheckRunEventParser(
         action="completed",
         check_run=CheckRunEventDataParser("1", "2"),
-        subscription_event=SubscriptionEventParser(None, b"", {}, 100, [], "github"),
+        subscription_event=SubscriptionEventParser(None, "", {}, 100, [], "github"),
     )
-    message = msgspec.msgpack.encode(check_run_event)
+    message = msgspec.json.encode(check_run_event).decode("utf-8")
 
     def record_count(key, amount, tags):
         metrics.append((key, amount, tags))
@@ -255,9 +255,9 @@ def test_run_listener_not_found_no_exception():
     check_run_event = CheckRunEventParser(
         action="completed",
         check_run=CheckRunEventDataParser("1", "2"),
-        subscription_event=SubscriptionEventParser(None, b"", {}, 0, [], "github"),
+        subscription_event=SubscriptionEventParser(None, "", {}, 0, [], "github"),
     )
-    message = msgspec.msgpack.encode(check_run_event)
+    message = msgspec.json.encode(check_run_event).decode("utf-8")
 
     # Should not raise exception even though listener doesn't exist
     run_listener(
@@ -296,9 +296,9 @@ def test_run_listener_exception_propagates():
     check_run_event = CheckRunEventParser(
         action="completed",
         check_run=CheckRunEventDataParser("1", "2"),
-        subscription_event=SubscriptionEventParser(None, b"", {}, 0, [], "github"),
+        subscription_event=SubscriptionEventParser(None, "", {}, 0, [], "github"),
     )
-    message = msgspec.msgpack.encode(check_run_event)
+    message = msgspec.json.encode(check_run_event).decode("utf-8")
 
     with pytest.raises(ValueError, match="Something went wrong"):
         run_listener(
@@ -333,7 +333,7 @@ def test_run_listener_malformed_input():
     # Implicitly tests no exception was raised.
     run_listener(
         "t",
-        b"",
+        "",
         "check_run",
         stream=SourceCodeManagerEventStream(),
         get_current_time=lambda: 0.0,
@@ -354,7 +354,7 @@ def test_serialize_deserialize_check_run_event():
         action="completed",
         check_run={"external_id": "12345", "html_url": "https://example.com/check"},
         subscription_event={
-            "event": b"raw_event_data",
+            "event": "raw_event_data",
             "event_type_hint": "check_run",
             "extra": {"key": "value", "number": 42},
             "received_at": 1234567890,
@@ -367,7 +367,7 @@ def test_serialize_deserialize_check_run_event():
     )
 
     serialized = serialize_check_run_event(event)
-    assert isinstance(serialized, bytes)
+    assert isinstance(serialized, str)
 
     deserialized = deserialize_check_run_event(serialized)
     assert deserialized.action == event.action
@@ -391,7 +391,7 @@ def test_serialize_deserialize_comment_event():
             "author": {"id": "user-456", "username": "testuser"},
         },
         subscription_event={
-            "event": b"raw_event_data",
+            "event": "raw_event_data",
             "event_type_hint": "comment",
             "extra": {},
             "received_at": 1234567890,
@@ -401,7 +401,7 @@ def test_serialize_deserialize_comment_event():
     )
 
     serialized = serialize_comment_event(event)
-    assert isinstance(serialized, bytes)
+    assert isinstance(serialized, str)
 
     deserialized = deserialize_comment_event(serialized)
     assert deserialized.action == event.action
@@ -424,7 +424,7 @@ def test_serialize_deserialize_comment_event_no_author():
             "author": None,
         },
         subscription_event={
-            "event": b"",
+            "event": "",
             "event_type_hint": None,
             "extra": {},
             "received_at": 0,
@@ -456,7 +456,7 @@ def test_serialize_deserialize_pull_request_event():
             "author": {"id": "user-789", "username": "contributor"},
         },
         subscription_event={
-            "event": b"raw_event_data",
+            "event": "raw_event_data",
             "event_type_hint": "pull_request",
             "extra": {"repo": "test-repo"},
             "received_at": 9876543210,
@@ -466,7 +466,7 @@ def test_serialize_deserialize_pull_request_event():
     )
 
     serialized = serialize_pull_request_event(event)
-    assert isinstance(serialized, bytes)
+    assert isinstance(serialized, str)
 
     deserialized = deserialize_pull_request_event(serialized)
     assert deserialized.action == event.action
@@ -493,7 +493,7 @@ def test_serialize_deserialize_pull_request_event_no_author():
             "author": None,
         },
         subscription_event={
-            "event": b"",
+            "event": "",
             "event_type_hint": None,
             "extra": {},
             "received_at": 0,
@@ -517,7 +517,7 @@ def test_serialize_event_dispatches_correctly():
         action="completed",
         check_run={"external_id": "1", "html_url": "url"},
         subscription_event={
-            "event": b"",
+            "event": "",
             "event_type_hint": None,
             "extra": {},
             "received_at": 0,
@@ -531,7 +531,7 @@ def test_serialize_event_dispatches_correctly():
         comment_type="issue",
         comment={"id": "1", "body": None, "author": None},
         subscription_event={
-            "event": b"",
+            "event": "",
             "event_type_hint": None,
             "extra": {},
             "received_at": 0,
@@ -552,7 +552,7 @@ def test_serialize_event_dispatches_correctly():
             "author": None,
         },
         subscription_event={
-            "event": b"",
+            "event": "",
             "event_type_hint": None,
             "extra": {},
             "received_at": 0,
@@ -565,9 +565,9 @@ def test_serialize_event_dispatches_correctly():
     comment_bytes = serialize_event(comment_event)
     pr_bytes = serialize_event(pr_event)
 
-    assert isinstance(check_run_bytes, bytes)
-    assert isinstance(comment_bytes, bytes)
-    assert isinstance(pr_bytes, bytes)
+    assert isinstance(check_run_bytes, str)
+    assert isinstance(comment_bytes, str)
+    assert isinstance(pr_bytes, str)
 
     # Verify they can be deserialized back
     assert isinstance(deserialize_check_run_event(check_run_bytes), CheckRunEvent)
@@ -582,17 +582,17 @@ def test_deserialize_event_dispatches_correctly():
     check_run_parser = CheckRunEventParser(
         action="completed",
         check_run=CheckRunEventDataParser("1", "url"),
-        subscription_event=SubscriptionEventParser(None, b"", {}, 0, None, "github"),
+        subscription_event=SubscriptionEventParser(None, "", {}, 0, None, "github"),
     )
-    check_run_bytes = msgspec.msgpack.encode(check_run_parser)
+    check_run_bytes = msgspec.json.encode(check_run_parser).decode("utf-8")
 
     comment_parser = CommentEventParser(
         action="created",
         comment_type="issue",
         comment=CommentEventDataParser("1", None, None),
-        subscription_event=SubscriptionEventParser(None, b"", {}, 0, None, "github"),
+        subscription_event=SubscriptionEventParser(None, "", {}, 0, None, "github"),
     )
-    comment_bytes = msgspec.msgpack.encode(comment_parser)
+    comment_bytes = msgspec.json.encode(comment_parser).decode("utf-8")
 
     pr_parser = PullRequestEventParser(
         action="opened",
@@ -605,9 +605,9 @@ def test_deserialize_event_dispatches_correctly():
             False,
             None,
         ),
-        subscription_event=SubscriptionEventParser(None, b"", {}, 0, None, "github"),
+        subscription_event=SubscriptionEventParser(None, "", {}, 0, None, "github"),
     )
-    pr_bytes = msgspec.msgpack.encode(pr_parser)
+    pr_bytes = msgspec.json.encode(pr_parser).decode("utf-8")
 
     check_run_result = deserialize_event(check_run_bytes, "check_run")
     comment_result = deserialize_event(comment_bytes, "comment")
@@ -685,7 +685,7 @@ def test_produce_to_listeners_comment():
         produced_messages.append((message, event_type_hint, listener_name, silo))
 
     subscription_event = {
-        "event": b"{}",
+        "event": "{}",
         "event_type_hint": None,
         "extra": {},
         "received_at": 0,
@@ -736,7 +736,7 @@ def test_produce_to_listeners_pull_request():
         produced_messages.append((message, event_type_hint, listener_name, silo))
 
     subscription_event = {
-        "event": b"{}",
+        "event": "{}",
         "event_type_hint": None,
         "extra": {},
         "received_at": 0,
@@ -794,7 +794,7 @@ def test_produce_to_listeners_returns_none_for_unsupported_events():
         produced_messages.append((message, event_type_hint, listener_name, silo))
 
     subscription_event = {
-        "event": b"unsupported",
+        "event": "unsupported",
         "event_type_hint": None,
         "extra": {},
         "received_at": 0,

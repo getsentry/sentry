@@ -593,7 +593,7 @@ class SubscriptionEvent(TypedDict):
     unwanted events without deserializing the event body itself.
     """
 
-    event: bytes
+    event: str
     """
     The event sent by the service provider. Typically a JSON object. The exact format is
     determined by the "type" field.

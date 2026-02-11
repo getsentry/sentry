@@ -40,7 +40,7 @@ from sentry.utils import metrics
 
 class SubscriptionEventParser(msgspec.Struct, gc=False, frozen=True):
     event_type_hint: str | None
-    event: bytes
+    event: str
     extra: dict[str, str | None | bool | int | float]
     received_at: int
     sentry_meta: list["SubscriptionEventSentryMetaParser"] | None
@@ -103,9 +103,9 @@ class PullRequestEventParser(msgspec.Struct, gc=False, frozen=True):
     subscription_event: SubscriptionEventParser
 
 
-check_run_event_decoder = msgspec.msgpack.Decoder(CheckRunEventParser)
-comment_event_decoder = msgspec.msgpack.Decoder(CommentEventParser)
-pull_request_event_decoder = msgspec.msgpack.Decoder(PullRequestEventParser)
+check_run_event_decoder = msgspec.json.Decoder(CheckRunEventParser)
+comment_event_decoder = msgspec.json.Decoder(CommentEventParser)
+pull_request_event_decoder = msgspec.json.Decoder(PullRequestEventParser)
 
 
 def _map_subscription_event(parsed: SubscriptionEventParser) -> SubscriptionEvent:
@@ -130,8 +130,8 @@ def _map_subscription_event(parsed: SubscriptionEventParser) -> SubscriptionEven
     }
 
 
-def deserialize_check_run_event(event_bytes: bytes) -> CheckRunEvent:
-    parsed = check_run_event_decoder.decode(event_bytes)
+def deserialize_check_run_event(event_data: str) -> CheckRunEvent:
+    parsed = check_run_event_decoder.decode(event_data)
     return CheckRunEvent(
         action=parsed.action,
         check_run={
@@ -142,8 +142,8 @@ def deserialize_check_run_event(event_bytes: bytes) -> CheckRunEvent:
     )
 
 
-def deserialize_comment_event(event_bytes: bytes) -> CommentEvent:
-    parsed = comment_event_decoder.decode(event_bytes)
+def deserialize_comment_event(event_data: str) -> CommentEvent:
+    parsed = comment_event_decoder.decode(event_data)
     return CommentEvent(
         action=parsed.action,
         comment_type=parsed.comment_type,
@@ -160,8 +160,8 @@ def deserialize_comment_event(event_bytes: bytes) -> CommentEvent:
     )
 
 
-def deserialize_pull_request_event(event_bytes: bytes) -> PullRequestEvent:
-    parsed = pull_request_event_decoder.decode(event_bytes)
+def deserialize_pull_request_event(event_data: str) -> PullRequestEvent:
+    parsed = pull_request_event_decoder.decode(event_data)
     return PullRequestEvent(
         action=parsed.action,
         pull_request={
@@ -184,10 +184,10 @@ def deserialize_pull_request_event(event_bytes: bytes) -> PullRequestEvent:
     )
 
 
-encoder = msgspec.msgpack.Encoder()
+encoder = msgspec.json.Encoder()
 
 
-def serialize_check_run_event(event: CheckRunEvent) -> bytes:
+def serialize_check_run_event(event: CheckRunEvent) -> str:
     check_run_data = CheckRunEventDataParser(
         external_id=event.check_run["external_id"],
         html_url=event.check_run["html_url"],
@@ -216,10 +216,10 @@ def serialize_check_run_event(event: CheckRunEvent) -> bytes:
         check_run=check_run_data,
         subscription_event=subscription_event,
     )
-    return encoder.encode(structured_event)
+    return encoder.encode(structured_event).decode("utf-8")
 
 
-def serialize_comment_event(event: CommentEvent) -> bytes:
+def serialize_comment_event(event: CommentEvent) -> str:
     comment_data = CommentEventDataParser(
         id=event.comment["id"],
         body=event.comment["body"],
@@ -256,10 +256,10 @@ def serialize_comment_event(event: CommentEvent) -> bytes:
         comment=comment_data,
         subscription_event=subscription_event,
     )
-    return encoder.encode(structured_event)
+    return encoder.encode(structured_event).decode("utf-8")
 
 
-def serialize_pull_request_event(event: PullRequestEvent) -> bytes:
+def serialize_pull_request_event(event: PullRequestEvent) -> str:
     pull_request_data = PullRequestEventDataParser(
         id=event.pull_request["id"],
         title=event.pull_request["title"],
@@ -306,12 +306,12 @@ def serialize_pull_request_event(event: PullRequestEvent) -> bytes:
         pull_request=pull_request_data,
         subscription_event=subscription_event,
     )
-    return encoder.encode(structured_event)
+    return encoder.encode(structured_event).decode("utf-8")
 
 
-def deserialize_event(event: bytes, event_type: EventTypeHint) -> EventType:
+def deserialize_event(event: str, event_type: EventTypeHint) -> EventType:
     """
-    Given bytes return a deserialized event.
+    Given an encoded string return a deserialized event.
     """
     if event_type == "check_run":
         return deserialize_check_run_event(event)
@@ -337,7 +337,7 @@ def deserialize_raw_event(event: SubscriptionEvent) -> EventType | None:
         raise ValueError("Provider not implemented.")
 
 
-def serialize_event(event: EventType) -> bytes:
+def serialize_event(event: EventType) -> str:
     """
     EventType serialization function. Serializes a payload based on its type hint. Again could be
     handled by an isinstance check. Or a type protocol which enforces that EventTypes provide a
@@ -364,7 +364,7 @@ def serialize_event(event: EventType) -> bytes:
 def produce_to_listeners(
     event: SubscriptionEvent,
     silo: HybridCloudSilo,
-    produce_to_listener: Callable[[bytes, EventTypeHint, str, HybridCloudSilo], None],
+    produce_to_listener: Callable[[str, EventTypeHint, str, HybridCloudSilo], None],
 ) -> None:
     """
     Accepts a raw SubscriptionEvent and attempts to determine its type before sending it to the
@@ -398,7 +398,7 @@ def produce_to_listeners(
 
 
 def produce_to_listener(
-    message: bytes,
+    message: str,
     event_type_hint: EventTypeHint,
     listener_name: str,
     silo: HybridCloudSilo,
@@ -416,7 +416,7 @@ def produce_to_listener(
     processing_deadline_duration=10,
 )
 def run_webhook_handler_control_task(
-    listener: str, message: bytes, event_type_hint: EventTypeHint
+    listener: str, message: str, event_type_hint: EventTypeHint
 ) -> None:
     run_listener(
         listener,
@@ -437,7 +437,7 @@ def run_webhook_handler_control_task(
     processing_deadline_duration=10,
 )
 def run_webhook_handler_region_task(
-    listener: str, message: bytes, event_type_hint: EventTypeHint
+    listener: str, message: str, event_type_hint: EventTypeHint
 ) -> None:
     run_listener(
         listener,
@@ -471,7 +471,7 @@ METRIC_PREFIX = "sentry.scm.run_listener"
 
 def run_listener(
     listener: str,
-    event_bytes: bytes,
+    event_data: str,
     event_type_hint: EventTypeHint,
     *,
     stream: SourceCodeManagerEventStream,
@@ -484,7 +484,7 @@ def run_listener(
     start = get_current_time()
 
     try:
-        event = deserialize_event(event_bytes, event_type_hint)
+        event = deserialize_event(event_data, event_type_hint)
     except msgspec.MsgspecError as e:
         report_error(e)
         record_count(f"{METRIC_PREFIX}.failed", 1, {"reason": "parse", "fn": listener})
@@ -513,6 +513,7 @@ def run_listener(
     #   * start_time identifies the time from webhook received to task started. It measures total
     #     system latency.
     record_count(f"{METRIC_PREFIX}.success", 1, {"fn": listener})
+    record_count(f"{METRIC_PREFIX}.message_size", len(event_data), {"fn": listener})
     record_timer(f"{METRIC_PREFIX}.start_time", start - received, {"fn": listener})
     record_timer(f"{METRIC_PREFIX}.task_time", end - start, {"fn": listener})
     record_timer(f"{METRIC_PREFIX}.real_time", received - start, {"fn": listener})
