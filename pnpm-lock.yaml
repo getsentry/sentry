@@ -7,6 +7,9 @@ settings:
 overrides:
   react-mentions>@babel/runtime: 7.26.10
   react-is: 19.2.1
+  '@isaacs/brace-expansion': 5.0.1
+  diff@>=4.0.0 <4.0.4: 4.0.4
+  diff@>=5.0.0 <5.2.2: 5.2.2
 
 importers:
 
@@ -230,13 +233,13 @@ importers:
         version: 5.83.1
       '@tanstack/react-devtools':
         specifier: ^0.9.3
-        version: 0.9.3(@types/react-dom@19.2.1(@types/react@19.2.1))(@types/react@19.2.1)(csstype@3.0.8)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(solid-js@1.9.11)
+        version: 0.9.3(@types/react-dom@19.2.1(@types/react@19.2.1))(@types/react@19.2.1)(csstype@3.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(solid-js@1.9.11)
       '@tanstack/react-form':
         specifier: ^1.28.0
         version: 1.28.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@tanstack/react-form-devtools':
         specifier: ^0.2.13
-        version: 0.2.13(@types/react@19.2.1)(csstype@3.0.8)(react@19.2.3)(solid-js@1.9.11)
+        version: 0.2.13(@types/react@19.2.1)(csstype@3.2.3)(react@19.2.3)(solid-js@1.9.11)
       '@tanstack/react-pacer':
         specifier: ^0.17.0
         version: 0.17.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -346,8 +349,8 @@ importers:
         specifier: ^7.1.2
         version: 7.1.2(@rspack/core@1.7.3(@swc/helpers@0.5.15))(webpack@5.99.6(esbuild@0.25.10))
       diff:
-        specifier: 8.0.2
-        version: 8.0.2
+        specifier: 8.0.3
+        version: 8.0.3
       dompurify:
         specifier: 3.2.5
         version: 3.2.5
@@ -436,8 +439,8 @@ importers:
         specifier: ^5.3.2
         version: 5.3.2
       peggy:
-        specifier: ^4.1.1
-        version: 4.1.1
+        specifier: 5.0.6
+        version: 5.0.6
       platformicons:
         specifier: ^9.0.7
         version: 9.0.7(react@19.2.3)
@@ -1930,8 +1933,8 @@ packages:
     resolution: {integrity: sha512-yzMTt9lEb8Gv7zRioUilSglI0c0smZ9k5D65677DLWLtWJaXIS3CqcGyUFByYKlnUj6TkjLVs54fBl6+TiGQDQ==}
     engines: {node: 20 || >=22}
 
-  '@isaacs/brace-expansion@5.0.0':
-    resolution: {integrity: sha512-ZT55BDLV0yv0RBm2czMiZ+SqCGO7AvmOM3G/w2xhVPH+te0aKgFjmBvGlL1dH+ql2tgGO3MVrbb3jCKyvpgnxA==}
+  '@isaacs/brace-expansion@5.0.1':
+    resolution: {integrity: sha512-WMz71T1JS624nWj2n2fnYAuPovhv7EUhk69R6i9dsVyzxt5eM3bjwvgk9L+APE1TRscGysAVMANkB0jh0LQZrQ==}
     engines: {node: 20 || >=22}
 
   '@isaacs/cliui@8.0.2':
@@ -2642,9 +2645,9 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@peggyjs/from-mem@1.3.4':
-    resolution: {integrity: sha512-6DqaCO73ihyM2AJ2Vl4QQGmmU3MoD4hFh0RFRzxPdLkSLfE0QMEyDfaojE/R3KbsL1UP4VQyJA2clwX4agSTBw==}
-    engines: {node: '>=18'}
+  '@peggyjs/from-mem@3.1.1':
+    resolution: {integrity: sha512-m5OEjgJaePWpyNtQCvRZkpLoV+z44eh6QIO9yEwQuOThdUdkECO3wcKLT3tFA3H8WM5bxU/K/dpmo7r/X16UEw==}
+    engines: {node: '>=20.8'}
 
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
@@ -4687,9 +4690,9 @@ packages:
     resolution: {integrity: sha512-yPVavfyCcRhmorC7rWlkHn15b4wDVgVmBA7kV4QVBsF7kv/9TKJAbAXVTxvTnwP8HHKjRCJDClKbciiYS7p0DQ==}
     engines: {node: '>=16'}
 
-  commander@12.1.0:
-    resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
-    engines: {node: '>=18'}
+  commander@14.0.3:
+    resolution: {integrity: sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==}
+    engines: {node: '>=20'}
 
   commander@2.20.3:
     resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
@@ -5018,12 +5021,12 @@ packages:
     resolution: {integrity: sha512-X07nttJQkwkfKfvTPG/KSnE2OMdcUCao6+eXF3wmnIQRn2aPAHH3VxDbDOdegkd6JbPsXqShpvEOHfAT+nCNwQ==}
     engines: {node: '>=0.3.1'}
 
-  diff@5.2.0:
-    resolution: {integrity: sha512-uIFDxqpRZGZ6ThOk84hEfqWoHx2devRFvpTZcTHur85vImfaxUbTW9Ryh4CpCuDnToOP1CEtXKIgytHBPVff5A==}
+  diff@5.2.2:
+    resolution: {integrity: sha512-vtcDfH3TOjP8UekytvnHH1o1P4FcUdt4eQ1Y+Abap1tk/OB2MWQvcwS2ClCd1zuIhc3JKOx6p3kod8Vfys3E+A==}
     engines: {node: '>=0.3.1'}
 
-  diff@8.0.2:
-    resolution: {integrity: sha512-sSuxWU5j5SR9QQji/o2qMvqRNYRDOcBTgsJ/DeCf4iSN4gW+gNMXM7wFIP+fdXZxoNiAnHUTGjCr+TSWXdRDKg==}
+  diff@8.0.3:
+    resolution: {integrity: sha512-qejHi7bcSD4hQAZE0tNAawRK1ZtafHDmMTMkrrIGgSLl7hTnQHmKCeB45xAcbfTqK2zowkM3j3bHt/4b/ARbYQ==}
     engines: {node: '>=0.3.1'}
 
   dir-glob@3.0.1:
@@ -7518,9 +7521,9 @@ packages:
     resolution: {integrity: sha512-gDKb8aZMDeD/tZWs9P6+q0J9Mwkdl6xMV8TjnGP3qJVJ06bdMgkbBlLU8IdfOsIsFz2BW1rNVT3XuNEl8zPAvw==}
     engines: {node: '>=8'}
 
-  peggy@4.1.1:
-    resolution: {integrity: sha512-2emciJQKahHJpT7f1asizGSnJ8bq0TKgWMXnCrtAaSH1NIXaGifYxL5m5KMrCdlaqaQJz3SVexNkx+I+Vz66VA==}
-    engines: {node: '>=18'}
+  peggy@5.0.6:
+    resolution: {integrity: sha512-Sud8Zus0JAgE+U4zwkJv29OOaXhviFI7J90/6cGfy3OoqR8dpnieeF9a46dj0bTtqiFnrFatldA6ltQyOJvNmg==}
+    engines: {node: '>=20'}
     hasBin: true
 
   performance-now@2.1.0:
@@ -8167,11 +8170,6 @@ packages:
     resolution: {integrity: sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==}
     hasBin: true
 
-  semver@7.6.3:
-    resolution: {integrity: sha512-oVekP1cKtI+CTDvHWYFUcMtsK/00wmAEfyqKfNdARm8u1wNVhSgaX7A8d4UuIlUI5e84iEwOhs7ZPYRmzU9U6A==}
-    engines: {node: '>=10'}
-    hasBin: true
-
   semver@7.7.2:
     resolution: {integrity: sha512-RF0Fw+rO5AMf9MAyaRXI4AV0Ulj5lMHqVxxdSgiVbixSCXoEmmX/jk0CuJw4+3SqroYO9VoUh+HcuJivvtJemA==}
     engines: {node: '>=10'}
@@ -8305,9 +8303,9 @@ packages:
   solid-js@1.9.11:
     resolution: {integrity: sha512-WEJtcc5mkh/BnHA6Yrg4whlF8g6QwpmXXRg4P2ztPmcKeHHlH4+djYecBLhSpecZY2RRECXYUwIc/C2r3yzQ4Q==}
 
-  source-map-generator@0.8.0:
-    resolution: {integrity: sha512-psgxdGMwl5MZM9S3FWee4EgsEaIjahYV5AzGnwUvPhWeITz/j6rKpysQHlQ4USdxvINlb8lKfWGIXwfkrgtqkA==}
-    engines: {node: '>= 10'}
+  source-map-generator@2.0.2:
+    resolution: {integrity: sha512-unCl5BQhF/us51DiT7SvlSY3QUPhyfAdHJxd8l7FXdwzqxli0UDMV2dEuei2SeGp3Z4rB/AJ9zKi1mGOp2K2ww==}
+    engines: {node: '>=20'}
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
@@ -10804,7 +10802,7 @@ snapshots:
 
   '@isaacs/balanced-match@4.0.1': {}
 
-  '@isaacs/brace-expansion@5.0.0':
+  '@isaacs/brace-expansion@5.0.1':
     dependencies:
       '@isaacs/balanced-match': 4.0.1
 
@@ -11680,9 +11678,9 @@ snapshots:
   '@oxc-resolver/binding-win32-x64-msvc@11.15.0':
     optional: true
 
-  '@peggyjs/from-mem@1.3.4':
+  '@peggyjs/from-mem@3.1.1':
     dependencies:
-      semver: 7.6.3
+      semver: 7.7.2
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
@@ -12811,17 +12809,17 @@ snapshots:
 
   '@tanstack/devtools-event-client@0.4.0': {}
 
-  '@tanstack/devtools-ui@0.4.4(csstype@3.0.8)(solid-js@1.9.11)':
+  '@tanstack/devtools-ui@0.4.4(csstype@3.2.3)(solid-js@1.9.11)':
     dependencies:
       clsx: 2.1.1
-      goober: 2.1.18(csstype@3.0.8)
+      goober: 2.1.18(csstype@3.2.3)
       solid-js: 1.9.11
     transitivePeerDependencies:
       - csstype
 
-  '@tanstack/devtools-utils@0.3.0(@types/react@19.2.1)(csstype@3.0.8)(react@19.2.3)(solid-js@1.9.11)':
+  '@tanstack/devtools-utils@0.3.0(@types/react@19.2.1)(csstype@3.2.3)(react@19.2.3)(solid-js@1.9.11)':
     dependencies:
-      '@tanstack/devtools-ui': 0.4.4(csstype@3.0.8)(solid-js@1.9.11)
+      '@tanstack/devtools-ui': 0.4.4(csstype@3.2.3)(solid-js@1.9.11)
     optionalDependencies:
       '@types/react': 19.2.1
       react: 19.2.3
@@ -12829,16 +12827,16 @@ snapshots:
     transitivePeerDependencies:
       - csstype
 
-  '@tanstack/devtools@0.10.4(csstype@3.0.8)(solid-js@1.9.11)':
+  '@tanstack/devtools@0.10.4(csstype@3.2.3)(solid-js@1.9.11)':
     dependencies:
       '@solid-primitives/event-listener': 2.4.3(solid-js@1.9.11)
       '@solid-primitives/keyboard': 1.3.3(solid-js@1.9.11)
       '@solid-primitives/resize-observer': 2.1.3(solid-js@1.9.11)
       '@tanstack/devtools-client': 0.0.5
       '@tanstack/devtools-event-bus': 0.4.0
-      '@tanstack/devtools-ui': 0.4.4(csstype@3.0.8)(solid-js@1.9.11)
+      '@tanstack/devtools-ui': 0.4.4(csstype@3.2.3)(solid-js@1.9.11)
       clsx: 2.1.1
-      goober: 2.1.18(csstype@3.0.8)
+      goober: 2.1.18(csstype@3.2.3)
       solid-js: 1.9.11
     transitivePeerDependencies:
       - bufferutil
@@ -12859,14 +12857,14 @@ snapshots:
       '@tanstack/pacer-lite': 0.1.1
       '@tanstack/store': 0.7.7
 
-  '@tanstack/form-devtools@0.2.13(@types/react@19.2.1)(csstype@3.0.8)(react@19.2.3)(solid-js@1.9.11)':
+  '@tanstack/form-devtools@0.2.13(@types/react@19.2.1)(csstype@3.2.3)(react@19.2.3)(solid-js@1.9.11)':
     dependencies:
-      '@tanstack/devtools-ui': 0.4.4(csstype@3.0.8)(solid-js@1.9.11)
-      '@tanstack/devtools-utils': 0.3.0(@types/react@19.2.1)(csstype@3.0.8)(react@19.2.3)(solid-js@1.9.11)
+      '@tanstack/devtools-ui': 0.4.4(csstype@3.2.3)(solid-js@1.9.11)
+      '@tanstack/devtools-utils': 0.3.0(@types/react@19.2.1)(csstype@3.2.3)(react@19.2.3)(solid-js@1.9.11)
       '@tanstack/form-core': 1.28.0
       clsx: 2.1.1
       dayjs: 1.11.19
-      goober: 2.1.18(csstype@3.0.8)
+      goober: 2.1.18(csstype@3.2.3)
       solid-js: 1.9.11
     transitivePeerDependencies:
       - '@types/react'
@@ -12894,9 +12892,9 @@ snapshots:
     dependencies:
       '@tanstack/query-core': 5.83.1
 
-  '@tanstack/react-devtools@0.9.3(@types/react-dom@19.2.1(@types/react@19.2.1))(@types/react@19.2.1)(csstype@3.0.8)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(solid-js@1.9.11)':
+  '@tanstack/react-devtools@0.9.3(@types/react-dom@19.2.1(@types/react@19.2.1))(@types/react@19.2.1)(csstype@3.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(solid-js@1.9.11)':
     dependencies:
-      '@tanstack/devtools': 0.10.4(csstype@3.0.8)(solid-js@1.9.11)
+      '@tanstack/devtools': 0.10.4(csstype@3.2.3)(solid-js@1.9.11)
       '@types/react': 19.2.1
       '@types/react-dom': 19.2.1(@types/react@19.2.1)
       react: 19.2.3
@@ -12907,10 +12905,10 @@ snapshots:
       - solid-js
       - utf-8-validate
 
-  '@tanstack/react-form-devtools@0.2.13(@types/react@19.2.1)(csstype@3.0.8)(react@19.2.3)(solid-js@1.9.11)':
+  '@tanstack/react-form-devtools@0.2.13(@types/react@19.2.1)(csstype@3.2.3)(react@19.2.3)(solid-js@1.9.11)':
     dependencies:
-      '@tanstack/devtools-utils': 0.3.0(@types/react@19.2.1)(csstype@3.0.8)(react@19.2.3)(solid-js@1.9.11)
-      '@tanstack/form-devtools': 0.2.13(@types/react@19.2.1)(csstype@3.0.8)(react@19.2.3)(solid-js@1.9.11)
+      '@tanstack/devtools-utils': 0.3.0(@types/react@19.2.1)(csstype@3.2.3)(react@19.2.3)(solid-js@1.9.11)
+      '@tanstack/form-devtools': 0.2.13(@types/react@19.2.1)(csstype@3.2.3)(react@19.2.3)(solid-js@1.9.11)
       react: 19.2.3
     transitivePeerDependencies:
       - '@types/react'
@@ -14288,7 +14286,7 @@ snapshots:
 
   commander@11.1.0: {}
 
-  commander@12.1.0: {}
+  commander@14.0.3: {}
 
   commander@2.20.3: {}
 
@@ -14579,9 +14577,9 @@ snapshots:
   diff@4.0.4:
     optional: true
 
-  diff@5.2.0: {}
+  diff@5.2.2: {}
 
-  diff@8.0.2: {}
+  diff@8.0.3: {}
 
   dir-glob@3.0.1:
     dependencies:
@@ -14688,7 +14686,7 @@ snapshots:
       '@one-ini/wasm': 0.1.1
       commander: 10.0.1
       minimatch: 9.0.1
-      semver: 7.7.2
+      semver: 7.7.3
 
   ee-first@1.1.1: {}
 
@@ -15772,9 +15770,9 @@ snapshots:
 
   globjoin@0.1.4: {}
 
-  goober@2.1.18(csstype@3.0.8):
+  goober@2.1.18(csstype@3.2.3):
     dependencies:
-      csstype: 3.0.8
+      csstype: 3.2.3
 
   gopd@1.2.0: {}
 
@@ -16340,7 +16338,7 @@ snapshots:
       '@babel/parser': 7.28.0
       '@istanbuljs/schema': 0.1.3
       istanbul-lib-coverage: 3.2.0
-      semver: 7.7.2
+      semver: 7.7.3
     transitivePeerDependencies:
       - supports-color
 
@@ -16741,7 +16739,7 @@ snapshots:
       jest-message-util: 30.0.2
       jest-util: 30.0.2
       pretty-format: 30.0.2
-      semver: 7.7.2
+      semver: 7.7.3
       synckit: 0.11.8
     transitivePeerDependencies:
       - supports-color
@@ -17596,7 +17594,7 @@ snapshots:
 
   minimatch@10.1.1:
     dependencies:
-      '@isaacs/brace-expansion': 5.0.0
+      '@isaacs/brace-expansion': 5.0.1
 
   minimatch@3.1.2:
     dependencies:
@@ -17691,7 +17689,7 @@ snapshots:
 
   node-abi@3.75.0:
     dependencies:
-      semver: 7.7.2
+      semver: 7.7.3
 
   node-fetch@2.7.0(encoding@0.1.13):
     dependencies:
@@ -17714,7 +17712,7 @@ snapshots:
   normalize-package-data@6.0.2:
     dependencies:
       hosted-git-info: 7.0.2
-      semver: 7.7.2
+      semver: 7.7.3
       validate-npm-package-license: 3.0.4
 
   normalize-path@3.0.0: {}
@@ -18011,11 +18009,11 @@ snapshots:
 
   path-type@4.0.0: {}
 
-  peggy@4.1.1:
+  peggy@5.0.6:
     dependencies:
-      '@peggyjs/from-mem': 1.3.4
-      commander: 12.1.0
-      source-map-generator: 0.8.0
+      '@peggyjs/from-mem': 3.1.1
+      commander: 14.0.3
+      source-map-generator: 2.0.2
 
   performance-now@2.1.0: {}
 
@@ -18742,8 +18740,6 @@ snapshots:
 
   semver@6.3.1: {}
 
-  semver@7.6.3: {}
-
   semver@7.7.2: {}
 
   semver@7.7.3: {}
@@ -18938,7 +18934,7 @@ snapshots:
       seroval: 1.5.0
       seroval-plugins: 1.5.0(seroval@1.5.0)
 
-  source-map-generator@0.8.0: {}
+  source-map-generator@2.0.2: {}
 
   source-map-js@1.2.1: {}
 
@@ -19692,7 +19688,7 @@ snapshots:
   uvu@0.5.6:
     dependencies:
       dequal: 2.0.3
-      diff: 5.2.0
+      diff: 5.2.2
       kleur: 4.1.5
       sade: 1.8.1
 

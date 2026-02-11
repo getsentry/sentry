@@ -30,6 +30,7 @@ AI_CONVERSATION_ATTRIBUTES = [
     "span.op",
     "span.status",
     "span.description",
+    "span.name",
     "span.duration",
     "transaction",
     "is_transaction",

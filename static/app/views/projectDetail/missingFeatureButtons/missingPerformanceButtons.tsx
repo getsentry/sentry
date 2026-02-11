@@ -1,12 +1,13 @@
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Feature from 'sentry/components/acl/feature';
 import FeatureTourModal from 'sentry/components/modals/featureTourModal';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
@@ -55,7 +56,7 @@ function MissingPerformanceButtons({organization}: Props) {
       features="performance-view"
       organization={organization}
     >
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         <Button
           size="sm"
           priority="primary"
@@ -84,7 +85,7 @@ function MissingPerformanceButtons({organization}: Props) {
             </Button>
           )}
         </FeatureTourModal>
-      </ButtonBar>
+      </Grid>
     </Feature>
   );
 }

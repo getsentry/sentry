@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {IconBusiness, IconLock} from 'sentry/icons';
@@ -37,7 +38,7 @@ function DisabledCustomSymbolSources({organization}: Props) {
         ),
       })}
       action={
-        <ButtonBar gap="sm">
+        <Grid flow="column" align="center" gap="sm">
           <StyledButton
             priority="primary"
             icon={<IconBusiness />}
@@ -58,7 +59,7 @@ function DisabledCustomSymbolSources({organization}: Props) {
           >
             {t('Documentation')}
           </StyledLearnMoreButton>
-        </ButtonBar>
+        </Grid>
       }
     >
       {tct(

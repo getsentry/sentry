@@ -264,7 +264,7 @@ export function SpanProfileDetails({
           )}
         />
         <SpanDetailsItem>
-          <ButtonBar merged gap="0">
+          <ButtonBar>
             <Button
               icon={<IconChevron direction="left" />}
               aria-label={t('Previous')}

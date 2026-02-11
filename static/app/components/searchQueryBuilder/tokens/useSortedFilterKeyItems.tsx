@@ -7,7 +7,6 @@ import type {
   SearchKeyItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {
-  createAskSeerConsentItem,
   createAskSeerItem,
   createFilterValueItem,
   createItem,
@@ -171,13 +170,9 @@ export function useSortedFilterKeyItems({
     replaceRawSearchKeys,
     matchKeySuggestions,
     enableAISearch,
-    gaveSeerConsent,
   } = useSearchQueryBuilder();
 
   const organization = useOrganization();
-  const hasAskSeerConsentFlowChanges = organization.features.includes(
-    'gen-ai-consent-flow-removal'
-  );
   const hasConditionalsInCombobox = organization.features.includes(
     'search-query-builder-conditionals-combobox-menus'
   );
@@ -255,13 +250,7 @@ export function useSortedFilterKeyItems({
 
     const askSeerItem = [];
     if (enableAISearch) {
-      askSeerItem.push(
-        hasAskSeerConsentFlowChanges
-          ? createAskSeerItem()
-          : gaveSeerConsent
-            ? createAskSeerItem()
-            : createAskSeerConsentItem()
-      );
+      askSeerItem.push(createAskSeerItem());
     }
 
     if (includeSuggestions) {
@@ -363,9 +352,7 @@ export function useSortedFilterKeyItems({
     filterKeys,
     filterValue,
     flatKeys,
-    gaveSeerConsent,
     getFieldDefinition,
-    hasAskSeerConsentFlowChanges,
     includeSuggestions,
     inputValue,
     matchKeySuggestions,

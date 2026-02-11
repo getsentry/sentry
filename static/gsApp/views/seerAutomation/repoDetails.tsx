@@ -1,8 +1,7 @@
-import {Fragment} from 'react';
-
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import NotFound from 'sentry/components/errors/notFound';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -38,19 +37,31 @@ export default function SeerRepoDetails() {
   });
 
   if (!hasSeer) {
-    return <NotFound />;
+    return (
+      <AnalyticsArea name="repo-details">
+        <NotFound />
+      </AnalyticsArea>
+    );
   }
 
   if (isPending) {
-    return <LoadingIndicator />;
+    return (
+      <AnalyticsArea name="repo-details">
+        <LoadingIndicator />
+      </AnalyticsArea>
+    );
   }
 
   if (error) {
-    return <LoadingError onRetry={refetch} />;
+    return (
+      <AnalyticsArea name="repo-details">
+        <LoadingError onRetry={refetch} />
+      </AnalyticsArea>
+    );
   }
 
   return (
-    <Fragment>
+    <AnalyticsArea name="repo-details">
       <SentryDocumentTitle
         title={t('Repository Seer Settings')}
         projectSlug={repoWithSettings?.name}
@@ -83,6 +94,6 @@ export default function SeerRepoDetails() {
       ) : (
         <Alert variant="warning">{t('Seer is not supported for this repository.')}</Alert>
       )}
-    </Fragment>
+    </AnalyticsArea>
   );
 }

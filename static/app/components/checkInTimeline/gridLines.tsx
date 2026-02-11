@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import moment from 'moment-timezone';
 
-import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {DateTime} from 'sentry/components/dateTime';
+import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
 

@@ -10,6 +10,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import PerformanceDuration from 'sentry/components/performanceDuration';
@@ -23,7 +24,6 @@ import Projects from 'sentry/utils/projects';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {BREAKDOWN_SLICES} from 'sentry/views/explore/hooks/useTraces';

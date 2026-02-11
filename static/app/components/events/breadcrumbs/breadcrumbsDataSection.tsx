@@ -2,7 +2,8 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -126,7 +127,7 @@ export default function BreadcrumbsDataSection({
       : BreadcrumbTimeDisplay.ABSOLUTE;
 
   const actions = (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       <Button
         aria-label={t('Open Breadcrumb Search')}
         icon={<IconSearch size="xs" />}
@@ -156,7 +157,7 @@ export default function BreadcrumbsDataSection({
         size="xs"
       />
       <CopyBreadcrumbsDropdown breadcrumbs={enhancedCrumbs} />
-    </ButtonBar>
+    </Grid>
   );
 
   const hasViewAll = summaryCrumbs.length !== enhancedCrumbs.length;

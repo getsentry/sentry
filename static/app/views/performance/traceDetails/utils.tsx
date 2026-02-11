@@ -1,6 +1,6 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
-import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
+import {PAGE_URL_PARAM} from 'sentry/components/pageFilters/constants';
 import type {DateString} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';

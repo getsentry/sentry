@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import Panel from 'sentry/components/panels/panel';
 import {
@@ -96,7 +97,7 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                 />
               </HeaderItem>
               <HeaderItem>
-                <ButtonBar gap="2xs">
+                <Grid flow="column" align="center" gap="2xs">
                   <PaginationButton
                     aria-label={t('Previous Page')}
                     priority="transparent"
@@ -125,7 +126,7 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                     }}
                     disabled={nextDisabled}
                   />
-                </ButtonBar>
+                </Grid>
               </HeaderItem>
             </Fragment>
           ) : null}

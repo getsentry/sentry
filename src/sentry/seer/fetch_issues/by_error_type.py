@@ -45,10 +45,10 @@ def fetch_issues(
     provider: str,
     external_id: str,
     exception_type: str,
+    owner: str,
+    name: str,
     max_num_issues: int = utils.MAX_NUM_ISSUES_DEFAULT,
     num_days_ago: int = utils.MAX_NUM_DAYS_AGO_DEFAULT,
-    owner: str | None = None,
-    name: str | None = None,
     run_id: int | None = None,
 ) -> utils.SeerResponse | utils.SeerResponseError:
     repo_projects = utils.get_repo_and_projects(

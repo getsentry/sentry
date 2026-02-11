@@ -1,7 +1,7 @@
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 type SuspectFlagScore = {
   baseline_percent: number;
