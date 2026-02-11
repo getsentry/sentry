@@ -1,0 +1,89 @@
+import {Button} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {useAuthToken} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
+import {useTabSelectionsMap} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
+import type {OnboardingStep} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {stepsToMarkdown} from 'sentry/components/onboarding/gettingStartedDoc/utils/stepsToMarkdown';
+import {IconCopy} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
+
+interface CopyMarkdownButtonProps {
+  getMarkdown: () => string;
+  organization: Organization;
+  source: string;
+}
+
+/**
+ * A standalone "Copy as Markdown" button with tooltip and analytics tracking.
+ * Accepts a `getMarkdown` callback to produce the clipboard content.
+ *
+ * Use this directly when you already have a markdown-producing function
+ * (e.g. innerHTML-based conversion in crons guides). For onboarding-step
+ * surfaces that need tab-selection and auth-token context, use
+ * `OnboardingCopyMarkdownButton` instead.
+ */
+export function CopyMarkdownButton({
+  getMarkdown,
+  organization,
+  source,
+}: CopyMarkdownButtonProps) {
+  return (
+    <Tooltip title={t('Let an LLM do all the work instead')} position="right">
+      <Button
+        icon={<IconCopy />}
+        onClick={() => {
+          trackAnalytics('setup_guide.copy_as_markdown', {
+            organization,
+            format: 'markdown',
+            source,
+          });
+          copyToClipboard(getMarkdown());
+        }}
+      >
+        {t('Copy as Markdown')}
+      </Button>
+    </Tooltip>
+  );
+}
+
+interface OnboardingCopyMarkdownButtonProps {
+  organization: Organization;
+  source: string;
+  steps: OnboardingStep[];
+}
+
+/**
+ * A "Copy to Markdown" button pre-wired for onboarding steps. Reads
+ * registered tab selections and the auth token at click time.
+ */
+export function OnboardingCopyMarkdownButton({
+  steps,
+  organization,
+  source,
+}: OnboardingCopyMarkdownButtonProps) {
+  const authToken = useAuthToken();
+  const tabSelectionsMap = useTabSelectionsMap();
+
+  const getMarkdown = () => {
+    try {
+      return stepsToMarkdown(steps, {
+        tabSelectionsMap,
+        authToken,
+      });
+    } catch {
+      return '';
+    }
+  };
+
+  return (
+    <CopyMarkdownButton
+      getMarkdown={getMarkdown}
+      organization={organization}
+      source={source}
+    />
+  );
+}
