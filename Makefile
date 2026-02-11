@@ -155,7 +155,7 @@ test-backend-ci-with-coverage:
 
 compute-selected-tests:
 	@echo "--> Computing selected tests from coverage data"
-	python3 .github/workflows/scripts/compute-selected-tests.py \
+	python3 .github/workflows/scripts/selective-testing/compute-selected-tests.py \
 		--coverage-db "$(COVERAGE_DB)" \
 		--changed-files "$(CHANGED_FILES)" \
 		--output .artifacts/selected-tests.txt \
@@ -164,13 +164,13 @@ compute-selected-tests:
 
 test-selective:
 	@echo "--> Running selective tests based on branch changes"
-	python3 .github/workflows/scripts/fetch-coverage.py \
+	python3 .github/workflows/scripts/selective-testing/fetch-coverage.py \
 		--output .cache/coverage.db
-	python3 .github/workflows/scripts/compute-selected-tests.py \
+	python3 .github/workflows/scripts/selective-testing/compute-selected-tests.py \
 		--coverage-db .cache/coverage.db \
 		--changed-files "$$(git diff --name-only origin/master)" \
 		--output .cache/selected-tests.txt
-	python3 .github/workflows/scripts/confirm-test-selection.py \
+	python3 .github/workflows/scripts/selective-testing/confirm-test-selection.py \
 		.cache/selected-tests.txt
 	SELECTED_TESTS_FILE=.cache/selected-tests.txt \
 	python3 -b -m pytest \
