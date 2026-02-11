@@ -1,11 +1,11 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
 import beautify from 'js-beautify';
 
 import {CodeBlock} from '@sentry/scraps/code';
 
 import {AuthTokenGenerator} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {useTabRegistry} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
+import {useRegisteredTabSelection} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {PACKAGE_LOADING_PLACEHOLDER} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 interface OnboardingCodeSnippetProps extends Omit<
@@ -101,20 +101,11 @@ export function TabbedCodeSnippet({
   onCopy,
   onSelectAndCopy,
 }: TabbedCodeSnippetProps) {
-  const [selectedTabValue, setSelectedTabValue] = useState(tabs[0]!.value);
+  const [selectedTabValue, setSelectedTabValue] = useRegisteredTabSelection(
+    tabs[0]!.value
+  );
   const resolvedTab = tabs.find(tab => tab.value === selectedTabValue) ?? tabs[0]!;
   const {code, language, filename} = resolvedTab;
-
-  // Keep a ref to the current label so the registered getter always returns
-  // the latest selection without needing to re-register on every change.
-  const selectedLabelRef = useRef(resolvedTab.label);
-  selectedLabelRef.current = resolvedTab.label;
-
-  const {register} = useTabRegistry();
-
-  useEffect(() => {
-    return register(() => selectedLabelRef.current);
-  }, [register]);
 
   return (
     <OnboardingCodeSnippet
@@ -123,9 +114,7 @@ export function TabbedCodeSnippet({
       onSelectAndCopy={onSelectAndCopy}
       tabs={tabs}
       selectedTab={selectedTabValue}
-      onTabClick={value => {
-        setSelectedTabValue(value);
-      }}
+      onTabClick={setSelectedTabValue}
       filename={filename}
     >
       {code}

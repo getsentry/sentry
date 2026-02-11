@@ -12,6 +12,7 @@ import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -334,7 +335,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   ];
 
   return (
-    <Fragment>
+    <TabSelectionScope>
       {performanceDocs.introduction && (
         <Introduction>{performanceDocs.introduction(docParams)}</Introduction>
       )}
@@ -359,7 +360,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       >
         {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
       </EventWaiter>
-    </Fragment>
+    </TabSelectionScope>
   );
 }
 

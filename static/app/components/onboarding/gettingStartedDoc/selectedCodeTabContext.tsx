@@ -14,7 +14,7 @@
  * Surfaces without a provider fall back to a global registry.
  */
 
-import {createContext, useCallback, useContext, useRef} from 'react';
+import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import type {MutableRefObject} from 'react';
 
 type TabSelectionGetter = () => string;
@@ -71,4 +71,28 @@ export function useTabRegistry() {
   }, [registry]);
 
   return {register, getSelections};
+}
+
+/**
+ * Combined hook that manages tab selection state AND registers a getter
+ * with the scoped registry. This is the single source of truth for a
+ * TabbedCodeSnippet's selected tab — the same value drives both the UI
+ * and the Copy as Markdown output.
+ *
+ * Returns [selectedValue, setSelectedValue] like useState.
+ */
+export function useRegisteredTabSelection(
+  initialValue: string
+): [string, (value: string) => void] {
+  const {register} = useTabRegistry();
+  const [selectedValue, setSelectedValue] = useState(initialValue);
+
+  const valueRef = useRef(selectedValue);
+  valueRef.current = selectedValue;
+
+  useEffect(() => {
+    return register(() => valueRef.current);
+  }, [register]);
+
+  return [selectedValue, setSelectedValue];
 }
