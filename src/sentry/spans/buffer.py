@@ -81,7 +81,12 @@ from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
-from sentry.spans.buffer_logger import BufferLogger, EvalshaData, emit_observability_metrics
+from sentry.spans.buffer_logger import (
+    BufferLogger,
+    EvalshaData,
+    compare_metrics,
+    emit_observability_metrics,
+)
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.spans.debug_trace_logger import DebugTraceLogger
 from sentry.utils import metrics, redis
@@ -277,7 +282,7 @@ class SpansBuffer:
                         prepared = self._prepare_payloads(subsegment)
 
                         if write_to_set:
-                            set_key = self._get_set_span_key(project_and_trace, parent_span_id)
+                            set_key = self._get_span_key(project_and_trace, parent_span_id)
                             p.sadd(set_key, *prepared.keys())
                         if write_to_payload_set:
                             payload_set_key = self._get_payload_set_key(
@@ -327,19 +332,20 @@ class SpansBuffer:
                             "true" if any(span.is_segment_span for span in subsegment) else "false"
                         )
 
-                        p.execute_command(
-                            "EVALSHA",
-                            add_buffer_sha,
-                            1,
-                            project_and_trace,
-                            len(subsegment),
-                            parent_span_id,
-                            is_segment_span,
-                            redis_ttl,
-                            max_segment_bytes,
-                            byte_count,
-                            *span_ids,
-                        )
+                        if write_to_set:
+                            p.execute_command(
+                                "EVALSHA",
+                                add_buffer_sha,
+                                1,
+                                project_and_trace,
+                                len(subsegment),
+                                parent_span_id,
+                                is_segment_span,
+                                redis_ttl,
+                                max_segment_bytes,
+                                byte_count,
+                                *span_ids,
+                            )
 
                         if write_to_payload_set:
                             p.execute_command(
@@ -388,7 +394,8 @@ class SpansBuffer:
                 [],
             )
 
-            assert len(result_meta) == len(results)
+            if write_to_set:
+                assert len(result_meta) == len(results)
             if write_to_payload_set:
                 assert len(result_meta) == len(payload_set_results)
 
@@ -397,9 +404,9 @@ class SpansBuffer:
                 get_span_key_fn = self._get_payload_set_key
             else:
                 queue_results = results
-                get_span_key_fn = self._get_set_span_key
+                get_span_key_fn = self._get_span_key
 
-            for (project_and_trace, parent_span_id), result in zip(result_meta, results):
+            for (project_and_trace, parent_span_id), result in zip(result_meta, queue_results):
                 (
                     segment_key,
                     has_root_span,
@@ -429,26 +436,27 @@ class SpansBuffer:
                 subsegment_spans = trees[project_and_trace, parent_span_id]
                 delete_set = queue_deletes.setdefault(queue_key, set())
                 delete_set.update(
-                    self._get_span_key(project_and_trace, span.span_id) for span in subsegment_spans
+                    get_span_key_fn(project_and_trace, span.span_id) for span in subsegment_spans
                 )
                 delete_set.discard(segment_key)
 
-            for result in results:
-                (
-                    _,
-                    _,
-                    evalsha_latency_ms,
-                    evalsha_latency_metrics,
-                    evalsha_gauge_metrics,
-                ) = result
-                latency_metrics.append(evalsha_latency_metrics)
-                gauge_metrics.append(evalsha_gauge_metrics)
-                if evalsha_latency_ms > longest_evalsha_data[0]:
-                    longest_evalsha_data = (
+            if write_to_set:
+                for result in results:
+                    (
+                        _,
+                        _,
                         evalsha_latency_ms,
                         evalsha_latency_metrics,
                         evalsha_gauge_metrics,
-                    )
+                    ) = result
+                    latency_metrics.append(evalsha_latency_metrics)
+                    gauge_metrics.append(evalsha_gauge_metrics)
+                    if evalsha_latency_ms > longest_evalsha_data[0]:
+                        longest_evalsha_data = (
+                            evalsha_latency_ms,
+                            evalsha_latency_metrics,
+                            evalsha_gauge_metrics,
+                        )
 
             if write_to_payload_set:
                 for result in payload_set_results:
@@ -491,9 +499,7 @@ class SpansBuffer:
 
         try:
             if write_to_set:
-                emit_observability_metrics(
-                    set_latency_metrics, set_gauge_metrics, longest_set_evalsha_data
-                )
+                emit_observability_metrics(latency_metrics, gauge_metrics, longest_evalsha_data)
             if write_to_payload_set:
                 emit_observability_metrics(
                     payload_set_latency_metrics,
@@ -501,14 +507,14 @@ class SpansBuffer:
                     longest_payload_set_evalsha_data,
                 )
             if write_to_set and write_to_payload_set:
-                compare_metrics(latency_metrics, payload_set_latency_metrics)
-                compare_metrics(gauge_metrics, payload_set_gauge_metrics)
+                compare_metrics(latency_metrics, payload_set_latency_metrics, "set", "payload_set")
+                compare_metrics(gauge_metrics, payload_set_gauge_metrics, "set", "payload_set")
         except Exception as e:
             logger.exception("Error emitting observability metrics: %s", e)
 
     def _ensure_scripts(
         self, write_to_set: bool, write_to_payload_set: bool
-    ) -> tuple[str | None, str | None, str | None]:
+    ) -> tuple[str | None, str | None]:
         """
         Ensures the Lua script is loaded in Redis and returns its SHA.
         """

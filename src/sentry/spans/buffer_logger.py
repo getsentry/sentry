@@ -140,3 +140,50 @@ def emit_observability_metrics(
     for data_point in longest_evalsha_data[2]:  # gauge_metrics
         key = data_point[0].decode("utf-8")
         metrics.gauge(f"spans.buffer.process_spans.longest_evalsha.{key}", data_point[1])
+
+
+def compare_metrics(
+    metrics_a: list[EvalshaData],
+    metrics_b: list[EvalshaData],
+    metrics_a_prefix: str,
+    metrics_b_prefix: str,
+) -> None:
+    """
+    Reports the difference (SET - ZSET) between metrics.
+
+    SET metrics are expected to have a "set_" prefix (e.g., "set_redirect_depth").
+    Special cases are handled via ZSET_TO_SET_KEY_MAPPING.
+    """
+    differences: dict[str, tuple[float, float, float, float]] = {}
+
+    for evalsha_a, evalsha_b in zip(metrics_a, metrics_b):
+        set_dict: dict[str, float] = {
+            raw_key.decode("utf-8"): value for raw_key, value in evalsha_b
+        }
+
+        for raw_key, value in evalsha_a:
+            set_a_key = raw_key.decode("utf-8")
+            set_b_key = set_a_key.replace(metrics_a_prefix, metrics_b_prefix)
+
+            if set_b_key not in set_dict:
+                continue
+
+            diff = set_dict[set_b_key] - set_dict[set_a_key]
+
+            if set_a_key not in differences:
+                differences[set_a_key] = (diff, diff, diff, 1.0)
+            else:
+                differences[set_a_key] = (
+                    min(differences[set_a_key][0], diff),
+                    max(differences[set_a_key][1], diff),
+                    differences[set_a_key][2] + diff,
+                    differences[set_a_key][3] + 1.0,
+                )
+
+    for key, (min_val, max_val, sum_val, count) in differences.items():
+        metrics.gauge(f"spans.buffer.{metrics_a_prefix}_vs_{metrics_b_prefix}.min_{key}", min_val)
+        metrics.gauge(f"spans.buffer.{metrics_a_prefix}_vs_{metrics_b_prefix}.max_{key}", max_val)
+        metrics.gauge(
+            f"spans.buffer.{metrics_a_prefix}_vs_{metrics_b_prefix}.avg_{key}", sum_val / count
+        )
+        metrics.gauge(f"spans.buffer.{metrics_a_prefix}_vs_{metrics_b_prefix}.count_{key}", count)
