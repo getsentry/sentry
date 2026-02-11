@@ -231,6 +231,7 @@ def _record_partitioning_metrics(orgs_by_measure: dict[SamplingMeasure, list[int
             "dynamic_sampling.partition_by_measure.measure",
             amount=len(org_ids),
             tags={"measure": measure.value},
+            sample_rate=1,
         )
 
 
