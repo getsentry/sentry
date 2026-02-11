@@ -125,7 +125,8 @@ export function useRegisteredTabSelection(
   const blockPath = useContext(BlockPathContext);
   const key = deriveTabKey(tabs, stepIndex, blockPath || undefined);
 
-  // Local fallback when no TabSelectionScope is present
+  // Local fallback when no TabSelectionScope is present (e.g.
+  // screensLandingPage.tsx renders TabbedCodeSnippet standalone).
   const [localValue, setLocalValue] = useState(tabs[0]!.value);
 
   const storedValue = ctx ? ctx.selections.get(key) : localValue;
