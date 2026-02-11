@@ -259,9 +259,9 @@ As a consequence, during every rebalance:
    nothing (the key was already deleted), resulting in an empty segment
    (`spans.buffer.empty_segments` metric).
 
-This is expected on every deployment. The typical consequence is that a segment
-gets broken up: spans that arrived before the rebalance are in one queue, and
-spans that arrived after are in another. Each queue's flusher produces an
+This is expected on every deployment. The typical consequence (and is a confirmed bug)
+is that a segment gets broken up: spans that arrived before the rebalance are in one
+queue, and spans that arrived after are in another. Each queue's flusher produces an
 incomplete segment independently — one with the earlier spans, the others with
 the later spans. In the worst case, if both flushers race and read the same segment
 before either deletes it, the result is a duplicated segment.
