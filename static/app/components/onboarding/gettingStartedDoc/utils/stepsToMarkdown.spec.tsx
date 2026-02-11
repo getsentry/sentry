@@ -102,6 +102,14 @@ describe('simpleHtmlToMarkdown', () => {
   it('handles empty string', () => {
     expect(simpleHtmlToMarkdown('')).toBe('');
   });
+
+  it('strips nested/malformed tags that could reassemble after single pass', () => {
+    // After stripping, no <script> tag survives — only harmless text fragments remain
+    const result = simpleHtmlToMarkdown('<scr<script>ipt>alert(1)</script>');
+    expect(result).not.toContain('<script');
+    expect(result).not.toContain('</script');
+    expect(result).toContain('alert(1)');
+  });
 });
 
 describe('reactNodeToText', () => {
@@ -307,13 +315,22 @@ describe('contentBlockToMarkdown', () => {
     expect(result).toContain('const sentry = require("@sentry/node")');
   });
 
-  it('converts AlertBlock', () => {
+  it('converts AlertBlock with info type', () => {
     const block: ContentBlock = {
       type: 'alert',
       alertType: 'info',
       text: 'This is important.',
     };
     expect(contentBlockToMarkdown(block)).toBe('> **Note:** This is important.');
+  });
+
+  it('converts AlertBlock with warning type', () => {
+    const block: ContentBlock = {
+      type: 'alert',
+      alertType: 'warning',
+      text: 'Requires Python 3.6+',
+    };
+    expect(contentBlockToMarkdown(block)).toBe('> **Warning:** Requires Python 3.6+');
   });
 
   it('converts SubHeaderBlock', () => {
@@ -449,7 +466,7 @@ describe('stepsToMarkdown', () => {
     expect(result).toContain('## Install');
     expect(result).toContain('First, install the package:');
     expect(result).toContain('```bash\npip install sentry-sdk\n```');
-    expect(result).toContain('> **Note:** Requires Python 3.6+');
+    expect(result).toContain('> **Warning:** Requires Python 3.6+');
     expect(result).toContain('### Optional Dependencies');
     expect(result).toContain('- flask\n- django\n- celery');
   });

@@ -247,6 +247,9 @@ export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
     dsnKey: projectKeys?.[0]!.dsn.public,
   };
 
+  // TODO: Migrate crons guides to the content block system so we can use
+  // structured stepsToMarkdown() instead of innerHTML scraping. The innerHTML
+  // approach may include rendered UI chrome and won't substitute auth tokens.
   const getGuideMarkdown = () => {
     if (!guideContainerRef.current) {
       return '';

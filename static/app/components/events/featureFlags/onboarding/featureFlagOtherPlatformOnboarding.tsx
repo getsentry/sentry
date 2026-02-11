@@ -5,7 +5,6 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import OnboardingAdditionalFeatures from 'sentry/components/events/featureFlags/onboarding/onboardingAdditionalFeatures';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -27,25 +26,23 @@ export function FeatureFlagOtherPlatformOnboarding({
 
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
-      <TabSelectionScope>
-        <Wrapper>
-          {
-            <Alert.Container>
-              <Alert
-                variant="info"
-                trailingItems={
-                  <LinkButton href={docsUrl} size="xs" external>
-                    {t('Read the docs')}
-                  </LinkButton>
-                }
-              >
-                {t('Read the docs to learn more about setting up evaluation tracking.')}
-              </Alert>
-            </Alert.Container>
-          }
-          <OnboardingAdditionalFeatures organization={organization} />
-        </Wrapper>
-      </TabSelectionScope>
+      <Wrapper>
+        {
+          <Alert.Container>
+            <Alert
+              variant="info"
+              trailingItems={
+                <LinkButton href={docsUrl} size="xs" external>
+                  {t('Read the docs')}
+                </LinkButton>
+              }
+            >
+              {t('Read the docs to learn more about setting up evaluation tracking.')}
+            </Alert>
+          </Alert.Container>
+        }
+        <OnboardingAdditionalFeatures organization={organization} />
+      </Wrapper>
     </AuthTokenGeneratorProvider>
   );
 }

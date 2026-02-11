@@ -2,6 +2,7 @@ import type React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 
 import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
+import {deriveTabKey} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import type {OnboardingStep} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
 const HTML_ENTITIES: Record<string, string> = {
@@ -178,23 +179,6 @@ export function reactNodeToText(node: React.ReactNode): string {
   }
 }
 
-/**
- * Derives a stable key from a set of tab labels, optionally prefixed
- * with a step index and occurrence index. Must match the implementation
- * in selectedCodeTabContext.tsx so that component-side writes and
- * stepsToMarkdown-side reads use the same key.
- */
-function deriveTabKey(
-  tabs: ReadonlyArray<{label: string}>,
-  stepIndex?: number,
-  blockPath?: string
-): string {
-  const labelPart = tabs.map(t => t.label).join('\0');
-  const pathPart = blockPath ? `\x01${blockPath}` : '';
-  const base = `${labelPart}${pathPart}`;
-  return stepIndex === undefined ? base : `${stepIndex}:${base}`;
-}
-
 interface MarkdownOptions {
   authToken?: string;
   /**
@@ -285,8 +269,10 @@ export function contentBlockToMarkdown(
       );
     }
 
-    case 'alert':
-      return `> **Note:** ${reactNodeToText(block.text)}`;
+    case 'alert': {
+      const alertLabel = block.alertType === 'warning' ? 'Warning' : 'Note';
+      return `> **${alertLabel}:** ${reactNodeToText(block.text)}`;
+    }
 
     case 'subheader':
       return `### ${reactNodeToText(block.text)}`;
