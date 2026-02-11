@@ -71,7 +71,7 @@ def log_snuba_info(content: str) -> None:
         with open(SNUBA_INFO_FILE, "a") as file:
             file.writelines(content)
     else:
-        print(content)  # NOQA: only prints when an env variable is set
+        print(content)  # noqa: S002, T201 -- only prints when an env variable is set
 
 
 class SnubaRPCError(SnubaError):
@@ -145,9 +145,9 @@ def _make_rpc_requests(
         )
 
     referrers = [req.meta.referrer for req in requests]
-    assert (
-        len(referrers) == len(requests) == len(endpoint_names)
-    ), "Length of Referrers must match length of requests for making requests"
+    assert len(referrers) == len(requests) == len(endpoint_names), (
+        "Length of Referrers must match length of requests for making requests"
+    )
 
     if referrers:
         sentry_sdk.set_tag("query.referrer", referrers[0])
