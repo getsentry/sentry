@@ -1,0 +1,127 @@
+name: relay-class-scope-v2-smoke
+on:
+  push:
+    branches: ['mchen/relay-class-scope-v2']
+
+concurrency:
+  group: relay-class-scope-v2-${{ github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    env:
+      MIGRATIONS_TEST_MIGRATE: 0
+      PYTEST_ADDOPTS: '--no-header -q'
+      SENTRY_SKIP_BACKEND_VALIDATION: 1
+      XDIST_PER_WORKER_SNUBA: '1'
+      XDIST_WORKERS: '2'
+      PYTHONHASHSEED: '0'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.13.1
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.13.1
+
+      - name: Set up outputs
+        id: config
+        env:
+          MATRIX_INSTANCE: 0
+        run: echo "matrix-instance-number=$(($MATRIX_INSTANCE + 1))" >> "$GITHUB_OUTPUT"
+
+      - name: Install system deps
+        run: sudo apt-get update && sudo apt-get install -y libxmlsec1-dev libmaxminddb-dev
+
+      - name: Set up pip
+        uses: ./.github/actions/setup-pip
+        id: pip
+
+      - name: pip install
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install -e ".[dev]"
+
+      - name: Set up devservices (backend-ci)
+        env:
+          NEED_KAFKA: 'true'
+          NEED_SNUBA: 'true'
+        run: |
+          sentry init
+          sentry devservices up --mode backend-ci
+
+      - name: Create per-worker ClickHouse databases and Snuba instances
+        run: |
+          echo "Setting up $XDIST_WORKERS per-worker ClickHouse databases + Snuba instances ..."
+          SNUBA_IMAGE=$(docker inspect --format='{{.Config.Image}}' sentry_snuba 2>/dev/null || echo "ghcr.io/getsentry/snuba:nightly")
+          echo "Using Snuba image: $SNUBA_IMAGE"
+
+          for i in $(seq 0 $(($XDIST_WORKERS - 1))); do
+            DB_NAME="default_gw${i}"
+            SNUBA_PORT=$((1230 + i))
+            CONTAINER_NAME="sentry_snuba_gw${i}"
+
+            echo "--- Worker gw${i}: db=$DB_NAME, port=$SNUBA_PORT ---"
+            docker exec sentry_clickhouse clickhouse-client --query "CREATE DATABASE IF NOT EXISTS ${DB_NAME}"
+
+            docker run -d \
+              --name "$CONTAINER_NAME" \
+              --network devservices \
+              -p "${SNUBA_PORT}:1218" \
+              -e SNUBA_SETTINGS=docker \
+              -e CLICKHOUSE_HOST=clickhouse \
+              -e CLICKHOUSE_PORT=9000 \
+              -e DEFAULT_BROKERS=kafka:9093 \
+              -e REDIS_HOST=redis \
+              -e REDIS_PORT=6379 \
+              -e CLICKHOUSE_DATABASE="$DB_NAME" \
+              "$SNUBA_IMAGE"
+
+            echo "Bootstrapping Snuba for $DB_NAME ..."
+            docker exec "$CONTAINER_NAME" snuba migrations migrate --force || true
+
+            echo "Health check for $CONTAINER_NAME on port $SNUBA_PORT ..."
+            for attempt in $(seq 1 15); do
+              if curl -s "http://127.0.0.1:${SNUBA_PORT}/health" | grep -q "ok"; then
+                echo "  Snuba gw${i} is healthy"
+                break
+              fi
+              sleep 2
+            done
+          done
+
+      - name: Run smoke test (class-scoped relay, 4 tests, -n 2)
+        run: |
+          echo "=== Class-scoped Relay + per-worker xdist smoke test ==="
+          echo "Testing: class-scoped container (no restart per test)"
+          echo "         + Relay model re-insertion per test"
+          echo "         + per-worker Kafka topics"
+          echo ""
+
+          py.test tests/relay_integration/test_message_filters.py \
+            -n "$XDIST_WORKERS" \
+            -k "test_filters_are_applied_browser_extension or test_filters_ensure_disabled_not_applied or test_filters_are_applied_legacy_browsers or test_filter_web_crawlers" \
+            --dist=loadfile \
+            -x \
+            -vvv \
+            2>&1 | tail -80
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          echo "=== Docker containers ==="
+          docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "relay|snuba|kafka"
+
+          echo ""
+          echo "=== Relay container logs (all) ==="
+          for c in $(docker ps -a --format "{{.Names}}" | grep relay); do
+            echo "--- $c ---"
+            docker logs "$c" 2>&1 | tail -40
+          done
+
+          echo ""
+          echo "=== Kafka topics ==="
+          docker exec sentry_kafka kafka-topics --list --bootstrap-server localhost:9093 2>/dev/null || true
