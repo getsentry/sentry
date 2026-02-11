@@ -11,6 +11,7 @@ import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedD
 import {t, tct} from 'sentry/locale';
 
 import {logsVerify} from './logs';
+import {metricsVerify} from './metrics';
 
 const getVerifySnippet = () => `
 using Sentry; // On the top of the script
@@ -75,6 +76,19 @@ export const onboarding: OnboardingConfig = {
           ],
         },
         {
+          type: 'conditional',
+          condition: params.isMetricsSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'To enable metrics, navigate to [strong:Tools > Sentry > Advanced > Metrics] and check the [strong:Enable Metrics] option.',
+                {strong: <strong />}
+              ),
+            },
+          ],
+        },
+        {
           type: 'text',
           text: tct(
             'If you like additional contexts you could enable [link:Screenshots].',
@@ -110,6 +124,14 @@ export const onboarding: OnboardingConfig = {
           {
             title: t('Logs'),
             content: [logsVerify(params)],
+          },
+        ] satisfies OnboardingStep[])
+      : []),
+    ...(params.isMetricsSelected
+      ? ([
+          {
+            title: t('Metrics'),
+            content: [metricsVerify(params)],
           },
         ] satisfies OnboardingStep[])
       : []),

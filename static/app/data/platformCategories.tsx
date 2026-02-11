@@ -485,6 +485,7 @@ export const withMetricsOnboarding: Set<PlatformKey> = new Set([
   'ruby',
   'ruby-rack',
   'ruby-rails',
+  'unity',
 ]);
 
 // List of platforms that do not have metrics support. We make use of this list in the product to not provide any Metrics
@@ -506,6 +507,7 @@ export const limitedMetricsSupportPrefixes: Set<string> = new Set([
   'react-native',
   'ruby',
   'flutter',
+  'unity',
 ]);
 
 export const profiling: PlatformKey[] = [
