@@ -352,6 +352,11 @@ class DashboardWidget(Model):
     # This field is used to store the reason for dropping fields or substantial changes to the widget query.
     changed_reason = models.JSONField(null=True)
 
+    # Whether the widget can be edited after being added to a dashboard.
+    # Defaults to True. Set to False for specialized widgets (e.g., performance score)
+    # that should not be modified after creation.
+    is_customizable = models.BooleanField(default=True, null=True)
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_dashboardwidget"

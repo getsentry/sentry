@@ -103,6 +103,7 @@ class DashboardWidgetResponse(TypedDict):
     datasetSource: str | None
     exploreUrls: NotRequired[list[str] | None]
     changedReason: list[WidgetChangedReasonType] | None
+    isCustomizable: bool | None
 
 
 class DashboardPermissionsResponse(TypedDict):
@@ -343,6 +344,7 @@ class DashboardWidgetSerializer(Serializer):
             "layout": obj.detail.get("layout") if obj.detail else None,
             "datasetSource": DATASET_SOURCES[obj.dataset_source],
             "changedReason": obj.changed_reason,
+            "isCustomizable": obj.is_customizable,
         }
 
         if explore_urls:

@@ -359,6 +359,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     )
     limit = serializers.IntegerField(min_value=1, max_value=10, required=False, allow_null=True)
     layout = LayoutField(required=False, allow_null=True)
+    is_customizable = serializers.BooleanField(required=False, allow_null=True, default=True)
     query_warnings: QueryWarning = {"queries": [], "columns": {}}
     dataset_source = serializers.ChoiceField(
         choices=DatasetSourcesTypes.as_text_choices(),
