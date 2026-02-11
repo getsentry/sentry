@@ -11,14 +11,9 @@ from sentry.testutils.silo import control_silo_test, region_silo_test
 
 
 class TestProduceToListenerIntegration(TestCase):
-    """
-    Integration tests for produce_to_listener function that queues Celery tasks.
-    """
 
     def test_produce_to_listener_control_silo(self):
-        """
-        Test that produce_to_listener calls control silo task delay correctly.
-        """
+        """Test that produce_to_listener calls control silo task delay correctly."""
         with patch(
             "sentry.scm.private.ipc.run_webhook_handler_control_task.delay"
         ) as mock_control_delay:
@@ -26,9 +21,7 @@ class TestProduceToListenerIntegration(TestCase):
             mock_control_delay.assert_called_once_with("test_listener", "", "check_run")
 
     def test_produce_to_listener_region_silo(self):
-        """
-        Test that produce_to_listener calls region silo task delay correctly.
-        """
+        """Test that produce_to_listener calls region silo task delay correctly."""
         with patch(
             "sentry.scm.private.ipc.run_webhook_handler_region_task.delay"
         ) as mock_region_delay:
@@ -38,9 +31,6 @@ class TestProduceToListenerIntegration(TestCase):
 
 @control_silo_test
 class TestWebhookHandlerControlTaskIntegration(TestCase):
-    """
-    Integration tests for the control silo Celery task handler.
-    """
 
     def test_run_webhook_handler_control_task_success(self):
         """Test the task can be delayed without error."""
@@ -50,9 +40,6 @@ class TestWebhookHandlerControlTaskIntegration(TestCase):
 
 @region_silo_test
 class TestWebhookHandlerRegionTaskIntegration(TestCase):
-    """
-    Integration tests for the region silo Celery task handler.
-    """
 
     def test_run_webhook_handler_region_task_success(self):
         """Test the task can be delayed without error."""

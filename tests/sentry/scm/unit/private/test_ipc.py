@@ -26,7 +26,13 @@ from sentry.scm.private.ipc import (
     serialize_event,
     serialize_pull_request_event,
 )
-from sentry.scm.types import CheckRunEvent, CommentEvent, PullRequestEvent
+from sentry.scm.types import (
+    CheckRunEvent,
+    CommentEvent,
+    EventType,
+    PullRequestEvent,
+    SubscriptionEvent,
+)
 
 
 def test_exec_listener():
@@ -116,7 +122,7 @@ def test_run_comment_listener():
     """
     Test that comment events are properly deserialized and routed to comment listeners.
     """
-    event = None
+    event: EventType | None = None
 
     scm = SourceCodeManagerEventStream()
 
@@ -152,6 +158,7 @@ def test_run_comment_listener():
     assert event.action == "created"
     assert event.comment["id"] == "123"
     assert event.comment["body"] == "Test comment"
+    assert event.comment["author"] is not None
     assert event.comment["author"]["username"] == "testuser"
 
 
@@ -422,6 +429,8 @@ def test_serialize_deserialize_comment_event():
     assert deserialized.comment_type == event.comment_type
     assert deserialized.comment["id"] == event.comment["id"]
     assert deserialized.comment["body"] == event.comment["body"]
+    assert deserialized.comment["author"] is not None
+    assert event.comment["author"] is not None
     assert deserialized.comment["author"]["username"] == event.comment["author"]["username"]
 
 
@@ -637,7 +646,7 @@ def test_produce_to_listeners_check_run():
     def mock_produce(message, event_type_hint, listener_name, silo):
         produced_messages.append((message, event_type_hint, listener_name, silo))
 
-    subscription_event = {
+    subscription_event: SubscriptionEvent = {
         "event": '{"action": "completed"}',
         "event_type_hint": "check_run",
         "extra": {},
@@ -682,7 +691,7 @@ def test_produce_to_listeners_comment():
     def mock_produce(message, event_type_hint, listener_name, silo):
         produced_messages.append((message, event_type_hint, listener_name, silo))
 
-    subscription_event = {
+    subscription_event: SubscriptionEvent = {
         "event": "{}",
         "event_type_hint": "comment",
         "extra": {},
@@ -722,7 +731,7 @@ def test_produce_to_listeners_pull_request():
     def mock_produce(message, event_type_hint, listener_name, silo):
         produced_messages.append((message, event_type_hint, listener_name, silo))
 
-    subscription_event = {
+    subscription_event: SubscriptionEvent = {
         "event": "",
         "event_type_hint": "pull_request",
         "extra": {},
@@ -769,7 +778,7 @@ def test_produce_to_listeners_returns_none_for_unsupported_events():
     def mock_produce(message, event_type_hint, listener_name, silo):
         produced_messages.append((message, event_type_hint, listener_name, silo))
 
-    subscription_event = {
+    subscription_event: SubscriptionEvent = {
         "event": "unsupported",
         "event_type_hint": None,
         "extra": {},
@@ -779,6 +788,5 @@ def test_produce_to_listeners_returns_none_for_unsupported_events():
     }
 
     with mock.patch("sentry.scm.private.ipc.deserialize_raw_event", lambda e: None):
-        result = produce_to_listeners(subscription_event, "region", mock_produce)
-        assert result is None
+        produce_to_listeners(subscription_event, "region", mock_produce)
         assert len(produced_messages) == 0
