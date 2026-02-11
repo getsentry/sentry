@@ -360,7 +360,6 @@ export function List<Value extends SelectKey>({
       ) : (
         <ListBox
           {...props}
-          hasSearch={!!search}
           searchable={searchable}
           overlayIsOpen={overlayIsOpen}
           hiddenOptions={hiddenOptions}
