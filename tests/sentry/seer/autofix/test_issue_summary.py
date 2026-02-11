@@ -708,7 +708,8 @@ class TestGetStoppingPointFromFixability:
         assert _get_stopping_point_from_fixability(score) == expected
 
 
-@with_feature({"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True})
+@patch("sentry.seer.autofix.issue_summary.is_seer_seat_based_tier_enabled", return_value=True)
+@with_feature({"organizations:gen-ai-features": True})
 class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -725,7 +726,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_high_fixability_code_changes(
-        self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
+        self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger, mock_seat_based_tier
     ):
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_gen.return_value = SummarizeIssueResponse(
@@ -751,7 +752,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_medium_fixability_solution(
-        self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
+        self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger, mock_seat_based_tier
     ):
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_gen.return_value = SummarizeIssueResponse(
@@ -773,23 +774,18 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited_and_increment",
         return_value=False,
     )
+    @patch("sentry.seer.autofix.issue_summary.is_group_triggering_automation", return_value=True)
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
-    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    def test_without_feature_flag(self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger):
-        self.project.update_option("sentry:autofix_automation_tuning", "always")
-        mock_gen.return_value = SummarizeIssueResponse(
-            group_id=str(self.group.id),
-            headline="h",
-            whats_wrong="w",
-            trace="t",
-            possible_cause="c",
-            scores=SummarizeIssueScores(fixability_score=0.80),
-        )
-
-        with self.feature(
-            {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": False}
-        ):
+    def test_without_seat_based_tier(
+        self,
+        mock_state,
+        mock_triggering,
+        mock_rate,
+        mock_trigger,
+        mock_seat_based_tier,
+    ):
+        mock_seat_based_tier.return_value = False
+        with self.feature({"organizations:gen-ai-features": True}):
             run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
         mock_trigger.assert_called_once()
@@ -798,7 +794,9 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch("sentry.seer.autofix.issue_summary.is_group_triggering_automation", return_value=True)
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
-    def test_skips_when_autofix_in_progress(self, mock_state, mock_triggering, mock_trigger):
+    def test_skips_when_autofix_in_progress(
+        self, mock_state, mock_triggering, mock_trigger, mock_seat_based_tier
+    ):
         """run_automation skips triggering autofix when one is already in progress"""
         mock_state.return_value = {"status": "in_progress"}
 
@@ -922,7 +920,8 @@ class TestApplyUserPreferenceUpperBound:
         assert result == expected
 
 
-@with_feature({"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True})
+@patch("sentry.seer.autofix.issue_summary.is_seer_seat_based_tier_enabled", return_value=True)
+@with_feature({"organizations:gen-ai-features": True})
 class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -940,7 +939,14 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_user_preference_limits_high_fixability(
-        self, mock_gen, mock_budget, mock_state, mock_rate, mock_fetch, mock_trigger
+        self,
+        mock_gen,
+        mock_budget,
+        mock_state,
+        mock_rate,
+        mock_fetch,
+        mock_trigger,
+        mock_seat_based_tier,
     ):
         """High fixability (OPEN_PR) limited by user preference (SOLUTION)"""
         self.project.update_option("sentry:autofix_automation_tuning", "always")
@@ -972,7 +978,14 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_fixability_limits_permissive_user_preference(
-        self, mock_gen, mock_budget, mock_state, mock_rate, mock_fetch, mock_trigger
+        self,
+        mock_gen,
+        mock_budget,
+        mock_state,
+        mock_rate,
+        mock_fetch,
+        mock_trigger,
+        mock_seat_based_tier,
     ):
         """Medium fixability (ROOT_CAUSE) used despite user allowing OPEN_PR"""
         self.project.update_option("sentry:autofix_automation_tuning", "always")
@@ -1004,7 +1017,14 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_no_user_preference_uses_fixability_only(
-        self, mock_gen, mock_budget, mock_state, mock_rate, mock_fetch, mock_trigger
+        self,
+        mock_gen,
+        mock_budget,
+        mock_state,
+        mock_rate,
+        mock_fetch,
+        mock_trigger,
+        mock_seat_based_tier,
     ):
         """When user has no preference, use fixability score alone"""
         self.project.update_option("sentry:autofix_automation_tuning", "always")
@@ -1027,8 +1047,8 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
         assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.OPEN_PR
 
 
+@patch("sentry.seer.autofix.issue_summary.is_seer_seat_based_tier_enabled", return_value=True)
 @with_feature("organizations:gen-ai-features")
-@with_feature("organizations:triage-signals-v0-org")
 class TestRunAutomationAlertEventCount(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1042,9 +1062,9 @@ class TestRunAutomationAlertEventCount(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
     @patch("sentry.seer.autofix.issue_summary.quotas.backend.check_seer_quota")
     def test_alert_skips_automation_below_threshold(
-        self, mock_budget, mock_state, mock_fixability, mock_trigger
+        self, mock_budget, mock_state, mock_fixability, mock_trigger, mock_seat_based_tier
     ):
-        """Alert automation should skip when event count < 10 with triage-signals-v0-org"""
+        """Alert automation should skip when event count < 10"""
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_budget.return_value = True
         mock_state.return_value = None
@@ -1072,9 +1092,15 @@ class TestRunAutomationAlertEventCount(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
     @patch("sentry.seer.autofix.issue_summary.quotas.backend.check_seer_quota")
     def test_alert_runs_automation_above_threshold(
-        self, mock_budget, mock_state, mock_fixability, mock_trigger, mock_rate_limit
+        self,
+        mock_budget,
+        mock_state,
+        mock_fixability,
+        mock_trigger,
+        mock_rate_limit,
+        mock_seat_based_tier,
     ):
-        """Alert automation should run when event count >= 10 with triage-signals-v0"""
+        """Alert automation should run when event count >= 10"""
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_budget.return_value = True
         mock_state.return_value = None
