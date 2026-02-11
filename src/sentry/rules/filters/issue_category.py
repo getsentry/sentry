@@ -75,7 +75,7 @@ class IssueCategoryFilter(EventFilter):
         title = CATEGORY_CHOICES.get(value)
         group_category_name = title.title() if title else ""
         include = self._is_include(self.data.get("include", True))
-        include_label = "is equal to" if include else "is not equal to"
+        include_label = "equal to" if include else "not equal to"
         return self.label.format(include=include_label, value=group_category_name)
 
     def get_form_instance(self) -> IssueCategoryForm:
