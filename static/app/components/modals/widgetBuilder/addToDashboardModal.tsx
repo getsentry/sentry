@@ -58,7 +58,6 @@ import {
   getDashboardFiltersFromURL,
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
-  getWidgetTemplateByDisplayType,
   isWidgetEditable,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
@@ -69,6 +68,7 @@ import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
@@ -210,9 +210,9 @@ function AddToDashboardModal({
 
     // For non-customizable widgets (e.g., Performance Score), open the widget library
     // instead of the widget builder
-    const widgetTemplate = getWidgetTemplateByDisplayType(
-      organization,
-      widget.displayType
+    const widgetTemplates = getTopNConvertedDefaultWidgets(organization);
+    const widgetTemplate = widgetTemplates.find(
+      w => w.displayType === widget.displayType
     );
     const shouldOpenWidgetLibrary =
       !isWidgetEditable(widget.displayType) ||
@@ -222,18 +222,21 @@ function AddToDashboardModal({
       normalizeUrl({
         pathname,
         query: {
-          ...widgetAsQueryParams,
-          title: newWidgetTitle,
-          sort: orderBy ?? widgetAsQueryParams.sort,
+          // Static widgets don't forward widget configuration to the widget builder, instead they open the widget library
+          ...(shouldOpenWidgetLibrary && widgetTemplate
+            ? {
+                openWidgetTemplates: 'true',
+                widgetTemplateId: widgetTemplate.id,
+              }
+            : {
+                ...widgetAsQueryParams,
+                title: newWidgetTitle,
+                sort: orderBy ?? widgetAsQueryParams.sort,
+              }),
           source,
           ...(selectedDashboard
             ? getSavedPageFilters(selectedDashboard)
             : pageFiltersToQueryParams(selection)),
-          ...(shouldOpenWidgetLibrary &&
-            widgetTemplate && {
-              openWidgetTemplates: 'true',
-              widgetTemplateId: widgetTemplate.id,
-            }),
         },
       }),
       {state: {widgets: widgetsState ?? []}}

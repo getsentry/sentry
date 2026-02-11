@@ -49,7 +49,6 @@ import {
   WIDGET_TYPE_TO_SAVED_QUERY_DATASET,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 
 type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
@@ -664,14 +663,4 @@ export const widgetHasMenuOptions = (widgetType: DisplayType) => {
 // Custom widgets from the widget library that are not editable but still have menu options
 export const isWidgetEditable = (widgetType: DisplayType) => {
   return widgetType !== DisplayType.WHEEL;
-};
-
-// Get the widget template for a given display type
-// This is intended to be used for static widget display types that are not meant to be configurable
-export const getWidgetTemplateByDisplayType = (
-  organization: Organization,
-  widgetType: DisplayType
-) => {
-  const widgetTemplates = getTopNConvertedDefaultWidgets(organization);
-  return widgetTemplates.find(widget => widget.displayType === widgetType);
 };
