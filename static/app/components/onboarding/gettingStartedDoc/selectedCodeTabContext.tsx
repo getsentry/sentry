@@ -112,6 +112,9 @@ export function TabSelectionScope({children}: {children: React.ReactNode}) {
  * unmount/remount (e.g. when GuidedSteps navigates between steps)
  * because state lives in the provider, not in the component.
  *
+ * Falls back to local useState when no TabSelectionScope is present,
+ * preserving backward compatibility for standalone TabbedCodeSnippets.
+ *
  * Returns [selectedValue, setSelectedValue] like useState.
  */
 export function useRegisteredTabSelection(
@@ -122,16 +125,21 @@ export function useRegisteredTabSelection(
   const blockPath = useContext(BlockPathContext);
   const key = deriveTabKey(tabs, stepIndex, blockPath || undefined);
 
-  // value === label (set in defaultRenderers.tsx), so we store and
-  // return values directly without conversion.
-  const storedValue = ctx?.selections.get(key);
+  // Local fallback when no TabSelectionScope is present
+  const [localValue, setLocalValue] = useState(tabs[0]!.value);
+
+  const storedValue = ctx ? ctx.selections.get(key) : localValue;
   const selectedValue = storedValue
     ? (tabs.find(t => t.value === storedValue)?.value ?? tabs[0]!.value)
     : tabs[0]!.value;
 
   const setValue = useCallback(
     (newValue: string) => {
-      ctx?.setSelection(key, newValue);
+      if (ctx) {
+        ctx.setSelection(key, newValue);
+      } else {
+        setLocalValue(newValue);
+      }
     },
     [ctx, key]
   );

@@ -218,6 +218,25 @@ describe('identical labels in same step', () => {
   });
 });
 
+describe('TabbedCodeSnippet without TabSelectionScope', () => {
+  it('allows tab switching via local state fallback', async () => {
+    render(<TabbedCodeSnippet tabs={PACKAGE_MANAGER_TABS} />);
+
+    // Default is npm (first tab)
+    expect(screen.getByText('npm install @sentry/node')).toBeInTheDocument();
+
+    // Switch to yarn — should work even without TabSelectionScope
+    await userEvent.click(screen.getByRole('button', {name: 'yarn'}));
+    expect(screen.getByText('yarn add @sentry/node')).toBeInTheDocument();
+    expect(screen.queryByText('npm install @sentry/node')).not.toBeInTheDocument();
+
+    // Switch to pnpm
+    await userEvent.click(screen.getByRole('button', {name: 'pnpm'}));
+    expect(screen.getByText('pnpm add @sentry/node')).toBeInTheDocument();
+    expect(screen.queryByText('yarn add @sentry/node')).not.toBeInTheDocument();
+  });
+});
+
 describe('TabSelectionScope isolation', () => {
   it('isolates selections between separate TabSelectionScope instances', async () => {
     render(

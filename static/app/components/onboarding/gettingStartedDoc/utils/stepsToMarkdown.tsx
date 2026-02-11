@@ -4,15 +4,6 @@ import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/
 import {deriveTabKey} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import type {OnboardingStep} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-// Lazy-load react-dom/server to keep it out of the main client bundle (~40KB).
-// The dynamic import starts immediately when this module is first imported and
-// resolves well before the user clicks "Copy". Falls back to direct tree
-// walking (extractTextFromReactNode) if not yet loaded.
-let _renderToStaticMarkup: ((element: React.ReactElement) => string) | undefined;
-import('react-dom/server').then(mod => {
-  _renderToStaticMarkup = mod.renderToStaticMarkup;
-});
-
 const HTML_ENTITIES: Record<string, string> = {
   '&amp;': '&',
   '&lt;': '<',
@@ -128,10 +119,8 @@ export function simpleHtmlToMarkdown(html: string): string {
 }
 
 /**
- * Walks a React element tree and extracts text content directly from props.
- * Handles link elements (href/to props) by converting them to markdown links.
- * Used as a fallback when renderToStaticMarkup fails (e.g. components that
- * require router context like <Link>).
+ * Walks a React element tree and extracts text content from props,
+ * converting known HTML element types to their markdown equivalents.
  */
 function extractTextFromReactNode(node: React.ReactNode): string {
   if (node === null || node === undefined || typeof node === 'boolean') {
@@ -148,10 +137,31 @@ function extractTextFromReactNode(node: React.ReactNode): string {
   }
   // React element — extract props and recurse into children
   if (typeof node === 'object' && 'props' in node) {
-    const props = (node as React.ReactElement).props as Record<string, unknown>;
+    const element = node as React.ReactElement;
+    const props = element.props as Record<string, unknown>;
     const childText = extractTextFromReactNode(props.children as React.ReactNode);
+    const elementType = element.type;
 
-    // Convert link elements to markdown links
+    // Convert known HTML elements to markdown
+    if (typeof elementType === 'string') {
+      const href = (props.href ?? props.to) as string | undefined;
+      if ((elementType === 'a' || href) && href && childText) {
+        return `[${childText}](${href})`;
+      }
+      if (elementType === 'strong' || elementType === 'b') {
+        return `**${childText}**`;
+      }
+      if (elementType === 'em' || elementType === 'i') {
+        return `*${childText}*`;
+      }
+      if (elementType === 'code') {
+        return `\`${childText}\``;
+      }
+      return childText;
+    }
+
+    // Component elements (function/class) — check for href/to props
+    // (handles components like ExternalLink that pass through href)
     const href = (props.href ?? props.to) as string | undefined;
     if (href && childText) {
       return `[${childText}](${href})`;
@@ -163,32 +173,11 @@ function extractTextFromReactNode(node: React.ReactNode): string {
 }
 
 /**
- * Converts a React.ReactNode to a markdown string.
- * Handles primitives directly and uses renderToStaticMarkup for React elements.
+ * Converts a React.ReactNode to a markdown-formatted string by walking
+ * the element tree directly. Handles primitives, arrays, and React
+ * elements with known HTML types (strong, em, code, a).
  */
 export function reactNodeToText(node: React.ReactNode): string {
-  if (node === null || node === undefined || typeof node === 'boolean') {
-    return '';
-  }
-  if (typeof node === 'string') {
-    return node;
-  }
-  if (typeof node === 'number') {
-    return String(node);
-  }
-
-  if (_renderToStaticMarkup) {
-    try {
-      const html = _renderToStaticMarkup(node as React.ReactElement);
-      return simpleHtmlToMarkdown(html);
-    } catch {
-      // Fallback: walk the element tree directly when renderToStaticMarkup fails
-      // (e.g. components needing router context like <Link>)
-      return extractTextFromReactNode(node);
-    }
-  }
-
-  // react-dom/server not yet loaded — fall back to direct tree walking
   return extractTextFromReactNode(node);
 }
 

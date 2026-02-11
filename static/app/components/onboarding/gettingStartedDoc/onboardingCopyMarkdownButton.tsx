@@ -69,11 +69,16 @@ export function OnboardingCopyMarkdownButton({
   const authToken = useAuthToken();
   const tabSelectionsMap = useTabSelectionsMap();
 
-  const getMarkdown = () =>
-    stepsToMarkdown(steps, {
-      tabSelectionsMap,
-      authToken,
-    });
+  const getMarkdown = () => {
+    try {
+      return stepsToMarkdown(steps, {
+        tabSelectionsMap,
+        authToken,
+      });
+    } catch {
+      return '';
+    }
+  };
 
   return (
     <Flex justify="start" paddingBottom="md">
