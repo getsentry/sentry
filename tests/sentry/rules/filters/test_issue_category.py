@@ -51,24 +51,45 @@ class IssueCategoryFilterErrorTest(RuleTestCase):
         group_event = event.for_group(event.group)
 
         self.assertDoesNotPass(
-            self.get_rule(data={"value": GroupCategory.ERROR.value, "include": False}), event
+            self.get_rule(data={"value": GroupCategory.ERROR.value, "include": "false"}),
+            event,
         )
         self.assertDoesNotPass(
-            self.get_rule(data={"value": GroupCategory.ERROR.value, "include": False}), group_event
-        )
-
-        self.assertPasses(
-            self.get_rule(data={"value": GroupCategory.PERFORMANCE.value, "include": False}), event
-        )
-        self.assertPasses(
-            self.get_rule(data={"value": GroupCategory.PERFORMANCE.value, "include": False}),
+            self.get_rule(data={"value": GroupCategory.ERROR.value, "include": "false"}),
             group_event,
         )
 
-    def test_exclude_string_value(self) -> None:
+        self.assertPasses(
+            self.get_rule(data={"value": GroupCategory.PERFORMANCE.value, "include": "false"}),
+            event,
+        )
+        self.assertPasses(
+            self.get_rule(data={"value": GroupCategory.PERFORMANCE.value, "include": "false"}),
+            group_event,
+        )
+
+    def test_include_defaults_to_true(self) -> None:
         event = self.get_event()
+
+        self.assertPasses(
+            self.get_rule(data={"value": GroupCategory.ERROR.value}),
+            event,
+        )
         self.assertDoesNotPass(
-            self.get_rule(data={"value": GroupCategory.ERROR.value, "include": "0"}), event
+            self.get_rule(data={"value": GroupCategory.PERFORMANCE.value}),
+            event,
+        )
+
+    def test_include_explicit_true(self) -> None:
+        event = self.get_event()
+
+        self.assertPasses(
+            self.get_rule(data={"value": GroupCategory.ERROR.value, "include": "true"}),
+            event,
+        )
+        self.assertDoesNotPass(
+            self.get_rule(data={"value": GroupCategory.PERFORMANCE.value, "include": "true"}),
+            event,
         )
 
 

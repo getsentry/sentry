@@ -35,25 +35,17 @@ class IssueCategoryFilter(EventFilter):
     label = "The issue's category is {include} {value}"
     prompt = "The issue's category is ..."
 
-    @staticmethod
-    def _is_include(value: Any) -> bool:
-        if isinstance(value, bool):
-            return value
-        if value in (0, "0", "false", "False"):
-            return False
-        return True
-
     def _passes(self, group: Group) -> bool:
         try:
             value: GroupCategory = GroupCategory(int(self.get_option("value")))
         except (TypeError, ValueError):
             return False
 
-        include = self._is_include(self.get_option("include", True))
+        include_category = self.get_option("include", "true") != "false"
 
         if group:
             category_matches = value == group.issue_category or value == group.issue_category_v2
-            return category_matches if include else not category_matches
+            return category_matches if include_category else not category_matches
 
         return False
 
@@ -74,8 +66,7 @@ class IssueCategoryFilter(EventFilter):
         value = self.data["value"]
         title = CATEGORY_CHOICES.get(value)
         group_category_name = title.title() if title else ""
-        include = self._is_include(self.data.get("include", True))
-        include_label = "equal to" if include else "not equal to"
+        include_label = INCLUDE_CHOICES[self.data.get("include", "true")]
         return self.label.format(include=include_label, value=group_category_name)
 
     def get_form_instance(self) -> IssueCategoryForm:
