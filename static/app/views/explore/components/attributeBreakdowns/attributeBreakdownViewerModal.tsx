@@ -274,11 +274,11 @@ export default function AttributeBreakdownViewerModal(props: Props) {
       ...computedData.tableData,
       data: computedData.tableData.data.slice(0, CHART_MAX_SERIES_LENGTH),
     };
-    const query =
+    const chartQuery =
       computedData.mode === 'comparison'
         ? COMPARISON_MODE_CHART_QUERY
         : SINGLE_MODE_CHART_QUERY;
-    return transformTableToCategoricalSeries(query, slicedTableData);
+    return transformTableToCategoricalSeries(chartQuery, slicedTableData);
   }, [computedData.tableData, computedData.mode]);
 
   const hasPlottableValues = useMemo(() => {
