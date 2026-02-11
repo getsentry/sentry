@@ -628,7 +628,7 @@ def test_produce_to_listeners_check_run():
         produced_messages.append((message, event_type_hint, listener_name, silo))
 
     subscription_event = {
-        "event": b'{"action": "completed"}',
+        "event": '{"action": "completed"}',
         "event_type_hint": "check_run",
         "extra": {},
         "received_at": 0,
