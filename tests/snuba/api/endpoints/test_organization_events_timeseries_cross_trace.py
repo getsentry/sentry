@@ -1,14 +1,22 @@
 import uuid
+from datetime import timedelta
 
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageMeta
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesResponse
 from sentry_protos.snuba.v1.request_common_pb2 import ResponseMeta
 
+from sentry.utils.dates import before_now
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
 class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpointTestBase):
     viewname = "sentry-api-0-organization-events-timeseries"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.ten_mins_ago = self.day_ago + timedelta(minutes=10)
+        self.nine_mins_ago = self.day_ago + timedelta(minutes=11)
 
     def test_cross_trace_query_with_logs(self) -> None:
         trace_id = uuid.uuid4().hex
@@ -71,8 +79,8 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
         values = timeseries["values"]
         assert not timeseries["meta"]["isOther"]
         assert len(values) == 2
-        # Don't assert specific bucket indices—near UTC midnight, the data can land in either bucket
-        assert sum(v["value"] for v in values) == 1
+        assert values[0]["value"] == 1
+        assert values[1]["value"] == 0
 
     def test_cross_trace_query_with_spans(self) -> None:
         trace_id = uuid.uuid4().hex
@@ -127,8 +135,8 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
         assert len(response.data["timeSeries"]) == 1
         values = response.data["timeSeries"][0]["values"]
         assert len(values) == 2
-        # Don't assert specific bucket indices—near UTC midnight, the data can land in either bucket
-        assert sum(v["value"] for v in values) == 1
+        assert values[0]["value"] == 1
+        assert values[1]["value"] == 0
 
     def test_cross_trace_query_with_spans_and_logs(self) -> None:
         trace_id = uuid.uuid4().hex
@@ -197,8 +205,8 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
         assert len(response.data["timeSeries"]) == 1
         values = response.data["timeSeries"][0]["values"]
         assert len(values) == 2
-        # Don't assert specific bucket indices—near UTC midnight, the data can land in either bucket
-        assert sum(v["value"] for v in values) == 1
+        assert values[0]["value"] == 1
+        assert values[1]["value"] == 0
 
     def test_cross_trace_query_with_multiple_spans(self) -> None:
         trace_id = uuid.uuid4().hex
@@ -263,8 +271,8 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
         assert len(response.data["timeSeries"]) == 1
         values = response.data["timeSeries"][0]["values"]
         assert len(values) == 2
-        # Don't assert specific bucket indices—near UTC midnight, the data can land in either bucket
-        assert sum(v["value"] for v in values) == 1
+        assert values[0]["value"] == 1
+        assert values[1]["value"] == 0
 
     def test_cross_trace_query_with_multiple_logs(self) -> None:
         trace_id = uuid.uuid4().hex
@@ -325,8 +333,8 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
         assert len(response.data["timeSeries"]) == 1
         values = response.data["timeSeries"][0]["values"]
         assert len(values) == 2
-        # Don't assert specific bucket indices—near UTC midnight, the data can land in either bucket
-        assert sum(v["value"] for v in values) == 1
+        assert values[0]["value"] == 1
+        assert values[1]["value"] == 0
 
     def test_top_events_with_log_query_includes_trace_filters(self) -> None:
         """Test that topEvents queries with logQuery include trace_filters in RPC payload"""
