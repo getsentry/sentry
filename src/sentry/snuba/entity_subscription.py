@@ -285,6 +285,33 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             self.event_types = extra_fields.get("event_types")
             self.extrapolation_mode = extra_fields.get("extrapolation_mode")
 
+    @staticmethod
+    def _normalize_aggregate_for_rpc(aggregate: str) -> str:
+        """
+        Normalize a bare function name to include default arguments.
+        e.g., 'p95' -> 'p95(span.duration)'
+
+        If the aggregate already has parentheses or is not a known function,
+        return it as-is to let the resolver handle validation.
+        """
+        from sentry.search.eap.spans.aggregates import SPAN_AGGREGATE_DEFINITIONS
+        from sentry.search.events.fields import is_function
+
+        # If it's already a function call (has parentheses), return as-is
+        if is_function(aggregate):
+            return aggregate
+
+        # Check if this is a known aggregate function
+        if aggregate in SPAN_AGGREGATE_DEFINITIONS:
+            definition = SPAN_AGGREGATE_DEFINITIONS[aggregate]
+            # Get the default argument for the first parameter if available
+            if definition.arguments and definition.arguments[0].default_arg:
+                default_arg = definition.arguments[0].default_arg
+                return f"{aggregate}({default_arg})"
+
+        # If not found or no default, return as-is and let resolver handle it
+        return aggregate
+
     def build_rpc_request(
         self,
         query: str,
