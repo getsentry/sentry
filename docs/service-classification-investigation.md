@@ -2140,14 +2140,94 @@ the native binary approach to the combined solution. Reasoning:
 | `kafka.py`            | Consumer fixtures use per-worker topic names and group IDs via `_get_xdist_kafka_topic()`.                                                                                                                                       |
 | `template/config.yml` | Kafka topic names templated (`${KAFKA_TOPIC_EVENTS}`, `${KAFKA_TOPIC_OUTCOMES}`).                                                                                                                                                |
 
-### Status: NEEDS CI VALIDATION
+### Status: CI VALIDATED (Run 21896551761)
 
-These changes have been applied to the main branch code but require a full CI run to validate.
-The worktree experiments showed all 75 relay tests passing with `-n 2` and `-n 4`, but the
-changes were independently developed and have been re-applied here after critical review.
-Specific things to watch for in the first CI run:
+Relay optimization + `FORCE_SERIAL_DIRS = ()` changes validated. Tier 2 (all 17 shards) passed
+green. Tier 1 had 3 failures caused by an unrelated `real_send_task` fixture issue (cherry-pick
+of `10b295d410a` fixed it in Run 21896850085).
 
-1. **ScopeMismatch errors** — if any relay test fixture has an incompatible scope dependency
-2. **Relay health check timeouts** — the retry loop was extended from 8 to 10 iterations
-3. **Kafka topic creation** — per-worker topics are created on-demand by Relay, not pre-created
-4. **Port collisions** — the 100-offset port hint should prevent `ephemeral_port_reserve` overlaps
+---
+
+## Iteration 13: Timing Analysis & Next Optimizations
+
+**Run analyzed:** 21896551761 (22 shards: 5 tier1 + 17 tier2, all `-n 3`)
+
+### Wall Clock Result
+
+| Metric | Value |
+|---|---|
+| **Overall wall clock** | **12.3 min** |
+| **Baseline (single-threaded, 22 shards)** | ~17.0 min |
+| **Speedup** | **27.5%** |
+| Last tier1 shard finishes | +642s (10m 42s) |
+| Last tier2 shard finishes (bottleneck) | +739s (12m 19s) |
+| Tier1 idle time (slack) | 97s |
+
+### Tier 1 Breakdown (5 shards, Postgres + Redis only)
+
+| Phase | Average | Notes |
+|---|---|---|
+| Container init | ~24s | Postgres + Redis startup |
+| Setup sentry (migrations) | ~35s | `sentry upgrade --noinput` |
+| **Test execution** | **543s (9m 3s)** | Spread: 40s (522s–562s) |
+| **Total job** | ~610s | |
+
+### Tier 2 Breakdown (17 shards, Full Snuba stack)
+
+| Phase | Average | Min | Max | Spread |
+|---|---|---|---|---|
+| Setup sentry (backend-ci) | 103s | 96s | 112s | 16s |
+| Bootstrap × 3 (sequential) | 55s | 52s | 58s | 6s |
+| **Test execution** | **490s (8m 10s)** | **440s** | **550s** | **110s** |
+| **Total job** | ~662s | | | |
+
+### Where the Time Goes (bottleneck shard #9, 739s wall clock)
+
+```
+ 0s─────8s     artifact plumbing (checkout + download)
+ 8s────108s    setup-sentry backend-ci mode (Snuba stack startup)     ~100s fixed cost
+108s───166s    bootstrap --force × 3 SEQUENTIAL                       ~58s  ← optimizable
+166s───286s    xdist worker spawn + Django app bootstrap              ~120s ← fundamental
+286s───676s    actual test execution                                  ~390s ← varies by shard
+676s───739s    cleanup + GH Actions overhead                            ~3s
+```
+
+### Key Findings
+
+1. **Shard imbalance is the #1 lever.** Tier2 test execution spread is 110s (25% variation).
+   Shard 9 runs 110s longer than shard 2. Hash-based `roundrobin` distribution doesn't account
+   for test weight — shards receiving heavy relay/metric tests take disproportionately longer.
+   Equalizing via timing-based distribution would save ~60s.
+
+2. **Sequential bootstrap wastes ~39s.** Three `docker run --rm ... bootstrap --force` calls
+   run one after another (~19s each). They are independent and can run in parallel with `&` +
+   `wait`, reducing ~58s → ~19s.
+
+3. **Tier 1 has 97s of slack.** The 5 tier1 runners finish and sit idle while tier2 catches up.
+   This means tier1 is slightly over-provisioned at the 5/17 split — but moving shards between
+   tiers has diminishing returns because tier2's ~100s extra setup cost dominates.
+
+4. **xdist worker startup (~120s) is baked into test time.** Each `-n 3` shard spawns 3 Django
+   processes, each loading ~300+ models. This ~2min cost is inside the "test execution" numbers
+   and is a fundamental xdist limitation (no pre-warming).
+
+5. **Tier2 setup (100s + 58s = 158s) is the biggest fixed cost.** Compared to tier1's 55s setup,
+   every tier2 shard pays an extra 103s just for the Snuba stack. Over 17 shards that's 1,751s
+   of runner-time on infrastructure startup alone.
+
+### Optimization Roadmap
+
+| # | Optimization | Savings | Effort | New Wall Clock |
+|---|---|---|---|---|
+| A | Parallelize `bootstrap --force` | ~39s | Trivial (workflow change) | ~11.7m |
+| B | Timing-based shard distribution | ~60s | Moderate (custom splitter) | ~11.0m |
+| C | Rebalance to 6/16 split | ~30s | Trivial (workflow change) | marginal |
+| D | Move ~5,100 tests tier2→tier1 (conditional `reset_snuba`) | ~4 min | Complex | **~8 min** |
+| E | Increase total shards (22→26) | ~90s | Cost increase | ~10.5m |
+
+**Optimization D** is the only path to breaking the 10-minute barrier without adding shards.
+~5,100 tests are `SnubaTestCase` subclasses whose only Snuba interaction is the `reset_snuba`
+fixture (never read/write ClickHouse in the test body). Making `reset_snuba` a conditional no-op
+when Snuba isn't running would allow an 8/14 split with both tiers finishing at ~8 minutes.
+Risk: tests that indirectly depend on Snuba through non-obvious paths would silently pass without
+their infrastructure.
