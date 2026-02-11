@@ -7,7 +7,7 @@ import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {CopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
-import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/gettingStartedDoc/utils/stepsToMarkdown';
+import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {IconChevron} from 'sentry/icons';

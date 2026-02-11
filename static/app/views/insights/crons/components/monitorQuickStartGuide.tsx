@@ -9,7 +9,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {CopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
-import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/gettingStartedDoc/utils/stepsToMarkdown';
+import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';

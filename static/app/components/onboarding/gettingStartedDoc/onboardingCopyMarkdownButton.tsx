@@ -4,7 +4,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {useAuthToken} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {useTabSelectionsMap} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import type {OnboardingStep} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {stepsToMarkdown} from 'sentry/components/onboarding/gettingStartedDoc/utils/stepsToMarkdown';
+import {stepsToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
