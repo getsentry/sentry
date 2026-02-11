@@ -2689,15 +2689,9 @@ class ProcessSimilarityTestMixin(BasePostProcessGroupMixin):
 
 
 class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
-    @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
-        return_value=True,
-    )
     @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    def test_kick_off_seer_automation_with_features(
-        self, mock_generate_summary_and_run_automation, mock_get_seer_org_acknowledgement
-    ):
+    def test_kick_off_seer_automation_with_features(self, mock_generate_summary_and_run_automation):
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
             data={"message": "testing"},
@@ -2715,13 +2709,9 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
             event.group.id, trigger_path="old_seer_automation"
         )
 
-    @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
-        return_value=True,
-    )
     @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
     def test_kick_off_seer_automation_without_org_feature(
-        self, mock_generate_summary_and_run_automation, mock_get_seer_org_acknowledgement
+        self, mock_generate_summary_and_run_automation
     ):
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
@@ -2737,38 +2727,10 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
         mock_generate_summary_and_run_automation.assert_not_called()
 
-    @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
-        return_value=False,
-    )
-    @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
-    def test_kick_off_seer_automation_without_seer_enabled(
-        self, mock_generate_summary_and_run_automation, mock_get_seer_org_acknowledgement
-    ):
-        self.project.update_option("sentry:seer_scanner_automation", True)
-        event = self.create_event(
-            data={"message": "testing"},
-            project_id=self.project.id,
-        )
-
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-        )
-
-        mock_generate_summary_and_run_automation.assert_not_called()
-
-    @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
-        return_value=True,
-    )
     @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
     def test_kick_off_seer_automation_without_scanner_on(
-        self, mock_generate_summary_and_run_automation, mock_get_seer_org_acknowledgement
+        self, mock_generate_summary_and_run_automation
     ):
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
@@ -2786,14 +2748,10 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
         mock_generate_summary_and_run_automation.assert_not_called()
 
-    @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
-        return_value=True,
-    )
     @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
     def test_kick_off_seer_automation_skips_existing_fixability_score(
-        self, mock_generate_summary_and_run_automation, mock_get_seer_org_acknowledgement
+        self, mock_generate_summary_and_run_automation
     ):
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
@@ -2815,14 +2773,10 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
         mock_generate_summary_and_run_automation.assert_not_called()
 
-    @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
-        return_value=True,
-    )
     @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
     def test_kick_off_seer_automation_runs_with_missing_fixability_score(
-        self, mock_generate_summary_and_run_automation, mock_get_seer_org_acknowledgement
+        self, mock_generate_summary_and_run_automation
     ):
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
@@ -2845,14 +2799,10 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
             group.id, trigger_path="old_seer_automation"
         )
 
-    @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
-        return_value=True,
-    )
     @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
     def test_kick_off_seer_automation_skips_with_existing_fixability_score(
-        self, mock_generate_summary_and_run_automation, mock_get_seer_org_acknowledgement
+        self, mock_generate_summary_and_run_automation
     ):
         from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
 
@@ -2882,18 +2832,15 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
     @patch("sentry.seer.autofix.utils.is_seer_scanner_rate_limited")
     @patch("sentry.quotas.backend.check_seer_quota")
-    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner")
     @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
     def test_rate_limit_only_checked_after_all_other_checks_pass(
         self,
         mock_generate_summary_and_run_automation,
-        mock_get_seer_org_acknowledgement,
         mock_has_budget,
         mock_is_rate_limited,
     ):
         """Test that rate limit check only happens after all other checks pass"""
-        mock_get_seer_org_acknowledgement.return_value = True
         mock_has_budget.return_value = True
         mock_is_rate_limited.return_value = False
 
@@ -2918,8 +2865,8 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_is_rate_limited.reset_mock()
         mock_generate_summary_and_run_automation.reset_mock()
 
-        # Test 2: When seer org acknowledgement fails, rate limit should NOT be checked
-        mock_get_seer_org_acknowledgement.return_value = False
+        # Test 2: When budget check fails, rate limit should NOT be checked
+        mock_has_budget.return_value = False
 
         event2 = self.create_event(
             data={"message": "testing 2"},
@@ -2937,10 +2884,10 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
         mock_is_rate_limited.reset_mock()
         mock_generate_summary_and_run_automation.reset_mock()
-        mock_get_seer_org_acknowledgement.return_value = True  # Reset to success
+        mock_has_budget.return_value = True  # Reset to success
 
-        # Test 3: When budget check fails, rate limit should NOT be checked
-        mock_has_budget.return_value = False
+        # Test 4: When project option is disabled, rate limit should NOT be checked
+        self.project.update_option("sentry:seer_scanner_automation", False)
 
         event3 = self.create_event(
             data={"message": "testing 3"},
@@ -2956,35 +2903,10 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_is_rate_limited.assert_not_called()
         mock_generate_summary_and_run_automation.assert_not_called()
 
-        mock_is_rate_limited.reset_mock()
-        mock_generate_summary_and_run_automation.reset_mock()
-        mock_has_budget.return_value = True  # Reset to success
-
-        # Test 4: When project option is disabled, rate limit should NOT be checked
-        self.project.update_option("sentry:seer_scanner_automation", False)
-
-        event4 = self.create_event(
-            data={"message": "testing 4"},
-            project_id=self.project.id,
-        )
-
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event4,
-        )
-        mock_is_rate_limited.assert_not_called()
-        mock_generate_summary_and_run_automation.assert_not_called()
-
-    @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
-        return_value=True,
-    )
     @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
     def test_kick_off_seer_automation_skips_when_lock_held(
-        self, mock_generate_summary_and_run_automation, mock_get_seer_org_acknowledgement
+        self, mock_generate_summary_and_run_automation
     ):
         """Test that seer automation is skipped when another task is already processing the same issue"""
         from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
@@ -3030,14 +2952,10 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
             event2.group.id, trigger_path="old_seer_automation"
         )
 
-    @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
-        return_value=True,
-    )
     @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
     def test_kick_off_seer_automation_with_hide_ai_features_enabled(
-        self, mock_generate_summary_and_run_automation, mock_get_seer_org_acknowledgement
+        self, mock_generate_summary_and_run_automation
     ):
         """Test that seer automation is not started when organization has hideAiFeatures set to True"""
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -3061,17 +2979,11 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
     """Tests for the triage signals V0 flow behind the organizations:triage-signals-v0-org feature flag."""
 
-    @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
-        return_value=True,
-    )
     @patch("sentry.tasks.autofix.generate_issue_summary_only.delay")
     @with_feature(
         {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True}
     )
-    def test_triage_signals_event_count_less_than_10_no_cache(
-        self, mock_generate_summary_only, mock_get_seer_org_acknowledgement
-    ):
+    def test_triage_signals_event_count_less_than_10_no_cache(self, mock_generate_summary_only):
         """Test that with event count < 10 and no cached summary, we generate summary only (no automation)."""
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
@@ -3095,17 +3007,11 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         # Should call generate_issue_summary_only (not generate_summary_and_run_automation)
         mock_generate_summary_only.assert_called_once_with(group.id)
 
-    @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
-        return_value=True,
-    )
     @patch("sentry.tasks.autofix.generate_issue_summary_only.delay")
     @with_feature(
         {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True}
     )
-    def test_triage_signals_event_count_less_than_10_with_cache(
-        self, mock_generate_summary_only, mock_get_seer_org_acknowledgement
-    ):
+    def test_triage_signals_event_count_less_than_10_with_cache(self, mock_generate_summary_only):
         """Test that with event count < 10 and cached summary exists, we do nothing."""
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
@@ -3131,10 +3037,6 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_only.assert_not_called()
 
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
-        return_value=True,
-    )
-    @patch(
         "sentry.seer.autofix.utils.has_project_connected_repos",
         return_value=True,
     )
@@ -3143,7 +3045,7 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True}
     )
     def test_triage_signals_event_count_gte_10_with_cache(
-        self, mock_run_automation, mock_has_repos, mock_get_seer_org_acknowledgement
+        self, mock_run_automation, mock_has_repos
     ):
         """Test that with event count >= 10 and cached summary exists, we run automation directly."""
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -3184,10 +3086,6 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         mock_run_automation.assert_called_once_with(group.id)
 
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
-        return_value=True,
-    )
-    @patch(
         "sentry.seer.autofix.utils.has_project_connected_repos",
         return_value=True,
     )
@@ -3199,7 +3097,6 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         self,
         mock_generate_summary_and_run_automation,
         mock_has_repos,
-        mock_get_seer_org_acknowledgement,
     ):
         """Test that with event count >= 10 and no cached summary, we generate summary + run automation."""
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -3236,10 +3133,6 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         )
 
     @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
-        return_value=True,
-    )
-    @patch(
         "sentry.seer.autofix.utils.has_project_connected_repos",
         return_value=False,
     )
@@ -3251,7 +3144,6 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         self,
         mock_generate_summary_and_run_automation,
         mock_has_repos,
-        mock_get_seer_org_acknowledgement,
     ):
         """Test that with event count >= 10 but no connected repos, we skip automation."""
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -3284,16 +3176,12 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         # Should not call automation since no connected repos
         mock_generate_summary_and_run_automation.assert_not_called()
 
-    @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
-        return_value=True,
-    )
     @patch("sentry.tasks.autofix.run_automation_only_task.delay")
     @with_feature(
         {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True}
     )
     def test_triage_signals_event_count_gte_10_skips_with_seer_last_triggered(
-        self, mock_run_automation, mock_get_seer_org_acknowledgement
+        self, mock_run_automation
     ):
         """Test that with event count >= 10 and seer_autofix_last_triggered set, we skip automation."""
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -3334,16 +3222,12 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         # Should not call automation since seer_autofix_last_triggered is set
         mock_run_automation.assert_not_called()
 
-    @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
-        return_value=True,
-    )
     @patch("sentry.tasks.autofix.run_automation_only_task.delay")
     @with_feature(
         {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True}
     )
     def test_triage_signals_event_count_gte_10_skips_with_existing_fixability_score(
-        self, mock_run_automation, mock_get_seer_org_acknowledgement
+        self, mock_run_automation
     ):
         """Test that with event count >= 10 and seer_fixability_score below MEDIUM threshold, we skip automation."""
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -3385,10 +3269,6 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         # Should not call automation since seer_fixability_score is below MEDIUM threshold
         mock_run_automation.assert_not_called()
 
-    @patch(
-        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
-        return_value=True,
-    )
     @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
     @patch("sentry.tasks.autofix.run_automation_only_task.delay")
     @with_feature(
@@ -3398,7 +3278,6 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         self,
         mock_run_automation,
         mock_generate_summary_and_run_automation,
-        mock_get_seer_org_acknowledgement,
     ):
         """Test that automation is skipped for issues older than 14 days."""
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -3435,11 +3314,8 @@ class SeerAutomationHelperFunctionsTestMixin(BasePostProcessGroupMixin):
     """Unit tests for is_issue_eligible_for_seer_automation."""
 
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner", return_value=True)
     @patch("sentry.features.has", return_value=True)
-    def test_is_issue_eligible_for_seer_automation(
-        self, mock_features_has, mock_get_seer_org_acknowledgement, mock_has_budget
-    ):
+    def test_is_issue_eligible_for_seer_automation(self, mock_features_has, mock_has_budget):
         """Test permission check with various failure conditions."""
         from sentry.constants import DataCategory
         from sentry.issues.grouptype import GroupCategory
@@ -3481,13 +3357,7 @@ class SeerAutomationHelperFunctionsTestMixin(BasePostProcessGroupMixin):
         with patch.object(group.issue_type, "always_trigger_seer_automation", True):
             assert is_issue_eligible_for_seer_automation(group) is True
 
-        # Seer not acknowledged
-        self.project.update_option("sentry:seer_scanner_automation", True)
-        mock_get_seer_org_acknowledgement.return_value = False
-        assert is_issue_eligible_for_seer_automation(group) is False
-
         # No budget
-        mock_get_seer_org_acknowledgement.return_value = True
         mock_has_budget.return_value = False
         assert is_issue_eligible_for_seer_automation(group) is False
         mock_has_budget.assert_called_with(
