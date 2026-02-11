@@ -5,6 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -59,28 +60,32 @@ export default function ProjectSettingsLayout() {
 
   if (params.projectId === ':projectId') {
     return (
-      <Flex justify="center" align="center" flex="1">
-        <EmptyMessage
-          icon={<IconProject size="xl" />}
-          title={t('Choose a Project')}
-          action={
-            <Button
-              priority="primary"
-              onClick={() => navigateTo(location.pathname, router)}
-            >
-              {t('Choose Project')}
-            </Button>
-          }
-        >
-          {t('Select a project to continue.')}
-        </EmptyMessage>
-      </Flex>
+      <AnalyticsArea name="project">
+        <Flex justify="center" align="center" flex="1">
+          <EmptyMessage
+            icon={<IconProject size="xl" />}
+            title={t('Choose a Project')}
+            action={
+              <Button
+                priority="primary"
+                onClick={() => navigateTo(location.pathname, router)}
+              >
+                {t('Choose Project')}
+              </Button>
+            }
+          >
+            {t('Select a project to continue.')}
+          </EmptyMessage>
+        </Flex>
+      </AnalyticsArea>
     );
   }
 
   return (
-    <ProjectContext projectSlug={params.projectId}>
-      {({project}) => <InnerProjectSettingsLayout project={project} />}
-    </ProjectContext>
+    <AnalyticsArea name="project">
+      <ProjectContext projectSlug={params.projectId}>
+        {({project}) => <InnerProjectSettingsLayout project={project} />}
+      </ProjectContext>
+    </AnalyticsArea>
   );
 }

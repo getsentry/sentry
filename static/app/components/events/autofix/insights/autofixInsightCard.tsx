@@ -167,7 +167,7 @@ export function AutofixInsightCard({
                   }
                 }}
               />
-              <ButtonBar merged gap="0">
+              <ButtonBar>
                 <Button
                   type="button"
                   size="sm"

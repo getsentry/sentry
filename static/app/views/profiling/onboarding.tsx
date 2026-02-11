@@ -17,6 +17,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {ContinuousProfilingBillingRequirementBanner} from 'sentry/components/profiling/billing/alerts';
@@ -35,7 +36,6 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
 function useOnboardingProject() {

@@ -482,7 +482,7 @@ def configure_sdk():
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
         dsn=dsns.sentry4sentry,
-        transport=MultiplexingTransport(),
+        transport=MultiplexingTransport,
         integrations=[
             DjangoAtomicIntegration(),
             DjangoIntegration(

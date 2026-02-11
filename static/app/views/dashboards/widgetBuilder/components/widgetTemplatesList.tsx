@@ -94,26 +94,28 @@ function WidgetTemplatesList({
                 <WidgetDescription>{widget.description}</WidgetDescription>
                 {selectedWidget === index && (
                   <Flex marginTop="xl" gap="2xl">
-                    <Button
-                      size="sm"
-                      onClick={e => {
-                        e.stopPropagation();
-                        setOpenWidgetTemplates(false);
-                        setCustomizeFromLibrary(true);
-                        // reset preview when customizing templates
-                        setIsPreviewDraggable(false);
-                        trackAnalytics(
-                          'dashboards_views.widget_builder.templates.customize',
-                          {
-                            title: widget.title,
-                            widget_type: widget.widgetType ?? '',
-                            organization,
-                          }
-                        );
-                      }}
-                    >
-                      {t('Customize')}
-                    </Button>
+                    {widget.isCustomizable && (
+                      <Button
+                        size="sm"
+                        onClick={e => {
+                          e.stopPropagation();
+                          setOpenWidgetTemplates(false);
+                          setCustomizeFromLibrary(true);
+                          // reset preview when customizing templates
+                          setIsPreviewDraggable(false);
+                          trackAnalytics(
+                            'dashboards_views.widget_builder.templates.customize',
+                            {
+                              title: widget.title,
+                              widget_type: widget.widgetType ?? '',
+                              organization,
+                            }
+                          );
+                        }}
+                      >
+                        {t('Customize')}
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       onClick={e => {

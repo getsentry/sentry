@@ -7,7 +7,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
   DatePageFilter,
   type DatePageFilterProps,
-} from 'sentry/components/organizations/datePageFilter';
+} from 'sentry/components/pageFilters/date/datePageFilter';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';

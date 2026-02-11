@@ -5,13 +5,13 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/pageOverviewWebVitalsDetailPanel';
 
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('PageOverviewWebVitalsDetailPanel', () => {
   const organization = OrganizationFixture({

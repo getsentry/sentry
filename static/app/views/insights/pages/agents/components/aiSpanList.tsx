@@ -15,6 +15,8 @@ import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
   getGenAiOpType,
   getIsAiAgentNode,
+  getNumberAttr,
+  getStringAttr,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
@@ -427,84 +429,135 @@ interface NodeInfo {
   title: React.ReactNode;
 }
 
-function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
-  // Default return value
-  const nodeInfo: NodeInfo = {
-    icon: <IconCode size="md" />,
-    title: node.description,
-    subtitle: node.op,
-    color: colors[1],
-  };
-
-  const op = node.op ?? 'default';
-  const truncatedOp = op.startsWith('gen_ai.') ? op.slice(7) : op;
-  nodeInfo.title = truncatedOp;
+function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]): NodeInfo {
+  const truncatedOp = getTruncatedOp(node);
   const genAiOpType = getGenAiOpType(node);
+
+  let nodeInfo: NodeInfo;
   if (getIsAiAgentSpan(genAiOpType)) {
-    const agentName =
-      node.attributes?.[SpanFields.GEN_AI_AGENT_NAME] ||
-      node.attributes?.[SpanFields.GEN_AI_FUNCTION_ID] ||
-      '';
-    const model =
-      node.attributes?.[SpanFields.GEN_AI_REQUEST_MODEL] ||
-      node.attributes?.[SpanFields.GEN_AI_RESPONSE_MODEL] ||
-      '';
-    nodeInfo.icon = <IconBot size="md" />;
-    nodeInfo.title = agentName || truncatedOp;
-    nodeInfo.subtitle = truncatedOp;
-    if (model) {
-      nodeInfo.subtitle = (
-        <Fragment>
-          {nodeInfo.subtitle} ({model})
-        </Fragment>
-      );
-    }
-    nodeInfo.color = colors[0];
+    nodeInfo = getAgentNodeInfo(node, truncatedOp, colors[0]!);
   } else if (getIsAiGenerationSpan(genAiOpType)) {
-    const tokens = node.attributes?.[SpanFields.GEN_AI_USAGE_TOTAL_TOKENS] as
-      | number
-      | undefined;
-    const cost = node.attributes?.[SpanFields.GEN_AI_COST_TOTAL_TOKENS] as
-      | number
-      | undefined;
-    nodeInfo.title = node.description || nodeInfo.title;
-    nodeInfo.icon = <IconChat size="md" />;
-    nodeInfo.subtitle = tokens ? (
-      <Fragment>
-        <Count value={tokens} />
-        {' Tokens'}
-      </Fragment>
-    ) : (
-      ''
-    );
-    if (cost) {
-      nodeInfo.subtitle = (
-        <Fragment>
-          {nodeInfo.subtitle} ({<LLMCosts cost={cost} />})
-        </Fragment>
-      );
-    }
-    nodeInfo.color = colors[2];
+    nodeInfo = getGenerationNodeInfo(node, truncatedOp, colors[2]!);
   } else if (getIsExecuteToolSpan(genAiOpType)) {
-    const toolName = node.attributes?.[SpanFields.GEN_AI_TOOL_NAME] as string | undefined;
-    nodeInfo.icon = <IconFix size="md" />;
-    nodeInfo.title = toolName || truncatedOp;
-    nodeInfo.subtitle = toolName ? truncatedOp : '';
-    nodeInfo.color = colors[5];
+    nodeInfo = getToolNodeInfo(node, truncatedOp, colors[5]!);
   } else if (getIsHandoffSpan(genAiOpType)) {
-    nodeInfo.icon = <IconChevron size="md" isDouble direction="right" />;
-    nodeInfo.subtitle = node.description || '';
-    nodeInfo.color = colors[4];
+    nodeInfo = getDescriptionNodeInfo(
+      node,
+      truncatedOp,
+      <IconChevron size="md" isDouble direction="right" />,
+      colors[4]
+    );
   } else {
-    nodeInfo.subtitle = node.description || '';
+    nodeInfo = getDescriptionNodeInfo(
+      node,
+      truncatedOp,
+      <IconCode size="md" />,
+      colors[1]
+    );
   }
 
-  // Override the color and icon if the node has errors
   if (hasError(node)) {
     nodeInfo.color = colors[6];
   }
 
   return nodeInfo;
+}
+
+function getNodeDescription(node: AITraceSpanNode): string | undefined {
+  const desc = node.description || ('name' in node.value ? node.value.name : '');
+  return desc.startsWith('gen_ai.') ? desc.slice(7) : desc;
+}
+
+function getTruncatedOp(node: AITraceSpanNode): string {
+  const op = node.op ?? 'default';
+  return op.startsWith('gen_ai.') ? op.slice(7) : op;
+}
+
+function getAgentNodeInfo(
+  node: AITraceSpanNode,
+  truncatedOp: string,
+  color: string
+): NodeInfo {
+  const agentName =
+    getStringAttr(node, SpanFields.GEN_AI_AGENT_NAME) ||
+    getStringAttr(node, SpanFields.GEN_AI_FUNCTION_ID) ||
+    '';
+  const model =
+    getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ||
+    getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
+    '';
+  let subtitle: React.ReactNode = truncatedOp;
+  if (model) {
+    subtitle = (
+      <Fragment>
+        {truncatedOp} ({model})
+      </Fragment>
+    );
+  }
+  return {
+    icon: <IconBot size="md" />,
+    title: agentName || truncatedOp,
+    subtitle,
+    color,
+  };
+}
+
+function getGenerationNodeInfo(
+  node: AITraceSpanNode,
+  truncatedOp: string,
+  color: string
+): NodeInfo {
+  const description = getNodeDescription(node);
+  const tokens = getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS);
+  const cost = getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS);
+  const tokenLabel = tokens ? (
+    <Fragment>
+      <Count value={tokens} />
+      {' Tokens'}
+    </Fragment>
+  ) : null;
+  const subtitle: React.ReactNode =
+    tokenLabel && cost ? (
+      <Fragment>
+        {tokenLabel} ({<LLMCosts cost={cost} />})
+      </Fragment>
+    ) : (
+      (tokenLabel ?? '')
+    );
+  return {
+    icon: <IconChat size="md" />,
+    title: description || truncatedOp,
+    subtitle,
+    color,
+  };
+}
+
+function getToolNodeInfo(
+  node: AITraceSpanNode,
+  truncatedOp: string,
+  color: string
+): NodeInfo {
+  const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
+  return {
+    icon: <IconFix size="md" />,
+    title: toolName || truncatedOp,
+    subtitle: toolName ? truncatedOp : '',
+    color,
+  };
+}
+
+function getDescriptionNodeInfo(
+  node: AITraceSpanNode,
+  truncatedOp: string,
+  icon: React.ReactNode,
+  color: string | undefined
+): NodeInfo {
+  return {
+    icon,
+    title: truncatedOp,
+    subtitle: getNodeDescription(node) || '',
+    color,
+  };
 }
 
 const ListItemContainer = styled('div')<{
