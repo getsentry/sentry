@@ -78,6 +78,23 @@ RETENTIONS_CONFIG_MAPPING = {
 }
 
 
+@dataclass
+class TrimmingSettings:
+    max_size: int
+
+    def to_object(self) -> Mapping[str, Any]:
+        return {
+            "maxSize": self.max_size,
+        }
+
+
+# This mirrors the TrimmingConfigs struct in Relay
+# https://github.com/getsentry/relay/blob/73e5f9816b10c518b4451d46ebffa709f9f7e897/relay-dynamic-config/src/project.rs#L297-L301
+TRIMMING_CONFIG_MAPPING = {
+    DataCategory.SPAN: "span",
+}
+
+
 def build_metric_abuse_quotas() -> list[AbuseQuota]:
     quotas = list()
 
@@ -430,6 +447,14 @@ class Quota(Service):
     def get_retentions(
         self, organization: Organization, **kwargs
     ) -> Mapping[DataCategory, RetentionSettings]:
+        return {}
+
+    def get_trimming_settings(
+        self, organization: Organization, **kwargs
+    ) -> Mapping[DataCategory, TrimmingSettings]:
+        """
+        Returns per-data-category trimming settings.
+        """
         return {}
 
     def validate(self):

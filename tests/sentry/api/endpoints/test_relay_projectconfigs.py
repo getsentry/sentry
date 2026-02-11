@@ -14,7 +14,12 @@ from sentry import quotas
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.project import Project
 from sentry.models.relay import Relay
-from sentry.quotas.base import RETENTIONS_CONFIG_MAPPING, RetentionSettings
+from sentry.quotas.base import (
+    RETENTIONS_CONFIG_MAPPING,
+    TRIMMING_CONFIG_MAPPING,
+    RetentionSettings,
+    TrimmingSettings,
+)
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import safe
@@ -166,6 +171,17 @@ def test_internal_relays_should_receive_full_configs(
     else:
         assert safe.get_path(cfg, "config", "retentions") is None
 
+    trimming_settings = quotas.backend.get_trimming_settings(default_project.organization)
+    trimming_configs = {
+        TRIMMING_CONFIG_MAPPING[c]: v.to_object()
+        for c, v in trimming_settings.items()
+        if c in TRIMMING_CONFIG_MAPPING
+    }
+    if trimming_configs:
+        assert safe.get_path(cfg, "config", "trimming") == trimming_configs
+    else:
+        assert safe.get_path(cfg, "config", "trimming") is None
+
 
 @django_db_all
 def test_parse_retentions(call_endpoint, default_project):
@@ -216,6 +232,29 @@ def test_parse_retentions_with_transactions(call_endpoint, default_project):
         assert safe.get_path(cfg, "config", "retentions") == {
             "span": {"standard": 12, "downsampled": 22},
             "log": {"standard": 13, "downsampled": 23},
+        }
+
+
+@django_db_all
+def test_parse_trimming(call_endpoint, default_project):
+    with patch("sentry.quotas.backend") as quotas_mock:
+        quotas_mock.get_trimming_settings = lambda x: {
+            DataCategory.SPAN: TrimmingSettings(max_size=17),
+        }
+
+        # TODO: Remove these. Without them the test fails because
+        # the generated project config contains `MagicMock` values
+        # for `eventRetention` and `downsampledEventRetention`.
+        quotas_mock.get_event_retention = lambda x: 45
+        quotas_mock.get_downsampled_event_retention = lambda x: 90
+
+        result, status_code = call_endpoint()
+        assert status_code < 400
+        assert_no_snakecase_key(result)
+        cfg = safe.get_path(result, "configs", str(default_project.id))
+
+        assert safe.get_path(cfg, "config", "trimming") == {
+            "span": {"maxSize": 17},
         }
 
 

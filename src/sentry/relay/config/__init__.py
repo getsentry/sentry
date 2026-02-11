@@ -37,7 +37,7 @@ from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
-from sentry.quotas.base import RETENTIONS_CONFIG_MAPPING
+from sentry.quotas.base import RETENTIONS_CONFIG_MAPPING, TRIMMING_CONFIG_MAPPING
 from sentry.relay.config.experimental import TimeChecker, add_experimental_config
 from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
@@ -1180,6 +1180,16 @@ def _get_project_config(
         }
         if retentions_config:
             config["retentions"] = retentions_config
+
+    with sentry_sdk.start_span(op="get_trimming_settings"):
+        trimming_settings = quotas.backend.get_trimming_settings(project.organization)
+        trimming_configs = {
+            TRIMMING_CONFIG_MAPPING[c]: v.to_object()
+            for c, v in trimming_settings.items()
+            if c in TRIMMING_CONFIG_MAPPING
+        }
+        if trimming_configs:
+            config["trimming"] = trimming_configs
 
     with sentry_sdk.start_span(op="get_all_quotas"):
         if quotas_config := get_quotas(project, keys=project_keys):
