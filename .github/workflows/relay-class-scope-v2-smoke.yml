@@ -30,7 +30,7 @@ jobs:
     name: shard-${{ matrix.shard }} (${{ matrix.label }})
     env:
       XDIST_PER_WORKER_SNUBA: '1'
-      XDIST_WORKERS: '2'
+      XDIST_WORKERS: '4'
       PYTHONHASHSEED: '0'
 
     steps:
