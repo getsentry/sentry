@@ -2,6 +2,9 @@ name: classify test services
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - mchen/conditional-reset-snuba-poc
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -22,12 +25,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance:
-          [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+        instance: [0]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 22
+      MATRIX_INSTANCE_TOTAL: 1
       TEST_GROUP_STRATEGY: roundrobin
+      # Skip reset_snuba and _requires_snuba fixture calls during classification
+      # so the socket monitor only detects tests that truly connect to Snuba
+      # (store_event, queries) vs. those that only connect through cleanup.
+      SENTRY_SKIP_SNUBA_RESET: '1'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -38,7 +44,7 @@ jobs:
         with:
           mode: backend-ci
 
-      - name: Run tests with service classification (shard ${{ steps.setup.outputs.matrix-instance-number }} of 22)
+      - name: Run tests with service classification (shard ${{ steps.setup.outputs.matrix-instance-number }} of ${{ env.MATRIX_INSTANCE_TOTAL }})
         env:
           PYTEST_ADDOPTS: '${{ env.PYTEST_ADDOPTS }} --classify-services --classification-output=test-service-classification.json'
         run: |

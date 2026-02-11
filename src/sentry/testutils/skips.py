@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import socket
 
 import pytest
@@ -21,6 +22,11 @@ def _requires_service_message(name: str) -> str:
 
 @pytest.fixture(scope="session")
 def _requires_snuba() -> None:
+    # When SENTRY_SKIP_SNUBA_RESET is set, allow tests to run without Snuba.
+    # Used during classification to discover which tests truly need Snuba
+    # vs. which only connect to it through reset_snuba cleanup.
+    if os.environ.get("SENTRY_SKIP_SNUBA_RESET") == "1":
+        return
     # TODO: ability to ask devservices what port a service is on
     if not _service_available("127.0.0.1", 1218):
         pytest.fail(_requires_service_message("snuba"))
