@@ -460,11 +460,6 @@ const SeerDrawerBody = styled(DrawerBody)`
   scroll-margin: 0 ${p => p.theme.space.xl};
   display: flex;
   flex-direction: column;
-  direction: rtl;
-
-  > * {
-    direction: ltr;
-  }
 `;
 
 const Header = styled('h3')`
