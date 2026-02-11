@@ -243,8 +243,8 @@ export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
     orgSlug: org.slug,
     orgId: org.id,
     projectId: project.id,
-    cronsUrl: projectKeys?.[0]!.dsn.crons,
-    dsnKey: projectKeys?.[0]!.dsn.public,
+    cronsUrl: projectKeys?.[0]?.dsn.crons,
+    dsnKey: projectKeys?.[0]?.dsn.public,
   };
 
   // TODO: Migrate crons guides to the content block system so we can use

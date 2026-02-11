@@ -4,21 +4,22 @@ import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/
 import {deriveTabKey} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import type {OnboardingStep} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-const HTML_ENTITIES: Record<string, string> = {
-  '&amp;': '&',
-  '&lt;': '<',
-  '&gt;': '>',
-  '&quot;': '"',
-  '&#x27;': "'",
-  '&#39;': "'",
-  '&apos;': "'",
-  '&#x2F;': '/',
-  '&nbsp;': ' ',
-};
+// &amp; must be decoded last to avoid double-decoding (e.g. &amp;lt; → &lt; → <)
+const HTML_ENTITIES: Array<[string, string]> = [
+  ['&lt;', '<'],
+  ['&gt;', '>'],
+  ['&quot;', '"'],
+  ['&#x27;', "'"],
+  ['&#39;', "'"],
+  ['&apos;', "'"],
+  ['&#x2F;', '/'],
+  ['&nbsp;', ' '],
+  ['&amp;', '&'],
+];
 
 function decodeHtmlEntities(text: string): string {
   let result = text;
-  for (const [entity, char] of Object.entries(HTML_ENTITIES)) {
+  for (const [entity, char] of HTML_ENTITIES) {
     result = result.split(entity).join(char);
   }
   // Handle numeric entities like &#60; &#x3C;
