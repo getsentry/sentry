@@ -6,6 +6,8 @@ import pytest
 from confluent_kafka import Consumer, Producer
 from confluent_kafka.admin import AdminClient
 
+from sentry.testutils.pytest.sentry import _get_xdist_kafka_topic
+
 _log = logging.getLogger(__name__)
 
 MAX_SECONDS_WAITING_FOR_EVENT = 16
@@ -72,9 +74,9 @@ def scope_consumers():
     """
     all_consumers: MutableMapping[str, Consumer | None] = {
         # Relay is configured to use this topic for all ingest messages. See
-        # `templates/config.yml`.
-        "ingest-events": None,
-        "outcomes": None,
+        # `template/config.yml`. Per-worker under xdist.
+        _get_xdist_kafka_topic("ingest-events"): None,
+        _get_xdist_kafka_topic("outcomes"): None,
     }
 
     yield all_consumers
@@ -107,9 +109,9 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
         from sentry.utils.batching_kafka_consumer import create_topics
 
         # Relay is configured to use this topic for all ingest messages. See
-        # `template/config.yml`.
+        # `template/config.yml`. Per-worker under xdist.
         cluster_name = "default"
-        topic_event_name = "ingest-events"
+        topic_event_name = _get_xdist_kafka_topic("ingest-events")
 
         if scope_consumers[topic_event_name] is not None:
             # reuse whatever was already created (will ignore the settings)
@@ -120,8 +122,8 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
         admin.delete_topic(topic_event_name)
         create_topics(cluster_name, [topic_event_name])
 
-        # simulate the event ingestion task
-        group_id = "test-consumer"
+        # simulate the event ingestion task — per-worker group under xdist
+        group_id = _get_xdist_kafka_topic("test-consumer")
 
         consumer = get_stream_processor(
             "ingest-attachments",

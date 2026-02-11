@@ -1,0 +1,626 @@
+{
+  "generated_at": "2026-02-06T01:02:06Z",
+  "total_tests": 204,
+  "summary": {
+    "service_counts": {
+      "postgres": 204
+    },
+    "tier_counts": {
+      "postgres_only": 204
+    }
+  },
+  "tests": {
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_aggregate_field_with_dotted_param": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_aggregate_negation": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_aggregation": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_aggregation_alias_comparison": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_aggregation_comparison": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_aggregation_comparison_with_conditional_filter": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_aggregation_comparison_with_conditions": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_aggregation_date_comparison_with_conditions": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_aliased_fields": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_all_aggregates_in_columns": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_all_aggregates_in_query": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_any_field_alias": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_apdex_denominator_correct": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_apdex_new_alias_field": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_applies_inferred_dataset_by_columns": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_auto_aggregations": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_auto_insert_project_name_when_event_id_present": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_auto_insert_project_name_when_event_id_present_with_aggregate": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_chained_or_query_meta_tip": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_compare_numeric_aggregate": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_comparison_operators_on_numeric_field": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_condition_on_aggregate_misses": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_conditional_filter": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_context_fields_between_datasets": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_count_at_least_query": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_count_if": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_count_if_array_field": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_count_if_filter": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_count_if_measurements_cls": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_count_miserable_alias_field": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_count_miserable_new_alias_field": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_count_web_vitals": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_count_web_vitals_invalid_vital": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_debug_param": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_debug_param_with_error": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_deleted_issue_in_results": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_device_class": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_device_class_filter_low": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_email_wildcard_condition": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_empty_count_query": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_environment_filter": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_epm_function": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_equation_field_limit": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_equation_operation_limit": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_equation_simple": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_equation_sort": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_error_handled_condition": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_error_main_thread_condition": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_error_unhandled_condition": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_event_id_with_in_search": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_failure_count_alias_field": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_failure_rate_alias_field": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_field_aliases_in_conflicting_functions": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_filters_with_back_slashes": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_filters_with_escaped_asterisk": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_floored_epm": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_floored_epm_more_events": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_functions_in_orderby": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_group_id_as_custom_tag": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_groupby_error_handled_and_unhandled": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_has_issue": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_has_message": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_has_trace_context": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_has_transaction_status": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_has_user": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_http_fields_between_datasets": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_http_status_code": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_http_status_code_context_priority": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_implicit_groupby": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_in_query_events": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_in_query_events_stack": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_in_query_transactions": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_invalid_field": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_invalid_search_terms": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_invalid_trace_span": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_issue_alias_in_aggregate": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_issue_alias_inside_aggregate": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_issue_in_columns": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_issue_in_search_and_columns": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_issue_negation": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_issues_with_transaction_dataset": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_last_seen_aggregate_condition": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_last_seen_negative_duration": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_latest_release_alias": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_limit_number_of_fields": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_measurements_aggregation_conditions": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_measurements_aggregations": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_measurements_conditions": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_measurements_query": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_messed_up_function_values": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_metrics_enhanced_defaults_to_transactions_with_feature_flag": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_mobile_measurements": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_multiple_performance_short_group_ids_filter": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_nan_result": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_negation_on_duration_filter_excludes_transaction": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_negation_on_numeric_field_excludes_issue": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_negation_on_numeric_in_filter_excludes_issue": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_negative_user_search": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_next_prev_link_headers": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_no_pagination_param": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_no_projects": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_no_ratelimit": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_no_requested_fields_or_grouping": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_no_team_key_transactions": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_nonexistent_fields": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_not_has_trace_context": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_not_has_transaction_status": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_not_project_in_query": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_not_project_in_query_but_in_header": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_null_user_misery_new_returns_zero": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_null_user_misery_returns_zero": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_orderby": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_orderby_user_display": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_orderby_user_display_with_aggregates": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_out_of_retention": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_parent_span_id_in_context": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_percentile_function": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_percentile_function_as_condition": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_percentile_function_meta_types": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_performance_short_group_id": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_performance_view_feature": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_profiled_transaction_condition": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_project_alias_inside_aggregate": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_project_auto_fields": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_project_condition_used_for_automatic_filters": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_project_in_query": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_project_in_query_does_not_exist": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_project_in_query_not_in_header": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_project_name": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_project_without_name": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_quantize_dates": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_raw_data": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_readable_device_name": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_release_stage": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_release_wildcard_condition": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_removes_unnecessary_default_project_and_transaction_thresholds": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_removes_unnecessary_default_project_and_transaction_thresholds_keeps_others": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_saves_discover_saved_query_ambiguous_as_error": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_saves_discover_saved_query_split_error": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_saves_discover_saved_query_split_flag": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_saves_discover_saved_query_split_transaction": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_search_for_nonexistent_issue": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_semver": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_semver_build": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_semver_package": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_sort_invalid": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_sort_title": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_stack_wildcard_condition": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_tag_that_looks_like_aggregate": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_tag_that_looks_like_aggregation": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_team_is_nan": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_team_key_transactions_my_teams": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_team_key_transactions_orderby": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_team_key_transactions_query": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_team_param_no_access": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_timestamp_different_from_params": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_too_many_team_key_transactions": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_too_many_transaction_thresholds": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_total_count": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_total_count_by_itself": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_total_count_equation": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_total_count_filter": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_total_sum_transaction_duration_equation": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_trace_columns": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_transaction_event_type": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_transaction_source": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_treat_status_as_tag_discover_transaction": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_unknown_issue": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_user_display": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_user_display_with_aggregates": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_user_misery_alias_field": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_user_misery_alias_field_with_project_threshold": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_user_misery_alias_field_with_transaction_threshold": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_user_misery_alias_field_with_transaction_threshold_and_project_threshold": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_user_misery_denominator": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsEndpointTest::test_user_search": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsErrorsDatasetEndpointTest::test_all_events_fields": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsErrorsDatasetEndpointTest::test_count_scores": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsErrorsDatasetEndpointTest::test_error_received_filter": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsErrorsDatasetEndpointTest::test_error_upsampling_epm_with_allowlisted_project": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsErrorsDatasetEndpointTest::test_error_upsampling_eps_with_allowlisted_project": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsErrorsDatasetEndpointTest::test_error_upsampling_with_allowlisted_project": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsErrorsDatasetEndpointTest::test_error_upsampling_with_no_allowlist": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsErrorsDatasetEndpointTest::test_error_upsampling_with_partial_allowlist": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsErrorsDatasetEndpointTest::test_invalid_performance_score_column": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsErrorsDatasetEndpointTest::test_is_status": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsErrorsDatasetEndpointTest::test_opportunity_score": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsErrorsDatasetEndpointTest::test_performance_score": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsErrorsDatasetEndpointTest::test_remapping": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsErrorsDatasetEndpointTest::test_sample_count_with_allowlisted_project": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsErrorsDatasetEndpointTest::test_sample_epm_with_allowlisted_project": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsErrorsDatasetEndpointTest::test_sample_eps_with_allowlisted_project": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsErrorsDatasetEndpointTest::test_short_group_id": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsErrorsDatasetEndpointTest::test_sort_upsampled_columns": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsErrorsDatasetEndpointTest::test_status": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsErrorsDatasetEndpointTest::test_user_display": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsIssuePlatformDatasetEndpointTest::test_all_events_fields": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsIssuePlatformDatasetEndpointTest::test_generic_issue_ids_filter": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsIssuePlatformDatasetEndpointTest::test_multiple_performance_short_group_ids_filter": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsIssuePlatformDatasetEndpointTest::test_performance_issue_id_filter": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsIssuePlatformDatasetEndpointTest::test_performance_short_group_id": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsIssuePlatformDatasetEndpointTest::test_user_display_issue_platform": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsProfileFunctionsDatasetEndpointTest::test_functions_dataset_simple": [
+      "postgres"
+    ],
+    "tests/snuba/api/endpoints/test_organization_events.py::OrganizationEventsProfilesDatasetEndpointTest::test_profiles_dataset_simple": [
+      "postgres"
+    ]
+  }
+}
