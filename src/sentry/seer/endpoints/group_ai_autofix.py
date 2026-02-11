@@ -295,6 +295,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     group_id=group.id,
                 )
             )
+            return Response(status=202)
 
         if self._should_use_explorer(request, group.organization):
             return self._get_explorer(request, group)

@@ -499,7 +499,7 @@ export const useOpenSeerDrawer = ({
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-  const api = useApi();
+  const analyticsApi = useApi();
 
   const openSeerDrawer = useCallback(() => {
     if (
@@ -511,7 +511,7 @@ export const useOpenSeerDrawer = ({
     }
 
     // Fire-and-forget: record drawer view for BigQuery analytics
-    api.requestPromise(
+    analyticsApi.requestPromise(
       `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
       {query: {drawerViewed: 'true', isUserWatching: true}}
     );
@@ -547,7 +547,7 @@ export const useOpenSeerDrawer = ({
         );
       },
     });
-  }, [api, openDrawer, event, group, project, location, navigate, organization]);
+  }, [analyticsApi, openDrawer, event, group, project, location, navigate, organization]);
 
   return {openSeerDrawer};
 };
