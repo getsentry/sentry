@@ -325,6 +325,98 @@ describe('WidgetBuilderSortBySelector', () => {
       expect.anything()
     );
   });
+  it('renders a limit selector for categorical bar widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          <WidgetBuilderSortBySelector />
+        </TraceItemAttributeProvider>
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          ...defaultRouterConfig,
+          location: {
+            pathname: defaultRouterConfig.location?.pathname ?? '/mock-pathname/',
+            query: {
+              displayType: 'categorical_bar',
+              fields: ['transaction.duration', 'count()'],
+              limit: 20,
+              dataset: 'spans',
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByText('Limit to 20 results')).toBeInTheDocument();
+  });
+
+  it('does not render a limit selector for table widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          <WidgetBuilderSortBySelector />
+        </TraceItemAttributeProvider>
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          ...defaultRouterConfig,
+          location: {
+            pathname: defaultRouterConfig.location?.pathname ?? '/mock-pathname/',
+            query: {
+              ...defaultRouterConfig.location?.query,
+              displayType: 'table',
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByText('Sort by')).toBeInTheDocument();
+    expect(screen.queryByText('Limit to 5 results')).not.toBeInTheDocument();
+  });
+
+  it('correctly handles categorical bar limit changes', async () => {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+
+    render(
+      <WidgetBuilderProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          <WidgetBuilderSortBySelector />
+        </TraceItemAttributeProvider>
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          ...defaultRouterConfig,
+          location: {
+            pathname: defaultRouterConfig.location?.pathname ?? '/mock-pathname/',
+            query: {
+              displayType: 'categorical_bar',
+              fields: ['transaction.duration', 'count()'],
+              limit: 20,
+              dataset: 'spans',
+            },
+          },
+        },
+      }
+    );
+
+    const limitSelector = await screen.findByText('Limit to 20 results');
+    await userEvent.click(limitSelector);
+    await userEvent.click(await screen.findByText('Limit to 15 results'));
+
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({limit: 15}),
+      }),
+      expect.anything()
+    );
+  });
+
   it('sorts by equations table', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
