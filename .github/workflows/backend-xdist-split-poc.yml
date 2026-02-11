@@ -141,12 +141,12 @@ jobs:
         with:
           mode: migrations
 
-      - name: Run tier 1 tests (xdist -n 4)
+      - name: Run tier 1 tests (xdist -n 3)
         env:
           SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
         run: |
           echo "=== Tier 1: Postgres + Redis only (no Snuba stack) ==="
-          echo "Shard ${{ matrix.instance }} of 4, xdist workers: 4"
+          echo "Shard ${{ matrix.instance }} of 4, xdist workers: 3"
           echo "Test files: $(wc -l < /tmp/tier1-tests.txt)"
           python3 -b -m pytest \
             tests \
@@ -155,7 +155,7 @@ jobs:
             --ignore tests/apidocs \
             --ignore tests/js \
             --ignore tests/tools \
-            -n 4 \
+            -n 3 \
             --dist=loadfile \
             --json-report \
             --json-report-file=".artifacts/pytest.json" \
