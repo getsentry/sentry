@@ -37,15 +37,25 @@ export function StepIndexProvider({
 
 /**
  * Derives a stable key from a set of tab labels, optionally prefixed
- * with a step index for disambiguation. Used to match component-side
- * selections with content-block-side lookups in stepsToMarkdown.
+ * with a step index for disambiguation. When multiple tabbed blocks
+ * in the same step share identical labels (e.g. dotnet's two
+ * "Package Manager / .NET Core CLI" groups), a fingerprint of the
+ * first tab's code content is appended to make the key unique.
+ *
+ * Used to match component-side selections with content-block-side
+ * lookups in stepsToMarkdown.
  */
 export function deriveTabKey(
-  tabs: ReadonlyArray<{label: string}>,
+  tabs: ReadonlyArray<{label: string; code?: string}>,
   stepIndex?: number
 ): string {
   const labelPart = tabs.map(t => t.label).join('\0');
-  return stepIndex === undefined ? labelPart : `${stepIndex}:${labelPart}`;
+  // Include a code fingerprint to disambiguate tabbed blocks with
+  // identical labels within the same step (e.g. dotnet install step
+  // has two "Package Manager / .NET Core CLI" tab groups).
+  const codeFp = tabs[0]?.code?.slice(0, 50) ?? '';
+  const base = codeFp ? `${labelPart}\x01${codeFp}` : labelPart;
+  return stepIndex === undefined ? base : `${stepIndex}:${base}`;
 }
 
 /**
@@ -81,7 +91,7 @@ export function TabSelectionScope({children}: {children: React.ReactNode}) {
  * Returns [selectedValue, setSelectedValue] like useState.
  */
 export function useRegisteredTabSelection(
-  tabs: ReadonlyArray<{label: string; value: string}>
+  tabs: ReadonlyArray<{label: string; value: string; code?: string}>
 ): [string, (value: string) => void] {
   const ctx = useContext(TabRegistryContext);
   const stepIndex = useContext(StepIndexContext);

@@ -137,6 +137,82 @@ describe('TabSelectionScope with GuidedSteps', () => {
   });
 });
 
+// Simulates dotnet's INSTALL step: two tabbed code blocks with identical
+// labels ("Package Manager" / ".NET Core CLI") but different code content.
+const DOTNET_SDK_TABS: CodeSnippetTab[] = [
+  {
+    label: 'Package Manager',
+    value: 'Package Manager',
+    code: 'Install-Package Sentry',
+    language: 'shell',
+  },
+  {
+    label: '.NET Core CLI',
+    value: '.NET Core CLI',
+    code: 'dotnet add package Sentry',
+    language: 'shell',
+  },
+];
+
+const DOTNET_PROFILING_TABS: CodeSnippetTab[] = [
+  {
+    label: 'Package Manager',
+    value: 'Package Manager',
+    code: 'Install-Package Sentry.Profiling',
+    language: 'shell',
+  },
+  {
+    label: '.NET Core CLI',
+    value: '.NET Core CLI',
+    code: 'dotnet add package Sentry.Profiling',
+    language: 'shell',
+  },
+];
+
+describe('identical labels in same step', () => {
+  it('maintains independent selections for tab groups with same labels but different code', async () => {
+    render(
+      <TabSelectionScope>
+        <StepIndexProvider index={0}>
+          <div data-test-id="sdk-tabs">
+            <TabbedCodeSnippet tabs={DOTNET_SDK_TABS} />
+          </div>
+          <div data-test-id="profiling-tabs">
+            <TabbedCodeSnippet tabs={DOTNET_PROFILING_TABS} />
+          </div>
+        </StepIndexProvider>
+      </TabSelectionScope>
+    );
+
+    const sdkSection = within(screen.getByTestId('sdk-tabs'));
+    const profilingSection = within(screen.getByTestId('profiling-tabs'));
+
+    // Both default to "Package Manager" (first tab)
+    expect(sdkSection.getByText('Install-Package Sentry')).toBeInTheDocument();
+    expect(
+      profilingSection.getByText('Install-Package Sentry.Profiling')
+    ).toBeInTheDocument();
+
+    // Switch SDK tabs to ".NET Core CLI"
+    await userEvent.click(sdkSection.getByRole('button', {name: '.NET Core CLI'}));
+
+    // SDK section switched, profiling section unchanged
+    expect(sdkSection.getByText('dotnet add package Sentry')).toBeInTheDocument();
+    expect(
+      profilingSection.getByText('Install-Package Sentry.Profiling')
+    ).toBeInTheDocument();
+
+    // Switch profiling tabs to ".NET Core CLI"
+    await userEvent.click(profilingSection.getByRole('button', {name: '.NET Core CLI'}));
+
+    // Both now show ".NET Core CLI" independently
+    expect(sdkSection.getByText('dotnet add package Sentry')).toBeInTheDocument();
+    expect(
+      profilingSection.getByText('dotnet add package Sentry.Profiling')
+    ).toBeInTheDocument();
+  });
+});
+
 describe('TabSelectionScope isolation', () => {
   it('isolates selections between separate TabSelectionScope instances', async () => {
     render(

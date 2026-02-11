@@ -1,6 +1,7 @@
 import React from 'react';
 
 import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
+import {deriveTabKey} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {OnboardingStep} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
@@ -469,8 +470,13 @@ describe('stepsToMarkdown', () => {
       },
     ];
 
-    // Key includes step index (0) since stepsToMarkdown passes stepIndex per step
-    const tabSelectionsMap = new Map([['0:npm\0yarn', 'yarn']]);
+    // Build key using deriveTabKey so it includes the code fingerprint
+    const installTabs = (
+      steps[0]!.content[0]! as Extract<ContentBlock, {type: 'code'}> & {
+        tabs: Array<{code: string; label: string}>;
+      }
+    ).tabs;
+    const tabSelectionsMap = new Map([[deriveTabKey(installTabs, 0), 'yarn']]);
     const result = stepsToMarkdown(steps, {tabSelectionsMap});
     expect(result).toContain('```bash\nyarn add @sentry/node\n```');
     expect(result).not.toContain('npm install');
@@ -512,10 +518,20 @@ describe('stepsToMarkdown', () => {
       },
     ];
 
-    // Keys include step indices (0 for Install, 1 for Configure)
+    // Build keys using deriveTabKey so they include code fingerprints
+    const installTabs = (
+      steps[0]!.content[0]! as Extract<ContentBlock, {type: 'code'}> & {
+        tabs: Array<{code: string; label: string}>;
+      }
+    ).tabs;
+    const configureTabs = (
+      steps[1]!.content[0]! as Extract<ContentBlock, {type: 'code'}> & {
+        tabs: Array<{code: string; label: string}>;
+      }
+    ).tabs;
     const tabSelectionsMap = new Map([
-      ['0:npm\0yarn', 'yarn'],
-      ['1:ESM\0CJS', 'CJS'],
+      [deriveTabKey(installTabs, 0), 'yarn'],
+      [deriveTabKey(configureTabs, 1), 'CJS'],
     ]);
     const result = stepsToMarkdown(steps, {tabSelectionsMap});
     expect(result).toContain('yarn add @sentry/node');

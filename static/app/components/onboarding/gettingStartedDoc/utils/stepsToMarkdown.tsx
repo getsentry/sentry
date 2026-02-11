@@ -180,13 +180,18 @@ export function reactNodeToText(node: React.ReactNode): string {
 
 /**
  * Derives a stable key from a set of tab labels, optionally prefixed
- * with a step index. Must match the implementation in
- * selectedCodeTabContext.tsx so that component-side writes and
+ * with a step index and occurrence index. Must match the implementation
+ * in selectedCodeTabContext.tsx so that component-side writes and
  * stepsToMarkdown-side reads use the same key.
  */
-function deriveTabKey(tabs: ReadonlyArray<{label: string}>, stepIndex?: number): string {
+function deriveTabKey(
+  tabs: ReadonlyArray<{label: string; code?: string}>,
+  stepIndex?: number
+): string {
   const labelPart = tabs.map(t => t.label).join('\0');
-  return stepIndex === undefined ? labelPart : `${stepIndex}:${labelPart}`;
+  const codeFp = tabs[0]?.code?.slice(0, 50) ?? '';
+  const base = codeFp ? `${labelPart}\x01${codeFp}` : labelPart;
+  return stepIndex === undefined ? base : `${stepIndex}:${base}`;
 }
 
 interface MarkdownOptions {
