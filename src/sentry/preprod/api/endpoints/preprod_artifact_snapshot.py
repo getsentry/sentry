@@ -128,6 +128,8 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         provider = data.get("provider")
         head_repo_name = data.get("head_repo_name")
         head_ref = data.get("head_ref")
+        base_repo_name = data.get("base_repo_name")
+        base_ref = data.get("base_ref")
         pr_number = data.get("pr_number")
 
         with transaction.atomic(router.db_for_write(PreprodArtifact)):
@@ -140,9 +142,9 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                     head_repo_name=head_repo_name,
                     defaults={
                         "provider": provider,
-                        "base_repo_name": head_repo_name,
+                        "base_repo_name": base_repo_name or head_repo_name,
                         "head_ref": head_ref,
-                        "base_ref": None,
+                        "base_ref": base_ref,
                         "pr_number": pr_number,
                     },
                 )
