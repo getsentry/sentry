@@ -61,12 +61,12 @@ const usePopulatePrebuiltIdsWithActualIds = (
       id: data?.find(d => d.prebuiltId === prebuiltId)?.id || undefined,
     };
 
-    if (!hasLinkedDashboards) {
-      return {populatedDashboard, isLoading: false};
+    if (!hasLinkedDashboards && !prebuiltId) {
+      return {dashboard: populatedDashboard, isLoading: false};
     }
 
     if (!data) {
-      return {populatedDashboard, isLoading};
+      return {dashboard: populatedDashboard, isLoading};
     }
 
     const populatedDashboardWithLinkedDashboards = {
