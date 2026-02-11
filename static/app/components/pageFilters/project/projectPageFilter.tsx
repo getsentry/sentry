@@ -46,22 +46,6 @@ export interface ProjectPageFilterProps extends Partial<
   >
 > {
   /**
-   * Message to show in the menu footer
-   */
-  footerMessage?: React.ReactNode;
-  /**
-   * This overrides the selected projects that is DISPLAYED by
-   * the project select.
-   *
-   * Use this when you want to display a disabled project selector
-   * with a fixed set of projects. For example, if you always want
-   * it to show `All Projects`.
-   *
-   * It does NOT override the projects in the store, so hooks like
-   * `usePageFilters` will not reflect this override.
-   */
-  projectOverride?: number[];
-  /**
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
@@ -88,9 +72,7 @@ export function ProjectPageFilter({
   menuTitle,
   menuWidth,
   trigger,
-  projectOverride,
   resetParamsOnChange,
-  footerMessage,
   storageNamespace,
   ...selectProps
 }: ProjectPageFilterProps) {
@@ -177,13 +159,13 @@ export function ProjectPageFilter({
   );
 
   const value = useMemo<number[]>(
-    () => mapURLValueToNormalValue(projectOverride ?? pageFilterValue),
-    [mapURLValueToNormalValue, pageFilterValue, projectOverride]
+    () => mapURLValueToNormalValue(pageFilterValue),
+    [mapURLValueToNormalValue, pageFilterValue]
   );
 
   const defaultValue = useMemo<number[]>(
-    () => mapURLValueToNormalValue(projectOverride ?? []),
-    [mapURLValueToNormalValue, projectOverride]
+    () => mapURLValueToNormalValue([]),
+    [mapURLValueToNormalValue]
   );
 
   const handleChange = useCallback(
@@ -370,11 +352,11 @@ export function ProjectPageFilter({
               'Only up to [limit] projects can be selected at a time. You can still press “Clear” to see all projects.',
               {limit: SELECTION_COUNT_LIMIT}
             )
-          : footerMessage;
+          : undefined;
     }
 
-    return footerMessage;
-  }, [selectionLimitExceeded, footerMessage]);
+    return undefined;
+  }, [selectionLimitExceeded]);
 
   const hasProjectWrite = organization.access.includes('project:write');
 
