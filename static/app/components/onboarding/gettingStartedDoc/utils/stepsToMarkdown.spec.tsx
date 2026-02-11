@@ -453,7 +453,7 @@ describe('stepsToMarkdown', () => {
     expect(result).toContain('- flask\n- django\n- celery');
   });
 
-  it('uses tabSelections positionally to select tabs', () => {
+  it('uses tabSelectionsMap to select tabs by key', () => {
     const steps: OnboardingStep[] = [
       {
         type: StepType.INSTALL,
@@ -469,12 +469,13 @@ describe('stepsToMarkdown', () => {
       },
     ];
 
-    const result = stepsToMarkdown(steps, {tabSelections: ['yarn']});
+    const tabSelectionsMap = new Map([['npm\0yarn', 'yarn']]);
+    const result = stepsToMarkdown(steps, {tabSelectionsMap});
     expect(result).toContain('```bash\nyarn add @sentry/node\n```');
     expect(result).not.toContain('npm install');
   });
 
-  it('uses tabSelections for multiple tabbed blocks independently', () => {
+  it('uses tabSelectionsMap for multiple tabbed blocks independently', () => {
     const steps: OnboardingStep[] = [
       {
         type: StepType.INSTALL,
@@ -510,8 +511,11 @@ describe('stepsToMarkdown', () => {
       },
     ];
 
-    // First selection for install tabs, second for configure tabs
-    const result = stepsToMarkdown(steps, {tabSelections: ['yarn', 'CJS']});
+    const tabSelectionsMap = new Map([
+      ['npm\0yarn', 'yarn'],
+      ['ESM\0CJS', 'CJS'],
+    ]);
+    const result = stepsToMarkdown(steps, {tabSelectionsMap});
     expect(result).toContain('yarn add @sentry/node');
     expect(result).not.toContain('npm install');
     expect(result).toContain('const Sentry = require("@sentry/node")');

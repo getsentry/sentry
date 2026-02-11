@@ -1,98 +1,95 @@
 /**
- * Registration-based store for tracking selected code tabs across
- * onboarding code snippets, scoped per guide instance.
+ * Scoped store for tracking selected code tabs across onboarding snippets.
  *
- * Each TabbedCodeSnippet registers a getter via useEffect on mount.
- * Registration order matches React render order (tree-order, depth-first),
- * which aligns with the order stepsToMarkdown iterates content blocks.
- * This lets us do positional matching without keys or labels.
- *
- * Scoping: A `TabSelectionScope` context provider isolates registrations
- * to the guide they belong to, preventing cross-guide contamination when
- * multiple guides are rendered simultaneously. The scope is embedded
- * inside `AuthTokenGeneratorProvider` so most surfaces get it for free.
- * Surfaces without a provider fall back to a global registry.
+ * Selections are stored in a scope-level Map keyed by tab labels, so they
+ * persist across component mount/unmount cycles (e.g. when GuidedSteps
+ * navigates between steps). A `TabSelectionScope` context provider
+ * isolates selections per guide instance, preventing cross-guide
+ * contamination when multiple guides render simultaneously. The scope
+ * is embedded inside `AuthTokenGeneratorProvider` so most surfaces get
+ * it for free.
  */
 
-import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
+import {createContext, useCallback, useContext, useRef, useState} from 'react';
 import type {MutableRefObject} from 'react';
 
-type TabSelectionGetter = () => string;
+type TabSelectionsMap = Map<string, string>;
 
-/** Global fallback for when no TabSelectionScope provider is present. */
-const _globalRegistrations: TabSelectionGetter[] = [];
+const TabRegistryContext = createContext<MutableRefObject<TabSelectionsMap> | null>(null);
 
-const TabRegistryContext = createContext<MutableRefObject<TabSelectionGetter[]> | null>(
-  null
-);
+/** Global fallback for surfaces without a TabSelectionScope provider. */
+const _globalSelections: TabSelectionsMap = new Map();
 
 /**
- * Scopes tab selection registrations to a specific guide instance.
+ * Derives a stable key from a set of tab labels. Used to match
+ * component-side selections with content-block-side lookups in
+ * stepsToMarkdown.
+ */
+export function deriveTabKey(tabs: ReadonlyArray<{label: string}>): string {
+  return tabs.map(t => t.label).join('\0');
+}
+
+/**
+ * Scopes tab selections to a specific guide instance.
  * Rendered inside AuthTokenGeneratorProvider so most onboarding
  * surfaces inherit scoping automatically.
  */
 export function TabSelectionScope({children}: {children: React.ReactNode}) {
-  const registryRef = useRef<TabSelectionGetter[]>([]);
+  const mapRef = useRef<TabSelectionsMap>(new Map());
   return (
-    <TabRegistryContext.Provider value={registryRef}>
-      {children}
-    </TabRegistryContext.Provider>
+    <TabRegistryContext.Provider value={mapRef}>{children}</TabRegistryContext.Provider>
   );
 }
 
-/**
- * Returns scoped register/getSelections functions for the nearest
- * TabSelectionScope (or the global fallback).
- *
- * - `register(getter)` — called by TabbedCodeSnippet in a useEffect.
- *   Returns a cleanup function.
- * - `getSelections()` — called by OnboardingCopyMarkdownButton at
- *   click time. Returns an ordered array of selected tab labels.
- */
-export function useTabRegistry() {
-  const registryRef = useContext(TabRegistryContext);
-  const registry = registryRef?.current ?? _globalRegistrations;
-
-  const register = useCallback(
-    (getter: TabSelectionGetter): (() => void) => {
-      registry.push(getter);
-      return () => {
-        const idx = registry.indexOf(getter);
-        if (idx !== -1) {
-          registry.splice(idx, 1);
-        }
-      };
-    },
-    [registry]
-  );
-
-  const getSelections = useCallback((): string[] => {
-    return registry.map(fn => fn());
-  }, [registry]);
-
-  return {register, getSelections};
+function useSelectionsMap(): TabSelectionsMap {
+  const mapRef = useContext(TabRegistryContext);
+  return mapRef?.current ?? _globalSelections;
 }
 
 /**
- * Combined hook that manages tab selection state AND registers a getter
- * with the scoped registry. This is the single source of truth for a
- * TabbedCodeSnippet's selected tab — the same value drives both the UI
- * and the Copy as Markdown output.
+ * Manages tab selection state for a TabbedCodeSnippet, persisted in the
+ * nearest TabSelectionScope. The stored selection survives component
+ * unmount/remount (e.g. when GuidedSteps navigates between steps).
  *
  * Returns [selectedValue, setSelectedValue] like useState.
  */
 export function useRegisteredTabSelection(
-  initialValue: string
+  tabs: ReadonlyArray<{label: string; value: string}>
 ): [string, (value: string) => void] {
-  const {register} = useTabRegistry();
-  const [selectedValue, setSelectedValue] = useState(initialValue);
+  const map = useSelectionsMap();
+  const key = deriveTabKey(tabs);
 
-  const valueRef = useRef(selectedValue);
-  valueRef.current = selectedValue;
+  // Restore previous selection if available (e.g. after step navigation)
+  const storedLabel = map.get(key);
+  const restoredTab = storedLabel ? tabs.find(t => t.label === storedLabel) : undefined;
+  const [selectedValue, setSelectedValue] = useState(
+    restoredTab?.value ?? tabs[0]!.value
+  );
 
-  useEffect(() => {
-    return register(() => valueRef.current);
-  }, [register]);
+  // Keep map in sync — derive label from current value
+  const currentTab = tabs.find(t => t.value === selectedValue) ?? tabs[0]!;
+  map.set(key, currentTab.label);
 
-  return [selectedValue, setSelectedValue];
+  // Use a ref for tabs to keep setValue stable across renders
+  const tabsRef = useRef(tabs);
+  tabsRef.current = tabs;
+
+  const setValue = useCallback(
+    (newValue: string) => {
+      const tab = tabsRef.current.find(t => t.value === newValue) ?? tabsRef.current[0]!;
+      map.set(key, tab.label);
+      setSelectedValue(newValue);
+    },
+    [map, key]
+  );
+
+  return [selectedValue, setValue];
+}
+
+/**
+ * Returns the scope's tab selections map for use in stepsToMarkdown.
+ * Keys are derived from tab labels via deriveTabKey.
+ */
+export function useTabSelectionsMap(): ReadonlyMap<string, string> {
+  return useSelectionsMap();
 }
