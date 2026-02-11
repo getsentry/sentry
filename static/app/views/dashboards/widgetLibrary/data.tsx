@@ -356,6 +356,7 @@ const getDefaultWidgets = (organization: Organization) => {
             displayType: DisplayType.CATEGORICAL_BAR,
             widgetType: WidgetType.ERRORS,
             interval: '5m',
+            isCustomizable: true,
             limit: 20,
             queries: [
               {
