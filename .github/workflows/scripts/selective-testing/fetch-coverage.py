@@ -45,10 +45,8 @@ def check_coverage_exists(sha: str) -> bool:
     try:
         urllib.request.urlopen(req, timeout=5)
         return True
-    except urllib.error.HTTPError:
-        return False
-    except urllib.error.URLError as e:
-        print(f"  Warning: Network error checking {sha[:12]}: {e}", file=sys.stderr)
+    except Exception as e:
+        print(f"  Warning: Error checking {sha[:12]}: {e}", file=sys.stderr)
         return False
 
 
