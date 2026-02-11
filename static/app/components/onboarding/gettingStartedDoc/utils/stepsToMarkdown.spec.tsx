@@ -99,6 +99,14 @@ describe('simpleHtmlToMarkdown', () => {
     expect(result).toContain('```javascript\nconst x = 1;\n```');
   });
 
+  it('separates code blocks from surrounding text with blank lines', () => {
+    const html =
+      '<p>Initialize Sentry:</p><pre class="language-python"><code class="language-python">sentry_sdk.init()</code></pre>Link your task:';
+    const result = simpleHtmlToMarkdown(html);
+    // The closing ``` must be followed by a blank line before the next text
+    expect(result).toContain('```\n\nLink your task:');
+  });
+
   it('handles empty string', () => {
     expect(simpleHtmlToMarkdown('')).toBe('');
   });

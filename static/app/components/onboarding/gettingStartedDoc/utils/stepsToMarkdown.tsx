@@ -83,7 +83,7 @@ export function simpleHtmlToMarkdown(html: string): string {
     /<pre[^>]*>\s*<code(?:\s+class="language-([^"]*)")?[^>]*>([\s\S]*?)<\/code>\s*<\/pre>/gi,
     (_match, lang: string | undefined, code: string) => {
       const language = lang ?? '';
-      return `\`\`\`${language}\n${code.trim()}\n\`\`\``;
+      return `\n\`\`\`${language}\n${code.trim()}\n\`\`\`\n\n`;
     }
   );
 
