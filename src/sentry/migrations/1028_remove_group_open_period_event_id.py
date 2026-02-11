@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1025_backfill_groupopenperiodactivity_event_id"),
+        ("sentry", "1027_encrypt_data_forwarding_configurations"),
     ]
 
     operations = [
