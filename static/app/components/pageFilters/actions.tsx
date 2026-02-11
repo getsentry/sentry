@@ -8,6 +8,7 @@ import * as qs from 'query-string';
 import {
   ALL_ACCESS_PROJECTS,
   DATE_TIME_KEYS,
+  getDefaultPageFilterSelection,
   URL_PARAM,
 } from 'sentry/components/pageFilters/constants';
 import {
@@ -20,7 +21,6 @@ import {
 } from 'sentry/components/pageFilters/persistence';
 import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
-import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
@@ -32,22 +32,6 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
 type EnvironmentId = Environment['id'];
-
-/**
- * Make a default page filters selection object
- */
-export function getDefaultPageFilterSelection(): PageFilters {
-  return {
-    projects: [],
-    environments: [],
-    datetime: {
-      start: null,
-      end: null,
-      period: DEFAULT_STATS_PERIOD,
-      utc: null,
-    },
-  };
-}
 
 type Options = {
   /**
