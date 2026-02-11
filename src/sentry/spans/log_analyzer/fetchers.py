@@ -18,7 +18,7 @@ class TraceSpans:
     """Parsed operation from top_slow_operations field.
 
     Format: {project_id}:{trace_id}:{count}:{cumulative_latency_ms}
-    Example: "4510228324352001:6a499a5de1f6e3b412adb0ef7600b3ee:2303:26557"
+    Example: "123123123:6a499a5de1f6e3b412adb0ef12345678:2303:26557"
     """
 
     project_id: str

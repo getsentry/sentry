@@ -230,56 +230,6 @@ Fetch logs from the last 60 minutes:
 python -m sentry.spans.gcp_log_analyzer fetch --last-minutes 60
 ```
 
-### Filtering Options
-
-**Server-side filters** (applied at GCP API level - reduces data transfer costs):
-
-```bash
-# Filter by consumer (recommended for performance)
-python -m sentry.spans.gcp_log_analyzer fetch --last-minutes 60 \
-  --consumer "process-spans-6"
-
-# Specific time range
-python -m sentry.spans.gcp_log_analyzer fetch \
-  --time-range "2026-02-03T18:00:00Z" "2026-02-03T19:00:00Z"
-```
-
-**Client-side filters** (applied after fetching logs):
-
-```bash
-# Filter by project ID (client-side)
-python -m sentry.spans.gcp_log_analyzer fetch --last-minutes 60 \
-  --project-id 4510228324352001
-
-# Filter by trace ID (client-side)
-python -m sentry.spans.gcp_log_analyzer fetch --last-minutes 60 \
-  --trace-id "6a499a5de1f6e3b412adb0ef7600b3ee"
-
-# Combine server-side and client-side filters
-python -m sentry.spans.gcp_log_analyzer fetch --last-minutes 60 \
-  --consumer "process-spans-6" \
-  --project-id 4510228324352001
-```
-
-### Output Options
-
-```bash
-# Limit number of results
-python -m sentry.spans.gcp_log_analyzer fetch --last-minutes 60 --limit 50
-
-# Enable verbose logging
-python -m sentry.spans.gcp_log_analyzer fetch --last-minutes 60 --verbose
-```
-
-### Testing with Mock Data
-
-For development and testing without GCP API access:
-
-```bash
-python -m sentry.spans.gcp_log_analyzer fetch --mock-file logs.json \
-  --last-minutes 60
-```
-
 ## Output Format
 
 The tool outputs a table showing the top traces by cumulative latency:
@@ -290,8 +240,8 @@ Top Traces by Cumulative Latency
 
 Project ID           Trace ID                            Total Latency   Operations  Log Entries   Duration
 ------------------------------------------------------------------------------------------------------------------------
-4510228324352001     6a499a5de1f6e3b412adb0ef7600b3ee      26,557 ms        2,303            1   0:00:00
-5471332              fc8dc7a8bee64349960bbc9481105d46           6 ms            6            1   0:00:00
+1231231231231231     6a499a5de1f6e3b412adb0ef12345678      26,557 ms        2,303            1   0:00:00
+2342344              fc8dc7a8bee64349960bbc9489876543           6 ms            6            1   0:00:00
 
 Summary:
 - Total traces: 2
@@ -310,7 +260,7 @@ The tool parses log entries with the following structure:
   "jsonPayload": {
     "event": "spans.buffer.slow_evalsha_operations",
     "top_slow_operations": [
-      "4510228324352001:6a499a5de1f6e3b412adb0ef7600b3ee:2303:26557"
+      "1231231231231231:6a499a5de1f6e3b412adb0ef12345678:2303:26557"
     ]
   },
   "labels": {
@@ -324,16 +274,6 @@ Each entry in `top_slow_operations` follows the format:
 ```
 {project_id}:{trace_id}:{count}:{cumulative_latency_ms}
 ```
-
-## Performance Considerations
-
-**Server-side filtering** (via `--consumer`) is highly recommended when querying large time windows, as it:
-
-- Reduces data transfer from GCP
-- Lowers API costs
-- Speeds up query execution
-
-**Client-side filtering** (via `--project-id` or `--trace-id`) requires fetching all log entries first and filtering locally. Use server-side filters when possible to minimize costs.
 
 ## Authentication
 
@@ -351,5 +291,5 @@ export GOOGLE_APPLICATION_CREDENTIALS="/path/to/credentials.json"
 
 ## Environment Variables
 
-- `GCP_PROJECT`: Default GCP project ID (default: `sentry-s4s2`)
+- `GCP_PROJECT`: Default GCP project ID
 - `GOOGLE_APPLICATION_CREDENTIALS`: Path to GCP credentials file
