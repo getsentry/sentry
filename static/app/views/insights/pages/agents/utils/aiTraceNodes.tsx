@@ -109,9 +109,15 @@ export function getNumberAttr(node: AITraceSpanNode, field: string): number | un
 }
 
 export function hasError(node: AITraceSpanNode): boolean {
-  return (
-    node.errors.size > 0 ||
-    !!getStringAttr(node, SpanFields.SPAN_STATUS)?.includes('error') ||
-    !!getStringAttr(node, 'status')?.includes('error')
-  );
+  if (node.errors.size > 0) {
+    return true;
+  }
+
+  const spanStatus = getStringAttr(node, SpanFields.SPAN_STATUS);
+  if (spanStatus) {
+    // Preserve precedence: when span.status exists, legacy status should not override it.
+    return spanStatus.includes('error');
+  }
+
+  return !!getStringAttr(node, 'status')?.includes('error');
 }
