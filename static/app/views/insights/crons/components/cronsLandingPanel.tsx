@@ -2,7 +2,7 @@ import {Fragment, useEffect, useRef, type ComponentType} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -114,9 +114,7 @@ export function CronsLandingPanel() {
           {t('Back to Platforms')}
         </BackButton>
         <PanelBody withPadding>
-          <Flex align="center" justify="between">
-            <h3>{t('Get Started with %s', platform.label)}</h3>
-          </Flex>
+          <h3>{t('Get Started with %s', platform.label)}</h3>
 
           <Tabs onChange={key => setPlatformGuide(platformKey, key)} value={guideKey}>
             <TabList>
