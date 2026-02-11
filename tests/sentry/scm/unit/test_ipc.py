@@ -101,33 +101,6 @@ def test_run_check_run_listener():
     assert isinstance(event, CheckRunEvent), "Parsing from type hint failed."
 
 
-def test_run_listener_malformed():
-    error = None
-    metrics = []
-
-    def report_error(e):
-        nonlocal error
-        error = e
-
-    def record_count(a, b, c):
-        metrics.append((a, b, c))
-
-    # Implicitly tests no exception was raised.
-    run_listener(
-        "t",
-        b"",
-        "check_run",
-        stream=SourceCodeManagerEventStream(),
-        get_current_time=lambda: 0.0,
-        report_error=report_error,
-        record_count=record_count,
-        record_timer=lambda a, b, c: None,
-    )
-
-    assert isinstance(error, msgspec.MsgspecError)
-    assert metrics == [("sentry.scm.run_listener.failed", 1, {"reason": "parse", "fn": "t"})]
-
-
 def test_run_comment_listener():
     """
     Test that comment events are properly deserialized and routed to comment listeners.
@@ -335,3 +308,30 @@ def test_run_listener_exception_propagates():
         1,
         {"reason": "internal", "fn": "failing_handler"},
     ) in metrics
+
+
+def test_run_listener_malformed_input():
+    error = None
+    metrics = []
+
+    def report_error(e):
+        nonlocal error
+        error = e
+
+    def record_count(a, b, c):
+        metrics.append((a, b, c))
+
+    # Implicitly tests no exception was raised.
+    run_listener(
+        "t",
+        b"",
+        "check_run",
+        stream=SourceCodeManagerEventStream(),
+        get_current_time=lambda: 0.0,
+        report_error=report_error,
+        record_count=record_count,
+        record_timer=lambda a, b, c: None,
+    )
+
+    assert isinstance(error, msgspec.MsgspecError)
+    assert metrics == [("sentry.scm.run_listener.failed", 1, {"reason": "parse", "fn": "t"})]
