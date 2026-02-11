@@ -1,5 +1,4 @@
 import {Button} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useAuthToken} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
@@ -107,5 +106,5 @@ export function CopySetupInstructionsGate({children}: {children: React.ReactNode
   if (!organization.features.includes(FEATURE_FLAG)) {
     return null;
   }
-  return <Container paddingBottom="md">{children}</Container>;
+  return children;
 }

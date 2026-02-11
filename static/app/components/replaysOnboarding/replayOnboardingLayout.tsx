@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {
@@ -145,11 +145,13 @@ export function ReplayOnboardingLayout({
         <Wrapper>
           {introduction && <Stack margin="0 0 xl 0">{introduction}</Stack>}
           <CopySetupInstructionsGate>
-            <OnboardingCopyMarkdownButton
-              steps={transformedSteps}
-              organization={organization}
-              source="replay_onboarding"
-            />
+            <Container paddingBottom="md">
+              <OnboardingCopyMarkdownButton
+                steps={transformedSteps}
+                organization={organization}
+                source="replay_onboarding"
+              />
+            </Container>
           </CopySetupInstructionsGate>
           <Stack gap="lg">
             {transformedSteps.map((step, index) => (

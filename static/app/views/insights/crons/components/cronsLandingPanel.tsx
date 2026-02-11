@@ -2,7 +2,7 @@ import {Fragment, useEffect, useRef, type ComponentType} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -57,11 +57,13 @@ function GuideWithCopy({
   return (
     <GuideContainer>
       <CopySetupInstructionsGate>
-        <CopyMarkdownButton
-          getMarkdown={getMarkdown}
-          organization={organization}
-          source={source}
-        />
+        <Container paddingBottom="md">
+          <CopyMarkdownButton
+            getMarkdown={getMarkdown}
+            organization={organization}
+            source={source}
+          />
+        </Container>
       </CopySetupInstructionsGate>
       <div ref={containerRef}>
         <Guide />

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -189,11 +189,13 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
             <Setup>
               <SetupTitle project={project} />
               <CopySetupInstructionsGate>
-                <OnboardingCopyMarkdownButton
-                  steps={steps}
-                  organization={organization}
-                  source="issues_onboarding"
-                />
+                <Container paddingBottom="md">
+                  <OnboardingCopyMarkdownButton
+                    steps={steps}
+                    organization={organization}
+                    source="issues_onboarding"
+                  />
+                </Container>
               </CopySetupInstructionsGate>
               <GuidedSteps
                 initialStep={decodeInteger(location.query.guidedStep)}

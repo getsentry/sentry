@@ -10,7 +10,7 @@ import tourMetrics from 'sentry-images/spot/performance-tour-metrics.svg';
 import tourTrace from 'sentry-images/spot/performance-tour-trace.svg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Container, Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {
   addErrorMessage,
@@ -588,11 +588,13 @@ export function Onboarding({organization, project}: OnboardingProps) {
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
       <CopySetupInstructionsGate>
-        <OnboardingCopyMarkdownButton
-          steps={steps}
-          organization={organization}
-          source="performance_onboarding"
-        />
+        <Container paddingBottom="md">
+          <OnboardingCopyMarkdownButton
+            steps={steps}
+            organization={organization}
+            source="performance_onboarding"
+          />
+        </Container>
       </CopySetupInstructionsGate>
       <GuidedSteps
         initialStep={decodeInteger(location.query.guidedStep)}

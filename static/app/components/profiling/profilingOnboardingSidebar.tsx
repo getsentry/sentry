@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import useDrawer from 'sentry/components/globalDrawer';
@@ -368,11 +368,13 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
       <Wrapper>
         {doc.introduction && <Introduction>{doc.introduction(docParams)}</Introduction>}
         <CopySetupInstructionsGate>
-          <OnboardingCopyMarkdownButton
-            steps={steps}
-            organization={props.organization}
-            source="profiling_sidebar_onboarding"
-          />
+          <Container paddingBottom="md">
+            <OnboardingCopyMarkdownButton
+              steps={steps}
+              organization={props.organization}
+              source="profiling_sidebar_onboarding"
+            />
+          </Container>
         </CopySetupInstructionsGate>
         <Steps>
           {steps.map((step, index) => {

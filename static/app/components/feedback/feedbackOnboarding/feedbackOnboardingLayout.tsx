@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import FeedbackConfigToggle from 'sentry/components/feedback/feedbackOnboarding/feedbackConfigToggle';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
@@ -154,11 +154,13 @@ export function FeedbackOnboardingLayout({
         <Wrapper>
           {introduction && <Stack marginBottom="3xl">{introduction}</Stack>}
           <CopySetupInstructionsGate>
-            <OnboardingCopyMarkdownButton
-              steps={transformedSteps}
-              organization={organization}
-              source="feedback_onboarding"
-            />
+            <Container paddingBottom="md">
+              <OnboardingCopyMarkdownButton
+                steps={transformedSteps}
+                organization={organization}
+                source="feedback_onboarding"
+              />
+            </Container>
           </CopySetupInstructionsGate>
           <Steps>
             {transformedSteps.map((step, index) => (

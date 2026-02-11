@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -252,11 +253,13 @@ function Onboarding({organization, project}: OnboardingProps) {
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
       <CopySetupInstructionsGate>
-        <OnboardingCopyMarkdownButton
-          steps={steps}
-          organization={organization}
-          source="metrics_onboarding"
-        />
+        <Container paddingBottom="md">
+          <OnboardingCopyMarkdownButton
+            steps={steps}
+            organization={organization}
+            source="metrics_onboarding"
+          />
+        </Container>
       </CopySetupInstructionsGate>
       <GuidedSteps
         initialStep={decodeInteger(location.query.guidedStep)}

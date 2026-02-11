@@ -3,7 +3,7 @@ import partition from 'lodash/partition';
 import {PlatformIcon} from 'platformicons';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
@@ -288,11 +288,13 @@ export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
         size="sm"
       />
       <CopySetupInstructionsGate>
-        <CopyMarkdownButton
-          getMarkdown={getGuideMarkdown}
-          organization={org}
-          source="crons_onboarding"
-        />
+        <Container paddingBottom="md">
+          <CopyMarkdownButton
+            getMarkdown={getGuideMarkdown}
+            organization={org}
+            source="crons_onboarding"
+          />
+        </Container>
       </CopySetupInstructionsGate>
       <div ref={guideContainerRef}>
         <Guide {...guideProps} />
