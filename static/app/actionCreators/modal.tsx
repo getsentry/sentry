@@ -69,9 +69,8 @@ export async function openMissingPrimaryEmailModal({
   onClose,
   ...args
 }: ModalOptions = {}) {
-  const {default: Modal} = await import(
-    'sentry/components/modals/missingPrimaryEmailModal'
-  );
+  const {default: Modal} =
+    await import('sentry/components/modals/missingPrimaryEmailModal');
   Sentry.captureMessage(
     'Displaying MissingPrimaryEmailModal to user without primary email address',
     'info'

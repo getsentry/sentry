@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -34,7 +35,7 @@ function MissingPrimaryEmailModal({Header, Body}: Props) {
             )}
           </p>
         </TextBlock>
-        <LinkButton to={`/settings/account/emails/`} priority="primary">
+        <LinkButton to="/settings/account/emails/" priority="primary">
           {t('Add Your Email')}
         </LinkButton>
       </Body>
