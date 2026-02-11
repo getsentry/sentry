@@ -1907,3 +1907,66 @@ This is the first fully green run with per-worker databases. The approach elimin
    for any test with broadly-scoped queries. Per-worker databases eliminate this entire class of
    problems — every test gets a clean database via TRUNCATE, and TRUNCATE is safe because it
    only touches the worker's own data.
+
+---
+
+## Iteration 12: Relay Test Optimization Experiments
+
+### Context
+
+With per-worker Snuba databases working (22/22 green), the remaining serial bottleneck is
+`tests/relay_integration/` (~72 tests across 2 serial shards, ~6 min each). Each test restarts
+a Docker container for Relay, costing ~10s per test in container lifecycle overhead.
+
+### Experiment A: Class-Scoped Relay Container (FAILED)
+
+**Branch:** `mchen/relay-class-scope` (deleted)
+
+**Hypothesis:** Keep the Relay Docker container running across tests in the same class instead
+of restarting per test. Add Redis cache clearing between tests to force Relay to re-fetch
+project configs.
+
+**Implementation:**
+- Split `relay_server` fixture into `_relay_server_container` (class-scoped, manages Docker
+  lifecycle) and `relay_server` (function-scoped, adjusts Django settings per test)
+- Added `_clear_relay_project_cache` autouse fixture to clear `relayconfig:*` Redis keys
+
+**Result: FAILED** — Tests in `BasicResolvingIntegrationTest` fail after the first test in each
+class. The first test passes (fresh container), but subsequent tests get:
+
+```
+Unauthorized: /api/0/relays/projectconfigs/ (status_code=401)
+```
+
+**Root cause:** Relay's in-memory auth and project config cache persists across tests. When
+Django resets the database between tests (new projects, new keys), the running Relay container
+still has the previous test's auth state cached. It can't re-authenticate to fetch new configs.
+Clearing Redis doesn't help because the auth failure happens before Redis is consulted.
+
+**Conclusion:** Container restart is the **only** isolation primitive available for Relay tests.
+This is fundamentally due to Relay's architecture — it caches credentials and project configs
+in memory with no admin API to flush them.
+
+### Experiment B: Native Relay Binary (IN PROGRESS)
+
+**Branch:** `mchen/relay-native-binary` (worktree at `sentry-relay-native-binary`)
+
+**Hypothesis:** Replace Docker container with a native Relay binary (subprocess). Startup drops
+from ~10s (Docker) to <1s (process fork). Relay's own test suite already uses this approach.
+
+**Implementation:**
+- Added `RELAY_NATIVE_BIN` env var detection
+- Modified `relay_server_setup` to use localhost networking (127.0.0.1 for Kafka:9092, Redis,
+  Sentry) instead of Docker networking (host.docker.internal, kafka:9093)
+- Modified `relay_server` to use `subprocess.Popen` with proper teardown
+- Templated Kafka port in `config.yml` (`${KAFKA_PORT}`)
+- CI workflow downloads binary from GitHub releases
+
+**Status:** Binary exits with code 1 and empty stderr. Debug step added to manually test the
+binary with a generated config to identify the crash reason. Run in progress.
+
+### Key Takeaway
+
+Relay's function-scoped container restart is non-negotiable due to in-memory state caching.
+The only viable optimization path is reducing the cost of each restart — either through a
+native binary (no Docker overhead) or by accepting the cost and optimizing shard distribution.
