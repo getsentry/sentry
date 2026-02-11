@@ -7,6 +7,7 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
 )
+from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.explorer.client_models import Artifact, MemoryBlock, Message, SeerRunState
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
@@ -303,6 +304,50 @@ class TestTriggerAutofixExplorer(TestCase):
         call_kwargs = mock_broadcast.call_args.kwargs
         assert call_kwargs["event_name"] == SeerActionType.SOLUTION_STARTED.value
         assert call_kwargs["payload"]["run_id"] == 67890
+
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
+    def test_trigger_autofix_explorer_passes_metadata_without_stopping_point(
+        self, mock_client_class, mock_broadcast
+    ):
+        """start_run receives group_id and project_id in metadata even without stopping_point."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = 123
+
+        trigger_autofix_explorer(group=self.group, step=AutofixStep.ROOT_CAUSE, run_id=None)
+
+        mock_client.start_run.assert_called_once()
+        call_kwargs = mock_client.start_run.call_args.kwargs
+        assert call_kwargs["metadata"] == {
+            "group_id": self.group.id,
+            "project_id": self.group.project.id,
+        }
+
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
+    def test_trigger_autofix_explorer_passes_metadata_with_stopping_point(
+        self, mock_client_class, mock_broadcast
+    ):
+        """start_run receives group_id, project_id, and stopping_point in metadata."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = 123
+
+        trigger_autofix_explorer(
+            group=self.group,
+            step=AutofixStep.ROOT_CAUSE,
+            run_id=None,
+            stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
+        )
+
+        mock_client.start_run.assert_called_once()
+        call_kwargs = mock_client.start_run.call_args.kwargs
+        assert call_kwargs["metadata"] == {
+            "group_id": self.group.id,
+            "project_id": self.group.project.id,
+            "stopping_point": AutofixStoppingPoint.ROOT_CAUSE.value,
+        }
 
 
 class TestTriggerCodingAgentHandoff(TestCase):
