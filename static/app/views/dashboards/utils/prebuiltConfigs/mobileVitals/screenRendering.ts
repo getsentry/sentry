@@ -50,9 +50,9 @@ const spanOperationsTable: Widget = {
       fieldMeta: [
         null,
         null,
-        null,
-        null,
-        null,
+        {valueType: 'integer', valueUnit: null},
+        {valueType: 'integer', valueUnit: null},
+        {valueType: 'integer', valueUnit: null},
         {valueType: 'percentage', valueUnit: null},
         {valueType: 'percentage', valueUnit: null},
         null,

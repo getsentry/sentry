@@ -3,7 +3,6 @@ import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_OP_CONDITION = 'transaction.op:[ui.load,navigation]';
@@ -32,6 +31,13 @@ const coldStartBigNumberWidget: Widget = {
       orderby: '',
     },
   ],
+  layout: {
+    y: 1,
+    h: 1,
+    x: 0,
+    minH: 1,
+    w: 1,
+  },
 };
 
 const warmStartBigNumberWidget: Widget = {
@@ -58,6 +64,13 @@ const warmStartBigNumberWidget: Widget = {
       orderby: '',
     },
   ],
+  layout: {
+    y: 1,
+    h: 1,
+    x: 1,
+    minH: 1,
+    w: 1,
+  },
 };
 
 const avgTTIDBigNumberWidget: Widget = {
@@ -78,6 +91,13 @@ const avgTTIDBigNumberWidget: Widget = {
       orderby: '',
     },
   ],
+  layout: {
+    y: 1,
+    h: 1,
+    x: 2,
+    minH: 1,
+    w: 1,
+  },
 };
 
 const avgTTFDBigNumberWidget: Widget = {
@@ -98,18 +118,14 @@ const avgTTFDBigNumberWidget: Widget = {
       orderby: '',
     },
   ],
+  layout: {
+    y: 1,
+    h: 1,
+    x: 3,
+    minH: 1,
+    w: 1,
+  },
 };
-
-const firstRowWidgets: Widget[] = spaceWidgetsEquallyOnRow(
-  [
-    coldStartBigNumberWidget,
-    warmStartBigNumberWidget,
-    avgTTIDBigNumberWidget,
-    avgTTFDBigNumberWidget,
-  ],
-  0,
-  {h: 1, minH: 1}
-);
 
 const slowFrameRateWidget: Widget = {
   id: 'slow-frame-rate-big-number',
@@ -123,20 +139,36 @@ const slowFrameRateWidget: Widget = {
     {
       name: '',
       fields: [
-        `avg(${SpanFields.MOBILE_SLOW_FRAMES})`,
-        `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-        `equation|( avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES}) )`,
+        `sum(${SpanFields.MOBILE_SLOW_FRAMES})`,
+        `sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+        `equation|sum(${SpanFields.MOBILE_SLOW_FRAMES}) / sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
       ],
       aggregates: [
-        `avg(${SpanFields.MOBILE_SLOW_FRAMES})`,
-        `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-        `equation|( avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES}) )`,
+        `sum(${SpanFields.MOBILE_SLOW_FRAMES})`,
+        `sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+        `equation|sum(${SpanFields.MOBILE_SLOW_FRAMES}) / sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
       ],
+      fieldMeta: [
+        null,
+        null,
+        {
+          valueType: 'percentage',
+          valueUnit: null,
+        },
+      ],
+      selectedAggregate: 2,
       columns: [],
       conditions: TRANSACTION_OP_CONDITION,
       orderby: '',
     },
   ],
+  layout: {
+    y: 0,
+    h: 1,
+    x: 0,
+    minH: 1,
+    w: 2,
+  },
 };
 
 const frozenFrameRateWidget: Widget = {
@@ -151,20 +183,36 @@ const frozenFrameRateWidget: Widget = {
     {
       name: '',
       fields: [
-        `avg(${SpanFields.MOBILE_FROZEN_FRAMES})`,
-        `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-        `equation|( avg(${SpanFields.MOBILE_FROZEN_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES}) )`,
+        `sum(${SpanFields.MOBILE_FROZEN_FRAMES})`,
+        `sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+        `equation|sum(${SpanFields.MOBILE_FROZEN_FRAMES}) / sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
       ],
       aggregates: [
-        `avg(${SpanFields.MOBILE_FROZEN_FRAMES})`,
-        `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-        `equation|( avg(${SpanFields.MOBILE_FROZEN_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES}) )`,
+        `sum(${SpanFields.MOBILE_FROZEN_FRAMES})`,
+        `sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+        `equation|sum(${SpanFields.MOBILE_FROZEN_FRAMES}) / sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
       ],
+      fieldMeta: [
+        null,
+        null,
+        {
+          valueType: 'percentage',
+          valueUnit: null,
+        },
+      ],
+      selectedAggregate: 2,
       columns: [],
       conditions: TRANSACTION_OP_CONDITION,
       orderby: '',
     },
   ],
+  layout: {
+    y: 0,
+    h: 1,
+    x: 2,
+    minH: 1,
+    w: 2,
+  },
 };
 
 const avgFrameDelayWidget: Widget = {
@@ -185,17 +233,18 @@ const avgFrameDelayWidget: Widget = {
       orderby: '',
     },
   ],
+  layout: {
+    y: 0,
+    h: 1,
+    x: 4,
+    minH: 1,
+    w: 2,
+  },
 };
-
-const frameMetricsRow: Widget[] = spaceWidgetsEquallyOnRow(
-  [slowFrameRateWidget, frozenFrameRateWidget, avgFrameDelayWidget],
-  1,
-  {h: 1, minH: 1}
-);
 
 const appStartTable: Widget = {
   id: 'app-start-table',
-  title: 'App Start',
+  title: 'App Starts',
   description: '',
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
@@ -236,6 +285,7 @@ const appStartTable: Widget = {
     w: 6,
   },
 };
+
 const screenRenderingTable: Widget = {
   id: 'screen-rendering-table',
   title: 'Screen Rendering',
@@ -249,49 +299,48 @@ const screenRenderingTable: Widget = {
       name: '',
       fields: [
         SpanFields.TRANSACTION,
-        `avg(${SpanFields.MOBILE_SLOW_FRAMES})`,
-        `avg(${SpanFields.MOBILE_FROZEN_FRAMES})`,
-        `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-        `equation|avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-        `equation|avg(${SpanFields.MOBILE_FROZEN_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-        `avg(${SpanFields.MOBILE_FRAMES_DELAY})`,
+        `sum(${SpanFields.MOBILE_SLOW_FRAMES})`,
+        `sum(${SpanFields.MOBILE_FROZEN_FRAMES})`,
+        `sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+        `equation|sum(${SpanFields.MOBILE_SLOW_FRAMES})/sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+        `equation|sum(${SpanFields.MOBILE_FROZEN_FRAMES})/sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
         `count(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
-        `avg(${SpanFields.MOBILE_SLOW_FRAMES})`,
-        `avg(${SpanFields.MOBILE_FROZEN_FRAMES})`,
-        `avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-        `equation|avg(${SpanFields.MOBILE_SLOW_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-        `equation|avg(${SpanFields.MOBILE_FROZEN_FRAMES}) / avg(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-        `avg(${SpanFields.MOBILE_FRAMES_DELAY})`,
+        `sum(${SpanFields.MOBILE_SLOW_FRAMES})`,
+        `sum(${SpanFields.MOBILE_FROZEN_FRAMES})`,
+        `sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+        `equation|sum(${SpanFields.MOBILE_SLOW_FRAMES})/sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
+        `equation|sum(${SpanFields.MOBILE_FROZEN_FRAMES})/sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
         `count(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.TRANSACTION],
       fieldAliases: [
-        'Screen',
+        'Transaction',
         'Slow Frames',
         'Frozen Frames',
         'Total Frames',
-        'Slow Frame Rate',
-        'Frozen Frame Rate',
-        'Frame Delay',
+        'Slow Frame %',
+        'Frozen Frame %',
         'Screen Loads',
       ],
-      conditions: '',
-      orderby: '-count(span.duration)',
-      linkedDashboards: [
-        {
-          field: 'transaction',
-          dashboardId: '-1',
-          staticDashboardId: 11,
-        },
+      fieldMeta: [
+        null,
+        {valueType: 'integer', valueUnit: null},
+        {valueType: 'integer', valueUnit: null},
+        {valueType: 'integer', valueUnit: null},
+        {valueType: 'percentage', valueUnit: null},
+        {valueType: 'percentage', valueUnit: null},
+        {valueType: 'integer', valueUnit: null},
       ],
+      conditions: TRANSACTION_OP_CONDITION,
+      orderby: `-count(${SpanFields.SPAN_DURATION})`,
     },
   ],
   layout: {
     x: 0,
     h: 3,
-    y: 5,
+    y: 8,
     minH: 2,
     w: 6,
   },
@@ -299,7 +348,7 @@ const screenRenderingTable: Widget = {
 
 const screenLoadTable: Widget = {
   id: 'screen-load-table',
-  title: 'Screen Load',
+  title: 'Screen Loads',
   description: '',
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
@@ -335,11 +384,24 @@ const screenLoadTable: Widget = {
   layout: {
     x: 0,
     h: 3,
-    y: 8,
+    y: 5,
     minH: 2,
     w: 6,
   },
 };
+
+const firstRowWidgets: Widget[] = [
+  slowFrameRateWidget,
+  frozenFrameRateWidget,
+  avgFrameDelayWidget,
+];
+
+const secondRowWidgets: Widget[] = [
+  coldStartBigNumberWidget,
+  warmStartBigNumberWidget,
+  avgTTIDBigNumberWidget,
+  avgTTFDBigNumberWidget,
+];
 
 export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
@@ -347,7 +409,7 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   projects: [],
   widgets: [
     ...firstRowWidgets,
-    ...frameMetricsRow,
+    ...secondRowWidgets,
     appStartTable,
     screenLoadTable,
     screenRenderingTable,
