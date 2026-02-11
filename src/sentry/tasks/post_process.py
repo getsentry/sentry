@@ -71,7 +71,6 @@ class PostProcessJob(TypedDict, total=False):
     group_state: GroupState
     is_reprocessed: bool
     has_reappeared: bool
-    has_alert: bool
     has_escalated: bool
 
 
@@ -649,7 +648,6 @@ def post_process_group(
                     "group_state": group_state,
                     "is_reprocessed": is_reprocessed,
                     "has_reappeared": bool(not group_state["is_new"]),
-                    "has_alert": False,
                     "has_escalated": kwargs.get("has_escalated", False),
                 }
             )
