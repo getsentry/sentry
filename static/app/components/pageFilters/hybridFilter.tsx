@@ -15,7 +15,6 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {isModifierKeyPressed} from 'sentry/utils/isModifierKeyPressed';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
 export interface HybridFilterProps<Value extends SelectKey> extends Omit<
   MultipleSelectProps<Value>,
@@ -216,11 +215,6 @@ export function HybridFilter<Value extends SelectKey>({
     );
   }, [options]);
 
-  const [modifierTipSeen, setModifierTipSeen] = useSyncedLocalStorageState(
-    'hybrid-filter:modifier-tip-seen',
-    false
-  );
-
   const renderFooter = useMemo(() => {
     const footerMessage =
       typeof menuFooterMessage === 'function'
@@ -306,9 +300,6 @@ export function HybridFilter<Value extends SelectKey>({
 
       // A modifier key is being pressed --> enter multiple selection mode
       if (multiple && modifierKeyPressed) {
-        if (!modifierTipSeen) {
-          setModifierTipSeen(true);
-        }
         toggleOption(diff[0]!);
         return;
       }
@@ -317,16 +308,7 @@ export function HybridFilter<Value extends SelectKey>({
       onReplace?.(diff[0]!);
       commit(diff);
     },
-    [
-      commit,
-      stagedValue,
-      toggleOption,
-      onReplace,
-      multiple,
-      modifierKeyPressed,
-      modifierTipSeen,
-      setModifierTipSeen,
-    ]
+    [commit, stagedValue, toggleOption, onReplace, multiple, modifierKeyPressed]
   );
 
   const menuHeaderTrailingItems = useCallback(
