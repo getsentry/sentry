@@ -95,7 +95,12 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
 
   useEffect(() => {
     setSortFunction(DEFAULT_SORTING_OPTION);
-  }, [breakdownFunction, setSortFunction, router, cursorName]);
+  }, [
+    setSortFunction,
+    // we want to reset the sorting option to the default every time the breakdown
+    // function changes.
+    breakdownFunction,
+  ]);
 
   // strip the parenthesis to stay consistent in analytics
   const analyticsSource = breakdownFunction.slice(0, -2);
