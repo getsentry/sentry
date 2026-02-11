@@ -193,9 +193,9 @@ def trigger_autofix_explorer(
     artifact_schema = config.artifact_schema
 
     if run_id is None:
-        metadata: dict[str, int | str] = {"group_id": group.id, "project_id": group.project.id}
+        metadata = None
         if stopping_point:
-            metadata["stopping_point"] = stopping_point.value
+            metadata = {"stopping_point": stopping_point.value, "group_id": group.id}
         run_id = client.start_run(
             prompt=prompt,
             prompt_metadata=prompt_metadata,
