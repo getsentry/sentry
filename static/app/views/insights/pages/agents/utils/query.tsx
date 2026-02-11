@@ -30,7 +30,7 @@ export const getAIGenerationsFilter = () => {
   return `gen_ai.operation.type:ai_client`;
 };
 
-enum GenAiOperationType {
+export enum GenAiOperationType {
   AGENT = 'agent',
   TOOL = 'tool',
   HANDOFF = 'handoff',
