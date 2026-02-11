@@ -53,7 +53,7 @@ export function EnvironmentSelector() {
       sizeLimit={20}
       multiple={false}
       value={value ?? ''}
-      onChange={selected => form?.setValue('environment', selected.value)}
+      onChange={selected => form?.setValue('environment', selected.value || null)}
     />
   );
 }
