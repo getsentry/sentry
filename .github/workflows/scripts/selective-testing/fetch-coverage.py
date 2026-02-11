@@ -15,15 +15,14 @@ DEFAULT_MAX_COMMITS = 30
 
 
 def detect_base_ref() -> str:
-    for ref in "origin/master":
-        result = subprocess.run(
-            ["git", "rev-parse", "--verify", ref],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode == 0:
-            return ref
+    result = subprocess.run(
+        ["git", "rev-parse", "--verify", "origin/master"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode == 0:
+        return result.stdout.strip()
 
     print("Error: Could not find origin/master", file=sys.stderr)
     print("Make sure you have fetched from the remote (git fetch origin)", file=sys.stderr)
@@ -88,7 +87,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--base-ref",
-        help="Base git ref to walk history from (default: auto-detect origin/master or origin/main)",
+        help="Base git ref to walk history from (default: origin/master)",
     )
     parser.add_argument(
         "--output",
