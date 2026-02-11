@@ -192,13 +192,18 @@ export function useSortedFilterKeyItems({
 
   const isLoading = shouldFetchAsync && isQueryLoading;
 
+  // Set of Tag.key values from static filterKeys, used consistently for deduplication.
+  const staticKeyValues = useMemo(
+    () => new Set(Object.values(filterKeys).map(k => k.key)),
+    [filterKeys]
+  );
+
   const flatKeys = useMemo(() => {
     const keys = Object.values(filterKeys);
     if (!asyncKeys?.length) return keys;
 
-    const existing = new Set(keys.map(k => k.key));
-    return [...keys, ...asyncKeys.filter(k => !existing.has(k.key))];
-  }, [filterKeys, asyncKeys]);
+    return [...keys, ...asyncKeys.filter(k => !staticKeyValues.has(k.key))];
+  }, [filterKeys, asyncKeys, staticKeyValues]);
 
   // Keys that exist only in asyncKeys and not in the static filterKeys.
   // Used to partition results so async-only keys always render below static keys.
@@ -206,8 +211,8 @@ export function useSortedFilterKeyItems({
     if (!asyncKeys?.length) {
       return new Set<string>();
     }
-    return new Set(asyncKeys.filter(k => !(k.key in filterKeys)).map(k => k.key));
-  }, [asyncKeys, filterKeys]);
+    return new Set(asyncKeys.filter(k => !staticKeyValues.has(k.key)).map(k => k.key));
+  }, [asyncKeys, staticKeyValues]);
 
   // Merged lookup of static + async keys, used for validating search results.
   // Without this, async-only keys would be filtered out by the `filterKeys` check.
@@ -216,12 +221,12 @@ export function useSortedFilterKeyItems({
 
     const merged = {...filterKeys};
     for (const tag of asyncKeys) {
-      if (!(tag.key in merged)) {
+      if (!staticKeyValues.has(tag.key)) {
         merged[tag.key] = tag;
       }
     }
     return merged;
-  }, [filterKeys, asyncKeys]);
+  }, [filterKeys, asyncKeys, staticKeyValues]);
 
   const searchableItems = useMemo<FilterKeySearchItem[]>(() => {
     const searchKeyItems: FilterKeySearchItem[] = flatKeys.map(key => {
