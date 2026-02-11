@@ -4,6 +4,8 @@
 import datetime
 import logging
 import shutil
+import signal
+import subprocess
 import time
 from os import environ, path
 from urllib.parse import urlparse
@@ -13,7 +15,7 @@ import pytest
 import requests
 
 from sentry.runner.commands.devservices import get_docker_client
-from sentry.testutils.pytest.sentry import _get_xdist_redis_db
+from sentry.testutils.pytest.sentry import _get_xdist_kafka_topic, _get_xdist_redis_db
 
 _log = logging.getLogger(__name__)
 
@@ -21,8 +23,16 @@ _log = logging.getLogger(__name__)
 # This helps the Relay CI to specify the generated Docker build before it is published
 RELAY_TEST_IMAGE = environ.get("RELAY_TEST_IMAGE", "ghcr.io/getsentry/relay:nightly")
 
+# Path to a native Relay binary (extracted from Docker image in CI).
+# When set, uses subprocess instead of Docker for ~10x faster startup.
+RELAY_NATIVE_BIN = environ.get("RELAY_NATIVE_BIN")
+
 
 def _relay_server_container_name() -> str:
+    """Under xdist, each worker gets its own container to avoid name conflicts."""
+    worker_id = environ.get("PYTEST_XDIST_WORKER")
+    if worker_id:
+        return f"sentry_test_relay_server_{worker_id}"
     return "sentry_test_relay_server"
 
 
@@ -78,12 +88,29 @@ def relay_server_setup(live_server, tmpdir_factory):
     )
     assert redis_db == projectconfig_backend.cluster.connection_pool.connection_kwargs["db"]
 
+    # Native binary runs on the host — use 127.0.0.1 for all services.
+    # Docker container runs on the devservices network — use Docker hostnames.
+    native_mode = bool(RELAY_NATIVE_BIN)
+    if native_mode:
+        sentry_host = f"http://127.0.0.1:{port}/"
+        kafka_host = "127.0.0.1"
+        kafka_port = "9092"
+        redis_host = "127.0.0.1"
+    else:
+        sentry_host = f"http://host.docker.internal:{port}/"
+        kafka_host = "kafka"
+        kafka_port = "9093"
+        redis_host = "redis"
+
     template_vars = {
-        "SENTRY_HOST": f"http://host.docker.internal:{port}/",
+        "SENTRY_HOST": sentry_host,
         "RELAY_PORT": relay_port,
-        "KAFKA_HOST": "kafka",
-        "REDIS_HOST": "redis",
+        "KAFKA_HOST": kafka_host,
+        "KAFKA_PORT": kafka_port,
+        "REDIS_HOST": redis_host,
         "REDIS_DB": redis_db,
+        "KAFKA_TOPIC_EVENTS": _get_xdist_kafka_topic("ingest-events"),
+        "KAFKA_TOPIC_OUTCOMES": _get_xdist_kafka_topic("outcomes"),
     }
 
     for source in sources:
@@ -98,63 +125,129 @@ def relay_server_setup(live_server, tmpdir_factory):
         with open(dest_path, "w") as output:
             output.write(content)
 
-    # we have a config path for relay that is set up with the current live serve as upstream
-    # check if we have the test relay docker container
-    with get_docker_client() as docker_client:
-        container_name = _relay_server_container_name()
-        _remove_container_if_exists(docker_client, container_name)
+    if native_mode:
+        server_info = {
+            "url": f"http://127.0.0.1:{relay_port}",
+            "config_path": config_path,
+            "mode": "native",
+        }
+    else:
+        # Docker mode: clean up any existing container and prepare options
+        with get_docker_client() as docker_client:
+            container_name = _relay_server_container_name()
+            _remove_container_if_exists(docker_client, container_name)
 
-    options = {
-        "image": RELAY_TEST_IMAGE,
-        "ports": {"%s/tcp" % relay_port: relay_port},
-        "network": "devservices",
-        "detach": True,
-        "name": container_name,
-        "volumes": {config_path: {"bind": "/etc/relay"}},
-        "command": ["run", "--config", "/etc/relay"],
-        "extra_hosts": {"host.docker.internal": "host-gateway"},
-    }
+        options = {
+            "image": RELAY_TEST_IMAGE,
+            "ports": {"%s/tcp" % relay_port: relay_port},
+            "network": "devservices",
+            "detach": True,
+            "name": container_name,
+            "volumes": {config_path: {"bind": "/etc/relay"}},
+            "command": ["run", "--config", "/etc/relay"],
+            "extra_hosts": {"host.docker.internal": "host-gateway"},
+        }
 
-    # Some structure similar to what the live_server fixture returns
-    server_info = {"url": f"http://127.0.0.1:{relay_port}", "options": options}
+        server_info = {
+            "url": f"http://127.0.0.1:{relay_port}",
+            "options": options,
+            "mode": "docker",
+        }
 
     yield server_info
 
     # cleanup
     shutil.rmtree(config_path)
-    if not environ.get("RELAY_TEST_KEEP_CONTAINER", False):
+    if server_info["mode"] == "docker" and not environ.get("RELAY_TEST_KEEP_CONTAINER", False):
         with get_docker_client() as docker_client:
-            _remove_container_if_exists(docker_client, container_name)
+            _remove_container_if_exists(docker_client, _relay_server_container_name())
+
+
+def _start_native_relay(config_path, url):
+    """Start Relay as a native subprocess. Returns (process, url)."""
+    proc = subprocess.Popen(
+        [RELAY_NATIVE_BIN, "run", "--config", config_path],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    # Check for immediate crash
+    time.sleep(0.2)
+    if proc.poll() is not None:
+        stdout = proc.stdout.read().decode() if proc.stdout else ""
+        stderr = proc.stderr.read().decode() if proc.stderr else ""
+        raise ValueError(
+            f"relay native binary exited immediately with code {proc.returncode}.\n"
+            f"STDERR: {stderr}\nSTDOUT: {stdout}"
+        )
+
+    # Wait for health
+    for i in range(10):
+        try:
+            requests.get(url, timeout=1)
+            return proc
+        except Exception:
+            if i == 9:
+                proc.kill()
+                stdout = proc.stdout.read().decode() if proc.stdout else ""
+                stderr = proc.stderr.read().decode() if proc.stderr else ""
+                raise ValueError(
+                    f"relay native binary did not become healthy at {url}.\n"
+                    f"STDERR: {stderr}\nSTDOUT: {stdout}"
+                )
+            time.sleep(0.3 * (i + 1))
+
+    raise ValueError("relay did not start in time")
+
+
+def _stop_native_relay(proc):
+    """Gracefully stop a native Relay subprocess."""
+    if proc.poll() is not None:
+        return
+    try:
+        proc.send_signal(signal.SIGTERM)
+        proc.wait(timeout=3)
+    except Exception:
+        proc.kill()
+        proc.wait(timeout=2)
 
 
 @pytest.fixture(scope="function")
 def relay_server(relay_server_setup, settings):
     adjust_settings_for_relay_tests(settings)
-    options = relay_server_setup["options"]
-    with get_docker_client() as docker_client:
-        container_name = _relay_server_container_name()
-        _remove_container_if_exists(docker_client, container_name)
-        container = docker_client.containers.run(**options)
-
-    _log.info("Waiting for Relay container to start")
-
     url = relay_server_setup["url"]
 
-    for i in range(8):
-        try:
-            requests.get(url)
-            break
-        except Exception as ex:
-            if i == 7:
-                _log.exception(str(ex))
-                raise ValueError(
-                    f"relay did not start in time (now: {datetime.datetime.now().isoformat()}) {url}:\n{container.logs().decode()}"
-                ) from ex
-            time.sleep(0.1 * 2**i)
+    if relay_server_setup["mode"] == "native":
+        # Native binary: start subprocess per test (~0.5s vs ~10s for Docker)
+        proc = _start_native_relay(relay_server_setup["config_path"], url)
+        yield {"url": url}
+        _stop_native_relay(proc)
     else:
-        raise ValueError("relay did not start in time")
+        # Docker mode: start container per test (original behavior)
+        options = relay_server_setup["options"]
+        with get_docker_client() as docker_client:
+            container_name = _relay_server_container_name()
+            _remove_container_if_exists(docker_client, container_name)
+            container = docker_client.containers.run(**options)
 
-    yield {"url": relay_server_setup["url"]}
+        _log.info("Waiting for Relay container to start")
+
+        for i in range(8):
+            try:
+                requests.get(url)
+                break
+            except Exception as ex:
+                if i == 7:
+                    _log.exception(str(ex))
+                    raise ValueError(
+                        f"relay did not start in time (now: {datetime.datetime.now().isoformat()}) "
+                        f"{url}:\n{container.logs().decode()}"
+                    ) from ex
+                time.sleep(0.1 * 2**i)
+        else:
+            raise ValueError("relay did not start in time")
+
+        yield {"url": url}
 
 
 def adjust_settings_for_relay_tests(settings):
