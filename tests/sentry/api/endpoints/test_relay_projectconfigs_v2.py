@@ -11,7 +11,7 @@ from django.urls import reverse
 from sentry import quotas
 from sentry.constants import ObjectStatus
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
-from sentry.quotas.base import RETENTIONS_CONFIG_MAPPING, TRIMMING_CONFIG_MAPPING
+from sentry.quotas.base import RETENTIONS_CONFIG_MAPPING
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import safe
@@ -122,12 +122,7 @@ def test_internal_relays_should_receive_full_configs(
     else:
         assert safe.get_path(cfg, "config", "retentions") is None
 
-    trimming_settings = quotas.backend.get_trimming_settings(default_project.organization)
-    trimming_configs = {
-        TRIMMING_CONFIG_MAPPING[c]: v.to_object()
-        for c, v in trimming_settings.items()
-        if c in TRIMMING_CONFIG_MAPPING
-    }
+    trimming_configs = quotas.backend.get_trimming_configs(default_project.organization).to_object()
     if trimming_configs:
         assert safe.get_path(cfg, "config", "trimming") == trimming_configs
     else:
