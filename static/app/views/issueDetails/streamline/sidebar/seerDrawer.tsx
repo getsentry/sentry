@@ -511,10 +511,11 @@ export const useOpenSeerDrawer = ({
     }
 
     // Fire-and-forget: record drawer view for BigQuery analytics
-    analyticsApi.requestPromise(
-      `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
-      {query: {drawerViewed: 'true', isUserWatching: true}}
-    );
+    analyticsApi
+      .requestPromise(`/organizations/${organization.slug}/issues/${group.id}/autofix/`, {
+        query: {drawerViewed: 'true', isUserWatching: true},
+      })
+      .catch(() => undefined);
 
     const isExplorerVersion =
       isSeerExplorerEnabled(organization) &&
