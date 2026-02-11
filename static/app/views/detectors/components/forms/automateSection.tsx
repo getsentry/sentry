@@ -103,7 +103,7 @@ export function AutomateSection() {
     <Container>
       <Section
         title={t('Alert')}
-        description={t('Confirgure alerting on this Monitor to get notified on issues.')}
+        description={t('Configure alerting on this Monitor to get notified on issues.')}
       >
         <ConnectedAutomationsList
           automationIds={[]}

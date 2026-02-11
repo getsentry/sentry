@@ -138,11 +138,7 @@ describe('projectPerformance', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/seer/setup-check/',
       method: 'GET',
-      body: {
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-        },
-      },
+      body: {},
     });
   });
 

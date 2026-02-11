@@ -60,9 +60,6 @@ describe('FeedbackCategories', () => {
     mockUseNavigate.mockReturnValue(mockNavigate);
     mockUseLocation.mockReturnValue(mockLocation);
     mockUseOrganizationSeerSetup.mockReturnValue({
-      setupAcknowledgement: {
-        orgHasAcknowledged: true,
-      },
       isPending: false,
     } as any);
   });
@@ -109,34 +106,6 @@ describe('FeedbackCategories', () => {
         body: {
           categories: [],
           numFeedbacksContext: 15,
-          success: true,
-        },
-        statusCode: 200,
-      });
-
-      const {container} = render(<FeedbackCategories />, {
-        organization: mockOrganization,
-      });
-
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-placeholder'));
-
-      expect(container).toBeEmptyDOMElement();
-    });
-
-    it('renders empty state when org has not acknowledged', async () => {
-      mockUseOrganizationSeerSetup.mockReturnValue({
-        setupAcknowledgement: {
-          orgHasAcknowledged: false,
-        },
-        isPending: false,
-      } as any);
-
-      // Mock API to return categories
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/feedback-categories/',
-        body: {
-          categories: mockCategories,
-          numFeedbacksContext: 35,
           success: true,
         },
         statusCode: 200,

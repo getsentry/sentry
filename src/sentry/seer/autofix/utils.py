@@ -471,9 +471,6 @@ def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
     """
     Check if organization has Seer seat-based pricing via billing.
     """
-    if features.has("organizations:triage-signals-v0-org", organization):
-        return True
-
     cache_key = get_seer_seat_based_tier_cache_key(organization.id)
     cached_value = cache.get(cache_key)
     if cached_value is not None:
@@ -521,12 +518,6 @@ def is_issue_eligible_for_seer_automation(group: Group) -> bool:
         not project.get_option("sentry:seer_scanner_automation")
         and not group.issue_type.always_trigger_seer_automation
     ):
-        return False
-
-    from sentry.seer.seer_setup import get_seer_org_acknowledgement_for_scanner
-
-    seer_enabled = get_seer_org_acknowledgement_for_scanner(group.organization)
-    if not seer_enabled:
         return False
 
     has_budget: bool = quotas.backend.check_seer_quota(

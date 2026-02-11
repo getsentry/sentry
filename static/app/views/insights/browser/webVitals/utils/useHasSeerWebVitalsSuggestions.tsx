@@ -29,12 +29,11 @@ export function useHasSeerWebVitalsSuggestions(selectedProject?: Project) {
     codeMappingRepos?.some(repo => repo.provider.includes('github'))
   );
 
-  const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
 
   return (
     organization.features.includes('performance-web-vitals-seer-suggestions') &&
     areAiFeaturesAllowed &&
-    setupAcknowledgement.orgHasAcknowledged &&
     hasConfiguredRepos &&
     hasGithubRepos
   );
