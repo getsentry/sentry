@@ -210,11 +210,13 @@ function AddToDashboardModal({
 
     // For non-customizable widgets (e.g., Performance Score), open the widget library
     // instead of the widget builder
-    const shouldOpenWidgetLibrary = isWidgetEditable(widget.displayType);
     const widgetTemplate = getWidgetTemplateByDisplayType(
       organization,
       widget.displayType
     );
+    const shouldOpenWidgetLibrary =
+      !isWidgetEditable(widget.displayType) ||
+      (widgetTemplate && widgetTemplate.isCustomizable === false);
 
     navigate(
       normalizeUrl({
