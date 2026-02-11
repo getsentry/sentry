@@ -93,19 +93,21 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
 
   const [sortFunction, setSortFunction] = useState<SortOption>(DEFAULT_SORTING_OPTION);
 
-  useEffect(() => {
-    setSortFunction(DEFAULT_SORTING_OPTION);
-  }, [
-    setSortFunction,
-    // we want to reset the sorting option to the default every time the breakdown
-    // function changes.
-    breakdownFunction,
-  ]);
-
   // strip the parenthesis to stay consistent in analytics
   const analyticsSource = breakdownFunction.slice(0, -2);
 
   const [expandedIndex, setExpandedIndex] = useState(0);
+
+  useEffect(() => {
+    setSortFunction(DEFAULT_SORTING_OPTION);
+    setExpandedIndex(0);
+  }, [
+    setSortFunction,
+    setExpandedIndex,
+    // we want to reset the sorting option and expanded index to the default
+    // every time the breakdown function changes.
+    breakdownFunction,
+  ]);
 
   const slowFnCursor = useMemo(
     () => decodeScalar(location.query[cursorName]),
@@ -215,6 +217,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
                   options={WIDGET_SORTING_OPTIONS}
                   onChange={option => {
                     setSortFunction(option.value as SortOption);
+                    setExpandedIndex(0);
                     const newQuery = omit(router.location.query, [cursorName]);
                     router.replace({
                       pathname: router.location.pathname,
