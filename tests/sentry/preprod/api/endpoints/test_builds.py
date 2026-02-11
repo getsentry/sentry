@@ -4,6 +4,7 @@ import pytest
 from django.urls import reverse
 from django.utils.functional import cached_property
 
+from sentry.preprod.models import PreprodArtifactSizeMetrics
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -844,6 +845,57 @@ class BuildsEndpointTest(APITestCase):
         data = response.json()
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "com.example.android"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_size_state_filter(self) -> None:
+        artifact_not_ran = self.create_preprod_artifact(app_id="not_ran.app")
+        self.create_preprod_artifact_size_metrics(
+            artifact_not_ran,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+            error_code=PreprodArtifactSizeMetrics.ErrorCode.SKIPPED,
+            error_message="Size analysis not supported",
+        )
+        artifact_completed = self.create_preprod_artifact(app_id="completed.app")
+        self.create_preprod_artifact_size_metrics(
+            artifact_completed, state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        )
+        self.create_preprod_artifact(app_id="no_metrics.app")
+
+        response = self._request({})
+        self._assert_is_successful(response)
+        assert len(response.json()) == 3
+
+        response = self._request({"query": "size_state:completed"})
+        self._assert_is_successful(response)
+        assert len(response.json()) == 1
+        assert response.json()[0]["app_info"]["app_id"] == "completed.app"
+
+        response = self._request({"query": "!size_state:not_ran"})
+        self._assert_is_successful(response)
+        assert len(response.json()) == 2
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_size_state_filter_mixed_metrics(self) -> None:
+        artifact = self.create_preprod_artifact(app_id="mixed.app")
+        self.create_preprod_artifact_size_metrics(
+            artifact, state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        )
+        self.create_preprod_artifact_size_metrics(
+            artifact,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            error_code=PreprodArtifactSizeMetrics.ErrorCode.SKIPPED,
+            error_message="Size analysis not supported",
+        )
+        response = self._request({"query": "!size_state:not_ran"})
+        self._assert_is_successful(response)
+        assert len(response.json()) == 0
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_size_state_invalid_values(self) -> None:
+        self.create_preprod_artifact(app_id="test.app")
+        assert self._request({"query": "size_state:bogus"}).status_code == 400
+        assert self._request({"query": "size_state:[bogus, completed]"}).status_code == 400
 
 
 class QuerysetForQueryTest(APITestCase):

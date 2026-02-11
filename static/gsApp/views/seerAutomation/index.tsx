@@ -3,6 +3,7 @@ import {Outlet} from 'react-router-dom';
 
 import {Stack} from '@sentry/scraps/layout';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {NoAccess} from 'sentry/components/noAccess';
 import Placeholder from 'sentry/components/placeholder';
@@ -17,18 +18,24 @@ export default function SeerAutomationRoot() {
   const {isLoading, billing, setupAcknowledgement} = useOrganizationSeerSetup();
 
   if (organization.hideAiFeatures) {
-    return <NoAccess />;
+    return (
+      <AnalyticsArea name="seer">
+        <NoAccess />
+      </AnalyticsArea>
+    );
   }
 
   // Show loading placeholders while checking setup
   if (isLoading) {
     return (
-      <Stack gap="lg">
-        <SentryDocumentTitle title={t('Seer Automation')} orgSlug={organization.slug} />
-        <Placeholder height="60px" />
-        <Placeholder height="200px" />
-        <Placeholder height="200px" />
-      </Stack>
+      <AnalyticsArea name="seer">
+        <Stack gap="lg">
+          <SentryDocumentTitle title={t('Seer Automation')} orgSlug={organization.slug} />
+          <Placeholder height="60px" />
+          <Placeholder height="200px" />
+          <Placeholder height="200px" />
+        </Stack>
+      </AnalyticsArea>
     );
   }
 
@@ -42,12 +49,18 @@ export default function SeerAutomationRoot() {
   // Show setup screen if needed
   if (needsSetup) {
     return (
-      <Fragment>
-        <SentryDocumentTitle title={t('Seer Automation')} orgSlug={organization.slug} />
-        <AiSetupDataConsent />
-      </Fragment>
+      <AnalyticsArea name="seer">
+        <Fragment>
+          <SentryDocumentTitle title={t('Seer Automation')} orgSlug={organization.slug} />
+          <AiSetupDataConsent />
+        </Fragment>
+      </AnalyticsArea>
     );
   }
 
-  return <Outlet />;
+  return (
+    <AnalyticsArea name="seer">
+      <Outlet />
+    </AnalyticsArea>
+  );
 }
