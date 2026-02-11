@@ -370,7 +370,9 @@ function Visualize({error, setError}: VisualizeProps) {
   // Visualize section. There should be exactly one in the state. The X-axis
   // field (FIELD kind) is managed separately in the X-Axis selector
   const aggregateFields = isCategoricalBarWidget
-    ? allFields?.filter(f => f.kind === FieldValueKind.FUNCTION)
+    ? allFields?.filter(
+        f => f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
+      )
     : null;
 
   const fields = isCategoricalBarWidget

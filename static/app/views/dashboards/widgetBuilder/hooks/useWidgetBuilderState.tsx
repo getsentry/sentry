@@ -6,6 +6,7 @@ import {
   explodeField,
   generateFieldAsString,
   isAggregateFieldOrEquation,
+  isEquationAlias,
   type Column,
   type QueryFieldValue,
   type Sort,
@@ -392,18 +393,15 @@ function useWidgetBuilderState(): {
             const categoricalBarFields = [...nextColumns, ...nextAggregates.slice(0, 1)];
             setFields(categoricalBarFields, options);
 
-            // Set default sort to descending on the aggregate (like tables)
+            // Set default sort to descending on the aggregate (like tables).
+            // For equations, use the alias format (equation[0]) that getTableSortOptions produces
             const aggregateField = nextAggregates[0];
             if (aggregateField) {
-              setSort(
-                [
-                  {
-                    kind: 'desc',
-                    field: generateFieldAsString(aggregateField),
-                  },
-                ],
-                options
-              );
+              const sortField =
+                aggregateField.kind === FieldValueKind.EQUATION
+                  ? 'equation[0]'
+                  : generateFieldAsString(aggregateField);
+              setSort([{kind: 'desc', field: sortField}], options);
             }
 
             setQuery(query?.slice(0, 1), options);
@@ -859,33 +857,42 @@ function useWidgetBuilderState(): {
         case BuilderStateAction.SET_CATEGORICAL_X_AXIS:
           // Only applies to categorical bar charts
           if (displayType === DisplayType.CATEGORICAL_BAR) {
-            // Preserve existing aggregates, update only the X-axis field
+            // Preserve existing aggregates (functions and equations), update only the X-axis field
             const existingAggregates =
-              fields?.filter(f => f.kind === FieldValueKind.FUNCTION) ?? [];
+              fields?.filter(
+                f =>
+                  f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
+              ) ?? [];
             const newXAxisField: Column = {
               kind: FieldValueKind.FIELD,
               field: action.payload,
             };
-            setFields([newXAxisField, ...existingAggregates], options);
+            const newCategoricalFields = [newXAxisField, ...existingAggregates];
+            setFields(newCategoricalFields, options);
 
-            // If sort was on the old X-axis field, reset to first aggregate
-            // (sort options for categorical bars are columns + aggregates)
+            // Reset sort if it references a field no longer in the widget.
+            // Equation sorts use the alias format (equation[0]) which won't match
+            // generateFieldAsString output, so check for that separately.
             const currentSortField = sort?.[0]?.field;
-            const oldXAxisField = fields?.find(f => f.kind === FieldValueKind.FIELD);
-            const wasOnOldXAxis =
-              oldXAxisField && currentSortField === generateFieldAsString(oldXAxisField);
+            const newFieldStrings = new Set(
+              newCategoricalFields.map(generateFieldAsString)
+            );
+            const hasEquations = existingAggregates.some(
+              f => f.kind === FieldValueKind.EQUATION
+            );
+            const isSortValid =
+              currentSortField &&
+              (newFieldStrings.has(currentSortField) ||
+                (isEquationAlias(currentSortField) && hasEquations));
 
-            if (wasOnOldXAxis && existingAggregates.length > 0) {
-              setSort(
-                [
-                  {
-                    kind: sort?.[0]?.kind ?? 'desc',
-                    field: generateFieldAsString(existingAggregates[0]!),
-                  },
-                ],
-                options
-              );
-            } else if (wasOnOldXAxis) {
+            if (!isSortValid && existingAggregates.length > 0) {
+              const firstAggregate = existingAggregates[0]!;
+              const sortField =
+                firstAggregate.kind === FieldValueKind.EQUATION
+                  ? 'equation[0]'
+                  : generateFieldAsString(firstAggregate);
+              setSort([{kind: sort?.[0]?.kind ?? 'desc', field: sortField}], options);
+            } else if (!isSortValid) {
               // No aggregates to fall back to, clear the sort
               setSort([], options);
             }
@@ -899,17 +906,15 @@ function useWidgetBuilderState(): {
               fields?.filter(f => f.kind === FieldValueKind.FIELD) ?? [];
             setFields([...existingXAxisFields, ...action.payload], options);
 
-            // Update sort to use the first aggregate (if any)
+            // Update sort to use the first aggregate (if any).
+            // For equations, use the alias format (equation[0]) that getTableSortOptions produces
             if (action.payload.length > 0) {
-              setSort(
-                [
-                  {
-                    kind: 'desc',
-                    field: generateFieldAsString(action.payload[0]!),
-                  },
-                ],
-                options
-              );
+              const firstAggregate = action.payload[0]!;
+              const sortField =
+                firstAggregate.kind === FieldValueKind.EQUATION
+                  ? 'equation[0]'
+                  : generateFieldAsString(firstAggregate);
+              setSort([{kind: 'desc', field: sortField}], options);
             }
           }
           break;
