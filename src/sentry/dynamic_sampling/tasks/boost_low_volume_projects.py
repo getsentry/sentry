@@ -88,6 +88,7 @@ def _get_segments_org_ids() -> set[int]:
     return set(options.get("dynamic-sampling.boost_low_volume_projects.segment-metric-orgs") or [])
 
 
+@metrics.wraps("dynamic_sampling.partition_by_measure")
 def _partition_orgs_by_measure(
     org_ids: list[int],
 ) -> dict[SamplingMeasure, list[int]]:
