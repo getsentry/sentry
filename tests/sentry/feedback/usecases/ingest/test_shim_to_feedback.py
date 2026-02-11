@@ -37,10 +37,10 @@ def test_shim_to_feedback_event_user_used_if_missing(
     )
 
     shim_to_feedback(
-        report_dict,
+        report_dict,  # type: ignore[arg-type]
         event,
         default_project,
-        FeedbackCreationSource.USER_REPORT_ENVELOPE,  # type: ignore[arg-type]
+        FeedbackCreationSource.USER_REPORT_ENVELOPE,
     )
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
@@ -75,10 +75,10 @@ def test_shim_to_feedback_event_user_does_not_override_report(
     )
 
     shim_to_feedback(
-        report_dict,
+        report_dict,  # type: ignore[arg-type]
         event,
         default_project,
-        FeedbackCreationSource.USER_REPORT_ENVELOPE,  # type: ignore[arg-type]
+        FeedbackCreationSource.USER_REPORT_ENVELOPE,
     )
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
@@ -103,10 +103,10 @@ def test_shim_to_feedback_no_user_info(default_project, mock_produce_occurrence_
     )
 
     shim_to_feedback(
-        report_dict,
+        report_dict,  # type: ignore[arg-type]
         event,
         default_project,
-        FeedbackCreationSource.USER_REPORT_ENVELOPE,  # type: ignore[arg-type]
+        FeedbackCreationSource.USER_REPORT_ENVELOPE,
     )
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
@@ -128,9 +128,9 @@ def test_shim_to_feedback_fails_if_required_fields_missing(default_project) -> N
         "sentry.feedback.usecases.ingest.shim_to_feedback.create_feedback_issue"
     ) as mock_create_feedback_issue:
         shim_to_feedback(
-            report_dict,
+            report_dict,  # type: ignore[arg-type]
             event,
             default_project,
-            FeedbackCreationSource.USER_REPORT_ENVELOPE,  # type: ignore[arg-type]
+            FeedbackCreationSource.USER_REPORT_ENVELOPE,
         )
     assert mock_create_feedback_issue.call_count == 0

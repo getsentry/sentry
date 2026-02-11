@@ -16,10 +16,10 @@ from django.utils.encoding import force_str
 from django.utils.functional import Promise
 from django.utils.safestring import SafeString, mark_safe
 from django.utils.timezone import is_aware
-from simplejson import (  # noqa: S003
+from simplejson import (  # type: ignore[attr-defined]  # noqa: S003
     JSONDecodeError,
     JSONEncoder,
-    _default_decoder,  # type: ignore[attr-defined]  # noqa: S003
+    _default_decoder,  # noqa: S003
 )
 
 from bitfield.types import BitHandler

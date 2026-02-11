@@ -188,9 +188,9 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             duration=duration,
             comparison_interval=comparison_interval,
             event=event,
-            environment_id=self.rule.environment_id,
+            environment_id=self.rule.environment_id,  # type: ignore[union-attr]
             comparison_type=comparison_type,
-        )  # type: ignore[union-attr]
+        )
 
         logging.info("event_frequency_rule current: %s, threshold: %s", current_value, value)
         return current_value > value
