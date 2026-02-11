@@ -364,7 +364,7 @@ class GitlabWebhookEndpoint(Endpoint):
         publish_subscription_event(
             {
                 "event_type_hint": request.headers["X-GitLab-Event"],
-                "event": request.body,
+                "event": request.body.decode("utf-8"),
                 "extra": {},
                 "received_at": int(time.time()),
                 "sentry_meta": [

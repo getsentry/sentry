@@ -1139,7 +1139,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         publish_subscription_event(
             {
                 "event_type_hint": request.headers[GITHUB_WEBHOOK_TYPE_HEADER_KEY],
-                "event": request.body,
+                "event": request.body.decode("utf-8"),
                 "extra": {},
                 "received_at": int(time.time()),
                 "sentry_meta": None,

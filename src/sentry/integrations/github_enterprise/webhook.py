@@ -321,7 +321,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         publish_subscription_event(
             {
                 "event_type_hint": request.headers["X-GitHub-Event"],
-                "event": request.body,
+                "event": request.body.decode("utf-8"),
                 "extra": {
                     "host": host,
                     "skipped-authentication": skipped_authentication,

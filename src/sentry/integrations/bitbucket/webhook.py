@@ -277,7 +277,7 @@ class BitbucketWebhookEndpoint(Endpoint):
         #       middleware has handled routing.
         publish_subscription_event(
             {
-                "event": request.body,
+                "event": request.body.decode("utf-8"),
                 "event_type_hint": request.headers["X-Event-Key"],
                 "extra": {},
                 "received_at": int(time.time()),
