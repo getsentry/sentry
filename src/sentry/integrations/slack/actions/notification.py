@@ -39,7 +39,7 @@ from sentry.notifications.additional_attachment_manager import get_additional_at
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
-from sentry.seer.entrypoints.integrations.slack import handle_prepare_autofix_update
+from sentry.seer.entrypoints.slack.entrypoint import handle_prepare_autofix_update
 from sentry.services.eventstore.models import GroupEvent
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
