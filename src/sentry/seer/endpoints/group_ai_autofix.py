@@ -9,7 +9,8 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics, features
+from sentry.analytics.events.autofix_automation_events import AiAutofixDrawerViewedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -286,6 +287,15 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         This endpoint although documented is still experimental and the payload may change in the future.
         """
+        if request.GET.get("drawerViewed"):
+            analytics.record(
+                AiAutofixDrawerViewedEvent(
+                    organization_id=group.organization.id,
+                    project_id=group.project_id,
+                    group_id=group.id,
+                )
+            )
+
         if self._should_use_explorer(request, group.organization):
             return self._get_explorer(request, group)
         return self._get_legacy(request, group)

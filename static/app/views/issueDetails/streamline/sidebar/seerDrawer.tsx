@@ -32,6 +32,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -498,6 +499,7 @@ export const useOpenSeerDrawer = ({
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
+  const api = useApi();
 
   const openSeerDrawer = useCallback(() => {
     if (
@@ -507,6 +509,12 @@ export const useOpenSeerDrawer = ({
     ) {
       return;
     }
+
+    // Fire-and-forget: record drawer view for BigQuery analytics
+    api.requestPromise(
+      `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      {query: {drawerViewed: 'true', isUserWatching: true}}
+    );
 
     const isExplorerVersion =
       isSeerExplorerEnabled(organization) &&
@@ -539,7 +547,7 @@ export const useOpenSeerDrawer = ({
         );
       },
     });
-  }, [openDrawer, event, group, project, location, navigate, organization]);
+  }, [api, openDrawer, event, group, project, location, navigate, organization]);
 
   return {openSeerDrawer};
 };
