@@ -25,8 +25,8 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'span.system',
-          name: 'span.system',
+          key: 'user.geo.subregion',
+          name: 'user.geo.subregion',
           kind: FieldKind.TAG,
         },
         value: '',
@@ -34,17 +34,8 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'span.action',
-          name: 'span.action',
-          kind: FieldKind.TAG,
-        },
-        value: '',
-      },
-      {
-        dataset: WidgetType.SPANS,
-        tag: {
-          key: 'span.domain',
-          name: 'span.domain',
+          key: 'browser.name',
+          name: 'browser.name',
           kind: FieldKind.TAG,
         },
         value: '',
