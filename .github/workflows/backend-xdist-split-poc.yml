@@ -6,6 +6,7 @@ on:
     branches:
       - mchen/tiered-xdist-hybrid
       - mchen/per-worker-snuba-db
+      - mchen/skip-service-validation-poc
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -119,13 +120,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3, 4]
+        instance: [0]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 5
+      MATRIX_INSTANCE_TOTAL: 1
       TEST_GROUP_STRATEGY: roundrobin
       # Fixed hash seed ensures deterministic collection across xdist workers
       PYTHONHASHSEED: '0'
+      SENTRY_SKIP_SERVICE_VALIDATION: '1'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -187,16 +189,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+        instance: [0]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 17
+      MATRIX_INSTANCE_TOTAL: 1
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       # Enable per-worker Snuba database routing
       XDIST_PER_WORKER_SNUBA: '1'
       # Number of xdist workers (must match -n below)
       XDIST_WORKERS: '3'
+      SENTRY_SKIP_SERVICE_VALIDATION: '1'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
