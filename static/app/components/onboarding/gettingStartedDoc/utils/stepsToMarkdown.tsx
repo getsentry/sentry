@@ -179,12 +179,14 @@ export function reactNodeToText(node: React.ReactNode): string {
 }
 
 /**
- * Derives a stable key from a set of tab labels. Must match the
- * implementation in selectedCodeTabContext.tsx so that component-side
- * writes and stepsToMarkdown-side reads use the same key.
+ * Derives a stable key from a set of tab labels, optionally prefixed
+ * with a step index. Must match the implementation in
+ * selectedCodeTabContext.tsx so that component-side writes and
+ * stepsToMarkdown-side reads use the same key.
  */
-function deriveTabKey(tabs: ReadonlyArray<{label: string}>): string {
-  return tabs.map(t => t.label).join('\0');
+function deriveTabKey(tabs: ReadonlyArray<{label: string}>, stepIndex?: number): string {
+  const labelPart = tabs.map(t => t.label).join('\0');
+  return stepIndex === undefined ? labelPart : `${stepIndex}:${labelPart}`;
 }
 
 interface MarkdownOptions {
@@ -194,6 +196,12 @@ interface MarkdownOptions {
    * (e.g. in tests). For full step conversion, use `tabSelectionsMap` instead.
    */
   selectedTabLabel?: string;
+  /**
+   * Current step index, set internally by stepsToMarkdown when iterating.
+   * Included in the tab key to disambiguate tabs with identical labels
+   * across different steps.
+   */
+  stepIndex?: number;
   /**
    * Map of tab-key → selected label. Keys are derived from tab labels via
    * deriveTabKey. Obtained from useTabSelectionsMap() at click time.
@@ -246,7 +254,7 @@ export function contentBlockToMarkdown(
     case 'code': {
       if ('tabs' in block && block.tabs) {
         const selectedLabel =
-          options?.tabSelectionsMap?.get(deriveTabKey(block.tabs)) ??
+          options?.tabSelectionsMap?.get(deriveTabKey(block.tabs, options?.stepIndex)) ??
           options?.selectedTabLabel;
         return renderTabbedCodeBlock(block.tabs, selectedLabel, options);
       }
@@ -310,10 +318,10 @@ export function stepsToMarkdown(
   options?: MarkdownOptions
 ): string {
   return steps
-    .map(step => {
+    .map((step, index) => {
       const heading = `## ${stepTitle(step)}`;
       const body = step.content
-        .map(b => contentBlockToMarkdown(b, options))
+        .map(b => contentBlockToMarkdown(b, {...options, stepIndex: index}))
         .filter(Boolean)
         .join('\n\n');
       return `${heading}\n\n${body}`;

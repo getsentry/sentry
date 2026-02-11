@@ -176,8 +176,8 @@ export function OnboardingLayout({
         </Stack>
         <Divider withBottomMargin />
         <div>
-          {steps.map(step => (
-            <StyledStep key={step.title ?? step.type} {...step} />
+          {steps.map((step, index) => (
+            <StyledStep key={step.title ?? step.type} stepIndex={index} {...step} />
           ))}
         </div>
         {nextSteps.length > 0 && (

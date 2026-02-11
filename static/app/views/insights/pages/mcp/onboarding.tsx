@@ -11,6 +11,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {StepIndexProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   DocsParams,
@@ -112,18 +113,22 @@ function WaitingIndicator({project}: {project: Project}) {
 function StepRenderer({
   project,
   step,
+  stepIndex,
   isLastStep,
 }: {
   isLastStep: boolean;
   project: Project;
   step: OnboardingStep;
+  stepIndex: number;
 }) {
   return (
     <GuidedSteps.Step
       stepKey={step.type || step.title}
       title={step.title || (step.type && StepTitles[step.type])}
     >
-      <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+      <StepIndexProvider index={stepIndex}>
+        <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+      </StepIndexProvider>
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
         <GuidedSteps.NextButton size="md" />
@@ -331,14 +336,16 @@ export function Onboarding() {
       />
       <GuidedSteps>
         {steps
+          .map((step, i) => ({step, originalIndex: i}))
           // Only show non-optional steps
-          .filter(step => !step.collapsible)
-          .map((step, index) => (
+          .filter(({step}) => !step.collapsible)
+          .map(({step, originalIndex}, index, filtered) => (
             <StepRenderer
-              key={index}
+              key={originalIndex}
               project={project}
               step={step}
-              isLastStep={index === steps.length - 1}
+              stepIndex={originalIndex}
+              isLastStep={index === filtered.length - 1}
             />
           ))}
       </GuidedSteps>

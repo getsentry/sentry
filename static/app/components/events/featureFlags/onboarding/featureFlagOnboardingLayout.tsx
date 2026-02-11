@@ -95,8 +95,8 @@ export function FeatureFlagOnboardingLayout({
           source="feature_flag_onboarding"
         />
         <Steps>
-          {steps.map(step => (
-            <Step key={step.title ?? step.type} {...step} />
+          {steps.map((step, index) => (
+            <Step key={step.title ?? step.type} stepIndex={index} {...step} />
           ))}
           <StyledLinkButton to="/issues/" priority="primary">
             {t('Take me to Issues')}

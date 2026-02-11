@@ -469,7 +469,8 @@ describe('stepsToMarkdown', () => {
       },
     ];
 
-    const tabSelectionsMap = new Map([['npm\0yarn', 'yarn']]);
+    // Key includes step index (0) since stepsToMarkdown passes stepIndex per step
+    const tabSelectionsMap = new Map([['0:npm\0yarn', 'yarn']]);
     const result = stepsToMarkdown(steps, {tabSelectionsMap});
     expect(result).toContain('```bash\nyarn add @sentry/node\n```');
     expect(result).not.toContain('npm install');
@@ -511,9 +512,10 @@ describe('stepsToMarkdown', () => {
       },
     ];
 
+    // Keys include step indices (0 for Install, 1 for Configure)
     const tabSelectionsMap = new Map([
-      ['npm\0yarn', 'yarn'],
-      ['ESM\0CJS', 'CJS'],
+      ['0:npm\0yarn', 'yarn'],
+      ['1:ESM\0CJS', 'CJS'],
     ]);
     const result = stepsToMarkdown(steps, {tabSelectionsMap});
     expect(result).toContain('yarn add @sentry/node');

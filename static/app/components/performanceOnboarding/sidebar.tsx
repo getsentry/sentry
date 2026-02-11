@@ -345,8 +345,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         source="performance_sidebar_onboarding"
       />
       <Steps>
-        {steps.map(step => {
-          return <Step key={step.title ?? step.type} {...step} />;
+        {steps.map((step, index) => {
+          return <Step key={step.title ?? step.type} stepIndex={index} {...step} />;
         })}
       </Steps>
       <EventWaiter

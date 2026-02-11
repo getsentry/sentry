@@ -11,6 +11,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {StepIndexProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   ProductSolution,
@@ -263,7 +264,9 @@ function Onboarding({organization, project}: OnboardingProps) {
           const title = step.title ?? STEP_TITLES[step.type];
           return (
             <GuidedSteps.Step key={title} stepKey={title} title={title}>
-              <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+              <StepIndexProvider index={index}>
+                <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+              </StepIndexProvider>
               {index === steps.length - 1 ? (
                 <GuidedSteps.ButtonWrapper>
                   <GuidedSteps.BackButton size="md" />

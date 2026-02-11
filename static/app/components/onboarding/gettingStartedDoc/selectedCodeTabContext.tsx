@@ -20,13 +20,35 @@ const TabRegistryContext = createContext<MutableRefObject<TabSelectionsMap> | nu
 /** Global fallback for surfaces without a TabSelectionScope provider. */
 const _globalSelections: TabSelectionsMap = new Map();
 
+const StepIndexContext = createContext<number | undefined>(undefined);
+
 /**
- * Derives a stable key from a set of tab labels. Used to match
- * component-side selections with content-block-side lookups in
- * stepsToMarkdown.
+ * Provides the current step index to descendant TabbedCodeSnippets.
+ * Rendered by the Step component so that tab selection keys include the
+ * step index, preventing collisions when different steps have tabs with
+ * identical labels.
  */
-export function deriveTabKey(tabs: ReadonlyArray<{label: string}>): string {
-  return tabs.map(t => t.label).join('\0');
+export function StepIndexProvider({
+  index,
+  children,
+}: {
+  children: React.ReactNode;
+  index: number;
+}) {
+  return <StepIndexContext.Provider value={index}>{children}</StepIndexContext.Provider>;
+}
+
+/**
+ * Derives a stable key from a set of tab labels, optionally prefixed
+ * with a step index for disambiguation. Used to match component-side
+ * selections with content-block-side lookups in stepsToMarkdown.
+ */
+export function deriveTabKey(
+  tabs: ReadonlyArray<{label: string}>,
+  stepIndex?: number
+): string {
+  const labelPart = tabs.map(t => t.label).join('\0');
+  return stepIndex === undefined ? labelPart : `${stepIndex}:${labelPart}`;
 }
 
 /**
@@ -57,7 +79,8 @@ export function useRegisteredTabSelection(
   tabs: ReadonlyArray<{label: string; value: string}>
 ): [string, (value: string) => void] {
   const map = useSelectionsMap();
-  const key = deriveTabKey(tabs);
+  const stepIndex = useContext(StepIndexContext);
+  const key = deriveTabKey(tabs, stepIndex);
 
   // Restore previous selection if available (e.g. after step navigation)
   const storedLabel = map.get(key);

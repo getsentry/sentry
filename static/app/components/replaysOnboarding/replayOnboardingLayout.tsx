@@ -146,8 +146,8 @@ export function ReplayOnboardingLayout({
                 codeHeader: replayConfigToggle,
               };
             })
-            .map(step => (
-              <Step key={step.title ?? step.type} {...step} />
+            .map((step, index) => (
+              <Step key={step.title ?? step.type} stepIndex={index} {...step} />
             ))}
         </Stack>
       </Wrapper>

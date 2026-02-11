@@ -154,8 +154,8 @@ export function FeedbackOnboardingLayout({
                 codeHeader: feedbackConfigToggle,
               };
             })
-            .map(step => (
-              <Step key={step.title ?? step.type} {...step} />
+            .map((step, index) => (
+              <Step key={step.title ?? step.type} stepIndex={index} {...step} />
             ))}
         </Steps>
       </Wrapper>

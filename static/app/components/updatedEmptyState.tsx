@@ -11,6 +11,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {StepIndexProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   DocsParams,
@@ -202,10 +203,12 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                 const isLastStep = index === steps.length - 1;
                 return (
                   <GuidedSteps.Step key={index} stepKey={title} title={title}>
-                    <ContentBlocksRenderer
-                      contentBlocks={step.content}
-                      spacing={space(1)}
-                    />
+                    <StepIndexProvider index={index}>
+                      <ContentBlocksRenderer
+                        contentBlocks={step.content}
+                        spacing={space(1)}
+                      />
+                    </StepIndexProvider>
                     <GuidedSteps.ButtonWrapper>
                       <GuidedSteps.BackButton size="md" />
                       <GuidedSteps.NextButton size="md" />

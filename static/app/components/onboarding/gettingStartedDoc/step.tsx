@@ -6,6 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {StepIndexProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {
   StepType,
   type OnboardingStep,
@@ -27,13 +28,20 @@ export function Step({
   onOptionalToggleClick,
   collapsible = false,
   trailingItems,
+  stepIndex,
   ...props
-}: Omit<React.HTMLAttributes<HTMLDivElement>, 'content'> & OnboardingStep) {
+}: Omit<React.HTMLAttributes<HTMLDivElement>, 'content'> &
+  OnboardingStep & {stepIndex?: number}) {
   const [showOptionalConfig, setShowOptionalConfig] = useState(false);
 
+  const blockRenderer = <ContentBlocksRenderer contentBlocks={content} />;
   const config = (
     <ContentWrapper>
-      <ContentBlocksRenderer contentBlocks={content} />
+      {stepIndex === undefined ? (
+        blockRenderer
+      ) : (
+        <StepIndexProvider index={stepIndex}>{blockRenderer}</StepIndexProvider>
+      )}
     </ContentWrapper>
   );
 
