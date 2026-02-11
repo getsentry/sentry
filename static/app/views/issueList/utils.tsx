@@ -91,7 +91,7 @@ export function createIssueLink({
   location: Location;
   organization: Organization;
   eventId?: string;
-  extraQuery?: Record<string, any>;
+  extraQuery?: Record<string, string>;
   query?: string;
   referrer?: string;
 }): LocationDescriptorObject {
@@ -106,6 +106,9 @@ export function createIssueLink({
       latestEventId ? groupID : id
     }/${finalEventId ? `events/${finalEventId}/` : ''}`,
     query: {
+      // Spreading extraQuery early to prevent overriding
+      // core params like `project` or `query`
+      ...extraQuery,
       referrer: referrer || 'event-or-group-header',
       query,
       // Add environment to the query if it was selected
@@ -123,7 +126,6 @@ export function createIssueLink({
       // selected)
       ...(location.query.project === undefined ? {_allp: 1} : {}),
       ...(project ? {project: project.id} : {}),
-      ...extraQuery,
     },
   };
 }

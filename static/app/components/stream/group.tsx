@@ -88,7 +88,7 @@ type Props = {
    * Extra query params to include in the issue details navigation target.
    * Applied to both the row click and the issue title link.
    */
-  issueLinkExtraQuery?: Record<string, any>;
+  issueLinkExtraQuery?: Record<string, string>;
   memberList?: User[];
   onAssigneeChange?: (newAssignee: AssignableEntity | null) => void;
   onPriorityChange?: (newPriority: PriorityLevel) => void;

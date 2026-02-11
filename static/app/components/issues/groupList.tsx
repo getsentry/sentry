@@ -60,7 +60,7 @@ type Props = {
    * Extra query params to include in the issue details link.
    * Useful for feature-specific deep-linking.
    */
-  issueLinkExtraQuery?: Record<string, any>;
+  issueLinkExtraQuery?: Record<string, string>;
   onFetchSuccess?: (
     groupListState: State,
     onCursor: (

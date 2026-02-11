@@ -11,10 +11,14 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 type DetectorDetailsOngoingIssuesProps = {
   detector: Detector;
+  // Extra query params to include in the issue details link.
+  // Useful for feature-specific deep-linking.
+  issueLinkExtraQuery?: Record<string, string>;
 };
 
 export function DetectorDetailsOngoingIssues({
   detector,
+  issueLinkExtraQuery,
 }: DetectorDetailsOngoingIssuesProps) {
   const organization = useOrganization();
   const query = `is:unresolved detector:${detector.id}`;
@@ -49,7 +53,7 @@ export function DetectorDetailsOngoingIssues({
           <GroupList
             numPlaceholderRows={5}
             queryParams={{...queryParams, limit: 5}}
-            issueLinkExtraQuery={{includeUptime: '1'}}
+            issueLinkExtraQuery={issueLinkExtraQuery}
           />
         </div>
       </ErrorBoundary>
