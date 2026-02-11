@@ -11,6 +11,7 @@ export function getWidgetIcon(displayType: DisplayType): React.ReactNode {
       return <StyledIconMenu />;
     case DisplayType.BIG_NUMBER:
       return <StyledIconNumber />;
+    case DisplayType.CATEGORICAL_BAR:
     case DisplayType.BAR:
       return <StyledIconGraphBar />;
     case DisplayType.TOP_N:

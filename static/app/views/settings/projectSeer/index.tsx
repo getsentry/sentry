@@ -432,11 +432,10 @@ function ProjectSeer({
   organization: Organization;
   project: Project;
 }) {
-  const {setupAcknowledgement, billing, isLoading} = useOrganizationSeerSetup();
+  const {billing, isLoading} = useOrganizationSeerSetup();
 
   const needsSetup =
-    !setupAcknowledgement.orgHasAcknowledged ||
-    (!billing.hasAutofixQuota && organization.features.includes('seer-billing'));
+    !billing.hasAutofixQuota && organization.features.includes('seer-billing');
 
   if (organization.hideAiFeatures) {
     return <NoAccess />;

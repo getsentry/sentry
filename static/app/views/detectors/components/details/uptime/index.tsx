@@ -67,7 +67,10 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
             message={t('This monitor is disabled and not recording uptime checks.')}
           />
           <DetailsTimeline uptimeDetector={detector} onStatsLoaded={checkHasUnknown} />
-          <DetectorDetailsOngoingIssues detector={detector} />
+          <DetectorDetailsOngoingIssues
+            detector={detector}
+            issueLinkExtraQuery={{includeUptime: '1'}}
+          />
           <Section title={t('Recent Check-Ins')}>
             <div>
               <UptimeChecksTable

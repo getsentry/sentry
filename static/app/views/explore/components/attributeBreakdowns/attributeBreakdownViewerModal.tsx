@@ -22,7 +22,6 @@ import type {
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
-import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 
 import type {AttributeDistribution} from './attributeDistributionContent';
@@ -37,6 +36,7 @@ type SingleModeOptions = {
   attributeDistribution: AttributeDistribution[number];
   cohortCount: number;
   mode: 'single';
+  query: string;
 };
 
 type ComparisonModeOptions = {
@@ -44,6 +44,7 @@ type ComparisonModeOptions = {
   cohort1Total: number;
   cohort2Total: number;
   mode: 'comparison';
+  query: string;
 };
 
 export type AttributeBreakdownViewerModalOptions =
@@ -246,9 +247,8 @@ function PopulationIndicatorComponent({
 }
 
 export default function AttributeBreakdownViewerModal(props: Props) {
-  const {Header, Body, mode} = props;
+  const {Header, Body, mode, query} = props;
   const {selection} = usePageFilters();
-  const query = useQueryParamsQuery();
 
   const theme = useTheme();
   const navigate = useNavigate();

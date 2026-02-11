@@ -24,9 +24,9 @@ export default function AutoTriggeredFixesToggle({canWrite, project}: Props) {
     <BooleanField
       disabled={!canWrite}
       name="autofixAutomationTuning"
-      label={t('Auto-Triggered Fixes')}
+      label={t('Root Cause Analysis')}
       help={t(
-        'Automatically analyze highly actionable issues, and create a root cause analysis without a user needing to prompt it.'
+        'Analyze issues and create root cause analysis on demand, or automatically for highly actionable issues.'
       )}
       value={isAutoFixEnabled}
       onChange={value => {
