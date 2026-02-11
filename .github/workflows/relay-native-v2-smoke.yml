@@ -7,62 +7,40 @@ concurrency:
   group: relay-native-v2-${{ github.sha }}
   cancel-in-progress: true
 
+env:
+  SNUBA_NO_WORKERS: 1
+
 jobs:
   smoke-test:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     env:
-      MIGRATIONS_TEST_MIGRATE: 0
-      PYTEST_ADDOPTS: '--no-header -q'
-      SENTRY_SKIP_BACKEND_VALIDATION: 1
       XDIST_PER_WORKER_SNUBA: '1'
       XDIST_WORKERS: '2'
       PYTHONHASHSEED: '0'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Set up Python 3.13.1
-        uses: actions/setup-python@v5
+      - name: Setup sentry env (Full Snuba stack)
+        uses: ./.github/actions/setup-sentry
+        id: setup
         with:
-          python-version: 3.13.1
-
-      - name: Set up outputs
-        id: config
-        env:
-          MATRIX_INSTANCE: 0
-        run: echo "matrix-instance-number=$(($MATRIX_INSTANCE + 1))" >> "$GITHUB_OUTPUT"
-
-      - name: Install system deps
-        run: sudo apt-get update && sudo apt-get install -y libxmlsec1-dev libmaxminddb-dev
-
-      - name: Set up pip
-        uses: ./.github/actions/setup-pip
-        id: pip
-
-      - name: pip install
-        run: |
-          python -m pip install --upgrade pip wheel
-          pip install -e ".[dev]"
-
-      - name: Set up devservices (backend-ci)
-        env:
-          NEED_KAFKA: 'true'
-          NEED_SNUBA: 'true'
-        run: |
-          sentry init
-          sentry devservices up --mode backend-ci
+          mode: backend-ci
 
       - name: Extract Relay binary from Docker image
         run: |
           echo "=== Extracting Relay binary from Docker image ==="
-          RELAY_IMAGE="${RELAY_TEST_IMAGE:-ghcr.io/getsentry/relay:nightly}"
+          # Find the relay image used by devservices
+          RELAY_IMAGE=$(docker inspect sentry_relay --format '{{.Config.Image}}' 2>/dev/null || \
+            docker inspect relay-relay-1 --format '{{.Config.Image}}' 2>/dev/null || \
+            echo "ghcr.io/getsentry/relay:nightly")
           echo "Image: $RELAY_IMAGE"
 
           # Create a temporary container to copy the binary out
           docker create --name relay_extract "$RELAY_IMAGE"
 
-          # The binary location in the image (try common paths)
+          # The binary location in the image
           for bin_path in /bin/relay /usr/local/bin/relay /usr/bin/relay; do
             if docker cp "relay_extract:${bin_path}" /tmp/relay 2>/dev/null; then
               echo "Found binary at $bin_path"
@@ -98,7 +76,6 @@ jobs:
           {"secret_key":"OxE6Du8quMxWj19f7YDCpIxm6XyU9nWGQJkMWFlkchA","public_key":"SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8","id":"88888888-4444-4444-8444-cccccccccccc"}
           CRED
 
-          # Just test that it starts (will fail to connect to upstream, but won't crash with "not compiled with processing")
           timeout 3 /tmp/relay run --config "$TEST_DIR" 2>&1 | head -20 || true
           echo "Processing support verified (no 'not compiled with processing' error)"
           rm -rf "$TEST_DIR"
@@ -106,18 +83,20 @@ jobs:
       - name: Create per-worker ClickHouse databases and Snuba instances
         run: |
           echo "Setting up $XDIST_WORKERS per-worker ClickHouse databases + Snuba instances ..."
-          SNUBA_IMAGE=$(docker inspect --format='{{.Config.Image}}' sentry_snuba 2>/dev/null || echo "ghcr.io/getsentry/snuba:nightly")
+          SNUBA_IMAGE=$(docker inspect sentry_snuba --format '{{.Config.Image}}' 2>/dev/null || docker inspect snuba-snuba-1 --format '{{.Config.Image}}' 2>/dev/null || echo "ghcr.io/getsentry/snuba:nightly")
+          SNUBA_NETWORK=$(docker inspect sentry_snuba --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}' 2>/dev/null || docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}' 2>/dev/null || echo "devservices")
 
           for i in $(seq 0 $(($XDIST_WORKERS - 1))); do
             DB_NAME="default_gw${i}"
             SNUBA_PORT=$((1230 + i))
             CONTAINER_NAME="sentry_snuba_gw${i}"
 
-            docker exec sentry_clickhouse clickhouse-client --query "CREATE DATABASE IF NOT EXISTS ${DB_NAME}"
+            docker exec sentry_clickhouse clickhouse-client --query "CREATE DATABASE IF NOT EXISTS ${DB_NAME}" 2>/dev/null || \
+              docker exec clickhouse-clickhouse-1 clickhouse-client --query "CREATE DATABASE IF NOT EXISTS ${DB_NAME}"
 
             docker run -d \
               --name "$CONTAINER_NAME" \
-              --network devservices \
+              --network "$SNUBA_NETWORK" \
               -p "${SNUBA_PORT}:1218" \
               -e SNUBA_SETTINGS=docker \
               -e CLICKHOUSE_HOST=clickhouse \
@@ -143,7 +122,6 @@ jobs:
         run: |
           echo "=== Native binary Relay + per-worker xdist smoke test ==="
           echo "RELAY_NATIVE_BIN=$RELAY_NATIVE_BIN"
-          echo "Running 4 relay_integration tests with -n 2 workers"
           echo ""
 
           py.test tests/relay_integration/test_message_filters.py \
@@ -166,4 +144,5 @@ jobs:
 
           echo ""
           echo "=== Kafka topics ==="
-          docker exec sentry_kafka kafka-topics --list --bootstrap-server localhost:9093 2>/dev/null || true
+          docker exec sentry_kafka kafka-topics --list --bootstrap-server localhost:9093 2>/dev/null || \
+            docker exec kafka-kafka-1 kafka-topics --list --bootstrap-server localhost:9093 2>/dev/null || true
