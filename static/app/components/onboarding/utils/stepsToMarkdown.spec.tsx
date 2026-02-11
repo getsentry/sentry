@@ -76,6 +76,11 @@ describe('simpleHtmlToMarkdown', () => {
     expect(simpleHtmlToMarkdown('&amp;lt;div&amp;gt;')).toBe('&lt;div&gt;');
   });
 
+  it('does not double-decode escaped numeric entities like &amp;#60;', () => {
+    expect(simpleHtmlToMarkdown('&amp;#60;div&amp;#62;')).toBe('&#60;div&#62;');
+    expect(simpleHtmlToMarkdown('&amp;#x3C;div&amp;#x3E;')).toBe('&#x3C;div&#x3E;');
+  });
+
   it('handles nested HTML', () => {
     const html =
       '<p>Use <code>sentry-sdk</code> to <strong>initialize</strong> Sentry.</p>';

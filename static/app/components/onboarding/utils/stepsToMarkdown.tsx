@@ -19,14 +19,21 @@ const HTML_ENTITIES: Array<[string, string]> = [
 
 function decodeHtmlEntities(text: string): string {
   let result = text;
+  // Decode named entities (except &amp;) first
   for (const [entity, char] of HTML_ENTITIES) {
+    if (entity === '&amp;') {
+      continue;
+    }
     result = result.split(entity).join(char);
   }
-  // Handle numeric entities like &#60; &#x3C;
+  // Handle numeric entities like &#60; &#x3C; before &amp; to avoid
+  // double-decoding (e.g. &amp;#60; → &#60; → <)
   result = result.replace(/&#(\d+);/g, (_match, dec) => String.fromCharCode(Number(dec)));
   result = result.replace(/&#x([0-9a-fA-F]+);/g, (_match, hex) =>
     String.fromCharCode(parseInt(hex, 16))
   );
+  // Decode &amp; last
+  result = result.split('&amp;').join('&');
   return result;
 }
 
