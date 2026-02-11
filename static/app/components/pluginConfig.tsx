@@ -1,8 +1,8 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {
   addErrorMessage,
@@ -97,7 +97,7 @@ export default function PluginConfig({
         </Flex>
 
         {plugin.canDisable && isEnabled && (
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             {plugin.isTestable && (
               <Button onClick={handleTestPlugin} size="xs">
                 {t('Test Plugin')}
@@ -106,7 +106,7 @@ export default function PluginConfig({
             <Button size="xs" onClick={handleDisablePlugin} disabled={!hasWriteAccess}>
               {t('Disable')}
             </Button>
-          </ButtonBar>
+          </Grid>
         )}
       </PanelHeader>
 

@@ -34,7 +34,6 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.seer.models import SummarizeIssueResponse
-from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -540,9 +539,6 @@ def get_issue_summary(
 
     if group.organization.get_option("sentry:hide_ai_features"):
         return {"detail": "AI features are disabled for this organization."}, 403
-
-    if not get_seer_org_acknowledgement(group.organization):
-        return {"detail": "AI Autofix has not been acknowledged by the organization."}, 403
 
     cache_key = get_issue_summary_cache_key(group.id)
     lock_key, lock_name = get_issue_summary_lock_key(group.id)

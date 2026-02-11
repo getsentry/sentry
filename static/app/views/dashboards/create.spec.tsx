@@ -4,7 +4,7 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import CreateDashboard from 'sentry/views/dashboards/create';
 import {DisplayType} from 'sentry/views/dashboards/types';

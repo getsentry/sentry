@@ -1,10 +1,10 @@
 import {useEffect} from 'react';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 

@@ -6,6 +6,7 @@ import {vec2} from 'gl-matrix';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {DifferentialFlamegraphLayout} from 'sentry/components/profiling/flamegraph/differentialFlamegraphLayout';
 import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {DifferentialFlamegraphDrawer} from 'sentry/components/profiling/flamegraph/flamegraphDrawer/differentialFlamegraphDrawer';
@@ -39,7 +40,6 @@ import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphR
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {LOADING_PROFILE_GROUP} from 'sentry/views/profiling/profileGroupProvider';
 
 const PROFILE_TYPE = 'differential aggregate flamegraph' as const;

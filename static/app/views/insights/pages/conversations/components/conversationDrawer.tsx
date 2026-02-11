@@ -21,6 +21,7 @@ import {
   useConversation,
   type UseConversationsOptions,
 } from 'sentry/views/insights/pages/conversations/hooks/useConversation';
+import {useFocusedToolSpan} from 'sentry/views/insights/pages/conversations/hooks/useFocusedToolSpan';
 import {useUrlConversationDrawer} from 'sentry/views/insights/pages/conversations/hooks/useUrlConversationDrawer';
 import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
@@ -46,11 +47,28 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
   const [conversationDrawerQueryState, setConversationDrawerQueryState] =
     useConversationDrawerQueryState();
   const selectedNodeKey = conversationDrawerQueryState.spanId;
+  const focusedTool = conversationDrawerQueryState.focusedTool;
+
+  useFocusedToolSpan({
+    nodes,
+    focusedTool,
+    isLoading,
+    onSpanFound: useCallback(
+      (spanId: string) => {
+        setConversationDrawerQueryState({
+          spanId,
+          focusedTool: null,
+        });
+      },
+      [setConversationDrawerQueryState]
+    ),
+  });
 
   const handleSelectNode = useCallback(
     (node: AITraceSpanNode) => {
       setConversationDrawerQueryState({
         spanId: node.id,
+        focusedTool: null,
       });
       trackAnalytics('conversations.drawer.span-select', {
         organization,
@@ -62,17 +80,14 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
   const defaultNodeId = useMemo(() => getDefaultSelectedNode(nodes)?.id, [nodes]);
 
   const selectedNode = useMemo(() => {
-    if (selectedNodeKey) {
-      const found = nodes.find(node => node.id === selectedNodeKey);
-      if (found) {
-        return found;
-      }
-    }
-    return nodes.find(node => node.id === defaultNodeId);
+    return (
+      nodes.find(node => node.id === selectedNodeKey) ??
+      nodes.find(node => node.id === defaultNodeId)
+    );
   }, [nodes, selectedNodeKey, defaultNodeId]);
 
   useEffect(() => {
-    if (isLoading || !defaultNodeId) {
+    if (isLoading || !defaultNodeId || focusedTool) {
       return;
     }
 
@@ -84,7 +99,14 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
         spanId: defaultNodeId,
       });
     }
-  }, [isLoading, defaultNodeId, selectedNodeKey, nodes, setConversationDrawerQueryState]);
+  }, [
+    isLoading,
+    defaultNodeId,
+    selectedNodeKey,
+    nodes,
+    setConversationDrawerQueryState,
+    focusedTool,
+  ]);
 
   return (
     <Flex direction="column" height="100%">
@@ -121,9 +143,11 @@ export function useConversationViewDrawer({
     ({
       conversation,
       source,
+      focusedTool,
     }: {
       conversation: UseConversationsOptions;
       source: ConversationDrawerOpenSource;
+      focusedTool?: string;
     }) => {
       trackAnalytics('conversations.drawer.open', {
         organization,
@@ -142,6 +166,7 @@ export function useConversationViewDrawer({
         conversationId: conversation.conversationId,
         startTimestamp: conversation.startTimestamp,
         endTimestamp: conversation.endTimestamp,
+        focusedTool,
         drawerKey: 'conversation-view-drawer',
       });
     },
@@ -149,7 +174,7 @@ export function useConversationViewDrawer({
   );
 
   useEffect(() => {
-    const {conversationId, startTimestamp, endTimestamp} = drawerUrlState;
+    const {conversationId, startTimestamp, endTimestamp, focusedTool} = drawerUrlState;
     if (conversationId && !isDrawerOpen) {
       openConversationViewDrawer({
         conversation: {
@@ -157,6 +182,7 @@ export function useConversationViewDrawer({
           startTimestamp: startTimestamp ?? undefined,
           endTimestamp: endTimestamp ?? undefined,
         },
+        focusedTool: focusedTool ?? undefined,
         source: 'direct_link',
       });
     }

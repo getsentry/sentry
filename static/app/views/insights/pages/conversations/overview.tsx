@@ -6,9 +6,9 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import {
   useSpanSearchQueryBuilderProps,
   type UseSpanSearchQueryBuilderProps,
@@ -116,7 +116,9 @@ function ConversationsContent({datePageFilterProps}: ConversationsOverviewPagePr
         unsetCursor();
       },
       searchSource: 'conversations',
-      replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
+      replaceRawSearchKeys: hasRawSearchReplacement
+        ? ['span.description', 'span.name']
+        : undefined,
       matchKeySuggestions: [
         {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
         {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},

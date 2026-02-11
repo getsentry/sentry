@@ -166,6 +166,35 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(screen.getByRole('cell', {name: '150'})).toBeInTheDocument();
   });
 
+  it('renders evaluated value correctly when value is an object (anomaly detector)', async () => {
+    const event = EventFixture({
+      occurrence: {
+        id: '1',
+        eventId: 'event-1',
+        fingerprint: ['fingerprint'],
+        issueTitle: 'Test Issue',
+        subtitle: 'Subtitle',
+        resourceId: 'resource-1',
+        evidenceData: {
+          conditions: [condition],
+          dataSources: [dataSource],
+          value: {value: 250},
+        },
+        evidenceDisplay: [],
+        type: 8001,
+        detectionTime: '2024-01-01T00:00:00Z',
+      },
+    });
+
+    render(<MetricDetectorTriggeredSection {...defaultProps} event={event} />);
+
+    expect(
+      await screen.findByRole('region', {name: 'Triggered Condition'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'Evaluated Value'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '250'})).toBeInTheDocument();
+  });
+
   it('renders contributing issues section for errors dataset', async () => {
     // Start date is eventDateCreated minus the timeWindow (60 seconds) minus 1 extra minute
     const startDate = '2023-12-31T23:58:00.000Z';

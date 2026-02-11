@@ -22,30 +22,12 @@ export default function MailboxPicker({onChange, value}: Props) {
   const {data} = useMailboxCounts({organization});
   const {isSelfHosted} = useLegacyStore(ConfigStore);
 
-  const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
   const hasSpamFeature = organization.features.includes('user-feedback-spam-ingest');
-  const skipConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
 
   const getSpamTooltip = () => {
     if (!hasSpamFeature || isSelfHosted) {
       return undefined;
-    }
-
-    if (!skipConsentFlow && !setupAcknowledgement.orgHasAcknowledged) {
-      return tct(
-        'Generative AI Features and Seer access are required for auto spam detection. Check that [linkGenAI:Generative AI Features] are toggled on, then view the [linkSeer:Seer settings page] for more information.',
-        {
-          linkSeer: <Link to={`/settings/${organization.slug}/seer/`} />,
-          linkGenAI: (
-            <Link
-              to={{
-                pathname: `/settings/${organization.slug}/`,
-                hash: 'hideAiFeatures',
-              }}
-            />
-          ),
-        }
-      );
     }
 
     if (!areAiFeaturesAllowed) {

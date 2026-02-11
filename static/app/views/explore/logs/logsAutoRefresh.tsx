@@ -3,12 +3,12 @@ import {Fragment, useEffect, type ReactNode} from 'react';
 import {Switch} from '@sentry/scraps/switch';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import {
   useLogsAutoRefresh,

@@ -12,7 +12,10 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem as EAPTraceItem
 
+from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.constants import DataCategory
+from sentry.models.organization import Organization
 from sentry.preprod.eap.constants import PREPROD_NAMESPACE, get_preprod_trace_id
 from sentry.preprod.models import (
     InstallablePreprodArtifact,
@@ -27,6 +30,7 @@ from sentry.utils.kafka_config import get_topic_definition
 
 def produce_preprod_size_metric_to_eap(
     size_metric: PreprodArtifactSizeMetrics,
+    organization: Organization,
     organization_id: int,
     project_id: int,
 ) -> None:
@@ -110,7 +114,10 @@ def produce_preprod_size_metric_to_eap(
         timestamp=proto_timestamp,
         trace_id=trace_id,
         received=received,
-        retention_days=90,  # Default retention for preprod data
+        retention_days=quotas.backend.get_event_retention(
+            organization=organization, category=DataCategory.SIZE_ANALYSIS
+        )
+        or 90,
         attributes={k: anyvalue(v) for k, v in attributes.items() if v is not None},
         client_sample_rate=1.0,
         server_sample_rate=1.0,
@@ -123,6 +130,7 @@ def produce_preprod_size_metric_to_eap(
 
 def produce_preprod_build_distribution_to_eap(
     artifact: PreprodArtifact,
+    organization: Organization,
     organization_id: int,
     project_id: int,
 ) -> None:
@@ -221,7 +229,10 @@ def produce_preprod_build_distribution_to_eap(
         timestamp=proto_timestamp,
         trace_id=trace_id,
         received=received,
-        retention_days=90,
+        retention_days=quotas.backend.get_event_retention(
+            organization=organization, category=DataCategory.INSTALLABLE_BUILD
+        )
+        or 90,
         attributes={k: anyvalue(v) for k, v in attributes.items() if v is not None},
         client_sample_rate=1.0,
         server_sample_rate=1.0,

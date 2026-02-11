@@ -8,6 +8,7 @@ import omit from 'lodash/omit';
 
 import {Flex} from '@sentry/scraps/layout';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
@@ -19,7 +20,6 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {
   DisplayType,
@@ -379,7 +379,8 @@ export function WidgetPreviewContainer({
                     width: isDragEnabled ? DRAGGABLE_PREVIEW_WIDTH_PX : undefined,
                     height: getPreviewHeight(),
                     outline: isDragEnabled
-                      ? `${space(1)} solid ${theme.tokens.border.primary}`
+                      ? // eslint-disable-next-line @sentry/scraps/use-semantic-token
+                        `${space(1)} solid ${theme.tokens.border.primary}`
                       : undefined,
                   }}
                 >

@@ -19,7 +19,8 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -35,7 +36,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDocsPlatformSDKForPlatform} from 'sentry/utils/profiling/platforms';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
 function splitProjectsByProfilingSupport(projects: Project[]): {

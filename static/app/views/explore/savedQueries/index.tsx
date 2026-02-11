@@ -1,6 +1,7 @@
 import {useNavigate} from 'react-router-dom';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
@@ -46,7 +47,7 @@ export default function SavedQueriesView() {
             <Layout.Title>{t('All Queries')}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <ButtonBar>
+            <Grid flow="column" align="center" gap="md">
               <FeedbackButton />
               {hasLogsFeature ? (
                 <DropdownMenu
@@ -79,7 +80,7 @@ export default function SavedQueriesView() {
                   {t('Create Query')}
                 </LinkButton>
               )}
-            </ButtonBar>
+            </Grid>
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>

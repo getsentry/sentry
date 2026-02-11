@@ -4,9 +4,10 @@ import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -181,14 +182,14 @@ export function AggregateColumnEditorModal({
             </RowContainer>
           </Body>
           <Footer data-test-id="editor-footer">
-            <ButtonBar>
+            <Grid flow="column" align="center" gap="md">
               <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
                 {t('Read the Docs')}
               </LinkButton>
               <Button aria-label={t('Apply')} priority="primary" onClick={handleApply}>
                 {t('Apply')}
               </Button>
-            </ButtonBar>
+            </Grid>
           </Footer>
         </Fragment>
       )}

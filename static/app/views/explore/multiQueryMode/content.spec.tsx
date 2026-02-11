@@ -11,7 +11,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';

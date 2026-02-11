@@ -19,12 +19,13 @@ import type {OverlayTriggerState} from '@react-stately/overlays';
 import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Button} from '@sentry/scraps/button';
-import {Input} from '@sentry/scraps/input';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {InputGroup} from '@sentry/scraps/input';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
+import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
@@ -525,16 +526,29 @@ export function Control({
                   </MenuHeader>
                 )}
                 {searchable && (
-                  <SearchInput
-                    ref={searchRef}
-                    placeholder={searchPlaceholder}
-                    value={searchInputValue}
-                    onFocus={onSearchFocus}
-                    onBlur={onSearchBlur}
-                    onChange={e => updateSearch(e.target.value)}
-                    size="xs"
-                    {...searchKeyboardProps}
-                  />
+                  <InputGroup>
+                    <InputGroup.LeadingItems disablePointerEvents>
+                      <Flex
+                        paddingLeft="2xs"
+                        align="center"
+                        justify="center"
+                        // Center the icon by visual weight
+                        style={{transform: 'translateY(1px) translateX(1px)'}}
+                      >
+                        <IconSearch size="xs" variant="muted" />
+                      </Flex>
+                    </InputGroup.LeadingItems>
+                    <SearchInput
+                      ref={searchRef}
+                      placeholder={searchPlaceholder}
+                      value={searchInputValue}
+                      onFocus={onSearchFocus}
+                      onBlur={onSearchBlur}
+                      onChange={e => updateSearch(e.target.value)}
+                      size="xs"
+                      {...searchKeyboardProps}
+                    />
+                  </InputGroup>
                 )}
                 {typeof menuBody === 'function'
                   ? menuBody({closeOverlay: overlayState.close})
@@ -584,6 +598,7 @@ const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
   align-items: center;
   justify-content: space-between;
   padding: ${p => headerVerticalPadding[p.size]} ${space(1.5)};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   [data-menu-has-search='true'] > & {
@@ -627,14 +642,14 @@ const ClearButton = styled(Button)`
   margin: -${space(0.25)} -${space(0.5)};
 `;
 
-const SearchInput = styled(Input)`
+const SearchInput = styled(InputGroup.Input)`
   appearance: none;
   width: calc(100% - ${space(0.5)} * 2);
   margin: ${space(0.5)} ${space(0.5)};
 
   /* Add 1px to top margin if immediately preceded by menu header, to account for the
-  header's shadow border */
-  [data-menu-has-header='true'] > & {
+  header's shadow border. Account for InputGroup wrapper div. */
+  [data-menu-has-header='true'] > * > & {
     margin-top: calc(${space(0.5)} + 1px);
   }
 `;
@@ -675,6 +690,7 @@ const StyledPositionWrapper = styled(PositionWrapper, {
 `;
 
 const MenuFooter = styled('div')`
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 -1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   padding: ${space(1)} ${space(1.5)};
   z-index: 2;

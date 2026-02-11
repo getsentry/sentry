@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
-import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -157,7 +157,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                   <React.Fragment>
                     <BottomDivider />
                     <BottomButtonContainer>
-                      <ButtonBar>
+                      <Grid flow="column" align="center" gap="md">
                         {codingAgentState.agent_url && (
                           <ExternalLink href={codingAgentState.agent_url}>
                             <Button
@@ -188,7 +188,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                               </Button>
                             </ExternalLink>
                           ))}
-                      </ButtonBar>
+                      </Grid>
                     </BottomButtonContainer>
                   </React.Fragment>
                 )}

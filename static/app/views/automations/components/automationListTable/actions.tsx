@@ -7,11 +7,11 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
 
 import {openConfirmModal} from 'sentry/components/confirm';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   useDeleteAutomationsMutation,
   useUpdateAutomationsMutation,
