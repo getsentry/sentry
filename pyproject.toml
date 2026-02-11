@@ -232,10 +232,20 @@ ignore = [
     "B027",   # empty method in abstract base class
     "B904",   # raise-without-from-inside-except (not enforced before)
     "B905",   # zip-without-explicit-strict (not enforced before)
+    "B911",   # itertools.batched without strict (not enforced before)
+    "B028",   # no explicit stacklevel in warnings (not enforced before)
+    "B033",   # duplicate set items (not enforced before)
+    "B039",   # mutable ContextVar default (not enforced before)
+    # --- flake8-logging rules not previously enforced ---
     "LOG014", # exc-info-outside-except-handler
     "LOG015", # root-logger-call
+    # --- pyupgrade rules to ignore for now ---
+    "UP007",  # use X | Y for union types (fix in future PR)
     "UP017",  # datetime-utc-alias
     "UP031",  # printf-string-formatting (fix with f-strings in future PR)
+    "UP035",  # deprecated typing imports (fix in future PR)
+    "UP040",  # use type keyword instead of TypeAlias (fix in future PR)
+    "UP045",  # use X | None instead of Optional (fix in future PR)
     "UP046",  # non-pep695-generic-class (PEP 695 migration is a larger effort)
     "UP047",  # non-pep695-generic-function (PEP 695 migration is a larger effort)
 ]
@@ -246,6 +256,7 @@ ignore = [
 "devenv/*.py" = ["T20"]
 "src/sentry/build/*" = ["T20"]
 "tools/*" = ["T20"]
+"src/flagpole/*" = ["T20"]
 "**/migrations/*" = ["I"]
 
 [tool.ruff.lint.isort]
