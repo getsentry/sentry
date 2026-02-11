@@ -92,8 +92,13 @@ export default function PreprodBuilds() {
     }
   }
 
+  const sizeStateFilter =
+    activeDisplay === PreprodBuildsDisplay.SIZE ? '!size_state:not_ran' : '';
+
   // Combine release filter with user search query
-  const combinedQuery = [releaseQuery, urlSearchQuery?.trim()].filter(Boolean).join(' ');
+  const combinedQuery = [releaseQuery, urlSearchQuery?.trim(), sizeStateFilter]
+    .filter(Boolean)
+    .join(' ');
 
   if (combinedQuery) {
     queryParams.query = combinedQuery;
