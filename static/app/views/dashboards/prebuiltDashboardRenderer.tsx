@@ -4,6 +4,7 @@ import {
   DashboardState,
   type DashboardDetails,
   type DashboardFilters,
+  type GlobalFilter,
 } from 'sentry/views/dashboards/types';
 import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
 
@@ -11,12 +12,12 @@ import {PREBUILT_DASHBOARDS, type PrebuiltDashboardId} from './utils/prebuiltCon
 
 type PrebuiltDashboardRendererProps = {
   prebuiltId: PrebuiltDashboardId;
-  additionalFilters?: DashboardFilters;
+  additionalGlobalFilters?: GlobalFilter[];
 };
 
 export function PrebuiltDashboardRenderer({
   prebuiltId,
-  additionalFilters,
+  additionalGlobalFilters,
 }: PrebuiltDashboardRendererProps) {
   const prebuiltDashboard = PREBUILT_DASHBOARDS[prebuiltId];
   const {dashboard: populatedPrebuiltDashboard, isLoading} =
@@ -25,18 +26,31 @@ export function PrebuiltDashboardRenderer({
   const {title, filters} = prebuiltDashboard;
   const widgets = populatedPrebuiltDashboard?.widgets ?? prebuiltDashboard.widgets;
 
-  const mergedFilters: DashboardFilters = {
-    ...filters,
-    ...additionalFilters,
-  };
+  // Merge the dashboard's built-in filters with any additional global filters.
+  // Overrides replace matching filters in-place (by tag key) to preserve order.
+  // Filters with no match in the base list are appended at the end.
+  const mergedFilters: DashboardFilters = {...filters};
 
-  if (additionalFilters?.globalFilter) {
+  if (additionalGlobalFilters) {
+    const overridesByKey = new Map(additionalGlobalFilters.map(f => [f.tag.key, f]));
+    const usedKeys = new Set<string>();
+
     const baseFilters = filters?.globalFilter ?? [];
-    const overrideKeys = new Set(additionalFilters.globalFilter.map(f => f.tag.key));
-    mergedFilters.globalFilter = [
-      ...baseFilters.filter(f => !overrideKeys.has(f.tag.key)),
-      ...additionalFilters.globalFilter,
-    ];
+    mergedFilters.globalFilter = baseFilters.map(f => {
+      const override = overridesByKey.get(f.tag.key);
+      if (override) {
+        usedKeys.add(f.tag.key);
+        return override;
+      }
+      return f;
+    });
+
+    // Append any additional filters that didn't match a base filter
+    for (const f of additionalGlobalFilters) {
+      if (!usedKeys.has(f.tag.key)) {
+        mergedFilters.globalFilter.push(f);
+      }
+    }
   }
 
   const dashboard: DashboardDetails = {

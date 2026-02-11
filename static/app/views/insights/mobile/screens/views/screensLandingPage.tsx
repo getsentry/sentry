@@ -344,7 +344,7 @@ const Flex = styled('div')<{gap?: number}>`
   margin-bottom: ${space(1)};
 `;
 
-function PageWithProviders() {
+function ScreensLandingPageWithPlatformization() {
   const hasDashboardsPlatformizedMobileVitals =
     useHasDashboardsPlatformizedMobileVitals();
   if (hasDashboardsPlatformizedMobileVitals) {
@@ -353,4 +353,4 @@ function PageWithProviders() {
   return <ScreensLandingPage />;
 }
 
-export default PageWithProviders;
+export default ScreensLandingPageWithPlatformization;

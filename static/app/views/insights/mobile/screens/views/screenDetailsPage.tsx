@@ -78,7 +78,7 @@ function ScreenDetailsPage() {
     {
       key: 'screen_rendering',
       label: t('Screen Rendering'),
-      featureBadge: hasDashboardsPlatformizedMobileVitals ? undefined : 'experimental',
+      featureBadge: 'experimental',
       content: () => {
         if (hasDashboardsPlatformizedMobileVitals) {
           return <PlatformizedScreenRenderingOverview key="screen_rendering" />;
