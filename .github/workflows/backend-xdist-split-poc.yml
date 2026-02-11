@@ -232,53 +232,63 @@ jobs:
             "SELECT count() FROM system.tables WHERE database = '${BASE_DB}'" | tr -d '\n')
           echo "Base database '$BASE_DB' has $BASE_COUNT tables"
 
+          # Run bootstrap + container start for each worker IN PARALLEL
+          # Each worker targets a different ClickHouse database so no DDL conflicts
+          BOOTSTRAP_START=$(date +%s)
+
           for i in $(seq 0 $((XDIST_N - 1))); do
-            WORKER_DB="default_gw${i}"
-            WORKER_PORT=$((1230 + i))
-            echo ""
-            echo "=== Setting up worker gw${i}: database=$WORKER_DB, port=$WORKER_PORT ==="
+            (
+              WORKER_DB="default_gw${i}"
+              WORKER_PORT=$((1230 + i))
+              echo "[gw${i}] Setting up: database=$WORKER_DB, port=$WORKER_PORT"
 
-            # Create the worker database
-            curl -s 'http://localhost:8123/' --data-binary "CREATE DATABASE IF NOT EXISTS ${WORKER_DB}"
+              # Create the worker database
+              curl -s 'http://localhost:8123/' --data-binary "CREATE DATABASE IF NOT EXISTS ${WORKER_DB}"
 
-            # Use Snuba bootstrap to create all tables (including materialized views)
-            echo "  Running Snuba bootstrap for $WORKER_DB..."
-            docker run --rm \
-              --network "$SNUBA_NETWORK" \
-              -e "CLICKHOUSE_DATABASE=${WORKER_DB}" \
-              -e "CLICKHOUSE_HOST=clickhouse" \
-              -e "CLICKHOUSE_PORT=9000" \
-              -e "CLICKHOUSE_HTTP_PORT=8123" \
-              -e "DEFAULT_BROKERS=kafka:9093" \
-              -e "REDIS_HOST=redis" \
-              -e "REDIS_PORT=6379" \
-              -e "REDIS_DB=1" \
-              -e "SNUBA_SETTINGS=docker" \
-              "$SNUBA_IMAGE" bootstrap --force 2>&1 | tail -5
-            echo "  Bootstrap complete"
+              # Use Snuba bootstrap to create all tables (including materialized views)
+              echo "[gw${i}] Running Snuba bootstrap for $WORKER_DB..."
+              docker run --rm \
+                --network "$SNUBA_NETWORK" \
+                -e "CLICKHOUSE_DATABASE=${WORKER_DB}" \
+                -e "CLICKHOUSE_HOST=clickhouse" \
+                -e "CLICKHOUSE_PORT=9000" \
+                -e "CLICKHOUSE_HTTP_PORT=8123" \
+                -e "DEFAULT_BROKERS=kafka:9093" \
+                -e "REDIS_HOST=redis" \
+                -e "REDIS_PORT=6379" \
+                -e "REDIS_DB=1" \
+                -e "SNUBA_SETTINGS=docker" \
+                "$SNUBA_IMAGE" bootstrap --force 2>&1 | tail -5
+              echo "[gw${i}] Bootstrap complete"
 
-            W_COUNT=$(curl -s 'http://localhost:8123/' --data-binary \
-              "SELECT count() FROM system.tables WHERE database = '${WORKER_DB}'" | tr -d '\n')
-            echo "  $WORKER_DB: $W_COUNT tables (base has $BASE_COUNT)"
+              W_COUNT=$(curl -s 'http://localhost:8123/' --data-binary \
+                "SELECT count() FROM system.tables WHERE database = '${WORKER_DB}'" | tr -d '\n')
+              echo "[gw${i}] $WORKER_DB: $W_COUNT tables (base has $BASE_COUNT)"
 
-            # Start a per-worker Snuba container
-            docker run -d \
-              --name "snuba-gw${i}" \
-              --network "$SNUBA_NETWORK" \
-              -p "${WORKER_PORT}:1218" \
-              -e "CLICKHOUSE_DATABASE=${WORKER_DB}" \
-              -e "CLICKHOUSE_HOST=clickhouse" \
-              -e "CLICKHOUSE_PORT=9000" \
-              -e "CLICKHOUSE_HTTP_PORT=8123" \
-              -e "DEFAULT_BROKERS=kafka:9093" \
-              -e "REDIS_HOST=redis" \
-              -e "REDIS_PORT=6379" \
-              -e "REDIS_DB=1" \
-              -e "SNUBA_SETTINGS=docker" \
-              -e "DEBUG=1" \
-              "$SNUBA_IMAGE" api
-            echo "Started Snuba container snuba-gw${i} on port $WORKER_PORT"
+              # Start a per-worker Snuba container
+              docker run -d \
+                --name "snuba-gw${i}" \
+                --network "$SNUBA_NETWORK" \
+                -p "${WORKER_PORT}:1218" \
+                -e "CLICKHOUSE_DATABASE=${WORKER_DB}" \
+                -e "CLICKHOUSE_HOST=clickhouse" \
+                -e "CLICKHOUSE_PORT=9000" \
+                -e "CLICKHOUSE_HTTP_PORT=8123" \
+                -e "DEFAULT_BROKERS=kafka:9093" \
+                -e "REDIS_HOST=redis" \
+                -e "REDIS_PORT=6379" \
+                -e "REDIS_DB=1" \
+                -e "SNUBA_SETTINGS=docker" \
+                -e "DEBUG=1" \
+                "$SNUBA_IMAGE" api
+              echo "[gw${i}] Started Snuba container on port $WORKER_PORT"
+            ) &
           done
+
+          echo "Waiting for all $XDIST_N parallel bootstrap jobs..."
+          wait
+          BOOTSTRAP_END=$(date +%s)
+          echo "All bootstrap jobs complete in $((BOOTSTRAP_END - BOOTSTRAP_START))s (parallel)"
 
           # Wait for all per-worker Snuba instances to be ready
           echo ""

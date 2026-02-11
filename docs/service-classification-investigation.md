@@ -2231,3 +2231,23 @@ fixture (never read/write ClickHouse in the test body). Making `reset_snuba` a c
 when Snuba isn't running would allow an 8/14 split with both tiers finishing at ~8 minutes.
 Risk: tests that indirectly depend on Snuba through non-obvious paths would silently pass without
 their infrastructure.
+
+### Optimization A: Parallel Bootstrap — VALIDATED
+
+**POC branch:** `mchen/parallel-bootstrap-poc` (Run 21921424535)
+
+**Change:** Wrap each worker's bootstrap + container start in a background subshell (`( ... ) &`)
+and `wait` for all to complete. Each worker targets a different ClickHouse database
+(`default_gw0`, `default_gw1`, `default_gw2`) so there are no DDL conflicts.
+
+**Result:**
+- Sequential (previous): ~58s for 3 workers (~19s each)
+- Parallel (POC): **26s** for 3 workers running concurrently
+- **Savings: 32s per tier2 shard**
+
+All 3 databases created with 85 tables each (matching base). All 3 per-worker Snuba containers
+passed health checks. Tests ran successfully after bootstrap (run was cancelled by concurrency
+group after ~58 min because all tier2 tests landed on 1 shard, but the bootstrap + test execution
+itself was functional).
+
+**Implementation:** Applied to main branch workflow (`backend-xdist-split-poc.yml`).
