@@ -1,4 +1,7 @@
 import type {Location} from 'history';
+import identity from 'lodash/identity';
+import pick from 'lodash/pick';
+import pickBy from 'lodash/pickBy';
 import moment from 'moment-timezone';
 
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/components/pageFilters/constants';
@@ -319,6 +322,15 @@ export function getStateFromQuery(
   };
 
   return state;
+}
+
+/**
+ * Extract the page filter parameters from an object
+ * Useful for extracting page filter properties from the current URL
+ * when building another URL.
+ */
+export function extractSelectionParameters(query: Location['query']) {
+  return pickBy(pick(query, Object.values(URL_PARAM)), identity);
 }
 
 /**
