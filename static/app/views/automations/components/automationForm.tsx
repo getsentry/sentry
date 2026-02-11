@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -23,12 +23,6 @@ export default function AutomationForm({model}: {model: FormModel}) {
     [model]
   );
 
-  const [environment, setEnvironment] = useState<string>('');
-  const updateEnvironment = (env: string) => {
-    setEnvironment(env);
-    model.setValue('environment', env || null);
-  };
-
   useSetAutomaticAutomationName();
 
   return (
@@ -48,7 +42,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
             )}
           </Text>
         </Flex>
-        <EnvironmentSelector value={environment} onChange={updateEnvironment} />
+        <EnvironmentSelector />
       </Card>
       <Card>
         <Heading as="h2" size="lg">
