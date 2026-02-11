@@ -195,7 +195,7 @@ interface MarkdownOptions {
    * Per-block tab selection. Used when calling contentBlockToMarkdown directly
    * (e.g. in tests). For full step conversion, use `tabSelectionsMap` instead.
    */
-  selectedTabLabel?: string;
+  selectedTabValue?: string;
   /**
    * Current step index, set internally by stepsToMarkdown when iterating.
    * Included in the tab key to disambiguate tabs with identical labels
@@ -203,7 +203,7 @@ interface MarkdownOptions {
    */
   stepIndex?: number;
   /**
-   * Map of tab-key → selected label. Keys are derived from tab labels via
+   * Map of tab-key → selected value. Keys are derived from tab labels via
    * deriveTabKey. Obtained from useTabSelectionsMap() at click time.
    * Persists across component mount/unmount cycles.
    */
@@ -221,11 +221,12 @@ function replaceAuthToken(code: string, options?: MarkdownOptions): string {
 
 function renderTabbedCodeBlock(
   tabs: Array<{code: string; label: string; language: string; filename?: string}>,
-  selectedLabel: string | undefined,
+  selectedValue: string | undefined,
   options?: MarkdownOptions
 ): string {
-  const matchedTab = selectedLabel
-    ? tabs.find(tab => tab.label === selectedLabel)
+  // value === label for content block tabs (set in defaultRenderers.tsx)
+  const matchedTab = selectedValue
+    ? tabs.find(tab => tab.label === selectedValue)
     : undefined;
 
   const tab = matchedTab ?? tabs[0]!;
@@ -241,7 +242,7 @@ function renderTabbedCodeBlock(
  *
  * Tab selection is resolved by looking up the block's tab key in
  * options.tabSelectionsMap (from the scope), falling back to
- * options.selectedTabLabel (for direct calls / tests).
+ * options.selectedTabValue (for direct calls / tests).
  */
 export function contentBlockToMarkdown(
   block: ContentBlock,
@@ -253,10 +254,10 @@ export function contentBlockToMarkdown(
 
     case 'code': {
       if ('tabs' in block && block.tabs) {
-        const selectedLabel =
+        const selectedValue =
           options?.tabSelectionsMap?.get(deriveTabKey(block.tabs, options?.stepIndex)) ??
-          options?.selectedTabLabel;
-        return renderTabbedCodeBlock(block.tabs, selectedLabel, options);
+          options?.selectedTabValue;
+        return renderTabbedCodeBlock(block.tabs, selectedValue, options);
       }
       // Single code block
       const singleBlock = block as Extract<ContentBlock, {type: 'code'}> & {

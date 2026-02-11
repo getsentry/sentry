@@ -8,11 +8,11 @@
  * contamination when multiple guides render simultaneously.
  */
 
-import {createContext, useCallback, useContext, useMemo, useRef, useState} from 'react';
+import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 
 type TabSelectionsState = {
   selections: ReadonlyMap<string, string>;
-  setSelection: (key: string, label: string) => void;
+  setSelection: (key: string, value: string) => void;
 };
 
 const TabRegistryContext = createContext<TabSelectionsState | null>(null);
@@ -57,10 +57,10 @@ export function TabSelectionScope({children}: {children: React.ReactNode}) {
     () => new Map()
   );
 
-  const setSelection = useCallback((key: string, label: string) => {
+  const setSelection = useCallback((key: string, value: string) => {
     setSelections(prev => {
       const next = new Map(prev);
-      next.set(key, label);
+      next.set(key, value);
       return next;
     });
   }, []);
@@ -87,24 +87,21 @@ export function useRegisteredTabSelection(
   const stepIndex = useContext(StepIndexContext);
   const key = deriveTabKey(tabs, stepIndex);
 
-  // Derive selected value from provider state
-  const storedLabel = ctx?.selections.get(key);
-  const selectedTab = storedLabel
-    ? (tabs.find(t => t.label === storedLabel) ?? tabs[0]!)
-    : tabs[0]!;
-
-  const tabsRef = useRef(tabs);
-  tabsRef.current = tabs;
+  // value === label (set in defaultRenderers.tsx), so we store and
+  // return values directly without conversion.
+  const storedValue = ctx?.selections.get(key);
+  const selectedValue = storedValue
+    ? (tabs.find(t => t.value === storedValue)?.value ?? tabs[0]!.value)
+    : tabs[0]!.value;
 
   const setValue = useCallback(
     (newValue: string) => {
-      const tab = tabsRef.current.find(t => t.value === newValue) ?? tabsRef.current[0]!;
-      ctx?.setSelection(key, tab.label);
+      ctx?.setSelection(key, newValue);
     },
     [ctx, key]
   );
 
-  return [selectedTab.value, setValue];
+  return [selectedValue, setValue];
 }
 
 /**
