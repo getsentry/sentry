@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -46,6 +47,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import useRouter from 'sentry/utils/useRouter';
 import type {DataState} from 'sentry/views/profiling/useLandingAnalytics';
 import {getProfileTargetId} from 'sentry/views/profiling/utils';
 
@@ -85,6 +87,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   widgetHeight,
   onDataState,
 }: SlowestFunctionsWidgetProps<F>) {
+  const router = useRouter();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -92,7 +95,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
 
   useEffect(() => {
     setSortFunction(DEFAULT_SORTING_OPTION);
-  }, [breakdownFunction, setSortFunction]);
+  }, [breakdownFunction, setSortFunction, router, cursorName]);
 
   // strip the parenthesis to stay consistent in analytics
   const analyticsSource = breakdownFunction.slice(0, -2);
@@ -126,7 +129,9 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   );
 
   const functionsQuery = useProfileFunctions<FunctionsField>({
-    fields: [...functionsFields, sortFunction],
+    fields: functionsFields.includes(sortFunction as any)
+      ? functionsFields
+      : [...functionsFields, sortFunction],
     referrer: 'api.profiling.suspect-functions.list',
     sort: {
       key: sortFunction,
@@ -203,7 +208,14 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
                 <StyledCompactSelect
                   value={sortFunction}
                   options={WIDGET_SORTING_OPTIONS}
-                  onChange={option => setSortFunction(option.value as SortOption)}
+                  onChange={option => {
+                    setSortFunction(option.value as SortOption);
+                    const newQuery = omit(router.location.query, [cursorName]);
+                    router.replace({
+                      pathname: router.location.pathname,
+                      query: newQuery,
+                    });
+                  }}
                   trigger={triggerProps => (
                     <OverlayTrigger.Button
                       {...triggerProps}
