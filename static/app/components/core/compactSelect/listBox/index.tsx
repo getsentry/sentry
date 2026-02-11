@@ -49,6 +49,12 @@ interface ListBoxProps<T extends ObjectLike>
   listState: ListState<T>;
   children?: CollectionChildren<T>;
   /**
+   * Whether the list is filtered by search query or not.
+   * Used to determine whether to show the size limit message or not.
+   * @deprecated Use searchable instead
+   */
+  hasSearch?: boolean;
+  /**
    * Set of keys that are hidden from the user (e.g. because not matching search query)
    */
   hiddenOptions?: Set<SelectKey>;
