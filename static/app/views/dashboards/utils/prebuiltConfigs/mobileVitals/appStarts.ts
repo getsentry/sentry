@@ -15,7 +15,7 @@ const COLD_START_TABLE_OPERATIONS_CONDITION =
   '!span.description:"Cold Start" !span.description:"Warm Start" !span.description:"Cold App Start" !span.description:"Warm App Start" !span.description:"Initial Frame Render" has:span.description transaction.op:[ui.load,navigation] has:ttid app_start_type:cold span.op:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]';
 
 const WARM_START_TABLE_OPERATIONS_CONDITION =
-  '!span.description:"Cold Start" !span.description:"Warm Start" !span.description:"Cold App Start" !span.description:"Warm App Start" !span.description:"Initial Frame Render" has:span.description transaction.op:[ui.load,navigation] has:ttid app_start_type:warm span.op:[app.start.arm,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]';
+  '!span.description:"Cold Start" !span.description:"Warm Start" !span.description:"Cold App Start" !span.description:"Warm App Start" !span.description:"Initial Frame Render" has:span.description transaction.op:[ui.load,navigation] has:ttid app_start_type:warm span.op:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]';
 
 const avgColdStartsBigNumberWidget: Widget = {
   id: 'avg-cold-starts-big-number',
