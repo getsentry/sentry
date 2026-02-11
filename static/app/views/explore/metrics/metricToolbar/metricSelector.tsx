@@ -132,5 +132,5 @@ export function MetricSelector({
 }
 
 function makeMetricSelectValue(metric: TraceMetric): string {
-  return `${metric.name}||${metric.type}||${metric.unit ?? ''}`;
+  return `${metric.name}||${metric.type}||${metric.unit ?? '-'}`;
 }
