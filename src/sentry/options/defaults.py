@@ -2287,12 +2287,24 @@ register(
     type=Sequence,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When enabled, use segment metrics for ALL orgs in boost low volume transactions.
+register(
+    "dynamic-sampling.transactions.segment-metric.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # List of organization IDs that should be using segment metrics for recalibrate_orgs.
 register(
     "dynamic-sampling.recalibrate_orgs.segment-metric-orgs",
     default=[],
     type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When enabled, use segment metrics for ALL orgs in recalibrate_orgs.
+register(
+    "dynamic-sampling.recalibrate_orgs.segment-metric.enabled",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2303,12 +2315,24 @@ register(
     type=Sequence,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When enabled, use segment metrics for ALL orgs in sliding_window_org.
+register(
+    "dynamic-sampling.sliding_window_org.segment-metric.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # List of organization IDs that should be using segment metrics for boost_low_volume_projects.
 register(
     "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs",
     default=[],
     type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When enabled, use segment metrics for ALL orgs in boost_low_volume_projects.
+register(
+    "dynamic-sampling.boost_low_volume_projects.segment-metric.enabled",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
