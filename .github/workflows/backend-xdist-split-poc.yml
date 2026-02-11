@@ -189,10 +189,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 17
+      MATRIX_INSTANCE_TOTAL: 18
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       # Enable per-worker Snuba database routing
@@ -301,7 +301,7 @@ jobs:
           SELECTED_TESTS_FILE: /tmp/tier2-tests.txt
         run: |
           echo "=== Tier 2: ALL Snuba tests parallel (including relay_integration) ==="
-          echo "Shard ${{ matrix.instance }} of 17, xdist workers: 3"
+          echo "Shard ${{ matrix.instance }} of 18, xdist workers: 3"
           echo "Per-worker: ClickHouse DB + Snuba API + Relay container + Kafka topics"
           echo "Test files: $(wc -l < /tmp/tier2-tests.txt)"
           python3 -b -m pytest \
