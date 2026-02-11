@@ -8,9 +8,6 @@ import {
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 
 import AttributeBreakdownViewerModal from './attributeBreakdownViewerModal';
 
@@ -33,31 +30,6 @@ const stubProps = {
   CloseButton: stubEl,
   closeModal: mockCloseModal,
 };
-
-const defaultQueryParams = new ReadableQueryParams({
-  aggregateCursor: '',
-  aggregateFields: [],
-  aggregateSortBys: [],
-  cursor: '',
-  extrapolate: false,
-  fields: [],
-  mode: Mode.SAMPLES,
-  query: '',
-  sortBys: [],
-});
-
-function Wrapper({children}: {children?: React.ReactNode}) {
-  return (
-    <QueryParamsContextProvider
-      isUsingDefaultFields
-      queryParams={defaultQueryParams}
-      setQueryParams={() => {}}
-      shouldManageFields={false}
-    >
-      {children}
-    </QueryParamsContextProvider>
-  );
-}
 
 describe('AttributeBreakdownViewerModal', () => {
   beforeEach(() => {
@@ -88,8 +60,8 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       expect(screen.getByRole('heading', {name: 'browser.name'})).toBeInTheDocument();
@@ -102,8 +74,8 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       // Total values: 500 + 300 + 200 = 1000, cohortCount = 1000 => 100%
@@ -117,8 +89,8 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       expect(screen.getByText('echarts mock')).toBeInTheDocument();
@@ -131,8 +103,8 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       // Table should have column headers
@@ -159,8 +131,8 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={attributeDistribution}
           cohortCount={cohortCount}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       expect(screen.getByRole('cell', {name: '25%'})).toBeInTheDocument();
@@ -174,8 +146,8 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={cohortCount}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       expect(screen.getByRole('heading', {name: 'browser.name'})).toBeInTheDocument();
@@ -192,8 +164,8 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={attributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       expect(screen.getByRole('heading', {name: 'empty.attribute'})).toBeInTheDocument();
@@ -230,8 +202,8 @@ describe('AttributeBreakdownViewerModal', () => {
           attribute={mockAttribute}
           cohort1Total={mockCohort1Total}
           cohort2Total={mockCohort2Total}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       expect(screen.getByRole('heading', {name: 'browser.name'})).toBeInTheDocument();
@@ -245,8 +217,8 @@ describe('AttributeBreakdownViewerModal', () => {
           attribute={mockAttribute}
           cohort1Total={mockCohort1Total}
           cohort2Total={mockCohort2Total}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       // Cohort 1: (500 + 300) / 800 = 100%
@@ -262,8 +234,8 @@ describe('AttributeBreakdownViewerModal', () => {
           attribute={mockAttribute}
           cohort1Total={mockCohort1Total}
           cohort2Total={mockCohort2Total}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       expect(screen.getByText('echarts mock')).toBeInTheDocument();
@@ -277,8 +249,8 @@ describe('AttributeBreakdownViewerModal', () => {
           attribute={mockAttribute}
           cohort1Total={mockCohort1Total}
           cohort2Total={mockCohort2Total}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       // Table should have column headers
@@ -301,8 +273,8 @@ describe('AttributeBreakdownViewerModal', () => {
           attribute={mockAttribute}
           cohort1Total={mockCohort1Total}
           cohort2Total={mockCohort2Total}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       // Table should have attribute values
@@ -319,8 +291,8 @@ describe('AttributeBreakdownViewerModal', () => {
           attribute={mockAttribute}
           cohort1Total={0}
           cohort2Total={0}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       expect(screen.getByRole('heading', {name: 'browser.name'})).toBeInTheDocument();
@@ -339,8 +311,8 @@ describe('AttributeBreakdownViewerModal', () => {
           }}
           cohort1Total={mockCohort1Total}
           cohort2Total={mockCohort2Total}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       expect(screen.getByRole('heading', {name: 'empty.attribute'})).toBeInTheDocument();
@@ -366,8 +338,8 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       const cells = screen.getAllByRole('cell');
@@ -390,8 +362,8 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       const cells = screen.getAllByRole('cell');
@@ -408,8 +380,8 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       const cells = screen.getAllByRole('cell');
@@ -432,8 +404,8 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       const cells = screen.getAllByRole('cell');
@@ -457,8 +429,8 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       const cells = screen.getAllByRole('cell');
@@ -489,8 +461,8 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       const cells = screen.getAllByRole('cell');
@@ -531,8 +503,8 @@ describe('AttributeBreakdownViewerModal', () => {
           attribute={mockAttribute}
           cohort1Total={800}
           cohort2Total={750}
-        />,
-        {additionalWrapper: Wrapper}
+          query=""
+        />
       );
 
       const cells = screen.getAllByRole('cell');
