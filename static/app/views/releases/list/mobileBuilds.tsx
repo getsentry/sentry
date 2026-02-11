@@ -55,14 +55,8 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
       query.cursor = cursor;
     }
 
-    const sizeStateFilter =
-      activeDisplay === PreprodBuildsDisplay.SIZE ? '!size_state:not_ran' : '';
-    const combinedQuery = [searchQuery?.trim(), sizeStateFilter]
-      .filter(Boolean)
-      .join(' ');
-
-    if (combinedQuery) {
-      query.query = combinedQuery;
+    if (searchQuery?.trim()) {
+      query.query = searchQuery.trim();
     }
 
     // Add project filter for multi-project endpoint
@@ -71,7 +65,7 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
     }
 
     return query;
-  }, [activeDisplay, cursor, location, searchQuery, selectedProjectIds]);
+  }, [cursor, location, searchQuery, selectedProjectIds]);
 
   const {
     data: buildsData,

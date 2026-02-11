@@ -700,7 +700,7 @@ describe('ReleasesList', () => {
           query: expect.objectContaining({
             per_page: 25,
             statsPeriod: '14d',
-            query: 'sha:abcdef1 !size_state:not_ran',
+            query: 'sha:abcdef1',
           }),
         })
       )
@@ -720,7 +720,7 @@ describe('ReleasesList', () => {
           query: expect.objectContaining({
             per_page: 25,
             statsPeriod: '14d',
-            query: 'sha:abcdef1 branch:main !size_state:not_ran',
+            query: 'sha:abcdef1 branch:main',
           }),
         })
       )
