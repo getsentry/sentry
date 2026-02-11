@@ -1,17 +1,36 @@
 /**
- * Simple module-level store for tracking the currently selected code tab
- * (e.g. "npm", "yarn", "pnpm") across onboarding code snippets.
+ * Registration-based store for tracking selected code tabs across
+ * onboarding code snippets.
  *
- * Avoids React context so consumers don't need a wrapping provider,
- * keeping diffs minimal when adding the Copy as Markdown button.
+ * Each TabbedCodeSnippet registers a getter via useEffect on mount.
+ * Registration order matches React render order (tree-order, depth-first),
+ * which aligns with the order stepsToMarkdown iterates content blocks.
+ * This lets us do positional matching without keys or labels.
  */
 
-let _selectedTab: string | null = null;
+type TabSelectionGetter = () => string;
 
-export function getSelectedCodeTab(): string | null {
-  return _selectedTab;
+const _registrations: TabSelectionGetter[] = [];
+
+/**
+ * Register a getter that returns the currently selected tab label.
+ * Called by TabbedCodeSnippet on mount. Returns a cleanup function
+ * that removes the registration on unmount.
+ */
+export function registerTabSelection(getter: TabSelectionGetter): () => void {
+  _registrations.push(getter);
+  return () => {
+    const idx = _registrations.indexOf(getter);
+    if (idx !== -1) {
+      _registrations.splice(idx, 1);
+    }
+  };
 }
 
-export function setSelectedCodeTab(tab: string): void {
-  _selectedTab = tab;
+/**
+ * Collect all current tab selections in registration (render) order.
+ * Called by OnboardingCopyMarkdownButton at click time.
+ */
+export function getTabSelections(): string[] {
+  return _registrations.map(fn => fn());
 }

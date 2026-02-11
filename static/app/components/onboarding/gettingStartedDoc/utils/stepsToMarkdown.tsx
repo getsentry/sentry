@@ -180,7 +180,17 @@ export function reactNodeToText(node: React.ReactNode): string {
 
 interface MarkdownOptions {
   authToken?: string;
+  /**
+   * Per-block tab selection. Used when calling contentBlockToMarkdown directly
+   * (e.g. in tests). For full step conversion, use `tabSelections` instead.
+   */
   selectedTabLabel?: string;
+  /**
+   * Ordered list of selected tab labels, one per TabbedCodeSnippet instance.
+   * Consumed positionally by stepsToMarkdown to build a per-block selection map.
+   * Obtained from getTabSelections() at click time.
+   */
+  tabSelections?: string[];
 }
 
 const AUTH_TOKEN_PLACEHOLDER = '___ORG_AUTH_TOKEN___';
@@ -193,11 +203,57 @@ function replaceAuthToken(code: string, options?: MarkdownOptions): string {
 }
 
 /**
+ * Walks content blocks in iteration order, assigning tab selections
+ * positionally from the ordered selections array. Recurses into
+ * conditional blocks (when condition is true) to match React's
+ * render order.
+ */
+function assignTabSelections(
+  blocks: ContentBlock[],
+  selections: string[],
+  counter: {current: number},
+  result: Map<ContentBlock, string>
+): void {
+  for (const block of blocks) {
+    if (block.type === 'code' && 'tabs' in block && block.tabs) {
+      if (counter.current < selections.length) {
+        result.set(block, selections[counter.current]!);
+        counter.current++;
+      }
+    } else if (block.type === 'conditional' && block.condition) {
+      assignTabSelections(block.content, selections, counter, result);
+    }
+  }
+}
+
+function renderTabbedCodeBlock(
+  tabs: Array<{code: string; label: string; language: string; filename?: string}>,
+  selectedLabel: string | undefined,
+  options?: MarkdownOptions
+): string {
+  const matchedTab = selectedLabel
+    ? tabs.find(tab => tab.label === selectedLabel)
+    : undefined;
+
+  const tab = matchedTab ?? tabs[0]!;
+  const filenameComment = tab.filename ? `// ${tab.filename}\n` : '';
+  return replaceAuthToken(
+    `\`\`\`${tab.language}\n${filenameComment}${tab.code}\n\`\`\``,
+    options
+  );
+}
+
+/**
  * Converts a single ContentBlock to markdown text.
+ *
+ * When called from stepsToMarkdown, a tabSelectionMap is provided for
+ * per-block tab lookups. When called directly (e.g. tests), use
+ * options.selectedTabLabel instead.
  */
 export function contentBlockToMarkdown(
   block: ContentBlock,
-  options?: MarkdownOptions
+  options?: MarkdownOptions,
+  tabSelectionMap?: ReadonlyMap<ContentBlock, string>
 ): string {
   switch (block.type) {
     case 'text':
@@ -205,28 +261,8 @@ export function contentBlockToMarkdown(
 
     case 'code': {
       if ('tabs' in block && block.tabs) {
-        // If a specific tab is selected, output only that tab
-        const matchedTab = options?.selectedTabLabel
-          ? block.tabs.find(tab => tab.label === options.selectedTabLabel)
-          : undefined;
-
-        if (matchedTab) {
-          const filenameComment = matchedTab.filename
-            ? `// ${matchedTab.filename}\n`
-            : '';
-          return replaceAuthToken(
-            `\`\`\`${matchedTab.language}\n${filenameComment}${matchedTab.code}\n\`\`\``,
-            options
-          );
-        }
-
-        // Default: output only the first tab (what the user sees by default)
-        const firstTab = block.tabs[0]!;
-        const filenameComment = firstTab.filename ? `// ${firstTab.filename}\n` : '';
-        return replaceAuthToken(
-          `\`\`\`${firstTab.language}\n${filenameComment}${firstTab.code}\n\`\`\``,
-          options
-        );
+        const selectedLabel = tabSelectionMap?.get(block) ?? options?.selectedTabLabel;
+        return renderTabbedCodeBlock(block.tabs, selectedLabel, options);
       }
       // Single code block
       const singleBlock = block as Extract<ContentBlock, {type: 'code'}> & {
@@ -255,7 +291,7 @@ export function contentBlockToMarkdown(
         return '';
       }
       return block.content
-        .map(b => contentBlockToMarkdown(b, options))
+        .map(b => contentBlockToMarkdown(b, options, tabSelectionMap))
         .filter(Boolean)
         .join('\n\n');
 
@@ -287,11 +323,22 @@ export function stepsToMarkdown(
   steps: OnboardingStep[],
   options?: MarkdownOptions
 ): string {
+  // Pre-build a per-block selection map from the ordered tab selections.
+  // This walks blocks in the same order that React renders TabbedCodeSnippet
+  // instances, so positional matching aligns correctly.
+  const tabMap = new Map<ContentBlock, string>();
+  if (options?.tabSelections?.length) {
+    const counter = {current: 0};
+    for (const step of steps) {
+      assignTabSelections(step.content, options.tabSelections, counter, tabMap);
+    }
+  }
+
   return steps
     .map(step => {
       const heading = `## ${stepTitle(step)}`;
       const body = step.content
-        .map(b => contentBlockToMarkdown(b, options))
+        .map(b => contentBlockToMarkdown(b, options, tabMap))
         .filter(Boolean)
         .join('\n\n');
       return `${heading}\n\n${body}`;

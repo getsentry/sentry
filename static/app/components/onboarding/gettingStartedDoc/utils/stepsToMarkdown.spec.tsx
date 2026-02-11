@@ -453,7 +453,7 @@ describe('stepsToMarkdown', () => {
     expect(result).toContain('- flask\n- django\n- celery');
   });
 
-  it('passes selectedTabLabel option through to content blocks', () => {
+  it('uses tabSelections positionally to select tabs', () => {
     const steps: OnboardingStep[] = [
       {
         type: StepType.INSTALL,
@@ -469,9 +469,53 @@ describe('stepsToMarkdown', () => {
       },
     ];
 
-    const result = stepsToMarkdown(steps, {selectedTabLabel: 'yarn'});
+    const result = stepsToMarkdown(steps, {tabSelections: ['yarn']});
     expect(result).toContain('```bash\nyarn add @sentry/node\n```');
     expect(result).not.toContain('npm install');
+  });
+
+  it('uses tabSelections for multiple tabbed blocks independently', () => {
+    const steps: OnboardingStep[] = [
+      {
+        type: StepType.INSTALL,
+        content: [
+          {
+            type: 'code',
+            tabs: [
+              {code: 'npm install @sentry/node', language: 'bash', label: 'npm'},
+              {code: 'yarn add @sentry/node', language: 'bash', label: 'yarn'},
+            ],
+          },
+        ],
+      },
+      {
+        type: StepType.CONFIGURE,
+        content: [
+          {
+            type: 'code',
+            tabs: [
+              {
+                code: 'import * as Sentry from "@sentry/node"',
+                language: 'javascript',
+                label: 'ESM',
+              },
+              {
+                code: 'const Sentry = require("@sentry/node")',
+                language: 'javascript',
+                label: 'CJS',
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    // First selection for install tabs, second for configure tabs
+    const result = stepsToMarkdown(steps, {tabSelections: ['yarn', 'CJS']});
+    expect(result).toContain('yarn add @sentry/node');
+    expect(result).not.toContain('npm install');
+    expect(result).toContain('const Sentry = require("@sentry/node")');
+    expect(result).not.toContain('import * as Sentry');
   });
 
   it('skips false conditional blocks', () => {
