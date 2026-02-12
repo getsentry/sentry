@@ -16,7 +16,7 @@ DEFAULT_MAX_COMMITS = 30
 
 def detect_base_ref() -> str:
     result = subprocess.run(
-        ["git", "rev-parse", "--verify", "origin/master"],
+        ["git", "merge-base", "origin/master", "HEAD"],
         capture_output=True,
         text=True,
         check=False,
@@ -24,7 +24,7 @@ def detect_base_ref() -> str:
     if result.returncode == 0:
         return result.stdout.strip()
 
-    print("Error: Could not find origin/master", file=sys.stderr)
+    print("Error: Could not find merge-base with origin/master", file=sys.stderr)
     print("Make sure you have fetched from the remote (git fetch origin)", file=sys.stderr)
     sys.exit(1)
 

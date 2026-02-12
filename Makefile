@@ -168,7 +168,7 @@ test-selective:
 		--output .cache/coverage.db
 	python3 .github/workflows/scripts/selective-testing/compute-selected-tests.py \
 		--coverage-db .cache/coverage.db \
-		--changed-files "$$(git diff --name-only origin/master)" \
+		--changed-files "$$(git diff --name-only $$(git merge-base origin/master HEAD))" \
 		--output .cache/selected-tests.txt
 	python3 .github/workflows/scripts/selective-testing/confirm-test-selection.py \
 		.cache/selected-tests.txt
