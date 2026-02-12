@@ -644,3 +644,26 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         # When unit is "-", the units value should be null
         assert "units" in meta, "meta should contain 'units' key"
         assert meta["units"]["sum(value,request_count,counter,-)"] is None
+
+    def test_tracemetric_value_tracks_unit(self) -> None:
+        self.store_trace_metrics(
+            [
+                self.create_trace_metric(
+                    metric_name="test_metric",
+                    metric_value=1.0,
+                    metric_type="counter",
+                    metric_unit="millisecond",
+                )
+            ]
+        )
+        response = self.do_request(
+            {
+                "field": ["value"],
+                "project": self.project.id,
+                "dataset": "tracemetrics",
+                "query": "metric.name:test_metric metric.type:counter metric.unit:millisecond",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["value"] == 1.0
+        assert response.data["meta"]["units"]["value"] == "millisecond"

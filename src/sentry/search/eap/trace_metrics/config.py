@@ -5,7 +5,12 @@ from rest_framework.request import Request
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap.columns import ResolvedTraceMetricAggregate, ResolvedTraceMetricFormula
+from sentry.search.eap import constants
+from sentry.search.eap.columns import (
+    ResolvedAttribute,
+    ResolvedTraceMetricAggregate,
+    ResolvedTraceMetricFormula,
+)
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.rpc_utils import or_trace_item_filters
 from sentry.search.eap.trace_metrics.types import TraceMetric, TraceMetricType
@@ -32,6 +37,10 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
             search_resolver, selected_columns, equations
         ):
             return extra_conditions
+
+        # After the initial resolution, override the value search type based on
+        # the metric unit in the query if it exists
+        self._override_value_search_type_from_query(search_resolver)
 
         return None
 
@@ -79,6 +88,12 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
                 "Cannot aggregate all metrics and singlular metrics in the same query."
             )
 
+        # override the value column's search_type based on the discovered metric unit
+        for metric in selected_metrics:
+            if metric.metric_unit:
+                self._override_value_search_type(search_resolver, metric.metric_unit)
+                break
+
         # at this point we only have selected metrics remaining
         filters = [metric.get_filter() for metric in selected_metrics]
         return or_trace_item_filters(*filters)
@@ -89,7 +104,33 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
     ) -> TraceItemFilter | None:
         if self.metric is None:
             return None
+        if self.metric.metric_unit:
+            self._override_value_search_type(search_resolver, self.metric.metric_unit)
         return self.metric.get_filter()
+
+    def _override_value_search_type(
+        self,
+        search_resolver: SearchResolver,
+        metric_unit: str,
+    ) -> None:
+        if metric_unit not in constants.DURATION_TYPE | constants.SIZE_TYPE:
+            return
+        search_resolver._resolved_attribute_cache["value"] = (
+            ResolvedAttribute(
+                public_alias="value",
+                internal_name="sentry.value",
+                search_type=cast(constants.SearchType, metric_unit),
+            ),
+            None,
+        )
+
+    def _override_value_search_type_from_query(
+        self,
+        search_resolver: SearchResolver,
+    ) -> None:
+        metric_unit = search_resolver._search_filter_values.get("sentry.metric_unit")
+        if isinstance(metric_unit, str):
+            self._override_value_search_type(search_resolver, metric_unit)
 
 
 ALLOWED_METRIC_TYPES: list[TraceMetricType] = ["counter", "gauge", "distribution"]

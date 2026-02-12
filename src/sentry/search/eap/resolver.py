@@ -86,6 +86,7 @@ class SearchResolver:
             VirtualColumnDefinition | None,
         ],
     ] = field(default_factory=dict)
+    _search_filter_values: dict[str, str | list[str]] = field(default_factory=dict)
 
     def get_function_definition(
         self, function_name: str
@@ -452,6 +453,18 @@ class SearchResolver:
         resolved_column, context_definition = self.resolve_column(term.key.name)
 
         value = term.value.value
+
+        # Cache search filter values that are strict equality comparisons
+        # for datasets, such as tracemetrics, where certain query values may
+        # affect the search type of another column. e.g. value's type is affected
+        # by the metric.unit filter
+        if (
+            isinstance(resolved_column, ResolvedAttribute)
+            and term.operator == "="
+            and isinstance(value, str)
+        ):
+            self._search_filter_values[resolved_column.internal_name] = value
+
         if self.params.is_timeseries_request and context_definition is not None:
             resolved_column, value = self.map_search_term_context_to_original_column(
                 term, context_definition
