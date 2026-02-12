@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -27,7 +28,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         "environment": "prod",
     }
 
-    def create_new_group_event(self, fingerprint):
+    def create_new_group_event(self, fingerprint: str) -> tuple[Any, Any]:
         event = self.store_event(data={"fingerprint": [fingerprint]}, project_id=self.project.id)
         group = event.group
         group_event = self.event.for_group(group)

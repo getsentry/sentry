@@ -146,8 +146,9 @@ def group_categories_from_search_filters(
 
     if not group_categories:
         group_categories = set(get_search_strategies().keys())
-        # if we're not searching for feedbacks, then hide them by default
+        # Hide certain categories from the default issue stream
         group_categories.discard(GroupCategory.FEEDBACK.value)
+        group_categories.discard(GroupCategory.INSTRUMENTATION.value)
 
     if not features.has("organizations:performance-issues-search", organization):
         group_categories.discard(GroupCategory.PERFORMANCE.value)
@@ -371,7 +372,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             pinned_query_partial,
             selected_columns,
             aggregations,
-            organization.id,
+            organization,
             project_ids,
             environments,
             group_ids,
@@ -920,10 +921,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # If we had too_many_candidates, fall back to truncation instead of
             # returning empty. This handles selective filters (like assigned_to)
             # where random sampling is unlikely to find matches.
-            is_truncation_enabled = options.get(
-                "snuba.search.truncate-group-ids-for-selective-filters-enabled"
-            )
-            if too_many_candidates and original_group_ids and is_truncation_enabled:
+            if too_many_candidates and original_group_ids:
                 metrics.incr("snuba.search.hits_zero_fallback_to_truncation", skip_internal=False)
                 group_ids = original_group_ids[:max_candidates]
                 too_many_candidates = False

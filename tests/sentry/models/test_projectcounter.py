@@ -308,7 +308,7 @@ def test_preallocation_end_to_end(default_project) -> None:
     assert redis.llen(redis_key) == calculate_cached_id_block_size(2) - 1
     assert redis.lpop(redis_key) == "3"
 
-    # see the the database value is still the same since we didn't refill
+    # see the database value is still the same since we didn't refill
     assert Counter.objects.get(
         project_id=default_project.id
     ).value == 1 + calculate_cached_id_block_size(1)

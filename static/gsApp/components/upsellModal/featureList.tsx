@@ -96,8 +96,8 @@ const CountdownRing = withTheme(({theme, id, totalTime}: CountdownRingProps) => 
         value={timeLeft}
         barWidth={2}
         size={14}
-        backgroundColor={theme.gray100}
-        progressColor={theme.gray200}
+        backgroundColor={theme.colors.gray100}
+        progressColor={theme.colors.gray200}
       />
     </RingContainer>
   );

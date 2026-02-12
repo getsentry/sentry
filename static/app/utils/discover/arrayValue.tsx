@@ -57,7 +57,9 @@ const ArrayItem = styled('span')`
   flex-shrink: 1;
   display: block;
 
-  ${p => p.theme.overflowEllipsis};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: unset;
 `;
 

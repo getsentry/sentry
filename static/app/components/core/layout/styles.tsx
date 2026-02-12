@@ -15,28 +15,35 @@ export function rc<T>(
   value: Responsive<T> | undefined,
   theme: Theme,
   // Optional resolver function to transform the value before it is applied to the CSS property.
-  resolver?: (value: T, breakpoint: BreakpointSize | undefined, theme: Theme) => string
+  resolver?: (
+    value: T | undefined,
+    breakpoint: BreakpointSize | undefined,
+    theme: Theme
+  ) => string | undefined
 ): SerializedStyles | undefined {
-  if (!value) {
-    return undefined;
-  }
-
   // Most values are unlikely to be responsive, so we can resolve
   // them directly and return early.
   if (!isResponsive(value)) {
+    const resolvedValue = resolver ? resolver(value, undefined, theme) : value;
+
+    // A resolver can return undefined to indicate that the value should be omitted.
+    if (resolvedValue === undefined) {
+      return undefined;
+    }
+
     return css`
-      ${property}: ${resolver
-        ? resolver(value as T, undefined, theme)
-        : (value as string)};
+      ${property}: ${resolvedValue as string};
     `;
   }
 
   let first = true;
-
   return css`
     ${BREAKPOINT_ORDER.map(breakpoint => {
       const v = value[breakpoint];
-      if (v === undefined) {
+      const resolvedValue = resolver ? resolver(v, breakpoint, theme) : v;
+
+      // A resolver can return undefined to indicate that the value should be omitted.
+      if (resolvedValue === undefined) {
         return undefined;
       }
 
@@ -67,7 +74,7 @@ const BREAKPOINT_ORDER: readonly BreakpointSize[] = [
   'lg',
   'xl',
   '2xl',
-];
+] as const;
 
 /**
  * Prefer using padding or gap instead.
@@ -85,7 +92,7 @@ export type Shorthand<T extends string, N extends 4 | 2> = N extends 4
 
 export type Responsive<T> = T | Partial<Record<BreakpointSize, T>>;
 
-function isResponsive(prop: unknown): prop is Record<BreakpointSize, any> {
+function isResponsive(prop: unknown): prop is Partial<Record<BreakpointSize, any>> {
   return typeof prop === 'object' && prop !== null;
 }
 
@@ -139,10 +146,14 @@ function borderValue(key: BorderVariant, theme: Theme): string {
 }
 
 export function getBorder(
-  border: BorderVariant,
+  border: BorderVariant | undefined,
   _breakpoint: BreakpointSize | undefined,
   theme: Theme
-) {
+): string | undefined {
+  if (border === undefined) {
+    return undefined;
+  }
+
   return border
     .split(' ')
     .map(b => `1px solid ${borderValue(b as BorderVariant, theme)}`)
@@ -150,10 +161,14 @@ export function getBorder(
 }
 
 export function getRadius(
-  radius: Shorthand<RadiusSize, 4>,
+  radius: Shorthand<RadiusSize, 4> | undefined,
   _breakpoint: BreakpointSize | undefined,
   theme: Theme
-) {
+): string | undefined {
+  if (radius === undefined) {
+    return undefined;
+  }
+
   if (radius.length < 3) {
     // This can only be a single radius value, so we can resolve it directly.
     return resolveRadius(radius as RadiusSize, theme) as string;
@@ -166,10 +181,14 @@ export function getRadius(
 }
 
 export function getSpacing(
-  spacing: Shorthand<SpaceSize, 4>,
+  spacing: Shorthand<SpaceSize, 4> | undefined,
   _breakpoint: BreakpointSize | undefined,
   theme: Theme
-): string {
+): string | undefined {
+  if (spacing === undefined) {
+    return undefined;
+  }
+
   if (spacing.length < 3) {
     // This can only be a single spacing value, so we can resolve it directly.
     return resolveSpacing(spacing as SpaceSize, theme) as string;
@@ -182,10 +201,14 @@ export function getSpacing(
 }
 
 export function getMargin(
-  margin: Shorthand<Margin, 4>,
+  margin: Shorthand<Margin, 4> | undefined,
   _breakpoint: BreakpointSize | undefined,
   theme: Theme
 ) {
+  if (margin === undefined) {
+    return undefined;
+  }
+
   if (margin.length < 3) {
     // This can only be a single margin value, so we can resolve it directly.
     return resolveMargin(margin as Margin, theme) as string;
@@ -210,7 +233,7 @@ export function useResponsivePropValue<T extends Responsive<any>>(
 
   // Only resolve the active breakpoint if the prop is responsive, else ignore it.
   if (!isResponsive(prop)) {
-    return prop as ResponsiveValue<T>;
+    return prop as unknown as ResponsiveValue<T>;
   }
 
   if (Object.keys(prop).length === 0) {

@@ -2,11 +2,13 @@ import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {EventTags} from 'sentry/components/events/eventTags';
@@ -22,10 +24,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -160,7 +162,18 @@ function EventDisplay({
   const eventIds = data?.data.map(({id}) => id);
 
   const {data: eventData, isFetching} = useApiQuery<EventTransaction>(
-    [`/organizations/${organization.slug}/events/${project.slug}:${selectedEventId}/`],
+    [
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project.slug,
+            eventId: selectedEventId,
+          },
+        }
+      ),
+    ],
     {staleTime: Infinity, retry: false, enabled: !!selectedEventId && !!project.slug}
   );
 
@@ -203,9 +216,9 @@ function EventDisplay({
     organization,
   });
   return (
-    <EventDisplayContainer>
+    <Stack gap="md">
       <div>
-        <StyledControlBar>
+        <Flex justify="between">
           <StyledEventControls>
             <CompactSelect
               size="sm"
@@ -217,18 +230,20 @@ function EventDisplay({
               }))}
               value={selectedEventId}
               onChange={({value}) => setSelectedEventId(value)}
-              triggerProps={{
-                children: (
-                  <ButtonLabelWrapper>
-                    <TextOverflow>
-                      {eventSelectLabel}:{' '}
-                      <SelectionTextWrapper>
-                        {getShortEventId(selectedEventId)}
-                      </SelectionTextWrapper>
-                    </TextOverflow>
-                  </ButtonLabelWrapper>
-                ),
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button {...triggerProps}>
+                  {
+                    <ButtonLabelWrapper>
+                      <TextOverflow>
+                        {eventSelectLabel}:{' '}
+                        <SelectionTextWrapper>
+                          {getShortEventId(selectedEventId)}
+                        </SelectionTextWrapper>
+                      </TextOverflow>
+                    </ButtonLabelWrapper>
+                  }
+                </OverlayTrigger.Button>
+              )}
             />
             <LinkButton
               title={t('Full Event Details')}
@@ -262,7 +277,7 @@ function EventDisplay({
               />
             </NavButtons>
           </div>
-        </StyledControlBar>
+        </Flex>
         <ComparisonContentWrapper>
           <Link to={fullEventTarget}>
             <MinimapContainer>
@@ -289,17 +304,11 @@ function EventDisplay({
       </div>
 
       <EventTags event={eventData} projectSlug={project.slug} />
-    </EventDisplayContainer>
+    </Stack>
   );
 }
 
 export {EventDisplay};
-
-const EventDisplayContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-direction: column;
-`;
 
 const ButtonLabelWrapper = styled('span')`
   width: 100%;
@@ -307,11 +316,6 @@ const ButtonLabelWrapper = styled('span')`
   align-items: center;
   display: inline-grid;
   grid-template-columns: 1fr auto;
-`;
-
-const StyledControlBar = styled('div')`
-  display: flex;
-  justify-content: space-between;
 `;
 
 const StyledEventControls = styled('div')`
@@ -353,7 +357,7 @@ const EmptyStateWrapper = styled('div')`
 `;
 
 const SelectionTextWrapper = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const StyledNavButton = styled(Button)`

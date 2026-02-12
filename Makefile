@@ -89,7 +89,7 @@ build-chartcuterie-config:
 
 run-acceptance:
 	@echo "--> Running acceptance tests"
-	python3 -b -m pytest tests/acceptance --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log --junit-xml=".artifacts/acceptance.junit.xml" -o junit_suite_name=acceptance
+	python3 -b -m pytest tests/acceptance --reuse-db --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log --junit-xml=".artifacts/acceptance.junit.xml" -o junit_suite_name=acceptance
 	@echo ""
 
 test-cli: create-db
@@ -123,6 +123,7 @@ test-python-ci:
 	@echo "--> Running CI Python tests"
 	python3 -b -m pytest \
 		tests \
+		--reuse-db \
 		--ignore tests/acceptance \
 		--ignore tests/apidocs \
 		--ignore tests/js \
@@ -132,6 +133,33 @@ test-python-ci:
 		--json-report-omit=log \
 		--junit-xml=.artifacts/pytest.junit.xml \
 		-o junit_suite_name=pytest
+	@echo ""
+
+test-backend-ci-with-coverage:
+	@echo "--> Running CI Python tests with coverage"
+	python3 -b -m pytest \
+		tests \
+		--reuse-db \
+		--ignore tests/acceptance \
+		--ignore tests/apidocs \
+		--ignore tests/js \
+		--ignore tests/tools \
+		--cov . \
+		--cov-context=test \
+		--json-report \
+		--json-report-file=".artifacts/pytest.json" \
+		--json-report-omit=log \
+		--junit-xml=.artifacts/pytest.junit.xml \
+		-o junit_suite_name=pytest
+	@echo ""
+
+compute-selected-tests:
+	@echo "--> Computing selected tests from coverage data"
+	python3 .github/workflows/scripts/compute-selected-tests.py \
+		--coverage-db "$(COVERAGE_DB)" \
+		--changed-files "$(CHANGED_FILES)" \
+		--output .artifacts/selected-tests.txt \
+		--github-output
 	@echo ""
 
 # it's not possible to change settings.DATABASE after django startup, so
@@ -148,6 +176,7 @@ test-monolith-dbs:
 	  tests/sentry/backup/test_exports.py \
 	  tests/sentry/backup/test_imports.py \
 	  tests/sentry/runner/commands/test_backup.py \
+	  --reuse-db \
 	  --json-report \
 	  --json-report-file=".artifacts/pytest.monolith-dbs.json" \
 	  --json-report-omit=log \
@@ -159,16 +188,16 @@ test-monolith-dbs:
 test-tools:
 	@echo "--> Running tools tests"
 	@# bogus configuration to force vanilla pytest
-	python3 -b -m pytest -c setup.cfg --confcutdir tests/tools tests/tools -vv --junit-xml=.artifacts/tools.junit.xml -o junit_suite_name=tools
+	python3 -b -m pytest -c setup.cfg --confcutdir tests/tools tests/tools --reuse-db -vv --junit-xml=.artifacts/tools.junit.xml -o junit_suite_name=tools
 	@echo ""
 
 # JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.
 # Running Locally: Run `devservices up` before starting these tests
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
-	python3 -b -m pytest tests/symbolicator -vv --junit-xml=.artifacts/symbolicator.junit.xml -o junit_suite_name=symbolicator
-	python3 -b -m pytest tests/relay_integration/lang/javascript/ -vv -m symbolicator
-	python3 -b -m pytest tests/relay_integration/lang/java/ -vv -m symbolicator
+	python3 -b -m pytest tests/symbolicator --reuse-db -vv --junit-xml=.artifacts/symbolicator.junit.xml -o junit_suite_name=symbolicator
+	python3 -b -m pytest tests/relay_integration/lang/javascript/ --reuse-db -vv -m symbolicator
+	python3 -b -m pytest tests/relay_integration/lang/java/ --reuse-db -vv -m symbolicator
 	@echo ""
 
 test-acceptance:
@@ -182,12 +211,13 @@ test-relay-integration:
 	python3 -b -m pytest \
 		tests/relay_integration \
 		tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
+		--reuse-db \
 		-vv
 	@echo ""
 
 test-api-docs: build-api-docs
 	pnpm run validate-api-examples
-	python3 -b -m pytest tests/apidocs
+	python3 -b -m pytest tests/apidocs --reuse-db
 	@echo ""
 
 review-python-snapshots:

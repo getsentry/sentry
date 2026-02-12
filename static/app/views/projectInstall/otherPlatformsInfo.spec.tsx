@@ -83,7 +83,7 @@ describe('OtherPlatformsInfo', () => {
     expect(screen.getByText(/No DSN found for this project/)).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'project settings'})).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/settings/projects/test-project/keys/`
+      `/settings/${organization.slug}/projects/test-project/keys/`
     );
   });
 });

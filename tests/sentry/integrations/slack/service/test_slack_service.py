@@ -23,7 +23,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
@@ -207,7 +206,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
     )
     @mock.patch(
-        "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification"
+        "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification_notification_action"
     )
     def test_calls_handle_parent_notification(
         self, mock_get_channel_id, mock_send_notification, mock_record
@@ -231,7 +230,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
     )
     @mock.patch(
-        "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification"
+        "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification_notification_action"
     )
     def test_handle_parent_notification_with_open_period(
         self, mock_get_channel_id, mock_send_notification, mock_record
@@ -246,31 +245,23 @@ class TestNotifyAllThreadsForActivity(TestCase):
             data={"ignoreUntilEscalating": True},
         )
 
-        rule_fire_history = RuleFireHistory.objects.create(
-            project=self.project,
-            rule=self.rule,
-            group=group,
-            event_id=456,
-            notification_uuid=str(uuid4()),
-        )
-
         # Create two parent notifications with different open periods
         NotificationMessage.objects.create(
             id=123,
             date_added=timezone.now(),
             message_identifier=self.message_identifier,
-            rule_action_uuid=self.rule_action_uuid,
-            rule_fire_history=rule_fire_history,
+            action=self.action,
             open_period_start=timezone.now() - timedelta(minutes=1),
+            group=group,
         )
 
         parent_notification_2_message = NotificationMessage.objects.create(
             id=124,
             date_added=timezone.now(),
             message_identifier=self.message_identifier,
-            rule_action_uuid=self.rule_action_uuid,
-            rule_fire_history=rule_fire_history,
+            action=self.action,
             open_period_start=timezone.now(),
+            group=group,
         )
 
         self.service.notify_all_threads_for_activity(activity=activity)
@@ -287,7 +278,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
     )
     @mock.patch(
-        "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification"
+        "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification_notification_action"
     )
     def test_handle_parent_notification_with_open_period_model_open_period_model(
         self, mock_get_channel_id, mock_send_notification, mock_record
@@ -302,22 +293,14 @@ class TestNotifyAllThreadsForActivity(TestCase):
             data={"ignoreUntilEscalating": True},
         )
 
-        rule_fire_history = RuleFireHistory.objects.create(
-            project=self.project,
-            rule=self.rule,
-            group=group,
-            event_id=456,
-            notification_uuid=str(uuid4()),
-        )
-
         # Create two parent notifications with different open periods
         NotificationMessage.objects.create(
             id=123,
             date_added=timezone.now(),
             message_identifier=self.message_identifier,
-            rule_action_uuid=self.rule_action_uuid,
-            rule_fire_history=rule_fire_history,
+            action=self.action,
             open_period_start=timezone.now() - timedelta(minutes=1),
+            group=group,
         )
 
         # Create a new open period
@@ -327,9 +310,9 @@ class TestNotifyAllThreadsForActivity(TestCase):
             id=124,
             date_added=timezone.now(),
             message_identifier=self.message_identifier,
-            rule_action_uuid=self.rule_action_uuid,
-            rule_fire_history=rule_fire_history,
+            action=self.action,
             open_period_start=latest_open_period.date_started if latest_open_period else None,
+            group=group,
         )
 
         self.service.notify_all_threads_for_activity(activity=activity)
@@ -346,7 +329,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
     )
     @mock.patch(
-        "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification"
+        "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification_notification_action"
     )
     def test_handle_parent_notification_with_open_period_uptime_resolved(
         self, mock_get_channel_id, mock_send_notification, mock_record
@@ -361,31 +344,23 @@ class TestNotifyAllThreadsForActivity(TestCase):
             data={"ignoreUntilEscalating": True},
         )
 
-        rule_fire_history = RuleFireHistory.objects.create(
-            project=self.project,
-            rule=self.rule,
-            group=group,
-            event_id=456,
-            notification_uuid=str(uuid4()),
-        )
-
         # Create two parent notifications with different open periods
         NotificationMessage.objects.create(
             id=123,
             date_added=timezone.now(),
             message_identifier=self.message_identifier,
-            rule_action_uuid=self.rule_action_uuid,
-            rule_fire_history=rule_fire_history,
+            action=self.action,
             open_period_start=timezone.now() - timedelta(minutes=1),
+            group=group,
         )
 
         parent_notification_2_message = NotificationMessage.objects.create(
             id=124,
             date_added=timezone.now(),
             message_identifier=self.message_identifier,
-            rule_action_uuid=self.rule_action_uuid,
-            rule_fire_history=rule_fire_history,
+            action=self.action,
             open_period_start=timezone.now(),
+            group=group,
         )
 
         self.service.notify_all_threads_for_activity(activity=activity)
@@ -401,6 +376,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
     )
     def test_no_parent_notification(self, mock_send: mock.MagicMock) -> None:
         self.parent_notification.delete()
+        self.parent_notification_action.delete()
         self.service.notify_all_threads_for_activity(activity=self.activity)
         assert not mock_send.called
 
@@ -416,7 +392,6 @@ class TestNotifyAllThreadsForActivity(TestCase):
             self.service.notify_all_threads_for_activity(activity=self.activity)
             mock_notify.assert_called_once()
 
-    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch(
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
@@ -465,8 +440,6 @@ class TestNotifyAllThreadsForActivity(TestCase):
         )
 
     @with_feature("organizations:slack-threads-refactor-uptime")
-    @with_feature("organizations:workflow-engine-single-process-workflows")
-    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [7001]})
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch(
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"

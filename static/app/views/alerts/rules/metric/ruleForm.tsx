@@ -3,8 +3,11 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {ExternalLink} from '@sentry/scraps/link/link';
-import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip/tooltip';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 import type {Indicator} from 'sentry/actionCreators/indicator';
 import {
@@ -17,8 +20,6 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
@@ -63,7 +64,7 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
-import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
+import {getBackendAlertType, isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
@@ -165,6 +166,7 @@ type State = {
   confidence?: Confidence;
   extrapolationMode?: ExtrapolationMode;
   isExtrapolatedChartData?: boolean;
+  isMetricLoading?: boolean;
   seasonality?: AlertRuleSeasonality;
   seriesSamplingInfo?: SeriesSamplingInfo;
 } & DeprecatedAsyncComponent['state'];
@@ -805,12 +807,18 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
         // Add or update is just the PUT/POST to the org alert-rules api
         // we're splatting the full rule in, then overwriting all the data?
+        // Get transformed form data and convert frontend-only alert types to backend equivalents
+        const formData = model.getTransformedData();
+        if (formData.alertType) {
+          formData.alertType = getBackendAlertType(formData.alertType);
+        }
+
         const [data, , resp] = await addOrUpdateRule(
           this.api,
           organization.slug,
           {
             ...rule, // existing rule
-            ...model.getTransformedData(), // form data
+            ...formData, // form data
             projects: [project.slug],
             triggers: sanitizedTriggers,
             resolveThreshold:
@@ -1005,6 +1013,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     this.setState({...updateState, chartError: false, chartErrorMessage: undefined}, () =>
       this.fetchAnomalies()
     );
+  };
+
+  handleMetricLoadingChange = (isLoading: boolean) => {
+    this.setState({isMetricLoading: isLoading});
   };
 
   handleDeleteRule = async () => {
@@ -1254,6 +1266,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         />
       );
     }
+
     const isOnDemand = isOnDemandMetricAlert(dataset, aggregate, query);
 
     let formattedAggregate = aggregate;
@@ -1261,6 +1274,18 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const func = parseFunction(aggregate);
     if (func && isEapAlertType(alertType)) {
       formattedAggregate = prettifyParsedFunction(func);
+    }
+
+    // For trace_item_metrics, show loading until:
+    // - a metric name is selected, OR
+    // - the metric options query finished loading (isMetricLoading === false)
+    // Aggregate format: aggregate(value,metric_name,metric_type,unit)
+    let isPreloading = false;
+    if (alertType === 'trace_item_metrics' && func) {
+      const metricName = func.arguments?.[1] ?? '';
+      const hasMetricSelected = Boolean(metricName);
+      const isMetricQueryDone = this.state.isMetricLoading === false;
+      isPreloading = !hasMetricSelected && !isMetricQueryDone;
     }
 
     const chartProps: ComponentProps<typeof TriggersChart> = {
@@ -1291,6 +1316,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       seriesSamplingInfo,
       traceItemType: traceItemType ?? undefined,
       extrapolationMode,
+      isPreloading,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
@@ -1509,11 +1535,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                     timeWindow={timeWindow}
                     eventTypes={eventTypes}
                     extrapolationMode={extrapolationMode}
+                    onMetricLoadingChange={this.handleMetricLoadingChange}
                   />
 
                   <AlertListItem>
                     {
-                      <HeadingContainer>
+                      <Flex align="center" gap="sm">
                         {t('Set thresholds')}
                         {showExtrapolationModeChangeWarning && (
                           <WarningIcon
@@ -1534,7 +1561,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                             id="thresholds-warning-icon"
                           />
                         )}
-                      </HeadingContainer>
+                      </Flex>
                     }
                   </AlertListItem>
                   {thresholdTypeForm(formDisabled)}
@@ -1605,7 +1632,7 @@ const Main = styled(Layout.Main)`
 
 const AlertListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-top: 0;
 `;
 
@@ -1619,9 +1646,9 @@ const AlertName = styled(HeaderTitleLegend)`
 `;
 
 const AlertInfo = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  font-family: ${p => p.theme.text.family};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.sm};
+  font-family: ${p => p.theme.font.family.sans};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.primary};
 `;
 
@@ -1633,12 +1660,6 @@ const StyledCircleIndicator = styled(CircleIndicator)`
 
 const Aggregate = styled('span')`
   margin-right: ${space(1)};
-`;
-
-const HeadingContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
 `;
 
 const StyledIconWarning = styled(IconWarning)`

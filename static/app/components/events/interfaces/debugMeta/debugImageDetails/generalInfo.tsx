@@ -59,7 +59,7 @@ const Wrapper = styled('div')`
 const Label = styled('div')<{coloredBg?: boolean}>`
   color: ${p => p.theme.tokens.content.primary};
   padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(1)};
-  ${p => p.coloredBg && `background-color: ${p.theme.backgroundSecondary};`}
+  ${p => p.coloredBg && `background-color: ${p.theme.tokens.background.secondary};`}
 `;
 
 const Value = styled(Label)`
@@ -67,6 +67,6 @@ const Value = styled(Label)`
   word-break: break-all;
   color: ${p => p.theme.tokens.content.secondary};
   padding: ${space(1)};
-  font-family: ${p => p.theme.text.familyMono};
-  ${p => p.coloredBg && `background-color: ${p.theme.backgroundSecondary};`}
+  font-family: ${p => p.theme.font.family.mono};
+  ${p => p.coloredBg && `background-color: ${p.theme.tokens.background.secondary};`}
 `;

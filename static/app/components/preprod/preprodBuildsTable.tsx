@@ -1,11 +1,13 @@
 import React, {Fragment, useMemo} from 'react';
 
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getLabels} from 'sentry/views/preprod/utils/labelUtils';
 
@@ -18,11 +20,22 @@ interface PreprodBuildsTableProps {
   isLoading: boolean;
   organizationSlug: string;
   display?: PreprodBuildsDisplay;
-  error?: boolean;
+  error?: RequestError | null;
   hasSearchQuery?: boolean;
   onRowClick?: (build: BuildDetailsApiResponse) => void;
   pageLinks?: string | null;
   showProjectColumn?: boolean;
+}
+
+function getErrorMessage(error: RequestError): string {
+  const detail = error.responseJSON?.detail;
+  if (typeof detail === 'string') {
+    return detail;
+  }
+  if (detail?.message) {
+    return detail.message;
+  }
+  return t('Error loading builds');
 }
 
 export function PreprodBuildsTable({
@@ -58,7 +71,7 @@ export function PreprodBuildsTable({
       </SimpleTable.Empty>
     );
   } else if (error) {
-    tableContent = <SimpleTable.Empty>{t('Error loading builds')}</SimpleTable.Empty>;
+    tableContent = <SimpleTable.Empty>{getErrorMessage(error)}</SimpleTable.Empty>;
   } else if (builds.length === 0) {
     tableContent = (
       <SimpleTable.Empty>

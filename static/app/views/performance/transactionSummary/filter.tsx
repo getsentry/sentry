@@ -2,10 +2,11 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -66,14 +67,17 @@ function Filter(props: Props) {
         options={menuOptions}
         value={currentFilter}
         onChange={opt => onChangeFilter(opt?.value)}
-        triggerProps={{
-          icon: <IconFilter />,
-          'aria-label': t('Filter by operation'),
-          children:
-            currentFilter === SpanOperationBreakdownFilter.NONE
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            icon={<IconFilter />}
+            aria-label={t('Filter by operation')}
+          >
+            {currentFilter === SpanOperationBreakdownFilter.NONE
               ? t('Filter')
-              : currentFilter,
-        }}
+              : currentFilter}
+          </OverlayTrigger.Button>
+        )}
       />
     </GuideAnchor>
   );

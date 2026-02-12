@@ -2,13 +2,11 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {BarSeriesOption} from 'echarts';
 
-import {Button} from '@sentry/scraps/button/button';
-import {ButtonBar} from '@sentry/scraps/button/buttonBar';
-import {Grid} from '@sentry/scraps/layout';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
-import {Text} from 'sentry/components/core/text';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {IconSearch, IconTimer, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -162,15 +160,19 @@ const ChartHeaderWrapper = styled(Flex)`
 `;
 
 const ChartTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: 600;
   color: ${p => p.theme.colors.gray800};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const PopulationIndicator = styled(Flex)<{color?: string}>`
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   font-weight: 500;
   color: ${p => p.color || p.theme.colors.gray500};
 
@@ -216,7 +218,7 @@ function Pagination({
 }: PaginationProps) {
   return (
     <PaginationContainer>
-      <ButtonBar merged gap="0">
+      <ButtonBar>
         <Button
           icon={<IconChevron direction="left" />}
           aria-label={t('Previous')}
@@ -281,7 +283,7 @@ function Chart({
                 hideOverlap: false,
                 showMaxLabel: false,
                 showMinLabel: false,
-                color: theme.tokens.content.muted,
+                color: theme.tokens.content.secondary,
                 interval: 0,
                 fontSize: CHART_AXIS_LABEL_FONT_SIZE,
                 formatter: (value: string) =>

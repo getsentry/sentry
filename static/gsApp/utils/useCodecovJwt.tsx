@@ -1,3 +1,4 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -9,12 +10,19 @@ export function useCodecovJwt(
   orgSlug: string,
   options: Partial<UseApiQueryOptions<CodecovJWTResponse>> = {}
 ) {
-  return useApiQuery<CodecovJWTResponse>([`/organizations/${orgSlug}/codecov-jwt/`], {
-    staleTime: Infinity,
-    retry: false,
-    refetchOnWindowFocus: false,
-    ...options,
-  });
+  return useApiQuery<CodecovJWTResponse>(
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/codecov-jwt/`, {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+    ],
+    {
+      staleTime: Infinity,
+      retry: false,
+      refetchOnWindowFocus: false,
+      ...options,
+    }
+  );
 }
 
 export function getCodecovJwtLink(

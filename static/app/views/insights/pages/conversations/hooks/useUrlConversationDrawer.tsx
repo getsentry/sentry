@@ -31,23 +31,26 @@ export function useUrlConversationDrawer() {
       renderer: Parameters<typeof baseOpenDrawer>[0],
       options?: Parameters<typeof baseOpenDrawer>[1] & {
         conversationId?: string;
-        spanId?: string;
-        traceIds?: string[];
+        endTimestamp?: number;
+        focusedTool?: string;
+        startTimestamp?: number;
       }
     ) => {
       const {
-        conversationId: optionsConversationId,
-        spanId: optionsSpanId,
-        traceIds: optionsTraceIds,
+        conversationId,
+        startTimestamp,
+        endTimestamp,
+        focusedTool,
         onClose,
         ariaLabel,
         ...rest
       } = options || {};
 
       setConversationDrawerQueryState({
-        conversationId: optionsConversationId,
-        spanId: optionsSpanId,
-        traceIds: optionsTraceIds,
+        conversationId,
+        startTimestamp,
+        endTimestamp,
+        focusedTool: focusedTool ?? null,
       });
 
       return baseOpenDrawer(renderer, {

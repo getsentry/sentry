@@ -1,15 +1,15 @@
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import type {PromptResponse} from 'sentry/actionCreators/prompts';
 import {
   makePromptsCheckQueryKey,
   promptsUpdate,
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconClose, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -102,7 +102,7 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
       <Alert
         variant="warning"
         trailingItems={
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <LinkButton
               to={{
                 pathname: `/organizations/${organization.slug}/alerts/metric-rules/${
@@ -122,7 +122,7 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
               aria-label={t('Dismiss Alert')}
               title={t('Dismiss Alert')}
             />
-          </ButtonBar>
+          </Grid>
         }
       >
         {t(
@@ -134,7 +134,7 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
 }
 
 const DismissButton = styled(Button)`
-  color: ${p => p.theme.alert.warning.color};
+  color: ${p => p.theme.colors.yellow500};
   pointer-events: all;
   &:hover {
     opacity: 0.5;

@@ -62,7 +62,6 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
                 start_ts=self.ten_mins_ago,
                 duration=duration or 1000,
             ),
-            is_eap=True,
         )
 
     def test_no_project(self) -> None:
@@ -341,6 +340,43 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
         # Regular attribute should be included
         assert "regular_attr" in returned_attrs, "Regular attributes should be included"
+
+    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
+    def test_empty_baseline_returns_empty_response(self, mock_compare_distributions) -> None:
+        """Test that when total_baseline <= 0, the endpoint returns empty rankedAttributes without calling Seer.
+
+        This happens when the outlier cohort (query_1) matches all or more spans than the baseline (query_2),
+        resulting in total_baseline = total_spans - total_outliers <= 0.
+        """
+        # Store spans where ALL spans match both queries
+        tags = [
+            ({"browser": "chrome"}, 100),
+            ({"browser": "firefox"}, 50),
+            ({"browser": "safari"}, 75),
+        ]
+
+        for tag, duration in tags:
+            self._store_span(tags=tag, duration=duration)
+
+        # query_1 and query_2 match the same spans, so total_baseline = 0
+        response = self.do_request(
+            query={
+                "query_1": "span.duration:<=100",  # Matches all spans
+                "query_2": "",  # Also matches all spans
+            }
+        )
+
+        assert response.status_code == 200, response.data
+
+        # Should return full response structure with empty rankedAttributes
+        assert response.data["rankedAttributes"] == []
+        assert "rankingInfo" in response.data
+        assert response.data["rankingInfo"]["function"] == "count(span.duration)"
+        assert response.data["cohort1Total"] == 3  # All spans are in cohort1
+        assert response.data["cohort2Total"] == 0  # No baseline spans
+
+        # compare_distributions should NOT be called when baseline is empty
+        mock_compare_distributions.assert_not_called()
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
     def test_failure_rate_filters_to_failed_spans_only(self, mock_compare_distributions) -> None:

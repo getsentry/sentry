@@ -15,7 +15,7 @@ from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.links import create_link_to_workflow
-from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.notifications.utils.rules import get_key_from_rule_data, get_rule_or_workflow_id
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
@@ -291,14 +291,12 @@ def build_footer(
 ) -> str:
     footer = f"{group.qualified_short_id}"
     if rules:
-        if features.has("organizations:workflow-engine-ui-links", group.organization):
-            rule_url = absolute_uri(
-                create_link_to_workflow(
-                    group.organization.id, get_key_from_rule_data(rules[0], "workflow_id")
-                )
-            )
-        else:
-            rule_url = build_rule_url(rules[0], group, project)
+        key, value = get_rule_or_workflow_id(rules[0])
+        match key:
+            case "workflow_id":
+                rule_url = absolute_uri(create_link_to_workflow(group.organization.slug, value))
+            case "legacy_rule_id":
+                rule_url = build_rule_url(rules[0], group, project)
 
         # If this notification is triggered via the "Send Test Notification"
         # button then the label is not defined, but the url works.

@@ -685,7 +685,7 @@ describe('ExploreToolbar', () => {
 
     await userEvent.click(within(section).getByText(/Save as/));
     await userEvent.hover(
-      within(section).getByRole('menuitemradio', {name: 'An Alert for'})
+      within(section).getByRole('menuitemradio', {name: 'Alert for'})
     );
     await userEvent.click(
       await within(section).findByRole('menuitemradio', {name: 'count(spans)'})
@@ -730,7 +730,7 @@ describe('ExploreToolbar', () => {
     const section = screen.getByTestId('section-save-as');
 
     await userEvent.click(within(section).getByText(/Save as/));
-    await userEvent.click(within(section).getByText('A Dashboard widget'));
+    await userEvent.click(within(section).getByText('Dashboard widget'));
     await waitFor(() => {
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -822,5 +822,31 @@ describe('ExploreToolbar', () => {
     await waitFor(() => {
       expect(screen.getByText('Save')).toBeInTheDocument();
     });
+  });
+
+  it('disables save as and compare when cross events are present', async () => {
+    render(<ExploreToolbar />, {
+      organization,
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            crossEvents: JSON.stringify([{query: '', type: 'spans'}]),
+          },
+        },
+      },
+    });
+
+    const section = await screen.findByTestId('section-save-as');
+
+    // Save As button should be disabled
+    expect(within(section).getByRole('button', {name: 'Save as'})).toBeDisabled();
+
+    // Compare Queries button should be disabled (LinkButton renders with role="button")
+    expect(within(section).getByRole('button', {name: 'Compare'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 });

@@ -4,7 +4,7 @@ import type {Query} from 'history';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
@@ -76,7 +76,7 @@ function UserMiseryChart({
       <EventsRequest
         {...requestCommonProps}
         organization={organization}
-        showLoading={false}
+        showLoading
         includePrevious={false}
         yAxis={yAxis}
         partial

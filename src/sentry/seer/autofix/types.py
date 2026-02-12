@@ -30,4 +30,5 @@ class AutofixCreatePRPayload(TypedDict):
 
 class AutofixUpdateRequest(TypedDict):
     run_id: int
+    organization_id: int
     payload: AutofixSelectRootCausePayload | AutofixSelectSolutionPayload | AutofixCreatePRPayload

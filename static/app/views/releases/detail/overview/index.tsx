@@ -12,8 +12,9 @@ import {DateTime} from 'sentry/components/dateTime';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import TransactionsList from 'sentry/components/discover/transactionsList';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {
   TimeRangeSelector,
@@ -34,7 +35,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useRouter from 'sentry/utils/useRouter';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
@@ -368,18 +368,22 @@ function ReleaseOverview() {
               )}
               position="top-end"
             >
-              <ReleaseComparisonChart
-                release={release}
-                releaseSessions={thisRelease}
-                allSessions={allReleases}
-                platform={project.platform}
-                loading={loading}
-                reloading={reloading}
-                errored={errored}
-                project={project}
-                api={api}
-                hasHealthData={hasHealthData}
-              />
+              {tourProps => (
+                <div {...tourProps}>
+                  <ReleaseComparisonChart
+                    release={release}
+                    releaseSessions={thisRelease}
+                    allSessions={allReleases}
+                    platform={project.platform}
+                    loading={loading}
+                    reloading={reloading}
+                    errored={errored}
+                    project={project}
+                    api={api}
+                    hasHealthData={hasHealthData}
+                  />
+                </div>
+              )}
             </DemoTourElement>
           )}
           <ReleaseIssues
@@ -401,7 +405,6 @@ function ReleaseOverview() {
               handleDropdownChange={handleTransactionsListSortChange}
               titles={titles}
               generateLink={generateLink}
-              supportsInvestigationRule={false}
             />
           </Feature>
         </Layout.Main>
@@ -411,61 +414,65 @@ function ReleaseOverview() {
           description={t('Track release adoption, commit stats, and more.')}
           position="left-start"
         >
-          <Layout.Side>
-            <ReleaseStats
-              organization={organization}
-              release={release}
-              project={project}
-            />
-            {hasHealthData && (
-              <ReleaseAdoption
-                releaseSessions={thisRelease}
-                allSessions={allReleases}
-                loading={loading}
-                reloading={reloading}
-                errored={errored}
-                release={release}
-                project={project}
-                environment={environments}
-              />
-            )}
-            <ProjectReleaseDetails
-              release={release}
-              releaseMeta={releaseMeta}
-              project={project}
-            />
-            {commitCount > 0 && (
-              <CommitAuthorBreakdown
-                version={version}
-                orgId={organization.slug}
-                projectSlug={project.slug}
-              />
-            )}
-            {releaseMeta.projects.length > 1 && (
-              <OtherProjects
-                projects={releaseMeta.projects.filter(p => p.slug !== project.slug)}
-                location={location}
-                version={version}
-                organization={organization}
-              />
-            )}
-            {hasHealthData && (
-              <TotalCrashFreeUsers
-                organization={organization}
-                version={version}
-                projectSlug={project.slug}
-                location={location}
-              />
-            )}
-            {deploys.length > 0 && (
-              <Deploys
-                version={version}
-                orgSlug={organization.slug}
-                deploys={deploys}
-                projectId={project.id}
-              />
-            )}
-          </Layout.Side>
+          {tourProps => (
+            <div {...tourProps}>
+              <Layout.Side>
+                <ReleaseStats
+                  organization={organization}
+                  release={release}
+                  project={project}
+                />
+                {hasHealthData && (
+                  <ReleaseAdoption
+                    releaseSessions={thisRelease}
+                    allSessions={allReleases}
+                    loading={loading}
+                    reloading={reloading}
+                    errored={errored}
+                    release={release}
+                    project={project}
+                    environment={environments}
+                  />
+                )}
+                <ProjectReleaseDetails
+                  release={release}
+                  releaseMeta={releaseMeta}
+                  project={project}
+                />
+                {commitCount > 0 && (
+                  <CommitAuthorBreakdown
+                    version={version}
+                    orgId={organization.slug}
+                    projectSlug={project.slug}
+                  />
+                )}
+                {releaseMeta.projects.length > 1 && (
+                  <OtherProjects
+                    projects={releaseMeta.projects.filter(p => p.slug !== project.slug)}
+                    location={location}
+                    version={version}
+                    organization={organization}
+                  />
+                )}
+                {hasHealthData && (
+                  <TotalCrashFreeUsers
+                    organization={organization}
+                    version={version}
+                    projectSlug={project.slug}
+                    location={location}
+                  />
+                )}
+                {deploys.length > 0 && (
+                  <Deploys
+                    version={version}
+                    orgSlug={organization.slug}
+                    deploys={deploys}
+                    projectId={project.id}
+                  />
+                )}
+              </Layout.Side>
+            </div>
+          )}
         </DemoTourElement>
       </Layout.Body>
     </Fragment>
@@ -568,8 +575,11 @@ const ReleaseDetailsPageFilters = styled('div')`
 `;
 
 const ReleaseBoundsDescription = styled('span')<{primary: boolean}>`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => (p.primary ? p.theme.activeText : p.theme.tokens.content.secondary)};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p =>
+    p.primary
+      ? p.theme.tokens.interactive.link.accent.rest
+      : p.theme.tokens.content.secondary};
 `;
 
 export default ReleaseOverview;

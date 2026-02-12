@@ -31,6 +31,7 @@ import type {
 } from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {transformTableToCategoricalSeries} from 'sentry/utils/categoricalTimeSeries/transformTableToCategoricalSeries';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,
@@ -38,7 +39,7 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
-import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -62,17 +63,28 @@ import useProjects from 'sentry/utils/useProjects';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {useTrackAnalyticsOnSpanMigrationError} from 'sentry/views/dashboards/hooks/useTrackAnalyticsOnSpanMigrationError';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DashboardFilterKeys,
+  DisplayType,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
+import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
+import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
-import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import type {
+  TabularColumn,
+  TabularData,
+} from 'sentry/views/dashboards/widgets/common/types';
 import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
+import {RageAndDeadClicksWidgetVisualization} from 'sentry/views/dashboards/widgets/rageAndDeadClicksWidget/rageAndDeadClicksVisualization';
+import {ServerTreeWidgetVisualization} from 'sentry/views/dashboards/widgets/serverTreeWidget/serverTreeWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {
   convertTableDataToTabularData,
@@ -84,13 +96,13 @@ import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
-import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
+import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 const OTHER = 'Other';
 const PERCENTAGE_DECIMAL_POINTS = 3;
 
 type TableComponentProps = Pick<
-  GenericWidgetQueriesChildrenProps,
+  GenericWidgetQueriesResult,
   'errorMessage' | 'loading' | 'tableResults'
 > & {
   selection: PageFilters;
@@ -102,7 +114,7 @@ type TableComponentProps = Pick<
   onWidgetTableSort?: (sort: Sort) => void;
 };
 
-type WidgetCardChartProps = Pick<GenericWidgetQueriesChildrenProps, 'timeseriesResults'> &
+type WidgetCardChartProps = Pick<GenericWidgetQueriesResult, 'timeseriesResults'> &
   TableComponentProps & {
     widgetLegendState: WidgetLegendSelectionState;
     chartGroup?: string;
@@ -148,6 +160,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     onLegendSelectChanged,
     widgetLegendState,
     selection,
+    dashboardFilters,
     timeseriesResultsUnits,
   } = props;
 
@@ -214,11 +227,28 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     );
   }
 
+  if (widget.displayType === DisplayType.SERVER_TREE) {
+    return <ServerTreeComponent dashboardFilters={dashboardFilters} />;
+  }
+
+  if (widget.displayType === DisplayType.RAGE_AND_DEAD_CLICKS) {
+    return <RageAndDeadClicksWidgetVisualization />;
+  }
+
   if (widget.displayType === DisplayType.WHEEL) {
     return (
       <TransitionChart loading={loading} reloading={loading}>
         <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
         <WheelComponent tableResults={tableResults} {...props} />
+      </TransitionChart>
+    );
+  }
+
+  if (widget.displayType === DisplayType.CATEGORICAL_BAR) {
+    return (
+      <TransitionChart loading={loading} reloading={loading}>
+        <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
+        <CategoricalSeriesComponent tableResults={tableResults} {...props} />
       </TransitionChart>
     );
   }
@@ -237,7 +267,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     : [];
   // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
   if (shouldColorOther) {
-    colors[colors.length] = theme.tokens.content.muted;
+    colors[colors.length] = theme.tokens.content.secondary;
   }
 
   // Create a list of series based on the order of the fields,
@@ -294,6 +324,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     ? timeseriesResults && getDurationUnit(timeseriesResults, legendOptions)
     : undefined;
   const bucketSize = getBucketSize(series);
+  const sizeUnit = timeseriesResultsUnits?.[axisLabel];
 
   const valueFormatter = (value: number, seriesName?: string) => {
     const decodedSeriesName = seriesName
@@ -374,7 +405,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     },
     yAxis: {
       axisLabel: {
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
         formatter: (value: number) => {
           if (timeseriesResultsTypes) {
             return axisLabelFormatterUsingAggregateOutputType(
@@ -383,7 +414,8 @@ function WidgetCardChart(props: WidgetCardChartProps) {
               true,
               durationUnit,
               undefined,
-              PERCENTAGE_DECIMAL_POINTS
+              PERCENTAGE_DECIMAL_POINTS,
+              sizeUnit
             );
           }
           return axisLabelFormatter(
@@ -695,6 +727,60 @@ function BigNumberComponent({
   });
 }
 
+function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode {
+  const {widget, tableResults, loading} = props;
+
+  const hasCategoricalBarCharts = useOrganization().features.includes(
+    'dashboards-categorical-bar-charts'
+  );
+
+  if (!hasCategoricalBarCharts) {
+    return null;
+  }
+
+  if (loading || !tableResults?.[0]) {
+    return <LoadingPlaceholder />;
+  }
+
+  const query = widget.queries[0];
+  const tableData = tableResults[0];
+
+  if (!query || !tableData.meta) {
+    return (
+      <StyledErrorPanel>
+        <IconWarning variant="primary" size="lg" />
+      </StyledErrorPanel>
+    );
+  }
+
+  const categoricalSeriesData = transformTableToCategoricalSeries(query, {
+    data: tableData.data,
+    meta: {
+      fields: (tableData.meta.fields ?? {}) as TabularData['meta']['fields'],
+      units: (tableData.meta.units ?? {}) as TabularData['meta']['units'],
+    },
+  });
+
+  // Empty series array means the widget is misconfigured (missing X-axis or aggregate)
+  // This is different from "no data found" which would return series with empty values
+  if (categoricalSeriesData.length === 0) {
+    return (
+      <StyledErrorPanel>
+        <IconWarning variant="primary" size="lg" />
+      </StyledErrorPanel>
+    );
+  }
+
+  // Create Bars plottables from the transformed data
+  const plottables = categoricalSeriesData.map(series => new Bars(series));
+
+  return (
+    <ChartWrapper autoHeightResize>
+      <CategoricalSeriesWidgetVisualization plottables={plottables} {...props} />
+    </ChartWrapper>
+  );
+}
+
 function DetailsComponent(props: TableComponentProps): React.ReactNode {
   const {tableResults} = props;
 
@@ -708,6 +794,25 @@ function DetailsComponent(props: TableComponentProps): React.ReactNode {
   }
 
   return <DetailsWidgetVisualization span={singleSpan} />;
+}
+
+function ServerTreeComponent({
+  dashboardFilters,
+}: {
+  dashboardFilters?: DashboardFilters;
+}): React.ReactNode {
+  const globalFilters = dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER] || [];
+
+  const transactionFilter = globalFilters.find(
+    filter => filter.tag.key === 'transaction' && filter.dataset === WidgetType.SPANS
+  );
+
+  return (
+    <ServerTreeWidgetVisualization
+      noVisualizationPadding
+      query={transactionFilter?.value}
+    />
+  );
 }
 
 function WheelComponent(props: TableComponentProps): React.ReactNode {
@@ -804,7 +909,7 @@ function LoadingScreen({
 const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
   <Placeholder height="200px" className={className} />
 ))`
-  background-color: ${p => p.theme.colors.surface400};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const BigNumberResizeWrapper = styled('div')<{noPadding?: boolean}>`

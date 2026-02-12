@@ -13,13 +13,13 @@ export interface SVGIconProps extends Omit<React.SVGAttributes<SVGSVGElement>, '
   legacySize?: string;
   ref?: React.Ref<SVGSVGElement>;
   size?: IconSize;
-  variant?: ContentVariant;
+  variant?: ContentVariant | 'muted';
 }
 
 export function SvgIcon(props: SVGIconProps) {
   const theme = useTheme();
   const iconProps = useIconDefaults(props);
-  const size = iconProps.legacySize ?? ICON_SIZES[iconProps.size ?? 'sm'];
+  const size = iconProps.legacySize ?? ICON_SIZES[iconProps.size ?? 'md'];
 
   const {variant: _variant, size: _size, legacySize: _legacySize, ...rest} = iconProps;
 
@@ -35,7 +35,9 @@ export function SvgIcon(props: SVGIconProps) {
         iconProps.variant === 'warning'
           ? theme.tokens.graphics.warning.vibrant
           : iconProps.variant
-            ? theme.tokens.content[iconProps.variant]
+            ? theme.tokens.content[
+                iconProps.variant === 'muted' ? 'secondary' : iconProps.variant
+              ]
             : 'currentColor'
       }
       height={size}
@@ -64,7 +66,7 @@ SvgIcon.ICON_DIRECTION_TO_ROTATION_ANGLE = ICON_DIRECTION_TO_ROTATION_ANGLE;
 const ICON_SIZES: Record<IconSize, string> = {
   xs: '12px',
   sm: '14px',
-  md: '18px',
+  md: '16px',
   lg: '24px',
   xl: '32px',
   '2xl': '72px',

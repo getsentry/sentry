@@ -4,14 +4,15 @@ import {PlatformIcon} from 'platformicons';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import WorkflowEngineListLayout from 'sentry/components/workflowEngine/layout/list';
@@ -23,7 +24,6 @@ import type {CronDetector, Detector} from 'sentry/types/workflowEngine/detectors
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {HeaderCell} from 'sentry/views/detectors/components/detectorListTable';
 import {DetectorListActions} from 'sentry/views/detectors/list/common/detectorListActions';
@@ -39,6 +39,7 @@ import {
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import MonitorEnvironmentLabel from 'sentry/views/insights/crons/components/overviewTimeline/monitorEnvironmentLabel';
 import {GlobalMonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/globalMonitorProcessingErrors';
+import {CronServiceIncidents} from 'sentry/views/insights/crons/components/serviceIncidents';
 import {
   platformGuides,
   type SupportedPlatform,
@@ -216,6 +217,9 @@ export default function CronDetectorsList() {
   const contextValue = useMemo<MonitorViewContextValue>(() => {
     return {
       additionalColumns: ADDITIONAL_COLUMNS,
+      renderTimelineOverlay: ({timeWindowConfig}) => (
+        <CronServiceIncidents timeWindowConfig={timeWindowConfig} />
+      ),
       renderVisualization: ({detector}) => {
         if (!detector) {
           return (

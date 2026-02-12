@@ -1,9 +1,10 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag} from '@sentry/scraps/badge';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import Placeholder from 'sentry/components/placeholder';
@@ -11,6 +12,7 @@ import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import GridEditable from 'sentry/components/tables/gridEditable';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import {getShortEventId} from 'sentry/utils/events';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -27,6 +29,15 @@ type Props = {
   traceSampling: boolean;
   uptimeChecks: UptimeCheck[];
 };
+
+type ColumnKey =
+  | 'traceItemId'
+  | 'timestamp'
+  | 'checkStatus'
+  | 'httpStatusCode'
+  | 'durationMs'
+  | 'regionName'
+  | 'traceId';
 
 /**
  * This value is used when a trace was not recorded since the field is required.
@@ -71,19 +82,20 @@ export function UptimeChecksGrid({traceSampling, uptimeChecks}: Props) {
       emptyMessage={t('No matching uptime checks found')}
       data={uptimeChecks}
       columnOrder={[
+        {key: 'traceItemId', width: 100, name: t('ID')},
         {key: 'timestamp', width: 150, name: t('Timestamp')},
-        {key: 'checkStatus', width: 250, name: t('Status')},
+        {key: 'checkStatus', width: 230, name: t('Status')},
         {key: 'httpStatusCode', width: 100, name: t('HTTP Code')},
-        {key: 'durationMs', width: 110, name: t('Duration')},
-        {key: 'regionName', width: 200, name: t('Region')},
-        {key: 'traceId', width: 150, name: t('Trace')},
+        {key: 'durationMs', width: 100, name: t('Duration')},
+        {key: 'regionName', width: 190, name: t('Region')},
+        {key: 'traceId', width: 100, name: t('Trace')},
       ]}
       columnSortBy={[]}
       grid={{
         renderHeadCell: (col: GridColumnOrder) => <Cell>{col.name}</Cell>,
         renderBodyCell: (column, dataRow) => (
           <CheckInBodyCell
-            column={column as GridColumnOrder<keyof UptimeCheck>}
+            column={column as GridColumnOrder<ColumnKey>}
             traceSampling={traceSampling}
             check={dataRow}
             spanCount={traceSpanCounts?.[dataRow.traceId]}
@@ -101,7 +113,7 @@ function CheckInBodyCell({
   traceSampling,
 }: {
   check: UptimeCheck;
-  column: GridColumnOrder<keyof UptimeCheck>;
+  column: GridColumnOrder<ColumnKey>;
   spanCount: number | undefined;
   traceSampling: boolean;
 }) {
@@ -163,9 +175,29 @@ function CheckInBodyCell({
         ? reasonToText[checkStatusReason](check)
         : null;
       return (
-        <Cell style={{color}}>
+        <StatusCell color={color}>
           {statusToText[checkStatus]}{' '}
           {checkStatusReasonLabel && t('(%s)', checkStatusReasonLabel)}
+        </StatusCell>
+      );
+    }
+    case 'traceItemId': {
+      if (isMiss || traceId === EMPTY_TRACE) {
+        return <Cell>{emptyCell}</Cell>;
+      }
+
+      return (
+        <Cell>
+          <Link
+            to={getUptimeTraceLink({
+              organization,
+              timestamp,
+              traceId,
+              targetId: check.traceItemId,
+            })}
+          >
+            {getShortEventId(check.traceItemId)}
+          </Link>
         </Cell>
       );
     }
@@ -210,13 +242,11 @@ function CheckInBodyCell({
       return (
         <TraceCell>
           <Link
-            to={{
-              pathname: `/organizations/${organization.slug}/performance/trace/${traceId}/`,
-              query: {
-                includeUptime: '1',
-                timestamp: new Date(timestamp).getTime() / 1000,
-              },
-            }}
+            to={getUptimeTraceLink({
+              organization,
+              timestamp,
+              traceId,
+            })}
           >
             {getShortEventId(traceId)}
           </Link>
@@ -229,6 +259,27 @@ function CheckInBodyCell({
     default:
       return <Cell>{check[column.key]}</Cell>;
   }
+}
+
+function getUptimeTraceLink({
+  organization,
+  timestamp,
+  traceId,
+  targetId,
+}: {
+  organization: Organization;
+  timestamp: string;
+  traceId: string;
+  targetId?: string;
+}) {
+  return {
+    pathname: `/organizations/${organization.slug}/performance/trace/${traceId}/`,
+    query: {
+      includeUptime: '1',
+      timestamp: new Date(timestamp).getTime() / 1000,
+      ...(targetId ? {node: `uptime-check-${targetId}`} : {}),
+    },
+  };
 }
 
 const Cell = styled('div')`
@@ -248,4 +299,8 @@ const TraceCell = styled(Cell)`
   display: grid;
   grid-template-columns: 65px max-content;
   gap: ${space(1)};
+`;
+
+const StatusCell = styled(Cell)<{color: string}>`
+  color: ${p => p.color};
 `;

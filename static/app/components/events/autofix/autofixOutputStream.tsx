@@ -3,10 +3,11 @@ import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Button} from '@sentry/scraps/button';
+import {TextArea} from '@sentry/scraps/textarea';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {TextArea} from 'sentry/components/core/textarea';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {FlyingLinesEffect} from 'sentry/components/events/autofix/FlyingLinesEffect';
 import {useUpdateInsightCard} from 'sentry/components/events/autofix/hooks/useUpdateInsightCard';
@@ -159,7 +160,7 @@ function ActiveLogDisplay({
         <ActiveLog>{errorMessage}</ActiveLog>
         <Button
           size="xs"
-          borderless
+          priority="transparent"
           aria-label={t('Retry step')}
           title={t('Retry step')}
           onClick={() =>
@@ -328,7 +329,7 @@ export function AutofixOutputStream({
               />
               <StyledButton
                 type="submit"
-                borderless
+                priority="transparent"
                 aria-label={t('Submit Comment')}
                 size="zero"
               >
@@ -381,7 +382,15 @@ const Container = styled(motion.div)<{required: boolean}>`
     background: linear-gradient(
       90deg,
       transparent,
-      ${p => (p.required ? p.theme.colors.pink500 : p.theme.active)}20,
+      color-mix(
+        in srgb,
+        ${p =>
+            p.required
+              ? p.theme.colors.pink500
+              : p.theme.tokens.background.accent.vibrant}
+          12.5%,
+        transparent
+      ),
       transparent
     );
     background-size: 2000px 100%;
@@ -408,7 +417,7 @@ const ActiveLogWrapper = styled('div')`
   align-items: flex-start;
   justify-content: space-between;
   padding: ${space(1)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   gap: ${space(1)};
   overflow: visible;
 `;

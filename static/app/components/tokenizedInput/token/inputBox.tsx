@@ -12,8 +12,8 @@ import {useTextField} from '@react-aria/textfield';
 import {mergeRefs} from '@react-aria/utils';
 import type {KeyboardEvent} from '@react-types/shared';
 
-import {Input} from 'sentry/components/core/input';
-import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
+import {Input, useAutosizeInput} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
 
 interface InputBoxProps {
   inputLabel: string;
@@ -110,7 +110,7 @@ export function InputBox({
   const autosizeInputRef = useAutosizeInput({value: inputValue});
 
   return (
-    <Wrapper>
+    <Flex align="stretch" width="100%" height="100%" position="relative">
       <UnstyledInput
         {...inputProps}
         size="md"
@@ -128,17 +128,9 @@ export function InputBox({
         disabled={false}
         data-test-id={dataTestId}
       />
-    </Wrapper>
+    </Flex>
   );
 }
-
-const Wrapper = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: stretch;
-  height: 100%;
-  width: 100%;
-`;
 
 const UnstyledInput = styled(Input)`
   background: transparent;

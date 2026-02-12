@@ -2,11 +2,12 @@ import {useCallback, useMemo, useRef} from 'react';
 import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
@@ -286,10 +287,10 @@ export default function HighlightsDataSection({
       data-test-id="event-highlights"
       actions={
         <ErrorBoundary mini>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             {viewAllButton}
             <EditHighlightsButton project={project} event={event} />
-          </ButtonBar>
+          </Grid>
         </ErrorBoundary>
       }
     >
@@ -336,7 +337,7 @@ const HighlightColumn = styled(TreeColumn)`
 `;
 
 const HighlightContextContent = styled(ContextCardContent)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const highlightModalCss = (theme: Theme) => css`

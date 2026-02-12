@@ -1,9 +1,11 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -117,19 +119,21 @@ function Version({
   };
 
   const renderTooltipContent = () => (
-    <TooltipContent
+    <Flex
+      as="span"
+      align="center"
       onClick={e => {
         e.stopPropagation();
       }}
     >
       <TooltipVersionWrapper>{version}</TooltipVersionWrapper>
       <CopyToClipboardButton
-        borderless
+        priority="transparent"
         text={version}
         size="zero"
         aria-label={t('Copy version to clipboard')}
       />
-    </TooltipContent>
+    </Flex>
   );
 
   return (
@@ -161,13 +165,12 @@ const VersionText = styled('span')<{
   white-space: ${p => (p.shouldWrapText ? 'normal' : 'nowrap')};
 `;
 
-const TooltipContent = styled('span')`
-  display: flex;
-  align-items: center;
-`;
-
 const TooltipVersionWrapper = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export default Version;

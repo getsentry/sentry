@@ -13,10 +13,11 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
 from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
 
 
-def create_authenticator(user) -> None:
+def create_authenticator(user: User) -> None:
     Authenticator.objects.create(
         type=3,  # u2f
         user=user,
@@ -225,8 +226,8 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=False)
     def test_superuser_expired_sso_user_no_password_saas_product(
-        self, validate_response, is_available
-    ):
+        self, validate_response: mock.MagicMock, is_available: mock.MagicMock
+    ) -> None:
         org_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
@@ -273,8 +274,8 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=False)
     def test_superuser_expired_sso_user_no_password_saas_product_customer_domain(
-        self, validate_response, is_available
-    ):
+        self, validate_response: mock.MagicMock, is_available: mock.MagicMock
+    ) -> None:
         # An organization that a superuser is not a member of, but will try to access.
         other_org = self.create_organization(name="other_org")
 
@@ -445,8 +446,10 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     @mock.patch("sentry.api.endpoints.auth_index.has_completed_sso", return_value=True)
     @mock.patch("sentry.auth.superuser.has_completed_sso", return_value=True)
     def test_superuser_no_sso_user_no_password_or_u2f_sso_disabled_local_dev_saas(
-        self, mock_endpoint_has_completed_sso, mock_superuser_has_completed_sso
-    ):
+        self,
+        mock_endpoint_has_completed_sso: mock.MagicMock,
+        mock_superuser_has_completed_sso: mock.MagicMock,
+    ) -> None:
         AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         user = self.create_user("foo@example.com", is_superuser=True)

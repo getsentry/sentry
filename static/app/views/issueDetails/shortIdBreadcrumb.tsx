@@ -1,7 +1,9 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
@@ -72,7 +74,7 @@ export function ShortIdBreadcrumb({
   }
 
   return (
-    <Wrapper>
+    <Flex align="center" gap="md">
       <ProjectBadge
         project={project}
         avatarSize={16}
@@ -94,7 +96,7 @@ export function ShortIdBreadcrumb({
             'aria-label': t('Issue copy actions'),
             icon: <IconChevron direction="down" size="sm" />,
             size: 'zero',
-            borderless: true,
+            priority: 'transparent',
             showChevron: false,
           }}
           position="bottom"
@@ -118,19 +120,13 @@ export function ShortIdBreadcrumb({
           ]}
         />
       </ShortIdCopyable>
-    </Wrapper>
+    </Flex>
   );
 }
 
-const Wrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
 const StyledShortId = styled(ShortId)`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.md};
+  font-family: ${p => p.theme.font.family.sans};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1;
 `;
 

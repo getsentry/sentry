@@ -27,28 +27,11 @@ export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
   }
 `;
 
-export const ExploreContentSection = styled('section')<{expanded: boolean}>`
-  background-color: ${p => p.theme.backgroundSecondary};
+export const ExploreContentSection = styled('section')`
+  background-color: ${p => p.theme.tokens.background.secondary};
   flex: 1 1 auto;
   min-width: 0;
-
-  padding-top: ${p => p.theme.space.md};
-  padding-right: ${p => p.theme.space.xl};
-  padding-bottom: ${p => p.theme.space['2xl']};
-  padding-left: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    ${p =>
-      p.expanded
-        ? css`
-            padding: ${p.theme.space.md} ${p.theme.space['3xl']} ${p.theme.space['2xl']}
-              ${p.theme.space.lg};
-          `
-        : css`
-            padding: ${p.theme.space.md} ${p.theme.space['3xl']} ${p.theme.space['2xl']}
-              ${p.theme.space['3xl']};
-          `}
-  }
+  padding: ${p => p.theme.space.xl};
 `;
 
 export const ExploreFilterSection = styled('div')`

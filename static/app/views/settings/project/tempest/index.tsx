@@ -1,10 +1,12 @@
 import {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -16,7 +18,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
-import {RequestSdkAccessButton} from 'sentry/views/settings/project/tempest/RequestSdkAccessButton';
 
 import DevKitSettings from './DevKitSettings';
 import PlayStationSettings from './PlayStationSettings';
@@ -109,14 +110,15 @@ export default function TempestSettings() {
       <SettingsPageHeader
         title={getPageTitle()}
         action={
-          <ButtonBar gap="lg">
+          <Grid flow="column" align="center" gap="lg">
             <FeedbackButton />
             <RequestSdkAccessButton
+              gamingPlatform="playstation"
               organization={organization}
-              project={project}
+              projectId={project.id}
               origin="project-settings"
             />
-          </ButtonBar>
+          </Grid>
         }
       />
 
@@ -133,7 +135,6 @@ export default function TempestSettings() {
                   aria-label={t('Dismiss Alert')}
                   title={t('Dismiss Alert')}
                   size="zero"
-                  borderless
                 />
               }
             >

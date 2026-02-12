@@ -1,7 +1,6 @@
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
-from math import ceil
 
 from django.db import router, transaction
 from django.utils import timezone
@@ -217,7 +216,10 @@ def fetch_associated_groups(
             group_id_data[event["group_id"]].add(event[trace_id_event_name])
 
         group_ids = group_id_data.keys()
-        for group in Group.objects.filter(project_id=project_id, id__in=group_ids):
+        groups_queryset = Group.objects.filter(
+            project_id=project_id, id__in=group_ids
+        ).select_related("project")
+        for group in groups_queryset:
             for trace_id in group_id_data[group.id]:
                 trace_groups[trace_id].append({"id": group.id, "shortId": group.qualified_short_id})
 
@@ -461,23 +463,3 @@ def get_detector_for_monitor(monitor: Monitor) -> Detector | None:
             )
     except Detector.DoesNotExist:
         return None
-
-
-def get_schedule_sample_window_tick_statuses(
-    failure_threshold: int, recovery_threshold: int
-) -> list[str]:
-    total_threshold = failure_threshold + recovery_threshold
-    padding_ticks = max(2, ceil(total_threshold / 2))
-    open_period_ticks = total_threshold * 3
-    status_to_name = dict(CheckInStatus.as_choices())
-
-    ok = status_to_name[CheckInStatus.OK]
-    error = status_to_name[CheckInStatus.ERROR]
-
-    return (
-        [ok] * padding_ticks
-        + [error] * failure_threshold
-        + [error] * open_period_ticks
-        + [ok] * recovery_threshold
-        + [ok] * padding_ticks
-    )

@@ -4,9 +4,10 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import {Button} from 'sentry/components/core/button';
-import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Button} from '@sentry/scraps/button';
+import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import SearchBarAction from 'sentry/components/events/interfaces/searchBarAction';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -391,7 +392,7 @@ const Title = styled('div')`
   gap: ${space(0.5)};
   grid-template-columns: repeat(2, max-content);
   align-items: center;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.colors.gray500};
   height: 32px;
   flex: 1;

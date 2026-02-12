@@ -2,6 +2,7 @@ import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import {useLocation} from 'sentry/utils/useLocation';
 import useScrollToTop from 'sentry/utils/useScrollToTop';
 import {BreadcrumbProvider} from 'sentry/views/settings/components/settingsBreadcrumb/context';
@@ -15,18 +16,20 @@ export default function SettingsWrapper() {
   useScrollToTop({location, disable: scrollDisable});
 
   return (
-    <StyledSettingsWrapper>
-      <BreadcrumbProvider>
-        <Outlet />
-      </BreadcrumbProvider>
-    </StyledSettingsWrapper>
+    <AnalyticsArea name="settings">
+      <StyledSettingsWrapper>
+        <BreadcrumbProvider>
+          <Outlet />
+        </BreadcrumbProvider>
+      </StyledSettingsWrapper>
+    </AnalyticsArea>
   );
 }
 
 const StyledSettingsWrapper = styled('div')`
   display: flex;
   flex: 1;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: ${p => p.theme.font.lineHeight.default};
   color: ${p => p.theme.tokens.content.primary};
 

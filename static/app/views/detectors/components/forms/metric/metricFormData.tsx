@@ -90,7 +90,8 @@ interface SnubaQueryFormData {
 }
 
 export interface MetricDetectorFormData
-  extends PrioritizeLevelFormData,
+  extends
+    PrioritizeLevelFormData,
     MetricDetectorConditionFormData,
     MetricDetectorDynamicFormData,
     SnubaQueryFormData {
@@ -278,6 +279,7 @@ export const getBackendDataset = (dataset: DetectorDataset): Dataset => {
       return Dataset.METRICS;
     case DetectorDataset.SPANS:
     case DetectorDataset.LOGS:
+    case DetectorDataset.METRICS:
       return Dataset.EVENTS_ANALYTICS_PLATFORM;
     default:
       unreachable(dataset);
@@ -299,6 +301,7 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
       case DetectorDataset.TRANSACTIONS:
       case DetectorDataset.SPANS:
       case DetectorDataset.LOGS:
+      case DetectorDataset.METRICS:
         return SnubaQueryType.PERFORMANCE;
       case DetectorDataset.RELEASES:
         return SnubaQueryType.CRASH_RATE; // Maps to crash rate for metrics dataset

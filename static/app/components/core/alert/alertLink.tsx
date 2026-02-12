@@ -2,13 +2,16 @@ import type React from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Alert, type AlertProps} from 'sentry/components/core/alert';
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Alert, type AlertProps} from '@sentry/scraps/alert';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-interface BaseAlertLinkProps
-  extends Pick<AlertProps, 'system' | 'children' | 'trailingItems' | 'variant'> {}
+interface BaseAlertLinkProps extends Pick<
+  AlertProps,
+  'system' | 'children' | 'trailingItems' | 'variant'
+> {}
 
 interface ExternalAlertLinkProps extends BaseAlertLinkProps {
   href: string;
@@ -104,14 +107,30 @@ function textDecorationStyles({
   theme: Theme;
   type: AlertProps['variant'];
 }) {
+  const borderColors = {
+    info: theme.colors.blue200,
+    success: theme.colors.green200,
+    muted: theme.tokens.border.primary,
+    warning: theme.colors.yellow200,
+    danger: theme.colors.red200,
+  };
+
+  const hoverColors = {
+    info: theme.colors.blue500,
+    success: theme.colors.green500,
+    muted: 'inherit',
+    warning: theme.colors.yellow500,
+    danger: theme.colors.red500,
+  };
+
   return css`
-    text-decoration-color: ${theme.alert[type].border};
+    text-decoration-color: ${borderColors[type]};
     text-decoration-style: solid;
     text-decoration-line: underline;
     transition: border-color ${theme.motion.smooth.moderate};
 
     &:hover {
-      text-decoration-color: ${theme.alert[type].color};
+      text-decoration-color: ${hoverColors[type]};
       text-decoration-style: solid;
       text-decoration-line: underline;
     }

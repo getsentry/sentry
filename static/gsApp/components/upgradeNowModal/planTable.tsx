@@ -190,7 +190,7 @@ const PlanValue = styled(PlanLabel)`
 `;
 
 const EffectiveDate = styled('span')`
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   text-align: right;
 `;
 

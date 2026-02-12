@@ -2,8 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import GroupList from 'sentry/components/issues/groupList';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -11,6 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -47,7 +50,9 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
     refetch,
   } = useApiQuery<RelatedIssuesResponse>(
     [
-      `/organizations/${organization.slug}/issues/${group.id}/related-issues/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/related-issues/', {
+        path: {organizationIdOrSlug: organization.slug, issueId: group.id},
+      }),
       {
         query: {
           type: relationType,
@@ -103,10 +108,10 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
         <Fragment>
           <HeaderWrapper>
             <Title>{title}</Title>
-            <TextButtonWrapper>
+            <Flex justify="between" align="center" marginBottom="md" width="100%">
               <span>{extraInfo}</span>
               {openIssuesButton}
-            </TextButtonWrapper>
+            </Flex>
           </HeaderWrapper>
           <GroupList
             queryParams={{
@@ -171,7 +176,7 @@ const getLinkButton = (to: LocationDescriptor, eventName: string, eventKey: stri
 export {GroupRelatedIssues};
 
 const Title = styled('h4')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   margin-bottom: ${space(0.75)};
 `;
 
@@ -181,12 +186,4 @@ const HeaderWrapper = styled('div')`
   small {
     color: ${p => p.theme.tokens.content.secondary};
   }
-`;
-
-const TextButtonWrapper = styled('div')`
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-  width: 100%;
 `;

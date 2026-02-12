@@ -1,8 +1,9 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import ConfirmDelete from 'sentry/components/confirmDelete';
-import {Button} from 'sentry/components/core/button';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -80,7 +81,7 @@ const List = styled('ul')<{
     p.isDisabled &&
     css`
       color: ${p.theme.colors.gray200};
-      background: ${p.theme.backgroundSecondary};
+      background: ${p.theme.tokens.background.secondary};
     `}
 `;
 
@@ -92,7 +93,8 @@ const ListItem = styled('li')`
   padding: ${space(1)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
   &:last-child {
     border-bottom: 0;

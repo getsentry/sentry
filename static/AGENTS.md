@@ -1,6 +1,6 @@
 # Frontend Development Guide
 
-> For critical commands and testing rules, see `/AGENTS.md` in the repository root.
+> For critical commands and testing rules, see the "Command Execution Guide" section in `/AGENTS.md` in the repository root.
 
 ## Frontend Tech Stack
 
@@ -12,50 +12,7 @@
 - **Styling**: Emotion (CSS-in-JS), Less
 - **Testing**: Jest, React Testing Library
 
-## Commands
-
-### Development Setup
-
-```bash
-# Start the development server
-pnpm run dev
-
-# Start only the UI development server with hot reload
-pnpm run dev-ui
-```
-
-### Typechecking
-
-Typechecking only works on the entire project. Individual files cannot be checked.
-
-```bash
-pnpm run typecheck
-```
-
-### Linting
-
-```bash
-# JavaScript/TypeScript linting
-pnpm run lint:js
-
-# Linting for specific file(s)
-pnpm run lint:js components/avatar.tsx [...other files]
-
-# Fix linting issues
-pnpm run fix
-```
-
-### Testing
-
-```bash
-# Run JavaScript tests (always use CI flag)
-CI=true pnpm test <file_path>
-
-# Run specific test file(s)
-CI=true pnpm test components/avatar.spec.tsx
-```
-
-### Important Files and Directories
+## Important Files and Directories
 
 - `package.json`: Node.js dependencies and scripts
 - `rspack.config.ts`: Frontend build configuration
@@ -99,14 +56,16 @@ const appSizeQuery: UseApiQueryResult<ResponseType, RequestError> = useApiQuery<
 5. ALWAYS colocate tests
 6. Lazy load routes: `React.lazy(() => import('...'))`
 
-## Design system
+## UI Patterns
+
+- When implementing advanced copy to clipboard functionality like markdown or JSON, avoid using separate buttons to copy different formats and prefer using sentry/components/copyAsDropdown and provide the different format options.
 
 ### General practices
 
 - Use [core components](./app/components/core/) whenever possible. Use Emotion (styled components) only in edge cases.
 - Use Text, Heading, Flex, Grid, Stack, Container and other core typography/layout components whenever possible.
-- Add stories whenever possible (\*.stories.tsx).
-- Icons should be part of our icon set at static/app/icons and never inlined
+- Add stories whenever possible (\*.stories.mdx).
+- Icons should be part of our icon set at static/app/icons and should never be inlined anywhere in the app.
 - Images should be placed inside static/app/images and imported via loader
 
 ### Core components
@@ -167,6 +126,16 @@ const Component = styled('div')`
 ```
 
 ##### General Guidelines
+
+Favor props over style attribute
+
+```tsx
+// ❌ Do not use style attribute for supported props
+<Flex style={{width: "100%", padding: `${space(1)} ${space(1.5)}`}>
+
+// ✅ Use the supported prop
+<Flex width="100%" padding="md lg">
+```
 
 Use responsive props instead of styled media queries for Flex, Grid and Container.
 

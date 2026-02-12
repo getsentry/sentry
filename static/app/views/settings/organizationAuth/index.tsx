@@ -5,6 +5,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {AuthProvider} from 'sentry/types/auth';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -18,16 +19,27 @@ function OrganizationAuth() {
     isLoading: loadingProviders,
     error: errorProviders,
   } = useApiQuery<AuthProvider[]>(
-    [`/organizations/${organization.slug}/auth-providers/`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/auth-providers/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {staleTime: 0}
   );
   const {
     data: provider,
     isLoading: loadingProvider,
     error: errorProvider,
-  } = useApiQuery<AuthProvider>([`/organizations/${organization.slug}/auth-provider/`], {
-    staleTime: 0,
-  });
+  } = useApiQuery<AuthProvider>(
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/auth-provider/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   const shouldRedirectToProvider = provider && organization.access.includes('org:write');
 

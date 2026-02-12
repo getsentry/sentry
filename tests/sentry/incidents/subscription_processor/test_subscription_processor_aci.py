@@ -58,23 +58,19 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.sub.project.save()
 
         assert self.send_update(self.critical_threshold + 1) is False
-        mock_metrics.incr.assert_has_calls([call(metrics_call)])
-
-        mock_metrics.reset_mock()
+        mock_metrics.incr.assert_any_call(metrics_call)
 
         self.sub.project.delete()
         assert self.send_update(self.critical_threshold + 1) is False
-        mock_metrics.incr.assert_has_calls([call(metrics_call)])
 
     @patch("sentry.incidents.subscription_processor.metrics")
     def test_has_downgraded_incidents(self, mock_metrics: MagicMock) -> None:
-        processor = SubscriptionProcessor(self.sub)
         message = self.build_subscription_update(
             self.sub, value=self.critical_threshold + 1, time_delta=timedelta()
         )
 
         with self.capture_on_commit_callbacks(execute=True):
-            assert processor.process_update(message) is False
+            assert SubscriptionProcessor.process(self.sub, message) is False
             mock_metrics.incr.assert_has_calls(
                 [call("incidents.alert_rules.ignore_update_missing_incidents")]
             )
@@ -85,13 +81,12 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         snuba_query.update(time_window=15 * 60, dataset=Dataset.Transactions.value)
         snuba_query.save()
 
-        processor = SubscriptionProcessor(self.sub)
         message = self.build_subscription_update(
             self.sub, value=self.critical_threshold + 1, time_delta=timedelta()
         )
 
         with self.capture_on_commit_callbacks(execute=True):
-            assert processor.process_update(message) is False
+            assert SubscriptionProcessor.process(self.sub, message) is False
             mock_metrics.incr.assert_has_calls(
                 [call("incidents.alert_rules.ignore_update_missing_incidents_performance")]
             )
@@ -112,13 +107,12 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         snuba_query.update(time_window=15 * 60, dataset=Dataset.PerformanceMetrics.value)
         snuba_query.save()
 
-        processor = SubscriptionProcessor(self.sub)
         message = self.build_subscription_update(
             self.sub, value=self.critical_threshold + 1, time_delta=timedelta()
         )
 
         with self.capture_on_commit_callbacks(execute=True):
-            assert processor.process_update(message) is False
+            assert SubscriptionProcessor.process(self.sub, message) is False
             mock_metrics.incr.assert_has_calls(
                 [call("incidents.alert_rules.ignore_update_missing_on_demand")]
             )
@@ -129,16 +123,14 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         mock_metrics.incr.reset_mock()
         assert self.send_update(value=self.critical_threshold + 1) is False
 
-        mock_metrics.incr.assert_called_once_with(
-            "incidents.alert_rules.skipping_already_processed_update"
-        )
+        mock_metrics.incr.assert_any_call("incidents.alert_rules.skipping_already_processed_update")
         mock_metrics.incr.reset_mock()
         assert (
             self.send_update(value=self.critical_threshold + 1, time_delta=timedelta(hours=1))
             is True
         )
 
-        mock_metrics.incr.assert_called_once_with("incidents.alert_rules.process_update.start")
+        mock_metrics.incr.assert_any_call("incidents.alert_rules.process_update.start")
 
     def test_resolve(self) -> None:
         self.send_update(self.critical_threshold + 1, timedelta(minutes=-2))
@@ -333,6 +325,69 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
+    def test_comparison_alert_eap(self, helper_metrics):
+        detector = self.comparison_detector_above
+        self.snuba_query.update(
+            aggregate="count(span.duration)",
+            dataset=Dataset.EventsAnalyticsPlatform.value,
+            type=SnubaQuery.Type.PERFORMANCE.value,
+        )
+        self.send_update(self.critical_threshold + 1, timedelta(minutes=-10))
+
+        # Shouldn't trigger, since there should be no data in the comparison period
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+        helper_metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
+            ]
+        )
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
+        )
+        comparison_delta = timedelta(seconds=detector.config["comparison_delta"])
+        comparison_date = timezone.now() - comparison_delta
+
+        spans = []
+        for i in range(4):
+            spans.append(
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success", "environment": self.environment.name},
+                        "tags": {"foo": "five"},
+                    },
+                    measurements={"foo": {"value": 5}},
+                    start_ts=(comparison_date - timedelta(minutes=30 + i)),
+                    project=self.project,
+                )
+            )
+
+        self.store_spans(spans)
+
+        self.metrics.incr.reset_mock()
+        self.send_update(2, timedelta(minutes=-9))
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(4, timedelta(minutes=-8))
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(6, timedelta(minutes=-7))
+        # Shouldn't trigger: 6/4 == 150%, but we want > 150%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(7, timedelta(minutes=-6))
+        # Should trigger: 7/4 == 175% > 150%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.HIGH
+
+        # Check that we successfully resolve
+        self.send_update(6, timedelta(minutes=-5))
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_is_unresolved_comparison_query(self, helper_metrics):
         """
         Test that uses the ErrorsQueryBuilder (because of the specific query)
@@ -508,7 +563,6 @@ class ProcessUpdateUpsampledCountTest(ProcessUpdateBaseClass):
         if time_delta is None:
             time_delta = timedelta()
 
-        processor = SubscriptionProcessor(self.sub)
         message = self.build_upsampled_subscription_update(
             self.sub, upsampled_count=upsampled_count, time_delta=time_delta
         )
@@ -516,7 +570,7 @@ class ProcessUpdateUpsampledCountTest(ProcessUpdateBaseClass):
             self.feature("organizations:incidents"),
             self.feature("organizations:performance-view"),
         ):
-            processor.process_update(message)
+            SubscriptionProcessor.process(self.sub, message)
 
     def test_upsampled_count_no_detector_below_threshold(self) -> None:
         """Test that the detector is not triggered when upsampled count is below threshold"""
@@ -586,7 +640,6 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
     def send_crash_rate_detector_update(self, value, subscription, time_delta=None, count=EMPTY):
         if time_delta is None:
             time_delta = timedelta()
-        processor = SubscriptionProcessor(subscription)
 
         if time_delta is not None:
             timestamp = timezone.now() + time_delta
@@ -606,7 +659,8 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
                 else:
                     denominator = count
                     numerator = int(value * denominator)
-            processor.process_update(
+            SubscriptionProcessor.process(
+                subscription,
                 {
                     "entity": "entity",
                     "subscription_id": (
@@ -622,9 +676,8 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
                         ]
                     },
                     "timestamp": timestamp,
-                }
+                },
             )
-        return processor
 
     def test_crash_rate_detector_for_sessions_with_auto_resolve_critical(self) -> None:
         """
@@ -958,24 +1011,27 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
     def test_ensure_case_when_no_metrics_index_not_found_is_handled_gracefully(
         self, helper_metrics
     ):
-        processor = SubscriptionProcessor(self.sub)
-        processor.process_update(
-            {
-                "entity": "entity",
-                "subscription_id": self.sub.subscription_id,
-                "values": {
-                    # 1001 is a random int that doesn't map to anything in the indexer
-                    "data": [
-                        {
-                            resolve_tag_key(
-                                UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
-                            ): 1001
-                        }
-                    ]
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            SubscriptionProcessor.process(
+                self.sub,
+                {
+                    "entity": "entity",
+                    "subscription_id": self.sub.subscription_id,
+                    "values": {
+                        # 1001 is a random int that doesn't map to anything in the indexer
+                        "data": [
+                            {
+                                resolve_tag_key(
+                                    UseCaseKey.RELEASE_HEALTH,
+                                    self.organization.id,
+                                    "session.status",
+                                ): 1001
+                            }
+                        ]
+                    },
+                    "timestamp": timezone.now(),
                 },
-                "timestamp": timezone.now(),
-            }
-        )
+            )
         assert self.get_detector_state(self.detector) == DetectorPriorityLevel.OK
         helper_metrics.incr.assert_has_calls(
             [

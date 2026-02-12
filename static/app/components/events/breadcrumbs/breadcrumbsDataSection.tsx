@@ -2,9 +2,10 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   BreadcrumbControlOptions,
@@ -126,7 +127,7 @@ export default function BreadcrumbsDataSection({
       : BreadcrumbTimeDisplay.ABSOLUTE;
 
   const actions = (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       <Button
         aria-label={t('Open Breadcrumb Search')}
         icon={<IconSearch size="xs" />}
@@ -156,7 +157,7 @@ export default function BreadcrumbsDataSection({
         size="xs"
       />
       <CopyBreadcrumbsDropdown breadcrumbs={enhancedCrumbs} />
-    </ButtonBar>
+    </Grid>
   );
 
   const hasViewAll = summaryCrumbs.length !== enhancedCrumbs.length;
@@ -220,6 +221,7 @@ const ViewAllContainer = styled('div')`
     width: 1px;
     top: -${space(1)};
     height: ${space(1)};
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;

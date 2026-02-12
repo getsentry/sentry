@@ -2,9 +2,9 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
-import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
+import {Button} from '@sentry/scraps/button';
+import {Input, useAutosizeInput} from '@sentry/scraps/input';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -72,7 +72,7 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
         onClick={handleBeginEditing}
         aria-label={t('Edit view name')}
         size="sm"
-        borderless
+        priority="transparent"
       />
     </ViewTitleWrapper>
   );
@@ -146,15 +146,17 @@ const ViewTitleWrapper = styled(Layout.Title)`
 
 const ViewTitle = styled('div')`
   height: 40px;
-  white-space: nowrap;
   letter-spacing: normal;
   margin-right: ${space(0.25)};
   font-size: inherit;
-  display: flex;
   align-items: center;
   border-bottom: 1px dotted ${p => p.theme.tokens.border.primary};
 
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledGrowingInput = styled(Input)`

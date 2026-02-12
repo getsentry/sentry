@@ -6,14 +6,15 @@ import moment from 'moment-timezone';
 import Count from 'sentry/components/count';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {CrashFreeTimeBreakdown} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
@@ -33,9 +34,16 @@ function TotalCrashFreeUsers({location, organization, projectSlug, version}: Pro
     isError,
   } = useApiQuery<ReleaseStatsType>(
     [
-      `/projects/${organization.slug}/${projectSlug}/releases/${encodeURIComponent(
-        version
-      )}/stats/`,
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/stats/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+            version,
+          },
+        }
+      ),
       {
         query: {
           ...normalizeDateTimeParams(
@@ -114,7 +122,7 @@ function TotalCrashFreeUsers({location, organization, projectSlug, version}: Pro
 }
 
 const Timeline = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.2;
 `;
 
@@ -155,7 +163,11 @@ const Text = styled('div')<{bold?: boolean; right?: boolean}>`
   color: ${p =>
     p.bold ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
   padding-bottom: ${space(0.25)};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Percent = styled(Text)`

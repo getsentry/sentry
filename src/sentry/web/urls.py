@@ -11,6 +11,7 @@ from sentry.api.endpoints.oauth_userinfo import OAuthUserInfoEndpoint
 from sentry.api.endpoints.warmup import WarmupEndpoint
 from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2MetadataView, SAML2SLSView
 from sentry.charts.endpoints import serve_chartcuterie_config
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.feedback.endpoints.error_page_embed import ErrorPageEmbedView
 from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
 from sentry.integrations.web.organization_integration_setup import OrganizationIntegrationSetupView
@@ -112,6 +113,16 @@ if settings.DEBUG:
         ),
     ]
 
+if settings.SENTRY_MODE != SentryMode.SAAS:
+    # Admin endpoint only available in self-hosted mode
+    urlpatterns += [
+        re_path(
+            r"^manage/",
+            react_page_view,
+            name="sentry-admin-overview",
+        ),
+    ]
+
 urlpatterns += [
     # warmup, used to initialize any connections / pre-load
     # the application so that user initiated requests are faster
@@ -119,11 +130,6 @@ urlpatterns += [
         r"^_warmup/$",
         WarmupEndpoint.as_view(),
         name="sentry-warmup",
-    ),
-    re_path(
-        r"^api/(?P<project_id>[^/]+)/crossdomain\.xml$",
-        api.crossdomain_xml,
-        name="sentry-api-crossdomain-xml",
     ),
     # Frontend client config
     re_path(
@@ -481,12 +487,6 @@ urlpatterns += [
     ),
     # Relocation
     re_path(r"^relocation/", generic_react_page_view, name="sentry-relocation"),
-    # Admin
-    re_path(
-        r"^manage/",
-        react_page_view,
-        name="sentry-admin-overview",
-    ),
     # Admin UI (for local dev)
     re_path(
         r"^_admin/",
@@ -1271,12 +1271,6 @@ urlpatterns += [
         r"^favicon\.ico$",
         api.not_found,
         name="sentry-favicon-404",
-    ),
-    # crossdomain.xml
-    re_path(
-        r"^crossdomain\.xml$",
-        api.not_found,
-        name="sentry-crossdomain-404",
     ),
     # plugins
     # XXX(dcramer): preferably we'd be able to use 'integrations' as the URL

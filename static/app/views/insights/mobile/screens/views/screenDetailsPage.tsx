@@ -2,13 +2,11 @@ import type React from 'react';
 import {useState} from 'react';
 import omit from 'lodash/omit';
 
-import {
-  FeatureBadge,
-  type FeatureBadgeProps,
-} from 'sentry/components/core/badge/featureBadge';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';

@@ -1,9 +1,10 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {
@@ -196,7 +197,7 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
               size="xs"
               title={t('Clear password')}
               aria-label={t('Clear password')}
-              borderless
+              priority="transparent"
             />
           )}
         </FieldGroup>

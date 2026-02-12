@@ -85,7 +85,7 @@ class EventsApiResponse(TypedDict):
     meta: EventsMeta
 
 
-@extend_schema(tags=["Discover"])
+@extend_schema(tags=["Explore"])
 @region_silo_endpoint
 class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
@@ -140,7 +140,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         return all_features
 
     @extend_schema(
-        operation_id="Query Discover Events in Table Format",
+        operation_id="Query Explore Events in Table Format",
         parameters=[
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
@@ -152,6 +152,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             VisibilityParams.PER_PAGE,
             VisibilityParams.QUERY,
             VisibilityParams.SORT,
+            VisibilityParams.DATASET,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -164,7 +165,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Retrieves discover (also known as events) data for a given organization.
+        Retrieves explore data for a given organization.
 
         **Note**: This endpoint is intended to get a table of results, and is not for doing a full export of data sent to
         Sentry.
@@ -239,7 +240,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
-        debug = request.user.is_superuser and "debug" in request.GET
 
         def _data_fn(
             dataset_query: DatasetQuery,
@@ -279,7 +279,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 on_demand_metrics_type=on_demand_metrics_type,
                 fallback_to_transactions=True,
                 query_source=query_source,
-                debug=debug,
             )
 
         @sentry_sdk.tracing.trace

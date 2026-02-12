@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Container, Flex} from '@sentry/scraps/layout';
+
 import Placeholder from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
@@ -105,7 +106,8 @@ const DetectorSimpleTableRow = styled(SimpleTable.Row)`
   min-height: 76px;
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
   @media (hover: hover) {

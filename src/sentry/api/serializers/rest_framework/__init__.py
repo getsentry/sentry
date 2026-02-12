@@ -1,3 +1,4 @@
+from .ai_conversations import *  # noqa: F401,F403
 from .base import *  # noqa: F401,F403
 from .commit import *  # noqa: F401,F403
 from .dashboard import *  # noqa: F401,F403

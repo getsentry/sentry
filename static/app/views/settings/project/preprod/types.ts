@@ -2,8 +2,6 @@ type MetricType = 'install_size' | 'download_size';
 
 type MeasurementType = 'absolute' | 'absolute_diff' | 'relative_diff';
 
-type UnitType = 'MB' | '%';
-
 export interface StatusCheckFilter {
   key: string;
   value: string;
@@ -14,7 +12,6 @@ export interface StatusCheckRule {
   id: string;
   measurement: MeasurementType;
   metric: MetricType;
-  unit: UnitType;
   value: number;
   filterQuery?: string;
 }
@@ -38,6 +35,14 @@ export function getMeasurementLabel(measurement: MeasurementType): string {
   return MEASUREMENT_OPTIONS.find(o => o.value === measurement)?.label ?? measurement;
 }
 
-export function getUnitForMeasurement(measurement: MeasurementType): UnitType {
+export function getDisplayUnit(measurement: MeasurementType): string {
   return measurement === 'relative_diff' ? '%' : 'MB';
+}
+
+export function bytesToMB(bytes: number): number {
+  return bytes / (1000 * 1000);
+}
+
+export function mbToBytes(mb: number): number {
+  return mb * 1000 * 1000;
 }

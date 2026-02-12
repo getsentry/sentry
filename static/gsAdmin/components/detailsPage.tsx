@@ -1,8 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -133,7 +135,7 @@ function DetailsPage({
         title={rootName}
         breadcrumbs={[
           ...crumbs,
-          <NameWithBadges key="page">
+          <Flex gap="md" key="page">
             {name}
             {badges
               .filter(badge => badge.visible !== false)
@@ -142,7 +144,7 @@ function DetailsPage({
                   <Tag variant={badge.level ?? 'muted'}>{badge.name}</Tag>
                 </Tooltip>
               ))}
-          </NameWithBadges>,
+          </Flex>,
         ]}
       >
         {actions.some(a => a.visible !== false) && (
@@ -169,11 +171,6 @@ function DetailsPage({
     </Fragment>
   );
 }
-
-const NameWithBadges = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
 
 const SectionBody = styled('div')<{withPadding?: boolean}>`
   ${p => p.withPadding && `padding: ${space(2)}`};

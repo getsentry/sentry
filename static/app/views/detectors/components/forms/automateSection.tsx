@@ -1,9 +1,10 @@
 import {useCallback, useContext, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import FormContext from 'sentry/components/forms/formContext';
 import useDrawer from 'sentry/components/globalDrawer';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
@@ -102,7 +103,7 @@ export function AutomateSection() {
     <Container>
       <Section
         title={t('Alert')}
-        description={t('Confirgure alerting on this Monitor to get notified on issues.')}
+        description={t('Configure alerting on this Monitor to get notified on issues.')}
       >
         <ConnectedAutomationsList
           automationIds={[]}

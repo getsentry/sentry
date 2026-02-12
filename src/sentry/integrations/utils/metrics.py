@@ -200,7 +200,7 @@ class EventLifecycle:
 
     @staticmethod
     def _report_flow_error(message) -> None:
-        logger.error("EventLifecycle flow error: %s", message)
+        logger.warning("EventLifecycle flow error: %s", message)
 
     def _terminate(
         self,

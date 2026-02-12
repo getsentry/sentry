@@ -422,8 +422,7 @@ def process_resource_change(instance, change, **kwargs):
         instance if change == "updated" else None,
         READ_CACHE_DURATION,
     )
-    GroupOwner.invalidate_assignee_exists_cache(instance.project.id)
-    GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(instance.project_id)
+    GroupOwner.set_project_ownership_version(instance.project_id)
 
 
 # Signals update the cached reads used in post_processing

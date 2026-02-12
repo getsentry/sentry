@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+
 import CommitLink from 'sentry/components/commitLink';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
@@ -140,7 +141,7 @@ function ResolutionBox(props: Props) {
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StreamlinedTimeSince = styled(TimeSince)`
@@ -163,7 +164,7 @@ const StyledIconCheckmark = styled(IconCheckmark)`
 
 const StreamlinedVersion = styled(Version)`
   color: ${p => p.theme.colors.green500};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-decoration: underline;
   text-decoration-style: dotted;
   &:hover {
@@ -174,7 +175,7 @@ const StreamlinedVersion = styled(Version)`
 
 const StreamlinedCommitLink = styled(CommitLink)`
   color: ${p => p.theme.colors.green500};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-decoration: underline;
   text-decoration-style: dotted;
   margin-right: ${space(0.5)};

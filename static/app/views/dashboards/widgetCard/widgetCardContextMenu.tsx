@@ -3,13 +3,14 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import qs from 'query-string';
 
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {
   openAddToDashboardModal,
   openDashboardWidgetQuerySelectorModal,
 } from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -29,7 +30,9 @@ import {
   getWidgetIssueUrl,
   hasDatasetSelector,
   isUsingPerformanceScore,
+  isWidgetEditable,
   performanceScoreTooltip,
+  widgetHasMenuOptions,
 } from 'sentry/views/dashboards/utils';
 import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
@@ -291,7 +294,10 @@ export function getMenuOptions(
     });
   }
 
-  if (organization.features.includes('dashboards-edit')) {
+  if (
+    organization.features.includes('dashboards-edit') &&
+    widgetHasMenuOptions(widget.displayType)
+  ) {
     menuOptions.push({
       key: 'add-to-dashboard',
       label: t('Add to Dashboard'),
@@ -331,7 +337,10 @@ export function getMenuOptions(
       key: 'edit-widget',
       label: t('Edit Widget'),
       onAction: () => onEdit?.(),
-      disabled: !hasEditAccess,
+      disabled: !hasEditAccess || !isWidgetEditable(widget.displayType),
+      tooltip: isWidgetEditable(widget.displayType)
+        ? undefined
+        : t('Static widgets from the widget library cannot be edited.'),
     });
 
     menuOptions.push({

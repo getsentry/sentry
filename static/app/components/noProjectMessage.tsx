@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+
 import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
@@ -118,6 +118,8 @@ const HelpMessage = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const Actions = styled(ButtonBar)`
+const Actions = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   width: fit-content;
 `;

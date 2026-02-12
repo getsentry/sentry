@@ -4,9 +4,12 @@ import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
+import {LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {FeatureFlagOnboardingLayout} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingLayout';
 import {FeatureFlagOtherPlatformOnboarding} from 'sentry/components/events/featureFlags/onboarding/featureFlagOtherPlatformOnboarding';
 import {SdkProviderEnum} from 'sentry/components/events/featureFlags/utils';
@@ -116,7 +119,7 @@ function SidebarContent() {
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Debug Issues with Feature Flag Context')}</Heading>
-        <HeaderActions>
+        <Flex justify="between" gap="2xl">
           <div
             onClick={e => {
               // we need to stop bubbling the CompactSelect click event
@@ -136,24 +139,28 @@ function SidebarContent() {
                   platform: newProject?.platform,
                 });
               }}
-              triggerProps={{
-                'aria-label': currentProject?.slug,
-                children: currentProject ? (
-                  <StyledIdBadge
-                    project={currentProject}
-                    avatarSize={16}
-                    hideOverflow
-                    disableLink
-                  />
-                ) : (
-                  t('Select a project')
-                ),
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  aria-label={currentProject?.slug}
+                >
+                  {currentProject ? (
+                    <StyledIdBadge
+                      project={currentProject}
+                      avatarSize={16}
+                      hideOverflow
+                      disableLink
+                    />
+                  ) : (
+                    t('Select a project')
+                  )}
+                </OverlayTrigger.Button>
+              )}
               options={projectSelectOptions}
               position="bottom-end"
             />
           </div>
-        </HeaderActions>
+        </Flex>
         {currentProject ? (
           <OnboardingContent currentProject={currentProject} />
         ) : (
@@ -212,7 +219,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   });
 
   const header = (
-    <ContentHeader>
+    <Container padding="xl 0">
       <h3>{t('Set Up Evaluation Tracking')}</h3>
       <p>{t('Configure Sentry to track feature flag evaluations on error events.')}</p>
       <RadioGroup
@@ -220,12 +227,16 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         choices={[
           [
             'sdkSelect',
-            <SdkSelect key="sdkSelect">
+            <Flex align="center" wrap="wrap" gap="md" key="sdkSelect">
               {tct('I use a Feature Flag SDK from [sdkSelect]', {
                 sdkSelect: (
                   <CompactSelect
                     size="xs"
-                    triggerProps={{children: sdkProvider.label}}
+                    trigger={triggerProps => (
+                      <OverlayTrigger.Button {...triggerProps}>
+                        {sdkProvider.label ?? triggerProps.children}
+                      </OverlayTrigger.Button>
+                    )}
                     value={sdkProvider.value}
                     onChange={value => {
                       setsdkProvider(value);
@@ -242,7 +253,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                   />
                 ),
               })}
-            </SdkSelect>,
+            </Flex>,
           ],
           [
             'generic',
@@ -264,7 +275,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           window.location.hash = ORIGINAL_HASH;
         }}
       />
-    </ContentHeader>
+    </Container>
   );
 
   if (isProjKeysLoading) {
@@ -293,7 +304,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           }
         )}
       </div>
-      <StyledDefaultContent>
+      <Stack align="start" margin="md 0" gap="xl">
         {t(
           'To see which feature flags changed over time, visit the settings page to set up a webhook for your Feature Flag provider.'
         )}
@@ -303,7 +314,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         >
           {t('Go to Feature Flag Settings')}
         </LinkButton>
-      </StyledDefaultContent>
+      </Stack>
     </Fragment>
   );
 
@@ -345,14 +356,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   );
 }
 
-const StyledDefaultContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: ${space(2)};
-  margin: ${space(1)} 0;
-`;
-
 const TopRightBackgroundImage = styled('img')`
   position: absolute;
   top: 0;
@@ -371,10 +374,10 @@ const TaskList = styled('div')`
 
 const Heading = styled('div')`
   display: flex;
-  color: ${p => p.theme.activeText};
-  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
+  font-size: ${p => p.theme.font.size.xs};
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1;
   margin-top: ${space(3)};
 `;
@@ -383,22 +386,4 @@ const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 1;
-`;
-
-const HeaderActions = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: ${space(3)};
-`;
-
-const ContentHeader = styled('div')`
-  padding: ${space(2)} 0;
-`;
-
-const SdkSelect = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  flex-wrap: wrap;
 `;

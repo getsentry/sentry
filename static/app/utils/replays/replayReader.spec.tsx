@@ -293,7 +293,7 @@ describe('ReplayReader', () => {
                 op: 'resource.fetch',
                 startTimestamp,
                 endTimestamp,
-                description: '/api/0/issues/',
+                description: '/api/0/organizations/1/issues/',
                 data,
               }),
             },

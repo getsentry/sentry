@@ -2,8 +2,10 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,7 +18,6 @@ import {
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DisplayType,
@@ -58,15 +59,28 @@ function WidgetBuilderQueryFilterBuilder({
 
   const widget = convertBuilderStateToWidget(state);
 
+  // Multiple filter conditions allow comparing different data slices as overlays.
+  // - Line, Area, Bar (Time Series): can have up to 3 filters to compare series
+  // - Tables: only one filter (no overlay concept)
+  // - Big Numbers: only one filter (single value display)
+  // - Bar (Categorical): only one filter allowed, to simplify product for now
   const canAddSearchConditions =
     state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER &&
+    state.displayType !== DisplayType.CATEGORICAL_BAR &&
     state.query &&
     state.query.length < 3;
 
+  // Legend aliases let users customize the label for each filter's series in the legend.
+  // Only valueable when multiple filters create multiple overlaid series.
+  // - Line, Area, Bar (Time Series): can have aliases for each filter series
+  // - Tables: no legend (data shown in rows)
+  // - Big Numbers: no legend (single value)
+  // - Bar (Categorical): no aliases (only one filter allowed, no point aliasing it)
   const canHaveAlias =
     state.displayType !== DisplayType.TABLE &&
-    state.displayType !== DisplayType.BIG_NUMBER;
+    state.displayType !== DisplayType.BIG_NUMBER &&
+    state.displayType !== DisplayType.CATEGORICAL_BAR;
 
   const onAddSearchConditions = () => {
     // TODO: after hook gets updated with different dispatch types, change this part
@@ -281,7 +295,7 @@ function DeleteButton({onDelete}: {onDelete: () => void}) {
     <Button
       size="zero"
       style={{height: 'fit-content'}}
-      borderless
+      priority="transparent"
       onClick={onDelete}
       icon={<IconDelete />}
       title={t('Remove this filter')}

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
@@ -149,7 +149,10 @@ function ProductBreakdownPanel({
     staleTime: 60_000,
   });
   const setupRequired =
-    shouldCheckSetup && !setupCheckLoading && !setupCheck?.isSeerConfigured;
+    shouldCheckSetup &&
+    !setupCheckLoading &&
+    (!setupCheck?.isSeerConfigured ||
+      (setupCheck?.needsConfigReminder && !setupCheck?.isCodeReviewEnabled));
 
   if (!billedCategory) {
     return null;
@@ -212,13 +215,7 @@ function ProductBreakdownPanel({
       height={isEnabled && !setupRequired ? undefined : '100%'}
       border={isInline ? undefined : 'primary'}
       radius={isInline ? undefined : 'md'}
-      style={
-        isInline
-          ? {
-              gridColumn: '1 / -1',
-            }
-          : undefined
-      }
+      column={isInline ? '1 / -1' : undefined}
     >
       <PanelHeader
         selectedProduct={selectedProduct}

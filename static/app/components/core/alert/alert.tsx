@@ -5,9 +5,9 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import type {DistributedOmit} from 'type-fest';
 
+import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -187,7 +187,7 @@ const StyledExpandContainer = styled('div')<{
   showIcon: boolean;
   showTrailingItems: boolean;
 }>`
-  color: ${p => p.theme.tokens.content.muted};
+  color: ${p => p.theme.tokens.content.secondary};
   grid-row: ${p => (p.showTrailingItems ? 3 : 2)};
 
   grid-column: 1 / -1;
@@ -257,7 +257,7 @@ export function Alert({
           <Flex align="center" alignSelf="flex-start">
             <Button
               size="zero"
-              borderless
+              priority="transparent"
               icon={<IconChevron direction={isExpanded ? 'up' : 'down'} />}
               aria-label={isExpanded ? t('Collapse') : t('Expand')}
               onClick={() => {

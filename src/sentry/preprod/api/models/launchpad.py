@@ -32,8 +32,13 @@ class PutSizePending(BaseModel):
     )
 
 
-# Missing SizeAnalysisState.COMPLETED is on purpose. The only way to mark
-# a size metrics as successful is via the assemble endpoint.
+# Missing SizeAnalysisState.COMPLETED and SizeAnalysisState.NOT_STARTED
+# is on purpose.
+# COMPLETED: The only way to mark a size metrics as successful is via
+# the assemble endpoint.
+# NOT_STARTED: Is launchpad is talking to us about SizeAnalysis then it
+# was started.
+
 PutSize = Annotated[
     PutSizeFailed | PutSizePending | PutSizeProcessing,
     Field(discriminator="state"),

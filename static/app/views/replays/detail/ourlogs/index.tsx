@@ -78,6 +78,7 @@ interface OurLogsContentProps {
 function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
   const {attributes: stringAttributes} = useTraceItemAttributes('string');
   const {attributes: numberAttributes} = useTraceItemAttributes('number');
+  const {attributes: booleanAttributes} = useTraceItemAttributes('boolean');
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const {currentTime, setCurrentTime} = useReplayContext();
@@ -133,6 +134,7 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
           <LogsInfiniteTable
             stringAttributes={stringAttributes}
             numberAttributes={numberAttributes}
+            booleanAttributes={booleanAttributes}
             scrollContainer={scrollContainerRef}
             allowPagination
             embedded

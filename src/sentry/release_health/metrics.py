@@ -1289,7 +1289,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         self,
         project_releases: Sequence[ProjectRelease],
         now: datetime | None = None,
-    ) -> Mapping[ProjectRelease, str]:
+    ) -> Mapping[ProjectRelease, datetime]:
         if now is None:
             now = datetime.now(timezone.utc)
 
@@ -1330,14 +1330,14 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             use_case_id=USE_CASE_ID,
         )
 
-        ret_val = {}
+        ret_val: dict[ProjectRelease, datetime] = {}
         groups = raw_result["groups"]
         for group in groups:
             by = group.get("by")
             proj_id = by.get("project_id")
             release = by.get("release")
             totals = group.get("totals")
-            ret_val[(proj_id, release)] = totals["oldest"]
+            ret_val[(proj_id, release)] = datetime.fromisoformat(totals["oldest"])
         return ret_val
 
     def get_project_releases_count(

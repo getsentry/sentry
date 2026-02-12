@@ -1,8 +1,9 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -18,6 +19,7 @@ import type {
   ExternalActorSuggestion,
   Integration,
 } from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -85,7 +87,9 @@ function IntegrationExternalMappings(props: Props) {
     refetch,
   } = useApiQuery<CodeOwnersAssociationMappings>(
     [
-      `/organizations/${organization.slug}/codeowners-associations/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/codeowners-associations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {provider: integration.provider.key}},
     ],
     {staleTime: 0}
@@ -159,7 +163,7 @@ function IntegrationExternalMappings(props: Props) {
         message={t('Are you sure you want to remove this external %s mapping?', type)}
       >
         <Button
-          borderless
+          priority="transparent"
           size="sm"
           icon={<IconDelete size="sm" />}
           aria-label={t('Remove user mapping')}
@@ -256,7 +260,7 @@ const StyledPluginIcon = styled(PluginIcon)`
 `;
 
 const ExternalNameColumn = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
 `;
 
 const AddButton = styled(Button)`

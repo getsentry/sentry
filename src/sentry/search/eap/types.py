@@ -75,8 +75,8 @@ class AttributeSource(TypedDict):
 
 class TraceItemAttribute(TypedDict):
     name: str
-    type: Literal["string", "number"]
-    value: str | int | float
+    type: Literal["string", "number", "boolean"]
+    value: str | int | float | bool
 
 
 class EAPResponse(EventsResponse):

@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text/text';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {HeaderActions} from 'sentry/components/layouts/thirds';
@@ -127,7 +128,7 @@ interface FooterProps extends RequiredChildren {
 function Footer({children, label, maxWidth}: FooterProps) {
   return (
     <StickyFooter>
-      <Flex style={{maxWidth}} align="center" gap="md" justify="end">
+      <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
         {label && (
           <Text variant="muted" size="md">
             {label}

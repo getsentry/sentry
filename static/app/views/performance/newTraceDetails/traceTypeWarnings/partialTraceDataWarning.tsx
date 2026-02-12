@@ -5,10 +5,10 @@ import {Alert} from '@sentry/scraps/alert';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t, tct} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {type OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {getExploreUrl} from 'sentry/views/explore/utils';

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from django.utils import timezone
 from pydantic import BaseModel
@@ -100,6 +100,7 @@ def build_step_prompt(step: AutofixStep, group: Group) -> str:
         short_id=group.qualified_short_id or str(group.id),
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
+        artifact_key=step.value,
     )
 
 
@@ -134,6 +135,7 @@ def trigger_autofix_explorer(
     step: AutofixStep,
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
+    intelligence_level: Literal["low", "medium", "high"] = "low",
 ) -> int:
     """
     Start or continue an Explorer-based autofix run.
@@ -157,12 +159,15 @@ def trigger_autofix_explorer(
         user=None,  # No user personalization for autofix
         category_key="autofix",
         category_value=str(group.id),
-        intelligence_level="high",
+        intelligence_level=intelligence_level,
         on_completion_hook=AutofixOnCompletionHook,
         enable_coding=config.enable_coding,
     )
 
     prompt = build_step_prompt(step, group)
+    prompt_metadata = {"step": step.value}
+    artifact_key = step.value if config.artifact_schema else None
+    artifact_schema = config.artifact_schema
 
     if run_id is None:
         metadata = None
@@ -170,16 +175,18 @@ def trigger_autofix_explorer(
             metadata = {"stopping_point": stopping_point.value, "group_id": group.id}
         run_id = client.start_run(
             prompt=prompt,
-            artifact_key=step.value if config.artifact_schema else None,
-            artifact_schema=config.artifact_schema,
+            prompt_metadata=prompt_metadata,
+            artifact_key=artifact_key,
+            artifact_schema=artifact_schema,
             metadata=metadata,
         )
     else:
         client.continue_run(
             run_id=run_id,
             prompt=prompt,
-            artifact_key=step.value if config.artifact_schema else None,
-            artifact_schema=config.artifact_schema,
+            prompt_metadata=prompt_metadata,
+            artifact_key=artifact_key,
+            artifact_schema=artifact_schema,
         )
 
     group.update(seer_autofix_last_triggered=timezone.now())
@@ -236,6 +243,7 @@ def get_autofix_explorer_state(organization: Organization, group_id: int):
 def generate_autofix_handoff_prompt(
     state: SeerRunState,
     instruction: str | None = None,
+    short_id: str | None = None,
 ) -> str:
     """
     Generate a prompt for coding agents from autofix run state.
@@ -244,6 +252,9 @@ def generate_autofix_handoff_prompt(
     prompt for the coding agent.
     """
     parts = ["Please fix the following issue. Ensure that your fix is fully working."]
+
+    if short_id:
+        parts.append(f"Include 'Fixes {short_id}' in the pull request description.")
 
     if instruction and instruction.strip():
         parts.append(instruction.strip())
@@ -282,7 +293,9 @@ def generate_autofix_handoff_prompt(
 def trigger_coding_agent_handoff(
     group: Group,
     run_id: int,
-    integration_id: int,
+    integration_id: int | None = None,
+    provider: str | None = None,
+    user_id: int | None = None,
 ) -> dict[str, list]:
     """
     Trigger a coding agent handoff for an existing Explorer-based autofix run.
@@ -294,6 +307,8 @@ def trigger_coding_agent_handoff(
         group: The Sentry group (issue)
         run_id: The existing Explorer run ID
         integration_id: The coding agent integration ID (e.g., Cursor)
+        provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
+        user_id: The user ID (required for user-authenticated providers like GitHub Copilot)
 
     Returns:
         Dictionary with 'successes' and 'failures' lists
@@ -332,11 +347,16 @@ def trigger_coding_agent_handoff(
         category_value=str(group.id),
     )
     state = client.get_run(run_id)
-    prompt = generate_autofix_handoff_prompt(state)
+
+    short_id = group.qualified_short_id
+
+    prompt = generate_autofix_handoff_prompt(state, short_id=short_id)
 
     return client.launch_coding_agents(
         run_id=run_id,
         integration_id=integration_id,
+        provider=provider,
+        user_id=user_id,
         prompt=prompt,
         repos=repos,
         branch_name_base=group.title or "seer",

@@ -162,3 +162,8 @@ class TestFrameInfo:
         frame_info = create_frame_info({"filename": frame_filename})
         assert frame_info.normalized_path == normalized_path
         assert frame_info.stack_root == stack_root
+
+    def test_unsupported_platform_returns_path_based_frame_info(self) -> None:
+        frame_info = create_frame_info({"filename": "Sources/App/AppDelegate.swift"}, "cocoa")
+        assert frame_info.normalized_path == "Sources/App/AppDelegate.swift"
+        assert frame_info.stack_root == "Sources"

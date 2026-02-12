@@ -1,10 +1,11 @@
 import {useCallback, useMemo, type ReactNode} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX, stripEquationPrefix} from 'sentry/utils/discover/fields';
@@ -35,6 +36,7 @@ export function VisualizeEquation({
 
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: booleanTags} = useTraceItemTags('boolean');
 
   const functionArguments: FunctionArgument[] = useMemo(() => {
     return [
@@ -76,6 +78,7 @@ export function VisualizeEquation({
   const getSuggestedAttribute = useExploreSuggestedAttribute({
     numberAttributes: numberTags,
     stringAttributes: stringTags,
+    booleanAttributes: booleanTags,
   });
 
   return (
@@ -92,7 +95,7 @@ export function VisualizeEquation({
         />
       </Flex>
       <Button
-        borderless
+        priority="transparent"
         icon={<IconDelete />}
         size="zero"
         onClick={onDelete}

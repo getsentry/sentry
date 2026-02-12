@@ -13,7 +13,7 @@ class DataSourceSerializer(Serializer):
         self, item_list: Sequence[DataSource], user: Any, **kwargs: Any
     ) -> MutableMapping[DataSource, dict[str, Any]]:
         attrs: dict[DataSource, dict[str, Any]] = defaultdict(dict)
-        ds_by_type: dict[type[DataSourceTypeHandler], list[DataSource]] = defaultdict(list)
+        ds_by_type: dict[type[DataSourceTypeHandler[Any]], list[DataSource]] = defaultdict(list)
         for item in item_list:
             ds_by_type[item.type_handler].append(item)
 
@@ -36,7 +36,7 @@ class DataSourceSerializer(Serializer):
         return attrs
 
     def serialize(
-        self, obj: DataSource, attrs: Mapping[str, Any], user, **kwargs
+        self, obj: DataSource, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> dict[str, Any]:
         return {
             "id": str(obj.id),

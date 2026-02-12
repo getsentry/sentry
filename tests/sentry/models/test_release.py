@@ -612,6 +612,84 @@ class SetCommitsTestCase(TestCase):
         assert commit.author is not None
         assert commit.author.email == truncatechars(commit_email, 75)
 
+    @receivers_raise_on_send()
+    def test_multiple_authors(self) -> None:
+        """Test that multiple unique authors are created and existing authors are reused."""
+        org = self.create_organization(owner=Factories.create_user())
+        project = self.create_project(organization=org, name="foo")
+        repo = Repository.objects.create(organization_id=org.id, name="test/repo")
+
+        # Pre-create one author to test reuse
+        existing_author = CommitAuthor.objects.create(
+            organization_id=org.id,
+            email="existing@example.com",
+            name="Old Name",
+        )
+
+        release = Release.objects.create(version="abcdabc", organization=org)
+        release.add_project(project)
+        release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": repo.name,
+                    "author_email": "author1@example.com",
+                    "author_name": "Author One",
+                    "message": "commit 1",
+                },
+                {
+                    "id": "b" * 40,
+                    "repository": repo.name,
+                    "author_email": "author2@example.com",
+                    "author_name": "Author Two",
+                    "message": "commit 2",
+                },
+                {
+                    "id": "c" * 40,
+                    "repository": repo.name,
+                    "author_email": "EXISTING@example.com",  # Test case-insensitive reuse
+                    "author_name": "New Name",  # Test name update
+                    "message": "commit 3",
+                },
+                {
+                    "id": "d" * 40,
+                    "repository": repo.name,
+                    # No author_email - should handle gracefully
+                    "message": "commit 4",
+                },
+            ]
+        )
+
+        # Verify new authors were created
+        assert CommitAuthor.objects.filter(
+            organization_id=org.id, email="author1@example.com"
+        ).exists()
+        assert CommitAuthor.objects.filter(
+            organization_id=org.id, email="author2@example.com"
+        ).exists()
+
+        # Verify existing author was reused (not duplicated) and name was updated
+        assert (
+            CommitAuthor.objects.filter(
+                organization_id=org.id, email="existing@example.com"
+            ).count()
+            == 1
+        )
+        existing_author.refresh_from_db()
+        assert existing_author.name == "New Name"
+
+        # Verify commits have correct authors
+        commit_a = Commit.objects.get(repository_id=repo.id, key="a" * 40)
+        assert commit_a.author is not None
+        assert commit_a.author.email == "author1@example.com"
+
+        commit_c = Commit.objects.get(repository_id=repo.id, key="c" * 40)
+        assert commit_c.author is not None
+        assert commit_c.author.id == existing_author.id
+
+        commit_d = Commit.objects.get(repository_id=repo.id, key="d" * 40)
+        assert commit_d.author is None
+
 
 class SetRefsTest(SetRefsTestCase):
     def setUp(self) -> None:

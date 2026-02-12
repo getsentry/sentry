@@ -38,6 +38,6 @@ export function ActionIntervalSelectField(props: ActionIntervalSelectFieldProps)
 
 const EmbeddedSelectField = styled(SelectField)`
   padding: 0;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   text-transform: none;
 `;

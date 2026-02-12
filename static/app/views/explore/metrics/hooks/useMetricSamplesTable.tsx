@@ -1,7 +1,9 @@
 import {useCallback, useMemo} from 'react';
 import moment from 'moment-timezone';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -9,7 +11,6 @@ import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMillisecon
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
@@ -170,7 +171,12 @@ function useMetricsQueryKey({
     eventView,
   };
 
-  const queryKey: ApiQueryKey = [`/organizations/${organization.slug}/events/`, params];
+  const queryKey: ApiQueryKey = [
+    getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
+    params,
+  ];
 
   return {
     queryKey,

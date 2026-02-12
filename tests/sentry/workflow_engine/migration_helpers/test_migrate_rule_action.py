@@ -34,8 +34,8 @@ class TestNotificationActionMigrationUtils(TestCase):
         self.group_event = GroupEvent.from_event(self.event, self.group)
 
     def assert_ticketing_action_data_blob(
-        self, action: Action, compare_dict: dict, exclude_keys: list[str]
-    ):
+        self, action: Action, compare_dict: dict[str, Any], exclude_keys: list[str]
+    ) -> None:
 
         # Check dynamic_form_fields
         assert action.data.get(
@@ -53,8 +53,8 @@ class TestNotificationActionMigrationUtils(TestCase):
                 assert additional_fields.get(key) == value
 
     def assert_sentry_app_form_config_data_blob(
-        self, action: Action, compare_dict: dict, exclude_keys: list[str]
-    ):
+        self, action: Action, compare_dict: dict[str, Any], exclude_keys: list[str]
+    ) -> None:
         settings = action.data.get("settings", None)
         settings_dict = compare_dict.get("settings", None)
         if not settings or not settings_dict:
@@ -73,12 +73,12 @@ class TestNotificationActionMigrationUtils(TestCase):
     def assert_action_data_blob(
         self,
         action: Action,
-        compare_dict: dict,
+        compare_dict: dict[str, Any],
         integration_id_key: str | None = None,
         target_identifier_key: str | None = None,
         target_display_key: str | None = None,
         target_type_key: str | None = None,
-    ):
+    ) -> None:
         """
         Asserts that the action data is equivalent to the compare_dict.
         Uses the translator to determine which keys should be excluded from the data blob.
@@ -115,10 +115,14 @@ class TestNotificationActionMigrationUtils(TestCase):
                     else:
                         # For unmapped fields, check directly with empty string default
                         if action.type == Action.Type.EMAIL and field == "fallthrough_type":
-                            # for email actions, the default value for fallthrough_type should be "ActiveMembers"
-                            assert action.data.get(field) == compare_dict.get(
-                                field, "ActiveMembers"
+                            fallthrough_fields = ["fallthrough_type", "fallthroughType"]
+                            assert any(
+                                [
+                                    action.data.get(field) == compare_dict.get(f, "ActiveMembers")
+                                    for f in fallthrough_fields
+                                ]
                             )
+                            # for email actions, the default value for fallthrough_type should be "ActiveMembers"
                         else:
                             assert action.data.get(field) == compare_dict.get(field, "")
                 # Ensure no extra fields
@@ -131,7 +135,7 @@ class TestNotificationActionMigrationUtils(TestCase):
                 if key not in exclude_keys:
                     if (
                         action.type == Action.Type.EMAIL
-                        and key == "fallthrough_type"
+                        and (key == "fallthrough_type" or key == "fallthroughType")
                         and action.config.get("target_type") != ActionTarget.ISSUE_OWNERS
                     ):
                         # for email actions, fallthrough_type should only be set for when targetType is ISSUE_OWNERS
@@ -150,7 +154,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         integration_id_key: str | None = None,
         target_identifier_key: str | None = None,
         target_display_key: str | None = None,
-    ):
+    ) -> None:
         """
         Asserts that the action attributes are equivalent to the compare_dict using the translator.
         """
@@ -186,12 +190,12 @@ class TestNotificationActionMigrationUtils(TestCase):
     def assert_actions_migrated_correctly(
         self,
         actions: list[Action],
-        rule_data_actions: list[dict],
+        rule_data_actions: list[dict[str, Any]],
         integration_id_key: str | None = None,
         target_identifier_key: str | None = None,
         target_display_key: str | None = None,
         target_type_key: str | None = None,
-    ):
+    ) -> None:
         """
         Asserts that the actions are equivalent to the Rule.
         """
@@ -1099,11 +1103,8 @@ class TestNotificationActionMigrationUtils(TestCase):
         # Verify that action type is set correctly
         for action in actions:
             assert action.type == Action.Type.SENTRY_APP
-            assert action.config.get("target_identifier") == install.uuid
-            assert (
-                action.config.get("sentry_app_identifier")
-                == SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
-            )
+            assert action.config.get("target_identifier") == str(install.sentry_app.id)
+            assert action.config.get("sentry_app_identifier") == SentryAppIdentifier.SENTRY_APP_ID
 
     def test_dry_run_flag(self) -> None:
         """Test that the dry_run flag prevents database writes."""

@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from sentry.models.rule import Rule, RuleSource
@@ -19,10 +21,10 @@ class FixCronToCronWorkflowLinksTest(TestMigrations):
 
     def _create_cron_rule_with_workflow(
         self,
-        project,
-        monitor_slug,
-        frequency=5,
-    ):
+        project: Any,
+        monitor_slug: str,
+        frequency: int = 5,
+    ) -> tuple[Any, Any]:
         rule = self.create_project_rule(
             project=project,
             action_data=[
@@ -47,7 +49,9 @@ class FixCronToCronWorkflowLinksTest(TestMigrations):
         Rule.objects.filter(id=rule.id).update(source=RuleSource.CRON_MONITOR)
         return rule, workflow
 
-    def _create_monitor_with_detector(self, org, project, rule, name):
+    def _create_monitor_with_detector(
+        self, org: Any, project: Any, rule: Any, name: str
+    ) -> tuple[Any, Any]:
         """Helper to create monitor with detector and data source"""
         monitor = self.create_monitor(
             organization=org,
@@ -76,7 +80,9 @@ class FixCronToCronWorkflowLinksTest(TestMigrations):
 
         return monitor, detector
 
-    def _create_monitor_with_detector_no_alert_rule(self, org, project, name):
+    def _create_monitor_with_detector_no_alert_rule(
+        self, org: Any, project: Any, name: str
+    ) -> tuple[Any, Any]:
         """Helper to create monitor with detector but no alert_rule_id"""
         monitor = self.create_monitor(
             organization=org,

@@ -5,7 +5,9 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
 import {space} from 'sentry/styles/space';
 
 export const ListWrap = styled('ul')`
@@ -25,9 +27,9 @@ export const ListWrap = styled('ul')`
   }
 
   /* Remove top padding if preceded by search input, since search input already has
-  vertical padding */
-  input ~ &&:first-of-type,
-  input ~ div > &&:first-of-type {
+  vertical padding. Account for InputGroup wrapper div. */
+  div:has(input) ~ &&:first-of-type,
+  div:has(input) ~ div > &&:first-of-type {
     padding-top: 0;
   }
 
@@ -150,15 +152,18 @@ export const SectionGroup = styled('ul')`
   padding: 0;
 `;
 
-export const CheckWrap = styled('div')<{isSelected: boolean; multiple: boolean}>`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-width: 1em;
-  height: 1.4em;
-  padding-bottom: 1px;
-  pointer-events: none;
-`;
+export function LeadWrap(props: FlexProps) {
+  return (
+    <Flex
+      justify="center"
+      align="center"
+      minWidth="1em"
+      height="1.4em"
+      pointerEvents="none"
+      {...props}
+    />
+  );
+}
 
 export const EmptyMessage = styled('p')`
   text-align: center;

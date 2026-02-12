@@ -5,15 +5,14 @@ import {space} from 'sentry/styles/space';
 import FieldControlState from './fieldControlState';
 import type {FieldGroupProps} from './types';
 
-interface ControlWrapperProps
-  extends Pick<
-    FieldGroupProps,
-    | 'alignRight'
-    | 'controlState'
-    | 'flexibleControlStateSize'
-    | 'hideControlState'
-    | 'inline'
-  > {
+interface ControlWrapperProps extends Pick<
+  FieldGroupProps,
+  | 'alignRight'
+  | 'controlState'
+  | 'flexibleControlStateSize'
+  | 'hideControlState'
+  | 'inline'
+> {
   children?: React.ReactNode;
 }
 

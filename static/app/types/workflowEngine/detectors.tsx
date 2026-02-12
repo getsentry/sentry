@@ -11,7 +11,7 @@ import type {
   EventTypes,
   ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
-import type {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
+import type {Assertion, UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
 import type {Monitor, MonitorConfig} from 'sentry/views/insights/crons/types';
 
 /**
@@ -59,6 +59,7 @@ export interface UptimeSubscriptionDataSource extends BaseDataSource {
    * See UptimeSubscriptionSerializer
    */
   queryObj: {
+    assertion: Assertion | null;
     body: string | null;
     headers: Array<[string, string]>;
     intervalSeconds: number;
@@ -190,6 +191,7 @@ interface UpdateUptimeDataSourcePayload {
   timeoutMs: number;
   traceSampling: boolean;
   url: string;
+  assertion?: Assertion | null;
   body?: string | null;
   headers?: Array<[string, string]>;
 }

@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {space} from 'sentry/styles/space';
 
 import ResultGrid from 'admin/components/resultGrid';
@@ -82,7 +83,7 @@ const CurrentTag = styled(Tag)`
 
 const FileName = styled('div')`
   margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 export default PolicyRevisions;

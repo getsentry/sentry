@@ -1,11 +1,13 @@
 import {useEffect, useMemo, useState} from 'react';
 import keyBy from 'lodash/keyBy';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -19,7 +21,6 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
@@ -327,18 +328,18 @@ export function MessageSpanSamplesPanel() {
                   value={query.traceStatus}
                   options={TRACE_STATUS_SELECT_OPTIONS}
                   onChange={handleTraceStatusChange}
-                  triggerProps={{
-                    prefix: t('Status'),
-                  }}
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button {...triggerProps} prefix={t('Status')} />
+                  )}
                 />
                 {messageActorType === MessageActorType.CONSUMER && (
                   <CompactSelect
                     value={query.retryCount}
                     options={RETRY_COUNT_SELECT_OPTIONS}
                     onChange={handleRetryCountChange}
-                    triggerProps={{
-                      prefix: t('Retries'),
-                    }}
+                    trigger={triggerProps => (
+                      <OverlayTrigger.Button {...triggerProps} prefix={t('Retries')} />
+                    )}
                   />
                 )}
               </Flex>

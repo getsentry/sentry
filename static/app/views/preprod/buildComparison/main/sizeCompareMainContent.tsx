@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -12,10 +12,13 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconRefresh, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import parseApiError from 'sentry/utils/parseApiError';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import {decodeList} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -56,16 +59,40 @@ export function SizeCompareMainContent() {
     parseAsBoolean.withDefault(true)
   );
   const [searchQuery, setSearchQuery] = useState('');
-  const {baseArtifactId, headArtifactId, projectId} = useParams<{
-    baseArtifactId: string;
-    headArtifactId: string;
-    projectId: string;
-  }>();
+  const params = useParams();
+  const headArtifactId = params.headArtifactId;
+  const baseArtifactId = params.baseArtifactId;
+  const {project: projectIds} = useLocationQuery({fields: {project: decodeList}});
+  // TODO(EME-735): Remove this once refactoring is complete and we don't need to extract projects from the URL.
+  if (projectIds.length !== 1) {
+    throw new Error(
+      `Expected exactly one project in query string but got ${projectIds.length}`
+    );
+  }
+  const projectId = projectIds[0]!;
+
+  // These parameters are part of the route and must always be present
+  if (headArtifactId === undefined) {
+    throw new Error('headArtifactId is required');
+  }
+  if (baseArtifactId === undefined) {
+    throw new Error('baseArtifactId is required');
+  }
 
   const sizeComparisonQuery: UseApiQueryResult<SizeComparisonApiResponse, RequestError> =
     useApiQuery<SizeComparisonApiResponse>(
       [
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headArtifactId/$baseArtifactId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: projectId,
+              headArtifactId,
+              baseArtifactId,
+            },
+          }
+        ),
       ],
       {
         staleTime: 0,
@@ -82,7 +109,17 @@ export function SizeCompareMainContent() {
   // Query the comparison download endpoint to get detailed data
   const comparisonDataQuery = useApiQuery<SizeAnalysisComparisonResults>(
     [
-      `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${mainArtifactComparison?.head_size_metric_id}/${mainArtifactComparison?.base_size_metric_id}/download/`,
+      getApiUrl(
+        `/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headSizeMetricId/$baseSizeMetricId/download/`,
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectId,
+            headSizeMetricId: mainArtifactComparison?.head_size_metric_id!,
+            baseSizeMetricId: mainArtifactComparison?.base_size_metric_id!,
+          },
+        }
+      ),
     ],
     {
       staleTime: 0,

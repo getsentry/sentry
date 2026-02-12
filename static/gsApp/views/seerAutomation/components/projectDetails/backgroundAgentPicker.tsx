@@ -1,6 +1,6 @@
-import {Flex} from '@sentry/scraps/layout/flex';
-import {ExternalLink} from '@sentry/scraps/link/link';
-import {Text} from '@sentry/scraps/text/text';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
@@ -29,6 +29,17 @@ export default function BackgroundAgentPicker({
 }: Props) {
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
 
+  const isAutoTriggeredFixesEnabled = Boolean(
+    project.autofixAutomationTuning && project.autofixAutomationTuning !== 'off'
+  );
+
+  const isDisabled = !canWrite || !isAutoTriggeredFixesEnabled;
+
+  let disabledReason: string | null = null;
+  if (!isAutoTriggeredFixesEnabled) {
+    disabledReason = t('Turn on Auto-Triggered Fixes to use this feature.');
+  }
+
   if (supportedIntegrations.length === 0) {
     // There are no supported integrations, so we don't need to show anything
     // Users will need to add an integration first (See <BackgroundAgentSetup />)
@@ -43,7 +54,8 @@ export default function BackgroundAgentPicker({
       case 'cursor':
         return (
           <BooleanField
-            disabled={!canWrite}
+            disabled={isDisabled}
+            disabledReason={disabledReason ?? undefined}
             name="connectCursorIntegration"
             label={
               <Flex align="center" gap="sm">
@@ -52,10 +64,10 @@ export default function BackgroundAgentPicker({
               </Flex>
             }
             help={tct(
-              '[docsLink:Read the docs] to learn more about Cursor Cloud Agents integration.',
+              'Seer will identify the root cause and hand off to an external coding agent for solutions and fixes. [docsLink:Read the docs] to learn more.',
               {
                 docsLink: (
-                  <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
+                  <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/" />
                 ),
               }
             )}
@@ -78,16 +90,16 @@ export default function BackgroundAgentPicker({
                   onSuccess: () =>
                     addSuccessMessage(
                       value
-                        ? tct('Started using [name] background agent', {
+                        ? tct('Started using [name] as coding agent', {
                             name: <strong>{integration.name}</strong>,
                           })
-                        : tct('Stopped using [name] background agent', {
+                        : tct('Stopped using [name] as coding agent', {
                             name: <strong>{integration.name}</strong>,
                           })
                     ),
                   onError: () =>
                     addErrorMessage(
-                      tct('Failed to enable [name] background agent', {
+                      tct('Failed to set [name] as coding agent', {
                         name: <strong>{integration.name}</strong>,
                       })
                     ),
@@ -109,9 +121,16 @@ export default function BackgroundAgentPicker({
 
   return (
     <SelectField
-      disabled={!canWrite}
+      disabled={isDisabled}
+      disabledReason={disabledReason ?? undefined}
       name="integrationId"
       label={t('Coding Agent Integration')}
+      help={tct(
+        'Seer will identify the root cause and hand off to an external coding agent for solutions and fixes. [docsLink:Read the docs] to learn more.',
+        {
+          docsLink: <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/" />,
+        }
+      )}
       allowEmpty
       allowClear
       options={options}
@@ -137,18 +156,18 @@ export default function BackgroundAgentPicker({
             onSuccess: () =>
               addSuccessMessage(
                 integration
-                  ? tct('Started using [name] background agent', {
+                  ? tct('Started using [name] as coding agent', {
                       name: <strong>{integration.name}</strong>,
                     })
-                  : t('Stopped using background agent')
+                  : t('Removed coding agent')
               ),
             onError: () =>
               addErrorMessage(
                 integration
-                  ? tct('Failed to enable [name] background agent', {
+                  ? tct('Failed to set [name] as coding agent', {
                       name: <strong>{integration.name}</strong>,
                     })
-                  : t('Failed to disable background agent')
+                  : t('Failed to update coding agent')
               ),
           }
         );

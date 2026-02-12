@@ -1,4 +1,5 @@
 import type {InternalAppApiToken} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   getApiQueryData,
   setApiQueryData,
@@ -9,7 +10,7 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
-const API_TOKEN_QUERY_KEY: ApiQueryKey = ['/api-tokens/'];
+const API_TOKEN_QUERY_KEY: ApiQueryKey = [getApiUrl('/api-tokens/')];
 
 type UpdateTokenQueryVariables = {
   name: string;
@@ -18,7 +19,7 @@ type FetchApiTokenParameters = {
   tokenId: string;
 };
 const makeFetchApiTokenKey = ({tokenId}: FetchApiTokenParameters): ApiQueryKey => [
-  `/api-tokens/${tokenId}/`,
+  getApiUrl('/api-tokens/$tokenId/', {path: {tokenId}}),
 ];
 
 interface UseMutateApiTokenProps {

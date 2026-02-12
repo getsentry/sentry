@@ -74,6 +74,11 @@ function treeTransformer({tree, transform}: TreeTransformerOpts) {
           argsSpaceBefore: nodeVisitor(token.argsSpaceBefore),
           argsSpaceAfter: nodeVisitor(token.argsSpaceAfter),
         });
+      case Token.KEY_EXPLICIT_BOOLEAN_TAG:
+        return transform({
+          ...token,
+          key: nodeVisitor(token.key),
+        });
       case Token.KEY_EXPLICIT_NUMBER_TAG:
         return transform({
           ...token,

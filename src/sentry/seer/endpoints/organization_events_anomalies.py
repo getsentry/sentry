@@ -24,6 +24,7 @@ from sentry.seer.anomaly_detection.get_historical_anomalies import (
     get_historical_anomaly_data_from_seer_preview,
 )
 from sentry.seer.anomaly_detection.types import DetectAnomaliesResponse, TimeSeriesPoint
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 
 @region_silo_endpoint
@@ -77,13 +78,20 @@ class OrganizationEventsAnomaliesEndpoint(OrganizationEventsEndpointBase):
         current_data = self._format_historical_data(request.data.get("current_data"))
 
         config = request.data.get("config")
-        project_id = request.data.get("project_id")
+        raw_project_id = request.data.get("project_id")
 
-        if project_id is None or not config or not historical_data or not current_data:
+        if raw_project_id is None or not config or not historical_data or not current_data:
             return Response(
-                "Unable to get historical anomaly data: missing required argument(s) project_id, config, historical_data, and/or current_data",
+                {
+                    "detail": "Unable to get historical anomaly data: missing required argument(s) project_id, config, historical_data, and/or current_data"
+                },
                 status=400,
             )
+
+        project_id = to_valid_int_id("project_id", raw_project_id)
+        projects = self.get_projects(request, organization, project_ids={project_id})
+        if not projects:
+            return Response({"detail": "Invalid project"}, status=400)
 
         anomalies = get_historical_anomaly_data_from_seer_preview(
             current_data=current_data,
@@ -94,6 +102,6 @@ class OrganizationEventsAnomaliesEndpoint(OrganizationEventsEndpointBase):
         )
         # NOTE: returns None if there's a problem with the Seer response
         if anomalies is None:
-            return Response("Unable to get historical anomaly data", status=400)
+            return Response({"detail": "Unable to get historical anomaly data"}, status=400)
         # NOTE: returns empty list if there is not enough event data
         return Response(serialize(anomalies, request.user))

@@ -2,11 +2,11 @@ import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import {HighlightComponent} from 'sentry/components/highlight';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import Panel from 'sentry/components/panels/panel';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
 import {space} from 'sentry/styles/space';
@@ -35,8 +35,17 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 
     &:hover {
-      background-color: ${p => p.theme.tokens.background.secondary};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.neutral.background.hover};
     }
+
+    ${p =>
+      p.isClickable &&
+      `
+      &:active {
+        background-color: ${p.theme.tokens.interactive.transparent.neutral.background.active};
+      }
+    `}
 
     &:not(:last-child) {
       border-bottom: 0;
@@ -104,7 +113,7 @@ export const LogTableBodyCell = styled(TableBodyCell)`
 
   padding: 2px ${space(2)};
 
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   /* Need to select the 2nd child to select the first cell
      as the first child is the interaction state layer */
@@ -156,7 +165,7 @@ export const LogDetailTableActionsButtonBar = styled('div')`
   display: flex;
   gap: ${space(1)};
   & button {
-    font-weight: ${p => p.theme.fontWeight.normal};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
   }
 `;
 
@@ -194,8 +203,8 @@ export const DetailsBody = styled('div')`
   display: flex;
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   padding: ${space(1)} 0;
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
 
   &:last-child {
     border-bottom: 0;
@@ -228,8 +237,8 @@ export const ColoredLogText = styled('span')<{
   logColors: ReturnType<typeof getLogColors>;
 }>`
   color: ${p => p.logColors.color};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-family: ${p => p.theme.text.familyMono};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-family: ${p => p.theme.font.family.mono};
 `;
 
 export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
@@ -238,7 +247,7 @@ export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
 `;
 
 export const LogsHighlight = styled(HighlightComponent)`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   background-color: ${p => p.theme.colors.gray200};
   margin-right: 2px;
   margin-left: 2px;
@@ -246,7 +255,7 @@ export const LogsHighlight = styled(HighlightComponent)`
 
 export const LogsFilteredHelperText = styled('span')`
   margin-left: 4px;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   background-color: ${p => p.theme.colors.gray200};
 `;
@@ -264,8 +273,8 @@ export const AlignedCellContent = styled('div')<{
   align-items: center;
   flex-direction: row;
   justify-content: ${p => p.align || 'left'};
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 export const FirstTableHeadCell = styled(TableHeadCell)`
@@ -395,12 +404,14 @@ export const LogsSidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
   ${p =>
     p.sidebarOpen &&
     css`
-      margin-left: -13px;
+      margin-left: -17px;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
 
       &::after {
-        border-left-color: ${p.theme.tokens.background.primary};
-        border-top-left-radius: 0px;
-        border-bottom-left-radius: 0px;
+        border-left-color: ${p.theme.tokens.border.primary};
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
       }
     `}
 `;
@@ -450,8 +461,8 @@ export const HoveringRowLoadingRendererContainer = styled('div')<{
   display: flex;
   background: linear-gradient(
     to ${p => (p.position === 'top' ? 'bottom' : 'top')},
-    rgb(from ${p => p.theme.backgroundTertiary} r g b / 75%),
-    rgb(from ${p => p.theme.backgroundSecondary} r g b / 0%)
+    rgb(from ${p => p.theme.tokens.background.tertiary} r g b / 75%),
+    rgb(from ${p => p.theme.tokens.background.secondary} r g b / 0%)
   );
   align-items: center;
   justify-content: center;

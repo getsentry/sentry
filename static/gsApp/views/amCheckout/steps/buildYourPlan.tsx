@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex, Stack} from 'sentry/components/core/layout';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -48,11 +48,10 @@ function PlanSubstep({
   onUpdate,
 }: PlanSubstepProps) {
   const planOptions = useMemo(() => {
-    // TODO(isabella): Remove this once Developer is surfaced
     const plans = billingConfig.planList.filter(
       ({contractInterval, id}) =>
         contractInterval === activePlan.contractInterval &&
-        !id.includes(billingConfig.freePlan)
+        !id.includes(billingConfig.freePlan) // TODO(billing): If we ever surface Developer in checkout, we'll need to remove this filter
     );
 
     if (plans.length === 0) {
@@ -66,7 +65,8 @@ function PlanSubstep({
   const getBadge = (plan: Plan): React.ReactNode | undefined => {
     if (
       plan.id === subscription.plan ||
-      // TODO(billing): Test this once Developer is surfaced
+      // If Developer is surfaced in checkout and the current plan is a trial plan, we should show the `Current` badge
+      // on the Developer plan
       (isTrialPlan(subscription.plan) && isDeveloperPlan(plan))
     ) {
       const copy = t('Current');
@@ -93,14 +93,14 @@ function PlanSubstep({
 
   return (
     <Flex direction="column" gap="xl">
-      <OptionGrid columns={planOptions.length}>
+      <Grid columns={{xs: '1fr', lg: `repeat(${planOptions.length}, 1fr)`}} gap="lg">
         {planOptions.map(plan => {
           const isSelected = plan.id === formData.plan;
           const shouldShowDefaultPayAsYouGo = isNewPayingCustomer(
             subscription,
             organization
           );
-          const basePrice = utils.formatPrice({cents: plan.basePrice}); // TODO(isabella): confirm discountInfo is no longer used
+          const basePrice = utils.formatPrice({cents: plan.basePrice});
           const planContent = utils.getContentForPlan(plan);
           const badge = getBadge(plan);
 
@@ -119,7 +119,7 @@ function PlanSubstep({
             />
           );
         })}
-      </OptionGrid>
+      </Grid>
       <PlanFeatures planOptions={planOptions} activePlan={activePlan} />
     </Flex>
   );
@@ -178,14 +178,3 @@ function BuildYourPlan({
 }
 
 export default BuildYourPlan;
-
-const OptionGrid = styled('div')<{columns: number}>`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: ${p => p.theme.space.lg};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: repeat(${p => p.columns}, 1fr);
-    row-gap: ${p => p.theme.space.xl};
-  }
-`;

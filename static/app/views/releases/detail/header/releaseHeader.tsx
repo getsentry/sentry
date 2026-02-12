@@ -3,17 +3,17 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
+import {Badge, FeatureBadge} from '@sentry/scraps/badge';
+import {ExternalLink} from '@sentry/scraps/link';
+import {TabList} from '@sentry/scraps/tabs';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Badge} from 'sentry/components/core/badge';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {ExternalLink} from 'sentry/components/core/link';
-import {TabList} from 'sentry/components/core/tabs';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import Version from 'sentry/components/version';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -83,7 +83,7 @@ function ReleaseHeader({
       count:
         numberOfMobileBuilds === 0 ? (
           <BadgeWrapper>
-            <FeatureBadge type="beta" />
+            <FeatureBadge type="new" />
           </BadgeWrapper>
         ) : (
           <React.Fragment>
@@ -91,7 +91,7 @@ function ReleaseHeader({
               {formatAbbreviatedNumber(numberOfMobileBuilds)}
             </NavTabsBadge>
             <BadgeWrapper>
-              <FeatureBadge type="beta" />
+              <FeatureBadge type="new" />
             </BadgeWrapper>
           </React.Fragment>
         ),
@@ -146,7 +146,7 @@ function ReleaseHeader({
           <Version version={version} anchor={false} truncate />
           <IconWrapper>
             <CopyToClipboardButton
-              borderless
+              priority="transparent"
               size="zero"
               text={version}
               title={version}

@@ -2,8 +2,10 @@ import React, {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
+
 import {useUpdateInsightCard} from 'sentry/components/events/autofix/hooks/useUpdateInsightCard';
 import {
   generateSourceCards,
@@ -125,9 +127,19 @@ export function InsightSourcesFooter({
   return (
     <React.Fragment>
       <BottomDivider />
-      <FooterContainer>
-        <FooterContent>
-          <SourcesContainer>{renderedSourceCards}</SourcesContainer>
+      <Flex justify="between" paddingTop="xl" paddingBottom="md">
+        <Flex justify="start" align="stretch" gap="md" width="100%">
+          <Flex
+            justify="start"
+            wrap="wrap"
+            alignSelf="flex-start"
+            gap="xs"
+            width="75%"
+            minWidth="0"
+            maxWidth="75%"
+          >
+            {renderedSourceCards}
+          </Flex>
           <FooterInputContainer>
             <FooterInputWrapper onSubmit={handleSubmit}>
               <FooterInput
@@ -147,7 +159,7 @@ export function InsightSourcesFooter({
               <FooterSubmitButton
                 type="submit"
                 size="zero"
-                borderless
+                priority="transparent"
                 title={t('Give feedback and rethink the answer')}
                 disabled={!newInsightText.trim()}
               >
@@ -155,8 +167,8 @@ export function InsightSourcesFooter({
               </FooterSubmitButton>
             </FooterInputWrapper>
           </FooterInputContainer>
-        </FooterContent>
-      </FooterContainer>
+        </Flex>
+      </Flex>
     </React.Fragment>
   );
 }
@@ -165,33 +177,6 @@ export function InsightSourcesFooter({
 const BottomDivider = styled('div')`
   margin-top: ${p => p.theme.space.lg};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
-`;
-
-const FooterContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  padding-top: ${p => p.theme.space.xl};
-  padding-bottom: ${p => p.theme.space.md};
-`;
-
-const SourcesContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${p => p.theme.space.xs};
-  width: 75%;
-  max-width: 75%;
-  align-self: flex-start;
-  justify-content: flex-start;
-  min-width: 0;
-`;
-
-const FooterContent = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${p => p.theme.space.md};
-  width: 100%;
-  align-items: stretch;
-  justify-content: flex-start;
 `;
 
 const FooterInputContainer = styled('div')`

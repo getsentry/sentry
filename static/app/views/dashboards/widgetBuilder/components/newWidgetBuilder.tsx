@@ -8,6 +8,7 @@ import omit from 'lodash/omit';
 
 import {Flex} from '@sentry/scraps/layout';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
@@ -19,7 +20,6 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {
   DisplayType,
@@ -92,6 +92,11 @@ function TraceItemAttributeProviderFromDataset({children}: {children: React.Reac
     enabled = hasTraceMetricsDashboards;
     traceItemType = TraceItemDataset.TRACEMETRICS;
     query = createTraceMetricFilter(state.traceMetric);
+  }
+
+  if (state.dataset === WidgetType.PREPROD_APP_SIZE) {
+    enabled = organization.features.includes('preprod-app-size-dashboard');
+    traceItemType = TraceItemDataset.PREPROD;
   }
 
   return (
@@ -374,7 +379,8 @@ export function WidgetPreviewContainer({
                     width: isDragEnabled ? DRAGGABLE_PREVIEW_WIDTH_PX : undefined,
                     height: getPreviewHeight(),
                     outline: isDragEnabled
-                      ? `${space(1)} solid ${theme.tokens.border.primary}`
+                      ? // eslint-disable-next-line @sentry/scraps/use-semantic-token
+                        `${space(1)} solid ${theme.tokens.border.primary}`
                       : undefined,
                   }}
                 >
@@ -441,7 +447,7 @@ const fullPageCss = css`
 const Backdrop = styled('div')`
   ${fullPageCss};
   z-index: ${p => p.theme.zIndex.widgetBuilderDrawer};
-  background: ${p => p.theme.black};
+  background: ${p => p.theme.colors.black};
   will-change: opacity;
   transition: opacity 200ms;
   pointer-events: none;
@@ -527,8 +533,8 @@ const TemplateWidgetPreviewPlaceholder = styled('div')`
   height: 95%;
   color: ${p => p.theme.tokens.content.secondary};
   font-style: italic;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const WidgetPreviewPlaceholder = styled('div')`

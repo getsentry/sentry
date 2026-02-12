@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardDetails} from 'sentry/views/dashboards/types';
@@ -12,10 +13,13 @@ import {
 
 export const useGetPrebuiltDashboard = (prebuiltId?: PrebuiltDashboardId) => {
   const prebuiltDashboard = prebuiltId ? PREBUILT_DASHBOARDS[prebuiltId] : undefined;
-  return usePopulateLinkedDashboards(prebuiltDashboard);
+  return usePopulatePrebuiltIdsWithActualIds(prebuiltDashboard, prebuiltId);
 };
 
-const usePopulateLinkedDashboards = (dashboard?: PrebuiltDashboard) => {
+const usePopulatePrebuiltIdsWithActualIds = (
+  dashboard?: PrebuiltDashboard,
+  prebuiltId?: PrebuiltDashboardId
+) => {
   const organization = useOrganization();
 
   const widgets = useMemo(() => dashboard?.widgets ?? [], [dashboard]);
@@ -34,33 +38,39 @@ const usePopulateLinkedDashboards = (dashboard?: PrebuiltDashboard) => {
   );
 
   const hasLinkedDashboards = prebuiltIds.length > 0;
-  const path = `/organizations/${organization.slug}/dashboards/`;
 
   const {data, isLoading} = useApiQuery<DashboardDetails[]>(
     [
-      path,
+      getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
-        query: {prebuiltId: prebuiltIds.sort()},
+        query: {prebuiltId: [...prebuiltIds.sort(), prebuiltId].filter(defined)},
       },
     ],
     {
-      enabled: hasLinkedDashboards,
-      staleTime: 0,
+      enabled: hasLinkedDashboards || Boolean(prebuiltId),
+      staleTime: Infinity,
       retry: false,
     }
   );
 
   return useMemo(() => {
-    if (!hasLinkedDashboards) {
-      return {dashboard, isLoading: false};
+    const populatedDashboard = {
+      ...dashboard,
+      id: data?.find(d => d.prebuiltId === prebuiltId)?.id || undefined,
+    };
+
+    if (!hasLinkedDashboards && !prebuiltId) {
+      return {dashboard: populatedDashboard, isLoading: false};
     }
 
     if (!data) {
-      return {dashboard, isLoading};
+      return {dashboard: populatedDashboard, isLoading};
     }
 
-    const populatedDashboard = {
-      ...dashboard,
+    const populatedDashboardWithLinkedDashboards = {
+      ...populatedDashboard,
       widgets: widgets.map(widget => ({
         ...widget,
         queries: widget.queries.map(query => ({
@@ -78,6 +88,6 @@ const usePopulateLinkedDashboards = (dashboard?: PrebuiltDashboard) => {
       })),
     };
 
-    return {dashboard: populatedDashboard, isLoading};
-  }, [dashboard, widgets, data, hasLinkedDashboards, isLoading]);
+    return {dashboard: populatedDashboardWithLinkedDashboards, isLoading};
+  }, [dashboard, widgets, data, hasLinkedDashboards, isLoading, prebuiltId]);
 };

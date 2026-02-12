@@ -1,7 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import SuspectFlags from 'sentry/components/issues/suspect/suspectFlags';
 import useSuspectFlags from 'sentry/components/issues/suspect/useSuspectFlags';
 import {space} from 'sentry/styles/space';
@@ -47,9 +48,9 @@ const GradientBox = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   background: linear-gradient(
     90deg,
-    ${p => p.theme.backgroundSecondary}00 0%,
-    ${p => p.theme.backgroundSecondary}FF 70%,
-    ${p => p.theme.backgroundSecondary}FF 100%
+    color-mix(in srgb, ${p => p.theme.tokens.background.secondary} 0%, transparent) 0%,
+    ${p => p.theme.tokens.background.secondary} 70%,
+    ${p => p.theme.tokens.background.secondary} 100%
   );
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};

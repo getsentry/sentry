@@ -70,6 +70,7 @@ def handle_check_run_event(
     *,
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
+    extra: Mapping[str, str | None],
     **kwargs: Any,
 ) -> None:
     """
@@ -87,8 +88,6 @@ def handle_check_run_event(
         return
 
     action = event.get("action")
-    # We can use html_url to search through the logs for this event.
-    extra = {"html_url": event.get("check_run", {}).get("html_url"), "action": action}
 
     if action is None:
         logger.error(Log.MISSING_ACTION.value, extra=extra)
@@ -121,8 +120,9 @@ def handle_check_run_event(
     from .task import process_github_webhook_event
 
     # Scheduling the work as a task allows us to retry the request if it fails.
+    # Convert enum to string for Celery serialization
     process_github_webhook_event.delay(
-        github_event=github_event,
+        github_event=github_event.value,
         # A reduced payload is enough for the task to process.
         event_payload={"original_run_id": validated_event.check_run.external_id},
         action=validated_event.action,

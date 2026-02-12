@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import moment from 'moment-timezone';
 
-import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {DateTime} from 'sentry/components/dateTime';
+import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -328,7 +328,7 @@ const LabelsContainer = styled('div')<{labelPosition: LabelPosition}>`
         height: ${space(0.5)};
         width: 1px;
         border-radius: 1px;
-        background: ${p.theme.tokens.border.transparent.neutral.muted};
+        background: ${p.theme.tokens.background.transparent.neutral.muted};
       }
     `}
 `;
@@ -348,7 +348,7 @@ export const Gridline = styled('div')<{labelPosition: LabelPosition; left: numbe
       height: 6px;
       width: 1px;
       border-radius: 1px;
-      background: ${p.theme.tokens.border.transparent.neutral.muted};
+      background: ${p.theme.tokens.background.transparent.neutral.muted};
       top: 68px;
     `}
 `;
@@ -384,7 +384,7 @@ const TimeLabelContainer = styled('div')<{
 
 const TimeLabel = styled(DateTime)`
   font-variant-numeric: tabular-nums;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   pointer-events: none;
 `;

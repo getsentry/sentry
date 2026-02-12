@@ -181,3 +181,110 @@ class OrganizationReleaseAssembleTest(APITestCase):
             organization_id=self.organization.id,
         )
         assert len(artifact_bundles) == 1
+
+    def test_manifest_project_cannot_escalate_to_unauthorized_project(self) -> None:
+        """
+        Test that a malicious manifest.json cannot specify a project the user
+        doesn't have access to. This prevents IDOR attacks where an attacker
+        could upload artifact bundles to arbitrary projects in the organization.
+        """
+        from sentry.models.artifactbundle import ProjectArtifactBundle
+
+        # Create 3 projects on the release (to trigger the > 2 projects optimization)
+        project_a = self.create_project(name="project-a", teams=[self.team])
+        project_b = self.create_project(name="project-b", teams=[self.team])
+        project_c = self.create_project(name="project-c", teams=[self.team])
+
+        # Create an unauthorized project (attacker has no access)
+        other_team = self.create_team(organization=self.organization, name="other-team")
+        unauthorized_project = self.create_project(name="unauthorized-project", teams=[other_team])
+
+        # Associate authorized projects with the release
+        self.release.add_project(project_a)
+        self.release.add_project(project_b)
+        self.release.add_project(project_c)
+
+        # Create a malicious artifact bundle that tries to target the unauthorized project
+        bundle_file = self.create_artifact_bundle_zip(
+            org=self.organization.slug,
+            release=self.release.version,
+            project=unauthorized_project.slug,  # Malicious: targets unauthorized project
+        )
+        total_checksum = sha1(bundle_file).hexdigest()
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
+
+        # Assemble with the authorized project IDs from the release
+        assemble_artifacts(
+            org_id=self.organization.id,
+            version=self.release.version,
+            checksum=total_checksum,
+            chunks=[blob1.checksum],
+            project_ids=[project_a.id, project_b.id, project_c.id],
+            is_release_bundle_migration=True,
+        )
+
+        # Verify the artifact bundle was created
+        artifact_bundle = ArtifactBundle.objects.get(organization_id=self.organization.id)
+
+        # CRITICAL: Verify the unauthorized project was NOT associated
+        project_associations = ProjectArtifactBundle.objects.filter(
+            artifact_bundle=artifact_bundle
+        ).values_list("project_id", flat=True)
+
+        assert (
+            unauthorized_project.id not in project_associations
+        ), "IDOR vulnerability: unauthorized project was associated with artifact bundle"
+
+        # Verify the authorized projects ARE still associated (the fix doesn't break normal flow)
+        # Since the manifest project was unauthorized, it should fall back to all authorized projects
+        assert set(project_associations) == {project_a.id, project_b.id, project_c.id}
+
+    def test_manifest_project_can_narrow_to_authorized_project(self) -> None:
+        """
+        Test that a manifest.json CAN specify a project if it's in the authorized list.
+        This is the legitimate use case that should still work after the security fix.
+        """
+        from sentry.models.artifactbundle import ProjectArtifactBundle
+
+        # Create 3 projects on the release
+        project_a = self.create_project(name="project-a", teams=[self.team])
+        project_b = self.create_project(name="project-b", teams=[self.team])
+        project_c = self.create_project(name="project-c", teams=[self.team])
+
+        # Associate all projects with the release
+        self.release.add_project(project_a)
+        self.release.add_project(project_b)
+        self.release.add_project(project_c)
+
+        # Create an artifact bundle that targets an authorized project
+        bundle_file = self.create_artifact_bundle_zip(
+            org=self.organization.slug,
+            release=self.release.version,
+            project=project_b.slug,  # Legitimate: targets an authorized project
+        )
+        total_checksum = sha1(bundle_file).hexdigest()
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
+
+        # Assemble with all authorized project IDs
+        assemble_artifacts(
+            org_id=self.organization.id,
+            version=self.release.version,
+            checksum=total_checksum,
+            chunks=[blob1.checksum],
+            project_ids=[project_a.id, project_b.id, project_c.id],
+            is_release_bundle_migration=True,
+        )
+
+        # Verify the artifact bundle was created
+        artifact_bundle = ArtifactBundle.objects.get(organization_id=self.organization.id)
+
+        # Verify ONLY project_b is associated (narrowing worked correctly)
+        project_associations = list(
+            ProjectArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).values_list(
+                "project_id", flat=True
+            )
+        )
+
+        assert project_associations == [
+            project_b.id
+        ], f"Expected only project_b to be associated, got {project_associations}"

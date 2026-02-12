@@ -16,17 +16,15 @@ import {mergeRefs} from '@react-aria/utils';
 import {useComboBoxState, type ComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
-import {ListBox} from 'sentry/components/core/compactSelect/listBox';
-import type {
-  SelectKey,
-  SelectOptionOrSectionWithKey,
-} from 'sentry/components/core/compactSelect/types';
 import {
   getDisabledOptions,
   getHiddenOptions,
-} from 'sentry/components/core/compactSelect/utils';
-import {Input} from 'sentry/components/core/input';
-import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
+  ListBox,
+} from '@sentry/scraps/compactSelect';
+import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
+import {Input, useAutosizeInput} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
+
 import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
@@ -41,7 +39,6 @@ import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -182,11 +179,6 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   maxOptions?: number;
   shouldFilterResults?: boolean;
 }) {
-  const organization = useOrganization();
-  const hasAskSeerConsentFlowChanges = organization.features.includes(
-    'gen-ai-consent-flow-removal'
-  );
-  const {gaveSeerConsent} = useSearchQueryBuilder();
   const hiddenOptions: Set<SelectKey> = useMemo(() => {
     const options = getHiddenOptions(
       items,
@@ -195,24 +187,11 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
     );
 
     if (showAskSeerOption) {
-      // always show if feature is enabled
-      if (gaveSeerConsent || hasAskSeerConsentFlowChanges) {
-        options.add(ASK_SEER_ITEM_KEY);
-      } else {
-        options.add(ASK_SEER_CONSENT_ITEM_KEY);
-      }
+      options.add(ASK_SEER_ITEM_KEY);
     }
 
     return options;
-  }, [
-    filterValue,
-    gaveSeerConsent,
-    hasAskSeerConsentFlowChanges,
-    items,
-    maxOptions,
-    shouldFilterResults,
-    showAskSeerOption,
-  ]);
+  }, [filterValue, items, maxOptions, shouldFilterResults, showAskSeerOption]);
 
   const disabledKeys = useMemo(() => {
     const baseDisabledKeys = [...getDisabledOptions(items), ...hiddenOptions];
@@ -582,8 +561,9 @@ export function SearchQueryBuilderCombobox<
   }, [inputRef, popoverRef, isOpen, customMenu]);
 
   const autosizeInput = useAutosizeInput({value: inputValue});
+
   return (
-    <Wrapper>
+    <Flex align="stretch" width="100%" height="100%" position="relative">
       <UnstyledInput
         {...inputProps}
         size="md"
@@ -627,17 +607,9 @@ export function SearchQueryBuilderCombobox<
         overlayProps={overlayProps}
         portalTarget={portalTarget}
       />
-    </Wrapper>
+    </Flex>
   );
 }
-
-const Wrapper = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: stretch;
-  height: 100%;
-  width: 100%;
-`;
 
 const UnstyledInput = styled(Input)`
   background: transparent;

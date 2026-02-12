@@ -3,6 +3,7 @@ import {useSearchParams} from 'react-router-dom';
 
 import type {ApiResult} from 'sentry/api';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   fetchDataQuery,
   useInfiniteQuery,
@@ -60,7 +61,10 @@ interface TestResults {
   totalCount: number;
 }
 
-type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
+type QueryKey = [
+  url: ReturnType<typeof getApiUrl>,
+  endpointOptions: QueryKeyEndpointOptions,
+];
 
 export function useInfiniteTestResults({
   cursor,
@@ -102,7 +106,16 @@ export function useInfiniteTestResults({
     QueryKey
   >({
     queryKey: [
-      `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repository/${repository}/test-results/`,
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repository/$repository/test-results/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            owner: integratedOrgId!,
+            repository: repository!,
+          },
+        }
+      ),
       {
         query: {
           branch,

@@ -1,19 +1,19 @@
 import React, {Fragment, isValidElement} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import lowerFirst from 'lodash/lowerFirst';
 import {parseAsString, useQueryState} from 'nuqs';
 import {PlatformIcon, platforms} from 'platformicons';
 
+import {Tag} from '@sentry/scraps/badge';
 import {InlineCode} from '@sentry/scraps/code';
+import {Input} from '@sentry/scraps/input';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Input} from 'sentry/components/core/input';
-import {Container, Flex, Grid, Stack} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {Sticky} from 'sentry/components/sticky';
 import * as Icons from 'sentry/icons';
+import {type SVGIconProps} from 'sentry/icons/svgIcon';
 import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -1495,7 +1495,6 @@ const SECTIONS: TSection[] = [
 ];
 
 export default function IconsStories() {
-  const theme = useTheme();
   const [searchTerm, setSearchTerm] = useQueryState(
     'search',
     parseAsString.withDefault('')
@@ -1514,6 +1513,16 @@ export default function IconsStories() {
       .filter(name => !definedWithPrefix.has(name))
       .map((name): TIcon => ({id: name, name})),
   };
+
+  const variants: Array<SVGIconProps['variant']> = [
+    'primary',
+    'muted',
+    'accent',
+    'success',
+    'warning',
+    'danger',
+    'promotion',
+  ];
 
   return (
     <Fragment>
@@ -1548,18 +1557,18 @@ export default function IconsStories() {
       <Text as="p" density="comfortable" size="md" variant="primary">
         Just like other Core components, Icons support a set of variants that control the
         color of the icon. The full list of variants is{' '}
-        {Object.keys(theme.tokens.content).map((v, idx) => (
+        {variants.map((v, idx) => (
           <Fragment key={v}>
             <InlineCode>{v}</InlineCode>
-            {idx < Object.keys(theme.tokens.content).length - 1 ? ', ' : ''}
+            {idx < variants.length - 1 ? ', ' : ''}
           </Fragment>
         ))}
         .
       </Text>
       <Flex direction="row" gap="md" justify="between" width="100%">
-        {Object.keys(theme.tokens.content).map(v => (
+        {variants.map(v => (
           <Stack key={v} align="center" gap="md">
-            <Icons.IconSentry size="md" variant={v as any} />
+            <Icons.IconSentry size="md" variant={v} />
             <InlineCode>
               <Text size="xs" monospace>
                 {v}
@@ -1886,11 +1895,11 @@ function CodeBlock({code, language}: {code: string; language: string}) {
     <Pre className={`language-${language}`}>
       <code>
         {lines.map((line, lineIndex) => (
-          <Line key={lineIndex}>
+          <Container minHeight="1lh" key={lineIndex}>
             {line.map((tokenProps, tokenIndex) => (
               <span key={`${lineIndex}:${tokenIndex}`} {...tokenProps} />
             ))}
-          </Line>
+          </Container>
         ))}
       </code>
     </Pre>
@@ -1949,10 +1958,6 @@ const Pre = styled('pre')`
   border-bottom-left-radius: 0 !important;
   border-bottom-right-radius: 0 !important;
 `;
-const Line = styled('div')`
-  min-height: 1lh;
-`;
-
 const Cell = styled('button')`
   background: none;
   display: flex;

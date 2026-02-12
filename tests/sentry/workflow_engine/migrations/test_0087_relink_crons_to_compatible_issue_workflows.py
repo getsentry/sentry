@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from sentry.models.rule import Rule, RuleSource
@@ -14,11 +16,11 @@ class RelinkCronsToCompatibleIssueWorkflowsTest(TestMigrations):
 
     def _create_issue_rule_with_workflow(
         self,
-        project,
-        condition_data,
-        action_data=None,
-        frequency=5,
-    ):
+        project: Any,
+        condition_data: list[dict[str, Any]],
+        action_data: list[dict[str, Any]] | None = None,
+        frequency: int = 5,
+    ) -> tuple[Any, Any]:
         """Helper to create an issue rule with workflow."""
         if action_data is None:
             action_data = [
@@ -39,7 +41,9 @@ class RelinkCronsToCompatibleIssueWorkflowsTest(TestMigrations):
         Rule.objects.filter(id=rule.id).update(source=RuleSource.ISSUE)
         return rule, workflow
 
-    def _create_cron_detector(self, org, project, name, owner_user=None, owner_team=None):
+    def _create_cron_detector(
+        self, org: Any, project: Any, name: str, owner_user: Any = None, owner_team: Any = None
+    ) -> tuple[Any, Any]:
         """Helper to create a cron detector with data source and monitor."""
         detector = self.create_detector(
             project=project,

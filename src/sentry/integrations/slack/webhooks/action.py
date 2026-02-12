@@ -48,6 +48,7 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
 from sentry.integrations.types import ExternalProviderEnum, IntegrationProviderSlug
 from sentry.integrations.utils.scope import bind_org_context_from_integration
+from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -60,6 +61,8 @@ from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models import User
 from sentry.users.services.user import RpcUser
+from sentry.utils import metrics
+from sentry.utils.locking import UnableToAcquireLock
 
 _logger = logging.getLogger(__name__)
 
@@ -114,7 +117,7 @@ def update_group(
 
     resp = update_groups(request=request, groups=[group], user=user, data=data)
     if resp.status_code != 200:
-        _logger.error(
+        _logger.warning(
             "slack.action.update-group-error",
             extra={
                 "group_id": group.id,
@@ -556,7 +559,7 @@ class SlackActionEndpoint(Endpoint):
         try:
             requests_.post(slack_request.response_url, json=payload)
         except ApiError:
-            _logger.exception("slack.action.response-error")
+            _logger.warning("slack.action.response-error")
             return self.respond(status=403)
 
         return self.respond()
@@ -571,16 +574,43 @@ class SlackActionEndpoint(Endpoint):
     ) -> None:
         entrypoint = SlackEntrypoint(
             slack_request=slack_request,
+            action=action,
             group=group,
             organization_id=group.project.organization_id,
         )
-        stopping_point = entrypoint.set_autofix_stopping_point(action=action)
-        operator = SeerOperator(entrypoint=entrypoint)
-        operator.trigger_autofix(
-            group=group,
-            user=user,
+        stopping_point = entrypoint.autofix_stopping_point
+        is_continuation = entrypoint.autofix_run_id is not None
+        logging_ctx = {
+            "group_id": group.id,
+            "organization_id": group.project.organization_id,
+            "stopping_point": str(stopping_point),
+            "is_continuation": is_continuation,
+            "user_id": user.id,
+        }
+        _logger.info("seer.slack.trigger_autofix.start", extra=logging_ctx)
+        lock_key = SlackEntrypoint.get_autofix_lock_key(
+            group_id=group.id,
             stopping_point=stopping_point,
-            run_id=entrypoint.get_autofix_run_id(),
+        )
+        lock = locks.get(lock_key, duration=10, name="autofix_entrypoint_slack")
+        try:
+            with lock.acquire():
+                SeerOperator(entrypoint=entrypoint).trigger_autofix(
+                    group=group,
+                    user=user,
+                    stopping_point=stopping_point,
+                    run_id=entrypoint.autofix_run_id,
+                )
+        except UnableToAcquireLock:
+            # Might be a double click, or Seer is taking it's time confirming the run start.
+            # The entrypoint will handle removing the button once it starts the run anyway.
+            _logger.info("seer.slack.trigger_autofix.lock_contention", extra=logging_ctx)
+            return
+
+        _logger.info("seer.slack.trigger_autofix.complete", extra=logging_ctx)
+        metrics.incr(
+            "seer.slack.trigger_autofix",
+            tags={"stopping_point": str(stopping_point), "is_continuation": str(is_continuation)},
         )
 
     @classmethod
@@ -771,7 +801,7 @@ class SlackActionEndpoint(Endpoint):
                 member.reject_member_invitation(identity_user)
         except Exception:
             # shouldn't error but if it does, respond to the user
-            _logger.exception(
+            _logger.warning(
                 "slack.action.member-invitation-error",
                 extra={
                     "organization_id": organization.id,

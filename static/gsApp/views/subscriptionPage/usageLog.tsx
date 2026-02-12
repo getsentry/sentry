@@ -2,11 +2,12 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import upperFirst from 'lodash/upperFirst';
 
+import {Tag} from '@sentry/scraps/badge';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -18,6 +19,7 @@ import {IconCircleFill} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AuditLog} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getTimeFormat} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -97,7 +99,9 @@ export default function UsageLog() {
     refetch,
   } = useApiQuery<UsageLogs>(
     [
-      `/customers/${organization.slug}/subscription/usage-logs/`,
+      getApiUrl(`/customers/$organizationIdOrSlug/subscription/usage-logs/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         method: 'GET',
         query: {
@@ -159,10 +163,11 @@ export default function UsageLog() {
           onChange={option => {
             handleEventFilter(option?.value);
           }}
-          triggerProps={{
-            size: 'sm',
-            children: selectedEventName ? undefined : t('Select Action'),
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} size="sm">
+              {selectedEventName ? triggerProps.children : t('Select Action')}
+            </OverlayTrigger.Button>
+          )}
         />
         {isError ? (
           <LoadingError onRetry={refetch} />
@@ -176,8 +181,14 @@ export default function UsageLog() {
                   <Timeline.Item
                     key={entry.id}
                     colorConfig={{
-                      icon: index === 0 ? theme.active : theme.gray300,
-                      iconBorder: index === 0 ? theme.active : theme.gray300,
+                      icon:
+                        index === 0
+                          ? theme.tokens.interactive.link.accent.active
+                          : theme.colors.gray400,
+                      iconBorder:
+                        index === 0
+                          ? theme.tokens.interactive.link.accent.active
+                          : theme.colors.gray400,
                       title: theme.tokens.content.primary,
                     }}
                     icon={<IconCircleFill />}
@@ -191,7 +202,7 @@ export default function UsageLog() {
                           <DateTime
                             format={`MMM D, YYYY ・ ${getTimeFormat({timeZone: true})}`}
                             date={entry.dateCreated}
-                            style={{fontSize: theme.fontSize.sm}}
+                            style={{fontSize: theme.font.size.sm}}
                           />
                         </Grid>
                         {entry.actor && entry.actor.name !== 'Sentry' && (

@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import replaysDeadRageBackground from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import PageBanner from 'sentry/components/alerts/pageBanner';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
 import {IconBroadcast} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
@@ -123,5 +123,5 @@ export default Storybook.story('PageBanner', story => {
 
 const Green = styled('span')`
   color: ${p => p.theme.colors.green500};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

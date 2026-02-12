@@ -1,6 +1,6 @@
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {REPLAY_TIMESTAMP_OPTIONS} from 'sentry/components/replays/preferences/replayPreferences';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -24,7 +24,7 @@ export default function ReplayIndexTimestampPrefPicker() {
         },
       ]}
       trigger={triggerProps => (
-        <SelectTrigger.IconButton
+        <OverlayTrigger.IconButton
           {...triggerProps}
           icon={<IconSettings />}
           aria-label={t('Configure timestamp settings')}

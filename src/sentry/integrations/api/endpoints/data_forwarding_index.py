@@ -2,7 +2,6 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -41,14 +40,6 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationDataForwardingDetailsPermission,)
-
-    def convert_args(self, request: Request, *args, **kwargs):
-        args, kwargs = super().convert_args(request, *args, **kwargs)
-        if not features.has("organizations:data-forwarding-revamp-access", kwargs["organization"]):
-            raise PermissionDenied(
-                "This feature is in a limited preview. Reach out to support@sentry.io for access."
-            )
-        return args, kwargs
 
     @extend_schema(
         operation_id="Retrieve Data Forwarders for an Organization",

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import zoneinfo
 from datetime import datetime, timedelta
 from typing import cast
@@ -15,11 +16,24 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models.organization import Organization
+from sentry.monitors.constants import (
+    MIN_THRESHOLD,
+    SAMPLE_OPEN_PERIOD_RATIO,
+    SAMPLE_PADDING_RATIO_OF_THRESHOLD,
+    SAMPLE_PADDING_TICKS_MIN_COUNT,
+    ScheduleSampleStatus,
+)
 from sentry.monitors.models import ScheduleType
 from sentry.monitors.schedule import SCHEDULE_INTERVAL_MAP
 from sentry.monitors.types import IntervalUnit
-from sentry.monitors.utils import get_schedule_sample_window_tick_statuses
 from sentry.monitors.validators import ConfigValidator
+
+MAX_UNIX_TIMESTAMP_SECONDS = 253402300799
+
+SUB_THRESHOLD_STATUS_VALUES = {
+    ScheduleSampleStatus.SUB_FAILURE_ERROR.value,
+    ScheduleSampleStatus.SUB_RECOVERY_OK.value,
+}
 
 
 class SampleScheduleBucketsConfigValidator(ConfigValidator):
@@ -29,12 +43,50 @@ class SampleScheduleBucketsConfigValidator(ConfigValidator):
 
     - start: unix timestamp (seconds) for the first *scheduled tick* in the
       window
+    - end: unix timestamp (seconds) for the last *scheduled tick* in the
+      window
     - interval: bucket size in seconds (matches rollupConfig.interval in the
       frontend)
     """
 
-    start = serializers.IntegerField(min_value=1)
-    interval = serializers.IntegerField(min_value=1)
+    start = serializers.IntegerField(min_value=1, max_value=MAX_UNIX_TIMESTAMP_SECONDS)
+    end = serializers.IntegerField(min_value=1, max_value=MAX_UNIX_TIMESTAMP_SECONDS)
+    interval = serializers.IntegerField(min_value=1, max_value=MAX_UNIX_TIMESTAMP_SECONDS)
+
+
+def _get_tick_statuses(
+    num_ticks: int, failure_threshold: int, recovery_threshold: int
+) -> list[ScheduleSampleStatus]:
+    if num_ticks <= 0:
+        return []
+
+    total_threshold = failure_threshold + recovery_threshold
+
+    padding = max(
+        SAMPLE_PADDING_TICKS_MIN_COUNT,
+        math.ceil(total_threshold * SAMPLE_PADDING_RATIO_OF_THRESHOLD),
+    )
+
+    open_period = total_threshold * SAMPLE_OPEN_PERIOD_RATIO
+
+    # We subtract one from the thresholds since the last tick is not a
+    # sub-threshold tick.
+    sub_failure_threshold = failure_threshold - 1
+    sub_recovery_threshold = recovery_threshold - 1
+    fixed_count = padding * 2 + sub_failure_threshold + sub_recovery_threshold + open_period
+    if fixed_count > num_ticks:
+        raise ValueError("n is too small for the given thresholds and ratios")
+
+    remaining = num_ticks - fixed_count
+    middle_errors = open_period + remaining
+
+    return (
+        [ScheduleSampleStatus.OK] * padding
+        + [ScheduleSampleStatus.SUB_FAILURE_ERROR] * sub_failure_threshold
+        + [ScheduleSampleStatus.ERROR] * middle_errors
+        + [ScheduleSampleStatus.SUB_RECOVERY_OK] * sub_recovery_threshold
+        + [ScheduleSampleStatus.OK] * padding
+    )
 
 
 @region_silo_endpoint
@@ -49,61 +101,59 @@ class OrganizationMonitorScheduleSampleBucketsEndpoint(OrganizationEndpoint):
 
         config = validator.validated_data
 
-        failure_threshold = config.get("failure_issue_threshold")
-        recovery_threshold = config.get("recovery_threshold")
-        if failure_threshold is None or recovery_threshold is None:
-            errors = {}
-            if failure_threshold is None:
-                errors["failure_issue_threshold"] = ["This field is required."]
-            if recovery_threshold is None:
-                errors["recovery_threshold"] = ["This field is required."]
-            return self.respond(errors, status=400)
-
-        tick_statuses = get_schedule_sample_window_tick_statuses(
-            failure_threshold=failure_threshold,
-            recovery_threshold=recovery_threshold,
-        )
-        num_ticks = len(tick_statuses)
+        failure_threshold = config.get("failure_issue_threshold") or MIN_THRESHOLD
+        recovery_threshold = config.get("recovery_threshold") or MIN_THRESHOLD
 
         schedule_type = config.get("schedule_type")
         schedule = config.get("schedule")
-        tz = zoneinfo.ZoneInfo(config.get("timezone") or "UTC")
 
         window_start_ts = int(config["start"])
+        window_end_ts = int(config["end"])
         bucket_interval = int(config["interval"])
+        tz = zoneinfo.ZoneInfo(config.get("timezone") or "UTC")
 
         window_start = datetime.fromtimestamp(window_start_ts, tz=tz)
+        window_end = datetime.fromtimestamp(window_end_ts, tz=tz)
+
         ticks: list[datetime] = []
 
         if schedule_type == ScheduleType.CRONTAB:
-            # Seed the simulator just before the provided first scheduled tick,
-            # so the first returned tick is expected to match start.
             schedule_iter = CronSim(
                 schedule,
+                # Seed the simulator just before the provided first scheduled
+                # tick, so the first returned tick is expected to match start.
                 window_start - timedelta(seconds=1),
             )
-            ticks = [next(schedule_iter) for _ in range(num_ticks)]
+            while True:
+                dt = next(schedule_iter)
+                if dt > window_end:
+                    break
+                ticks.append(dt)
 
         elif schedule_type == ScheduleType.INTERVAL:
             rule = rrule.rrule(
                 freq=SCHEDULE_INTERVAL_MAP[cast(IntervalUnit, schedule[1])],
                 interval=schedule[0],
                 dtstart=window_start,
-                count=num_ticks,
+                until=window_end,
             )
-            new_date = window_start
-            ticks.append(new_date)
-            while len(ticks) < num_ticks:
-                new_date = rule.after(new_date)
-                ticks.append(new_date)
+            ticks = list(rule)
 
-        window_end_ts = int(ticks[-1].timestamp())
+        if not ticks:
+            return Response([])
+
+        tick_statuses = _get_tick_statuses(
+            num_ticks=len(ticks),
+            failure_threshold=failure_threshold,
+            recovery_threshold=recovery_threshold,
+        )
 
         # Build bucketed stats in the shape FE expects:
         #   CheckInBucket = [bucketStartTs, {ok: count, error: count, ...}]
         bucket_stats: dict[int, dict[str, int]] = {}
 
-        for tick_dt, status in zip(ticks, tick_statuses):
+        for i, tick_dt in enumerate(ticks):
+            status = tick_statuses[i]
             tick_ts = int(tick_dt.timestamp())
             if tick_ts < window_start_ts or tick_ts > window_end_ts:
                 continue
@@ -111,7 +161,26 @@ class OrganizationMonitorScheduleSampleBucketsEndpoint(OrganizationEndpoint):
             bucket_index = (tick_ts - window_start_ts) // bucket_interval
             bucket_start = window_start_ts + bucket_index * bucket_interval
             stats = bucket_stats.setdefault(bucket_start, {})
-            stats[status] = stats.get(status, 0) + 1
+
+            # Prevent status smearing when multiple ticks are grouped into a bucket
+            # when bucket intervals are larger than the frequency in the schedule.
+            # Sub-threshold statuses dominate the bucket in this case, it should be the only
+            # status present in the bucket.
+            is_sub_threshold_status = status.value in SUB_THRESHOLD_STATUS_VALUES
+            bucket_has_sub_threshold_status = any(
+                existing_status in SUB_THRESHOLD_STATUS_VALUES for existing_status in stats.keys()
+            )
+
+            if is_sub_threshold_status:
+                if stats and not bucket_has_sub_threshold_status:
+                    stats.clear()
+                stats[status.value] = stats.get(status.value, 0) + 1
+                continue
+
+            if bucket_has_sub_threshold_status:
+                continue
+
+            stats[status.value] = stats.get(status.value, 0) + 1
 
         duration = window_end_ts - window_start_ts
         num_buckets = (duration // bucket_interval) + 1

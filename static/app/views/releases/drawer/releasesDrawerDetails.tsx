@@ -1,10 +1,12 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Select} from 'sentry/components/core/select';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   EventDrawerBody,
@@ -67,7 +69,7 @@ function ReleasesDrawerContent({
       <EventNavigator>
         <ErrorBoundary mini>
           <HeaderToolbar>
-            <ReleaseWithPlatform>
+            <Flex align="center" gap="md">
               <ErrorBoundary mini>
                 <SelectableProjectBadges>
                   {releaseMeta?.projects?.map(releaseProject => (
@@ -93,7 +95,7 @@ function ReleasesDrawerContent({
                 </SelectableProjectBadges>
               </ErrorBoundary>
               {formatVersion(release)}
-            </ReleaseWithPlatform>
+            </Flex>
 
             <LinkButton
               to={normalizeUrl({
@@ -171,7 +173,7 @@ function EnsureSingleProject({
 
   return (
     <EventDrawerBody>
-      <ProjectSelectContainer>
+      <Stack gap="xl" height="100vh">
         <Alert variant="info" showIcon={false}>
           {t(
             'This release exists in multiple projects. Please select a project to view details.'
@@ -187,7 +189,7 @@ function EnsureSingleProject({
           }}
           isClearable={false}
         />
-      </ProjectSelectContainer>
+      </Stack>
     </EventDrawerBody>
   );
 }
@@ -325,15 +327,9 @@ const Details = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(1)};
-`;
-
-const ReleaseWithPlatform = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;
 
 const SelectableProjectBadges = styled('div')`
@@ -356,11 +352,4 @@ const HeaderToolbar = styled(Header)`
   display: flex;
   justify-content: space-between;
   align-items: center;
-`;
-
-const ProjectSelectContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-  height: 100vh;
 `;

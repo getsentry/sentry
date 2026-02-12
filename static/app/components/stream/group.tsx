@@ -3,21 +3,23 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {Checkbox} from '@sentry/scraps/checkbox';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import ProgressBar from 'sentry/components/progressBar';
@@ -51,7 +53,6 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
@@ -83,6 +84,11 @@ type Props = {
    */
   group?: Group;
   hasGuideAnchor?: boolean;
+  /**
+   * Extra query params to include in the issue details navigation target.
+   * Applied to both the row click and the issue title link.
+   */
+  issueLinkExtraQuery?: Record<string, string>;
   memberList?: User[];
   onAssigneeChange?: (newAssignee: AssignableEntity | null) => void;
   onPriorityChange?: (newPriority: PriorityLevel) => void;
@@ -276,6 +282,7 @@ function StreamGroup({
   displayReprocessingLayout,
   hasGuideAnchor,
   memberList,
+  issueLinkExtraQuery,
   query,
   queryFilterDescription,
   source,
@@ -353,9 +360,8 @@ function StreamGroup({
       }
       onAssigneeChange?.(newAssignee);
     },
-    onError: () => {
-      addErrorMessage('Failed to update assignee');
-    },
+    // Error is already handled by GroupStore.onAssignToError which shows an alert
+    onError: () => {},
   });
 
   const clickHasBeenHandled = useCallback(
@@ -556,12 +562,12 @@ function StreamGroup({
           </CountTooltipContent>
         }
       >
-        <CountsWrapper>
+        <Stack position="relative">
           <PrimaryCount value={primaryCount} />
           {secondaryCount !== undefined && useFilteredStats && (
             <SecondaryCount value={secondaryCount} />
           )}
-        </CountsWrapper>
+        </Stack>
       </Tooltip>
     </GuideAnchor>
   );
@@ -596,12 +602,12 @@ function StreamGroup({
         </CountTooltipContent>
       }
     >
-      <CountsWrapper>
+      <Stack position="relative">
         <PrimaryCount value={primaryUserCount} />
         {secondaryUserCount !== undefined && useFilteredStats && (
           <SecondaryCount value={secondaryUserCount} />
         )}
-      </CountsWrapper>
+      </Stack>
     </Tooltip>
   );
 
@@ -646,6 +652,7 @@ function StreamGroup({
           referrer,
           location,
           query,
+          extraQuery: issueLinkExtraQuery,
         })
       )
     );
@@ -668,7 +675,12 @@ function StreamGroup({
           />
         )}
         <GroupSummary canSelect={canSelect}>
-          <EventOrGroupHeader data={group} query={query} source={referrer} />
+          <EventOrGroupHeader
+            data={group}
+            query={query}
+            source={referrer}
+            issueLinkExtraQuery={issueLinkExtraQuery}
+          />
           <EventOrGroupExtraDetails data={group} showLifetime={false} />
         </GroupSummary>
       </Fragment>
@@ -839,7 +851,7 @@ const Wrapper = styled(PanelItem)<{
           background-color: ${p.theme.tokens.background.secondary};
         }
         100% {
-          background-color: ${p.theme.backgroundSecondary};
+          background-color: ${p.theme.tokens.background.secondary};
         }
       }
     `};
@@ -853,7 +865,7 @@ export const GroupSummary = styled('div')<{canSelect: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   width: auto;
 `;
 
@@ -872,14 +884,8 @@ const CheckboxWithBackground = styled(Checkbox)`
   background-color: ${p => p.theme.tokens.background.primary};
 `;
 
-const CountsWrapper = styled('div')`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-`;
-
 const PrimaryCount = styled(Count)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   display: flex;
   justify-content: right;
   margin-bottom: ${space(0.25)};
@@ -887,7 +893,7 @@ const PrimaryCount = styled(Count)`
 `;
 
 const SecondaryCount = styled(({value, ...p}: any) => <Count {...p} value={value} />)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   display: flex;
   justify-content: right;
   color: ${p => p.theme.tokens.content.secondary};
@@ -906,12 +912,12 @@ const CountTooltipContent = styled('div')`
   grid-template-columns: 1fr max-content;
   gap: ${space(1)} ${space(3)};
   text-align: left;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   align-items: center;
 
   h4 {
     color: ${p => p.theme.tokens.content.secondary};
-    font-size: ${p => p.theme.fontSize.xs};
+    font-size: ${p => p.theme.font.size.xs};
     text-transform: uppercase;
     grid-column: 1 / -1;
     margin-bottom: ${space(0.25)};
@@ -1010,7 +1016,10 @@ const StartedColumn = styled('div')`
   align-self: center;
   margin: 0 ${space(2)};
   color: ${p => p.theme.colors.gray800};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: 85px;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
@@ -1023,7 +1032,10 @@ const EventsReprocessedColumn = styled('div')`
   align-self: center;
   margin: 0 ${space(2)};
   color: ${p => p.theme.colors.gray800};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: 75px;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {

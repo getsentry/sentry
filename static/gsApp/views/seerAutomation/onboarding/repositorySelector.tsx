@@ -2,7 +2,7 @@ import {memo, useCallback, useDeferredValue, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {InputGroup} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -194,7 +194,7 @@ const RepositoryRow = memo(({repository, checked, onChange}: RepositoryRowProps)
 });
 
 const Label = styled('label')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin-bottom: 0;
 `;
 

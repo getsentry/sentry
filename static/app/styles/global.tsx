@@ -24,13 +24,13 @@ const generateThemePrismVariables = (theme: Theme, blockBackground: string) => (
 
 const prismStyles = (theme: Theme, darkTheme: Theme) => css`
   :root {
-    ${generateThemePrismVariables(theme, theme.backgroundSecondary)};
+    ${generateThemePrismVariables(theme, theme.tokens.background.secondary)};
   }
 
   /* Use dark Prism theme for code snippets imported from Sentry Docs */
   .gatsby-highlight,
   .prism-dark {
-    ${generateThemePrismVariables(darkTheme, darkTheme.tokens.background.primary)};
+    ${generateThemePrismVariables(darkTheme, darkTheme.tokens.background.secondary)};
   }
 
   pre[class*='language-'] {
@@ -48,9 +48,9 @@ const prismStyles = (theme: Theme, darkTheme: Theme) => css`
   code[class*='language-'] {
     color: var(--prism-base);
     background: var(--prism-block-background);
-    font-size: ${theme.fontSize.sm};
+    font-size: ${theme.font.size.sm};
     text-shadow: none;
-    font-family: ${theme.text.familyMono};
+    font-family: ${theme.font.family.mono};
     direction: ltr;
     text-align: left;
     white-space: pre;
@@ -116,7 +116,7 @@ const prismStyles = (theme: Theme, darkTheme: Theme) => css`
     }
     .token.important,
     .token.bold {
-      font-weight: ${theme.fontWeight.bold};
+      font-weight: ${theme.font.weight.sans.medium};
     }
     .token.italic {
       font-style: italic;
@@ -184,7 +184,11 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
   `}
 
   abbr {
-    ${theme.tooltipUnderline()};
+    text-decoration: underline;
+    text-decoration-thickness: 0.75px;
+    text-underline-offset: 1.25px;
+    text-decoration-color: ${theme.tokens.content.secondary};
+    text-decoration-style: dotted;
   }
 
   a {
@@ -196,6 +200,7 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
   }
 
   .group-detail:before {
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${theme.tokens.border.primary};
   }
 
@@ -286,8 +291,8 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
           }
         }
         .loading .loading-indicator {
-          border-color: ${theme.tokens.background.transparent.neutral.muted};
-          border-left-color: ${theme.tokens.background.accent.vibrant};
+          border-color: ${theme.tokens.border.transparent.neutral.muted};
+          border-left-color: ${theme.tokens.border.accent.vibrant};
         }
 
         .pattern-bg {
@@ -382,7 +387,7 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
           color: ${theme.tokens.content.primary};
         }
         .rdrDayDisabled {
-          background-color: ${theme.backgroundSecondary};
+          background-color: ${theme.tokens.background.secondary};
           color: ${theme.tokens.content.disabled};
         }
         .rdrMonthAndYearPickers select {
@@ -396,12 +401,14 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
             border-bottom-color: ${theme.tokens.border.primary};
           }
           &:after {
+            /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
             border-bottom-color: ${theme.tokens.background.primary};
           }
           &.inverted:before {
             border-top-color: ${theme.tokens.border.primary};
           }
           &.inverted:after {
+            /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
             border-top-color: ${theme.tokens.background.primary};
           }
         }

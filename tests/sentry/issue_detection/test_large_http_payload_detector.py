@@ -24,7 +24,9 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         self._settings = get_detection_settings()
 
     def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        detector = LargeHTTPPayloadDetector(self._settings, event)
+        detector = LargeHTTPPayloadDetector(
+            self._settings[LargeHTTPPayloadDetector.settings_key], event
+        )
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -83,7 +85,9 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         event["project_id"] = project.id
 
         settings = get_detection_settings(project.id)
-        detector = LargeHTTPPayloadDetector(settings, event)
+        detector = LargeHTTPPayloadDetector(
+            settings[LargeHTTPPayloadDetector.settings_key], event, self.organization
+        )
 
         assert detector.is_creation_allowed_for_project(project)
 
@@ -94,7 +98,9 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         )
 
         settings = get_detection_settings(project.id)
-        detector = LargeHTTPPayloadDetector(settings, event)
+        detector = LargeHTTPPayloadDetector(
+            settings[LargeHTTPPayloadDetector.settings_key], event, self.organization
+        )
 
         assert not detector.is_creation_allowed_for_project(project)
 
@@ -328,7 +334,9 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         ]
         event = create_event(spans)
 
-        detector = LargeHTTPPayloadDetector(settings, event)
+        detector = LargeHTTPPayloadDetector(
+            settings[LargeHTTPPayloadDetector.settings_key], event, self.organization
+        )
         run_detector_on_data(detector, event)
         assert len(detector.stored_problems) == 0
 
@@ -356,7 +364,9 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         ]
         event = create_event(spans)
 
-        detector = LargeHTTPPayloadDetector(settings, event)
+        detector = LargeHTTPPayloadDetector(
+            settings[LargeHTTPPayloadDetector.settings_key], event, self.organization
+        )
         run_detector_on_data(detector, event)
         assert len(detector.stored_problems) == 1
 
@@ -375,6 +385,8 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         ]
         event = create_event(spans)
 
-        detector = LargeHTTPPayloadDetector(settings, event)
+        detector = LargeHTTPPayloadDetector(
+            settings[LargeHTTPPayloadDetector.settings_key], event, self.organization
+        )
         run_detector_on_data(detector, event)
         assert len(detector.stored_problems) == 0

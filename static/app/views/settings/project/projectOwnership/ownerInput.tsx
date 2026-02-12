@@ -1,11 +1,12 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {TextArea} from 'sentry/components/core/textarea';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -212,7 +213,7 @@ class OwnerInput extends Component<Props, State> {
           </Panel>
           <ActionBar>
             <div>{this.parseError(error)}</div>
-            <ButtonBar>
+            <Grid flow="column" align="center" gap="md">
               <Button type="button" size="sm" onClick={this.props.onCancel}>
                 {t('Cancel')}
               </Button>
@@ -224,7 +225,7 @@ class OwnerInput extends Component<Props, State> {
               >
                 {t('Save')}
               </Button>
-            </ButtonBar>
+            </Grid>
           </ActionBar>
         </div>
       </Fragment>
@@ -247,7 +248,7 @@ const SyntaxOverlay = styled('div')<{line: number}>`
   top: ${({line}) => TEXTAREA_PADDING + line * TEXTAREA_LINE_HEIGHT + 1}px;
   width: 100%;
   height: ${TEXTAREA_LINE_HEIGHT}px;
-  background-color: ${p => p.theme.tokens.content.danger};
+  background-color: ${p => p.theme.tokens.background.danger.vibrant};
   opacity: 0.1;
   pointer-events: none;
 `;
@@ -271,12 +272,12 @@ const StyledTextArea = styled(TextArea)`
 
 const InvalidOwners = styled('div')`
   color: ${p => p.theme.tokens.content.danger};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-top: 12px;
 `;
 
 const SyncDate = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   text-transform: none;
 `;
 

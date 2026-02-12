@@ -1,10 +1,10 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
 import {IconChevron} from 'sentry/icons';
 import {useStoryParams} from 'sentry/stories/view';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
@@ -114,10 +114,9 @@ type ComponentSubcategory =
   | 'layout'
   | 'buttons'
   | 'forms'
-  | 'pickers'
   | 'navigation'
-  | 'status-feedback'
-  | 'data-display'
+  | 'status'
+  | 'display'
   | 'overlays'
   | 'utilities'
   | 'shared';
@@ -139,7 +138,15 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
 > = {
   layout: {
     label: 'Layout',
-    components: ['composition', 'container', 'flex', 'grid', 'stack'],
+    components: [
+      'composition',
+      'container',
+      'flex',
+      'grid',
+      'stack',
+      'surface',
+      'disclosure',
+    ],
   },
   typography: {
     label: 'Typography',
@@ -160,11 +167,6 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
       'radio',
       'switch',
       'slider',
-    ],
-  },
-  pickers: {
-    label: 'Pickers',
-    components: [
       'select',
       'multiselect',
       'compactselect',
@@ -174,14 +176,14 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   },
   navigation: {
     label: 'Navigation',
-    components: ['link', 'tabs', 'menulistitem', 'disclosure'],
+    components: ['link', 'tabs', 'menulistitem'],
   },
-  'status-feedback': {
-    label: 'Status & Feedback',
-    components: ['alert', 'badge', 'toast'],
+  status: {
+    label: 'Status',
+    components: ['alert', 'badge', 'tag', 'toast'],
   },
-  'data-display': {
-    label: 'Data Display',
+  display: {
+    label: 'Display',
     components: ['avatar', 'image', 'codeblock'],
   },
   overlays: {
@@ -211,10 +213,9 @@ const COMPONENT_SUBCATEGORY_ORDER: ComponentSubcategory[] = [
   'typography',
   'buttons',
   'forms',
-  'pickers',
   'navigation',
-  'status-feedback',
-  'data-display',
+  'status',
+  'display',
   'overlays',
   'utilities',
   'shared',
@@ -719,7 +720,7 @@ const FolderName = styled('div')`
   gap: ${p => p.theme.space.sm};
   padding: ${p => p.theme.space.md};
   padding-right: ${p => p.theme.space.xl};
-  color: ${p => p.theme.tokens.content.muted};
+  color: ${p => p.theme.tokens.content.secondary};
   cursor: pointer;
   position: relative;
 
@@ -773,7 +774,7 @@ const FolderLink = styled(Link, {
     position: absolute;
     left: -8px;
     height: 20px;
-    background: ${p => p.theme.tokens.graphics.accent};
+    background: ${p => p.theme.tokens.graphics.accent.vibrant};
     width: 4px;
     border-radius: ${p => p.theme.radius.md};
     opacity: ${p => (p.active ? 1 : 0)};

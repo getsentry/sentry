@@ -2,12 +2,14 @@ import {Fragment, useMemo, useState} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {Hovercard} from 'sentry/components/hovercard';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Panel from 'sentry/components/panels/panel';
 import TextOverflow from 'sentry/components/textOverflow';
 import {
@@ -21,9 +23,9 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventsStats} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -161,13 +163,30 @@ export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
 }
 
 export function ServerTree() {
-  const organization = useOrganization();
   const {query} = useTransactionNameQuery();
+  return <BaseServerTree query={query} />;
+}
+
+export function BaseServerTree({
+  noVisualizationPadding,
+  query,
+}: {
+  noVisualizationPadding?: boolean;
+  query?: string;
+}) {
+  const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
+
+  let finalQuery = 'span.op:function.nextjs';
+  if (query) {
+    finalQuery += ` ${query}`;
+  }
 
   const treeRequest = useApiQuery<TreeResponse>(
     [
-      `/organizations/${organization.slug}/insights/tree/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/insights/tree/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...pageFilterChartParams,
@@ -175,7 +194,7 @@ export function ServerTree() {
           noPagination: true,
           useRpc: true,
           dataset: 'spans',
-          query: `span.op:function.nextjs ${query}`,
+          query: finalQuery,
           field: [
             'count()',
             'span.description',
@@ -194,8 +213,8 @@ export function ServerTree() {
 
   const tree = useMemo(() => mapResponseToTree(treeData), [treeData]);
 
-  return (
-    <StyledPanel>
+  const children = (
+    <Fragment>
       <TreeWidgetVisualization tree={tree} />
       {treeRequest.isLoading ? (
         <LoadingIndicator />
@@ -204,8 +223,14 @@ export function ServerTree() {
           {t('No results found')}
         </EmptyMessage>
       )}
-    </StyledPanel>
+    </Fragment>
   );
+
+  if (noVisualizationPadding) {
+    return children;
+  }
+
+  return <StyledPanel>{children}</StyledPanel>;
 }
 
 function sortTreeChildren(a: TreeNode, b: TreeNode): number {
@@ -318,7 +343,7 @@ function TreeNodeRenderer({
                     <code>{`${itemPath.join('/')}`}</code>
                     <Button
                       size="zero"
-                      borderless
+                      priority="transparent"
                       icon={<IconCopy size="xs" />}
                       aria-label={t('Copy')}
                       onClick={() => {
@@ -361,7 +386,7 @@ const HeaderCell = styled('div')`
   text-transform: uppercase;
   font-weight: 600;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   white-space: nowrap;
   line-height: 1;
@@ -392,8 +417,8 @@ const OneLineCodeBlock = styled('pre')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.sm};
-  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.font.size.sm};
+  font-family: ${p => p.theme.font.family.mono};
   gap: ${space(0.5)};
   padding: ${space(0.5)} ${space(1)};
   margin: 0;
@@ -404,7 +429,7 @@ const OneLineCodeBlock = styled('pre')`
 const TreeGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr min-content min-content min-content;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   & > * {
     text-align: right;
@@ -427,7 +452,7 @@ const TreeGrid = styled('div')`
   & > *:nth-child(8n + 2),
   & > *:nth-child(8n + 3),
   & > *:nth-child(8n + 4) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 

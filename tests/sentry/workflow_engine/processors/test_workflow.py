@@ -1,7 +1,6 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, Mock, patch
 
-import pytest
 from django.utils import timezone
 
 from sentry.eventstream.base import GroupState
@@ -10,21 +9,13 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
-from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
-from sentry.workflow_engine.models import (
-    Action,
-    DataConditionGroup,
-    DataConditionGroupAction,
-    Workflow,
-)
+from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
@@ -33,7 +24,6 @@ from sentry.workflow_engine.processors.contexts.workflow_event_context import (
 )
 from sentry.workflow_engine.processors.data_condition_group import get_data_conditions_for_group
 from sentry.workflow_engine.processors.workflow import (
-    delete_workflow,
     enqueue_workflows,
     evaluate_workflow_triggers,
     evaluate_workflows_action_filters,
@@ -119,7 +109,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
                 "is_regression": True,
                 "is_new_group_environment": False,
             },
-            has_reappeared=False,
             has_escalated=False,
         )
         mock_fire_actions.assert_called_once()
@@ -156,7 +145,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
                 "is_regression": True,
                 "is_new_group_environment": False,
             },
-            has_reappeared=False,
             has_escalated=False,
         )
 
@@ -196,7 +184,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
                 "is_regression": True,
                 "is_new_group_environment": False,
             },
-            has_reappeared=False,
             has_escalated=False,
         )
 
@@ -333,25 +320,16 @@ class TestProcessWorkflows(BaseWorkflowTest):
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.detector.logger")
     def test_no_detector(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
-        self.issue_stream_detector.delete()
         self.group_event.occurrence = self.build_occurrence(evidence_data={})
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         assert result.msg == "No Detectors associated with the issue were found"
 
-        mock_incr.assert_called_with("workflow_engine.detectors.error")  # called twice
-        mock_logger.exception.assert_called_with(
-            "Issue stream detector not found for event",
-            extra={
-                "project_id": self.group.project_id,
-                "group_id": self.group_event.group_id,
-            },
-        )  # exception is called twice for both missing detectors
-
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.detector.logger")
     def test_no_issue_stream_detector(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
         self.issue_stream_detector.delete()
+        self.group.update(type=ErrorGroupType.type_id)
 
         process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
 
@@ -374,7 +352,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert not result.data.triggered_workflows
         assert result.msg == "Environment for event not found"
 
-        mock_incr.assert_called_once_with(
+        mock_incr.assert_any_call(
             "workflow_engine.process_workflows.error", 1, tags={"detector_type": "error"}
         )
         mock_logger.exception.assert_called_once_with(
@@ -385,8 +363,10 @@ class TestProcessWorkflows(BaseWorkflowTest):
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.detector.logger")
     def test_no_metrics_triggered(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
-        self.issue_stream_detector.delete()
+        self.group.update(type=ErrorGroupType.type_id)
+
         self.error_detector.delete()
+        self.issue_stream_detector.delete()
 
         process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         mock_incr.assert_called_with("workflow_engine.detectors.error")  # called twice
@@ -412,7 +392,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
             tags={"detector_type": self.error_detector.type},
         )
 
-    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     @patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
     def test_workflow_fire_history_with_action_deduping(
         self, mock_trigger_action: MagicMock
@@ -445,7 +424,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert WorkflowFireHistory.objects.count() == 3
         assert mock_trigger_action.call_count == 3
 
-    @override_options({"workflow_engine.exclude_issue_stream_detector": False})
     def test_uses_issue_stream_workflows(self) -> None:
         issue_occurrence = self.build_occurrence()
         self.group_event.occurrence = issue_occurrence
@@ -466,7 +444,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert result.data.triggered_actions is not None
         assert len(result.data.triggered_actions) == 0
 
-    @override_options({"workflow_engine.exclude_issue_stream_detector": False})
     def test_multiple_detectors__preferred(self) -> None:
         _, issue_stream_detector, _, _ = self.create_detector_and_workflow(
             name_prefix="issue_stream",
@@ -1162,83 +1139,3 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
                 )
             },
         )
-
-
-@django_db_all
-class TestDeleteWorkflow:
-    @pytest.fixture(autouse=True)
-    def setUp(self) -> None:
-        self.organization = Factories.create_organization()
-        self.project = Factories.create_project(organization=self.organization)
-
-        self.workflow = Factories.create_workflow()
-        self.workflow_trigger = Factories.create_data_condition_group(
-            organization=self.organization
-        )
-        self.workflow.when_condition_group = self.workflow_trigger
-        self.workflow.save()
-
-        self.action_filter = Factories.create_data_condition_group(organization=self.organization)
-        self.action = Factories.create_action()
-        self.action_and_filter = Factories.create_data_condition_group_action(
-            condition_group=self.action_filter,
-            action=self.action,
-        )
-
-        self.workflow_actions = Factories.create_workflow_data_condition_group(
-            workflow=self.workflow,
-            condition_group=self.action_filter,
-        )
-
-        self.trigger_condition = Factories.create_data_condition(
-            condition_group=self.workflow_trigger,
-            comparison=1,
-            condition_result=True,
-        )
-
-        self.action_condition = Factories.create_data_condition(
-            condition_group=self.action_filter,
-            comparison=1,
-            condition_result=True,
-        )
-
-    @pytest.mark.parametrize(
-        "instance_attr",
-        [
-            "workflow",
-            "workflow_trigger",
-            "action_filter",
-            "action_and_filter",
-            "workflow_actions",
-            "trigger_condition",
-            "action_condition",
-        ],
-    )
-    def test_delete_workflow(self, instance_attr: str) -> None:
-        instance = getattr(self, instance_attr)
-        instance_id = instance.id
-        cls = instance.__class__
-
-        delete_workflow(self.workflow)
-        assert not cls.objects.filter(id=instance_id).exists()
-
-    def test_delete_workflow__no_actions(self) -> None:
-        Action.objects.get(id=self.action.id).delete()
-        assert not DataConditionGroupAction.objects.filter(id=self.action_and_filter.id).exists()
-
-        workflow_id = self.workflow.id
-        delete_workflow(self.workflow)
-
-        assert not Workflow.objects.filter(id=workflow_id).exists()
-
-    def test_delete_workflow__no_workflow_triggers(self) -> None:
-        # TODO - when this condition group is deleted, it's removing the workflow
-        # it's basically inverted from what's expected on the cascade delete
-        self.workflow.when_condition_group = None
-        self.workflow.save()
-
-        DataConditionGroup.objects.get(id=self.workflow_trigger.id).delete()
-
-        workflow_id = self.workflow.id
-        delete_workflow(self.workflow)
-        assert not Workflow.objects.filter(id=workflow_id).exists()

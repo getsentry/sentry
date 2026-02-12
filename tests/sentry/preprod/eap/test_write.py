@@ -43,13 +43,16 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
             app_id="com.example.app",
-            app_name="Example App",
-            build_version="1.2.3",
-            build_number=100,
             main_binary_identifier="com.example.MainBinary",
             commit_comparison=commit_comparison,
             build_configuration=build_config,
             date_built=datetime(2024, 1, 1, 10, 0, 0, tzinfo=dt_timezone.utc),
+        )
+        self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=artifact,
+            build_version="1.2.3",
+            build_number=100,
+            app_name="Example App",
         )
 
         size_metric = PreprodArtifactSizeMetrics.objects.create(
@@ -67,6 +70,7 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
 
         produce_preprod_size_metric_to_eap(
             size_metric=size_metric,
+            organization=self.organization,
             organization_id=self.organization.id,
             project_id=self.project.id,
         )
@@ -136,6 +140,7 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
 
         produce_preprod_size_metric_to_eap(
             size_metric=size_metric,
+            organization=self.organization,
             organization_id=self.organization.id,
             project_id=self.project.id,
         )
@@ -182,9 +187,6 @@ class WritePreprodBuildDistributionToEAPTest(TestCase):
             state=PreprodArtifact.ArtifactState.PROCESSED,
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
             app_id="com.example.app",
-            app_name="Example App",
-            build_version="1.2.3",
-            build_number=100,
             main_binary_identifier="com.example.MainBinary",
             commit_comparison=commit_comparison,
             build_configuration=build_config,
@@ -201,6 +203,12 @@ class WritePreprodBuildDistributionToEAPTest(TestCase):
                 "has_proguard_mapping": False,
             },
         )
+        self.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=artifact,
+            build_version="1.2.3",
+            build_number=100,
+            app_name="Example App",
+        )
 
         # Create multiple installables to test summing
         InstallablePreprodArtifact.objects.create(
@@ -216,6 +224,7 @@ class WritePreprodBuildDistributionToEAPTest(TestCase):
 
         produce_preprod_build_distribution_to_eap(
             artifact=artifact,
+            organization=self.organization,
             organization_id=self.organization.id,
             project_id=self.project.id,
         )
@@ -278,6 +287,7 @@ class WritePreprodBuildDistributionToEAPTest(TestCase):
 
         produce_preprod_build_distribution_to_eap(
             artifact=artifact,
+            organization=self.organization,
             organization_id=self.organization.id,
             project_id=self.project.id,
         )

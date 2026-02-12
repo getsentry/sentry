@@ -151,18 +151,14 @@ def modify_date_updated(instance, **kwargs):
 
 def process_resource_change(instance, change, **kwargs):
     from sentry.models.groupowner import GroupOwner
-    from sentry.models.projectownership import ProjectOwnership
 
     cache.set(
         ProjectCodeOwners.get_cache_key(instance.project_id),
         None,
         READ_CACHE_DURATION,
     )
-    ownership = ProjectOwnership.get_ownership_cached(instance.project_id)
-    if not ownership:
-        ownership = ProjectOwnership(project_id=instance.project_id)
 
-    GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(instance.project_id)
+    GroupOwner.set_project_ownership_version(instance.project_id)
 
 
 pre_save.connect(

@@ -9,6 +9,7 @@ import sys
 import time
 from datetime import datetime
 from hashlib import sha256
+from pathlib import Path
 from typing import TypeVar
 from unittest import mock
 
@@ -335,6 +336,26 @@ def register_extensions() -> None:
     )
 
 
+def pytest_sessionstart(session: pytest.Session) -> None:
+    from sentry.taskworker.registry import TaskNamespace
+
+    # Store original send_task so tests that need it can restore it
+    TaskNamespace._original_send_task = TaskNamespace.send_task  # type: ignore[attr-defined]
+
+    # Prevent tests from producing real Kafka messages via the taskworker pipeline.
+    # Tests use TaskRunner (TASKWORKER_ALWAYS_EAGER=True) or BurstTaskRunner
+    # (_signal_send hook) which both operate before send_task in the call chain.
+    TaskNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[method-assign]
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    from sentry.taskworker.registry import TaskNamespace
+
+    if hasattr(TaskNamespace, "_original_send_task"):
+        TaskNamespace.send_task = TaskNamespace._original_send_task  # type: ignore[method-assign]
+        del TaskNamespace._original_send_task
+
+
 def pytest_runtest_setup(item: pytest.Item) -> None:
     if item.config.getvalue("nomigrations") and any(
         mark for mark in item.iter_markers(name="migrations")
@@ -397,12 +418,40 @@ def _shuffle(items: list[pytest.Item], r: random.Random) -> None:
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    """After collection, we need to select tests based on group and group strategy"""
+    """After collection, select tests based on selective file filter and group strategy.
+
+    When SELECTED_TESTS_FILE is set, only tests from files listed in that file are kept.
+    This enables selective testing while maintaining proper conftest loading order by
+    invoking pytest with the tests/ directory instead of specific file paths.
+    """
+
+    keep, discard = [], []
+
+    # Filter by selected test files if SELECTED_TESTS_FILE is set
+    selected_tests_file = os.environ.get("SELECTED_TESTS_FILE")
+    if selected_tests_file:
+        selected_path = Path(selected_tests_file)
+        if selected_path.exists():
+            with selected_path.open() as f:
+                selected_files = {line.strip() for line in f if line.strip()}
+
+            if selected_files:
+                for item in items:
+                    test_file = item.nodeid.split("::")[0]
+                    if test_file in selected_files:
+                        keep.append(item)
+                    else:
+                        discard.append(item)
+
+                items[:] = keep
+                if discard:
+                    config.hook.pytest_deselected(items=discard)
 
     total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
     current_group = int(os.environ.get("TEST_GROUP", 0))
     grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "scope")
 
+    # Reset keep/discard for sharding logic
     keep, discard = [], []
 
     for index, item in enumerate(items):

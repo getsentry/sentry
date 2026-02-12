@@ -13,6 +13,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.vercel import VercelClient, VercelIntegrationProvider, metadata
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
@@ -495,6 +496,26 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert ScheduledDeletion.objects.filter(
             model_name="OrganizationIntegration", object_id=org_integration.id
         ).exists()
+
+    @responses.activate
+    def test_post_install_missing_user_id(self) -> None:
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        # Delete existing installation so post_install takes the creation path
+        SentryAppInstallationForProvider.objects.filter(
+            organization_id=self.organization.id, provider="vercel"
+        ).delete()
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            org = serialize_rpc_organization(self.organization)
+
+        with pytest.raises(ValueError, match="user_id is required"):
+            VercelIntegrationProvider().post_install(
+                integration=integration, organization=org, extra={"user_id": None}
+            )
 
 
 class VercelIntegrationMetadataTest(TestCase):

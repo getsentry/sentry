@@ -8,7 +8,6 @@ import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {
   ActionType,
-  SentryAppIdentifier,
   type Action,
   type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
@@ -70,13 +69,8 @@ function findActionHandler(
   availableActions: ActionHandler[]
 ): ActionHandler | undefined {
   if (action.type === ActionType.SENTRY_APP) {
-    if (action.config.sentryAppIdentifier === SentryAppIdentifier.SENTRY_APP_ID) {
-      return availableActions.find(
-        handler => handler.sentryApp?.id === action.config.targetIdentifier
-      );
-    }
     return availableActions.find(
-      handler => handler.sentryApp?.installationUuid === action.config.targetIdentifier
+      handler => handler.sentryApp?.id === action.config.targetIdentifier
     );
   }
   return availableActions.find(handler => handler.type === action.type);
@@ -96,8 +90,11 @@ function ActionFilter({actionFilter, showDivider}: ActionFilterProps) {
         {tct('[if:If] [logicType] of these filters match', {
           if: <ConditionBadge />,
           logicType:
-            FILTER_MATCH_OPTIONS.find(choice => choice.value === actionFilter.logicType)
-              ?.label || actionFilter.logicType,
+            FILTER_MATCH_OPTIONS.find(
+              choice =>
+                choice.value === actionFilter.logicType ||
+                choice.alias === actionFilter.logicType
+            )?.label || actionFilter.logicType,
         })}
       </ConditionGroupHeader>
       {actionFilter.conditions.length > 0
@@ -168,7 +165,7 @@ const Panel = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.lg};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   border: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.lg};

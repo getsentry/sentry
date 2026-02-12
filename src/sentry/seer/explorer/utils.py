@@ -4,7 +4,11 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import orjson
+from django.core.exceptions import BadRequest
 
+from sentry import quotas
+from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.profiles.profile_chunks import get_chunk_ids
 from sentry.profiles.utils import get_from_profiling_service
@@ -459,3 +463,41 @@ def fetch_profile_data(
     if response.status == 200:
         return orjson.loads(response.data)
     return None
+
+
+def get_retention_boundary(organization: Organization, has_timezone: bool) -> datetime:
+    """Get the minimum datetime within retention, based on current time."""
+    retention_days = quotas.backend.get_event_retention(organization=organization) or 90
+    now = datetime.now(UTC) if has_timezone else datetime.now(UTC).replace(tzinfo=None)
+    return now - timedelta(days=retention_days)
+
+
+def get_group_date_range(
+    group: Group,
+    organization: Organization,
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> tuple[datetime, datetime]:
+    """
+    Convenience function to get a non-optional, valid time range from optional start and end times.
+    - null start/end are replaced with the group's first/last seen times
+    - range is clamped to the retention boundary
+    - raises BadRequest if end <= start or end <= retention boundary
+    """
+    # Handle optional start/end
+    if start is None:
+        start = group.first_seen
+    if end is None:
+        end = group.last_seen + timedelta(seconds=5)  # Fuzz for 1 event cases.
+
+    if end <= start:
+        raise BadRequest("End time must be after start time")
+
+    # Clamp to retention boundary
+    retention_boundary = get_retention_boundary(organization, bool(start.tzinfo))
+
+    if end <= retention_boundary:
+        raise BadRequest("Time range is outside retention, could not clamp to retention boundary")
+
+    start = max(start, retention_boundary)
+    return start, end

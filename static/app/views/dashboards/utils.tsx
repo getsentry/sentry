@@ -14,7 +14,7 @@ import {
   SIX_HOURS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
-import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -33,11 +33,7 @@ import {
   RateUnit,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {
-  DiscoverDatasets,
-  DisplayModes,
-  type SavedQueryDatasets,
-} from 'sentry/utils/discover/types';
+import {DisplayModes, type SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
@@ -270,9 +266,14 @@ export function getWidgetDiscoverUrl(
     discoverLocation.query.fromMetric = 'true';
   }
 
+  // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+  const projectParam =
+    selection.projects.length === 0 ? '' : discoverLocation.query.project;
+
   // Construct and return the discover url
   const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
     ...discoverLocation.query,
+    project: projectParam,
   })}`;
   return discoverPath;
 }
@@ -292,7 +293,8 @@ export function getWidgetIssueUrl(
     query: applyDashboardFilters(widget.queries?.[0]?.conditions, dashboardFilters),
     sort: widget.queries?.[0]?.orderby,
     ...datetime,
-    project: selection.projects,
+    // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+    project: selection.projects.length === 0 ? '' : selection.projects,
     environment: selection.environments,
   })}`;
   return issuesLocation;
@@ -312,7 +314,8 @@ export function getWidgetReleasesUrl(
   const releasesLocation = `/organizations/${organization.slug}/releases/?${qs.stringify({
     ...datetime,
     query: applyDashboardFilters('', dashboardFilters),
-    project: selection.projects,
+    // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+    project: selection.projects.length === 0 ? '' : selection.projects,
     environment: selection.environments,
   })}`;
   return releasesLocation;
@@ -344,14 +347,6 @@ export function flattenErrors(
     });
   }
   return update;
-}
-
-export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
-  return isMEPEnabled
-    ? {
-        dataset: DiscoverDatasets.METRICS_ENHANCED,
-      }
-    : {};
 }
 
 export function getNumEquations(possibleEquations: string[]) {
@@ -626,14 +621,46 @@ export function applyDashboardFilters(
   return baseQuery;
 }
 
-export const isChartDisplayType = (displayType?: DisplayType) => {
+/**
+ * Returns true if the display type uses time-series data (events-stats endpoint)
+ * and stores aggregates in yAxis state. Returns false for display types that
+ * use table-style data (events endpoint) and store everything in fields state.
+ */
+export const usesTimeSeriesData = (displayType?: DisplayType) => {
   if (!displayType) {
     return true;
   }
   return ![
     DisplayType.BIG_NUMBER,
-    DisplayType.TABLE,
+    DisplayType.CATEGORICAL_BAR,
     DisplayType.DETAILS,
+    DisplayType.SERVER_TREE,
+    DisplayType.TABLE,
     DisplayType.WHEEL,
+    DisplayType.RAGE_AND_DEAD_CLICKS,
   ].includes(displayType);
+};
+
+// Custom widgets that fetch their own data (and don't use genericWidgetQueries)
+// handle error state and loading state on their own
+export const widgetFetchesOwnData = (widgetType: DisplayType) => {
+  const widgetTypesThatFetchOwnData = [
+    DisplayType.SERVER_TREE,
+    DisplayType.RAGE_AND_DEAD_CLICKS,
+  ];
+  return widgetTypesThatFetchOwnData.includes(widgetType);
+};
+
+// Custom widgets for prebuilt dashboards that do not have menu options
+export const widgetHasMenuOptions = (widgetType: DisplayType) => {
+  const nonEditableWidgetTypes = [
+    DisplayType.SERVER_TREE,
+    DisplayType.RAGE_AND_DEAD_CLICKS,
+  ];
+  return !nonEditableWidgetTypes.includes(widgetType);
+};
+
+// Custom widgets from the widget library that are not editable but still have menu options
+export const isWidgetEditable = (widgetType: DisplayType) => {
+  return widgetType !== DisplayType.WHEEL;
 };

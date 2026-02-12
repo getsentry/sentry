@@ -1,12 +1,13 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {joinTeam} from 'sentry/actionCreators/teams';
-import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
 import {IconFlag} from 'sentry/icons';
@@ -133,9 +134,11 @@ export default function MissingProjectMembership({
               <StyledCompactSelect
                 searchable
                 value={selectedTeam || undefined}
-                triggerProps={{
-                  children: selectedTeam ? `#${selectedTeam}` : t('Select a Team'),
-                }}
+                trigger={triggerProps => (
+                  <OverlayTrigger.Button {...triggerProps}>
+                    {selectedTeam ? `#${selectedTeam}` : t('Select a Team')}
+                  </OverlayTrigger.Button>
+                )}
                 emptyMessage={t('No teams found')}
                 options={teamOptions}
                 onChange={option => {

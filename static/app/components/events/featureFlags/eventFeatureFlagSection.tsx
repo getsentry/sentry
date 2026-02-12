@@ -2,9 +2,10 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {
   CardContainer,
@@ -246,7 +247,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   }
 
   const actions = (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       {feedbackButton}
       <FeatureFlagSettingsButton orgSlug={organization.slug} />
       {hasFlags && (
@@ -280,7 +281,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
           />
         </Fragment>
       )}
-    </ButtonBar>
+    </Grid>
   );
 
   const NUM_PREVIEW_FLAGS = 20;

@@ -2,6 +2,7 @@ import {useNavigate} from 'react-router-dom';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -93,53 +94,12 @@ export function useBuildDetailsActions({
   };
 
   const handleDownloadAction = async () => {
-    const downloadUrl = `/api/0/internal/${organization.slug}/${projectId}/files/preprodartifacts/${artifactId}/`;
-
-    try {
-      // We use a HEAD request to enable large file downloads using chunked downloading.
-      const response = await fetch(downloadUrl, {
-        method: 'HEAD',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        if (response.status === 403) {
-          let detail: ErrorDetail = null;
-          try {
-            // HEAD requests don't include a response body per HTTP spec, so we make a follow-up GET call to retrieve the error details and check for the staff-required code.
-            const errorResponse = await fetch(downloadUrl, {
-              method: 'GET',
-              credentials: 'include',
-            });
-            const errorText = await errorResponse.text();
-            const errorJson = JSON.parse(errorText);
-            detail = errorJson.detail;
-          } catch {
-            // Fall through to generic handling
-          }
-          handleStaffPermissionError(detail);
-        } else if (response.status === 404) {
-          addErrorMessage(t('Build file not found.'));
-        } else if (response.status === 401) {
-          addErrorMessage(t('Unauthorized.'));
-        } else {
-          addErrorMessage(t('Download failed (status: %s)', response.status));
-        }
-        return;
-      }
-
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = `preprod_artifact_${artifactId}.zip`;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      addSuccessMessage(t('Build download started'));
-    } catch (error) {
-      addErrorMessage(t('Download failed: %s', String(error)));
-    }
+    await downloadPreprodArtifact({
+      organizationSlug: organization.slug,
+      projectSlug: projectId,
+      artifactId,
+      onStaffPermissionError: handleStaffPermissionError,
+    });
   };
 
   const {mutate: rerunStatusChecks, isPending: isRerunningStatusChecks} = useMutation<

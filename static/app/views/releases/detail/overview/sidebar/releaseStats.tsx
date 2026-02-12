@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {DeployBadge} from 'sentry/components/core/badge/deployBadge';
+import {DeployBadge} from '@sentry/scraps/badge';
+
 import NotAvailable from 'sentry/components/notAvailable';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import TimeSince from 'sentry/components/timeSince';

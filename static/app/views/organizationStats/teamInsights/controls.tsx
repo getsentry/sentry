@@ -4,7 +4,8 @@ import type {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
-import {Select} from 'sentry/components/core/select';
+import {Select} from '@sentry/scraps/select';
+
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {
   TimeRangeSelector,
@@ -154,7 +155,7 @@ function TeamStatsControls({
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              fontSize: theme.fontSize.md,
+              fontSize: theme.font.size.md,
               ':before': {
                 ...provided[':before'],
                 color: theme.tokens.content.primary,
@@ -164,14 +165,14 @@ function TeamStatsControls({
             };
             return {...provided, ...custom};
           },
-          input: (provided: any, state: any) => ({
+          input: (provided: any) => ({
             ...provided,
             display: 'grid',
             gridTemplateColumns: 'max-content 1fr',
             alignItems: 'center',
             gridGap: space(1),
             ':before': {
-              backgroundColor: state.theme.backgroundSecondary,
+              backgroundColor: theme.tokens.background.secondary,
               height: 24,
               width: 38,
               borderRadius: 3,
@@ -209,7 +210,9 @@ function TeamStatsControls({
         trigger={triggerProps => (
           <TimeRangeSelectTrigger {...triggerProps} prefix={t('Date Range')}>
             {period
-              ? relativeOptions[period] || getArbitraryRelativePeriod(period)[period]
+              ? relativeOptions[period] ||
+                getArbitraryRelativePeriod(period)[period] ||
+                triggerProps.children
               : triggerProps.children}
           </TimeRangeSelectTrigger>
         )}
