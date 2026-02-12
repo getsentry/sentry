@@ -85,7 +85,8 @@ def run_missing_sdk_integration_detector() -> None:
                 repository__status=ObjectStatus.ACTIVE,
                 repository__provider="integrations:github",
             )
-            .select_related("repository")
+            .order_by("repository__name")
+            .distinct("repository__name")
             .values("repository__name", "source_root")
         )
         for config in repo_configs:

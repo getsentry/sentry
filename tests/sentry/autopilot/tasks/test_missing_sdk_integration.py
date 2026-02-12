@@ -274,6 +274,65 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
         )
 
     @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.has_seer_access", return_value=True)
+    @mock.patch(
+        "sentry.autopilot.tasks.missing_sdk_integration.run_missing_sdk_integration_detector_for_project_task.apply_async"
+    )
+    def test_deduplicates_multiple_code_mappings_for_same_repo(
+        self, mock_apply_async: mock.MagicMock, _mock_has_seer_access: mock.MagicMock
+    ) -> None:
+        self.project.platform = "python"
+        self.project.save()
+
+        # Create two code mappings pointing to the same repository but with different stack/source roots
+        repo = self.create_repo(
+            project=self.project,
+            name="shared-repo",
+            provider="integrations:github",
+            integration_id=self.integration.id,
+        )
+        self.create_code_mapping(
+            project=self.project, repo=repo, stack_root="backend/", source_root="src/backend/"
+        )
+        self.create_code_mapping(
+            project=self.project, repo=repo, stack_root="api/", source_root="src/api/"
+        )
+
+        with override_options(
+            {"autopilot.missing-sdk-integration.projects-allowlist": [self.project.id]}
+        ):
+            run_missing_sdk_integration_detector()
+
+        # Only one task should be spawned despite two code mappings for the same repo
+        mock_apply_async.assert_called_once()
+        assert mock_apply_async.call_args[1]["args"][2] == "shared-repo"
+
+    @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.has_seer_access", return_value=True)
+    @mock.patch(
+        "sentry.autopilot.tasks.missing_sdk_integration.run_missing_sdk_integration_detector_for_project_task.apply_async"
+    )
+    def test_spawns_tasks_for_distinct_repos(
+        self, mock_apply_async: mock.MagicMock, _mock_has_seer_access: mock.MagicMock
+    ) -> None:
+        self.project.platform = "python"
+        self.project.save()
+
+        # Create code mappings for two different repositories (with distinct stack_roots)
+        self._create_code_mapping(self.project, "repo-one", stack_root="app/")
+        self._create_code_mapping(self.project, "repo-two", stack_root="lib/")
+
+        with override_options(
+            {"autopilot.missing-sdk-integration.projects-allowlist": [self.project.id]}
+        ):
+            run_missing_sdk_integration_detector()
+
+        # Both repos are distinct, so both should get tasks
+        assert mock_apply_async.call_count == 2
+        repo_names = {call[1]["args"][2] for call in mock_apply_async.call_args_list}
+        assert repo_names == {"repo-one", "repo-two"}
+
+    @pytest.mark.django_db
     @mock.patch(
         "sentry.autopilot.tasks.missing_sdk_integration.has_seer_access", return_value=False
     )
