@@ -314,9 +314,9 @@ export interface SeerRepoDefinition {
 
 interface SeerAutomationHandoffConfiguration {
   handoff_point: 'root_cause';
-  integration_id: number;
-  target: 'cursor_background_agent';
+  target: 'seer_coding_agent' | 'cursor_background_agent';
   auto_create_pr?: boolean;
+  integration_id?: number | null;
 }
 
 export interface ProjectSeerPreferences {

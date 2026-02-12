@@ -9,6 +9,7 @@ import {Link} from '@sentry/scraps/link';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import type {useUpdateBulkAutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
+import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
@@ -25,6 +26,7 @@ interface Props {
   onSortClick: (key: Sort) => void;
   projects: Project[];
   sort: Sort;
+  supportedIntegrations: CodingAgentIntegration[];
   updateBulkAutofixAutomationSettings: ReturnType<
     typeof useUpdateBulkAutofixAutomationSettings
   >['mutate'];
@@ -58,12 +60,6 @@ const COLUMNS = [
     title: (
       <Flex gap="sm" align="center">
         {t('Coding Agent')}
-        <QuestionTooltip
-          title={t(
-            'Coding agent delegation can only be changed on the individual project settings page. Coding agents have more settings that are not shown here.'
-          )}
-          size="xs"
-        />
       </Flex>
     ),
     key: 'is_delegated',
@@ -92,6 +88,7 @@ export default function ProjectTableHeader({
   projects,
   onSortClick,
   sort,
+  supportedIntegrations,
   updateBulkAutofixAutomationSettings,
 }: Props) {
   const organization = useOrganization();
@@ -198,6 +195,44 @@ export default function ProjectTableHeader({
                 },
               ]}
               triggerLabel={t('PR Creation')}
+            />
+            <DropdownMenu
+              isDisabled={!canWrite}
+              size="xs"
+              items={[
+                {
+                  key: 'seer',
+                  label: t('Seer'),
+                  onAction: () =>
+                    updateBulkAutofixAutomationSettings(
+                      {
+                        projectIds,
+                        automationHandoff: {
+                          handoff_point: 'root_cause',
+                          target: 'seer_coding_agent',
+                        },
+                      },
+                      getMutationCallbacks(projectIds.length)
+                    ),
+                },
+                ...supportedIntegrations.map(integration => ({
+                  key: integration.id,
+                  label: integration.name,
+                  onAction: () =>
+                    updateBulkAutofixAutomationSettings(
+                      {
+                        projectIds,
+                        automationHandoff: {
+                          handoff_point: 'root_cause',
+                          target: 'cursor_background_agent',
+                          integration_id: Number(integration.id),
+                        },
+                      },
+                      getMutationCallbacks(projectIds.length)
+                    ),
+                })),
+              ]}
+              triggerLabel={t('Coding Agent')}
             />
           </TableCellsRemainingContent>
         </TableHeader>

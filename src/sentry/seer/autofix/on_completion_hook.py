@@ -412,6 +412,10 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         if not handoff_config:
             return None
 
+        # Seer's own coding agent is handled by the normal pipeline, not external handoff
+        if handoff_config.target == "seer_coding_agent":
+            return None
+
         return handoff_config
 
     @classmethod

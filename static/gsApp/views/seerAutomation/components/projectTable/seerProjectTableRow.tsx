@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
@@ -16,9 +17,9 @@ import type {
   AutofixAutomationSettings,
   useUpdateBulkAutofixAutomationSettings,
 } from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
+import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
@@ -28,10 +29,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
+const SEER_OPTION_VALUE = '__seer__';
+
 interface Props {
   autofixSettings: AutofixAutomationSettings;
   isFetchingSettings: boolean;
   project: Project;
+  supportedIntegrations: CodingAgentIntegration[];
   updateBulkAutofixAutomationSettings: ReturnType<
     typeof useUpdateBulkAutofixAutomationSettings
   >['mutate'];
@@ -42,24 +46,33 @@ export default function SeerProjectTableRow({
   isFetchingSettings,
   updateBulkAutofixAutomationSettings,
   project,
+  supportedIntegrations,
 }: Props) {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
   const {isSelected, toggleSelected} = useListItemCheckboxContext();
 
-  // We used to support multiple sensitivity values for Auto-Fix. Now we only support 'off' and 'medium'.
-  // If any other value is set, we treat it as 'medium'.
   const isAutoFixEnabled = Boolean(
     autofixSettings.autofixAutomationTuning &&
     autofixSettings.autofixAutomationTuning !== 'off'
   );
 
-  // We used to have multiple stopping points for PR Creation.
-  // `code_changes` means seer will output code changes, and you can copy and paste them into a new branch.
-  // `open_pr` means seer will take those changes and push a PR for you.
-  // All other values are treated as `code_changes`. Which means both checkboxes will be unchecked.
   const isCreatePrEnabled = autofixSettings.automatedRunStoppingPoint !== 'code_changes';
-  const isBackgroundAgentEnabled = Boolean(autofixSettings.automationHandoff);
+
+  // Determine current coding agent value
+  const handoff = autofixSettings.automationHandoff;
+  let codingAgentValue = SEER_OPTION_VALUE;
+  if (handoff?.target === 'cursor_background_agent' && handoff?.integration_id != null) {
+    codingAgentValue = String(handoff.integration_id);
+  }
+
+  const codingAgentOptions = [
+    {value: SEER_OPTION_VALUE, label: t('Seer')},
+    ...supportedIntegrations.map(integration => ({
+      value: String(integration.id),
+      label: integration.name,
+    })),
+  ];
 
   return (
     <SimpleTable.Row key={project.id}>
@@ -104,17 +117,7 @@ export default function SeerProjectTableRow({
         )}
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
-        {isBackgroundAgentEnabled ? (
-          <Flex align="center" gap="sm">
-            {'n/a'}
-            <QuestionTooltip
-              title={t(
-                'This setting does not apply when using an external coding agent.'
-              )}
-              size="xs"
-            />
-          </Flex>
-        ) : isFetchingSettings ? (
+        {isFetchingSettings ? (
           <Placeholder height="20px" width="36px" />
         ) : (
           <Switch
@@ -146,16 +149,39 @@ export default function SeerProjectTableRow({
         {isFetchingSettings ? (
           <Placeholder height="20px" width="36px" />
         ) : (
-          <Flex align="center" gap="sm">
-            <Switch
-              disabled
-              checked={isBackgroundAgentEnabled}
-              onChange={() => {
-                // This preference has complicated configuration, and thus cannot be
-                // turned off or on from here.
-              }}
-            />
-          </Flex>
+          <CompactSelect
+            disabled={!canWrite}
+            triggerProps={{size: 'xs'}}
+            options={codingAgentOptions}
+            value={codingAgentValue}
+            onChange={option => {
+              const isSeer = option.value === SEER_OPTION_VALUE;
+              addLoadingMessage(t('Updating Coding Agent for %s', project.name));
+              updateBulkAutofixAutomationSettings(
+                {
+                  projectIds: [project.id],
+                  automationHandoff: isSeer
+                    ? {
+                        handoff_point: 'root_cause',
+                        target: 'seer_coding_agent',
+                      }
+                    : {
+                        handoff_point: 'root_cause',
+                        target: 'cursor_background_agent',
+                        integration_id: Number(option.value),
+                      },
+                },
+                {
+                  onError: () =>
+                    addErrorMessage(
+                      t('Problem updating Coding Agent for %s', project.name)
+                    ),
+                  onSuccess: () =>
+                    addSuccessMessage(t('Coding Agent updated for %s', project.name)),
+                }
+              );
+            }}
+          />
         )}
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">

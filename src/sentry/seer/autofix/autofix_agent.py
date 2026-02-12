@@ -322,7 +322,12 @@ def trigger_coding_agent_handoff(
             repos = [
                 f"{repo.owner}/{repo.name}" for repo in preference_response.preference.repositories
             ]
-            if preference_response.preference.automation_handoff:
+            # Derive auto_create_pr from automated_run_stopping_point (canonical source)
+            auto_create_pr = (
+                preference_response.preference.automated_run_stopping_point == "open_pr"
+            )
+            # Backwards compat: respect old per-agent setting if unified setting isn't set
+            if not auto_create_pr and preference_response.preference.automation_handoff:
                 auto_create_pr = preference_response.preference.automation_handoff.auto_create_pr
     except Exception:
         logger.exception(

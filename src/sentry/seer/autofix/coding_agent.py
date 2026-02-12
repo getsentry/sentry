@@ -213,12 +213,17 @@ def _launch_agents_for_repos(
         Dictionary with 'successes' and 'failures' lists
     """
 
-    # Fetch project preferences to get auto_create_pr setting from automation_handoff
+    # Fetch project preferences to get auto_create_pr setting
     auto_create_pr = False
     try:
         preference_response = get_project_seer_preferences(autofix_state.request.project_id)
         if preference_response and preference_response.preference:
-            if preference_response.preference.automation_handoff:
+            # Derive auto_create_pr from automated_run_stopping_point (canonical source)
+            auto_create_pr = (
+                preference_response.preference.automated_run_stopping_point == "open_pr"
+            )
+            # Backwards compat: respect old per-agent setting if unified setting isn't set
+            if not auto_create_pr and preference_response.preference.automation_handoff:
                 auto_create_pr = preference_response.preference.automation_handoff.auto_create_pr
     except (SeerApiError, SeerApiResponseValidationError):
         logger.exception(

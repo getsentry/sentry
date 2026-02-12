@@ -108,6 +108,23 @@ class SeerAutofixSettingGetResponseSerializer(serializers.Serializer):
     )
 
 
+class AutomationHandoffSerializer(CamelSnakeSerializer):
+    handoff_point = serializers.ChoiceField(choices=["root_cause"], required=True)
+    target = serializers.ChoiceField(
+        choices=["seer_coding_agent", "cursor_background_agent"],
+        required=True,
+    )
+    integration_id = serializers.IntegerField(required=False, allow_null=True, default=None)
+    auto_create_pr = serializers.BooleanField(required=False, default=False)
+
+    def validate(self, data):
+        if data.get("target") != "seer_coding_agent" and not data.get("integration_id"):
+            raise serializers.ValidationError(
+                "integration_id is required for external coding agents."
+            )
+        return data
+
+
 class SeerAutofixSettingsPostSerializer(SeerAutofixSettingsSerializer):
     """Serializer for OrganizationAutofixAutomationSettingsEndpoint.post"""
 
@@ -128,15 +145,21 @@ class SeerAutofixSettingsPostSerializer(SeerAutofixSettingsSerializer):
         default=False,
         help_text="If true, appends repositories to existing list instead of overwriting. Duplicates (by organization_id, provider, external_id) are skipped.",
     )
+    automationHandoff = AutomationHandoffSerializer(
+        required=False,
+        allow_null=True,
+        help_text="Coding agent handoff configuration. Set to null to clear.",
+    )
 
     def validate(self, data):
         if (
             "autofixAutomationTuning" not in data
             and "automatedRunStoppingPoint" not in data
             and "projectRepoMappings" not in data
+            and "automationHandoff" not in data
         ):
             raise serializers.ValidationError(
-                "At least one of 'autofixAutomationTuning', 'automatedRunStoppingPoint', or 'projectRepoMappings' must be provided."
+                "At least one of 'autofixAutomationTuning', 'automatedRunStoppingPoint', 'projectRepoMappings', or 'automationHandoff' must be provided."
             )
         return data
 
@@ -236,6 +259,7 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         automated_run_stopping_point = serializer.validated_data.get("automatedRunStoppingPoint")
         project_repo_mappings = serializer.validated_data.get("projectRepoMappings")
         append_repositories = serializer.validated_data.get("appendRepositories")
+        automation_handoff = serializer.validated_data.get("automationHandoff")
 
         projects = self.get_projects(request, organization, project_ids=project_ids)
         projects_by_id = {project.id: project for project in projects}
@@ -269,8 +293,9 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                     return Response({"detail": "Invalid repository"}, status=400)
 
         preferences_to_set: list[dict[str, Any]] = []
+        has_handoff_update = "automationHandoff" in serializer.validated_data
 
-        if automated_run_stopping_point or filtered_repo_mappings:
+        if automated_run_stopping_point or filtered_repo_mappings or has_handoff_update:
             existing_preferences = bulk_get_project_preferences(
                 organization.id, list(projects_by_id.keys())
             )
@@ -279,7 +304,7 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                 has_stopping_point_update = automated_run_stopping_point is not None
                 has_repo_update = proj_id in filtered_repo_mappings
 
-                if not has_stopping_point_update and not has_repo_update:
+                if not has_stopping_point_update and not has_repo_update and not has_handoff_update:
                     continue
 
                 project_id_str = str(proj_id)
@@ -308,6 +333,9 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                         pref_update["repositories"] = merge_repositories(existing_repos, new_repos)
                     else:
                         pref_update["repositories"] = new_repos
+
+                if has_handoff_update:
+                    pref_update["automation_handoff"] = automation_handoff
 
                 preferences_to_set.append(pref_update)
 

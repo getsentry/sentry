@@ -421,131 +421,248 @@ describe('ProjectSeer', () => {
     }
   });
 
-  it('can enable automation handoff to Cursor when Cursor integration is available', async () => {
-    const orgWithCursorFeature = OrganizationFixture({
-      features: ['autofix-seer-preferences', 'integrations-cursor'],
-    });
+  describe('Coding Agent Selector', () => {
+    it('can select Cursor as the coding agent', async () => {
+      MockApiClient.clearMockResponses();
 
-    const initialProject: Project = {
-      ...project,
-      autofixAutomationTuning: 'medium',
-      seerScannerAutomation: true,
-    };
+      const initialProject: Project = {
+        ...project,
+        autofixAutomationTuning: 'medium',
+        seerScannerAutomation: true,
+      };
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
-      method: 'GET',
-      body: {
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/setup-check/`,
+        method: 'GET',
+        body: {
+          setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
+          billing: {hasAutofixQuota: true, hasScannerQuota: true},
         },
-        billing: {
-          hasAutofixQuota: true,
-          hasScannerQuota: true,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/`,
+        query: {status: 'active'},
+        method: 'GET',
+        body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+        method: 'GET',
+        body: {
+          code_mapping_repos: [],
         },
-      },
+      });
+
+      // Mock the coding agent integrations endpoint with a Cursor integration
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/coding-agents/`,
+        method: 'GET',
+        body: {
+          integrations: [
+            {
+              id: '123',
+              name: 'Cursor',
+              provider: 'cursor',
+            },
+          ],
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        method: 'PUT',
+        body: {},
+      });
+
+      const seerPreferencesPostRequest = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+        method: 'POST',
+      });
+
+      render(<ProjectSeer />, {
+        organization,
+        outletContext: {project: initialProject},
+      });
+
+      // Find the coding agent selector
+      const select = await screen.findByRole('textbox', {
+        name: /Coding Agent/i,
+      });
+
+      act(() => {
+        select.focus();
+      });
+
+      // Open the menu and select Cursor
+      await userEvent.click(select);
+      const cursorOptions = await screen.findAllByText('Cursor');
+      await userEvent.click(cursorOptions[0]!);
+
+      // The seer preferences POST should be called with the Cursor handoff config
+      await waitFor(() => {
+        expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              repositories: expect.any(Array),
+              automation_handoff: {
+                handoff_point: 'root_cause',
+                target: 'cursor_background_agent',
+                integration_id: 123,
+              },
+            }),
+          })
+        );
+      });
     });
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${orgWithCursorFeature.slug}/repos/`,
-      query: {status: 'active'},
-      method: 'GET',
-      body: [],
-    });
+    it('can switch back to Seer from Cursor', async () => {
+      MockApiClient.clearMockResponses();
 
-    MockApiClient.addMockResponse({
-      url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/`,
-      method: 'GET',
-      body: initialProject,
-    });
+      const initialProject: Project = {
+        ...project,
+        autofixAutomationTuning: 'medium',
+        seerScannerAutomation: true,
+      };
 
-    MockApiClient.addMockResponse({
-      url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/preferences/`,
-      method: 'GET',
-      body: {
-        code_mapping_repos: [],
-        repositories: [],
-        automated_run_stopping_point: 'root_cause',
-      },
-    });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/setup-check/`,
+        method: 'GET',
+        body: {
+          setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
+          billing: {hasAutofixQuota: true, hasScannerQuota: true},
+        },
+      });
 
-    // Mock the coding agent integrations endpoint with a Cursor integration
-    MockApiClient.addMockResponse({
-      url: `/organizations/${orgWithCursorFeature.slug}/integrations/coding-agents/`,
-      method: 'GET',
-      body: {
-        integrations: [
-          {
-            id: '123',
-            name: 'Cursor',
-            provider: 'cursor',
-          },
-        ],
-      },
-    });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/`,
+        query: {status: 'active'},
+        method: 'GET',
+        body: [],
+      });
 
-    const projectPutRequest = MockApiClient.addMockResponse({
-      url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/`,
-      method: 'PUT',
-      body: {},
-    });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/coding-agents/`,
+        method: 'GET',
+        body: {
+          integrations: [
+            {
+              id: '123',
+              name: 'Cursor',
+              provider: 'cursor',
+            },
+          ],
+        },
+      });
 
-    const seerPreferencesPostRequest = MockApiClient.addMockResponse({
-      url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/preferences/`,
-      method: 'POST',
-    });
-
-    render(<ProjectSeer />, {
-      organization: orgWithCursorFeature,
-      outletContext: {project: initialProject},
-    });
-
-    // Find the select menu for Where should Seer stop?
-    const select = await screen.findByRole('textbox', {
-      name: /Where should Seer stop/i,
-    });
-
-    act(() => {
-      select.focus();
-    });
-
-    // Open the menu and select 'Hand off to Cursor Cloud Agent'
-    await userEvent.click(select);
-    const cursorOption = await screen.findByText('Hand off to Cursor Cloud Agent');
-    await userEvent.click(cursorOption);
-
-    // The field uses getData: () => ({}) to exclude itself from the form submission
-    // Only the seer preferences POST should be called with the actual data
-    await waitFor(() => {
-      expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: expect.objectContaining({
+      // Mock preferences with Cursor handoff already configured
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+        method: 'GET',
+        body: {
+          preference: {
+            repositories: [],
             automated_run_stopping_point: 'root_cause',
-            repositories: expect.any(Array),
             automation_handoff: {
               handoff_point: 'root_cause',
               target: 'cursor_background_agent',
               integration_id: 123,
-              auto_create_pr: false,
             },
-          }),
-        })
-      );
+          },
+          code_mapping_repos: [],
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        method: 'PUT',
+        body: {},
+      });
+
+      const seerPreferencesPostRequest = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+        method: 'POST',
+      });
+
+      render(<ProjectSeer />, {
+        organization,
+        outletContext: {project: initialProject},
+      });
+
+      // Wait for the page to fully load — the "Where should Seer stop?" field
+      // only appears after both preferences and form data are loaded
+      await screen.findByRole('textbox', {name: /Where should Seer stop/i});
+
+      // Now the coding agent selector should be stable
+      const select = screen.getByRole('textbox', {
+        name: /Coding Agent/i,
+      });
+
+      act(() => {
+        select.focus();
+      });
+
+      await userEvent.click(select);
+
+      // Find and click the Seer option in the dropdown
+      const seerOptions = await screen.findAllByText('Seer (default)');
+      await userEvent.click(seerOptions[0]!);
+
+      // The seer preferences POST should be called with the Seer handoff config
+      await waitFor(() => {
+        expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              repositories: expect.any(Array),
+              automation_handoff: {
+                handoff_point: 'root_cause',
+                target: 'seer_coding_agent',
+              },
+            }),
+          })
+        );
+      });
     });
 
-    // The project PUT may be called but with empty data (no automated_run_stopping_point)
-    if (projectPutRequest.mock.calls.length > 0) {
-      expect(projectPutRequest).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({data: {}})
-      );
-    }
-  });
+    it('is not visible when automation is disabled', async () => {
+      const initialProject: Project = {
+        ...project,
+        autofixAutomationTuning: 'off',
+        seerScannerAutomation: true,
+      };
 
-  describe('Auto Create PR Setting', () => {
-    it('does not render when stopping point is not cursor_handoff', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/coding-agents/`,
+        method: 'GET',
+        body: {
+          integrations: [
+            {
+              id: '123',
+              name: 'Cursor',
+              provider: 'cursor',
+            },
+          ],
+        },
+      });
+
+      render(<ProjectSeer />, {
+        organization,
+        outletContext: {project: initialProject},
+      });
+
+      // Wait for the page to load
+      await screen.findByText(/Automation/i);
+
+      // The coding agent selector should NOT be visible when automation is off
+      expect(
+        screen.queryByRole('textbox', {name: /Coding Agent/i})
+      ).not.toBeInTheDocument();
+    });
+
+    it('defaults to Seer when no integrations are available', async () => {
       const initialProject: Project = {
         ...project,
         autofixAutomationTuning: 'medium',
@@ -557,24 +674,14 @@ describe('ProjectSeer', () => {
         outletContext: {project: initialProject},
       });
 
-      // Wait for the page to load
-      await screen.findByText(/Automation/i);
-
-      // The toggle should NOT be visible when stopping point is not cursor_handoff
-      expect(
-        screen.queryByRole('checkbox', {
-          name: /Auto-Create Pull Requests/i,
-        })
-      ).not.toBeInTheDocument();
+      // Find the coding agent selector - it should show Seer (default) as the value
+      const select = await screen.findByRole('textbox', {
+        name: /Coding Agent/i,
+      });
+      expect(select).toBeInTheDocument();
     });
 
-    it('renders and loads initial value when cursor_handoff is selected', async () => {
-      MockApiClient.clearMockResponses();
-
-      const orgWithCursorFeature = OrganizationFixture({
-        features: ['autofix-seer-preferences', 'integrations-cursor'],
-      });
-
+    it('filters out integrations that require user identity', async () => {
       const initialProject: Project = {
         ...project,
         autofixAutomationTuning: 'medium',
@@ -582,23 +689,7 @@ describe('ProjectSeer', () => {
       };
 
       MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
-        method: 'GET',
-        body: {
-          setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
-          billing: {hasAutofixQuota: true, hasScannerQuota: true},
-        },
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithCursorFeature.slug}/repos/`,
-        query: {status: 'active'},
-        method: 'GET',
-        body: [],
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithCursorFeature.slug}/integrations/coding-agents/`,
+        url: `/organizations/${organization.slug}/integrations/coding-agents/`,
         method: 'GET',
         body: {
           integrations: [
@@ -606,363 +697,144 @@ describe('ProjectSeer', () => {
               id: '123',
               name: 'Cursor',
               provider: 'cursor',
-            },
-          ],
-        },
-      });
-
-      // Mock preferences with automation_handoff including auto_create_pr
-      MockApiClient.addMockResponse({
-        url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/preferences/`,
-        method: 'GET',
-        body: {
-          preference: {
-            organization_id: orgWithCursorFeature.id,
-            project_id: project.id,
-            repositories: [],
-            automated_run_stopping_point: 'root_cause',
-            automation_handoff: {
-              handoff_point: 'root_cause',
-              target: 'cursor_background_agent',
-              integration_id: 123,
-              auto_create_pr: true,
-            },
-          },
-          code_mapping_repos: [],
-        },
-      });
-
-      render(<ProjectSeer />, {
-        organization: orgWithCursorFeature,
-        outletContext: {project: initialProject},
-      });
-
-      // Wait for the toggle to load
-      const toggle = await screen.findByRole('checkbox', {
-        name: /Auto-Create Pull Requests/i,
-      });
-
-      // Verify it's checked
-      await waitFor(() => {
-        expect(toggle).toBeChecked();
-      });
-    });
-
-    it('calls update mutation when toggled', async () => {
-      MockApiClient.clearMockResponses();
-
-      const orgWithCursorFeature = OrganizationFixture({
-        features: ['autofix-seer-preferences', 'integrations-cursor'],
-      });
-
-      const initialProject: Project = {
-        ...project,
-        autofixAutomationTuning: 'medium',
-        seerScannerAutomation: true,
-      };
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
-        method: 'GET',
-        body: {
-          setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
-          billing: {hasAutofixQuota: true, hasScannerQuota: true},
-        },
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithCursorFeature.slug}/repos/`,
-        query: {status: 'active'},
-        method: 'GET',
-        body: [],
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithCursorFeature.slug}/integrations/coding-agents/`,
-        method: 'GET',
-        body: {
-          integrations: [
-            {
-              id: '123',
-              name: 'Cursor',
-              provider: 'cursor',
-            },
-          ],
-        },
-      });
-
-      // Mock preferences with automation_handoff
-      MockApiClient.addMockResponse({
-        url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/preferences/`,
-        method: 'GET',
-        body: {
-          preference: {
-            repositories: [],
-            automated_run_stopping_point: 'root_cause',
-            automation_handoff: {
-              handoff_point: 'root_cause',
-              target: 'cursor_background_agent',
-              integration_id: 123,
-              auto_create_pr: false,
-            },
-          },
-          code_mapping_repos: [],
-        },
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/`,
-        method: 'PUT',
-        body: {},
-      });
-
-      // Mock for the Form's empty apiEndpoint POST
-      MockApiClient.addMockResponse({
-        url: '',
-        method: 'POST',
-        body: {},
-      });
-
-      const seerPreferencesPostRequest = MockApiClient.addMockResponse({
-        url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/preferences/`,
-        method: 'POST',
-      });
-
-      render(<ProjectSeer />, {
-        organization: orgWithCursorFeature,
-        outletContext: {project: initialProject},
-      });
-
-      // Find and click the toggle
-      const toggle = await screen.findByRole('checkbox', {
-        name: /Auto-Create Pull Requests/i,
-      });
-      expect(toggle).not.toBeChecked();
-
-      await userEvent.click(toggle);
-
-      // Wait for the POST request to be called
-      await waitFor(() => {
-        expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
-          expect.anything(),
-          expect.objectContaining({
-            data: expect.objectContaining({
-              automation_handoff: expect.objectContaining({
-                auto_create_pr: true,
-              }),
-              repositories: expect.any(Array),
-            }),
-          })
-        );
-      });
-    });
-
-    it('shows integration selector when multiple cursor integrations exist', async () => {
-      MockApiClient.clearMockResponses();
-
-      const orgWithCursorFeature = OrganizationFixture({
-        features: ['autofix-seer-preferences', 'integrations-cursor'],
-      });
-
-      const initialProject: Project = {
-        ...project,
-        autofixAutomationTuning: 'medium',
-        seerScannerAutomation: true,
-      };
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
-        method: 'GET',
-        body: {
-          setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
-          billing: {hasAutofixQuota: true, hasScannerQuota: true},
-        },
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithCursorFeature.slug}/repos/`,
-        query: {status: 'active'},
-        method: 'GET',
-        body: [],
-      });
-
-      // Mock multiple cursor integrations
-      MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithCursorFeature.slug}/integrations/coding-agents/`,
-        method: 'GET',
-        body: {
-          integrations: [
-            {
-              id: '123',
-              name: 'Cursor - user1@example.com/api-key-1',
-              provider: 'cursor',
+              requires_identity: false,
             },
             {
               id: '456',
-              name: 'Cursor - user2@example.com/api-key-2',
-              provider: 'cursor',
+              name: 'GitHub Copilot',
+              provider: 'github_copilot',
+              requires_identity: true,
             },
           ],
         },
       });
 
-      // Mock preferences with automation_handoff using first integration
-      MockApiClient.addMockResponse({
-        url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/preferences/`,
-        method: 'GET',
-        body: {
-          preference: {
-            repositories: [],
-            automated_run_stopping_point: 'root_cause',
-            automation_handoff: {
-              handoff_point: 'root_cause',
-              target: 'cursor_background_agent',
-              integration_id: 123,
-              auto_create_pr: false,
-            },
-          },
-          code_mapping_repos: [],
-        },
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/`,
-        method: 'PUT',
-        body: {},
-      });
-
       render(<ProjectSeer />, {
-        organization: orgWithCursorFeature,
+        organization,
         outletContext: {project: initialProject},
       });
 
-      // The integration selector should be visible with multiple integrations
-      const integrationSelect = await screen.findByRole('textbox', {
-        name: /Select Configuration/i,
-      });
-      expect(integrationSelect).toBeInTheDocument();
-
-      // The auto-create PR toggle should also be visible
-      expect(
-        screen.getByRole('checkbox', {name: /Auto-Create Pull Requests/i})
-      ).toBeInTheDocument();
-    });
-
-    it('calls update mutation when switching integration', async () => {
-      MockApiClient.clearMockResponses();
-
-      const orgWithCursorFeature = OrganizationFixture({
-        features: ['autofix-seer-preferences', 'integrations-cursor'],
-      });
-
-      const initialProject: Project = {
-        ...project,
-        autofixAutomationTuning: 'medium',
-        seerScannerAutomation: true,
-      };
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
-        method: 'GET',
-        body: {
-          setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
-          billing: {hasAutofixQuota: true, hasScannerQuota: true},
-        },
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithCursorFeature.slug}/repos/`,
-        query: {status: 'active'},
-        method: 'GET',
-        body: [],
-      });
-
-      // Mock multiple cursor integrations
-      MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithCursorFeature.slug}/integrations/coding-agents/`,
-        method: 'GET',
-        body: {
-          integrations: [
-            {
-              id: '123',
-              name: 'Cursor - user1@example.com/api-key-1',
-              provider: 'cursor',
-            },
-            {
-              id: '456',
-              name: 'Cursor - user2@example.com/api-key-2',
-              provider: 'cursor',
-            },
-          ],
-        },
-      });
-
-      // Mock preferences with automation_handoff using first integration
-      MockApiClient.addMockResponse({
-        url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/preferences/`,
-        method: 'GET',
-        body: {
-          preference: {
-            repositories: [],
-            automated_run_stopping_point: 'root_cause',
-            automation_handoff: {
-              handoff_point: 'root_cause',
-              target: 'cursor_background_agent',
-              integration_id: 123,
-              auto_create_pr: false,
-            },
-          },
-          code_mapping_repos: [],
-        },
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/`,
-        method: 'PUT',
-        body: {},
-      });
-
-      // Mock for the Form's empty apiEndpoint POST
-      MockApiClient.addMockResponse({
-        url: '',
-        method: 'POST',
-        body: {},
-      });
-
-      const seerPreferencesPostRequest = MockApiClient.addMockResponse({
-        url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/preferences/`,
-        method: 'POST',
-      });
-
-      render(<ProjectSeer />, {
-        organization: orgWithCursorFeature,
-        outletContext: {project: initialProject},
-      });
-
-      // Find and click the integration selector
-      const integrationSelect = await screen.findByRole('textbox', {
-        name: /Select Configuration/i,
+      // Find the coding agent selector
+      const select = await screen.findByRole('textbox', {
+        name: /Coding Agent/i,
       });
 
       act(() => {
-        integrationSelect.focus();
+        select.focus();
       });
 
-      await userEvent.click(integrationSelect);
+      // Open the dropdown
+      await userEvent.click(select);
 
-      // Select the second integration
-      const secondIntegration = await screen.findByText(
-        'Cursor - user2@example.com/api-key-2 (456)'
-      );
-      await userEvent.click(secondIntegration);
+      // Cursor should be in the list, Copilot should not
+      expect(await screen.findByText('Cursor')).toBeInTheDocument();
+      expect(screen.queryByText('GitHub Copilot')).not.toBeInTheDocument();
+    });
 
-      // Wait for the POST request to be called with the new integration ID
+    it('can switch between multiple cursor integrations', async () => {
+      MockApiClient.clearMockResponses();
+
+      const initialProject: Project = {
+        ...project,
+        autofixAutomationTuning: 'medium',
+        seerScannerAutomation: true,
+      };
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/setup-check/`,
+        method: 'GET',
+        body: {
+          setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
+          billing: {hasAutofixQuota: true, hasScannerQuota: true},
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/`,
+        query: {status: 'active'},
+        method: 'GET',
+        body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/coding-agents/`,
+        method: 'GET',
+        body: {
+          integrations: [
+            {
+              id: '123',
+              name: 'Cursor - user1@example.com',
+              provider: 'cursor',
+            },
+            {
+              id: '456',
+              name: 'Cursor - user2@example.com',
+              provider: 'cursor',
+            },
+          ],
+        },
+      });
+
+      // Mock preferences with first integration selected
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+        method: 'GET',
+        body: {
+          preference: {
+            repositories: [],
+            automated_run_stopping_point: 'root_cause',
+            automation_handoff: {
+              handoff_point: 'root_cause',
+              target: 'cursor_background_agent',
+              integration_id: 123,
+            },
+          },
+          code_mapping_repos: [],
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        method: 'PUT',
+        body: {},
+      });
+
+      const seerPreferencesPostRequest = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+        method: 'POST',
+      });
+
+      render(<ProjectSeer />, {
+        organization,
+        outletContext: {project: initialProject},
+      });
+
+      // Wait for the page to fully load — the "Where should Seer stop?" field
+      // only appears after both preferences and form data are loaded
+      await screen.findByRole('textbox', {name: /Where should Seer stop/i});
+
+      // Now the coding agent selector should be stable
+      const select = screen.getByRole('textbox', {
+        name: /Coding Agent/i,
+      });
+
+      act(() => {
+        select.focus();
+      });
+
+      // Open and select the second integration
+      await userEvent.click(select);
+      const secondOptions = await screen.findAllByText('Cursor - user2@example.com');
+      await userEvent.click(secondOptions[0]!);
+
+      // The seer preferences POST should be called with the new integration ID
       await waitFor(() => {
         expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
           expect.anything(),
           expect.objectContaining({
             data: expect.objectContaining({
               automation_handoff: expect.objectContaining({
+                target: 'cursor_background_agent',
                 integration_id: 456,
               }),
               repositories: expect.any(Array),
@@ -970,83 +842,6 @@ describe('ProjectSeer', () => {
           })
         );
       });
-    });
-
-    it('does not show integration selector with single cursor integration', async () => {
-      MockApiClient.clearMockResponses();
-
-      const orgWithCursorFeature = OrganizationFixture({
-        features: ['autofix-seer-preferences', 'integrations-cursor'],
-      });
-
-      const initialProject: Project = {
-        ...project,
-        autofixAutomationTuning: 'medium',
-        seerScannerAutomation: true,
-      };
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
-        method: 'GET',
-        body: {
-          setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
-          billing: {hasAutofixQuota: true, hasScannerQuota: true},
-        },
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithCursorFeature.slug}/repos/`,
-        query: {status: 'active'},
-        method: 'GET',
-        body: [],
-      });
-
-      // Mock single cursor integration
-      MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithCursorFeature.slug}/integrations/coding-agents/`,
-        method: 'GET',
-        body: {
-          integrations: [
-            {
-              id: '123',
-              name: 'Cursor',
-              provider: 'cursor',
-            },
-          ],
-        },
-      });
-
-      // Mock preferences with automation_handoff
-      MockApiClient.addMockResponse({
-        url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/preferences/`,
-        method: 'GET',
-        body: {
-          preference: {
-            repositories: [],
-            automated_run_stopping_point: 'root_cause',
-            automation_handoff: {
-              handoff_point: 'root_cause',
-              target: 'cursor_background_agent',
-              integration_id: 123,
-              auto_create_pr: false,
-            },
-          },
-          code_mapping_repos: [],
-        },
-      });
-
-      render(<ProjectSeer />, {
-        organization: orgWithCursorFeature,
-        outletContext: {project: initialProject},
-      });
-
-      // Wait for the page to load
-      await screen.findByRole('checkbox', {name: /Auto-Create Pull Requests/i});
-
-      // The integration selector should NOT be visible with only one integration
-      expect(
-        screen.queryByRole('textbox', {name: /Select Configuration/i})
-      ).not.toBeInTheDocument();
     });
   });
 });

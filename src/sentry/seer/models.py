@@ -83,8 +83,8 @@ class AutofixHandoffPoint(StrEnum):
 
 class SeerAutomationHandoffConfiguration(BaseModel):
     handoff_point: AutofixHandoffPoint
-    target: Literal["cursor_background_agent"]
-    integration_id: int
+    target: Literal["seer_coding_agent", "cursor_background_agent"]
+    integration_id: int | None = None
     auto_create_pr: bool = False
 
 

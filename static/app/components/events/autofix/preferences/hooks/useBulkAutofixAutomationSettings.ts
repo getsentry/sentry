@@ -75,35 +75,13 @@ export function useGetBulkAutofixAutomationSettings() {
   });
 }
 
-type AutofixAutomationUpdate =
-  | {
-      autofixAutomationTuning: AutofixAutomationTuning;
-      projectIds: string[];
-      automatedRunStoppingPoint?:
-        | never
-        | ProjectSeerPreferences['automated_run_stopping_point'];
-      projectRepoMappings?: never | Record<string, BackendRepository[]>;
-    }
-  | {
-      automatedRunStoppingPoint: ProjectSeerPreferences['automated_run_stopping_point'];
-      projectIds: string[];
-      autofixAutomationTuning?: never | AutofixAutomationTuning;
-      projectRepoMappings?: never | Record<string, BackendRepository[]>;
-    }
-  | {
-      autofixAutomationTuning: AutofixAutomationTuning;
-      automatedRunStoppingPoint: ProjectSeerPreferences['automated_run_stopping_point'];
-      projectIds: string[];
-      projectRepoMappings?: never | Record<string, BackendRepository[]>;
-    }
-  | {
-      projectIds: string[];
-      projectRepoMappings: Record<string, BackendRepository[]>;
-      autofixAutomationTuning?: never | AutofixAutomationTuning;
-      automatedRunStoppingPoint?:
-        | never
-        | ProjectSeerPreferences['automated_run_stopping_point'];
-    };
+type AutofixAutomationUpdate = {
+  projectIds: string[];
+  autofixAutomationTuning?: AutofixAutomationTuning;
+  automatedRunStoppingPoint?: ProjectSeerPreferences['automated_run_stopping_point'];
+  automationHandoff?: ProjectSeerPreferences['automation_handoff'] | null;
+  projectRepoMappings?: Record<string, BackendRepository[]>;
+};
 
 export function useUpdateBulkAutofixAutomationSettings(
   options?: Omit<

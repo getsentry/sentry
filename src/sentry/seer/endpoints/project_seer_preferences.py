@@ -55,11 +55,18 @@ class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer):
         required=True,
     )
     target = serializers.ChoiceField(
-        choices=["cursor_background_agent"],
+        choices=["seer_coding_agent", "cursor_background_agent"],
         required=True,
     )
-    integration_id = serializers.IntegerField(required=True)
+    integration_id = serializers.IntegerField(required=False, allow_null=True, default=None)
     auto_create_pr = serializers.BooleanField(required=False, default=False)
+
+    def validate(self, data):
+        if data.get("target") != "seer_coding_agent" and not data.get("integration_id"):
+            raise serializers.ValidationError(
+                "integration_id is required for external coding agents."
+            )
+        return data
 
 
 class ProjectSeerPreferencesSerializer(CamelSnakeSerializer):

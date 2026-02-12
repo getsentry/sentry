@@ -17,8 +17,7 @@ interface Props {
 }
 
 /**
- * Toggle for allowing PR auto creation within the Seer Agent section.
- * This is disabled when an external coding agent is configured.
+ * Toggle for allowing PR auto creation. Works for all coding agents.
  */
 export default function SeerAgentSection({canWrite, project, preference}: Props) {
   const organization = useOrganization();
@@ -31,13 +30,9 @@ export default function SeerAgentSection({canWrite, project, preference}: Props)
     preference?.automated_run_stopping_point &&
     preference.automated_run_stopping_point !== 'code_changes'
   );
-  const isBackgroundAgentEnabled = Boolean(preference?.automation_handoff);
 
   const isDisabled =
-    organization.enableSeerCoding === false ||
-    !canWrite ||
-    !isAutoFixEnabled ||
-    isBackgroundAgentEnabled;
+    organization.enableSeerCoding === false || !canWrite || !isAutoFixEnabled;
 
   let disabledReason: string | null = null;
   if (organization.enableSeerCoding === false) {
@@ -49,10 +44,6 @@ export default function SeerAgentSection({canWrite, project, preference}: Props)
     );
   } else if (!isAutoFixEnabled) {
     disabledReason = t('Turn on Auto-Triggered Fixes to use this feature.');
-  } else if (isBackgroundAgentEnabled) {
-    disabledReason = t(
-      'This setting is not available when using an external coding agent.'
-    );
   }
 
   return (

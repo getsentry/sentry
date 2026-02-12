@@ -10,6 +10,10 @@ import {
   useUpdateBulkAutofixAutomationSettings,
   type AutofixAutomationSettings,
 } from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
+import {
+  useCodingAgentIntegrations,
+  type CodingAgentIntegration,
+} from 'sentry/components/events/autofix/useAutofix';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -22,6 +26,7 @@ import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {parseAsSort} from 'sentry/utils/queryString';
 import useProjects from 'sentry/utils/useProjects';
 
+import {SUPPORTED_CODING_AGENT_INTEGRATION_PROVIDERS} from 'getsentry/views/seerAutomation/components/projectDetails/constants';
 import ProjectTableHeader from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableHeader';
 import SeerProjectTableRow from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableRow';
 
@@ -40,6 +45,19 @@ export default function SeerProjectTable() {
 
   const {pages: autofixAutomationSettings, isFetching: isFetchingSettings} =
     useGetBulkAutofixAutomationSettings();
+
+  const {data: codingAgentIntegrations} = useCodingAgentIntegrations();
+
+  const supportedIntegrations = useMemo(
+    () =>
+      codingAgentIntegrations?.integrations.filter(
+        integration =>
+          (SUPPORTED_CODING_AGENT_INTEGRATION_PROVIDERS as unknown as string[]).includes(
+            integration.provider
+          ) && !integration.requires_identity
+      ) ?? [],
+    [codingAgentIntegrations]
+  );
 
   const [mutationData, setMutations] = useState<
     Record<string, Partial<AutofixAutomationSettings>>
@@ -127,6 +145,7 @@ export default function SeerProjectTable() {
         sort={sort}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
+        supportedIntegrations={supportedIntegrations}
         updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
       >
         <SimpleTable.Empty>
@@ -144,6 +163,7 @@ export default function SeerProjectTable() {
         sort={sort}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
+        supportedIntegrations={supportedIntegrations}
         updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
       >
         <SimpleTable.Empty>
@@ -165,6 +185,7 @@ export default function SeerProjectTable() {
         sort={sort}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
+        supportedIntegrations={supportedIntegrations}
         updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
       >
         {filteredProjects.length === 0 ? (
@@ -186,6 +207,7 @@ export default function SeerProjectTable() {
                 ...autofixSettingsByProjectId.get(project.id),
                 ...mutationData[project.id],
               }}
+              supportedIntegrations={supportedIntegrations}
               updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
             />
           ))
@@ -202,6 +224,7 @@ function ProjectTable({
   searchTerm,
   setSearchTerm,
   sort,
+  supportedIntegrations,
   updateBulkAutofixAutomationSettings,
 }: {
   children: React.ReactNode;
@@ -210,6 +233,7 @@ function ProjectTable({
   searchTerm: string;
   setSearchTerm: ReturnType<typeof useQueryState<string>>[1];
   sort: Sort;
+  supportedIntegrations: CodingAgentIntegration[];
   updateBulkAutofixAutomationSettings: ReturnType<
     typeof useUpdateBulkAutofixAutomationSettings
   >['mutate'];
@@ -237,6 +261,7 @@ function ProjectTable({
           projects={projects}
           onSortClick={onSortClick}
           sort={sort}
+          supportedIntegrations={supportedIntegrations}
           updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
         />
         {children}
