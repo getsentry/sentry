@@ -548,22 +548,3 @@ function getNewQueryParams(
   const paramEntries = Object.entries(newQuery).filter(([_, value]) => defined(value));
   return Object.fromEntries(paramEntries);
 }
-
-export function revertToPinnedFilters(orgSlug: string, router: InjectedRouter) {
-  const {selection} = PageFiltersStore.getState();
-  const storedFilterState = getPageFilterStorage(orgSlug)?.state;
-
-  if (!storedFilterState) {
-    return;
-  }
-
-  const newParams = {
-    project: selection.projects,
-    environment: selection.environments,
-    ...selection.datetime,
-  };
-
-  updateParams(newParams, router, {
-    keepCursor: true,
-  });
-}
