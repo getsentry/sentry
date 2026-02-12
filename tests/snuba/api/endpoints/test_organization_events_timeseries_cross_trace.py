@@ -1,6 +1,6 @@
-import pytest
 import uuid
 
+import pytest
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageMeta
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesResponse
 from sentry_protos.snuba.v1.request_common_pb2 import ResponseMeta
