@@ -1450,6 +1450,15 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             assert str(valid.id) in kwargs["target_url"]
             assert str(skipped.id) not in kwargs["target_url"]
 
+
+@region_silo_test
+class StatusCheckDeduplicationTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.organization)
+        self.project = self.create_project(organization=self.organization, teams=[self.team])
+
     def _create_multi_app_commit(self, artifact_configs):
         """Helper to create multiple artifacts sharing a commit comparison.
 
@@ -1509,6 +1518,48 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         )
 
         return commit_comparison, artifacts, mock_provider, client_patch, provider_patch
+
+    def _create_single_app_with_mocks(self, *, app_id, state, head_ref="feature/test"):
+        """Helper to create a single artifact with mocked provider."""
+        commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha=uuid.uuid4().hex[:40],
+            base_sha=uuid.uuid4().hex[:40],
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref=head_ref,
+            base_ref="main",
+        )
+
+        artifact = Factories.create_preprod_artifact(
+            project=self.project,
+            state=state,
+            app_id=app_id,
+            commit_comparison=commit_comparison,
+        )
+
+        repository = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=123,
+        )
+
+        mock_client = Mock()
+        mock_provider = Mock()
+        mock_provider.create_status_check.return_value = "check_12345"
+
+        client_patch = patch(
+            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_client",
+            return_value=(mock_client, repository),
+        )
+        provider_patch = patch(
+            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_provider",
+            return_value=mock_provider,
+        )
+
+        return artifact, mock_provider, client_patch, provider_patch
 
     def test_multiple_apps_only_one_in_progress_posted(self):
         """Only one IN_PROGRESS check is posted when multiple uploading artifacts share a commit."""
@@ -1597,7 +1648,6 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         with client_patch, provider_patch:
             with self.tasks():
-                # Run for a PROCESSED artifact — should skip because app3 is still uploading
                 create_preprod_status_check_task(artifacts[0].id)
 
         mock_provider.create_status_check.assert_not_called()
@@ -1743,47 +1793,13 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             '[{"id": "rule1", "metric": "install_size", "measurement": "absolute", "value": 100000000000}]',
         )
 
-        commit_comparison = CommitComparison.objects.create(
-            organization_id=self.organization.id,
-            head_sha=uuid.uuid4().hex[:40],
-            base_sha=uuid.uuid4().hex[:40],
-            provider="github",
-            head_repo_name="owner/repo",
-            base_repo_name="owner/repo",
-            head_ref="feature/single",
-            base_ref="main",
-        )
-
-        artifact = Factories.create_preprod_artifact(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.UPLOADING,
+        artifact, mock_provider, client_patch, provider_patch = self._create_single_app_with_mocks(
             app_id="com.single",
-            commit_comparison=commit_comparison,
-        )
-
-        repository = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="owner/repo",
-            provider="integrations:github",
-            integration_id=123,
-        )
-
-        mock_client = Mock()
-        mock_provider = Mock()
-        mock_provider.create_status_check.return_value = "check_12345"
-
-        client_patch = patch(
-            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_client",
-            return_value=(mock_client, repository),
-        )
-        provider_patch = patch(
-            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_provider",
-            return_value=mock_provider,
+            state=PreprodArtifact.ArtifactState.UPLOADING,
         )
 
         with client_patch, provider_patch:
             with self.tasks():
-                # First call while UPLOADING → IN_PROGRESS
                 create_preprod_status_check_task(artifact.id)
 
         assert mock_provider.create_status_check.call_count == 1
@@ -1795,54 +1811,19 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         with client_patch, provider_patch:
             with self.tasks():
-                # Second call when PROCESSED → SUCCESS (different from IN_PROGRESS)
                 create_preprod_status_check_task(artifact.id)
 
         assert mock_provider.create_status_check.call_count == 2
 
     def test_no_rules_still_two_posts(self):
         """No-rules customers (always NEUTRAL) still get both in-progress and terminal posts."""
-        commit_comparison = CommitComparison.objects.create(
-            organization_id=self.organization.id,
-            head_sha=uuid.uuid4().hex[:40],
-            base_sha=uuid.uuid4().hex[:40],
-            provider="github",
-            head_repo_name="owner/repo",
-            base_repo_name="owner/repo",
-            head_ref="feature/no-rules",
-            base_ref="main",
-        )
-
-        artifact = Factories.create_preprod_artifact(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.UPLOADING,
+        artifact, mock_provider, client_patch, provider_patch = self._create_single_app_with_mocks(
             app_id="com.norules",
-            commit_comparison=commit_comparison,
-        )
-
-        repository = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="owner/repo",
-            provider="integrations:github",
-            integration_id=123,
-        )
-
-        mock_client = Mock()
-        mock_provider = Mock()
-        mock_provider.create_status_check.return_value = "check_12345"
-
-        client_patch = patch(
-            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_client",
-            return_value=(mock_client, repository),
-        )
-        provider_patch = patch(
-            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_provider",
-            return_value=mock_provider,
+            state=PreprodArtifact.ArtifactState.UPLOADING,
         )
 
         with client_patch, provider_patch:
             with self.tasks():
-                # First call while UPLOADING → NEUTRAL (no rules)
                 create_preprod_status_check_task(artifact.id)
 
         assert mock_provider.create_status_check.call_count == 1
@@ -1858,7 +1839,6 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         with client_patch, provider_patch:
             with self.tasks():
-                # Second call when PROCESSED → still NEUTRAL but with updated content
                 create_preprod_status_check_task(artifact.id)
 
         assert mock_provider.create_status_check.call_count == 2
