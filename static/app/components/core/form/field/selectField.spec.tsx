@@ -1,4 +1,3 @@
-import type {StandardSchemaV1} from '@tanstack/react-form';
 import {z} from 'zod';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -18,7 +17,7 @@ interface TestFormProps {
   hintText?: string;
   placeholder?: string;
   required?: boolean;
-  validator?: StandardSchemaV1<{fruit: string}>;
+  validator?: z.ZodObject<{fruit: z.ZodString}>;
 }
 
 function TestForm({
