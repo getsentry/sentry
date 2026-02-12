@@ -150,7 +150,7 @@ def schedule_all_thread_updates(
         organization_id=organization_id,
     ).capture() as lifecycle:
         serialized_data = NotificationDataDto(notification_data=data).to_dict()
-        lifecycle.add_extra({"thread_count": len(threads)})
+        lifecycle.add_extra("thread_count", len(threads))
         for thread in threads:
             process_thread_update.apply_async(
                 kwargs={
