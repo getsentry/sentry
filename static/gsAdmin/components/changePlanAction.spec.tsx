@@ -96,8 +96,9 @@ describe('ChangePlanAction', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/billing-config/?tier=all`,
+      url: `/customers/${mockOrg.slug}/billing-config/`,
       body: BILLING_CONFIG,
+      match: [MockApiClient.matchQuery({tier: 'all'})],
     });
   });
 
@@ -418,8 +419,9 @@ describe('ChangePlanAction', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: `/customers/${mockOrg.slug}/billing-config/?tier=all`,
+        url: `/customers/${mockOrg.slug}/billing-config/`,
         body: BILLING_CONFIG,
+        match: [MockApiClient.matchQuery({tier: 'all'})],
       });
     });
 
