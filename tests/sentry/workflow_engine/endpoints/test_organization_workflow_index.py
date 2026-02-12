@@ -1008,6 +1008,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
 
         # Workflow should be created successfully, but the conditionGroupId should be ignored
         new_workflow = Workflow.objects.get(id=response.data["id"])
+        assert new_workflow.when_condition_group is not None
         assert new_workflow.when_condition_group.organization_id == self.organization.id
 
         # Verify the other org's condition group was not modified

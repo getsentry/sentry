@@ -713,6 +713,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         # Workflow should be updated successfully, but the conditionGroupId should be ignored
         self.workflow.refresh_from_db()
+        assert self.workflow.when_condition_group is not None
         assert self.workflow.when_condition_group.organization_id == self.organization.id
 
         # Verify the other org's condition group was not modified
