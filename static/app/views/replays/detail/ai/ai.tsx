@@ -1,7 +1,6 @@
 import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import loadingGif from 'sentry-images/spot/ai-loader.gif';
 import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
 
@@ -22,6 +21,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {ChapterList} from 'sentry/views/replays/detail/ai/chapterList';
 import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
+import {ReplaySummaryLoading} from 'sentry/views/replays/detail/ai/replaySummaryLoading';
 import {NO_REPLAY_SUMMARY_MESSAGES} from 'sentry/views/replays/detail/ai/utils';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 
@@ -109,12 +109,7 @@ export default function Ai() {
   if (isSummaryPending) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <LoadingContainer>
-          <div>
-            <img src={loadingGif} style={{maxHeight: 400}} alt={t('Loading...')} />
-          </div>
-          <div>{t('This might take a few moments...')}</div>
-        </LoadingContainer>
+        <ReplaySummaryLoading />
       </Wrapper>
     );
   }
@@ -275,15 +270,6 @@ const Wrapper = styled('div')`
   min-height: 0;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-`;
-
-const LoadingContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-  padding: ${space(4)};
-  overflow: auto;
-  text-align: center;
-  flex-direction: column;
 `;
 
 const Summary = styled('div')`
