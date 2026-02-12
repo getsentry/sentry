@@ -1,14 +1,18 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
+import {
+  HybridFilter,
+  type HybridFilterRef,
+} from 'sentry/components/pageFilters/hybridFilter';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {
   modifyFilterOperatorQuery,
@@ -67,6 +71,7 @@ function FilterSelector({
   disableRemoveFilter,
 }: FilterSelectorProps) {
   const {selection} = usePageFilters();
+  const hybridFilterRef = useRef<HybridFilterRef<string>>(null);
 
   const {fieldDefinition, filterToken} = useMemo(() => {
     const fieldDef = getFieldDefinitionForDataset(globalFilter.tag, globalFilter.dataset);
@@ -201,6 +206,15 @@ function FilterSelector({
       map.set(value, {
         label: middleEllipsis(value, 70, /[\s-_:]/),
         value,
+        leadingItems: ({isSelected}: {isSelected: boolean}) => (
+          <Checkbox
+            size="sm"
+            checked={isSelected}
+            onChange={() => hybridFilterRef.current?.toggleOption?.(value)}
+            aria-label={t('Select %s', value)}
+            tabIndex={-1}
+          />
+        ),
       });
 
     // Filter values in the global filter
@@ -347,6 +361,7 @@ function FilterSelector({
 
   return (
     <HybridFilter
+      ref={hybridFilterRef}
       searchable
       disabled={false}
       options={translatedOptions}

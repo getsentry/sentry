@@ -245,6 +245,7 @@ export function ProjectPageFilter({
     const getProjectItem = (project: Project) => {
       return {
         value: parseInt(project.id, 10),
+        textValue: project.slug,
         leadingItems: ({isSelected}) => (
           <Checkbox
             size="sm"
@@ -351,11 +352,10 @@ export function ProjectPageFilter({
     );
 
     // ProjectPageFilter will try to expand to accommodate the longest project slug
-    const longestSlugLength = flatOptions.slice(0, 25).reduce(
-      // eslint-disable-next-line @typescript-eslint/no-base-to-string
-      (acc, cur) => (String(cur.label).length > acc ? String(cur.label).length : acc),
-      0
-    );
+    const longestSlugLength = flatOptions.slice(0, 25).reduce((acc, cur) => {
+      const length = cur.textValue?.length ?? 0;
+      return length > acc ? length : acc;
+    }, 0);
 
     // Calculate an appropriate width for the menu. It should be between 22  and 28em.
     // Within that range, the width is a function of the length of the longest slug.
