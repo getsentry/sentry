@@ -19,6 +19,7 @@ from fixtures.github import (
 )
 from sentry import options
 from sentry.constants import ObjectStatus
+from sentry.integrations.github.webhook import GitHubIntegrationsWebhookEndpoint
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
@@ -661,11 +662,23 @@ class PushEventWebhookTest(APITestCase):
         assert repos[0] == repo
 
 
-class PullRequestEventWebhook(APITestCase):
+class PullRequestEventWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
         options.set("github-app.webhook-secret", self.secret)
+
+    def _get_signature_sha1(self, body: bytes | str) -> str:
+        if isinstance(body, str):
+            body = body.encode("utf-8")
+        sig = GitHubIntegrationsWebhookEndpoint.compute_signature("sha1", body, self.secret)
+        return f"sha1={sig}"
+
+    def _get_signature_sha256(self, body: bytes | str) -> str:
+        if isinstance(body, str):
+            body = body.encode("utf-8")
+        sig = GitHubIntegrationsWebhookEndpoint.compute_signature("sha256", body, self.secret)
+        return f"sha256={sig}"
 
     def _create_integration_and_send_pull_request_opened_event(self):
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
@@ -690,6 +703,77 @@ class PullRequestEventWebhook(APITestCase):
 
         assert response.status_code == 204
         return integration
+
+    @patch("sentry.integrations.github.webhook.PullRequestEventWebhook.__call__")
+    def test_github_delivery_id_extracted_and_passed_to_processors(
+        self, mock_handler: MagicMock
+    ) -> None:
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=self.organization,
+                external_id="12345",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            ).add_organization(self.project.organization.id, self.user)
+
+        Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+        body = PULL_REQUEST_OPENED_EVENT_EXAMPLE
+        delivery_id = "test-delivery-id-abc123"
+
+        response = self.client.post(
+            path=self.url,
+            data=body,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="pull_request",
+            HTTP_X_HUB_SIGNATURE=self._get_signature_sha1(body),
+            HTTP_X_HUB_SIGNATURE_256=self._get_signature_sha256(body),
+            HTTP_X_GITHUB_DELIVERY=delivery_id,
+        )
+
+        assert response.status_code == 204
+        mock_handler.assert_called_once()
+        call_kwargs = mock_handler.call_args[1]
+        assert call_kwargs["github_delivery_id"] == delivery_id
+
+    @patch("sentry.integrations.github.webhook.PullRequestEventWebhook.__call__")
+    def test_github_delivery_id_missing_passed_as_none(self, mock_handler: MagicMock) -> None:
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=self.organization,
+                external_id="12345",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            ).add_organization(self.project.organization.id, self.user)
+
+        Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+        body = PULL_REQUEST_OPENED_EVENT_EXAMPLE
+
+        response = self.client.post(
+            path=self.url,
+            data=body,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="pull_request",
+            HTTP_X_HUB_SIGNATURE=self._get_signature_sha1(body),
+            HTTP_X_HUB_SIGNATURE_256=self._get_signature_sha256(body),
+            # Omit HTTP_X_GITHUB_DELIVERY so request.META.get returns None
+        )
+
+        assert response.status_code == 204
+        mock_handler.assert_called_once()
+        call_kwargs = mock_handler.call_args[1]
+        assert call_kwargs["github_delivery_id"] is None
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")

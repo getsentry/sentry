@@ -80,6 +80,7 @@ export enum SpanFields {
   THREAD_ID = 'thread.id',
   COMMAND = 'command',
   REQUEST_METHOD = 'request.method',
+  SENTRY_ORIGIN = 'sentry.origin',
 
   // Cache fields
   CACHE_HIT = 'cache.hit',
@@ -133,7 +134,7 @@ export enum SpanFields {
 
   // Mobile fields
   MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
-  MEASUREMENTS_TIME_TO_FILL_DISPLAY = 'measurements.time_to_full_display',
+  MEASUREMENTS_TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
   MOBILE_FROZEN_FRAMES = 'mobile.frozen_frames',
   MOBILE_TOTAL_FRAMES = 'mobile.total_frames',
   MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
@@ -211,7 +212,7 @@ export type SpanNumberFields =
   | SpanFields.SLOW_FRAMES_RATE
   | SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH
   | SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY
-  | SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY
+  | SpanFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY
   | SpanFields.GEN_AI_COST_INPUT_TOKENS
   | SpanFields.GEN_AI_COST_OUTPUT_TOKENS
   | SpanFields.GEN_AI_COST_TOTAL_TOKENS
@@ -323,7 +324,8 @@ export type SpanStringFields =
   | SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME
   | SpanFields.USER
   | SpanFields.PROFILER_ID
-  | SpanFields.USER_DISPLAY;
+  | SpanFields.USER_DISPLAY
+  | SpanFields.SENTRY_ORIGIN;
 
 type WebVitalsMeasurements =
   | SpanFields.CLS_SCORE

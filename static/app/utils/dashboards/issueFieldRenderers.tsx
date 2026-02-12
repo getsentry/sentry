@@ -293,6 +293,7 @@ const WrappedCount = styled(({value, ...p}: any) => (
 const Divider = styled('div')`
   height: 1px;
   overflow: hidden;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.border.secondary};
 `;
 

@@ -119,6 +119,6 @@ describe('MetricReadout', () => {
     render(<MetricReadout title="Count" unit="count" value={7800123} />);
 
     expect(screen.getByRole('heading', {name: 'Count'})).toBeInTheDocument();
-    expect(screen.getByText('7.8m')).toBeInTheDocument();
+    expect(screen.getByText('7.8M')).toBeInTheDocument();
   });
 });

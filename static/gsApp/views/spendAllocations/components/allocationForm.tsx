@@ -2,8 +2,8 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import type {ControlProps} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -301,7 +301,7 @@ function AllocationForm({
                   displayType: showPrice ? 'Spend' : 'Amount',
                 })}
               </Text>
-              <ButtonBar>
+              <Grid flow="column" align="center" gap="md">
                 <Button
                   aria-label="reduce-allocation"
                   size="sm"
@@ -348,7 +348,7 @@ function AllocationForm({
                     );
                   }}
                 />
-              </ButtonBar>
+              </Grid>
             </HalvedGrid>
           </form>
         </Container>
@@ -457,7 +457,7 @@ function AllocationForm({
         </PanelTable>
       </Container>
       <Footer>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           {((exhaustedEvents && !overBudgetedEvents) ||
             (initializedData && allocationVolume < initializedData.consumedQuantity)) && (
             // attempting to increase, but remaining available events have been exhausted (but still under budget)
@@ -502,7 +502,7 @@ function AllocationForm({
           >
             {initializedData ? t('Save Changes') : t('Submit')}
           </Button>
-        </ButtonBar>
+        </Grid>
       </Footer>
     </div>
   );

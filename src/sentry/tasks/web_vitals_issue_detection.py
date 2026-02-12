@@ -14,7 +14,6 @@ from sentry.search.events.types import SnubaParams
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.explorer.utils import normalize_description
-from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.tasks.base import instrumented_task
@@ -345,9 +344,6 @@ def check_seer_setup_for_project(project: Project) -> bool:
         return False
 
     if project.organization.get_option("sentry:hide_ai_features"):
-        return False
-
-    if not get_seer_org_acknowledgement(project.organization):
         return False
 
     repos = get_autofix_repos_from_project_code_mappings(project)

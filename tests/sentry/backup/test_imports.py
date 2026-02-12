@@ -343,7 +343,7 @@ class SanitizationTests(ImportTestCase):
 
     def test_generate_suffix_for_already_taken_username(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
-            self.create_user("min_user")
+            self.create_user("min_user", is_test_user=False)
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             with open(tmp_path, "wb+") as tmp_file:
                 models = self.json_of_exhaustive_user_with_minimum_privileges()

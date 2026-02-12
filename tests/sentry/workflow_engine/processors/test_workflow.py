@@ -118,7 +118,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
                 "is_regression": True,
                 "is_new_group_environment": False,
             },
-            has_reappeared=False,
             has_escalated=False,
         )
         mock_fire_actions.assert_called_once()
@@ -155,7 +154,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
                 "is_regression": True,
                 "is_new_group_environment": False,
             },
-            has_reappeared=False,
             has_escalated=False,
         )
 
@@ -195,7 +193,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
                 "is_regression": True,
                 "is_new_group_environment": False,
             },
-            has_reappeared=False,
             has_escalated=False,
         )
 
@@ -364,7 +361,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert not result.data.triggered_workflows
         assert result.msg == "Environment for event not found"
 
-        mock_incr.assert_called_once_with(
+        mock_incr.assert_any_call(
             "workflow_engine.process_workflows.error", 1, tags={"detector_type": "error"}
         )
         mock_logger.exception.assert_called_once_with(

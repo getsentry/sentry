@@ -18,13 +18,8 @@ class TestGroupAutofixUpdate(APITestCase):
             f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/autofix/update/"
         )
 
-    @patch(
-        "sentry.seer.endpoints.group_autofix_update.get_seer_org_acknowledgement", return_value=True
-    )
     @patch("sentry.seer.endpoints.group_autofix_update.requests.post")
-    def test_autofix_update_successful(
-        self, mock_post: MagicMock, mock_get_seer_org_acknowledgement: MagicMock
-    ) -> None:
+    def test_autofix_update_successful(self, mock_post: MagicMock) -> None:
         mock_post.return_value.status_code = 202
         mock_post.return_value.json.return_value = {}
 
@@ -66,13 +61,8 @@ class TestGroupAutofixUpdate(APITestCase):
             headers=expected_headers,
         )
 
-    @patch(
-        "sentry.seer.endpoints.group_autofix_update.get_seer_org_acknowledgement", return_value=True
-    )
     @patch("sentry.seer.endpoints.group_autofix_update.requests.post")
-    def test_autofix_update_failure(
-        self, mock_post: MagicMock, mock_get_seer_org_acknowledgement: MagicMock
-    ) -> None:
+    def test_autofix_update_failure(self, mock_post: MagicMock) -> None:
         mock_post.return_value.raise_for_status.side_effect = Exception("Failed to update")
 
         response = self.client.post(
@@ -89,48 +79,12 @@ class TestGroupAutofixUpdate(APITestCase):
 
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    @patch(
-        "sentry.seer.endpoints.group_autofix_update.get_seer_org_acknowledgement", return_value=True
-    )
-    def test_autofix_update_missing_parameters(
-        self, mock_get_seer_org_acknowledgement: MagicMock
-    ) -> None:
+    def test_autofix_update_missing_parameters(self) -> None:
         response = self.client.post(self.url, data={}, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    @patch(
-        "sentry.seer.endpoints.group_autofix_update.get_seer_org_acknowledgement",
-        return_value=False,
-    )
-    def test_autofix_update_org_not_acknowledged(
-        self, mock_get_seer_org_acknowledgement: MagicMock
-    ) -> None:
-        """Test that a 403 is returned when the organization hasn't acknowledged Seer."""
-        response = self.client.post(
-            self.url,
-            data={
-                "run_id": 123,
-                "payload": {
-                    "type": "select_root_cause",
-                    "cause_id": 456,
-                },
-            },
-            format="json",
-        )
-
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert (
-            response.data["error"]
-            == "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer."
-        )
-
-    @patch(
-        "sentry.seer.endpoints.group_autofix_update.get_seer_org_acknowledgement", return_value=True
-    )
     @patch("sentry.seer.endpoints.group_autofix_update.requests.post")
-    def test_autofix_update_updates_last_triggered_field(
-        self, mock_post, mock_get_seer_org_acknowledgement
-    ):
+    def test_autofix_update_updates_last_triggered_field(self, mock_post):
         """Test that a successful call updates the seer_autofix_last_triggered field."""
         mock_post.return_value.status_code = 202
         mock_post.return_value.json.return_value = {}

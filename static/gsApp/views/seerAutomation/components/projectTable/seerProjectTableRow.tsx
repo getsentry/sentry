@@ -108,7 +108,9 @@ export default function SeerProjectTableRow({
           <Flex align="center" gap="sm">
             {'n/a'}
             <QuestionTooltip
-              title={t('This setting does not apply to background agents.')}
+              title={t(
+                'This setting does not apply when using an external coding agent.'
+              )}
               size="xs"
             />
           </Flex>
@@ -116,8 +118,10 @@ export default function SeerProjectTableRow({
           <Placeholder height="20px" width="36px" />
         ) : (
           <Switch
-            disabled={!canWrite || !isAutoFixEnabled}
-            checked={isCreatePrEnabled}
+            disabled={
+              organization.enableSeerCoding === false || !canWrite || !isAutoFixEnabled
+            }
+            checked={organization.enableSeerCoding !== false && isCreatePrEnabled}
             onChange={e => {
               const automatedRunStoppingPoint = e.target.checked
                 ? 'open_pr'

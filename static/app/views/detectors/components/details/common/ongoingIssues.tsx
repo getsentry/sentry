@@ -2,19 +2,23 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GroupList from 'sentry/components/issues/groupList';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 type DetectorDetailsOngoingIssuesProps = {
   detector: Detector;
+  // Extra query params to include in the issue details link.
+  // Useful for feature-specific deep-linking.
+  issueLinkExtraQuery?: Record<string, string>;
 };
 
 export function DetectorDetailsOngoingIssues({
   detector,
+  issueLinkExtraQuery,
 }: DetectorDetailsOngoingIssuesProps) {
   const organization = useOrganization();
   const query = `is:unresolved detector:${detector.id}`;
@@ -26,7 +30,7 @@ export function DetectorDetailsOngoingIssues({
       ? getUtcDateString(selection.datetime.start)
       : undefined,
     end: selection.datetime.end ? getUtcDateString(selection.datetime.end) : undefined,
-    statsPeriod: selection.datetime.period,
+    statsPeriod: selection.datetime.period ?? undefined,
   };
 
   return (
@@ -46,7 +50,11 @@ export function DetectorDetailsOngoingIssues({
     >
       <ErrorBoundary mini>
         <div>
-          <GroupList numPlaceholderRows={5} queryParams={{...queryParams, limit: 5}} />
+          <GroupList
+            numPlaceholderRows={5}
+            queryParams={{...queryParams, limit: 5}}
+            issueLinkExtraQuery={issueLinkExtraQuery}
+          />
         </div>
       </ErrorBoundary>
     </Section>

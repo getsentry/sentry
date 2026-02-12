@@ -11,6 +11,7 @@ import sentry_sdk
 import sentry_sdk.scope
 import urllib3
 from google.protobuf.json_format import MessageToJson
+from google.protobuf.message import DecodeError as ProtobufDecodeError
 from google.protobuf.message import Message as ProtobufMessage
 from rest_framework.exceptions import NotFound
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
@@ -378,8 +379,7 @@ def _make_rpc_request(
                     raise SnubaRPCError(err)
                 span.set_tag("timeout", "False")
                 if http_resp.status != 200 and http_resp.status != 202:
-                    error = ErrorProto()
-                    error.ParseFromString(http_resp.data)
+                    error = _parse_error(http_resp)
                     if SNUBA_INFO:
                         log_snuba_info(f"{referrer}.error:\n{error}")
                     if http_resp.status == 404:
@@ -388,6 +388,19 @@ def _make_rpc_request(
                         raise SnubaRPCRateLimitExceeded(error)
                     raise SnubaRPCError(error)
                 return http_resp
+
+
+def _parse_error(http_resp: BaseHTTPResponse) -> ErrorProto:
+    error = ErrorProto()
+    try:
+        error.ParseFromString(http_resp.data)
+    except ProtobufDecodeError:
+        try:
+            body = http_resp.data.decode("utf-8")
+        except (UnicodeDecodeError, AttributeError):
+            body = "<non-text response body>"
+        raise SnubaRPCError(f"Snuba RPC returned HTTP {http_resp.status}: {body}")
+    return error
 
 
 def create_subscription(req: CreateSubscriptionRequest) -> CreateSubscriptionResponse:

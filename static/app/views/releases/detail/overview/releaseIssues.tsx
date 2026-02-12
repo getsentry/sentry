@@ -4,7 +4,8 @@ import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import type {Client} from 'sentry/api';
@@ -439,7 +440,9 @@ const ControlsWrapper = styled('div')`
   }
 `;
 
-const OpenInButtonBar = styled(ButtonBar)`
+const OpenInButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   margin: ${space(1)} 0;
 `;
 
