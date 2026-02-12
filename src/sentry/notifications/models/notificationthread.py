@@ -16,10 +16,10 @@ class NotificationThread(DefaultFieldsModel):
     without needing to query by multiple fields. The key_type and key_data fields store
     the original values for debugging and auditing purposes.
 
-    Example key_data for different notification types:
+    key_type uses NotificationSource values. Example key_data for different sources:
+    - error-alert-service: {"rule_fire_history_id": 123, "rule_action_uuid": "abc-123"}
+    - slow-load-metric-alert: {"alert_rule_id": 456, "incident_id": 789, "trigger_action_id": 101}
     - issue_alert: {"rule_fire_history_id": 123, "rule_action_uuid": "abc-123"}
-    - metric_alert: {"alert_rule_id": 456, "incident_id": 789, "trigger_action_id": 101}
-    - noa: {"action_id": 111, "group_id": 222}
     """
 
     __relocation_scope__ = RelocationScope.Excluded
