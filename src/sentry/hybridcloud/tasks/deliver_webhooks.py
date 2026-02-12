@@ -1,6 +1,7 @@
 import datetime
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any
 
 import orjson
 import requests
@@ -78,7 +79,7 @@ SLOW_DELIVERY_THRESHOLD = datetime.timedelta(minutes=10)
 """Duration threshold for logging slow webhook deliveries."""
 
 
-def _extract_github_owner_from_body(body: dict) -> str | None:
+def _extract_github_owner_from_body(body: dict[str, Any]) -> str | None:
     """Extract repository.owner.login from a GitHub-style webhook body."""
     repository = body.get("repository") if isinstance(body.get("repository"), dict) else None
     owner = (
@@ -248,8 +249,6 @@ def drain_mailbox(payload_id: int) -> None:
             },
         )
         return
-
-    _set_webhook_delivery_sentry_context(payload)
 
     delivered = 0
     deadline = timezone.now() + BATCH_SCHEDULE_OFFSET
@@ -445,7 +444,6 @@ def drain_mailbox_parallel(payload_id: int) -> None:
         )
         return
 
-    _set_webhook_delivery_sentry_context(payload)
     _discard_stale_mailbox_payloads(payload)
 
     worker_threads = options.get("hybridcloud.webhookpayload.worker_threads")
@@ -476,6 +474,7 @@ def drain_mailbox_parallel(payload_id: int) -> None:
 
 
 def deliver_message_parallel(payload: WebhookPayload) -> tuple[WebhookPayload, Exception | None]:
+    _set_webhook_delivery_sentry_context(payload)
     try:
         perform_request(payload)
         return (payload, None)
@@ -485,6 +484,7 @@ def deliver_message_parallel(payload: WebhookPayload) -> tuple[WebhookPayload, E
 
 def deliver_message(payload: WebhookPayload) -> None:
     """Deliver a message if it still has delivery attempts remaining"""
+    _set_webhook_delivery_sentry_context(payload)
     if payload.attempts >= MAX_ATTEMPTS:
         payload_id = payload.id
         payload.delete()
