@@ -382,7 +382,7 @@ export function useMembers({ids, emails, limit}: Options = {}) {
   const result: Result = {
     members: filteredMembers,
     fetching: state.fetching || store.loading,
-    initiallyLoaded: state.initiallyLoaded,
+    initiallyLoaded,
     fetchError: state.fetchError,
     hasMore: state.hasMore ?? store.hasMore,
     onSearch: handleSearch,

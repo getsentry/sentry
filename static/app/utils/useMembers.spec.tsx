@@ -115,11 +115,13 @@ describe('useMembers', () => {
       initialProps: {ids: ['10']},
     });
 
+    expect(result.current.initiallyLoaded).toBe(false);
     expect(mockRequest).not.toHaveBeenCalled();
 
     act(() => MemberListStore.loadInitialData([userFoo]));
     await waitFor(() => expect(result.current.members).toEqual([userFoo]));
 
+    expect(result.current.initiallyLoaded).toBe(true);
     expect(mockRequest).not.toHaveBeenCalled();
   });
 
