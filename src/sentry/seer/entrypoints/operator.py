@@ -8,6 +8,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.autofix.autofix import trigger_autofix as _trigger_autofix
 from sentry.seer.autofix.autofix import update_autofix
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import (
     AutofixCreatePRPayload,
     AutofixSelectRootCausePayload,
@@ -126,6 +127,7 @@ class SeerOperator[CachePayloadT]:
             raw_response = _trigger_autofix(
                 group=group,
                 user=user,
+                referrer=AutofixReferrer.SLACK,
                 instruction=instruction,
                 stopping_point=stopping_point,
             )
