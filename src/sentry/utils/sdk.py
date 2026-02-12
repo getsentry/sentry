@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import logging
 import sys
 import typing
@@ -396,34 +397,66 @@ def configure_sdk():
             # Sentry4Sentry (upstream) should get the event first because
             # it is most isolated from the sentry installation.
             if sentry4sentry_transport:
-                metrics.incr("internal.captured.events.upstream")
-                # TODO(mattrobenolt): Bring this back safely.
-                # from sentry import options
-                # install_id = options.get('sentry:install-id')
-                # if install_id:
-                #     event.setdefault('tags', {})['install-id'] = install_id
-                s4s_args = args
-                # We want to control whether we want to send metrics at the s4s upstream.
-                if (
-                    not settings.SENTRY_SDK_UPSTREAM_METRICS_ENABLED
-                    and method_name == "capture_envelope"
-                ):
-                    args_list = list(args)
-                    envelope = args_list[0]
-                    # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
-                    # unless we allow them via a separate sample rate.
-                    safe_items = [
-                        x
-                        for x in envelope.items
-                        if x.data_category != "statsd"
-                        or in_random_rollout("store.allow-s4s-ddm-sample-rate")
-                    ]
-                    if len(safe_items) != len(envelope.items):
-                        relay_envelope = copy.copy(envelope)
-                        relay_envelope.items = safe_items
-                        s4s_args = (relay_envelope, *args_list[1:])
+                # For s4s2 region, sample transactions at 1% based on trace_id
+                # to reduce transaction volume sent to S4S upstream.
+                send_to_s4s = True
+                if settings.SENTRY_REGION == "s4s2":
+                    is_transaction = False
+                    trace_id = None
+                    if method_name == "capture_envelope":
+                        if args[0].get_transaction_event() is not None:
+                            is_transaction = True
+                            trace_id = args[0].headers.get("trace", {}).get(
+                                "trace_id"
+                            )
+                    elif method_name == "capture_event":
+                        if args[0].get("type") == "transaction":
+                            is_transaction = True
+                            trace_id = (
+                                args[0]
+                                .get("contexts", {})
+                                .get("trace", {})
+                                .get("trace_id")
+                            )
+                    if is_transaction and trace_id is not None:
+                        hash_value = int(
+                            hashlib.md5(trace_id.encode()).hexdigest()[:8], 16
+                        )
+                        if hash_value % 100 >= 1:
+                            send_to_s4s = False
+                            metrics.incr(
+                                "internal.captured.events.upstream.s4s2_sampled"
+                            )
 
-                getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
+                if send_to_s4s:
+                    metrics.incr("internal.captured.events.upstream")
+                    # TODO(mattrobenolt): Bring this back safely.
+                    # from sentry import options
+                    # install_id = options.get('sentry:install-id')
+                    # if install_id:
+                    #     event.setdefault('tags', {})['install-id'] = install_id
+                    s4s_args = args
+                    # We want to control whether we want to send metrics at the s4s upstream.
+                    if (
+                        not settings.SENTRY_SDK_UPSTREAM_METRICS_ENABLED
+                        and method_name == "capture_envelope"
+                    ):
+                        args_list = list(args)
+                        envelope = args_list[0]
+                        # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
+                        # unless we allow them via a separate sample rate.
+                        safe_items = [
+                            x
+                            for x in envelope.items
+                            if x.data_category != "statsd"
+                            or in_random_rollout("store.allow-s4s-ddm-sample-rate")
+                        ]
+                        if len(safe_items) != len(envelope.items):
+                            relay_envelope = copy.copy(envelope)
+                            relay_envelope.items = safe_items
+                            s4s_args = (relay_envelope, *args_list[1:])
+
+                    getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
 
             if sentry_saas_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
                 # If this is an envelope ensure envelope and its items are distinct references
