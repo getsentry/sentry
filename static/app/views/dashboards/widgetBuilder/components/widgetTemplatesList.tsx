@@ -56,6 +56,17 @@ function WidgetTemplatesList({
   const api = useApi();
 
   useEffect(() => {
+    const initialWidget = widgets[initialSelectedIndex];
+    if (initialWidget) {
+      dispatch({
+        type: BuilderStateAction.SET_STATE,
+        payload: convertWidgetToBuilderStateParams(initialWidget),
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     trackAnalytics('dashboards_views.widget_builder.templates.open', {
       organization,
     });
