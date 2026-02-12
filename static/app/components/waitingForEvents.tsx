@@ -60,7 +60,9 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
           project={project}
           source="issues_list"
           disabled={!project}
-          title={project ? undefined : t('Select a project to create a sample event')}
+          tooltipProps={{
+            title: project ? undefined : t('Select a project to create a sample event'),
+          }}
         >
           {t('Create a sample event')}
         </CreateSampleEventButton>

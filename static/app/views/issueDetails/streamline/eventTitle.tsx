@@ -89,7 +89,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
             </span>
             <Button
               aria-label={t('Copy Event ID')}
-              title={t('Copy Event ID')}
+              tooltipProps={{title: t('Copy Event ID')}}
               onClick={handleCopyEventId}
               size="zero"
               priority="transparent"
@@ -122,9 +122,11 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
             <Fragment>
               <Divider />
               <ProcessingErrorButton
-                title={t(
-                  'Sentry has detected configuration issues with this event. Click for more info.'
-                )}
+                tooltipProps={{
+                  title: t(
+                    'Sentry has detected configuration issues with this event. Click for more info.'
+                  ),
+                }}
                 priority="transparent"
                 size="zero"
                 icon={<IconWarning variant="danger" />}

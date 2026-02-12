@@ -1,7 +1,9 @@
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from sentry.preprod.models import (
     PreprodArtifact,
@@ -771,3 +773,39 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             status_code=400,
         )
         assert response.data["detail"] == "Head and base build configurations must be the same."
+
+    @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
+    @patch(
+        "sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare.get_size_retention_cutoff"
+    )
+    def test_get_returns_404_for_expired_head_artifact(self, mock_cutoff):
+        mock_cutoff.return_value = timezone.now() - timedelta(days=30)
+        self.head_artifact.date_added = timezone.now() - timedelta(days=60)
+        self.head_artifact.save()
+
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            self.head_artifact.id,
+            self.base_artifact.id,
+        )
+        assert response.status_code == 404
+        assert response.data["detail"] == "This build's size data has expired."
+
+    @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
+    @patch(
+        "sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare.get_size_retention_cutoff"
+    )
+    def test_get_returns_404_for_expired_base_artifact(self, mock_cutoff):
+        mock_cutoff.return_value = timezone.now() - timedelta(days=30)
+        self.base_artifact.date_added = timezone.now() - timedelta(days=60)
+        self.base_artifact.save()
+
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            self.head_artifact.id,
+            self.base_artifact.id,
+        )
+        assert response.status_code == 404
+        assert response.data["detail"] == "This build's size data has expired."

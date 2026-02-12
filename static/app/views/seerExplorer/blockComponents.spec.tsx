@@ -5,6 +5,7 @@ import type {Block} from './types';
 
 describe('BlockComponent', () => {
   const mockOnClick = jest.fn();
+  const runId = 123;
 
   const createUserInputBlock = (overrides?: Partial<Block>): Block => ({
     id: 'user-1',
@@ -36,14 +37,28 @@ describe('BlockComponent', () => {
   describe('User Input Blocks', () => {
     it('renders user input block with correct content', () => {
       const block = createUserInputBlock();
-      render(<BlockComponent block={block} blockIndex={0} onClick={mockOnClick} />);
+      render(
+        <BlockComponent
+          block={block}
+          blockIndex={0}
+          onClick={mockOnClick}
+          runId={runId}
+        />
+      );
 
       expect(screen.getByText('What is this error about?')).toBeInTheDocument();
     });
 
     it('calls onClick when user input block is clicked', async () => {
       const block = createUserInputBlock();
-      render(<BlockComponent block={block} blockIndex={0} onClick={mockOnClick} />);
+      render(
+        <BlockComponent
+          block={block}
+          blockIndex={0}
+          onClick={mockOnClick}
+          runId={runId}
+        />
+      );
 
       await userEvent.click(screen.getByText('What is this error about?'));
       expect(mockOnClick).toHaveBeenCalledTimes(1);
@@ -53,7 +68,14 @@ describe('BlockComponent', () => {
   describe('Response Blocks', () => {
     it('renders response block with correct content', () => {
       const block = createResponseBlock();
-      render(<BlockComponent block={block} blockIndex={0} onClick={mockOnClick} />);
+      render(
+        <BlockComponent
+          block={block}
+          blockIndex={0}
+          onClick={mockOnClick}
+          runId={runId}
+        />
+      );
 
       expect(
         screen.getByText('This error indicates a null pointer exception.')
@@ -68,7 +90,14 @@ describe('BlockComponent', () => {
           content: 'Thinking...',
         },
       });
-      render(<BlockComponent block={block} blockIndex={0} onClick={mockOnClick} />);
+      render(
+        <BlockComponent
+          block={block}
+          blockIndex={0}
+          onClick={mockOnClick}
+          runId={runId}
+        />
+      );
 
       expect(screen.getByText('Thinking...')).toBeInTheDocument();
     });
@@ -76,7 +105,12 @@ describe('BlockComponent', () => {
     it('calls onClick when response block is clicked', async () => {
       const block = createResponseBlock();
       const {container} = render(
-        <BlockComponent block={block} blockIndex={0} onClick={mockOnClick} />
+        <BlockComponent
+          block={block}
+          blockIndex={0}
+          onClick={mockOnClick}
+          runId={runId}
+        />
       );
       const blockElement = container.firstChild;
       await userEvent.click(blockElement as HTMLElement);
@@ -88,7 +122,13 @@ describe('BlockComponent', () => {
     it('shows reset button when isFocused=true', () => {
       const block = createUserInputBlock();
       render(
-        <BlockComponent block={block} blockIndex={0} isFocused onClick={mockOnClick} />
+        <BlockComponent
+          block={block}
+          blockIndex={0}
+          isFocused
+          onClick={mockOnClick}
+          runId={runId}
+        />
       );
 
       expect(screen.getByRole('button', {name: '↩'})).toBeInTheDocument();
@@ -102,6 +142,7 @@ describe('BlockComponent', () => {
           blockIndex={0}
           isFocused={false}
           onClick={mockOnClick}
+          runId={runId}
         />
       );
 
@@ -111,7 +152,13 @@ describe('BlockComponent', () => {
     it('shows feedback buttons for assistant blocks when isFocused=true', () => {
       const block = createResponseBlock();
       render(
-        <BlockComponent block={block} blockIndex={0} isFocused onClick={mockOnClick} />
+        <BlockComponent
+          block={block}
+          blockIndex={0}
+          isFocused
+          onClick={mockOnClick}
+          runId={runId}
+        />
       );
 
       expect(
@@ -125,7 +172,13 @@ describe('BlockComponent', () => {
     it('does not show feedback buttons for user blocks', () => {
       const block = createUserInputBlock();
       render(
-        <BlockComponent block={block} blockIndex={0} isFocused onClick={mockOnClick} />
+        <BlockComponent
+          block={block}
+          blockIndex={0}
+          isFocused
+          onClick={mockOnClick}
+          runId={runId}
+        />
       );
 
       expect(
@@ -139,7 +192,13 @@ describe('BlockComponent', () => {
     it('disables both thumbs buttons after thumbs up is clicked', async () => {
       const block = createResponseBlock();
       render(
-        <BlockComponent block={block} blockIndex={1} isFocused onClick={mockOnClick} />
+        <BlockComponent
+          block={block}
+          blockIndex={1}
+          isFocused
+          onClick={mockOnClick}
+          runId={runId}
+        />
       );
 
       const upButton = screen.getByRole('button', {name: 'Seer Explorer Thumbs Up'});
@@ -155,7 +214,13 @@ describe('BlockComponent', () => {
     it('disables both thumbs buttons after thumbs down is clicked', async () => {
       const block = createResponseBlock();
       render(
-        <BlockComponent block={block} blockIndex={2} isFocused onClick={mockOnClick} />
+        <BlockComponent
+          block={block}
+          blockIndex={2}
+          isFocused
+          onClick={mockOnClick}
+          runId={runId}
+        />
       );
 
       const upButton = screen.getByRole('button', {name: 'Seer Explorer Thumbs Up'});
@@ -169,6 +234,50 @@ describe('BlockComponent', () => {
     });
   });
 
+  it('does not disable thumbs buttons after thumbs up is clicked if runId is not set', async () => {
+    const block = createResponseBlock();
+    render(
+      <BlockComponent
+        block={block}
+        blockIndex={1}
+        isFocused
+        onClick={mockOnClick}
+        runId={undefined}
+      />
+    );
+
+    const upButton = screen.getByRole('button', {name: 'Seer Explorer Thumbs Up'});
+    const downButton = screen.getByRole('button', {name: 'Seer Explorer Thumbs Down'});
+    expect(upButton).toBeEnabled();
+
+    await userEvent.click(upButton);
+
+    expect(upButton).toBeEnabled();
+    expect(downButton).toBeEnabled();
+  });
+
+  it('does not disable thumbs buttons after thumbs down is clicked if runId is not set', async () => {
+    const block = createResponseBlock();
+    render(
+      <BlockComponent
+        block={block}
+        blockIndex={2}
+        isFocused
+        onClick={mockOnClick}
+        runId={undefined}
+      />
+    );
+
+    const upButton = screen.getByRole('button', {name: 'Seer Explorer Thumbs Up'});
+    const downButton = screen.getByRole('button', {name: 'Seer Explorer Thumbs Down'});
+    expect(downButton).toBeEnabled();
+
+    await userEvent.click(downButton);
+
+    expect(upButton).toBeEnabled();
+    expect(downButton).toBeEnabled();
+  });
+
   describe('Markdown Content', () => {
     it('renders markdown content in response blocks', () => {
       const block = createResponseBlock({
@@ -178,7 +287,14 @@ describe('BlockComponent', () => {
             '# Heading\n\nThis is **bold** text with a [link](https://example.com)',
         },
       });
-      render(<BlockComponent block={block} blockIndex={0} onClick={mockOnClick} />);
+      render(
+        <BlockComponent
+          block={block}
+          blockIndex={0}
+          onClick={mockOnClick}
+          runId={runId}
+        />
+      );
 
       expect(screen.getByText('Heading')).toBeInTheDocument();
       expect(screen.getByText('bold')).toBeInTheDocument();

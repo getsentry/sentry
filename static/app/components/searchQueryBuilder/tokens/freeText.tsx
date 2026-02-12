@@ -301,11 +301,12 @@ function SearchQueryBuilderInputInternal({
     useFilterKeyListBox({
       filterValue,
     });
-  const sortedFilteredItems = useSortedFilterKeyItems({
-    filterValue,
-    inputValue,
-    includeSuggestions: true,
-  });
+  const {items: sortedFilteredItems, isLoading: isLoadingFilterKeys} =
+    useSortedFilterKeyItems({
+      filterValue,
+      inputValue,
+      includeSuggestions: true,
+    });
 
   const items = customMenu ? sectionItems : sortedFilteredItems;
 
@@ -438,6 +439,7 @@ function SearchQueryBuilderInputInternal({
         customMenu={customMenu}
         ref={inputRef}
         items={items}
+        isLoading={isLoadingFilterKeys}
         placeholder={query === '' ? placeholder : undefined}
         onOptionSelected={option => {
           if (handleOptionSelected) {

@@ -177,8 +177,7 @@ function EditTagHighlightSection({
                 size="xs"
                 onClick={() => onAddTag(tagKey)}
                 disabled={isDisabled}
-                title={isDisabled && t('Already highlighted')}
-                tooltipProps={{delay: 500}}
+                tooltipProps={{title: isDisabled && t('Already highlighted'), delay: 500}}
               />
               <HighlightKey
                 disabled={isDisabled}
@@ -279,8 +278,10 @@ function EditContextHighlightSection({
                         size="xs"
                         onClick={() => onAddContextKey(contextType, contextKey)}
                         disabled={isDisabled}
-                        title={isDisabled && t('Already highlighted')}
-                        tooltipProps={{delay: 500}}
+                        tooltipProps={{
+                          title: isDisabled && t('Already highlighted'),
+                          delay: 500,
+                        }}
                       />
                       <HighlightKey
                         disabled={isDisabled}

@@ -42,6 +42,8 @@ import {
   type VitalItem,
   type VitalStatus,
 } from 'sentry/views/insights/mobile/screens/utils';
+import useHasDashboardsPlatformizedMobileVitals from 'sentry/views/insights/mobile/screens/utils/useHasDashboardsPlatformizedMobileVitals';
+import {PlatformizedMobileVitalsOverview} from 'sentry/views/insights/mobile/screens/views/platformizedOverview';
 import {ModuleName} from 'sentry/views/insights/types';
 
 function ScreensLandingPage() {
@@ -342,4 +344,13 @@ const Flex = styled('div')<{gap?: number}>`
   margin-bottom: ${space(1)};
 `;
 
-export default ScreensLandingPage;
+function ScreensLandingPageWithPlatformization() {
+  const hasDashboardsPlatformizedMobileVitals =
+    useHasDashboardsPlatformizedMobileVitals();
+  if (hasDashboardsPlatformizedMobileVitals) {
+    return <PlatformizedMobileVitalsOverview />;
+  }
+  return <ScreensLandingPage />;
+}
+
+export default ScreensLandingPageWithPlatformization;

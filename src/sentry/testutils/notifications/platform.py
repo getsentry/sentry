@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 
 from sentry.notifications.platform.registry import template_registry
-from sentry.notifications.platform.templates.types import NotificationTemplateSource
 from sentry.notifications.platform.types import (
     NotificationBodyFormattingBlockType,
     NotificationBodyTextBlockType,
@@ -10,6 +9,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedAction,
     NotificationRenderedImage,
     NotificationRenderedTemplate,
+    NotificationSource,
     NotificationStrategy,
     NotificationTarget,
     NotificationTemplate,
@@ -20,7 +20,7 @@ from sentry.notifications.platform.types import (
 
 @dataclass(kw_only=True, frozen=True)
 class MockNotification(NotificationData):
-    source = NotificationTemplateSource.TEST
+    source = NotificationSource.TEST
     message: str
 
 
