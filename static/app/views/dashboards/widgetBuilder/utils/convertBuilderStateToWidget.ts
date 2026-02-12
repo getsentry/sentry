@@ -1,5 +1,5 @@
 import {defined} from 'sentry/utils';
-import {generateFieldAsString} from 'sentry/utils/discover/fields';
+import {generateFieldAsString, isEquation} from 'sentry/utils/discover/fields';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DisplayType,
@@ -86,11 +86,20 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   if (isReleaseTable) {
     defaultSort = '';
   } else if (isCategoricalBar) {
-    // Categorical bars should sort by the selected aggregate (last by default, matching Big Number)
+    // Categorical bars should sort by the selected aggregate (last by default, matching Big Number).
+    // For equations, use the alias format (equation[N]) that the API expects, not the raw equation|... string
     const selectedIdx =
       state.selectedAggregate ?? (aggregates.length > 0 ? aggregates.length - 1 : 0);
     const selectedAgg = aggregates[selectedIdx] ?? aggregates[0];
-    defaultSort = selectedAgg ? `-${selectedAgg}` : defaultQuery.orderby;
+    if (selectedAgg) {
+      if (isEquation(selectedAgg)) {
+        const eqIndex =
+          aggregates.slice(0, selectedIdx + 1).filter(isEquation).length - 1;
+        defaultSort = `-equation[${Math.max(0, eqIndex)}]`;
+      } else {
+        defaultSort = `-${selectedAgg}`;
+      }
+    }
   }
   const sort =
     defined(state.sort) && state.sort.length > 0

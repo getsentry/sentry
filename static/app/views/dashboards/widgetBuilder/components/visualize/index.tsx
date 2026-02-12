@@ -1029,8 +1029,8 @@ function Visualize({error, setError}: VisualizeProps) {
                                       type: BuilderStateAction.SET_SELECTED_AGGREGATE,
                                       payload: state.selectedAggregate - 1,
                                     });
-                                  } else if (index >= state.selectedAggregate) {
-                                    // Deleted the selected item or the last item — unset
+                                  } else if (index === state.selectedAggregate) {
+                                    // Deleted the selected item itself — unset
                                     // so the state defaults to the last aggregate
                                     dispatch({
                                       type: BuilderStateAction.SET_SELECTED_AGGREGATE,
