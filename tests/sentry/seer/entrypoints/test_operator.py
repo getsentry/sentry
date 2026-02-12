@@ -175,37 +175,38 @@ class SeerOperatorTest(TestCase):
         clear=True,
     )
     def test_process_autofix_updates_early_exits(self):
-        # Missing group_id/run_id
-        process_autofix_updates(
-            event_type=SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
-            event_payload={},
-            organization_id=self.organization.id,
-        )
-        MockEntrypoint.on_autofix_update.assert_not_called()
+        with patch.object(MockEntrypoint, "on_autofix_update") as mock_on_autofix_update:
+            # Missing group_id/run_id
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
+                event_payload={},
+                organization_id=self.organization.id,
+            )
+            mock_on_autofix_update.assert_not_called()
 
-        # Invalid event type
-        process_autofix_updates(
-            event_type=SentryAppEventType.ISSUE_CREATED,
-            event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id},
-            organization_id=self.organization.id,
-        )
-        MockEntrypoint.on_autofix_update.assert_not_called()
+            # Invalid event type
+            process_autofix_updates(
+                event_type=SentryAppEventType.ISSUE_CREATED,
+                event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id},
+                organization_id=self.organization.id,
+            )
+            mock_on_autofix_update.assert_not_called()
 
-        # Group not found
-        process_autofix_updates(
-            event_type=SentryAppEventType.SEER_ROOT_CAUSE_STARTED,
-            event_payload={"run_id": MOCK_RUN_ID, "group_id": -1},
-            organization_id=self.organization.id,
-        )
-        MockEntrypoint.on_autofix_update.assert_not_called()
+            # Group not found
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ROOT_CAUSE_STARTED,
+                event_payload={"run_id": MOCK_RUN_ID, "group_id": -1},
+                organization_id=self.organization.id,
+            )
+            mock_on_autofix_update.assert_not_called()
 
-        # Cache miss
-        process_autofix_updates(
-            event_type=SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
-            event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id},
-            organization_id=self.organization.id,
-        )
-        MockEntrypoint.on_autofix_update.assert_not_called()
+            # Cache miss
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
+                event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id},
+                organization_id=self.organization.id,
+            )
+            mock_on_autofix_update.assert_not_called()
 
     @patch("sentry.seer.entrypoints.cache.SeerOperatorAutofixCache.get")
     def test_process_autofix_updates(self, mock_autofix_cache_get):
