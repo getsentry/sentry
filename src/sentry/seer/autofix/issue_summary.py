@@ -372,7 +372,7 @@ def run_automation(
 
     user_id = user.id if user else None
     auto_run_source = auto_run_source_map.get(source, "unknown_source")
-    referrer = referrer_map.get(source, AutofixReferrer.ISSUE_SUMMARY_FIXABILITY)
+    referrer = referrer_map.get(source, AutofixReferrer.UNKNOWN)
 
     sentry_sdk.set_tags(
         {
