@@ -5,7 +5,7 @@ from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageMet
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesResponse
 from sentry_protos.snuba.v1.request_common_pb2 import ResponseMeta
 
-from sentry.utils.dates import before_now
+from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
@@ -15,8 +15,13 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
     def setUp(self) -> None:
         super().setUp()
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
-        self.ten_mins_ago = self.day_ago + timedelta(minutes=10)
-        self.nine_mins_ago = self.day_ago + timedelta(minutes=11)
+        self.now = self.day_ago + timedelta(minutes=20)
+        self.ten_mins_ago = self.now - timedelta(minutes=10)
+        self.nine_mins_ago = self.now - timedelta(minutes=9)
+        self.start = (self.day_ago - timedelta(days=1)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        self.end = self.start + timedelta(days=2)
 
     def test_cross_trace_query_with_logs(self) -> None:
         trace_id = uuid.uuid4().hex
@@ -63,9 +68,9 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": "spans",
-                # Interval and statsPeriod are tested by actual timeseries endpoints, just test we get the right data back
+                "start": self.start,
+                "end": self.end,
                 "interval": "1d",
-                "statsPeriod": "1d",
                 "topEvents": 5,
                 "groupBy": ["tags[foo]"],
                 "logQuery": ["message:foo"],
@@ -79,8 +84,8 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
         values = timeseries["values"]
         assert not timeseries["meta"]["isOther"]
         assert len(values) == 2
-        assert values[0]["value"] == 1
-        assert values[1]["value"] == 0
+        assert values[0]["value"] == 0
+        assert values[1]["value"] == 1
 
     def test_cross_trace_query_with_spans(self) -> None:
         trace_id = uuid.uuid4().hex
@@ -125,8 +130,9 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": "spans",
+                "start": self.start,
+                "end": self.end,
                 "interval": "1d",
-                "statsPeriod": "1d",
                 "spanQuery": ["tags[foo]:six"],
             }
         )
@@ -135,8 +141,8 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
         assert len(response.data["timeSeries"]) == 1
         values = response.data["timeSeries"][0]["values"]
         assert len(values) == 2
-        assert values[0]["value"] == 1
-        assert values[1]["value"] == 0
+        assert values[0]["value"] == 0
+        assert values[1]["value"] == 1
 
     def test_cross_trace_query_with_spans_and_logs(self) -> None:
         trace_id = uuid.uuid4().hex
@@ -194,8 +200,9 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": "spans",
+                "start": self.start,
+                "end": self.end,
                 "interval": "1d",
-                "statsPeriod": "1d",
                 "spanQuery": ["tags[foo]:six"],
                 "logQuery": ["message:foo"],
             }
@@ -205,8 +212,8 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
         assert len(response.data["timeSeries"]) == 1
         values = response.data["timeSeries"][0]["values"]
         assert len(values) == 2
-        assert values[0]["value"] == 1
-        assert values[1]["value"] == 0
+        assert values[0]["value"] == 0
+        assert values[1]["value"] == 1
 
     def test_cross_trace_query_with_multiple_spans(self) -> None:
         trace_id = uuid.uuid4().hex
@@ -261,8 +268,9 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": "spans",
+                "start": self.start,
+                "end": self.end,
                 "interval": "1d",
-                "statsPeriod": "1d",
                 "spanQuery": ["tags[foo]:six", "tags[foo]:seven"],
             }
         )
@@ -271,8 +279,8 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
         assert len(response.data["timeSeries"]) == 1
         values = response.data["timeSeries"][0]["values"]
         assert len(values) == 2
-        assert values[0]["value"] == 1
-        assert values[1]["value"] == 0
+        assert values[0]["value"] == 0
+        assert values[1]["value"] == 1
 
     def test_cross_trace_query_with_multiple_logs(self) -> None:
         trace_id = uuid.uuid4().hex
@@ -323,8 +331,9 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": "spans",
+                "start": self.start,
+                "end": self.end,
                 "interval": "1d",
-                "statsPeriod": "1d",
                 "logQuery": ["message:faa", "message:foo"],
             }
         )
@@ -333,8 +342,8 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
         assert len(response.data["timeSeries"]) == 1
         values = response.data["timeSeries"][0]["values"]
         assert len(values) == 2
-        assert values[0]["value"] == 1
-        assert values[1]["value"] == 0
+        assert values[0]["value"] == 0
+        assert values[1]["value"] == 1
 
     def test_top_events_with_log_query_includes_trace_filters(self) -> None:
         """Test that topEvents queries with logQuery include trace_filters in RPC payload"""
@@ -399,8 +408,9 @@ class OrganizationEventsTimeseriesCrossTraceEndpointTest(OrganizationEventsEndpo
                     "orderby": "count()",
                     "project": self.project.id,
                     "dataset": "spans",
+                    "start": self.start,
+                    "end": self.end,
                     "interval": "1d",
-                    "statsPeriod": "1d",
                     "topEvents": 5,
                     "excludeOther": 1,
                     "groupBy": ["tags[foo]"],
