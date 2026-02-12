@@ -194,7 +194,8 @@ export function useMembers({ids, emails, limit}: Options = {}) {
     [emails, emailsFailedToLoad, storeEmails]
   );
 
-  const shouldLoadByQuery = emailsToLoad.length > 0 || idsToLoad.length > 0;
+  const shouldLoadByQuery =
+    !store.loading && (emailsToLoad.length > 0 || idsToLoad.length > 0);
 
   // If we don't need to make a request either for emails and we have members,
   // set initiallyLoaded to true

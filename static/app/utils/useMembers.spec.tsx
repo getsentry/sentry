@@ -103,6 +103,26 @@ describe('useMembers', () => {
     expect(members).toEqual(expect.arrayContaining([userFoo]));
   });
 
+  it('waits for the member store to finish loading before fetching by ids', async () => {
+    const userFoo = UserFixture({id: '10'});
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/members/`,
+      method: 'GET',
+      body: [{user: userFoo}],
+    });
+
+    const {result} = renderHook(useMembers, {
+      initialProps: {ids: ['10']},
+    });
+
+    expect(mockRequest).not.toHaveBeenCalled();
+
+    act(() => MemberListStore.loadInitialData([userFoo]));
+    await waitFor(() => expect(result.current.members).toEqual([userFoo]));
+
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
   it('only loads emails when needed', () => {
     MemberListStore.loadInitialData(mockUsers);
 
