@@ -246,6 +246,10 @@ export function Control({
   const [search, setSearch] = useState('');
   const [searchInputValue, setSearchInputValue] = useState(search);
   const searchRef = useRef<HTMLInputElement>(null);
+  /**
+   * Tracks the previous body overflow value to restore it when the overlay closes
+   */
+  const previousOverflowRef = useRef<string | null>(null);
   const updateSearch = (newValue: string) => {
     onSearch?.(newValue);
 
@@ -317,6 +321,10 @@ export function Control({
 
       nextFrameCallback(() => {
         if (open) {
+          // Prevent body scroll while the select menu is open
+          previousOverflowRef.current ??= document.body.style.overflow;
+          document.body.style.overflow = 'hidden';
+
           // Force a overlay update, as sometimes the overlay is misaligned when opened
           updateOverlay?.();
           // Focus on search box if present
@@ -344,6 +352,10 @@ export function Control({
 
         // On close
         onClose?.();
+
+        // Restore body scroll
+        document.body.style.overflow = previousOverflowRef.current ?? '';
+        previousOverflowRef.current = null;
 
         // Clear search string
         setSearchInputValue('');
