@@ -57,7 +57,7 @@ function _apiOptions<
   return queryOptions({
     queryKey:
       Object.keys(options).length > 0 ? ([url, options] as const) : ([url] as const),
-    queryFn: url === null ? skipToken : fetchDataQuery<TActualData>,
+    queryFn: pathParams === skipToken ? skipToken : fetchDataQuery<TActualData>,
     enabled: pathParams !== skipToken,
     staleTime,
     select: selectContent,
