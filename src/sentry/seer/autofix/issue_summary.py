@@ -155,7 +155,7 @@ def _trigger_autofix_task(
     event_id: str,
     user_id: int | None,
     auto_run_source: str,
-    referrer: AutofixReferrer,
+    referrer: AutofixReferrer = AutofixReferrer.UNKNOWN,
     stopping_point: AutofixStoppingPoint | None = None,
 ):
     """
