@@ -100,7 +100,9 @@ class DatabaseBackedControlOrganizationProvisioningService(
         surrogate_org_slug = OrganizationSlugReservation()
         # Django's slugify() doesn't replace underscores with hyphens, so we need to do it manually
         # to ensure the slug matches ORG_SLUG_PATTERN which doesn't allow underscores
-        slugify_instance(surrogate_org_slug, slug.replace("_", "-"), reserved=RESERVED_ORGANIZATION_SLUGS)
+        slugify_instance(
+            surrogate_org_slug, slug.replace("_", "-"), reserved=RESERVED_ORGANIZATION_SLUGS
+        )
 
         return surrogate_org_slug.slug
 

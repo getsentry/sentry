@@ -41,11 +41,11 @@ from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
 class ProjectTest(APITestCase, TestCase):
-    def test_slug_preserves_underscores(self) -> None:
-        # Projects use MIXED_SLUG_PATTERN which allows underscores
+    def test_slug_converts_underscores_to_hyphens(self) -> None:
+        # Projects convert underscores to hyphens for consistent slug format
         org = self.create_organization()
         project = self.create_project(organization=org, name="my_project")
-        assert project.slug == "my_project"
+        assert project.slug == "my-project"
 
     def test_member_set_simple(self) -> None:
         user = self.create_user()

@@ -410,9 +410,11 @@ class Project(Model):
         lock = locks.get(f"slug:project:{self.organization_id}", duration=5, name="project_slug")
         with TimedRetryPolicy(10)(lock.acquire):
             if not self.slug:
+                # Replace underscores with hyphens to ensure consistent slug format
+                slugify_target = self.name.replace("_", "-")
                 slugify_instance(
                     self,
-                    self.name,
+                    slugify_target,
                     organization=self.organization,
                     reserved=RESERVED_PROJECT_SLUGS,
                     max_length=50,
