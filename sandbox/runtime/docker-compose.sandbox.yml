@@ -1,0 +1,125 @@
+# docker-compose.sandbox.yml — Agent sandbox runtime
+#
+# Runs the Sentry agent sandbox with Postgres and Redis sidecars.
+# This is the minimal setup for running ~90% of Sentry backend tests.
+#
+# Usage:
+#   # Start the sandbox
+#   docker compose -f sandbox/runtime/docker-compose.sandbox.yml up -d
+#
+#   # Execute commands in the agent container
+#   docker compose -f sandbox/runtime/docker-compose.sandbox.yml exec agent \
+#     pytest -xvs tests/sentry/api/test_organization_details.py
+#
+#   # Tear down
+#   docker compose -f sandbox/runtime/docker-compose.sandbox.yml down -v
+#
+# Environment variables:
+#   AGENT_IMAGE_TAG    - Agent image tag (default: nightly)
+#   POSTGRES_IMAGE_TAG - Postgres image tag (default: nightly)
+#   SANDBOX_CPUS       - CPU limit per container (default: 4)
+#   SANDBOX_MEMORY     - Memory limit per container (default: 4g)
+#   WORKSPACE_OVERLAY  - Local directory to overlay on /workspace (optional)
+
+services:
+  agent:
+    image: ghcr.io/getsentry/sentry-agent:${AGENT_IMAGE_TAG:-nightly}
+    container_name: ${SANDBOX_ID:-sandbox}-agent
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Database connection (points to the postgres sidecar)
+      - SENTRY_POSTGRES_HOST=postgres
+      - SENTRY_POSTGRES_PORT=5432
+      - SENTRY_DB_NAME=sentry
+      - SENTRY_DB_USER=postgres
+      - SENTRY_DB_PASSWORD=postgres
+      # Redis connection
+      - SENTRY_REDIS_HOST=redis
+      - SENTRY_REDIS_PORT=6379
+      # Skip service validation (no snuba/kafka/etc)
+      - SENTRY_SKIP_SERVICE_VALIDATION=1
+      - SENTRY_SKIP_BACKEND_VALIDATION=1
+      # Test configuration
+      - PYTEST_ADDOPTS=--reuse-db -q
+      - PY_COLORS=1
+      # Use the sandbox sentry config
+      - SENTRY_CONF=/workspace/.sentry-sandbox
+    volumes:
+      # Optionally overlay local changes on top of the baked-in codebase
+      - ${WORKSPACE_OVERLAY:-/dev/null}:/workspace/overlay:ro
+    working_dir: /workspace
+    networks:
+      - sandbox
+    deploy:
+      resources:
+        limits:
+          cpus: "${SANDBOX_CPUS:-4}"
+          memory: ${SANDBOX_MEMORY:-4g}
+    # Keep running for exec-based interaction
+    command: ["sleep", "infinity"]
+    # Security: drop unnecessary capabilities
+    cap_drop:
+      - ALL
+    cap_add:
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    security_opt:
+      - no-new-privileges:true
+
+  postgres:
+    image: ghcr.io/getsentry/sentry-postgres-dev:${POSTGRES_IMAGE_TAG:-nightly}
+    container_name: ${SANDBOX_ID:-sandbox}-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=sentry
+    # Use tmpfs for data directory — fast, ephemeral
+    tmpfs:
+      - /var/lib/postgresql/data:size=2g
+    networks:
+      - sandbox
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2g
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    container_name: ${SANDBOX_ID:-sandbox}-redis
+    networks:
+      - sandbox
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512m
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+    command: >
+      redis-server
+        --maxmemory 256mb
+        --maxmemory-policy allkeys-lru
+        --save ""
+        --appendonly no
+
+networks:
+  sandbox:
+    name: ${SANDBOX_ID:-sandbox}-net
+    driver: bridge
+    internal: ${SANDBOX_NETWORK_ISOLATED:-false}

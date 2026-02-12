@@ -1,0 +1,53 @@
+{
+  "name": "Sentry Development",
+  "dockerComposeFile": ["docker-compose.sandbox.yml", "docker-compose.devcontainer.yml"],
+  "service": "agent",
+  "workspaceFolder": "/workspace",
+
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+
+  "forwardPorts": [
+    8000,
+    8080,
+    5432,
+    6379
+  ],
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/workspace/.venv/bin/python",
+        "python.terminal.activateEnvironment": true,
+        "editor.formatOnSave": true,
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.black-formatter"
+        }
+      }
+    }
+  },
+
+  "postCreateCommand": "echo 'Sentry sandbox ready. Run pytest, pre-commit, or start the dev server.'",
+
+  "remoteEnv": {
+    "SENTRY_POSTGRES_HOST": "postgres",
+    "SENTRY_POSTGRES_PORT": "5432",
+    "SENTRY_DB_USER": "postgres",
+    "SENTRY_DB_PASSWORD": "postgres",
+    "SENTRY_REDIS_HOST": "redis",
+    "SENTRY_REDIS_PORT": "6379",
+    "SENTRY_SKIP_SERVICE_VALIDATION": "1",
+    "SENTRY_CONF": "/workspace/.sentry-sandbox",
+    "VIRTUAL_ENV": "/workspace/.venv",
+    "PATH": "/workspace/.venv/bin:${containerEnv:PATH}"
+  }
+}

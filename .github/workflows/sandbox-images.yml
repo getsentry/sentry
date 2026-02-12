@@ -1,0 +1,278 @@
+name: sandbox-images
+
+on:
+  schedule:
+    # Run nightly at 6am UTC
+    - cron: '0 6 * * *'
+  push:
+    branches:
+      - master
+    paths:
+      # Rebuild agent image on dependency changes
+      - 'uv.lock'
+      - 'pnpm-lock.yaml'
+      - '.python-version'
+      - 'sandbox/images/Dockerfile.agent'
+      # Rebuild postgres image on migration changes
+      - 'src/sentry/*/migrations/**'
+      - 'src/sentry/migrations/**'
+      - 'sandbox/images/Dockerfile.postgres'
+      - 'sandbox/images/postgres-init.sh'
+      - 'sandbox/scripts/build-postgres-image.sh'
+  workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: 'Force rebuild even if cache key matches'
+        required: false
+        type: boolean
+        default: false
+
+# Only one build at a time
+concurrency:
+  group: sandbox-images-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AGENT_IMAGE: ghcr.io/getsentry/sentry-agent
+  POSTGRES_IMAGE: ghcr.io/getsentry/sentry-postgres-dev
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ============================================================
+  # Compute cache keys to determine what needs rebuilding
+  # ============================================================
+  cache-keys:
+    name: compute cache keys
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      agent-key: ${{ steps.keys.outputs.agent-key }}
+      postgres-key: ${{ steps.keys.outputs.postgres-key }}
+      agent-exists: ${{ steps.check.outputs.agent-exists }}
+      postgres-exists: ${{ steps.check.outputs.postgres-exists }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Compute cache keys
+        id: keys
+        run: |
+          chmod +x sandbox/scripts/compute-cache-key.sh
+          echo "agent-key=$(sandbox/scripts/compute-cache-key.sh agent)" >> "$GITHUB_OUTPUT"
+          echo "postgres-key=$(sandbox/scripts/compute-cache-key.sh postgres)" >> "$GITHUB_OUTPUT"
+
+      - name: Check if images already exist in GHCR
+        id: check
+        if: ${{ !inputs.force_rebuild }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          agent_key="${{ steps.keys.outputs.agent-key }}"
+          postgres_key="${{ steps.keys.outputs.postgres-key }}"
+
+          # Check if agent image with this cache key already exists
+          if docker manifest inspect "${AGENT_IMAGE}:cache-${agent_key}" > /dev/null 2>&1; then
+            echo "agent-exists=true" >> "$GITHUB_OUTPUT"
+            echo "Agent image cache-${agent_key} already exists, skipping build"
+          else
+            echo "agent-exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Check if postgres image with this cache key already exists
+          if docker manifest inspect "${POSTGRES_IMAGE}:cache-${postgres_key}" > /dev/null 2>&1; then
+            echo "postgres-exists=true" >> "$GITHUB_OUTPUT"
+            echo "Postgres image cache-${postgres_key} already exists, skipping build"
+          else
+            echo "postgres-exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ============================================================
+  # Build the agent image
+  # ============================================================
+  build-agent:
+    name: build agent image
+    needs: cache-keys
+    if: ${{ needs.cache-keys.outputs.agent-exists != 'true' || inputs.force_rebuild }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push agent image
+        uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991 # v6
+        with:
+          context: .
+          file: sandbox/images/Dockerfile.agent
+          push: true
+          tags: |
+            ${{ env.AGENT_IMAGE }}:nightly
+            ${{ env.AGENT_IMAGE }}:${{ github.sha }}
+            ${{ env.AGENT_IMAGE }}:cache-${{ needs.cache-keys.outputs.agent-key }}
+            ${{ env.AGENT_IMAGE }}:${{ github.run_id }}
+          cache-from: |
+            type=registry,ref=${{ env.AGENT_IMAGE }}:buildcache
+          cache-to: |
+            type=registry,ref=${{ env.AGENT_IMAGE }}:buildcache,mode=max
+          secrets: |
+            pip_index_url=${{ secrets.PIP_INDEX_URL || 'https://pypi.devinfra.sentry.io/simple' }}
+
+  # ============================================================
+  # Build the pre-migrated Postgres image
+  # ============================================================
+  build-postgres:
+    name: build postgres image
+    needs: [cache-keys, build-agent]
+    if: |
+      always() &&
+      (needs.cache-keys.outputs.postgres-exists != 'true' || inputs.force_rebuild) &&
+      (needs.build-agent.result == 'success' || needs.build-agent.result == 'skipped')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine agent image tag
+        id: agent-tag
+        run: |
+          # Use the freshly-built image if available, otherwise use the cached one
+          if [ "${{ needs.build-agent.result }}" = "success" ]; then
+            echo "tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=nightly" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build pre-migrated Postgres image
+        env:
+          AGENT_IMAGE: ${{ env.AGENT_IMAGE }}:${{ steps.agent-tag.outputs.tag }}
+          OUTPUT_TAG: ${{ env.POSTGRES_IMAGE }}:${{ github.sha }}
+        run: |
+          chmod +x sandbox/scripts/build-postgres-image.sh
+          ./sandbox/scripts/build-postgres-image.sh --tag "${OUTPUT_TAG}" --agent-image "${AGENT_IMAGE}"
+
+      - name: Push postgres image with tags
+        run: |
+          docker tag "${POSTGRES_IMAGE}:${{ github.sha }}" "${POSTGRES_IMAGE}:nightly"
+          docker tag "${POSTGRES_IMAGE}:${{ github.sha }}" "${POSTGRES_IMAGE}:cache-${{ needs.cache-keys.outputs.postgres-key }}"
+          docker push "${POSTGRES_IMAGE}:${{ github.sha }}"
+          docker push "${POSTGRES_IMAGE}:nightly"
+          docker push "${POSTGRES_IMAGE}:cache-${{ needs.cache-keys.outputs.postgres-key }}"
+
+  # ============================================================
+  # Validate the built images
+  # ============================================================
+  validate:
+    name: validate images
+    needs: [build-agent, build-postgres, cache-keys]
+    if: always() && (needs.build-agent.result == 'success' || needs.build-postgres.result == 'success')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate agent image
+        if: needs.build-agent.result == 'success'
+        run: |
+          echo "==> Pulling agent image..."
+          docker pull "${AGENT_IMAGE}:${{ github.sha }}"
+
+          echo "==> Verifying sentry CLI..."
+          docker run --rm "${AGENT_IMAGE}:${{ github.sha }}" sentry --help
+
+          echo "==> Verifying pytest..."
+          docker run --rm "${AGENT_IMAGE}:${{ github.sha }}" pytest --version
+
+          echo "==> Verifying pre-commit..."
+          docker run --rm "${AGENT_IMAGE}:${{ github.sha }}" pre-commit --version
+
+          echo "==> Agent image validated successfully"
+
+      - name: Validate postgres image
+        if: needs.build-postgres.result == 'success'
+        run: |
+          echo "==> Starting postgres..."
+          docker run -d --name test-pg -p 5432:5432 "${POSTGRES_IMAGE}:${{ github.sha }}"
+
+          echo "==> Waiting for postgres to be ready..."
+          for i in $(seq 1 30); do
+            if docker exec test-pg pg_isready -U postgres > /dev/null 2>&1; then
+              echo "    Ready!"
+              break
+            fi
+            sleep 1
+          done
+
+          echo "==> Verifying databases exist..."
+          for db in sentry control region secondary; do
+            count=$(docker exec test-pg psql -t -U postgres -d "${db}" \
+              -c "SELECT COUNT(*) FROM django_migrations" 2>/dev/null | tr -d ' ')
+            echo "    ${db}: ${count} migrations"
+            if [ -z "${count}" ] || [ "${count}" -eq 0 ]; then
+              echo "ERROR: Database ${db} has no migrations!"
+              exit 1
+            fi
+          done
+
+          echo "==> Verifying superuser exists..."
+          docker exec test-pg psql -t -U postgres -d sentry \
+            -c "SELECT email FROM auth_user WHERE is_superuser = true LIMIT 1" | grep -q "admin@sentry.io"
+
+          echo "==> Postgres image validated successfully"
+          docker rm -f test-pg
+
+      - name: Integration test — run pytest in sandbox
+        if: needs.build-agent.result == 'success' && needs.build-postgres.result == 'success'
+        run: |
+          # Create a network for the test
+          docker network create sandbox-test
+
+          # Start postgres
+          docker run -d --name sandbox-pg --network sandbox-test "${POSTGRES_IMAGE}:${{ github.sha }}"
+
+          # Start redis
+          docker run -d --name sandbox-redis --network sandbox-test redis:7-alpine
+
+          # Wait for services
+          sleep 5
+
+          # Run a small test suite inside the agent image
+          docker run --rm --network sandbox-test \
+            -e SENTRY_POSTGRES_HOST=sandbox-pg \
+            -e SENTRY_POSTGRES_PORT=5432 \
+            -e SENTRY_DB_USER=postgres \
+            -e SENTRY_DB_PASSWORD=postgres \
+            -e SENTRY_REDIS_HOST=sandbox-redis \
+            -e SENTRY_SKIP_SERVICE_VALIDATION=1 \
+            "${AGENT_IMAGE}:${{ github.sha }}" \
+            pytest -x --reuse-db tests/sentry/api/test_organization_details.py -q 2>&1 | tail -20
+
+          # Cleanup
+          docker rm -f sandbox-pg sandbox-redis
+          docker network rm sandbox-test
+
+          echo "==> Integration test passed"

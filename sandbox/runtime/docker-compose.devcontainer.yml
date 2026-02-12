@@ -1,0 +1,32 @@
+# docker-compose.devcontainer.yml — Overrides for developer environment use
+#
+# Extends docker-compose.sandbox.yml with developer-friendly settings:
+# - Interactive TTY for the agent container
+# - Volume mount for git config
+# - Longer resource limits
+# - Dev server port forwarding
+
+services:
+  agent:
+    # Override sleep infinity with a shell for interactive use
+    command: ["sleep", "infinity"]
+    stdin_open: true
+    tty: true
+    # Mount git config for commits
+    volumes:
+      - ~/.gitconfig:/root/.gitconfig:ro
+    # Higher resource limits for dev use
+    deploy:
+      resources:
+        limits:
+          cpus: "8"
+          memory: 8g
+
+  postgres:
+    # Use a named volume for persistence across container rebuilds
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    tmpfs: []
+
+volumes:
+  pgdata:

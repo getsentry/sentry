@@ -1,0 +1,8 @@
+# Postgres dumps generated during image build (can be 100+ MB)
+.dumps/*.sql
+
+# Python build artifacts
+harness/dist/
+harness/*.egg-info/
+harness/__pycache__/
+harness/sentry_sandbox/__pycache__/

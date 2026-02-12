@@ -1,0 +1,26 @@
+[project]
+name = "sentry-sandbox"
+version = "0.1.0"
+description = "SDK and CLI for managing Sentry development sandboxes"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "docker>=7.0.0",
+    "click>=8.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+
+[project.scripts]
+sentry-sandbox = "sentry_sandbox.cli:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["sentry_sandbox*"]

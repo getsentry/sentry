@@ -1,0 +1,145 @@
+# Dockerfile.agent — Pre-built Sentry development sandbox image
+#
+# Contains:
+#   - Python 3.13 + .venv with all dependencies from uv.lock
+#   - Node.js 22 + pnpm + node_modules from pnpm-lock.yaml
+#   - Sentry codebase installed via fast_editable
+#   - pytest, pre-commit, mypy available
+#
+# Build:
+#   docker build -f sandbox/images/Dockerfile.agent \
+#     --secret id=pip_index_url,env=PIP_INDEX_URL \
+#     -t ghcr.io/getsentry/sentry-agent:nightly .
+#
+# The build context is the repo root.
+
+FROM python:3.13.1-slim-bookworm AS base
+
+# System dependencies needed for builds and runtime
+RUN : \
+    && apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        build-essential \
+        curl \
+        gcc \
+        git \
+        libpcre2-dev \
+        libpq-dev \
+        libxmlsec1-dev \
+        pkg-config \
+        wget \
+        zlib1g-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js (match version from .node-version / devenv/config.ini)
+ARG NODE_VERSION=22.16.0
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    || ( \
+        curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \
+        | tar -xJ --strip-components=1 -C /usr/local \
+    )
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+WORKDIR /workspace
+
+# ============================================================
+# Stage: Python dependencies (cached by uv.lock)
+# ============================================================
+FROM base AS python-deps
+
+# Install uv
+ARG UV_VERSION=0.9.28
+RUN pip install --no-cache-dir --index-url 'https://pypi.devinfra.sentry.io/simple' "uv==${UV_VERSION}"
+
+ENV VIRTUAL_ENV=/workspace/.venv
+ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
+ENV UV_PROJECT_ENVIRONMENT="${VIRTUAL_ENV}"
+ENV UV_COMPILE_BYTECODE=1
+
+# Create venv
+RUN python3 -m venv "${VIRTUAL_ENV}"
+
+# Copy only dependency files first for layer caching
+COPY pyproject.toml uv.lock ./
+
+# Install Python dependencies
+# Use --mount=type=secret for private PyPI credentials
+RUN --mount=type=secret,id=pip_index_url \
+    PIP_INDEX_URL=$(cat /run/secrets/pip_index_url 2>/dev/null || echo "https://pypi.devinfra.sentry.io/simple") \
+    && uv sync --frozen --quiet --no-install-project \
+        --index-url "${PIP_INDEX_URL}" \
+    && python -c 'import maxminddb.extension; maxminddb.extension.Reader' \
+    && echo "Python deps installed successfully"
+
+# ============================================================
+# Stage: Node dependencies (cached by pnpm-lock.yaml)
+# ============================================================
+FROM base AS node-deps
+
+COPY package.json pnpm-lock.yaml .npmrc* ./
+
+RUN pnpm install --frozen-lockfile --reporter=append-only \
+    && echo "Node deps installed successfully"
+
+# ============================================================
+# Stage: Final image
+# ============================================================
+FROM base AS final
+
+ENV VIRTUAL_ENV=/workspace/.venv
+ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
+ENV UV_PROJECT_ENVIRONMENT="${VIRTUAL_ENV}"
+
+# Sentry configuration for sandbox
+ENV SENTRY_CONF=/workspace/.sentry-sandbox
+ENV SENTRY_SKIP_SERVICE_VALIDATION=1
+ENV SENTRY_SKIP_BACKEND_VALIDATION=1
+# Point PIP at private PyPI for any runtime installs
+ENV PIP_INDEX_URL=https://pypi.devinfra.sentry.io/simple
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install uv in final image (needed for fast_editable and potential dep updates)
+ARG UV_VERSION=0.9.28
+RUN pip install --no-cache-dir --index-url 'https://pypi.devinfra.sentry.io/simple' "uv==${UV_VERSION}"
+
+# Copy Python venv from deps stage
+COPY --from=python-deps /workspace/.venv /workspace/.venv
+
+# Copy node_modules from deps stage
+COPY --from=node-deps /workspace/node_modules /workspace/node_modules
+
+# Copy the full codebase
+COPY . /workspace/
+
+# Install sentry in editable mode
+RUN python3 -m tools.fast_editable --path . \
+    && sentry help > /dev/null 2>&1 \
+    && echo "Sentry installed successfully"
+
+# Initialize sentry config for sandbox use
+RUN sentry init --dev --no-clobber 2>/dev/null || true
+
+# Pre-install pre-commit hooks so they're cached
+RUN pre-commit install-hooks 2>/dev/null || true
+
+# Verify the installation
+RUN : \
+    && python -c "import sentry; print(f'sentry version: {sentry.VERSION}')" \
+    && pytest --version \
+    && pre-commit --version \
+    && node --version \
+    && pnpm --version
+
+# Labels
+LABEL org.opencontainers.image.title="Sentry Agent Sandbox"
+LABEL org.opencontainers.image.description="Pre-built Sentry development environment for AI agents and CI"
+LABEL maintainer="dev-infra@sentry.io"
+
+# Default: keep container running for exec-based interaction
+CMD ["sleep", "infinity"]
