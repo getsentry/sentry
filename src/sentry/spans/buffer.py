@@ -510,8 +510,8 @@ class SpansBuffer:
                     longest_payload_set_evalsha_data,
                 )
             if write_to_set and write_to_payload_set:
-                compare_metrics(latency_metrics, payload_set_latency_metrics, "set", "payload_set")
-                compare_metrics(gauge_metrics, payload_set_gauge_metrics, "set", "payload_set")
+                compare_metrics(latency_metrics, payload_set_latency_metrics, "payload_set")
+                compare_metrics(gauge_metrics, payload_set_gauge_metrics, "payload_set")
         except Exception as e:
             logger.exception("Error emitting observability metrics: %s", e)
 
