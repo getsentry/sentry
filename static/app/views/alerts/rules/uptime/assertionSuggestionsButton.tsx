@@ -263,7 +263,7 @@ export function AssertionSuggestionsButton({
       disabled={isPending}
       size={size}
       icon={<IconSeer />}
-      title={t('Use AI to suggest assertions based on response')}
+      aria-label={t('Use AI to suggest assertions based on response')}
     >
       {t('Suggest Assertions')}
     </Button>
