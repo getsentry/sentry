@@ -52,30 +52,27 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         repo_pr_states=None,
         title="test run",
     ):
-        pr_states = repo_pr_states or {}
-        prs = [
-            {
-                "pr_url": state.get("pr_url", ""),
-                "pr_number": state.get("pr_number", 0),
-                "repo_name": state.get("repo_name", repo_name),
-            }
-            for repo_name, state in pr_states.items()
-            if state.get("pr_url") and state.get("pr_number") is not None
-        ]
-        data = {
-            "run_id": run_id,
-            "group_id": group_id,
-            "user_id": user_id,
-            "title": title,
-            "prs": prs,
-            "repo_pr_states": pr_states,
-            "created_at": created_at,
-            "last_triggered_at": created_at,
-        }
-        # Mimic a Pydantic model with a .dict() method
+        raw_pr_states = repo_pr_states or {}
+
+        # Build mock RepoPRState objects so attribute access works
+        mock_pr_states: dict[str, MagicMock] = {}
+        for repo_name, state in raw_pr_states.items():
+            mock_state = MagicMock()
+            mock_state.repo_name = state.get("repo_name", repo_name)
+            mock_state.branch_name = state.get("branch_name")
+            mock_state.pr_number = state.get("pr_number")
+            mock_state.pr_url = state.get("pr_url")
+            mock_state.pr_creation_status = state.get("pr_creation_status")
+            mock_pr_states[repo_name] = mock_state
+
         mock_run = MagicMock()
-        mock_run.dict.return_value = data
-        # Make bool(mock_run) truthy and support iteration-safe identity
+        mock_run.run_id = run_id
+        mock_run.group_id = group_id
+        mock_run.user_id = user_id
+        mock_run.title = title
+        mock_run.created_at = created_at
+        mock_run.last_triggered_at = created_at
+        mock_run.repo_pr_states = mock_pr_states if mock_pr_states else {}
         mock_run.__bool__ = lambda self: True
         return mock_run
 
@@ -103,21 +100,20 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         assert response.status_code == 200
         data = response.json()["data"]
         assert len(data) == 1
-        assert data[0]["id"] == str(group.id)
-        assert data[0]["explorerPrData"] == {
-            "runId": 42,
-            "userId": 1,
-            "createdAt": "2025-01-15T12:00:00Z",
-            "repoPrStates": {
-                "getsentry/sentry": {
-                    "repoName": "getsentry/sentry",
-                    "branchName": "fix/auth-bug",
-                    "prNumber": 1234,
-                    "prUrl": "https://github.com/getsentry/sentry/pull/1234",
-                    "prCreationStatus": "created",
-                }
-            },
+        assert data[0]["runId"] == 42
+        assert data[0]["userId"] == 1
+        assert data[0]["createdAt"] == "2025-01-15T12:00:00Z"
+        assert data[0]["repoPrStates"] == {
+            "getsentry/sentry": {
+                "repoName": "getsentry/sentry",
+                "branchName": "fix/auth-bug",
+                "prNumber": 1234,
+                "prUrl": "https://github.com/getsentry/sentry/pull/1234",
+                "prCreationStatus": "created",
+            }
         }
+        assert data[0]["group"]["id"] == str(group.id)
+        assert data[0]["group"]["title"] == "Test Issue"
         self.mock_client_class.assert_called_once()
 
     def test_get_empty_seer_response(self) -> None:
@@ -146,7 +142,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         assert response.status_code == 200
         data = response.json()["data"]
         assert len(data) == 1
-        assert data[0]["id"] == str(group_in_project.id)
+        assert data[0]["group"]["id"] == str(group_in_project.id)
 
     def test_get_multiple_projects(self) -> None:
         """Passing multiple ?project= params returns groups from all requested projects."""
@@ -168,7 +164,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         assert response.status_code == 200
         data = response.json()["data"]
         assert len(data) == 2
-        returned_ids = {d["id"] for d in data}
+        returned_ids = {d["group"]["id"] for d in data}
         assert returned_ids == {str(group1.id), str(group2.id)}
 
     def test_get_no_matching_groups_returns_empty(self) -> None:
@@ -196,7 +192,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         assert response.status_code == 200
         data = response.json()["data"]
         assert len(data) == 1
-        assert data[0]["id"] == str(group.id)
+        assert data[0]["group"]["id"] == str(group.id)
 
     def test_get_seer_permission_error(self) -> None:
         self.mock_client_class.side_effect = SeerPermissionError("Feature flag not enabled")
@@ -232,8 +228,8 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         assert response.status_code == 200
         data = response.json()["data"]
         assert len(data) == 2
-        assert data[0]["explorerPrData"]["runId"] == 10
-        assert data[1]["explorerPrData"]["runId"] == 20
+        assert data[0]["runId"] == 10
+        assert data[1]["runId"] == 20
 
     def test_get_repo_pr_states_with_missing_optional_fields(self) -> None:
         """Optional fields in repo_pr_states should gracefully be None."""
@@ -252,7 +248,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         response = self.client.get(self.url + f"?project={self.project.id}")
 
         assert response.status_code == 200
-        pr_states = response.json()["data"][0]["explorerPrData"]["repoPrStates"]
+        pr_states = response.json()["data"][0]["repoPrStates"]
         assert pr_states["getsentry/sentry"]["repoName"] == "getsentry/sentry"
         assert pr_states["getsentry/sentry"]["branchName"] is None
         assert pr_states["getsentry/sentry"]["prNumber"] is None
@@ -286,7 +282,7 @@ class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
         response = self.client.get(self.url + f"?project={self.project.id}")
 
         assert response.status_code == 200
-        pr_states = response.json()["data"][0]["explorerPrData"]["repoPrStates"]
+        pr_states = response.json()["data"][0]["repoPrStates"]
         assert len(pr_states) == 2
         assert pr_states["getsentry/sentry"]["prNumber"] == 100
         assert pr_states["getsentry/relay"]["prNumber"] == 200

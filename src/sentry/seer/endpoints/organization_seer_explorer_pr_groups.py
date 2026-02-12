@@ -17,7 +17,6 @@ from sentry.api.utils import get_date_range_from_stats_period
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.explorer.client import SeerExplorerClient
-from sentry.seer.explorer.client_models import ExplorerRunWithPrs
 from sentry.seer.models import SeerPermissionError
 
 logger = logging.getLogger(__name__)
@@ -97,33 +96,36 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
                 request=request,
             )
 
+            serialized_groups_by_id: dict[str, dict] = {sg["id"]: sg for sg in serialized_groups}
+
             # Runs are sorted newest-first; keep only the first entry per group_id
-            runs_by_group_id: dict[int, ExplorerRunWithPrs] = {}
+            seen_group_ids: set[int] = set()
+            results: list[dict] = []
             for run in runs:
-                if run.group_id is not None:
-                    runs_by_group_id.setdefault(run.group_id, run)
-
-            for serialized_group in serialized_groups:
-                group_id = int(serialized_group["id"])
-                matched_run = runs_by_group_id.get(group_id)
-                if matched_run:
-                    serialized_group["explorerPrData"] = {
-                        "runId": matched_run.run_id,
-                        "userId": matched_run.user_id,
-                        "createdAt": matched_run.created_at,
-                        "repoPrStates": {
-                            repo_name: {
-                                "repoName": state.repo_name,
-                                "branchName": state.branch_name,
-                                "prNumber": state.pr_number,
-                                "prUrl": state.pr_url,
-                                "prCreationStatus": state.pr_creation_status,
+                if run.group_id is not None and run.group_id not in seen_group_ids:
+                    seen_group_ids.add(run.group_id)
+                    serialized_group = serialized_groups_by_id.get(str(run.group_id))
+                    if serialized_group:
+                        results.append(
+                            {
+                                "runId": run.run_id,
+                                "userId": run.user_id,
+                                "createdAt": run.created_at,
+                                "repoPrStates": {
+                                    repo_name: {
+                                        "repoName": state.repo_name,
+                                        "branchName": state.branch_name,
+                                        "prNumber": state.pr_number,
+                                        "prUrl": state.pr_url,
+                                        "prCreationStatus": state.pr_creation_status,
+                                    }
+                                    for repo_name, state in (run.repo_pr_states or {}).items()
+                                },
+                                "group": serialized_group,
                             }
-                            for repo_name, state in (matched_run.repo_pr_states or {}).items()
-                        },
-                    }
+                        )
 
-            return {"data": serialized_groups}
+            return {"data": results}
 
         return self.paginate(
             request=request,
