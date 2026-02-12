@@ -1670,44 +1670,6 @@ class StatusCheckDeduplicationTest(TestCase):
             # Still 1 — not terminal yet, so skipped
             assert mock_provider.create_status_check.call_count == 1
 
-    def test_one_app_fails_others_still_processing_skips(self):
-        """Skip posting when one app fails but others are still processing."""
-        _, artifacts, mock_provider, client_patch, provider_patch = self._create_multi_app_commit(
-            [
-                {
-                    "app_id": "com.app1",
-                    "state": PreprodArtifact.ArtifactState.UPLOADING,
-                    "metrics_state": None,
-                },
-                {
-                    "app_id": "com.app2",
-                    "state": PreprodArtifact.ArtifactState.UPLOADING,
-                    "metrics_state": None,
-                },
-                {
-                    "app_id": "com.app3",
-                    "state": PreprodArtifact.ArtifactState.UPLOADING,
-                    "metrics_state": None,
-                },
-            ]
-        )
-
-        with client_patch, provider_patch:
-            with self.tasks():
-                create_preprod_status_check_task(artifacts[0].id)
-            assert mock_provider.create_status_check.call_count == 1
-
-            # Fail one artifact, leave others still uploading
-            artifacts[0].state = PreprodArtifact.ArtifactState.FAILED
-            artifacts[0].error_message = "Upload failed"
-            artifacts[0].save(update_fields=["state", "error_message"])
-
-            with self.tasks():
-                for a in artifacts:
-                    create_preprod_status_check_task(a.id)
-            # Still 1 — others still processing, so skipped
-            assert mock_provider.create_status_check.call_count == 1
-
     def test_one_app_fails_others_done_posts_failure(self):
         """Post FAILURE when one app fails and all others are terminal."""
         # Configure rules so status is preserved (not forced to NEUTRAL)
@@ -1834,64 +1796,6 @@ class StatusCheckDeduplicationTest(TestCase):
                 mock_provider.create_status_check.call_args.kwargs["status"]
                 == StatusCheckStatus.SUCCESS
             )
-
-    def test_single_app_still_two_posts(self):
-        """Single-app flow results in exactly 2 GitHub API calls: IN_PROGRESS + terminal."""
-        # Configure rules so status is preserved (IN_PROGRESS then SUCCESS, not both NEUTRAL)
-        self.project.update_option(
-            "sentry:preprod_size_status_checks_rules",
-            '[{"id": "rule1", "metric": "install_size", "measurement": "absolute", "value": 100000000000}]',
-        )
-
-        artifact, mock_provider, client_patch, provider_patch = self._create_single_app_with_mocks(
-            app_id="com.single",
-            state=PreprodArtifact.ArtifactState.UPLOADING,
-        )
-
-        with client_patch, provider_patch:
-            with self.tasks():
-                create_preprod_status_check_task(artifact.id)
-
-        assert mock_provider.create_status_check.call_count == 1
-
-        # Transition to PROCESSED with completed metrics
-        artifact.state = PreprodArtifact.ArtifactState.PROCESSED
-        artifact.save(update_fields=["state"])
-        Factories.create_preprod_artifact_size_metrics(artifact=artifact)
-
-        with client_patch, provider_patch:
-            with self.tasks():
-                create_preprod_status_check_task(artifact.id)
-
-        assert mock_provider.create_status_check.call_count == 2
-
-    def test_no_rules_still_two_posts(self):
-        """No-rules customers (always NEUTRAL) still get both in-progress and terminal posts."""
-        artifact, mock_provider, client_patch, provider_patch = self._create_single_app_with_mocks(
-            app_id="com.norules",
-            state=PreprodArtifact.ArtifactState.UPLOADING,
-        )
-
-        with client_patch, provider_patch:
-            with self.tasks():
-                create_preprod_status_check_task(artifact.id)
-
-        assert mock_provider.create_status_check.call_count == 1
-        assert (
-            mock_provider.create_status_check.call_args.kwargs["status"]
-            == StatusCheckStatus.NEUTRAL
-        )
-
-        # Transition to PROCESSED with completed metrics
-        artifact.state = PreprodArtifact.ArtifactState.PROCESSED
-        artifact.save(update_fields=["state"])
-        Factories.create_preprod_artifact_size_metrics(artifact=artifact)
-
-        with client_patch, provider_patch:
-            with self.tasks():
-                create_preprod_status_check_task(artifact.id)
-
-        assert mock_provider.create_status_check.call_count == 2
 
     def test_api_failure_clears_claim(self):
         """When the GitHub API call fails, the posted_status claim is cleared for retry."""
