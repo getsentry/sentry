@@ -1019,12 +1019,19 @@ function Visualize({error, setError}: VisualizeProps) {
                                 if (
                                   (state.displayType === DisplayType.BIG_NUMBER ||
                                     isCategoricalBarWidget) &&
-                                  selectedAggregateSet
+                                  selectedAggregateSet &&
+                                  state.selectedAggregate !== undefined
                                 ) {
-                                  // Unset the selected aggregate if it's the last one
-                                  // so the state will automatically choose the last aggregate
-                                  // as new fields are added
-                                  if (state.selectedAggregate === fields.length - 1) {
+                                  if (index < state.selectedAggregate) {
+                                    // Deleted an item before the selection — decrement to
+                                    // keep pointing at the same aggregate
+                                    dispatch({
+                                      type: BuilderStateAction.SET_SELECTED_AGGREGATE,
+                                      payload: state.selectedAggregate - 1,
+                                    });
+                                  } else if (index >= state.selectedAggregate) {
+                                    // Deleted the selected item or the last item — unset
+                                    // so the state defaults to the last aggregate
                                     dispatch({
                                       type: BuilderStateAction.SET_SELECTED_AGGREGATE,
                                       payload: undefined,
