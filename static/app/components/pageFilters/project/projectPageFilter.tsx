@@ -275,7 +275,10 @@ export function ProjectPageFilter({
                   size="xs"
                   project={project}
                   organization={organization}
-                  tooltipProps={{title: project.isBookmarked ? t('Remove Bookmark') : t('Bookmark'), delay: 400}}
+                  tooltipProps={{
+                    title: project.isBookmarked ? t('Remove Bookmark') : t('Bookmark'),
+                    delay: 400,
+                  }}
                   onToggle={(isBookmarked: boolean) => {
                     trackAnalytics('projectselector.bookmark_toggle', {
                       bookmarked: isBookmarked,
