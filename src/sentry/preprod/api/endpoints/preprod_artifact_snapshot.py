@@ -170,20 +170,13 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             session.put(manifest_json.encode(), key=manifest_key)
 
         logger.info(
-            "Created preprod artifact for snapshots",
-            extra={
-                "preprod_artifact_id": artifact.id,
-                "project_id": project.id,
-                "organization_id": project.organization_id,
-                "head_sha": head_sha,
-            },
-        )
-
-        logger.info(
-            "Stored snapshot manifest",
+            "Created preprod artifact and stored snapshot manifest",
             extra={
                 "preprod_artifact_id": artifact.id,
                 "snapshot_metrics_id": snapshot_metrics.id,
+                "project_id": project.id,
+                "organization_id": project.organization_id,
+                "head_sha": head_sha,
                 "manifest_key": manifest_key,
                 "image_count": len(images),
             },
