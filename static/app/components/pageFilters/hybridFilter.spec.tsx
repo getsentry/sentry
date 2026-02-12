@@ -65,7 +65,7 @@ const props = {
 describe('ProjectPageFilter', () => {
   it('renders', async () => {
     function TestComponent() {
-      const hybridFilterRef = useRef<HybridFilterRef<string>>(null);
+      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
 
       return (
@@ -94,7 +94,7 @@ describe('ProjectPageFilter', () => {
     const onChange = jest.fn();
 
     function TestComponent({value}: {value: string[]}) {
-      const hybridFilterRef = useRef<HybridFilterRef<string>>(null);
+      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
 
       return (
@@ -131,7 +131,7 @@ describe('ProjectPageFilter', () => {
     const onChange = jest.fn();
     function ControlledHybridFilter() {
       const [value, setValue] = useState<string[]>([]);
-      const hybridFilterRef = useRef<HybridFilterRef<string>>(null);
+      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
 
       return (
@@ -190,7 +190,7 @@ describe('ProjectPageFilter', () => {
     const onChange = jest.fn();
 
     function TestComponent() {
-      const hybridFilterRef = useRef<HybridFilterRef<string>>(null);
+      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
 
       return (
@@ -226,7 +226,7 @@ describe('ProjectPageFilter', () => {
     const onReset = jest.fn();
 
     function TestComponent() {
-      const hybridFilterRef = useRef<HybridFilterRef<string>>(null);
+      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
 
       return (
@@ -268,7 +268,7 @@ describe('ProjectPageFilter', () => {
     const onChange = jest.fn();
 
     function TestComponent() {
-      const hybridFilterRef = useRef<HybridFilterRef<string>>(null);
+      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
 
       return (
