@@ -13,7 +13,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 
@@ -25,6 +25,12 @@ The title should be human-readable and describe the intent of the search, not th
 Do not include quotes or special characters. Return only the title, nothing else."""
 
 MAX_QUERY_LENGTH = 500
+
+
+class IssueViewTitleGeneratePermission(OrganizationPermission):
+    scope_map = {
+        "POST": ["org:read"],
+    }
 
 
 def generate_title_from_query(query: str) -> str | None:
@@ -62,6 +68,7 @@ class IssueViewTitleGenerateEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
+    permission_classes = (IssueViewTitleGeneratePermission,)
 
     def post(self, request: Request, organization: Organization) -> Response:
         query = request.data.get("query")

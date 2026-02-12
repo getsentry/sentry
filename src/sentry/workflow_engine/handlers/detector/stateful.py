@@ -2,7 +2,7 @@ import abc
 import dataclasses
 import logging
 from datetime import timedelta
-from typing import Any, Generic, cast
+from typing import Any, cast
 from uuid import uuid4
 
 from django.conf import settings
@@ -16,9 +16,9 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.utils import metrics, redis
 from sentry.workflow_engine.handlers.detector.base import (
+    BaseDetectorHandler,
     DataPacketEvaluationType,
     DataPacketType,
-    DetectorHandler,
     DetectorOccurrence,
     EventData,
     GroupedDetectorEvaluationResult,
@@ -309,8 +309,7 @@ DetectorThresholds = dict[DetectorPriorityLevel, int]
 
 
 class StatefulDetectorHandler(
-    Generic[DataPacketType, DataPacketEvaluationType],
-    DetectorHandler[DataPacketType, DataPacketEvaluationType],
+    BaseDetectorHandler[DataPacketType, DataPacketEvaluationType],
     abc.ABC,
 ):
     """

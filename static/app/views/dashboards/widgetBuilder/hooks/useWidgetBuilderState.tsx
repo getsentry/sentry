@@ -19,6 +19,7 @@ import {
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
+  DEFAULT_CATEGORICAL_BAR_LIMIT,
   DisplayType,
   WidgetType,
   type LinkedDashboard,
@@ -407,7 +408,7 @@ function useWidgetBuilderState(): {
 
             setQuery(query?.slice(0, 1), options);
             // Categorical bars show more categories than time-series groupings
-            setLimit(20, options);
+            setLimit(DEFAULT_CATEGORICAL_BAR_LIMIT, options);
           } else {
             setFields(columnsWithoutAlias, options);
             const nextAggregates = [
@@ -498,7 +499,7 @@ function useWidgetBuilderState(): {
               setSort([], options);
             }
             // Categorical bars show more categories than time-series groupings
-            setLimit(20, options);
+            setLimit(DEFAULT_CATEGORICAL_BAR_LIMIT, options);
           } else if (usesTimeSeriesData(nextDisplayType)) {
             setFields([], options);
             setYAxis(

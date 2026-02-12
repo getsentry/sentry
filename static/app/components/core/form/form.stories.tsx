@@ -15,6 +15,7 @@ import {
   AutoSaveField,
   defaultFormOptions,
   FieldGroup,
+  setFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
@@ -187,9 +188,12 @@ function BasicForm() {
     validators: {
       onDynamic: baseUserSchema,
     },
-    onSubmit: ({value}) => {
+    onSubmit: ({value, formApi}) => {
       // eslint-disable-next-line no-alert
       alert(JSON.stringify(value));
+      setFieldErrors(formApi, {
+        firstName: {message: 'This name is already taken'},
+      });
     },
   });
 
@@ -214,7 +218,11 @@ function BasicForm() {
           <form.AppField name="lastName">
             {field => (
               <field.Layout.Row label="Last Name:" hintText="Your family name" required>
-                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  disabled="Can't touch this"
+                />
               </field.Layout.Row>
             )}
           </form.AppField>

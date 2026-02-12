@@ -85,11 +85,13 @@ export function createIssueLink({
   referrer,
   location,
   query,
+  extraQuery,
 }: {
   data: Event | Group | GroupTombstoneHelper;
   location: Location;
   organization: Organization;
   eventId?: string;
+  extraQuery?: Record<string, string>;
   query?: string;
   referrer?: string;
 }): LocationDescriptorObject {
@@ -104,6 +106,9 @@ export function createIssueLink({
       latestEventId ? groupID : id
     }/${finalEventId ? `events/${finalEventId}/` : ''}`,
     query: {
+      // Spreading extraQuery early to prevent overriding
+      // core params like `project` or `query`
+      ...extraQuery,
       referrer: referrer || 'event-or-group-header',
       query,
       // Add environment to the query if it was selected
