@@ -663,20 +663,10 @@ def _should_skip_codecov_forward_for_github_owner(payload: WebhookPayload) -> bo
     )
     if not skip_set:
         return False
-    try:
-        body = orjson.loads(payload.request_body)
-    except orjson.JSONDecodeError:
+    if (payload.provider or "").lower() not in ("github", "github_enterprise"):
         return False
-    if not isinstance(body, dict):
-        return False
-    repository = body.get("repository") if isinstance(body.get("repository"), dict) else None
-    owner = (
-        repository.get("owner")
-        if repository and isinstance(repository.get("owner"), dict)
-        else None
-    )
-    login = owner.get("login") if owner else None
-    if isinstance(login, str) and login in skip_set:
+    owner = _extract_webhook_owner(payload)
+    if owner is not None and owner in skip_set:
         metrics.incr("hybridcloud.deliver_webhooks.send_request_to_codecov.filtered")
         return True
     return False

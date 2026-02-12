@@ -418,7 +418,8 @@ class DrainMailboxTest(TestCase):
             1, "github:codecov:123", DestinationType.CODECOV
         )
         records[0].request_body = '{"repository":{"owner":{"login":"getsentry"}}}'
-        records[0].save(update_fields=["request_body"])
+        records[0].provider = "github"
+        records[0].save(update_fields=["request_body", "provider"])
         drain_mailbox(records[0].id)
 
         assert len(responses.calls) == 0
