@@ -17,11 +17,13 @@ type Opts = {items: ErrorFrame[]};
 export default function useSortErrors({items}: Opts) {
   const [sortAsc, setSortAsc] = useQueryState(
     's_e_asc',
-    parseAsBoolean.withDefault(true)
+    parseAsBoolean.withDefault(true).withOptions({history: 'push', throttleMs: 0})
   );
   const [sortBy, setSortBy] = useQueryState(
     's_e_by',
-    parseAsStringLiteral(Object.keys(SortStrategies)).withDefault('timestamp')
+    parseAsStringLiteral(Object.keys(SortStrategies))
+      .withDefault('timestamp')
+      .withOptions({history: 'push', throttleMs: 0})
   );
 
   const sortConfig = useMemo(
