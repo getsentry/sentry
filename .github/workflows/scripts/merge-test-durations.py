@@ -32,7 +32,14 @@ def extract_durations(report_path: Path) -> dict[str, float]:
 
     for test in data.get("tests", []):
         nodeid = test.get("nodeid", "")
+
+        # Duration can be at top level or split across setup/call/teardown phases
         duration = test.get("duration", 0.0)
+        if not duration:
+            duration = sum(
+                test.get(phase, {}).get("duration", 0.0)
+                for phase in ("setup", "call", "teardown")
+            )
 
         if not nodeid or duration <= 0:
             continue

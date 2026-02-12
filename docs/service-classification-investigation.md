@@ -2344,15 +2344,57 @@ Run `python -m compileall src/ tests/ -q` before pytest to front-load bytecode c
 This way the 80-90s import phase reads pre-compiled `.pyc` instead of parsing raw `.py` files.
 Estimated savings: ~5-10s per shard. Low effort, no risk.
 
+### Iteration 15: Larger Runners + 6 xdist workers
+
+Switched from standard `ubuntu-24.04` (4-core/16GB) to "Larger Runners Sentry" group (8-core/32GB)
+and doubled xdist parallelism from 3 to 6 workers. Run 21959068501 (all green):
+
+| Metric | 4-core/-n 3 (baseline) | 8-core/-n 6 | Change |
+|---|---|---|---|
+| Tier 1 avg | 596s | 417s | **-30%** |
+| Tier 1 spread | — | 18s | Very tight |
+| Tier 2 avg | 632s | 403s | **-36%** |
+| Tier 2 spread | — | 56s | Room for improvement |
+| Slowest shard | ~750s | 428s (7m08s) | **-43%** |
+| GH Actions summary | ~14m | 8m46s | **-37%** |
+
+**Runner queue time:** 63-79s for 21/22 jobs (autoscaler provisioning 22 ephemeral 8-core VMs).
+Standard `ubuntu-24.04` runners have near-zero queue time because they're part of GitHub's massive
+shared pool. Dedicated runner groups (like "Larger Runners Sentry") have smaller pools and need to
+autoscale on demand. This ~70s queue is a fixed cost per workflow run, not tunable from our side
+(would need min-idle-runners config, costs money for idle VMs).
+
+**Docker Compose version issue (run 21929730115):** Two shards on larger runners had Docker Compose
+v2.38.2 which `devservices` considered unsupported, forcing a 472s reinstall+image pull. Fixed by
+Bobby updating runner images to `ubuntu-24.04-latest`.
+
+### Iteration 16: Duration-based shard allocation (Optimization B)
+
+Hash-based round-robin doesn't account for test weight — some scopes take 40s while others take 0.1s.
+Run 21960388180 (first run, hash-based fallback) showed tier2 spread of **561s** (14m46s vs 5m13s).
+
+**Implementation:** LPT (Longest Processing Time First) greedy bin packing:
+1. Each shard uploads its pytest JSON report as a GitHub Actions artifact
+2. Post-test `merge-durations` job merges 22 reports into a single scope→duration JSON
+3. Saves to GitHub Actions cache (`test-durations-$run_id`)
+4. Next run's `split-tiers` restores from cache (~1-2s), passes to each shard
+5. `_duration_based_split()` in `sentry.py` groups tests by scope, assigns heaviest scopes
+   to lightest shards using a min-heap
+
+Falls back to hash-based when no cached durations exist (first run). Self-improving — each
+run feeds timing data to the next.
+
+**Overhead:** ~1-2s cache restore on critical path. Merge job is off critical path.
+
 ### Remaining Optimization Options
 
 | # | Optimization | Expected Impact | Effort | Status |
 |---|---|---|---|---|
-| B | Timing-based shard distribution (pytest-split) | ~60s savings | Moderate | Not started |
+| B | Duration-based shard allocation (LPT) | Reduce tier2 spread from ~56s to ~10-15s | Moderate | **Deployed** (self-improving) |
 | C | Rebalance tier1/tier2 split ratio | Marginal | Trivial | Not started |
 | D+ | Test-level splitting (not file-level) | Potentially large | Complex | Requires pytest-split changes |
 | E | Increase total shards (22→26+) | ~90s+ savings | Cost increase (more runners) | Not started |
-| G1 | Pass specific tier files to pytest | ~15-20s per shard | Low | **Testing** |
+| G1 | Pass specific tier files to pytest | ~15-20s per shard | Low | **Reverted** — breaks conftest init |
 | G2 | Remove "Clear Python cache" step | ~5-10s per shard | Trivial | Noted for later |
 | G3 | Pre-compile .pyc files | ~5-10s per shard | Low | Noted for later |
-| H1 | Overlap devservices with pytest collection | ~80-113s per tier2 shard | Medium | **Testing** |
+| H1 | Overlap devservices with pytest collection | ~80-113s per tier2 shard | Medium | **Deployed** |
