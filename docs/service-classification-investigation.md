@@ -2382,6 +2382,78 @@ run feeds timing data to the next.
 
 **Overhead:** ~1-2s cache restore on critical path. Merge job is off critical path.
 
+### Optimization Dependency Graph (Validated)
+
+```mermaid
+graph TD
+    %% ═══ Foundation: Classification Pipeline ═══
+    CLASS["<b>1. Runtime Service Classifier</b><br/><code>classify-services.yml</code> + <code>service_classifier.py</code><br/>Socket getpeername() on send/sendall<br/>+ static fixtures/markers<br/><i>Produces test-service-classification.json</i>"]
+    SPLIT["<b>2. Tier Splitting</b><br/><code>split-tests-by-tier.py</code><br/>Reads classification JSON → tier1-tests.txt + tier2-tests.txt<br/><i>File-level: entire file → tier2 if any test needs Snuba</i>"]
+    TIER["<b>3. Two-Tier CI Workflow</b><br/><code>backend-xdist-split-poc.yml</code><br/>Tier 1: 5 shards (Postgres+Redis, <code>migrations</code> mode)<br/>Tier 2: 17 shards (full Snuba, <code>backend-ci</code> mode)<br/><i>Eliminates ~4-5min Snuba startup for 71% of tests</i>"]
+
+    %% ═══ Tier 1 infrastructure ═══
+    KAFKA["<b>4. Kafka + Redis-cluster via services: block</b><br/>Real Kafka+Zookeeper+Redis-cluster<br/>as GH Actions service containers<br/><i>Prevents Kafka MSG_TIMED_OUT from on_commit hooks<br/>without starting full Snuba stack</i>"]
+
+    %% ═══ xdist parallelism ═══
+    XDIST["<b>5. pytest-xdist (-n 3, --dist=loadfile)</b><br/>PYTHONHASHSEED=0 (deterministic collection)<br/>Deterministic region names (TESTRUNUID seed)<br/>rerunfailures socket fix (HAS_PYTEST_HANDLECRASHITEM=False)<br/><i>3x parallel test execution within each shard</i>"]
+
+    %% ═══ Per-worker Snuba ═══
+    SNUBA["<b>6. Per-worker Snuba DBs</b><br/>Each xdist worker: own ClickHouse DB<br/>(default_gw0, gw1, gw2) + own Snuba API<br/>(ports 1230, 1231, 1232)<br/>XDIST_PER_WORKER_SNUBA=1<br/><i>TRUNCATE is per-worker safe → eliminated<br/>FORCE_SERIAL (26 files) + tier2-serial job</i>"]
+
+    %% ═══ Bootstrap optimization ═══
+    BOOT["<b>7. Parallel bootstrap (A)</b><br/>All workers bootstrap concurrently<br/>via <code>( ... ) &</code> + <code>wait</code><br/><i>58s → 26s (saves ~32s per tier2 shard)</i>"]
+
+    %% ═══ Overlapped startup ═══
+    H1["<b>8. Overlapped startup (H1)</b><br/><code>skip-devservices: true</code> in setup-sentry<br/>Background: sentry init → devservices up → bootstrap<br/>Foreground: pytest starts immediately<br/><i>Collection (~100-120s) overlaps with services</i>"]
+
+    %% ═══ Wait/retry for H1 ═══
+    WAIT["<b>9. _requires_snuba wait/retry</b><br/><code>_wait_for_service()</code> polls per-worker port<br/>SNUBA_WAIT_TIMEOUT=300s<br/><i>Bridges gap between pytest start<br/>and service readiness in H1</i>"]
+
+    %% ═══ Duration-based allocation ═══
+    DUR["<b>10. Duration-based allocation (B)</b><br/>TEST_GROUP_STRATEGY=duration<br/>LPT bin packing in <code>_duration_based_split()</code><br/>Cache: test-durations-$run_id (GH Actions)<br/>Merge: <code>merge-test-durations.py</code> (off critical path)<br/><i>Reduces shard spread; self-improving each run</i>"]
+
+    %% ═══ Test file filtering ═══
+    FILTER["<b>11. SELECTED_TESTS_FILE filtering</b><br/>pytest collects all tests/ then filters<br/>by tier file list in <code>pytest_collection_modifyitems</code><br/><i>Correct conftest loading (vs direct file paths)</i>"]
+
+    %% ═══ Bug fixes ═══
+    BUG1["<b>12. test_sdk.py scope fix</b><br/>test_custom_transaction_name patched<br/>get_current_scope instead of get_isolation_scope<br/><i>Pre-existing bug; exposed by xdist shared state</i>"]
+    BUG2["<b>13. TaskNamespace.send_task patch</b><br/>Session-level no-op + real_send_task fixture<br/>in test_registry.py (cherry-picked)<br/><i>Prevents real Kafka produces; 4 tests opt back in</i>"]
+
+    %% ═══ Dependency edges ═══
+    CLASS -->|"produces classification JSON"| SPLIT
+    SPLIT -->|"produces tier file lists"| TIER
+    TIER -->|"tier1 needs Kafka without Snuba"| KAFKA
+    TIER -->|"both tiers use xdist"| XDIST
+    TIER -->|"tier2 test filtering"| FILTER
+    TIER -->|"tier1 test filtering"| FILTER
+    XDIST -->|"tier2 workers need isolation"| SNUBA
+    SNUBA -->|"workers bootstrap in parallel"| BOOT
+    BOOT -->|"part of background script"| H1
+    H1 -->|"tests wait for services"| WAIT
+    TIER -->|"both tiers"| DUR
+    XDIST -.->|"exposed bug"| BUG1
+    XDIST -.->|"required for correctness"| BUG2
+
+    %% ═══ Styles ═══
+    style CLASS fill:#6c5ce7,color:#fff
+    style SPLIT fill:#6c5ce7,color:#fff
+    style TIER fill:#4a9eff,color:#fff
+    style KAFKA fill:#fd79a8,color:#fff
+    style XDIST fill:#ff9f43,color:#fff
+    style SNUBA fill:#ff9f43,color:#fff
+    style BOOT fill:#2ecc71,color:#fff
+    style H1 fill:#2ecc71,color:#fff
+    style WAIT fill:#2ecc71,color:#fff
+    style DUR fill:#2ecc71,color:#fff
+    style FILTER fill:#00cec9,color:#fff
+    style BUG1 fill:#636e72,color:#fff
+    style BUG2 fill:#636e72,color:#fff
+```
+
+**Legend:** Purple = classification pipeline, Blue = CI structure, Orange = parallelism,
+Green = performance optimizations, Teal = correctness mechanism, Gray = bug fixes.
+Solid arrows = direct dependency, dashed arrows = exposed/required relationship.
+
 ### Remaining Optimization Options
 
 | # | Optimization | Expected Impact | Effort | Status |
