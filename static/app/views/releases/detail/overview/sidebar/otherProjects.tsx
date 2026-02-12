@@ -5,7 +5,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 
 import Collapsible from 'sentry/components/collapsible';
 import IdBadge from 'sentry/components/idBadge';
-import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

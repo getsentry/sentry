@@ -12,7 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 

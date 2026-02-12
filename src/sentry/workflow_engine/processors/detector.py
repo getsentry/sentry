@@ -8,7 +8,7 @@ import sentry_sdk
 from django.db import router, transaction
 from rest_framework import status
 
-from sentry import options
+from sentry import features, options
 from sentry.api.exceptions import SentryAPIException
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -266,6 +266,24 @@ class EventDetectors:
         return {d for d in [self.issue_stream_detector, self.event_detector] if d is not None}
 
 
+def _is_issue_stream_detector_enabled(event_data: WorkflowEventData) -> bool:
+    """
+    Check if the issue stream detector should be enabled for this event's group type.
+
+    Most group types enable the issue stream detector by default. MetricIssue is excluded
+    unless the workflow-engine-metric-issue-ui feature flag is enabled for the organization,
+    which allows incremental rollout of issue alerts for metric issues.
+    """
+    group_type_id = event_data.group.type
+    disabled_type_ids = options.get("workflow_engine.group.type_id.disable_issue_stream_detector")
+    if group_type_id not in disabled_type_ids:
+        return True
+
+    return group_type_id == MetricIssue.type_id and features.has(
+        "organizations:workflow-engine-metric-issue-ui", event_data.event.project.organization
+    )
+
+
 def get_detectors_for_event_data(
     event_data: WorkflowEventData,
     detector: Detector | None = None,
@@ -273,7 +291,7 @@ def get_detectors_for_event_data(
     """
     Returns a list of detectors for the event to process workflows for.
 
-    We always return at least the issue stream detector, unless excluded via option.
+    We always return at least the issue stream detector, unless excluded via option or feature flag.
     If the event has an associated detector, we return it too.
 
     We expect a detector to be passed in for Activity updates.
@@ -281,9 +299,7 @@ def get_detectors_for_event_data(
     issue_stream_detector: Detector | None = None
 
     try:
-        if event_data.group.type not in options.get(
-            "workflow_engine.group.type_id.disable_issue_stream_detector"
-        ):
+        if _is_issue_stream_detector_enabled(event_data):
             issue_stream_detector = Detector.get_issue_stream_detector_for_project(
                 event_data.group.project_id
             )

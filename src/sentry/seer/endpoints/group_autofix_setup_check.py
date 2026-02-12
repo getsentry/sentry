@@ -27,7 +27,6 @@ from sentry.seer.autofix.utils import (
     is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
-from sentry.seer.seer_setup import get_seer_org_acknowledgement, get_seer_user_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -147,13 +146,6 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 "repos": repos,
             }
 
-        user_acknowledgement = get_seer_user_acknowledgement(
-            user_id=request.user.id, organization=org
-        )
-        org_acknowledgement = True
-        if not user_acknowledgement:  # If the user has acknowledged, the org must have too.
-            org_acknowledgement = get_seer_org_acknowledgement(org)
-
         has_autofix_quota: bool = quotas.backend.check_seer_quota(
             org_id=org.id, data_category=DataCategory.SEER_AUTOFIX
         )
@@ -190,8 +182,8 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 },
                 "githubWriteIntegration": write_integration_check,
                 "setupAcknowledgement": {
-                    "orgHasAcknowledged": org_acknowledgement,
-                    "userHasAcknowledged": user_acknowledgement,
+                    "orgHasAcknowledged": True,
+                    "userHasAcknowledged": True,
                 },
                 "billing": {
                     "hasAutofixQuota": has_autofix_quota,

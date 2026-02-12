@@ -239,7 +239,7 @@ class SeerOperatorTest(TestCase):
         )
 
     @patch("sentry.seer.entrypoints.operator.update_autofix")
-    def test_solution_stopping_point_continues_to_code_changes(self, mock_update_autofix):
+    def test_solution_stopping_point_sends_select_root_cause(self, mock_update_autofix):
         mock_update_autofix.return_value = Response({"run_id": MOCK_RUN_ID}, status=202)
 
         self.operator.trigger_autofix(
@@ -254,4 +254,37 @@ class SeerOperatorTest(TestCase):
         assert call_kwargs["organization_id"] == self.group.organization.id
         payload = call_kwargs["payload"]
         assert payload["type"] == "select_root_cause"
-        assert payload["stopping_point"] == "code_changes"
+        assert payload["cause_id"] == 0
+
+    def test_can_trigger_autofix_returns_false_without_seer_access(self):
+        assert SeerOperator.can_trigger_autofix(group=self.group) is False
+
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    def test_can_trigger_autofix_returns_true_when_all_conditions_met(self, mock_quota):
+        with self.feature(
+            {
+                "organizations:gen-ai-features": True,
+            }
+        ):
+            assert SeerOperator.can_trigger_autofix(group=self.group) is True
+
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    def test_can_trigger_autofix_returns_false_for_ineligible_category(self, mock_quota):
+        from sentry.issues.grouptype import FeedbackGroup
+
+        feedback_group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
+        with self.feature(
+            {
+                "organizations:gen-ai-features": True,
+            }
+        ):
+            assert SeerOperator.can_trigger_autofix(group=feedback_group) is False
+
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
+    def test_can_trigger_autofix_returns_false_without_quota(self, mock_quota):
+        with self.feature(
+            {
+                "organizations:gen-ai-features": True,
+            }
+        ):
+            assert SeerOperator.can_trigger_autofix(group=self.group) is False

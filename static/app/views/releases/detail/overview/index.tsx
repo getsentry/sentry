@@ -12,8 +12,9 @@ import {DateTime} from 'sentry/components/dateTime';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import TransactionsList from 'sentry/components/discover/transactionsList';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {
   TimeRangeSelector,
@@ -34,7 +35,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useRouter from 'sentry/utils/useRouter';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';

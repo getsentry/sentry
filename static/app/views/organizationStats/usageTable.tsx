@@ -5,10 +5,10 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import IdBadge from 'sentry/components/idBadge';
+import {updateProjects} from 'sentry/components/pageFilters/actions';
 import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';

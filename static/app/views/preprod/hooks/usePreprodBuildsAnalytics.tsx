@@ -1,10 +1,10 @@
 import {useEffect} from 'react';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {BuildListPageSource} from 'sentry/utils/analytics/preprodBuildAnalyticsEvents';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 interface UsePreprodBuildsAnalyticsProps {

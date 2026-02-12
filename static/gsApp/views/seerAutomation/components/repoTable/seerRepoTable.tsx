@@ -2,14 +2,16 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
+import {LinkButton} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
-import {Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {useOrganizationRepositoriesWithSettings} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {IconAdd} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
@@ -199,9 +201,10 @@ function RepoTable({
   setSearchTerm: ReturnType<typeof useQueryState<string>>[1];
   sort: Sort;
 }) {
+  const organization = useOrganization();
   return (
     <Stack gap="lg">
-      <FiltersContainer>
+      <Grid minWidth="0" gap="md" columns="1fr max-content">
         <InputGroup>
           <InputGroup.LeadingItems disablePointerEvents>
             <IconSearch />
@@ -215,7 +218,19 @@ function RepoTable({
             }
           />
         </InputGroup>
-      </FiltersContainer>
+        <LinkButton
+          priority="primary"
+          icon={<IconAdd />}
+          to={{
+            pathname: `/settings/${organization.slug}/integrations/`,
+            query: {
+              category: 'source code management',
+            },
+          }}
+        >
+          {t('Add Repository')}
+        </LinkButton>
+      </Grid>
 
       <SimpleTableWithColumns>
         <SeerRepoTableHeader
@@ -229,11 +244,6 @@ function RepoTable({
     </Stack>
   );
 }
-
-const FiltersContainer = styled('div')`
-  flex-grow: 1;
-  min-width: 0;
-`;
 
 const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: max-content 1fr repeat(2, max-content);

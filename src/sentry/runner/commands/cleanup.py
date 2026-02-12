@@ -235,6 +235,24 @@ def task_execution(model_name: str, chunk: tuple[int, ...], project_id: int | No
 )
 @click.option("--model", "-m", multiple=True)
 @click.option("--router", "-r", default=None, help="Database router")
+@click.option(
+    "--partition-bucket",
+    type=int,
+    default=None,
+    help="Bucket index for partitioned deletion (0-based). Must be used with --partition-total.",
+)
+@click.option(
+    "--partition-total",
+    type=int,
+    default=None,
+    help="Total number of partition buckets. Must be used with --partition-bucket.",
+)
+@click.option(
+    "--partition-key",
+    default="id",
+    show_default=True,
+    help="Column to use for partition modulo.",
+)
 @log_options()
 def cleanup(
     days: int,
@@ -244,6 +262,9 @@ def cleanup(
     silent: bool,
     model: tuple[str, ...],
     router: str | None,
+    partition_bucket: int | None,
+    partition_total: int | None,
+    partition_key: str,
 ) -> None:
     """Delete a portion of trailing data based on creation date.
 
@@ -261,6 +282,9 @@ def cleanup(
         router=router,
         project=project,
         organization=organization,
+        partition_bucket=partition_bucket,
+        partition_total=partition_total,
+        partition_key=partition_key,
     )
 
 
@@ -273,9 +297,33 @@ def _cleanup(
     project: str | None = None,
     organization: str | None = None,
     start_from_project_id: int | None = None,
+    partition_bucket: int | None = None,
+    partition_total: int | None = None,
+    partition_key: str = "id",
 ) -> None:
     start_time = time.time()
     _validate_and_setup_environment(concurrency, silent)
+
+    # Validate partition flags
+    parsed_partition: tuple[int, int, str] | None = None
+    if partition_bucket is not None or partition_total is not None:
+        if partition_bucket is None or partition_total is None:
+            raise click.ClickException(
+                "--partition-bucket and --partition-total must be used together."
+            )
+        if partition_total <= 0:
+            raise click.ClickException(
+                f"Invalid --partition-total: must be greater than 0, got {partition_total}."
+            )
+        if partition_bucket < 0:
+            raise click.ClickException(
+                f"Invalid --partition-bucket: must be non-negative, got {partition_bucket}."
+            )
+        if partition_bucket >= partition_total:
+            raise click.ClickException(
+                f"Invalid --partition-bucket: {partition_bucket} must be less than --partition-total {partition_total}."
+            )
+        parsed_partition = (partition_bucket, partition_total, partition_key)
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
     pool, task_queue = _start_pool(concurrency)
@@ -338,6 +386,7 @@ def _cleanup(
                 project,
                 project_id,
                 models_attempted,
+                partition=parsed_partition,
             )
 
             run_bulk_deletes_in_deletes(
@@ -711,6 +760,7 @@ def run_bulk_query_deletes(
     project: str | None,
     project_id: int | None,
     models_attempted: set[str],
+    partition: tuple[int, int, str] | None = None,
 ) -> None:
     from sentry import options
     from sentry.db.deletion import BulkDeleteQuery
@@ -736,6 +786,7 @@ def run_bulk_query_deletes(
                     days=days,
                     project_id=project_id,
                     order_by=order_by,
+                    partition=partition,
                 ).execute(chunk_size=chunk_size)
             except Exception:
                 capture_exception(tags={"model": model_tp.__name__})

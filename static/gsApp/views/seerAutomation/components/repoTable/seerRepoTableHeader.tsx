@@ -158,10 +158,11 @@ export default function SeerRepoTableHeader({
             {tn('Selected %s repository.', 'Selected %s repositories.', countSelected)}
             <a onClick={selectAll}>
               {queryString
-                ? tct('Select all repositories that match: [queryString].', {
+                ? tct('Select all [count] repositories that match: [queryString].', {
+                    count: listItemCheckboxState.hits,
                     queryString: <var>{queryString}</var>,
                   })
-                : t('Select all repositories.')}
+                : t('Select all %s repositories.', listItemCheckboxState.hits)}
             </a>
           </Flex>
         </FullGridAlert>
@@ -172,7 +173,8 @@ export default function SeerRepoTableHeader({
           <Flex justify="center" wrap="wrap">
             <span>
               {queryString
-                ? tct('Selected all repositories matching: [queryString].', {
+                ? tct('Selected all [count] repositories matching: [queryString].', {
+                    count: countSelected,
                     queryString: <var>{queryString}</var>,
                   })
                 : countSelected > repositories.length

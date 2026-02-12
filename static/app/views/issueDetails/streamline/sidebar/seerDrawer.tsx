@@ -143,12 +143,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
       noAutofixQuota ||
       // needs to configure repos
       !aiConfig.seerReposLinked ||
-      // needs to have autofix enabled for this group's project
-      !aiConfig.autofixEnabled ||
-      // needs to enable autofix
-      !data?.isAutofixEnabled ||
-      // catch all, ensure seer is configured
-      !data?.isSeerConfigured
+      !data?.hasSupportedScmIntegration
     ) {
       return (
         <SeerDrawerContainer className="seer-drawer-container">
