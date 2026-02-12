@@ -15,7 +15,6 @@ from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.project import Project
 from sentry.models.relay import Relay
 from sentry.quotas.base import RETENTIONS_CONFIG_MAPPING, RetentionSettings
-from sentry.relay.config import trimming
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import safe
@@ -167,7 +166,7 @@ def test_internal_relays_should_receive_full_configs(
     else:
         assert safe.get_path(cfg, "config", "retentions") is None
 
-    trimming_configs = trimming.backend.get_trimming_configs(default_project.organization)
+    trimming_configs = quotas.backend.get_trimming_configs(default_project.organization)
     if trimming_configs:
         assert safe.get_path(cfg, "config", "trimming") == trimming_configs
     else:
@@ -229,7 +228,7 @@ def test_parse_retentions_with_transactions(call_endpoint, default_project):
 @django_db_all
 def test_parse_trimming(call_endpoint, default_project):
     with patch.object(
-        trimming.backend,
+        quotas.backend,
         "get_trimming_configs",
         return_value={"span": {"maxSize": 17}},
     ):

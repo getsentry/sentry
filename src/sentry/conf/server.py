@@ -1610,10 +1610,6 @@ SENTRY_DIGESTS_OPTIONS: dict[str, Any] = {}
 SENTRY_QUOTAS = "sentry.quotas.Quota"
 SENTRY_QUOTA_OPTIONS: dict[str, str] = {}
 
-# Trimming config backend
-SENTRY_RELAY_TRIMMING = "sentry.relay.config.trimming.Trimming"
-SENTRY_RELAY_TRIMMING_OPTIONS: dict[str, str] = {}
-
 # Partnership backend
 SENTRY_PARTNERSHIPS = "sentry.partnerships.Partnership"
 SENTRY_PARTNERSHIP_OPTIONS: dict[str, str] = {}
