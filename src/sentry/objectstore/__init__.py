@@ -57,8 +57,10 @@ def create_client() -> Client:
         timeout_ms=options.get("timeout_ms", None),
         connection_kwargs=options.get(
             "connection_kwargs",
-            # Workaround for 0.0.14's default read timeout. Can be removed with 0.0.15
-            {"timeout": urllib3.Timeout(connect=0.1)},
+            # Set explicit read timeout to avoid MaxRetryError during blob deletion.
+            # Deletion operations over the network can exceed the default 0.5s read timeout
+            # under normal conditions, especially during concurrent cleanup operations.
+            {"timeout": urllib3.Timeout(connect=0.1, read=30.0)},
         ),
     )
 
