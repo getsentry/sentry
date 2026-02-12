@@ -12,6 +12,7 @@ from sentry.api.endpoints.release_thresholds.utils.get_errors_counts_timeseries 
     _get_errors_counts_timeseries_snuba,
 )
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.testutils.cases import TestCase
 
 
@@ -84,6 +85,37 @@ class GetErrorCountTimeseriesEAPTest(TestCase):
         assert result == []
 
     @mock.patch("sentry.snuba.occurrences_rpc.Occurrences.run_grouped_timeseries_query")
+    def test_eap_impl_filters_zero_count_rows(self, mock_timeseries: mock.MagicMock) -> None:
+        mock_timeseries.return_value = [
+            {
+                "release": "backend@1.0.0",
+                "project_id": self.project.id,
+                "environment": "production",
+                "time": 1736074800,
+                "count()": 5.0,
+            },
+            {
+                "release": "backend@1.0.0",
+                "project_id": self.project.id,
+                "environment": "production",
+                "time": 1736074860,
+                "count()": 0,
+            },
+        ]
+
+        now = timezone.now()
+        result = _get_errors_counts_timeseries_eap(
+            end=now,
+            organization_id=self.org.id,
+            project_id_list=[self.project.id],
+            release_value_list=["backend@1.0.0"],
+            start=now,
+        )
+
+        assert len(result) == 1
+        assert result[0]["count()"] == 5
+
+    @mock.patch("sentry.snuba.occurrences_rpc.Occurrences.run_grouped_timeseries_query")
     def test_eap_impl_transforms_results_correctly(self, mock_timeseries: mock.MagicMock) -> None:
         mock_timeseries.return_value = [
             {
@@ -112,6 +144,9 @@ class GetErrorCountTimeseriesEAPTest(TestCase):
         )
 
         mock_timeseries.assert_called_once()
+        call_kwargs = mock_timeseries.call_args[1]
+        assert call_kwargs["query_string"] == 'release:"backend@1.0.0"'
+        assert call_kwargs["occurrence_category"] == OccurrenceCategory.ERROR
         assert len(result) == 2
 
         assert result[0]["release"] == "backend@1.0.0"
@@ -150,6 +185,11 @@ class GetErrorCountTimeseriesEAPTest(TestCase):
             start=now,
         )
 
+        call_kwargs = mock_timeseries.call_args[1]
+        assert call_kwargs["query_string"] == (
+            '(release:"backend@1.0.0" OR release:"backend@2.0.0")'
+        )
+        assert call_kwargs["occurrence_category"] == OccurrenceCategory.ERROR
         assert len(result) == 2
         releases_in_result = [r["release"] for r in result]
         assert "backend@1.0.0" in releases_in_result
@@ -174,13 +214,15 @@ class GetErrorCountTimeseriesEAPTest(TestCase):
             project_id_list=[self.project.id],
             release_value_list=["backend@1.0.0"],
             start=now,
-            environments_list=["staging"],
+            environments_list=["staging", "production"],
         )
 
         mock_timeseries.assert_called_once()
         call_kwargs = mock_timeseries.call_args[1]
-        assert "staging" in call_kwargs["query_string"]
-        assert "type:error" in call_kwargs["query_string"]
+        assert call_kwargs["query_string"] == (
+            'release:"backend@1.0.0" (environment:"staging" OR environment:"production")'
+        )
+        assert call_kwargs["occurrence_category"] == OccurrenceCategory.ERROR
         assert len(result) == 1
         assert result[0]["environment"] == "staging"
 

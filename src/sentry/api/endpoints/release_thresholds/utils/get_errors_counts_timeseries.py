@@ -19,7 +19,7 @@ from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.occurrences_rpc import Occurrences
+from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba
 
@@ -135,20 +135,22 @@ def _get_errors_counts_timeseries_eap(
     if not release_value_list:
         return []
 
-    query_string = "type:error"
+    query_parts: list[str] = []
 
     if len(release_value_list) == 1:
-        query_string += f' release:"{release_value_list[0]}"'
+        query_parts.append(f'release:"{release_value_list[0]}"')
     else:
         release_filter = " OR ".join([f'release:"{r}"' for r in release_value_list])
-        query_string += f" ({release_filter})"
+        query_parts.append(f"({release_filter})")
 
     if environments_list:
         if len(environments_list) == 1:
-            query_string += f' environment:"{environments_list[0]}"'
+            query_parts.append(f'environment:"{environments_list[0]}"')
         else:
             env_filter = " OR ".join([f'environment:"{e}"' for e in environments_list])
-            query_string += f" ({env_filter})"
+            query_parts.append(f"({env_filter})")
+
+    query_string = " ".join(query_parts)
 
     snuba_params = SnubaParams(
         start=start,
@@ -166,6 +168,7 @@ def _get_errors_counts_timeseries_eap(
             groupby=["release", "project_id", "environment"],
             referrer=Referrer.SNUBA_SESSIONS_CHECK_RELEASES_HAVE_HEALTH_DATA.value,
             config=SearchResolverConfig(),
+            occurrence_category=OccurrenceCategory.ERROR,
         )
 
         # Transform to match Snuba response format
