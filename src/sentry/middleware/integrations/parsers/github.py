@@ -34,6 +34,19 @@ class GithubRequestParser(BaseRequestParser):
         """Overridden in GithubEnterpriseRequestParser"""
         return get_github_external_id(event)
 
+    def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
+        """Hash on repository ID to distribute webhooks across sub-mailboxes.
+
+        GitHub webhook payloads include repository.id for most event types.
+        Installation events are routed to control silo and don't reach this path.
+        """
+        repository = data.get("repository")
+        if isinstance(repository, dict):
+            repo_id = repository.get("id")
+            if isinstance(repo_id, int):
+                return repo_id
+        return None
+
     def should_route_to_control_silo(
         self, parsed_event: Mapping[str, Any], request: HttpRequest
     ) -> bool:
@@ -100,7 +113,9 @@ class GithubRequestParser(BaseRequestParser):
                 self.try_forward_to_codecov(event=event)
 
         response = self.get_response_from_webhookpayload(
-            regions=regions, identifier=integration.id, integration_id=integration.id
+            regions=regions,
+            identifier=self.get_mailbox_identifier(integration, event),
+            integration_id=integration.id,
         )
 
         return response
