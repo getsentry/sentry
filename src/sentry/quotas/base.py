@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import IntEnum, unique
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
 from django.core.cache import cache
 
@@ -56,26 +56,9 @@ class AbuseQuota:
     compat_option_sentry: str | None = None
 
 
-@dataclass
-class RetentionSettings:
+class RetentionSettings(TypedDict):
     standard: int
     downsampled: int
-
-    def to_object(self) -> Mapping[str, Any]:
-        return {
-            "standard": self.standard,
-            "downsampled": self.downsampled,
-        }
-
-
-# This mirrors the Retentions struct in relay
-# https://github.com/getsentry/relay/blob/641e7f20cd/relay-dynamic-config/src/project.rs#L34-L45
-RETENTIONS_CONFIG_MAPPING = {
-    DataCategory.LOG_BYTE: "log",
-    DataCategory.TRANSACTION: "span",
-    DataCategory.SPAN: "span",
-    DataCategory.TRACE_METRIC: "traceMetric",
-}
 
 
 def build_metric_abuse_quotas() -> list[AbuseQuota]:

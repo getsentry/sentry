@@ -14,7 +14,7 @@ from sentry import quotas
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.project import Project
 from sentry.models.relay import Relay
-from sentry.quotas.base import RETENTIONS_CONFIG_MAPPING, RetentionSettings
+from sentry.relay.config import RetentionsConfig
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import safe
@@ -156,11 +156,7 @@ def test_internal_relays_should_receive_full_configs(
     ) == quotas.backend.get_downsampled_event_retention(default_project.organization)
 
     retentions = quotas.backend.get_retentions(default_project.organization)
-    retentions_config = {
-        RETENTIONS_CONFIG_MAPPING[c]: v.to_object()
-        for c, v in retentions.items()
-        if c in RETENTIONS_CONFIG_MAPPING
-    }
+    retentions_config = RetentionsConfig.from_mapping(retentions)
     if retentions_config:
         assert safe.get_path(cfg, "config", "retentions") == retentions_config
     else:
@@ -171,11 +167,11 @@ def test_internal_relays_should_receive_full_configs(
 def test_parse_retentions(call_endpoint, default_project):
     with patch("sentry.quotas.backend") as quotas_mock:
         quotas_mock.get_retentions = lambda x: {
-            DataCategory.ERROR: RetentionSettings(standard=10, downsampled=20),
-            DataCategory.REPLAY: RetentionSettings(standard=11, downsampled=21),
-            DataCategory.SPAN: RetentionSettings(standard=12, downsampled=22),
-            DataCategory.LOG_BYTE: RetentionSettings(standard=13, downsampled=23),
-            DataCategory.TRACE_METRIC: RetentionSettings(standard=14, downsampled=24),
+            DataCategory.ERROR: {"standard": 10, "downsampled": 20},
+            DataCategory.REPLAY: {"standard": 11, "downsampled": 21},
+            DataCategory.SPAN: {"standard": 12, "downsampled": 22},
+            DataCategory.LOG_BYTE: {"standard": 13, "downsampled": 23},
+            DataCategory.TRACE_METRIC: {"standard": 14, "downsampled": 24},
         }
         quotas_mock.get_event_retention = lambda x: 45
         quotas_mock.get_downsampled_event_retention = lambda x: 90
@@ -198,10 +194,10 @@ def test_parse_retentions(call_endpoint, default_project):
 def test_parse_retentions_with_transactions(call_endpoint, default_project):
     with patch("sentry.quotas.backend") as quotas_mock:
         quotas_mock.get_retentions = lambda x: {
-            DataCategory.ERROR: RetentionSettings(standard=10, downsampled=20),
-            DataCategory.REPLAY: RetentionSettings(standard=11, downsampled=21),
-            DataCategory.TRANSACTION: RetentionSettings(standard=12, downsampled=22),
-            DataCategory.LOG_BYTE: RetentionSettings(standard=13, downsampled=23),
+            DataCategory.ERROR: {"standard": 10, "downsampled": 20},
+            DataCategory.REPLAY: {"standard": 11, "downsampled": 21},
+            DataCategory.TRANSACTION: {"standard": 12, "downsampled": 22},
+            DataCategory.LOG_BYTE: {"standard": 13, "downsampled": 23},
         }
         quotas_mock.get_event_retention = lambda x: 45
         quotas_mock.get_downsampled_event_retention = lambda x: 90
