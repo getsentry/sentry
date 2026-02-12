@@ -253,7 +253,7 @@ jobs:
       - name: Run tier 2 tests (overlapped startup)
         env:
           # H1: _requires_snuba will wait up to 180s for per-worker Snuba to be ready
-          SNUBA_WAIT_TIMEOUT: '180'
+          SNUBA_WAIT_TIMEOUT: '300'
           # Docker bridge gateway is always 172.17.0.1 on GitHub Actions
           DJANGO_LIVE_TEST_SERVER_ADDRESS: '172.17.0.1'
           SELECTED_TESTS_FILE: /tmp/tier2-tests.txt

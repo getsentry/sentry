@@ -2364,10 +2364,6 @@ shared pool. Dedicated runner groups (like "Larger Runners Sentry") have smaller
 autoscale on demand. This ~70s queue is a fixed cost per workflow run, not tunable from our side
 (would need min-idle-runners config, costs money for idle VMs).
 
-**Docker Compose version issue (run 21929730115):** Two shards on larger runners had Docker Compose
-v2.38.2 which `devservices` considered unsupported, forcing a 472s reinstall+image pull. Fixed by
-Bobby updating runner images to `ubuntu-24.04-latest`.
-
 ### Iteration 16: Duration-based shard allocation (Optimization B)
 
 Hash-based round-robin doesn't account for test weight — some scopes take 40s while others take 0.1s.
