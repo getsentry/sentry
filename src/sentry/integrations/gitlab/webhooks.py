@@ -376,7 +376,8 @@ class GitlabWebhookEndpoint(Endpoint):
                     for install in installs
                 ],
                 "type": "gitlab",
-            }
+            },
+            silo="region",
         )
 
         return HttpResponse(status=204)

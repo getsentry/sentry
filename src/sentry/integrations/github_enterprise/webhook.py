@@ -331,7 +331,8 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 "received_at": int(time.time()),
                 "sentry_meta": None,
                 "type": "github_enterprise",
-            }
+            },
+            silo="region",
         )
 
         return HttpResponse(status=204)

@@ -66,6 +66,7 @@ from sentry.seer.code_review.webhooks.handlers import (
     handle_webhook_event as code_review_handle_webhook_event,
 )
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo.base import SiloMode
 from sentry.tasks.organization_contributors import assign_seat_to_organization_contributor
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -1144,7 +1145,8 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
                 "received_at": int(time.time()),
                 "sentry_meta": None,
                 "type": "github",
-            }
+            },
+            silo="region" if SiloMode.get_current_mode() == SiloMode.REGION else "control",
         )
 
         return HttpResponse(status=204)

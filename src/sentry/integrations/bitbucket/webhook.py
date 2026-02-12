@@ -289,7 +289,8 @@ class BitbucketWebhookEndpoint(Endpoint):
                     }
                 ],
                 "type": "bitbucket",
-            }
+            },
+            silo="region",
         )
 
         return HttpResponse(status=204)
