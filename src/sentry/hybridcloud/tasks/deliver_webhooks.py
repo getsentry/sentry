@@ -533,12 +533,10 @@ def perform_request(payload: WebhookPayload) -> None:
 
 
 def perform_region_request(region: Region, payload: WebhookPayload) -> None:
-    logging_context: dict[str, str | int | None] = {
+    logging_context: dict[str, str | int] = {
         "payload_id": payload.id,
         "mailbox_name": payload.mailbox_name,
         "attempt": payload.attempts,
-        "provider": payload.provider or "unknown",
-        "owner": _extract_webhook_owner(payload),
     }
 
     try:
@@ -688,14 +686,12 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
     """
     We don't retry forwarding Codecov requests for now. We want to prove out that it would work.
     """
-    logging_context: dict[str, str | int | None] = {
+    logging_context: dict[str, str | int] = {
         "payload_id": payload.id,
         "mailbox_name": payload.mailbox_name,
         "attempt": payload.attempts,
         "request_method": payload.request_method,
         "request_path": payload.request_path,
-        "provider": payload.provider or "unknown",
-        "owner": _extract_webhook_owner(payload),
     }
 
     with metrics.timer(
