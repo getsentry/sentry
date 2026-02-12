@@ -6,10 +6,6 @@ export function getIsExecuteToolSpan(genAiOpType: string | undefined) {
   return genAiOpType === 'tool';
 }
 
-export function getIsHandoffSpan(genAiOpType: string | undefined) {
-  return genAiOpType === 'handoff';
-}
-
 export function getIsAiGenerationSpan(genAiOpType: string | undefined) {
   return genAiOpType === 'ai_client';
 }
