@@ -90,8 +90,8 @@ def _normalize_output(output: dict[SegmentKey, FlushedSegment]):
 
 @pytest.fixture(
     params=[
-        # pytest.param(("cluster", 0), id="cluster-nochunk"),
-        # pytest.param(("cluster", 1), id="cluster-chunk1"),
+        pytest.param(("cluster", 0), id="cluster-nochunk"),
+        pytest.param(("cluster", 1), id="cluster-chunk1"),
         pytest.param(("single", 0), id="single-nochunk"),
         pytest.param(("single", 1), id="single-chunk1"),
     ]
