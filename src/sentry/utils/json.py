@@ -91,6 +91,13 @@ _default_encoder = JSONEncoder(
     default=better_default_encoder,
 )
 
+_default_sorted_encoder = JSONEncoder(
+    separators=(",", ":"),
+    ignore_nan=True,
+    default=better_default_encoder,
+    sort_keys=True,
+)
+
 _default_escaped_encoder = JSONEncoderForHTML(
     separators=(",", ":"),
     ignore_nan=True,
@@ -105,10 +112,12 @@ def dump(value: Any, fp: IO[str], **kwargs: NoReturn) -> None:
 
 
 # NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
-def dumps(value: Any, escape: bool = False, **kwargs: NoReturn) -> str:
+def dumps(value: Any, escape: bool = False, sort_keys: bool = False, **kwargs: NoReturn) -> str:
     # Legacy use. Do not use. Use dumps_htmlsafe
     if escape:
         return _default_escaped_encoder.encode(value)
+    if sort_keys:
+        return _default_sorted_encoder.encode(value)
     return _default_encoder.encode(value)
 
 

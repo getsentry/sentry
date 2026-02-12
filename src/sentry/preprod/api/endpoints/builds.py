@@ -14,6 +14,7 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
 )
 from sentry.preprod.artifact_search import queryset_for_query
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.quotas import get_size_retention_cutoff
 
 ERR_FEATURE_REQUIRED = "Feature {} is not enabled for the organization."
 
@@ -56,8 +57,11 @@ class BuildsEndpoint(OrganizationEndpoint):
         # params on purpose.
 
         query = request.GET.get("query", "").strip()
+        cutoff = get_size_retention_cutoff(organization)
+
         try:
             queryset = queryset_for_query(query, organization)
+            queryset = queryset.filter(date_added__gte=cutoff)
             if start:
                 queryset = queryset.filter(date_added__gte=start)
             if end:

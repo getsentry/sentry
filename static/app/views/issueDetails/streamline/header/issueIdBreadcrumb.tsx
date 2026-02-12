@@ -69,7 +69,7 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
           </Tooltip>
           {isHovered && (
             <Button
-              title={t('Copy Issue Short-ID')}
+              tooltipProps={{title: t('Copy Issue Short-ID')}}
               aria-label={t('Copy Issue Short-ID')}
               onClick={handleCopyShortId}
               size="zero"
@@ -85,10 +85,12 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
           priority="transparent"
           aria-label={t('View issue share settings')}
           icon={<IconGlobe size="xs" variant="muted" />}
-          title={tct('This issue has been shared [link:with a public link].', {
-            link: <ExternalLink href={shareUrl} />,
-          })}
-          tooltipProps={{isHoverable: true}}
+          tooltipProps={{
+            isHoverable: true,
+            title: tct('This issue has been shared [link:with a public link].', {
+              link: <ExternalLink href={shareUrl} />,
+            }),
+          }}
           onClick={() =>
             openModal(modalProps => (
               <ShareIssueModal

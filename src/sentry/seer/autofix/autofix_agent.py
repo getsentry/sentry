@@ -156,6 +156,7 @@ def trigger_autofix_explorer(
     config = STEP_CONFIGS[step]
     client = SeerExplorerClient(
         organization=group.organization,
+        project=group.project,
         user=None,  # No user personalization for autofix
         category_key="autofix",
         category_value=str(group.id),
