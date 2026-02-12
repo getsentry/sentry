@@ -12,19 +12,16 @@ const SortStrategies: Record<string, (row: ErrorFrame) => any> = {
   timestamp: row => row.timestamp,
 };
 
-const DEFAULT_ASC = true;
-const DEFAULT_BY = 'timestamp';
-
 type Opts = {items: ErrorFrame[]};
 
 export default function useSortErrors({items}: Opts) {
   const [sortAsc, setSortAsc] = useQueryState(
     's_e_asc',
-    parseAsBoolean.withDefault(DEFAULT_ASC)
+    parseAsBoolean.withDefault(true)
   );
   const [sortBy, setSortBy] = useQueryState(
     's_e_by',
-    parseAsStringLiteral(Object.keys(SortStrategies)).withDefault(DEFAULT_BY)
+    parseAsStringLiteral(Object.keys(SortStrategies)).withDefault('timestamp')
   );
 
   const sortConfig = useMemo(
