@@ -58,6 +58,9 @@ class OnCallInteractionEvent(IntegrationEventLifecycleMetric):
     def get_interaction_type(self) -> str:
         return str(self.interaction_type)
 
+    def get_org_id(self) -> int | None:
+        return self.organization.id if self.organization else None
+
 
 class OnCallIntegrationsHaltReason(StrEnum):
     """

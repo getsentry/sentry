@@ -24,6 +24,19 @@ class IntegrationEventLifecycleMetricTest(TestCase):
         def get_interaction_type(self) -> str:
             return "my_interaction"
 
+    class TestLifecycleMetricWithOrg(IntegrationEventLifecycleMetric):
+        def get_integration_domain(self) -> IntegrationDomain:
+            return IntegrationDomain.MESSAGING
+
+        def get_integration_name(self) -> str:
+            return "my_integration"
+
+        def get_interaction_type(self) -> str:
+            return "my_interaction"
+
+        def get_org_id(self) -> int | None:
+            return 123
+
     def test_key_and_tag_assignment(self) -> None:
         metric_obj = self.TestLifecycleMetric()
 
@@ -33,6 +46,16 @@ class IntegrationEventLifecycleMetricTest(TestCase):
             "integration_domain": "messaging",
             "integration_name": "my_integration",
             "interaction_type": "my_interaction",
+        }
+
+    def test_key_and_tag_assignment_with_org_id(self) -> None:
+        metric_obj = self.TestLifecycleMetricWithOrg()
+
+        assert metric_obj.get_metric_tags() == {
+            "integration_domain": "messaging",
+            "integration_name": "my_integration",
+            "interaction_type": "my_interaction",
+            "org_id": "123",
         }
 
     @staticmethod

@@ -76,6 +76,9 @@ class MessagingInteractionEvent(IntegrationEventLifecycleMetric):
     def get_interaction_type(self) -> str:
         return str(self.interaction_type)
 
+    def get_org_id(self) -> int | None:
+        return self.organization.id if self.organization else None
+
     def get_extras(self) -> Mapping[str, Any]:
         return {
             "user_id": (self.user.id if self.user else None),
