@@ -47,7 +47,7 @@ export function DatePageFilter({
         });
       }}
       menuTitle={menuTitle ?? t('Filter Time Range')}
-      menuWidth={menuWidth ? '22em' : undefined}
+      menuWidth={menuWidth ?? '22em'}
     />
   );
 }
