@@ -12,11 +12,11 @@ import orderBy from 'lodash/orderBy';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -41,6 +41,7 @@ interface StepProps {
   stepKey: string;
   title: React.ReactNode;
   isCompleted?: boolean;
+  onClick?: () => void;
   optional?: boolean;
 }
 
@@ -159,12 +160,18 @@ function Step(props: StepProps) {
 
   return (
     <StepWrapper data-test-id={`guided-step-${stepNumber}`}>
-      <StepNumber isActive={isActive}>{stepNumber}</StepNumber>
+      <StepButton area="heading" disabled={!props.onClick} onClick={props.onClick}>
+        <Flex align="center" gap="lg">
+          <StepNumber isActive={isActive}>{stepNumber}</StepNumber>
+          <StepHeading isActive={isActive}>
+            {props.title}
+            {isCompleted && <StepDoneIcon isActive={isActive} size="sm" />}
+          </StepHeading>
+          {props.onClick ? <InteractionStateLayer /> : null}
+        </Flex>
+      </StepButton>
+
       <StepDetails>
-        <StepHeading isActive={isActive}>
-          {props.title}
-          {isCompleted && <StepDoneIcon isActive={isActive} size="sm" />}
-        </StepHeading>
         {props.optional ? <StepOptionalLabel>Optional</StepOptionalLabel> : null}
         {isActive && (
           <ChildrenWrapper isActive={isActive}>{props.children}</ChildrenWrapper>
@@ -233,25 +240,38 @@ const StepButtonsWrapper = styled('div')`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: ${space(1)};
-  margin-top: ${space(1.5)};
+  gap: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space.lg};
 `;
 
 const StepWrapper = styled('div')`
   display: grid;
+  grid-template-areas: 'heading heading' '. details';
   grid-template-columns: 34px 1fr;
-  gap: ${space(1.5)};
+  gap: 0 ${p => p.theme.space.lg};
   position: relative;
 
   :not(:last-child)::before {
     content: '';
     position: absolute;
-    height: calc(100% + ${space(2)});
+    height: calc(100% + ${p => p.theme.space.xl});
     width: 1px;
     /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.primary};
     left: 17px;
   }
+`;
+
+const StepButton = styled('button')<{area: string}>`
+  grid-area: ${p => p.area};
+
+  position: relative;
+  background: none;
+  border: none;
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
+  margin: -${p => p.theme.space.sm} -${p => p.theme.space.md};
+  border-radius: ${p => p.theme.radius.md};
+  overflow: hidden;
 `;
 
 const StepNumber = styled('div')<{isActive: boolean}>`
@@ -281,6 +301,11 @@ const StepHeading = styled('h4')<{isActive: boolean}>`
   font-size: ${p => p.theme.font.size.lg};
   color: ${p =>
     p.isActive ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
+
+  position: relative;
+  border: none;
+  background: none;
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const StepDoneIcon = styled(IconCheckmark, {
@@ -288,15 +313,15 @@ const StepDoneIcon = styled(IconCheckmark, {
 })<{isActive: boolean}>`
   color: ${p =>
     p.isActive ? p.theme.tokens.content.success : p.theme.tokens.content.secondary};
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
   vertical-align: middle;
 `;
 
 const StepOptionalLabel = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
-  margin-top: -${space(0.75)};
-  margin-bottom: ${space(1)};
+  margin-top: -${p => p.theme.space.sm};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const ChildrenWrapper = styled('div')<{isActive: boolean}>`
@@ -304,12 +329,13 @@ const ChildrenWrapper = styled('div')<{isActive: boolean}>`
     p.isActive ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
 
   p {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 `;
 
 const StepDetails = styled('div')`
   overflow: hidden;
+  grid-area: details;
 `;
 
 GuidedSteps.Step = Step;
