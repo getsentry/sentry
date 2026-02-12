@@ -416,3 +416,28 @@ class OrganizationRepositorySettingsTest(APITestCase):
                 audit_log.data["code_review_change"]
                 == " (added code review on_ready_for_review; removed code review on_new_commit)"
             )
+
+    def test_audit_log_triggers_cleared_when_empty(self) -> None:
+        repo = Repository.objects.create(name="empty-repo", organization_id=self.org.id)
+        RepositorySettings.objects.create(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=[],
+        )
+
+        with outbox_runner():
+            response = self.client.put(
+                self.url,
+                data={
+                    "repositoryIds": [repo.id],
+                    "codeReviewTriggers": [],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_log = AuditLogEntry.objects.filter(organization_id=self.org.id).first()
+            assert audit_log is not None
+            assert audit_log.data["code_review_change"] == " (cleared code review triggers)"

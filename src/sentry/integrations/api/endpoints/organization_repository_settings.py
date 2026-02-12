@@ -177,6 +177,9 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
         if removed:
             parts.append(f"removed code review {', '.join(sorted(removed))}")
         if not parts:
-            parts.append(f"triggers set to {', '.join(sorted(new_triggers))}")
+            if new_triggers:
+                parts.append(f"triggers set to {', '.join(sorted(new_triggers))}")
+            else:
+                parts.append("cleared code review triggers")
 
         return " (" + "; ".join(parts) + ")"
