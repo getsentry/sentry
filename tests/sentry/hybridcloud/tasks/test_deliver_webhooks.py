@@ -426,6 +426,20 @@ class DrainMailboxTest(TestCase):
         assert not WebhookPayload.objects.filter().exists()
 
     @responses.activate
+    def test_drain_codecov_filtered_getsentry_owner_null_provider(self) -> None:
+        """Skip list honored when provider is null but request_body has GitHub owner."""
+        records = create_payloads_with_destination_type(
+            1, "github:codecov:123", DestinationType.CODECOV
+        )
+        records[0].request_body = '{"repository":{"owner":{"login":"getsentry"}}}'
+        records[0].provider = None
+        records[0].save(update_fields=["request_body", "provider"])
+        drain_mailbox(records[0].id)
+
+        assert len(responses.calls) == 0
+        assert not WebhookPayload.objects.filter().exists()
+
+    @responses.activate
     @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
     @override_options({"codecov.api-bridge-signing-secret": "test"})
     @override_regions(region_config)
@@ -973,6 +987,16 @@ class ExtractWebhookOwnerTest(TestCase):
             region_name="us",
             provider="bitbucket",
             request_body='{"repository": {"owner": {"username": "getsentry"}}}',
+        )
+        assert _extract_webhook_owner(payload) == "getsentry"
+
+    def test_extract_webhook_owner_null_provider_github_body(self) -> None:
+        """When provider is missing, try GitHub format for backwards compatibility."""
+        payload = self.create_webhook_payload(
+            mailbox_name="github:123",
+            region_name="us",
+            provider=None,
+            request_body='{"repository": {"owner": {"login": "getsentry"}}}',
         )
         assert _extract_webhook_owner(payload) == "getsentry"
 

@@ -78,10 +78,23 @@ SLOW_DELIVERY_THRESHOLD = datetime.timedelta(minutes=10)
 """Duration threshold for logging slow webhook deliveries."""
 
 
+def _extract_github_owner_from_body(body: dict) -> str | None:
+    """Extract repository.owner.login from a GitHub-style webhook body."""
+    repository = body.get("repository") if isinstance(body.get("repository"), dict) else None
+    owner = (
+        repository.get("owner")
+        if repository and isinstance(repository.get("owner"), dict)
+        else None
+    )
+    login = owner.get("login") if owner else None
+    return login if isinstance(login, str) else None
+
+
 def _extract_webhook_owner(payload: WebhookPayload) -> str | None:
     """
     Extract owner/identifier from webhook payload body based on provider.
     Returns None on parse errors or unsupported providers.
+    When provider is missing/empty, tries GitHub format for backwards compatibility.
     """
     try:
         body = orjson.loads(payload.request_body)
@@ -92,15 +105,8 @@ def _extract_webhook_owner(payload: WebhookPayload) -> str | None:
 
     provider = (payload.provider or "").lower()
 
-    if provider in ("github", "github_enterprise"):
-        repository = body.get("repository") if isinstance(body.get("repository"), dict) else None
-        owner = (
-            repository.get("owner")
-            if repository and isinstance(repository.get("owner"), dict)
-            else None
-        )
-        login = owner.get("login") if owner else None
-        return login if isinstance(login, str) else None
+    if provider in ("github", "github_enterprise") or not provider:
+        return _extract_github_owner_from_body(body)
 
     if provider == "gitlab":
         project = body.get("project") if isinstance(body.get("project"), dict) else None
@@ -663,7 +669,9 @@ def _should_skip_codecov_forward_for_github_owner(payload: WebhookPayload) -> bo
     )
     if not skip_set:
         return False
-    if (payload.provider or "").lower() not in ("github", "github_enterprise"):
+    # Only apply for GitHub webhooks; when provider is missing, try GitHub format from body
+    provider = (payload.provider or "").lower()
+    if provider not in ("github", "github_enterprise", ""):
         return False
     owner = _extract_webhook_owner(payload)
     if owner is not None and owner in skip_set:
