@@ -149,7 +149,6 @@ def schedule_all_thread_updates(
         integration_id=integration_id,
         organization_id=organization_id,
     ).capture() as lifecycle:
-
         serialized_data = NotificationDataDto(notification_data=data).to_dict()
         lifecycle.add_extra({"thread_count": len(threads)})
         for thread in threads:
