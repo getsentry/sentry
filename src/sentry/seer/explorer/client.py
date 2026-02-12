@@ -429,6 +429,7 @@ class SeerExplorerClient:
         category_value: str | None = ...,
         offset: int | None = ...,
         limit: int | None = ...,
+        project_ids: list[int] | None = ...,
         expand: Literal["prs"] = ...,
         only_current_user: bool = ...,
     ) -> list[ExplorerRunWithPrs]: ...
@@ -440,6 +441,7 @@ class SeerExplorerClient:
         category_value: str | None = ...,
         offset: int | None = ...,
         limit: int | None = ...,
+        project_ids: list[int] | None = ...,
         expand: None = ...,
         only_current_user: bool = ...,
     ) -> list[ExplorerRun]: ...
@@ -450,6 +452,7 @@ class SeerExplorerClient:
         category_value: str | None = None,
         offset: int | None = None,
         limit: int | None = None,
+        project_ids: list[int] | None = None,
         expand: Literal["prs"] | None = None,
         only_current_user: bool = True,
     ) -> list[ExplorerRunWithPrs] | list[ExplorerRun]:
@@ -486,6 +489,8 @@ class SeerExplorerClient:
             payload["category_value"] = category_value
         if offset is not None:
             payload["offset"] = offset
+        if project_ids is not None:
+            payload["project_ids"] = project_ids
         if limit is not None:
             payload["limit"] = limit
         if expand is not None:

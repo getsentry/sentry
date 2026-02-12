@@ -57,7 +57,12 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
             try:
                 client = SeerExplorerClient(organization, request.user)
                 seer_data = client.get_runs(
-                    offset=offset, limit=limit, only_current_user=False, expand="prs"
+                    category_key="autofix",
+                    offset=offset,
+                    limit=limit,
+                    only_current_user=False,
+                    expand="prs",
+                    project_ids=project_ids,
                 )
             except SeerPermissionError as e:
                 raise PermissionDenied(e.message) from e
