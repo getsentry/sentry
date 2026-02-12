@@ -34,9 +34,9 @@ class MissingSdkIntegrationFinishReason(StrEnum):
 class MissingSdkIntegrationDetail(BaseModel):
     """Detail about a single missing SDK integration."""
 
-    name: str = Field(..., max_length=200)
-    summary: str = Field(..., max_length=500)
-    docs_url: str = Field(..., max_length=500)
+    name: str = Field(..., min_length=1, max_length=200)
+    summary: str = Field(..., min_length=1, max_length=500)
+    docs_url: str = Field(..., min_length=1, max_length=500)
 
 
 class MissingSdkIntegrationsResult(BaseModel):
