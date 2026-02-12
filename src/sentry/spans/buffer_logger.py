@@ -145,14 +145,12 @@ def emit_observability_metrics(
 def compare_metrics(
     metrics_a: list[EvalshaData],
     metrics_b: list[EvalshaData],
-    metrics_a_prefix: str,
     metrics_b_prefix: str,
 ) -> None:
     """
-    Reports the difference (SET - ZSET) between metrics.
-
-    SET metrics are expected to have a "set_" prefix (e.g., "set_redirect_depth").
-    Special cases are handled via ZSET_TO_SET_KEY_MAPPING.
+    Reports the difference between two sets of metrics. The first set (_a) is expected
+    to have no prefix on its metrics, the second set (_b) is expected to have a prefix
+    added to its metrics.
     """
     differences: dict[str, tuple[float, float, float, float]] = {}
 
@@ -163,12 +161,12 @@ def compare_metrics(
 
         for raw_key, value in evalsha_a:
             set_a_key = raw_key.decode("utf-8")
-            set_b_key = set_a_key.replace(metrics_a_prefix, metrics_b_prefix)
+            set_b_key = f"{metrics_b_prefix}_{set_a_key}"
 
             if set_b_key not in set_dict:
                 continue
 
-            diff = set_dict[set_b_key] - set_dict[set_a_key]
+            diff = set_dict[set_b_key] - value
 
             if set_a_key not in differences:
                 differences[set_a_key] = (diff, diff, diff, 1.0)
@@ -181,9 +179,7 @@ def compare_metrics(
                 )
 
     for key, (min_val, max_val, sum_val, count) in differences.items():
-        metrics.gauge(f"spans.buffer.{metrics_a_prefix}_vs_{metrics_b_prefix}.min_{key}", min_val)
-        metrics.gauge(f"spans.buffer.{metrics_a_prefix}_vs_{metrics_b_prefix}.max_{key}", max_val)
-        metrics.gauge(
-            f"spans.buffer.{metrics_a_prefix}_vs_{metrics_b_prefix}.avg_{key}", sum_val / count
-        )
-        metrics.gauge(f"spans.buffer.{metrics_a_prefix}_vs_{metrics_b_prefix}.count_{key}", count)
+        metrics.gauge(f"spans.buffer.orig_vs_{metrics_b_prefix}.min_{key}", min_val)
+        metrics.gauge(f"spans.buffer.orig_vs_{metrics_b_prefix}.max_{key}", max_val)
+        metrics.gauge(f"spans.buffer.orig_vs_{metrics_b_prefix}.avg_{key}", sum_val / count)
+        metrics.gauge(f"spans.buffer.orig_vs_{metrics_b_prefix}.count_{key}", count)
