@@ -275,6 +275,7 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
                 "repo_name": repo_name,
                 "run_id": run_id,
                 "finish_reason": finish_reason,
+                "missing_integrations_count": len(missing_integrations),
             },
         )
 
