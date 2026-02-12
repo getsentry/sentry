@@ -306,8 +306,7 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
         # Only create issues if the detection was successful
         if finish_reason == MissingSdkIntegrationFinishReason.SUCCESS:
             for integration in missing_integrations:
-                docs_url = integration.docs_url or integration_docs_url
-                description = f"{integration.summary}\n\n" f"Learn more: {docs_url}"
+                description = f"{integration.summary}\n\n" f"Learn more: {integration.docs_url}"
 
                 logger.info(
                     "missing_sdk_integration_detector.issue_would_be_created",
@@ -319,7 +318,7 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
                         "subtitle": integration.summary,
                         "description": description,
                         "repository_name": repo_name,
-                        "docs_url": docs_url,
+                        "docs_url": integration.docs_url,
                     },
                 )
                 metrics.incr(
