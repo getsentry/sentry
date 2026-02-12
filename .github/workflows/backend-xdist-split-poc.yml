@@ -142,20 +142,17 @@ jobs:
         with:
           mode: migrations
 
-      - name: Run tier 1 tests (xdist -n 3)
-        env:
-          SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
+      # G1: Pass specific tier files to pytest instead of `tests/`.
+      # This avoids discovering ALL 32K+ tests and discarding most of them.
+      # Collection scans only tier1 files (~1496) instead of ALL test files (~2226).
+      - name: Run tier 1 tests (xdist -n 3, direct file collection)
         run: |
           echo "=== Tier 1: Postgres + Redis only (no Snuba stack) ==="
           echo "Shard ${{ matrix.instance }} of 5, xdist workers: 3"
           echo "Test files: $(wc -l < /tmp/tier1-tests.txt)"
           python3 -b -m pytest \
-            tests \
+            $(cat /tmp/tier1-tests.txt) \
             --reuse-db \
-            --ignore tests/acceptance \
-            --ignore tests/apidocs \
-            --ignore tests/js \
-            --ignore tests/tools \
             -n 3 \
             --dist=loadfile \
             --json-report \
@@ -207,131 +204,137 @@ jobs:
           name: tier-file-lists
           path: /tmp/
 
-      - name: Setup sentry env (Full Snuba stack)
+      # H1: Skip devservices in setup-sentry — we start it ourselves for parallel overlap.
+      # This still sets up Python, venv, env vars, fast_editable, sentry init.
+      - name: Setup sentry env (skip devservices for overlapped startup)
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           mode: backend-ci
+          skip-devservices: true
 
-      - name: Create per-worker ClickHouse databases and Snuba instances
+      # G1 + H1: Start devservices + per-worker bootstrap in background while pytest
+      # collects tests. Pytest collection (~100-120s) doesn't need services — it only
+      # discovers test functions. By overlapping, we save ~80-113s per shard.
+      - name: Run tier 2 tests (overlapped startup + direct file collection)
+        env:
+          # H1: _requires_snuba will wait up to 180s for per-worker Snuba to be ready
+          SNUBA_WAIT_TIMEOUT: '180'
+          # Docker bridge gateway is always 172.17.0.1 on GitHub Actions
+          DJANGO_LIVE_TEST_SERVER_ADDRESS: '172.17.0.1'
         run: |
           XDIST_N=${XDIST_WORKERS:-2}
-          echo "Setting up $XDIST_N per-worker ClickHouse databases + Snuba instances"
+          PHASE_START=$(date +%s)
 
-          # Get the Snuba container image and network
-          SNUBA_IMAGE=$(docker inspect snuba-snuba-1 --format '{{.Config.Image}}')
-          SNUBA_NETWORK=$(docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
-          echo "Snuba image: $SNUBA_IMAGE"
-          echo "Snuba network: $SNUBA_NETWORK"
+          # ── H1: Start devservices + per-worker bootstrap in background ──
+          (
+            echo "[services] Running sentry init + devservices up --mode backend-ci..."
+            SERVICE_START=$(date +%s)
+            sentry init
+            devservices up --mode backend-ci
+            SERVICE_END=$(date +%s)
+            echo "[services] devservices ready in $((SERVICE_END - SERVICE_START))s"
 
-          # Get the base database name (what the default Snuba uses)
-          # Default Snuba has no CLICKHOUSE_DATABASE set, so it uses "default"
-          BASE_DB="default"
+            docker ps -a
 
-          BASE_COUNT=$(curl -s 'http://localhost:8123/' --data-binary \
-            "SELECT count() FROM system.tables WHERE database = '${BASE_DB}'" | tr -d '\n')
-          echo "Base database '$BASE_DB' has $BASE_COUNT tables"
+            # Per-worker ClickHouse databases + Snuba instances
+            SNUBA_IMAGE=$(docker inspect snuba-snuba-1 --format '{{.Config.Image}}')
+            SNUBA_NETWORK=$(docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
+            echo "[services] Snuba image: $SNUBA_IMAGE, network: $SNUBA_NETWORK"
 
-          # Run bootstrap + container start for each worker IN PARALLEL
-          # Each worker targets a different ClickHouse database so no DDL conflicts
-          BOOTSTRAP_START=$(date +%s)
+            BOOTSTRAP_START=$(date +%s)
+            for i in $(seq 0 $((XDIST_N - 1))); do
+              (
+                WORKER_DB="default_gw${i}"
+                WORKER_PORT=$((1230 + i))
+                echo "[services][gw${i}] Setting up: database=$WORKER_DB, port=$WORKER_PORT"
 
-          for i in $(seq 0 $((XDIST_N - 1))); do
-            (
-              WORKER_DB="default_gw${i}"
-              WORKER_PORT=$((1230 + i))
-              echo "[gw${i}] Setting up: database=$WORKER_DB, port=$WORKER_PORT"
+                curl -s 'http://localhost:8123/' --data-binary "CREATE DATABASE IF NOT EXISTS ${WORKER_DB}"
 
-              # Create the worker database
-              curl -s 'http://localhost:8123/' --data-binary "CREATE DATABASE IF NOT EXISTS ${WORKER_DB}"
+                echo "[services][gw${i}] Running Snuba bootstrap for $WORKER_DB..."
+                docker run --rm \
+                  --network "$SNUBA_NETWORK" \
+                  -e "CLICKHOUSE_DATABASE=${WORKER_DB}" \
+                  -e "CLICKHOUSE_HOST=clickhouse" \
+                  -e "CLICKHOUSE_PORT=9000" \
+                  -e "CLICKHOUSE_HTTP_PORT=8123" \
+                  -e "DEFAULT_BROKERS=kafka:9093" \
+                  -e "REDIS_HOST=redis" \
+                  -e "REDIS_PORT=6379" \
+                  -e "REDIS_DB=1" \
+                  -e "SNUBA_SETTINGS=docker" \
+                  "$SNUBA_IMAGE" bootstrap --force 2>&1 | tail -3
+                echo "[services][gw${i}] Bootstrap complete"
 
-              # Use Snuba bootstrap to create all tables (including materialized views)
-              echo "[gw${i}] Running Snuba bootstrap for $WORKER_DB..."
-              docker run --rm \
-                --network "$SNUBA_NETWORK" \
-                -e "CLICKHOUSE_DATABASE=${WORKER_DB}" \
-                -e "CLICKHOUSE_HOST=clickhouse" \
-                -e "CLICKHOUSE_PORT=9000" \
-                -e "CLICKHOUSE_HTTP_PORT=8123" \
-                -e "DEFAULT_BROKERS=kafka:9093" \
-                -e "REDIS_HOST=redis" \
-                -e "REDIS_PORT=6379" \
-                -e "REDIS_DB=1" \
-                -e "SNUBA_SETTINGS=docker" \
-                "$SNUBA_IMAGE" bootstrap --force 2>&1 | tail -5
-              echo "[gw${i}] Bootstrap complete"
-
-              W_COUNT=$(curl -s 'http://localhost:8123/' --data-binary \
-                "SELECT count() FROM system.tables WHERE database = '${WORKER_DB}'" | tr -d '\n')
-              echo "[gw${i}] $WORKER_DB: $W_COUNT tables (base has $BASE_COUNT)"
-
-              # Start a per-worker Snuba container
-              docker run -d \
-                --name "snuba-gw${i}" \
-                --network "$SNUBA_NETWORK" \
-                -p "${WORKER_PORT}:1218" \
-                -e "CLICKHOUSE_DATABASE=${WORKER_DB}" \
-                -e "CLICKHOUSE_HOST=clickhouse" \
-                -e "CLICKHOUSE_PORT=9000" \
-                -e "CLICKHOUSE_HTTP_PORT=8123" \
-                -e "DEFAULT_BROKERS=kafka:9093" \
-                -e "REDIS_HOST=redis" \
-                -e "REDIS_PORT=6379" \
-                -e "REDIS_DB=1" \
-                -e "SNUBA_SETTINGS=docker" \
-                -e "DEBUG=1" \
-                "$SNUBA_IMAGE" api
-              echo "[gw${i}] Started Snuba container on port $WORKER_PORT"
-            ) &
-          done
-
-          echo "Waiting for all $XDIST_N parallel bootstrap jobs..."
-          wait
-          BOOTSTRAP_END=$(date +%s)
-          echo "All bootstrap jobs complete in $((BOOTSTRAP_END - BOOTSTRAP_START))s (parallel)"
-
-          # Wait for all per-worker Snuba instances to be ready
-          echo ""
-          echo "Waiting for per-worker Snuba instances to be ready..."
-          for i in $(seq 0 $((XDIST_N - 1))); do
-            WORKER_PORT=$((1230 + i))
-            for attempt in $(seq 1 30); do
-              if curl -sf "http://localhost:${WORKER_PORT}/health" > /dev/null 2>&1; then
-                echo "  snuba-gw${i} (port $WORKER_PORT) is ready"
-                break
-              fi
-              if [ "$attempt" -eq 30 ]; then
-                echo "  ERROR: snuba-gw${i} failed to start"
-                docker logs "snuba-gw${i}" 2>&1 | tail -20
-                exit 1
-              fi
-              sleep 1
+                docker run -d \
+                  --name "snuba-gw${i}" \
+                  --network "$SNUBA_NETWORK" \
+                  -p "${WORKER_PORT}:1218" \
+                  -e "CLICKHOUSE_DATABASE=${WORKER_DB}" \
+                  -e "CLICKHOUSE_HOST=clickhouse" \
+                  -e "CLICKHOUSE_PORT=9000" \
+                  -e "CLICKHOUSE_HTTP_PORT=8123" \
+                  -e "DEFAULT_BROKERS=kafka:9093" \
+                  -e "REDIS_HOST=redis" \
+                  -e "REDIS_PORT=6379" \
+                  -e "REDIS_DB=1" \
+                  -e "SNUBA_SETTINGS=docker" \
+                  -e "DEBUG=1" \
+                  "$SNUBA_IMAGE" api
+                echo "[services][gw${i}] Started Snuba container on port $WORKER_PORT"
+              ) &
             done
-          done
-          echo ""
-          echo "All per-worker Snuba instances ready!"
+            wait
+            BOOTSTRAP_END=$(date +%s)
+            echo "[services] All bootstrap jobs complete in $((BOOTSTRAP_END - BOOTSTRAP_START))s"
 
-      - name: Run tier 2 parallel tests (xdist -n 3, per-worker databases)
-        env:
-          SELECTED_TESTS_FILE: /tmp/tier2-tests.txt
-        run: |
-          echo "=== Tier 2: Per-worker ClickHouse databases ==="
-          echo "Shard ${{ matrix.instance }} of 17, xdist workers: 3"
+            # Wait for per-worker Snuba health
+            for i in $(seq 0 $((XDIST_N - 1))); do
+              WORKER_PORT=$((1230 + i))
+              for attempt in $(seq 1 30); do
+                if curl -sf "http://localhost:${WORKER_PORT}/health" > /dev/null 2>&1; then
+                  echo "[services] snuba-gw${i} (port $WORKER_PORT) ready"
+                  break
+                fi
+                [ "$attempt" -eq 30 ] && echo "[services] ERROR: snuba-gw${i} failed" && docker logs "snuba-gw${i}" 2>&1 | tail -20 && exit 1
+                sleep 1
+              done
+            done
+
+            TOTAL_END=$(date +%s)
+            echo "[services] All services + bootstrap ready in $((TOTAL_END - SERVICE_START))s"
+          ) 2>&1 &
+          SERVICES_PID=$!
+
+          # ── G1 + H1: Start pytest immediately with specific tier files ──
+          # Pytest collection (~100-120s) runs in parallel with service startup above.
+          # The _requires_snuba fixture will wait (SNUBA_WAIT_TIMEOUT) for services.
+          echo "=== Tier 2: Overlapped startup + direct file collection ==="
+          echo "Shard ${{ matrix.instance }} of 17, xdist workers: $XDIST_N"
           echo "Test files: $(wc -l < /tmp/tier2-tests.txt)"
+          echo "Services starting in background (PID $SERVICES_PID)..."
+
+          PYTEST_EXIT=0
           python3 -b -m pytest \
-            tests \
+            $(cat /tmp/tier2-tests.txt) \
             --reuse-db \
-            --ignore tests/acceptance \
-            --ignore tests/apidocs \
-            --ignore tests/js \
-            --ignore tests/tools \
-            -n 3 \
+            -n $XDIST_N \
             --dist=loadfile \
             --json-report \
             --json-report-file=".artifacts/pytest.json" \
             --json-report-omit=log \
             --junit-xml=".artifacts/pytest.junit.xml" \
-            -o junit_suite_name=pytest-tier2
+            -o junit_suite_name=pytest-tier2 || PYTEST_EXIT=$?
+
+          PHASE_END=$(date +%s)
+          echo ""
+          echo "=== Timing Summary ==="
+          echo "Total wall-clock: $((PHASE_END - PHASE_START))s"
+
+          # Make sure background services process is done (it should be by now)
+          wait $SERVICES_PID 2>/dev/null || true
+
+          exit $PYTEST_EXIT
 
       - name: Inspect failure
         if: failure()

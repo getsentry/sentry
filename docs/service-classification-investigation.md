@@ -2251,3 +2251,108 @@ group after ~58 min because all tier2 tests landed on 1 shard, but the bootstrap
 itself was functional).
 
 **Implementation:** Applied to main branch workflow (`backend-xdist-split-poc.yml`).
+
+### Optimization D: Conditional reset_snuba Reclassification — VALIDATED (limited impact)
+
+**POC branch:** `mchen/conditional-reset-snuba-poc` (Classify Run 21925785204)
+**Test branch:** `mchen/reclassified-tiers-poc` (Test Run 21927760453)
+
+**Approach:** Remove `_requires_snuba` from the classifier's static `FIXTURE_SERVICE_MAP` and make
+both `_requires_snuba` and `reset_snuba` conditional on `SENTRY_SKIP_SNUBA_RESET=1`. This lets the
+classifier detect Snuba dependency purely via runtime socket monitoring — tests that only connect to
+Snuba through cleanup fixtures (not actual queries/writes) lose their `snuba` tag.
+
+**Classification result:**
+- Previous: 10,591 snuba-tagged tests
+- Reclassified: 8,729 snuba-tagged tests
+- **1,862 tests reclassified** (17.6% reduction)
+
+**But file-level split limits the impact:**
+- Tier1 files: 1,496 → 1,524 (**only 28 files moved**)
+- Tier2 files: 730 → 702
+- Most of the 1,862 reclassified tests live in "mixed" files (some tests need Snuba, some don't).
+  The `split-tests-by-tier.py` script assigns entire files to tier2 if *any* test needs Snuba.
+
+**Timing result:** No meaningful improvement. Tier2 max: 11.4m → 11.5m (noise). Tier1 max: 10.5m → 11.0m
+(slightly worse from extra tests). 28 files across 17 tier2 shards is ~1-2 files per shard — negligible.
+
+**Conclusion:** The reclassification itself is correct (all 5 tier1 shards passed with reclassified
+SnubaTestCase tests running without Snuba). But the file-level split means only 28/730 tier2 files moved.
+To unlock Optimization D's potential, we'd need **test-level splitting** — running individual tests from
+the same file on different tiers. This is a deeper change to pytest-split/xdist distribution.
+
+### Optimization F: SENTRY_SKIP_SERVICE_VALIDATION — NO IMPACT
+
+**POC branch:** `mchen/skip-service-validation-poc` (Run 21926410809)
+
+**Change:** Set `SENTRY_SKIP_SERVICE_VALIDATION=1` in CI to skip 10 service validations during
+`initialize_app()` (analytics, buffer, digests, newsletter, nodestore, quotas, ratelimits, search,
+tagstore, tsdb).
+
+**Result:** All 17 tier2 shards passed — the env var is safe. However, no measurable timing improvement
+was observed. The estimated 15-25s savings were optimistic; the validation is fast in practice.
+
+**Conclusion:** Not worth the added complexity. Dropped.
+
+### Iteration 14: Per-Shard Overhead Deep Dive
+
+Detailed timing analysis of tier2 shard 0 (run 21923872780) revealed the true overhead breakdown:
+
+| Phase | Duration | What happens |
+|---|---|---|
+| Setup env | 95s | Python install, 200MB venv cache restore (4s), devservices (79s) |
+| — Image pulling | 44s | ClickHouse (43s) is slowest; others (Kafka, Snuba, bigtable) finish in ~24s |
+| — Health checks | 25s | Snuba takes 25s to become healthy (connects to ClickHouse + Kafka) |
+| Per-worker bootstrap | 34s | 3 parallel `bootstrap --force` + Snuba container startup |
+| **Pytest silent period** | **118s** | Import sentry + Django (~80-90s), discover all 32K tests (~20-30s), spawn 3 xdist workers |
+| xdist scheduling | 23s | First tests dispatched to workers, session fixtures run |
+| Test execution | 310s | Actual tests running |
+
+Key insight: The **118s pytest silent period** is dominated by sentry's Django import (~80-90s), NOT by
+xdist worker spawning. Upstream CI (no xdist, run 21927303373) has an identical 102s pytest init.
+xdist workers import in parallel with the controller — nearly free in wall-clock time.
+
+The entire pre-test overhead is **247s** (setup + bootstrap + collection) — 44% of the total shard time.
+
+**Critical finding:** These phases are currently SEQUENTIAL but don't need to be:
+- `devservices up` (79s) → `bootstrap` (34s) → `pytest collection` (118s)
+- But pytest collection doesn't need services! It only discovers test functions.
+- Overlapping them: max(79+34, 118) = 118s instead of 231s — **saves ~113s per tier2 shard**
+
+#### Optimization G1: Pass specific tier files to pytest (TESTING)
+
+Currently pytest receives `tests/` and discovers ALL 32K tests, then filters to this tier's ~10K tests,
+then shards to ~791 per shard. Passing only the tier's file paths directly eliminates discovering the
+other tier's tests. Estimated savings: ~15-20s (discovery is faster, but the 80-90s import dominates).
+
+#### Optimization H1: Overlap devservices startup with pytest collection (TESTING)
+
+Start `devservices up` + per-worker bootstrap in the background. Run pytest immediately. Modify
+`_requires_snuba` to wait/retry instead of fail-immediately. Collection overlaps with service startup.
+Estimated savings: ~80-113s per tier2 shard.
+
+#### Optimization G2: Remove "Clear Python cache" step (TODO — later)
+
+The `setup-sentry` action runs `find . -type d -name __pycache__ -exec rm -rf {} +` which clears
+all `.pyc` files. On a fresh checkout there are NO `.pyc` files to clear — this is a no-op. But it
+forces Python to recompile all source files on first import instead of using cached bytecode.
+Removing this could save ~5-10s of compilation time during the import phase.
+
+#### Optimization G3: Pre-compile .pyc files (TODO — later)
+
+Run `python -m compileall src/ tests/ -q` before pytest to front-load bytecode compilation.
+This way the 80-90s import phase reads pre-compiled `.pyc` instead of parsing raw `.py` files.
+Estimated savings: ~5-10s per shard. Low effort, no risk.
+
+### Remaining Optimization Options
+
+| # | Optimization | Expected Impact | Effort | Status |
+|---|---|---|---|---|
+| B | Timing-based shard distribution (pytest-split) | ~60s savings | Moderate | Not started |
+| C | Rebalance tier1/tier2 split ratio | Marginal | Trivial | Not started |
+| D+ | Test-level splitting (not file-level) | Potentially large | Complex | Requires pytest-split changes |
+| E | Increase total shards (22→26+) | ~90s+ savings | Cost increase (more runners) | Not started |
+| G1 | Pass specific tier files to pytest | ~15-20s per shard | Low | **Testing** |
+| G2 | Remove "Clear Python cache" step | ~5-10s per shard | Trivial | Noted for later |
+| G3 | Pre-compile .pyc files | ~5-10s per shard | Low | Noted for later |
+| H1 | Overlap devservices with pytest collection | ~80-113s per tier2 shard | Medium | **Testing** |

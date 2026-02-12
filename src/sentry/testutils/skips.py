@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import socket
+import time
 
 import pytest
 
@@ -15,14 +17,48 @@ def _service_available(host: str, port: int) -> bool:
         return True
 
 
+def _wait_for_service(host: str, port: int, timeout: int) -> bool:
+    """Poll for a service to become available, up to `timeout` seconds."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if _service_available(host, port):
+            return True
+        time.sleep(1)
+    return _service_available(host, port)
+
+
 def _requires_service_message(name: str) -> str:
     return f"requires '{name}' server running\n\t💡 Hint: run `devservices up`"
 
 
 @pytest.fixture(scope="session")
 def _requires_snuba() -> None:
-    # TODO: ability to ask devservices what port a service is on
-    if not _service_available("127.0.0.1", 1218):
+    # Determine which port to check. Per-worker Snuba uses ports 1230+N;
+    # the SNUBA env var (set in sentry.py for xdist workers) tells us.
+    port = 1218
+    snuba_url = os.environ.get("SNUBA", "")
+    if snuba_url:
+        try:
+            from urllib.parse import urlparse
+
+            parsed = urlparse(snuba_url)
+            if parsed.port:
+                port = parsed.port
+        except Exception:
+            pass
+
+    # When SNUBA_WAIT_TIMEOUT is set (overlapped startup mode), services may
+    # still be starting while pytest collects tests. Wait instead of failing.
+    wait_timeout = int(os.environ.get("SNUBA_WAIT_TIMEOUT", "0"))
+    if wait_timeout > 0:
+        if _wait_for_service("127.0.0.1", port, wait_timeout):
+            return
+        pytest.fail(
+            f"snuba not available on port {port} after waiting {wait_timeout}s\n"
+            + _requires_service_message("snuba")
+        )
+
+    if not _service_available("127.0.0.1", port):
         pytest.fail(_requires_service_message("snuba"))
 
 
