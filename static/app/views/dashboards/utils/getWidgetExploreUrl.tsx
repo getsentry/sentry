@@ -278,7 +278,7 @@ function _getWidgetExploreUrl(
 
   let sort: string | undefined = undefined;
   if (sortColumn === SpanFields.IS_STARRED_TRANSACTION) {
-    // is_starred_transaction is a widget-only field, skip it in explore
+    // is_starred_transaction is not supported in explore
     sort = undefined;
   } else if (isAggregateField(sortColumn)) {
     if (exploreMode === Mode.SAMPLES) {
