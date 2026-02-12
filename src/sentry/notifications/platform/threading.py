@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from typing import Any
 
 from sentry.notifications.models.notificationrecord import NotificationRecord
 from sentry.notifications.models.notificationthread import NotificationThread
@@ -17,7 +18,7 @@ class ThreadingService:
     """
 
     @staticmethod
-    def compute_thread_key(key_type: NotificationSource, key_data: dict) -> str:
+    def compute_thread_key(key_type: NotificationSource, key_data: dict[str, Any]) -> str:
         """
         Compute a unique thread key from the key type and key data.
 
@@ -39,7 +40,7 @@ class ThreadingService:
     def resolve(
         *,
         key_type: NotificationSource,
-        key_data: dict,
+        key_data: dict[str, Any],
         provider_key: NotificationProviderKey,
         target_id: str,
     ) -> NotificationThread | None:
@@ -52,7 +53,7 @@ class ThreadingService:
 
         Args:
             key_type: The notification source type
-            key_data: Dictionary of identifying data for this thread
+            key_data: Dictionary of identifying data for this thread e.g for issue alerts {"rule_fire_history_id": 123, "rule_action_uuid": "abc-123"}
             provider_key: The notification provider (e.g., "slack", "msteams")
             target_id: The target identifier (e.g., channel_id)
 
@@ -74,13 +75,13 @@ class ThreadingService:
     def store(
         *,
         key_type: NotificationSource,
-        key_data: dict,
+        key_data: dict[str, Any],
         provider_key: NotificationProviderKey,
         target_id: str,
         message_id: str,
         thread_identifier: str,
         thread: NotificationThread | None = None,
-        provider_data: dict | None = None,
+        provider_data: dict[str, Any] | None = None,
     ) -> tuple[NotificationThread, NotificationRecord]:
         """
         Store a notification message and its thread.
