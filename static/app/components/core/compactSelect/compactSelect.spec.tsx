@@ -476,7 +476,9 @@ describe('CompactSelect', () => {
 
       // menu should be closed
       await waitFor(() => {
-        expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+        expect(
+          screen.queryByRole('option', {name: 'Option One'})
+        ).not.toBeInTheDocument();
       });
     });
 
