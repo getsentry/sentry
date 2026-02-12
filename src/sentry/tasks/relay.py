@@ -2,7 +2,7 @@ import logging
 import time
 
 import sentry_sdk
-from django.db import router, transaction
+from django.db import connections, router, transaction
 
 from sentry import options
 from sentry.models.organization import Organization
@@ -305,37 +305,27 @@ def schedule_invalidate_project_config(
     if transaction_db is None:
         transaction_db = router.db_for_write(Project)
 
-    callback = lambda: _schedule_invalidate_project_config(
-        trigger=trigger,
-        trigger_details=trigger_details,
-        organization_id=organization_id,
-        project_id=project_id,
-        public_key=public_key,
-        countdown=countdown,
-    )
+    def _do_schedule():
+        _schedule_invalidate_project_config(
+            trigger=trigger,
+            trigger_details=trigger_details,
+            organization_id=organization_id,
+            project_id=project_id,
+            public_key=public_key,
+            countdown=countdown,
+        )
 
     with sentry_sdk.start_span(
         op="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
     ) as span:
         span.set_tag("transaction_db", transaction_db)
-
-        use_direct_call = False
-        if options.get("relay.invalidation-direct-outside-atomic"):
-            from django.db import connections
-
-            conn = connections[transaction_db]
-            if not conn.in_atomic_block:
-                # No active transaction (autocommit or manual-transaction mode
-                # like in the taskworker). Execute immediately — this is what
-                # on_commit() does in autocommit mode anyway.
-                use_direct_call = True
-
-        if use_direct_call:
-            callback()
+        if (
+            options.get("relay.invalidation-direct-outside-atomic")
+            and not connections[transaction_db].in_atomic_block
+        ):
+            _do_schedule()
         else:
-            # Inside a transaction — defer until commit so the invalidation
-            # sees the committed state.
-            transaction.on_commit(callback, using=transaction_db)
+            transaction.on_commit(_do_schedule, using=transaction_db)
 
 
 def _schedule_invalidate_project_config(
