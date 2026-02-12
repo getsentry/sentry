@@ -96,8 +96,7 @@ jobs:
   tier1-test:
     needs: split-tiers
     name: 'tier1 (${{ matrix.instance }})'
-    runs-on:
-      group: Larger Runners Sentry
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -164,13 +163,13 @@ jobs:
       # Duration-based sharding: TEST_GROUP_STRATEGY=duration reads /tmp/test-durations.json
       # and uses greedy bin packing (LPT algorithm) to balance shard durations.
       # Falls back to hash-based if no duration data available (first run).
-      - name: Run tier 1 tests (xdist -n 6)
+      - name: Run tier 1 tests (xdist -n 3)
         env:
           SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
           TEST_DURATIONS_FILE: /tmp/test-durations.json
         run: |
           echo "=== Tier 1: Postgres + Redis only (no Snuba stack) ==="
-          echo "Shard ${{ matrix.instance }} of 5, xdist workers: 6"
+          echo "Shard ${{ matrix.instance }} of 5, xdist workers: 3"
           echo "Test files: $(wc -l < /tmp/tier1-tests.txt)"
           if [ -s /tmp/test-durations.json ] && [ "$(cat /tmp/test-durations.json)" != "{}" ]; then
             echo "Using duration-based shard allocation"
@@ -179,7 +178,7 @@ jobs:
           fi
           python3 -b -m pytest tests \
             --reuse-db \
-            -n 6 \
+            -n 3 \
             --dist=loadfile \
             --json-report \
             --json-report-file=".artifacts/pytest.json" \
@@ -211,8 +210,7 @@ jobs:
   tier2-parallel-test:
     needs: split-tiers
     name: 'tier2-parallel (${{ matrix.instance }})'
-    runs-on:
-      group: Larger Runners Sentry
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
       contents: read
@@ -229,7 +227,7 @@ jobs:
       # Enable per-worker Snuba database routing
       XDIST_PER_WORKER_SNUBA: '1'
       # Number of xdist workers (must match -n below)
-      XDIST_WORKERS: '6'
+      XDIST_WORKERS: '3'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
