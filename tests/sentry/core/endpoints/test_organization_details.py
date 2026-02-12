@@ -1477,6 +1477,36 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert self.organization.get_option("sentry:enable_seer_coding") is True
 
+    def test_default_coding_agent_handoff_default_none(self) -> None:
+        response = self.get_success_response(self.organization.slug, method="get")
+        assert response.data["defaultCodingAgentHandoff"] is None
+
+    def test_default_coding_agent_handoff_set(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="cursor", external_id="cursor-ext"
+        )
+        data = {"defaultCodingAgentHandoff": integration.id}
+        self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:default_coding_agent_handoff") == integration.id
+
+    def test_default_coding_agent_handoff_clear(self) -> None:
+        self.organization.update_option("sentry:default_coding_agent_handoff", 123)
+        data = {"defaultCodingAgentHandoff": None}
+        self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:default_coding_agent_handoff") is None
+
+    def test_default_coding_agent_handoff_invalid_integration(self) -> None:
+        data = {"defaultCodingAgentHandoff": 999999}
+        self.get_error_response(self.organization.slug, **data, status_code=400)
+
+    def test_default_coding_agent_handoff_other_org_integration(self) -> None:
+        other_org = self.create_organization()
+        integration = self.create_integration(
+            organization=other_org, provider="cursor", external_id="cursor-other"
+        )
+        data = {"defaultCodingAgentHandoff": integration.id}
+        self.get_error_response(self.organization.slug, **data, status_code=400)
+
     @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_flag_set(self) -> None:
         with assume_test_silo_mode_of(AuditLogEntry):

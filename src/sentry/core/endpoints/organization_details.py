@@ -87,6 +87,7 @@ from sentry.dynamic_sampling.utils import (
     is_project_mode_sampling,
 )
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
@@ -490,16 +491,12 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             return value
 
         organization = self.context["organization"]
-        from sentry.integrations.services.integration import integration_service
-
         integration = integration_service.get_integration(
             integration_id=value,
             organization_id=organization.id,
         )
         if not integration:
-            raise serializers.ValidationError(
-                "Integration not found or does not belong to this organization."
-            )
+            raise serializers.ValidationError("Integration not found.")
         return value
 
     def validate_targetSampleRate(self, value):
