@@ -124,6 +124,12 @@ class NotSupported(Exception):
     pass
 
 
+class TokenRefreshError(Exception):
+    """the token refresh could not be completed (e.g. concurrent refresh or stale token)"""
+
+    pass
+
+
 class ApiTokenManager(ControlOutboxProducingManager["ApiToken"]):
     def create(self, *args, **kwargs):
         token_type: AuthTokenType | None = kwargs.get("token_type", None)
@@ -350,6 +356,10 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         )
 
     @classmethod
+    def get_lock_key(cls, token_id: int) -> str:
+        return f"api_token:{token_id}"
+
+    @classmethod
     def from_grant(
         cls,
         grant: ApiGrant,
@@ -472,13 +482,34 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         if self.token_type == AuthTokenType.USER:
             raise NotSupported("User auth tokens do not support refreshing the token")
 
-        if expires_at is None:
-            expires_at = timezone.now() + DEFAULT_EXPIRATION
+        lock = locks.get(
+            self.get_lock_key(self.id),
+            duration=10,
+            name="api_token_refresh",
+        )
 
-        new_token = generate_token(token_type=self.token_type)
-        new_refresh_token = generate_token(token_type=self.token_type)
+        try:
+            with lock.acquire():
+                # Re-fetch inside lock to prevent race condition.
+                # If another request already refreshed this token, the refresh_token
+                # will have changed and this request should fail.
+                try:
+                    current = ApiToken.objects.get(id=self.id)
+                except ApiToken.DoesNotExist:
+                    raise TokenRefreshError("token no longer exists")
 
-        self.update(token=new_token, refresh_token=new_refresh_token, expires_at=expires_at)
+                if current.refresh_token != self.refresh_token:
+                    raise TokenRefreshError("refresh token has already been rotated")
+
+                if expires_at is None:
+                    expires_at = timezone.now() + DEFAULT_EXPIRATION
+
+                new_token = generate_token(token_type=self.token_type)
+                new_refresh_token = generate_token(token_type=self.token_type)
+
+                self.update(token=new_token, refresh_token=new_refresh_token, expires_at=expires_at)
+        except UnableToAcquireLock:
+            raise TokenRefreshError("token refresh already in progress")
 
     def get_relocation_scope(self) -> RelocationScope:
         if self.application_id is not None:
