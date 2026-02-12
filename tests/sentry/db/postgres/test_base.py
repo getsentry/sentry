@@ -75,7 +75,7 @@ def test_sql_note() -> None:
 @django_db_all
 def test_close_reconnect_resets_transaction_state() -> None:
     """Test that close(reconnect=True) properly resets transaction state.
-    
+
     When a PostgreSQL connection times out during a long transaction,
     the reconnection logic should clear all transaction state to avoid
     InterfaceError when trying to set autocommit on a closed connection.
@@ -87,12 +87,12 @@ def test_close_reconnect_resets_transaction_state() -> None:
     connection.commit_on_exit = False
     connection.run_on_commit = [lambda: None]
     connection.run_commit_hooks_on_set_autocommit_on = True
-    if hasattr(connection, 'closed_in_transaction'):
+    if hasattr(connection, "closed_in_transaction"):
         connection.closed_in_transaction = True
-    
+
     # Close with reconnect=True should reset all transaction state
     connection.close(reconnect=True)
-    
+
     # Verify all transaction state is reset
     assert connection.in_atomic_block is False
     assert connection.needs_rollback is False
@@ -100,5 +100,5 @@ def test_close_reconnect_resets_transaction_state() -> None:
     assert connection.commit_on_exit is True
     assert connection.run_on_commit == []
     assert connection.run_commit_hooks_on_set_autocommit_on is False
-    if hasattr(connection, 'closed_in_transaction'):
+    if hasattr(connection, "closed_in_transaction"):
         assert connection.closed_in_transaction is False
