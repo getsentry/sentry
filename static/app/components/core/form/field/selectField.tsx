@@ -59,11 +59,7 @@ export function SelectField({
         );
 
         if (disabledReason) {
-          return (
-            <Tooltip skipWrapper title={disabledReason}>
-              {select}
-            </Tooltip>
-          );
+          return <Tooltip title={disabledReason}>{select}</Tooltip>;
         }
 
         return select;
