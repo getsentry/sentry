@@ -1,7 +1,7 @@
 import logging
 from enum import StrEnum
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from sentry import options
 from sentry.autopilot.tasks.common import AutopilotDetectorName, create_instrumentation_issue
@@ -11,6 +11,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.models import SeerPermissionError
+from sentry.seer.seer_setup import has_seer_access
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import autopilot_tasks
 from sentry.utils import metrics
@@ -28,12 +29,21 @@ class MissingSdkIntegrationFinishReason(StrEnum):
     SUCCESS = "success"
     MISSING_SENTRY_INIT = "missing_sentry_init"
     MISSING_DEPENDENCY_FILE = "missing_dependency_file"
+    CODE_PATH_NOT_FOUND = "code_path_not_found"
+
+
+class MissingSdkIntegrationDetail(BaseModel):
+    """Detail about a single missing SDK integration."""
+
+    name: str = Field(..., min_length=1, max_length=200)
+    summary: str = Field(..., min_length=1, max_length=500)
+    docs_url: str = Field(..., min_length=1, max_length=500)
 
 
 class MissingSdkIntegrationsResult(BaseModel):
     """Result schema for missing SDK integrations detection."""
 
-    missing_integrations: list[str]
+    missing_integrations: list[MissingSdkIntegrationDetail]
     finish_reason: str
 
 
@@ -57,6 +67,14 @@ def run_missing_sdk_integration_detector() -> None:
             )
             continue
 
+        # Check gen AI consent before spawning child tasks
+        if not has_seer_access(project.organization):
+            logger.info(
+                "missing_sdk_integration_detector.no_gen_ai_access",
+                extra={"project_id": project_id, "organization_id": project.organization_id},
+            )
+            continue
+
         # Check platform support
         platform_supported = any(
             project.platform and project.platform.startswith(prefix)
@@ -70,25 +88,36 @@ def run_missing_sdk_integration_detector() -> None:
             continue
 
         # Get repo configs for this project
-        repo_configs = (
+        repo_names = (
             RepositoryProjectPathConfig.objects.filter(
                 project=project,
                 repository__status=ObjectStatus.ACTIVE,
+                repository__provider="integrations:github",
             )
-            .select_related("repository")
-            .values("repository__name", "source_root")
+            .order_by("repository__name")
+            .distinct("repository__name")
+            .values_list("repository__name", flat=True)
         )
-
-        for config in repo_configs:
+        for repo_name in repo_names:
             run_missing_sdk_integration_detector_for_project_task.apply_async(
                 args=(
                     project.organization_id,
                     project.id,
-                    config["repository__name"],
-                    config["source_root"],
+                    repo_name,
                 ),
                 headers={"sentry-propagate-traces": False},
             )
+
+
+def _record_error(project_id: int, error_type: str) -> None:
+    metrics.incr(
+        "autopilot.missing_sdk_integration_detector.error",
+        tags={
+            "project_id": str(project_id),
+            "error_type": error_type,
+        },
+        sample_rate=1.0,
+    )
 
 
 @instrumented_task(
@@ -97,7 +126,7 @@ def run_missing_sdk_integration_detector() -> None:
     processing_deadline_duration=280,
 )
 def run_missing_sdk_integration_detector_for_project_task(
-    organization_id: int, project_id: int, repo_name: str, source_root: str
+    organization_id: int, project_id: int, repo_name: str
 ) -> list[str] | None:
     """
     Detect missing SDK integrations for a project using Seer Explorer.
@@ -117,7 +146,6 @@ def run_missing_sdk_integration_detector_for_project_task(
             "organization_id": organization_id,
             "project_id": project_id,
             "repo_name": repo_name,
-            "source_root": source_root,
         },
     )
 
@@ -140,6 +168,7 @@ def run_missing_sdk_integration_detector_for_project_task(
             intelligence_level="medium",
         )
     except SeerPermissionError:
+        _record_error(project.id, "SeerPermissionError")
         logger.exception(
             "missing_sdk_integration_detector.no_seer_access",
             extra={"organization_id": organization.id, "project_id": project.id},
@@ -168,12 +197,15 @@ def run_missing_sdk_integration_detector_for_project_task(
 Find missing Sentry SDK integrations for the project `{project.slug}` in repository `{repo_name}`.
 
 # Locate Project Directory
-The project should be at: `{source_root or "/"}`
+Find the directory in the repository that contains the {project.platform} project `{project.slug}`.
 
-If this path doesn't exist or contains no dependency files:
-1. Check the repository root
-2. Look for a directory named `{project.slug}`
+Use these hints to locate it:
+1. Check the repository root for dependency files
+2. Look for a directory named `{project.slug}` or similarly named
 3. Check common monorepo locations: `packages/`, `apps/`, `services/`
+4. Look for directories containing {project.platform} dependency files
+
+If you cannot locate the project directory, return `{MissingSdkIntegrationFinishReason.CODE_PATH_NOT_FOUND}` as the finish reason and an empty list of missing integrations.
 
 Once located, analyze ONLY that directory. Do not read files from parent or sibling directories.
 
@@ -210,19 +242,23 @@ Only report an integration if ALL of the following are true. Check each criterio
 4. [ ] The integration is NOT already configured in `Sentry.init`
 5. [ ] The integration is NOT explicitly disabled in `Sentry.init`
 
-General-purpose integrations that don't require a specific package (e.g., `extraErrorDataIntegration`, `replayIntegration`, `feedbackIntegration`, `captureConsoleIntegration`) will never pass criterion 1.
+General-purpose integrations that don't require a specific package (e.g., `extraErrorDataIntegration`, `replayIntegration`, `feedbackIntegration`, `captureConsoleIntegration`, `httpClientIntegration`, `browserTracingIntegration`) will never pass criterion 1.
 
 # Output
 
 Return a JSON object with:
-- `missing_integrations`: Array of missing integration names using exact names from the docs
+- `missing_integrations`: Array of objects, each with:
+  - `name`: The exact integration name from the docs (e.g., `zodErrorsIntegration`)
+  - `summary`: A 1-2 sentence summary explaining what features this integration enables and why it is relevant to the project (e.g., which dependency triggers it)
+  - `docs_url`: The full URL to the integration's documentation page on docs.sentry.io
 - `finish_reason`: A short snake_case string describing the outcome:
   - `{MissingSdkIntegrationFinishReason.SUCCESS}`: Successfully analyzed the project (even if no integrations are missing)
   - `{MissingSdkIntegrationFinishReason.MISSING_SENTRY_INIT}`: Could not find Sentry initialization code (`Sentry.init` or `sentry_sdk.init`)
   - `{MissingSdkIntegrationFinishReason.MISSING_DEPENDENCY_FILE}`: Could not find any dependency file for the project
+  - `{MissingSdkIntegrationFinishReason.CODE_PATH_NOT_FOUND}`: Could not locate the project directory in the repository
   - For other issues, use a descriptive snake_case reason (e.g., `docs_unavailable`)
 
-Example success: `{{"missing_integrations": ["zodErrorsIntegration"], "finish_reason": "{MissingSdkIntegrationFinishReason.SUCCESS}"}}`
+Example success: `{{"missing_integrations": [{{"name": "zodErrorsIntegration", "summary": "Enable richer Zod validation errors in Sentry — since your project already uses the zod package, adding this integration gives you detailed schema context on every validation failure.", "docs_url": "https://docs.sentry.io/platforms/javascript/configuration/integrations/zod/"}}], "finish_reason": "{MissingSdkIntegrationFinishReason.SUCCESS}"}}`
 Example no missing: `{{"missing_integrations": [], "finish_reason": "{MissingSdkIntegrationFinishReason.SUCCESS}"}}`
 Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkIntegrationFinishReason.MISSING_SENTRY_INIT}"}}`"""
 
@@ -242,6 +278,7 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
         # Extract the structured result
         result = state.get_artifact("missing_integrations", MissingSdkIntegrationsResult)
         if result is None:
+            _record_error(project.id, "no_artifact_result")
             logger.warning(
                 "missing_sdk_integration_detector.no_artifact_result",
                 extra={
@@ -254,10 +291,10 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
 
         missing_integrations = result.missing_integrations
         finish_reason = result.finish_reason
+        integrations_count = len(missing_integrations)
 
         logger.warning(
-            "missing_sdk_integration_detector.integrations_found: %s",
-            missing_integrations,
+            "missing_sdk_integration_detector.integrations_found",
             extra={
                 "organization_id": organization.id,
                 "project_id": project.id,
@@ -266,57 +303,58 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
                 "repo_name": repo_name,
                 "run_id": run_id,
                 "finish_reason": finish_reason,
+                "integrations_count": integrations_count,
             },
         )
+
+        if integrations_count > 0:
+            metrics.incr(
+                "autopilot.missing_sdk_integration_detector.integrations_found",
+                sample_rate=1.0,
+            )
 
         # Only create issues if the detection was successful
         if finish_reason == MissingSdkIntegrationFinishReason.SUCCESS:
             for integration in missing_integrations:
+                description = f"{integration.summary}\n\n" f"Learn more: {integration.docs_url}"
+
                 logger.info(
                     "missing_sdk_integration_detector.issue_would_be_created",
                     extra={
                         "project_id": project.id,
                         "project_slug": project.slug,
-                        "integration": integration,
-                        "title": f"Missing SDK Integration: {integration}",
-                        "subtitle": "Get better insights by enabling this integration",
-                        "description": f"The {integration} SDK integration is available...",
+                        "integration": integration.name,
+                        "title": f"Missing SDK Integration: {integration.name}",
+                        "subtitle": integration.summary,
+                        "description": description,
                         "repository_name": repo_name,
-                        "integration_docs_url": integration_docs_url,
+                        "docs_url": integration.docs_url,
                     },
                 )
                 metrics.incr(
                     "autopilot.missing_sdk_integration_detector.issue_created",
-                    tags={"project_id": str(project.id), "integration": integration},
+                    tags={"project_id": str(project.id), "integration": integration.name},
                     sample_rate=1.0,
                 )
                 create_instrumentation_issue(
                     project_id=project.id,
                     detector_name=AutopilotDetectorName.MISSING_SDK_INTEGRATION,
-                    title=f"Missing SDK Integration: {integration}",
-                    # TODO: Generate subtitle and description using AI
-                    subtitle="Get better insights by enabling this integration",
-                    description=f"The {integration} SDK integration is available for your project but not configured. "
-                    f"Adding this integration can improve error tracking and provide better insights into your application's behavior. "
-                    f"Learn more at: {integration_docs_url}",
+                    title=f"Missing SDK Integration: {integration.name}",
+                    subtitle=integration.summary,
+                    description=description,
                     repository_name=repo_name,
                 )
 
-        return missing_integrations
+        return [i.name for i in missing_integrations]
 
     except Exception as e:
-        metrics.incr(
-            "autopilot.missing_sdk_integration_detector.error",
-            tags={"project_id": str(project.id), "error_type": type(e).__name__},
-            sample_rate=1.0,
-        )
+        _record_error(project.id, type(e).__name__)
         logger.exception(
             "autopilot.missing_sdk_integration_detector.error",
             extra={
                 "organization_id": organization.id,
                 "project_id": project.id,
                 "project_slug": project.slug,
-                "error_message": str(e),
             },
         )
         return None

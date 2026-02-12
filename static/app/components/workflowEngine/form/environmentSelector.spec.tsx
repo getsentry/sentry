@@ -1,8 +1,7 @@
-import {useState} from 'react';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import Form from 'sentry/components/forms/form';
 import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
@@ -16,23 +15,11 @@ describe('EnvironmentSelector', () => {
     });
     ProjectsStore.loadInitialData(projects);
 
-    const mockOnChange = jest.fn();
-
-    function Component() {
-      const [environment, setEnvironment] = useState('');
-
-      return (
-        <EnvironmentSelector
-          value={environment}
-          onChange={value => {
-            setEnvironment(value);
-            mockOnChange(value);
-          }}
-        />
-      );
-    }
-
-    render(<Component />);
+    render(
+      <Form initialData={{environment: ''}}>
+        <EnvironmentSelector />
+      </Form>
+    );
 
     // Open list
     await userEvent.click(screen.getByRole('button', {name: 'All Environments'}));
@@ -71,6 +58,5 @@ describe('EnvironmentSelector', () => {
 
     // Trigger label is updated
     expect(screen.getByRole('button', {name: 'prod'})).toBeInTheDocument();
-    expect(mockOnChange).toHaveBeenCalledWith('prod');
   });
 });

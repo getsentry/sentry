@@ -77,7 +77,9 @@ export default function OrganizationDataForwarding() {
                         });
                       }}
                       disabled={!hasAccess || !hasAvailability || !hasFeature}
-                      title={getCreateTooltip({hasAvailability, hasAccess, hasFeature})}
+                      tooltipProps={{
+                        title: getCreateTooltip({hasAvailability, hasAccess, hasFeature}),
+                      }}
                     >
                       {t('Setup a new Forwarder')}
                     </LinkButton>

@@ -105,7 +105,7 @@ export function EditDetectorLayout<
                   priority="primary"
                   size="sm"
                   disabled={form?.isFormIncomplete || form?.isError || form?.isSaving}
-                  title={form ? getSubmitButtonTitle(form) : undefined}
+                  tooltipProps={{title: form ? getSubmitButtonTitle(form) : undefined}}
                 >
                   {t('Save')}
                 </Button>

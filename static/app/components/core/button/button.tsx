@@ -18,7 +18,6 @@ export function Button({
   size = 'md',
   disabled,
   type = 'button',
-  title,
   tooltipProps,
   busy,
   ...props
@@ -31,7 +30,12 @@ export function Button({
   });
 
   return (
-    <Tooltip skipWrapper {...tooltipProps} title={title} disabled={!title}>
+    <Tooltip
+      skipWrapper
+      {...tooltipProps}
+      title={tooltipProps?.title}
+      disabled={!tooltipProps?.title}
+    >
       <StyledButton
         aria-label={accessibleLabel}
         aria-disabled={disabled}

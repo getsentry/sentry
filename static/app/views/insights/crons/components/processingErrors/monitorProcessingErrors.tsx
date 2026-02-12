@@ -103,7 +103,7 @@ export function MonitorProcessingErrors({
                     icon={<IconClose size="xs" />}
                     aria-label={t('Dismiss Errors')}
                     size="zero"
-                    title={t('Dismiss Errors')}
+                    tooltipProps={{title: t('Dismiss Errors')}}
                     priority="transparent"
                     onClick={() =>
                       openConfirmModal({
