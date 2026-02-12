@@ -12,7 +12,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 export function navigateTo(
   to: string | {pathname: string; query?: Query},
   router: InjectedRouter & {location?: Location},
-  configUrl?: ApiQueryKey
+  configQueryKey?: ApiQueryKey
 ) {
   let pathname: string;
   if (typeof to === 'string') {
@@ -28,7 +28,7 @@ export function navigateTo(
 
   const projectById = ProjectsStore.getById(comingFromProjectId);
 
-  if (needOrg || (needProject && (needProjectId || !projectById)) || configUrl) {
+  if (needOrg || (needProject && (needProjectId || !projectById)) || configQueryKey) {
     openModal(
       modalProps => (
         <ContextPickerModal
@@ -36,7 +36,7 @@ export function navigateTo(
           nextPath={to}
           needOrg={needOrg}
           needProject={needProject}
-          configUrl={configUrl}
+          configQueryKey={configQueryKey}
           onFinish={path => {
             modalProps.closeModal();
             return window.setTimeout(() => router.push(normalizeUrl(path)), 0);

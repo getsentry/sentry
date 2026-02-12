@@ -407,7 +407,7 @@ class ContextPickerModal extends Component<Props> {
 }
 
 type ContainerProps = SharedProps & {
-  configUrl?: ApiQueryKey;
+  configQueryKey?: ApiQueryKey;
 
   /**
    * List of slugs we want to be able to choose from
@@ -416,7 +416,7 @@ type ContainerProps = SharedProps & {
 };
 
 export default function ContextPickerModalContainer({
-  configUrl,
+  configQueryKey,
   projectSlugs,
   ...sharedProps
 }: ContainerProps) {
@@ -425,10 +425,10 @@ export default function ContextPickerModalContainer({
   const {organization} = useLegacyStore(OrganizationStore);
   const [selectedOrgSlug, setSelectedOrgSlug] = useState(organization?.slug);
 
-  if (configUrl) {
+  if (configQueryKey) {
     return (
       <ConfigUrlContainer
-        configUrl={configUrl}
+        configQueryKey={configQueryKey}
         selectedOrgSlug={selectedOrgSlug}
         setSelectedOrgSlug={setSelectedOrgSlug}
         {...sharedProps}
@@ -471,16 +471,16 @@ export default function ContextPickerModalContainer({
 
 function ConfigUrlContainer(
   props: SharedProps & {
-    configUrl: ApiQueryKey;
+    configQueryKey: ApiQueryKey;
     selectedOrgSlug: string | undefined;
     setSelectedOrgSlug: Dispatch<SetStateAction<string | undefined>>;
   }
 ) {
-  const {configUrl, selectedOrgSlug, setSelectedOrgSlug, ...sharedProps} = props;
+  const {configQueryKey, selectedOrgSlug, setSelectedOrgSlug, ...sharedProps} = props;
 
   const {organizations} = useLegacyStore(OrganizationsStore);
 
-  const {data, isError, isPending, refetch} = useApiQuery<Integration[]>(configUrl, {
+  const {data, isError, isPending, refetch} = useApiQuery<Integration[]>(configQueryKey, {
     staleTime: Infinity,
   });
 

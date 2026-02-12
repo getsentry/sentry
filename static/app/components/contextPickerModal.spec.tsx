@@ -235,7 +235,7 @@ describe('ContextPickerModal', () => {
         needOrg: false,
         needProject: false,
         nextPath: `/settings/${org.slug}/integrations/${provider.slug}/`,
-        configUrl: configQueryKey,
+        configQueryKey,
       })
     );
 
@@ -285,7 +285,7 @@ describe('ContextPickerModal', () => {
         needOrg: false,
         needProject: false,
         nextPath: `/settings/${org.slug}/integrations/${provider.slug}/`,
-        configUrl: configQueryKey,
+        configQueryKey,
       })
     );
 
@@ -323,7 +323,7 @@ describe('ContextPickerModal', () => {
         needOrg: false,
         needProject: false,
         nextPath: `/settings/${org.slug}/integrations/${provider.slug}/`,
-        configUrl: configQueryKey,
+        configQueryKey,
       })
     );
 
