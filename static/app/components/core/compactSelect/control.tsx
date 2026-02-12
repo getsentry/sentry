@@ -272,7 +272,13 @@ export function Control({
         e.preventDefault();
       }
 
-      // Continue propagation, otherwise the overlay won't close on Esc key press
+      // Close the overlay on Escape key press
+      if (e.key === 'Escape') {
+        overlayState.close();
+        return;
+      }
+
+      // Continue propagation for other keys
       e.continuePropagation();
     },
   });

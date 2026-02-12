@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useContext, useMemo, useRef} from 'react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
@@ -7,6 +7,7 @@ import type {CollectionChildren, Node} from '@react-types/shared';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {
+  ControlContext,
   ListLabel,
   ListSeparator,
   ListWrap,
@@ -139,6 +140,7 @@ export function ListBox<T extends ObjectLike>({
   ...props
 }: ListBoxProps<T>) {
   const listElementRef = useRef<HTMLUListElement>(null);
+  const {overlayState} = useContext(ControlContext);
 
   const {listBoxProps, labelProps} = useListBox(
     {
@@ -155,8 +157,13 @@ export function ListBox<T extends ObjectLike>({
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLUListElement>) => {
     const continueCallback = keyDownHandler?.(e);
-    // Prevent list box from clearing value on Escape key press
-    if (continueCallback && e.key !== 'Escape') {
+    // Close the overlay on Escape key press
+    if (e.key === 'Escape') {
+      overlayState?.close();
+      return;
+    }
+    // Prevent list box from clearing value on other keys
+    if (continueCallback) {
       listBoxProps.onKeyDown?.(e);
     }
   };

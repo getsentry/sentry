@@ -86,6 +86,7 @@ function GridList({
 }: GridListProps) {
   const ref = useRef<HTMLUListElement>(null);
   const labelId = useId();
+  const {overlayState} = useContext(ControlContext);
   const {gridProps} = useGridList(
     {...props, 'aria-labelledby': label ? labelId : props['aria-labelledby']},
     listState,
@@ -94,8 +95,13 @@ function GridList({
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLUListElement>) => {
     const continueCallback = keyDownHandler?.(e);
-    // Prevent grid list from clearing value on Escape key press
-    if (continueCallback && e.key !== 'Escape') {
+    // Close the overlay on Escape key press
+    if (e.key === 'Escape') {
+      overlayState?.close();
+      return;
+    }
+    // Prevent grid list from clearing value on other keys
+    if (continueCallback) {
       gridProps.onKeyDown?.(e);
     }
   };

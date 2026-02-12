@@ -448,6 +448,38 @@ describe('CompactSelect', () => {
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
     });
 
+    it('closes menu when pressing Escape in search input', async () => {
+      render(
+        <CompactSelect
+          searchable
+          searchPlaceholder="Search here…"
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      // click on the trigger button
+      await userEvent.click(screen.getByRole('button'));
+
+      // search input should be focused
+      const searchInput = screen.getByPlaceholderText('Search here…');
+      await waitFor(() => {
+        expect(searchInput).toHaveFocus();
+      });
+
+      // press Escape to close the menu
+      await userEvent.keyboard('{Escape}');
+
+      // menu should be closed
+      await waitFor(() => {
+        expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+      });
+    });
+
     it('can search with sections', async () => {
       render(
         <CompactSelect
