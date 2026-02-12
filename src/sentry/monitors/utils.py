@@ -11,6 +11,7 @@ from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType, RuleSource
 from sentry.monitors.constants import DEFAULT_CHECKIN_MARGIN, MAX_TIMEOUT, TIMEOUT
@@ -19,11 +20,15 @@ from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.types import SnubaParams
 from sentry.signals import (
     cron_monitor_created,
     first_cron_checkin_received,
     first_cron_monitor_created,
 )
+from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
+from sentry.snuba.referrer import Referrer
 from sentry.users.models.user import User
 from sentry.utils.audit import create_audit_entry, create_system_audit_entry
 from sentry.utils.auth import AuthenticatedHttpRequest
@@ -225,12 +230,6 @@ def _fetch_associated_groups_eap(
 
     Returns a mapping of group_id to set of trace_ids.
     """
-    from sentry.models.organization import Organization
-    from sentry.search.eap.types import SearchResolverConfig
-    from sentry.search.events.types import SnubaParams
-    from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
-    from sentry.snuba.referrer import Referrer
-
     query_start = start - timedelta(minutes=30)
     query_end = end + timedelta(minutes=30)
 
@@ -282,11 +281,7 @@ def fetch_associated_groups(
     trace_ids: list[str], organization_id: int, project_id: int, start: datetime, end: datetime
 ) -> dict[str, list[dict[str, int | str]]]:
     """
-    Returns serializer appropriate group_ids corresponding with check-in trace ids.
-
-    Performs a double-read from both Snuba (control) and EAP (experimental) when the
-    EAP occurrences experiment is enabled, using the rollout comparator to choose which
-    result to use.
+    Returns groups associated with check-in trace ids, formatted for the serializer.
     """
     snuba_result = _fetch_associated_groups_snuba(
         trace_ids, organization_id, project_id, start, end
