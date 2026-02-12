@@ -179,7 +179,6 @@
     "ts-checker-rspack-plugin": "1.2.6",
     "tslib": "^2.8.1",
     "type-fest": "^5.2.0",
-    "typescript": "5.9.3",
     "zrender": "6.0.0",
     "zxcvbn": "^4.4.2"
   },
@@ -232,6 +231,7 @@
     "stylelint": "16.10.0",
     "stylelint-config-recommended": "^14.0.1",
     "terser": "5.40.0",
+    "typescript": "6.0.0-beta",
     "typescript-eslint": "8.39.0"
   },
   "pnpm": {
