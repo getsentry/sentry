@@ -228,7 +228,7 @@ def _fetch_associated_groups_eap(
     from sentry.models.organization import Organization
     from sentry.search.eap.types import SearchResolverConfig
     from sentry.search.events.types import SnubaParams
-    from sentry.snuba.occurrences_rpc import Occurrences
+    from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
     from sentry.snuba.referrer import Referrer
 
     query_start = start - timedelta(minutes=30)
@@ -246,9 +246,7 @@ def _fetch_associated_groups_eap(
             environments=[],
         )
 
-        # Exclude issue platform events (type:generic) to match Dataset.Events
-        # which only contains error-category events (error, default, csp, etc.)
-        query_string = f"!type:generic trace:[{','.join(trace_ids)}]"
+        query_string = f"trace:[{','.join(trace_ids)}]"
 
         result = Occurrences.run_table_query(
             params=snuba_params,
@@ -259,6 +257,7 @@ def _fetch_associated_groups_eap(
             limit=100,
             referrer=Referrer.API_SERIALIZER_CHECKINS_TRACE_IDS.value,
             config=SearchResolverConfig(),
+            occurrence_category=OccurrenceCategory.ERROR,
         )
 
         group_id_data: dict[int, set[str]] = defaultdict(set)

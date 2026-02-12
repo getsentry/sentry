@@ -19,6 +19,7 @@ from sentry.monitors.utils import (
     get_detector_for_monitor,
 )
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 
@@ -272,13 +273,14 @@ class FetchAssociatedGroupsEAPTest(TestCase):
         }
         mock_table_rpc.assert_called_once()
 
-    @mock.patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
-    def test_eap_returns_empty_on_empty_response(self, mock_table_rpc: mock.MagicMock) -> None:
+    @mock.patch("sentry.snuba.occurrences_rpc.Occurrences.run_table_query")
+    def test_eap_returns_empty_on_empty_response(
+        self, mock_run_table_query: mock.MagicMock
+    ) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
 
-        mock_response = TraceItemTableResponse(column_values=[])
-        mock_table_rpc.return_value = [mock_response]
+        mock_run_table_query.return_value = {"data": [], "meta": {}}
 
         now = datetime.now(tz=timezone.utc)
         result = _fetch_associated_groups_eap(
@@ -290,6 +292,10 @@ class FetchAssociatedGroupsEAPTest(TestCase):
         )
 
         assert result == {}
+        mock_run_table_query.assert_called_once()
+        call_kwargs = mock_run_table_query.call_args[1]
+        assert call_kwargs["occurrence_category"] == OccurrenceCategory.ERROR
+        assert "type" not in call_kwargs["query_string"]
 
     @mock.patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
     def test_eap_returns_empty_on_exception(self, mock_table_rpc: mock.MagicMock) -> None:
