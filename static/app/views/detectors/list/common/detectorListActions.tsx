@@ -55,13 +55,13 @@ export function DetectorListActions({detectorType, children}: DetectorListAction
         icon={<IconAdd />}
         size="sm"
         disabled={!canCreateDetector}
-        title={
-          canCreateDetector
+        tooltipProps={{
+          title: canCreateDetector
             ? undefined
             : getPermissionTooltipText({
                 detectorType,
-              })
-        }
+              }),
+        }}
       >
         {t('Create Monitor')}
       </LinkButton>

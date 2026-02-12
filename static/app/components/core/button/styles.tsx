@@ -70,6 +70,7 @@ export function DO_NOT_USE_getButtonStyles(
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
+    whiteSpace: 'nowrap',
 
     fontWeight: p.theme.font.weight.sans.medium,
 
