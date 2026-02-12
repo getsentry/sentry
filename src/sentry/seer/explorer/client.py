@@ -16,7 +16,6 @@ from sentry.seer.explorer.client_models import ExplorerRun, SeerRunState
 from sentry.seer.explorer.client_utils import (
     collect_user_org_context,
     fetch_run_status,
-    has_seer_explorer_access_with_detail,
     poll_until_done,
 )
 from sentry.seer.explorer.coding_agent_handoff import launch_coding_agents
@@ -26,6 +25,7 @@ from sentry.seer.explorer.on_completion_hook import (
     extract_hook_definition,
 )
 from sentry.seer.models import SeerPermissionError
+from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.users.models.user import User
 
@@ -205,8 +205,8 @@ class SeerExplorerClient:
         if bool(category_key) != bool(category_value):
             raise ValueError("category_key and category_value must be provided together")
 
-        # Validate access on init
-        has_access, error = has_seer_explorer_access_with_detail(organization, user)
+        # Validate base Seer access on init (Explorer-specific flag checks are done at the endpoint level)
+        has_access, error = has_seer_access_with_detail(organization, user)
         if not has_access:
             raise SeerPermissionError(error or "Access denied")
 
