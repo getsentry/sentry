@@ -167,6 +167,22 @@ def proxy_region_request(
         # remote silo timeout. Use DRF timeout instead
         raise RequestTimeout()
 
+    # Log when cross-silo requests fail with authentication errors
+    if resp.status_code == 401:
+        logger.warning(
+            "apigateway.proxy_request.auth_failure",
+            extra={
+                "region": region.name,
+                "url_name": url_name,
+                "target_url": target_url,
+                "status_code": resp.status_code,
+            },
+        )
+        metrics.incr(
+            "apigateway.proxy_request.auth_failure",
+            tags={"region": region.name, "url_name": url_name},
+        )
+
     new_headers = clean_outbound_headers(resp.headers)
     resp.headers.clear()
     resp.headers.update(new_headers)

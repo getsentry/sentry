@@ -16,7 +16,13 @@ PROXY_KEYID_HEADER = "X-Sentry-Subnet-Keyid"
 PROXY_DIRECT_LOCATION_HEADER = "X-Sentry-Proxy-URL"
 PROXY_APIGATEWAY_HEADER = "X-Apigateway"
 
-INVALID_PROXY_HEADERS = {"Host", "X-Forwarded-Proto", "Content-Length", "Content-Encoding"}
+INVALID_PROXY_HEADERS = {
+    "Host",
+    "X-Forwarded-Proto",
+    "Content-Length",
+    "Content-Encoding",
+    "Authorization",
+}
 INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS | {
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
