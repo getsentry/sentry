@@ -298,7 +298,6 @@ describe('CompactSelect', () => {
   });
 
   it('prevents body scroll when menu is open', async () => {
-    // Store the original overflow value
     const originalOverflow = document.body.style.overflow;
 
     render(
@@ -312,21 +311,16 @@ describe('CompactSelect', () => {
       />
     );
 
-    // Body overflow should be unchanged initially
     expect(document.body.style.overflow).toBe(originalOverflow);
 
-    // Open the menu
     await userEvent.click(screen.getByRole('button', {name: 'Option One'}));
 
-    // Body overflow should be set to 'hidden' when menu is open
     await waitFor(() => {
       expect(document.body).toHaveStyle({overflow: 'hidden'});
     });
 
-    // Close the menu by clicking outside
     await userEvent.click(document.body);
 
-    // Body overflow should be restored when menu is closed
     await waitFor(() => {
       expect(document.body.style.overflow).toBe(originalOverflow);
     });
