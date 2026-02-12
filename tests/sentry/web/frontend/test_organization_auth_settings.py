@@ -811,3 +811,109 @@ class OrganizationAuthSettingsGenericSAML2Test(AuthProviderTestCase):
 
         assert actual.provider == self.auth_provider_inst.provider
         assert actual.flags == self.auth_provider_inst.flags
+
+
+@control_silo_test
+class OrganizationAuthSettingsScimTokenMaskingTest(AuthProviderTestCase):
+    """Tests for SCIM token masking security feature (VULN-789)."""
+
+    def create_org_and_auth_provider(self, provider_name="dummy"):
+        self.user.update(is_managed=True)
+        with assume_test_silo_mode(SiloMode.REGION):
+            organization = self.create_organization(name="foo", owner=self.user)
+
+        auth_provider = AuthProvider.objects.create(
+            organization_id=organization.id, provider=provider_name
+        )
+        AuthIdentity.objects.create(user=self.user, ident="foo", auth_provider=auth_provider)
+        return organization, auth_provider
+
+    def create_om_and_link_sso(self, organization):
+        with assume_test_silo_mode(SiloMode.REGION):
+            om = OrganizationMember.objects.get(user_id=self.user.id, organization=organization)
+            setattr(om.flags, "sso:linked", True)
+            om.save()
+        return om
+
+    def test_scim_token_visible_immediately_after_creation(self):
+        """SCIM token is fully visible within 5 minutes of creation."""
+        organization, auth_provider = self.create_org_and_auth_provider()
+        self.create_om_and_link_sso(organization)
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+
+        self.login_as(self.user, organization_id=organization.id)
+
+        with self.feature({"organizations:sso-basic": True}):
+            resp = self.client.post(
+                path,
+                {
+                    "op": "settings",
+                    "require_link": True,
+                    "enable_scim": True,
+                    "default_role": "member",
+                },
+            )
+            assert resp.status_code == 200
+
+            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
+            assert auth_provider.flags.scim_enabled
+
+            resp = self.client.get(path)
+            assert resp.status_code == 200
+
+            assert "scim_token_display" in resp.context
+            scim_token_display = resp.context["scim_token_display"]
+            assert scim_token_display is not None
+            assert scim_token_display.is_visible is True
+            assert scim_token_display.token is not None
+
+    def test_scim_token_masked_after_visibility_window(self):
+        """SCIM token is masked after 5 minutes."""
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from sentry.models.apitoken import ApiToken
+        from sentry.sentry_apps.models.sentry_app_installation_token import (
+            SentryAppInstallationToken,
+        )
+
+        organization, auth_provider = self.create_org_and_auth_provider()
+        self.create_om_and_link_sso(organization)
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+
+        self.login_as(self.user, organization_id=organization.id)
+
+        with self.feature({"organizations:sso-basic": True}):
+            resp = self.client.post(
+                path,
+                {
+                    "op": "settings",
+                    "require_link": True,
+                    "enable_scim": True,
+                    "default_role": "member",
+                },
+            )
+            assert resp.status_code == 200
+
+            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
+            assert auth_provider.flags.scim_enabled
+
+            install_for_provider = SentryAppInstallationForProvider.objects.get(
+                organization_id=organization.id, provider="dummy_scim"
+            )
+            install_token = SentryAppInstallationToken.objects.get(
+                sentry_app_installation=install_for_provider.sentry_app_installation
+            )
+            old_date = timezone.now() - timedelta(minutes=10)
+            ApiToken.objects.filter(id=install_token.api_token_id).update(date_added=old_date)
+
+            resp = self.client.get(path)
+            assert resp.status_code == 200
+
+            scim_token_display = resp.context["scim_token_display"]
+            assert scim_token_display is not None
+            assert scim_token_display.is_visible is False
+            assert scim_token_display.token is None
+            assert scim_token_display.token_last_characters is not None
+            assert len(scim_token_display.token_last_characters) == 4
