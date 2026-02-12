@@ -29,7 +29,7 @@ class MissingSdkIntegrationFinishReason(StrEnum):
     SUCCESS = "success"
     MISSING_SENTRY_INIT = "missing_sentry_init"
     MISSING_DEPENDENCY_FILE = "missing_dependency_file"
-    PROJECT_NOT_FOUND = "project_not_found"
+    CODE_PATH_NOT_FOUND = "code_path_not_found"
 
 
 class MissingSdkIntegrationsResult(BaseModel):
@@ -197,7 +197,7 @@ Use these hints to locate it:
 3. Check common monorepo locations: `packages/`, `apps/`, `services/`
 4. Look for directories containing {project.platform} dependency files
 
-If you cannot locate the project directory, return `{MissingSdkIntegrationFinishReason.PROJECT_NOT_FOUND}` as the finish reason and an empty list of missing integrations.
+If you cannot locate the project directory, return `{MissingSdkIntegrationFinishReason.CODE_PATH_NOT_FOUND}` as the finish reason and an empty list of missing integrations.
 
 Once located, analyze ONLY that directory. Do not read files from parent or sibling directories.
 
@@ -244,7 +244,7 @@ Return a JSON object with:
   - `{MissingSdkIntegrationFinishReason.SUCCESS}`: Successfully analyzed the project (even if no integrations are missing)
   - `{MissingSdkIntegrationFinishReason.MISSING_SENTRY_INIT}`: Could not find Sentry initialization code (`Sentry.init` or `sentry_sdk.init`)
   - `{MissingSdkIntegrationFinishReason.MISSING_DEPENDENCY_FILE}`: Could not find any dependency file for the project
-  - `{MissingSdkIntegrationFinishReason.PROJECT_NOT_FOUND}`: Could not locate the project directory in the repository
+  - `{MissingSdkIntegrationFinishReason.CODE_PATH_NOT_FOUND}`: Could not locate the project directory in the repository
   - For other issues, use a descriptive snake_case reason (e.g., `docs_unavailable`)
 
 Example success: `{{"missing_integrations": ["zodErrorsIntegration"], "finish_reason": "{MissingSdkIntegrationFinishReason.SUCCESS}"}}`
