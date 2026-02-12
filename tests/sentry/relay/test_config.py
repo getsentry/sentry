@@ -7,6 +7,7 @@ from unittest.mock import ANY, MagicMock, patch
 import pytest
 from sentry_relay.processing import normalize_project_config
 
+from sentry import quotas
 from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.discover.models import TeamKeyTransaction
 from sentry.dynamic_sampling import (
@@ -20,6 +21,7 @@ from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.models.projectkey import ProjectKey
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import TransactionMetric
+from sentry.quotas.base import TrimmingConfig, TrimmingConfigs
 from sentry.relay.config import ProjectConfig, TransactionNameRule, get_project_config
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
@@ -1635,3 +1637,23 @@ def test_project_config_trusted_relay_settings(
         else:
             # trustedRelaySettings should not be present
             assert trusted_relay_settings is None
+
+
+@django_db_all
+@region_silo_test
+@pytest.mark.parametrize("span_trimming_config", [None, TrimmingConfig(max_size=17)])
+def test_project_config_trimming(default_project, span_trimming_config):
+    with patch.object(
+        quotas.backend,
+        "get_trimming_configs",
+        return_value=TrimmingConfigs(span=span_trimming_config),
+    ):
+        project_cfg = get_project_config(default_project)
+
+        cfg = project_cfg.to_dict()["config"]
+        if span_trimming_config is None:
+            assert "trimming" not in cfg
+        else:
+            assert cfg["trimming"] == {"span": {"maxSize": 17}}
+
+        _validate_project_config(cfg)
