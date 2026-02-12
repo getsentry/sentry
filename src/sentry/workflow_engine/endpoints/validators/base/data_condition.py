@@ -26,7 +26,6 @@ class AbstractDataConditionValidator(
     type = serializers.ChoiceField(choices=[(t.value, t.value) for t in Condition])
     comparison = serializers.JSONField(required=True)
     condition_result = serializers.JSONField(required=True)
-    condition_group_id = serializers.IntegerField(required=False)
 
     @abstractmethod
     def validate_comparison(self, value: Any) -> ComparisonType:
