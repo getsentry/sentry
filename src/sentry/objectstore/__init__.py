@@ -58,9 +58,9 @@ def create_client() -> Client:
         connection_kwargs=options.get(
             "connection_kwargs",
             # Set appropriate timeouts for production use.
-            # connect: 1.0s is sufficient for establishing connections
+            # connect: 0.1s matches objectstore_client v0.0.15+ defaults
             # read: 30.0s allows deletion operations to complete over slow networks
-            {"timeout": urllib3.Timeout(connect=1.0, read=30.0)},
+            {"timeout": urllib3.Timeout(connect=0.1, read=30.0)},
         ),
     )
 

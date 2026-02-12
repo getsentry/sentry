@@ -45,14 +45,14 @@ class ObjectstoreClientTest(TestCase):
     def test_timeout_values_are_appropriate(self):
         """
         Verify the actual timeout values are what we expect:
-        - connect: 1.0s (reasonable for establishing connections)
+        - connect: 0.1s (matches objectstore_client v0.0.15+ defaults)
         - read: 30.0s (allows deletion operations to complete)
         """
         # Create a timeout object with our expected values
-        timeout = urllib3.Timeout(connect=1.0, read=30.0)
+        timeout = urllib3.Timeout(connect=0.1, read=30.0)
         
         # Verify the values are set correctly
-        assert timeout.connect_timeout == 1.0
+        assert timeout.connect_timeout == 0.1
         assert timeout.read_timeout == 30.0
         
         # Verify this is significantly higher than the problematic 0.5s default
