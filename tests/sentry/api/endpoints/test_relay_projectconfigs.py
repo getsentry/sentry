@@ -202,16 +202,17 @@ def test_parse_retentions(call_endpoint, default_project):
 
 @django_db_all
 def test_parse_retentions_with_transactions(call_endpoint, default_project):
-    with patch("sentry.quotas.backend") as quotas_mock:
-        quotas_mock.get_retentions = lambda x: {
+    with patch.multiple(
+        "sentry.quotas.backend",
+        get_retentions=lambda x: {
             DataCategory.ERROR: RetentionSettings(standard=10, downsampled=20),
             DataCategory.REPLAY: RetentionSettings(standard=11, downsampled=21),
             DataCategory.TRANSACTION: RetentionSettings(standard=12, downsampled=22),
             DataCategory.LOG_BYTE: RetentionSettings(standard=13, downsampled=23),
-        }
-        quotas_mock.get_event_retention = lambda x: 45
-        quotas_mock.get_downsampled_event_retention = lambda x: 90
-
+        },
+        get_event_retention=lambda x: 45,
+        get_downsampled_event_retention=lambda x: 90,
+    ):
         result, status_code = call_endpoint()
         assert status_code < 400
         assert_no_snakecase_key(result)
