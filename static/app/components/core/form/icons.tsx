@@ -30,3 +30,14 @@ export const Checkmark = styled(IconCheckmark)`
 export const Warning = styled(IconWarning)`
   animation: ${() => pulse(1.15)} 1s ease infinite;
 `;
+
+export const RequiredIndicator = styled('div')`
+  display: inline-block;
+  background: ${p => p.theme.colors.red400};
+  opacity: 0.6;
+  width: 5px;
+  height: 5px;
+  border-radius: 5px;
+  text-indent: -9999em;
+  vertical-align: super;
+`;
