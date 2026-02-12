@@ -36,7 +36,7 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
     <Grid flow="column" align="center" gap="md">
       <Button
         size="sm"
-        title={t('Rewind 10s')}
+        tooltipProps={{title: t('Rewind 10s')}}
         icon={<IconRewind10 size="sm" />}
         onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
         aria-label={t('Rewind 10 seconds')}
@@ -46,7 +46,7 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
       <Button
         disabled={isLoading}
         size="sm"
-        title={t('Next breadcrumb')}
+        tooltipProps={{title: t('Next breadcrumb')}}
         icon={<IconChevron size="sm" direction="right" />}
         onClick={() => {
           if (!replay) {

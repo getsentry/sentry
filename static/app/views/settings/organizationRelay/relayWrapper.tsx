@@ -58,9 +58,11 @@ export function RelayWrapper() {
         title={t('Relay')}
         action={
           <Button
-            title={
-              disabled ? t('You do not have permission to register keys') : undefined
-            }
+            tooltipProps={{
+              title: disabled
+                ? t('You do not have permission to register keys')
+                : undefined,
+            }}
             priority="primary"
             size="sm"
             icon={<IconAdd />}

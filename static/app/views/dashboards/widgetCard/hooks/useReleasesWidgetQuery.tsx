@@ -16,6 +16,7 @@ import {getWidgetInterval} from 'sentry/views/dashboards/utils';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {applyDashboardFiltersToWidget} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {requiresCustomReleaseSorting} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
@@ -131,7 +132,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     queries: queryKeys.map(({queryKey, useSessionAPI}) => ({
       queryKey,
       queryFn: createQueryFn(useSessionAPI),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
       retry: hasQueueFeature
         ? false
@@ -324,7 +325,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     queries: queryKeys.map(({queryKey, useSessionAPI}) => ({
       queryKey,
       queryFn: createQueryFn(useSessionAPI),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
       retry: hasQueueFeature
         ? false

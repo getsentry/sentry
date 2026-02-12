@@ -260,6 +260,11 @@ class JiraIntegration(IssueSyncIntegration):
                     "emptyMessage": _("All projects configured"),
                     "noResultsMessage": _("Could not find Jira project"),
                     "items": [],  # Populated with projects
+                    "url": reverse(
+                        "sentry-extensions-jira-search",
+                        args=[self.organization.slug, self.model.id],
+                    ),
+                    "searchField": "project",
                 },
                 "mappedSelectors": {},
                 "columnLabels": {

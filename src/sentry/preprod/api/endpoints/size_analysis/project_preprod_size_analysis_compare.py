@@ -33,6 +33,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
 )
+from sentry.preprod.quotas import get_size_retention_cutoff
 from sentry.preprod.size_analysis.tasks import manual_size_analysis_comparison
 from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
 
@@ -86,6 +87,10 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             "organizations:preprod-frontend-routes", project.organization, actor=request.user
         ):
             return Response({"detail": "Feature not enabled"}, status=403)
+
+        cutoff = get_size_retention_cutoff(project.organization)
+        if head_artifact.date_added < cutoff or base_artifact.date_added < cutoff:
+            return Response({"detail": "This build's size data has expired."}, status=404)
 
         logger.info(
             "preprod.size_analysis.compare.api.get",
@@ -272,6 +277,10 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             "organizations:preprod-frontend-routes", project.organization, actor=request.user
         ):
             return Response({"detail": "Feature not enabled"}, status=403)
+
+        cutoff = get_size_retention_cutoff(project.organization)
+        if head_artifact.date_added < cutoff or base_artifact.date_added < cutoff:
+            return Response({"detail": "This build's size data has expired."}, status=404)
 
         logger.info(
             "preprod.size_analysis.compare.api.post",
