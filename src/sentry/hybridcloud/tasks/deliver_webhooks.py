@@ -129,7 +129,7 @@ def _set_webhook_delivery_sentry_context(payload: WebhookPayload) -> None:
     context: dict[str, str] = {
         "mailbox_name": payload.mailbox_name,
         "provider": payload.provider or "unknown",
-        "owner": _extract_webhook_owner(payload),
+        "owner": _extract_webhook_owner(payload) or "",
     }
     sentry_sdk.set_context("webhook_delivery", context)
 
