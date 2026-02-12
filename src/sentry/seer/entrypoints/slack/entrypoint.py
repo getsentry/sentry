@@ -60,9 +60,9 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         self.slack_request = slack_request
         self.group = group
         self.channel_id = slack_request.channel_id or ""
-        # Use the thread_ts if available, otherwise assume this is the channel message, so it will
-        # parent the thread later on.
         self.message_ts = slack_request.data["message"]["ts"]
+        # Use the thread_ts if available, otherwise this is a channel message, so it will
+        # be the parent of a future thread.
         self.thread_ts = slack_request.data["message"].get("thread_ts", self.message_ts)
         self.thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
         self.organization_id = organization_id

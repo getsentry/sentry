@@ -224,8 +224,9 @@ def update_existing_message(
             }
         )
 
-        # The RCA button is on an issue alert, so we just remove the trigger from the list of actions.
-        # Later updates only have autofix triggers, so we remove the whole actions block.
+        # The RCA button is on an issue alert, so we just remove the button from the list of actions.
+        # Later updates only have autofix buttons (View, Start), so we remove the whole actions block.
+        # This is because we add the View button back to the footer, along with some status text.
         transformer = (
             remove_autofix_button_transformer
             if data.current_point == AutofixStoppingPoint.ROOT_CAUSE

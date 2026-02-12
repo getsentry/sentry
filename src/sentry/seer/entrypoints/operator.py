@@ -319,28 +319,30 @@ def has_complete_stage_from_state(
 ) -> bool:
     """
     Determines if a stopping point stage has been completed based on the autofix state.
+    The AutofixState type only somewhat matches the stopping points, so we have to check the keys of
+    each step, and the status of a matching step are the best mapping we have for
     """
     match stopping_point:
         case AutofixStoppingPoint.ROOT_CAUSE:
             return any(
-                step.get("status") == AutofixStatus.COMPLETED
-                and step.get("key") == "root_cause_analysis"
+                step.get("key") == "root_cause_analysis"
+                and step.get("status") == AutofixStatus.COMPLETED
                 for step in autofix_state.steps
             )
         case AutofixStoppingPoint.SOLUTION:
             return any(
-                step.get("status") == AutofixStatus.COMPLETED and step.get("key") == "solution"
+                step.get("key") == "solution" and step.get("status") == AutofixStatus.COMPLETED
                 for step in autofix_state.steps
             )
         case AutofixStoppingPoint.CODE_CHANGES:
             return any(
-                step.get("status") == AutofixStatus.COMPLETED and step.get("key") == "changes"
+                step.get("key") == "changes" and step.get("status") == AutofixStatus.COMPLETED
                 for step in autofix_state.steps
             )
         case AutofixStoppingPoint.OPEN_PR:
             return any(
-                step.get("status") == AutofixStatus.COMPLETED
-                and step.get("key") == "changes"
+                step.get("key") == "changes"
+                and step.get("status") == AutofixStatus.COMPLETED
                 and any(change.get("pull_request") for change in step.get("changes", []))
                 for step in autofix_state.steps
             )
