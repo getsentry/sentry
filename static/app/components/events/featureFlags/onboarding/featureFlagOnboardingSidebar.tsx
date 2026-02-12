@@ -198,7 +198,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
 
   const [setupMode, setSetupMode] = useQueryState(
     'mode',
-    parseAsString.withDefault('sdkSelect')
+    parseAsString.withDefault('sdkSelect').withOptions({history: 'push', throttleMs: 0})
   );
 
   const currentPlatform = currentProject.platform
