@@ -89,6 +89,7 @@ function LogsHeader() {
   const title = useQueryParamsTitle();
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
+  const onboardingProject = useOnboardingProject({property: 'hasLogs'});
 
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
@@ -120,7 +121,7 @@ function LogsHeader() {
               },
             }}
           />
-          <SetupLogsButton />
+          {defined(onboardingProject) && <SetupLogsButton />}
         </Grid>
       </Layout.HeaderActions>
     </Layout.Header>
