@@ -100,6 +100,17 @@ def run_missing_sdk_integration_detector() -> None:
             )
 
 
+def _record_error(project_id: int, error_type: str) -> None:
+    metrics.incr(
+        "autopilot.missing_sdk_integration_detector.error",
+        tags={
+            "project_id": str(project_id),
+            "error_type": error_type,
+        },
+        sample_rate=1.0,
+    )
+
+
 @instrumented_task(
     name="sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task",
     namespace=autopilot_tasks,
@@ -149,6 +160,7 @@ def run_missing_sdk_integration_detector_for_project_task(
             intelligence_level="medium",
         )
     except SeerPermissionError:
+        _record_error(project.id, "SeerPermissionError")
         logger.exception(
             "missing_sdk_integration_detector.no_seer_access",
             extra={"organization_id": organization.id, "project_id": project.id},
@@ -251,6 +263,7 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
         # Extract the structured result
         result = state.get_artifact("missing_integrations", MissingSdkIntegrationsResult)
         if result is None:
+            _record_error(project.id, "no_artifact_result")
             logger.warning(
                 "missing_sdk_integration_detector.no_artifact_result",
                 extra={
@@ -315,18 +328,13 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
         return missing_integrations
 
     except Exception as e:
-        metrics.incr(
-            "autopilot.missing_sdk_integration_detector.error",
-            tags={"project_id": str(project.id), "error_type": type(e).__name__},
-            sample_rate=1.0,
-        )
+        _record_error(project.id, type(e).__name__)
         logger.exception(
             "autopilot.missing_sdk_integration_detector.error",
             extra={
                 "organization_id": organization.id,
                 "project_id": project.id,
                 "project_slug": project.slug,
-                "error_message": str(e),
             },
         )
         return None
