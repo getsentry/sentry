@@ -168,6 +168,7 @@ type ExtraContent =
       disabled: boolean;
       isFocused: boolean;
       isSelected: boolean;
+      toggleOption?: (value: any) => void;
     }) => React.ReactNode);
 
 export type MenuListItemProps = {

@@ -241,11 +241,11 @@ export function ProjectPageFilter({
     const getProjectItem = (project: Project) => {
       return {
         value: parseInt(project.id, 10),
-        leadingItems: ({isSelected}) => (
+        leadingItems: ({isSelected, toggleOption}) => (
           <Checkbox
             size="sm"
             checked={isSelected}
-            onChange={() => handleChange([...value, parseInt(project.id, 10)])}
+            onChange={() => toggleOption?.(parseInt(project.id, 10))}
             aria-label={t('Select %s', project.slug)}
             tabIndex={-1}
           />
@@ -336,8 +336,6 @@ export function ProjectPageFilter({
     nonMemberProjects,
     mapURLValueToNormalValue,
     pageFilterValue,
-    handleChange,
-    value,
   ]);
 
   const desynced = desyncedFilters.has('projects');

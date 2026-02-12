@@ -11,6 +11,7 @@ import type {
   SelectSection,
 } from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Grid} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -179,31 +180,37 @@ export function HybridFilter<Value extends SelectKey>({
       leadingItems: ({isFocused, isSelected, disabled}) => {
         const children =
           typeof option.leadingItems === 'function'
-            ? option.leadingItems({isFocused, isSelected, disabled})
+            ? option.leadingItems({isFocused, isSelected, disabled, toggleOption})
             : option.leadingItems;
         return children ? (
-          <ItemsWrap
+          <Grid
+            gap="md"
+            align="center"
+            flow="column"
             onKeyDown={e => e.stopPropagation()}
             onPointerDown={e => e.stopPropagation()}
             onClick={e => e.stopPropagation()}
           >
             {children}
-          </ItemsWrap>
+          </Grid>
         ) : null;
       },
       trailingItems: ({isFocused, isSelected, disabled}) => {
         const children =
           typeof option.trailingItems === 'function'
-            ? option.trailingItems({isFocused, isSelected, disabled})
+            ? option.trailingItems({isFocused, isSelected, disabled, toggleOption})
             : option.trailingItems;
         return children ? (
-          <ItemsWrap
+          <Grid
+            gap="md"
+            align="center"
+            flow="column"
             onKeyDown={e => e.stopPropagation()}
             onPointerDown={e => e.stopPropagation()}
             onClick={e => e.stopPropagation()}
           >
             {children}
-          </ItemsWrap>
+          </Grid>
         ) : null;
       },
     });
@@ -213,7 +220,7 @@ export function HybridFilter<Value extends SelectKey>({
         ? {...item, options: item.options.map(mapOption)}
         : mapOption(item)
     );
-  }, [options]);
+  }, [options, toggleOption]);
 
   const renderFooter = useMemo(() => {
     const footerMessage =
@@ -360,13 +367,6 @@ const ResetButton = styled(Button)`
   color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${space(0.5)};
   margin: -${space(0.5)} -${space(0.5)};
-`;
-
-const ItemsWrap = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const FooterWrap = styled('div')`
