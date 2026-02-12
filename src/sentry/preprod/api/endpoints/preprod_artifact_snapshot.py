@@ -10,7 +10,7 @@ from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -18,6 +18,8 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
 from sentry.objectstore import get_preprod_session
+from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotDetailsEvent
+from sentry.preprod.api.models.project_preprod_build_details_models import BuildDetailsVcsInfo
 from sentry.preprod.api.schemas import VCS_ERROR_MESSAGES, VCS_SCHEMA_PROPERTIES
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
@@ -83,7 +85,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project: Project, snapshot_id: str) -> Response:
         """
-        Retrieves snapshot data
+        Retrieves snapshot data including manifest images and VCS info.
         """
 
         if not settings.IS_DEV and not features.has(
@@ -102,8 +104,79 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 {"detail": "offset must be >= 0, limit must be > 0 and <= 100"}, status=400
             )
 
+        try:
+            artifact = PreprodArtifact.objects.select_related("commit_comparison").get(
+                id=snapshot_id, project_id=project.id
+            )
+        except PreprodArtifact.DoesNotExist:
+            return Response({"detail": "Snapshot not found"}, status=404)
+
+        try:
+            snapshot_metrics = artifact.preprodsnapshotmetrics
+        except PreprodSnapshotMetrics.DoesNotExist:
+            return Response({"detail": "Snapshot metrics not found"}, status=404)
+
+        manifest_key = (snapshot_metrics.extras or {}).get("manifest_key")
+        if not manifest_key:
+            return Response({"detail": "Manifest key not found"}, status=404)
+
+        try:
+            session = get_preprod_session(project.organization_id, project.id)
+            get_response = session.get(manifest_key)
+            manifest_data = orjson.loads(get_response.payload.read())
+            manifest = SnapshotManifest(**manifest_data)
+        except Exception:
+            logger.exception(
+                "Failed to retrieve snapshot manifest",
+                extra={
+                    "preprod_artifact_id": artifact.id,
+                    "manifest_key": manifest_key,
+                },
+            )
+            return Response({"detail": "Internal server error"}, status=500)
+
+        # Build VCS info from commit_comparison
+        cc = artifact.commit_comparison
+        vcs_info = BuildDetailsVcsInfo(
+            head_sha=cc.head_sha if cc else None,
+            base_sha=cc.base_sha if cc else None,
+            provider=cc.provider if cc else None,
+            head_repo_name=cc.head_repo_name if cc else None,
+            base_repo_name=cc.base_repo_name if cc else None,
+            head_ref=cc.head_ref if cc else None,
+            base_ref=cc.base_ref if cc else None,
+            pr_number=cc.pr_number if cc else None,
+        )
+
+        # Paginate images: convert manifest dict to sorted list, apply offset/limit
+        sorted_images = sorted(manifest.images.items(), key=lambda item: item[0])
+        paginated = sorted_images[offset : offset + limit]
+        images = [
+            {
+                "id": image_id,
+                "file_name": metadata.file_name,
+                "width": metadata.width,
+                "height": metadata.height,
+            }
+            for image_id, metadata in paginated
+        ]
+
+        analytics.record(
+            PreprodArtifactApiGetSnapshotDetailsEvent(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                user_id=request.user.id if request.user and request.user.is_authenticated else None,
+                artifact_id=str(artifact.id),
+            )
+        )
+
         return Response(
-            {},
+            {
+                "artifactId": str(artifact.id),
+                "imageCount": snapshot_metrics.image_count,
+                "vcsInfo": vcs_info.dict(exclude_none=True),
+                "images": images,
+            },
             status=200,
         )
 
