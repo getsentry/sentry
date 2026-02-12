@@ -21,7 +21,7 @@ import ErrorTableCell from 'sentry/views/replays/detail/errorList/errorTableCell
 import useErrorFilters from 'sentry/views/replays/detail/errorList/useErrorFilters';
 import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
-import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
+import useReactVirtualizedGrid from 'sentry/views/replays/detail/useReactVirtualizedGrid';
 
 const HEADER_HEIGHT = 25;
 const BODY_HEIGHT = 25;
@@ -51,7 +51,7 @@ export default function ErrorList() {
   const gridRef = useRef<MultiGrid>(null);
   const deps = useMemo(() => [items, searchTerm], [items, searchTerm]);
   const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
-    useVirtualizedGrid({
+    useReactVirtualizedGrid({
       cellMeasurer,
       gridRef,
       columnCount: COLUMN_COUNT,

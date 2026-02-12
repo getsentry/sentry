@@ -1,6 +1,6 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
-import type {GridCellProps} from 'react-virtualized';
-import {AutoSizer, CellMeasurer, MultiGrid} from 'react-virtualized';
+import {useCallback, useMemo, useRef} from 'react';
+import styled from '@emotion/styled';
+import classNames from 'classnames';
 
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -8,7 +8,9 @@ import {ExternalLink} from '@sentry/scraps/link';
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import useJumpButtons from 'sentry/components/replays/useJumpButtons';
+import useJumpButtons, {
+  type VisibleRange,
+} from 'sentry/components/replays/useJumpButtons';
 import {GridTable} from 'sentry/components/replays/virtualizedGrid/gridTable';
 import {OverflowHidden} from 'sentry/components/replays/virtualizedGrid/overflowHidden';
 import {SplitPanel} from 'sentry/components/replays/virtualizedGrid/splitPanel';
@@ -34,14 +36,12 @@ import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
 
 const HEADER_HEIGHT = 25;
 const BODY_HEIGHT = 25;
-
 const RESIZEABLE_HANDLE_HEIGHT = 90;
-
-const cellMeasurer = {
-  defaultHeight: BODY_HEIGHT,
-  defaultWidth: 100,
-  fixedHeight: true,
-};
+const DEFAULT_COLUMN_WIDTH = 88;
+const DYNAMIC_COLUMN_INDEX = 2;
+const MIN_DYNAMIC_COLUMN_WIDTH = 180;
+const OVERSCAN = 20;
+const STATIC_COLUMN_WIDTHS = [76, 76, 0, 88, 88, 98, 116];
 
 export default function NetworkList() {
   const organization = useOrganization();
@@ -56,24 +56,71 @@ export default function NetworkList() {
   const projectId = replay?.getReplay()?.project_id;
   const startTimestampMs = replay?.getReplay()?.started_at?.getTime() || 0;
 
-  const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
-
   const filterProps = useNetworkFilters({networkFrames: networkFrames || []});
-  const {items: filteredItems, searchTerm, setSearchTerm} = filterProps;
+  const {items: filteredItems, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
   const {handleSort, items, sortConfig} = useSortNetwork({items: filteredItems});
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const gridRef = useRef<MultiGrid>(null);
-  const deps = useMemo(() => [items, searchTerm], [items, searchTerm]);
-  const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
-    useVirtualizedGrid({
-      cellMeasurer,
-      gridRef,
-      columnCount: COLUMN_COUNT,
-      dynamicColumnIndex: 2,
-      deps,
+  const {
+    gridTemplateColumns,
+    scrollContainerRef,
+    totalColumnWidth,
+    virtualRows,
+    virtualizer,
+    wrapperRef,
+  } = useVirtualizedGrid({
+    defaultColumnWidth: DEFAULT_COLUMN_WIDTH,
+    dynamicColumnIndex: DYNAMIC_COLUMN_INDEX,
+    minDynamicColumnWidth: MIN_DYNAMIC_COLUMN_WIDTH,
+    overscan: OVERSCAN,
+    rowCount: items.length,
+    rowHeight: BODY_HEIGHT,
+    staticColumnWidths: STATIC_COLUMN_WIDTHS,
+  });
+
+  const handleScrollToTableRow = useCallback(
+    (row: number) => {
+      virtualizer.scrollToIndex(Math.max(0, row - 1), {align: 'center'});
+    },
+    [virtualizer]
+  );
+
+  const visibleRange = useMemo<VisibleRange>(() => {
+    if (virtualRows.length === 0) {
+      return {startIndex: 0, stopIndex: 0};
+    }
+
+    const scrollOffset = virtualizer.scrollOffset ?? 0;
+    const viewportHeight = virtualizer.scrollRect?.height ?? 0;
+    const viewportEnd = scrollOffset + viewportHeight;
+
+    const visibleItems = virtualRows.filter(item => {
+      const itemEnd = item.start + item.size;
+      return itemEnd > scrollOffset && item.start < viewportEnd;
     });
+
+    if (visibleItems.length === 0) {
+      return {startIndex: 0, stopIndex: 0};
+    }
+
+    return {
+      startIndex: visibleItems[0]!.index + 1,
+      stopIndex: visibleItems[visibleItems.length - 1]!.index + 1,
+    };
+  }, [virtualRows, virtualizer.scrollOffset, virtualizer.scrollRect?.height]);
+
+  const {
+    handleClick: onClickToJump,
+    showJumpDownButton,
+    showJumpUpButton,
+  } = useJumpButtons({
+    currentTime,
+    frames: filteredItems,
+    isTable: true,
+    setScrollToRow: handleScrollToTableRow,
+    visibleRange,
+  });
 
   const {
     onClickCell,
@@ -87,89 +134,32 @@ export default function NetworkList() {
     handleHeight: RESIZEABLE_HANDLE_HEIGHT,
     urlParamName: 'n_detail_row',
     onShowDetails: useCallback(
-      ({dataIndex, rowIndex}: any) => {
-        setScrollToRow(rowIndex);
-
+      ({dataIndex, rowIndex}: {dataIndex: number; rowIndex: number}) => {
+        handleScrollToTableRow(rowIndex);
         const item = items[dataIndex];
+        if (!item) {
+          return;
+        }
         trackAnalytics('replay.details-network-panel-opened', {
           is_sdk_setup: isNetworkDetailsSetup,
           organization,
-          resource_method: getFrameMethod(item!),
-          resource_status: String(getFrameStatus(item!)),
-          resource_type: item!.op,
+          resource_method: getFrameMethod(item),
+          resource_status: String(getFrameStatus(item)),
+          resource_type: item.op,
         });
       },
-      [organization, items, isNetworkDetailsSetup]
+      [handleScrollToTableRow, isNetworkDetailsSetup, items, organization]
     ),
     onHideDetails: useCallback(() => {
       trackAnalytics('replay.details-network-panel-closed', {
         is_sdk_setup: isNetworkDetailsSetup,
         organization,
       });
-    }, [organization, isNetworkDetailsSetup]),
+    }, [isNetworkDetailsSetup, organization]),
   });
 
-  const {
-    handleClick: onClickToJump,
-    onSectionRendered,
-    showJumpDownButton,
-    showJumpUpButton,
-  } = useJumpButtons({
-    currentTime,
-    frames: filteredItems,
-    isTable: true,
-    setScrollToRow,
-  });
-
-  const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
-    const network = items[rowIndex - 1]!;
-
-    return (
-      <CellMeasurer
-        cache={cache}
-        columnIndex={columnIndex}
-        key={key}
-        parent={parent}
-        rowIndex={rowIndex}
-      >
-        {({measure: _, registerChild}) =>
-          rowIndex === 0 ? (
-            <NetworkHeaderCell
-              ref={e => {
-                if (e) {
-                  registerChild(e);
-                }
-              }}
-              handleSort={handleSort}
-              index={columnIndex}
-              sortConfig={sortConfig}
-              style={{...style, height: HEADER_HEIGHT}}
-            />
-          ) : (
-            <NetworkTableCell
-              columnIndex={columnIndex}
-              currentHoverTime={currentHoverTime}
-              currentTime={currentTime}
-              frame={network}
-              onMouseEnter={onMouseEnter}
-              onMouseLeave={onMouseLeave}
-              onClickCell={onClickCell}
-              onClickTimestamp={onClickTimestamp}
-              ref={e => {
-                if (e) {
-                  registerChild(e);
-                }
-              }}
-              rowIndex={rowIndex}
-              sortConfig={sortConfig}
-              startTimestampMs={startTimestampMs}
-              style={{...style, height: BODY_HEIGHT}}
-            />
-          )
-        }
-      </CellMeasurer>
-    );
-  };
+  const selectedItem =
+    selectedIndex === '' ? null : (items[Number(selectedIndex)] ?? null);
 
   return (
     <Flex direction="column" wrap="nowrap">
@@ -184,19 +174,27 @@ export default function NetworkList() {
         >
           {networkFrames ? (
             <OverflowHidden>
-              <AutoSizer onResize={onWrapperResize}>
-                {({height, width}) => (
-                  <MultiGrid
-                    ref={gridRef}
-                    cellRenderer={cellRenderer}
-                    columnCount={COLUMN_COUNT}
-                    columnWidth={getColumnWidth(width)}
-                    deferredMeasurementCache={cache}
-                    estimatedColumnSize={100}
-                    estimatedRowSize={BODY_HEIGHT}
-                    fixedRowCount={1}
-                    height={height}
-                    noContentRenderer={() => (
+              <VirtualizedTable ref={wrapperRef}>
+                <BodyScrollContainer ref={scrollContainerRef}>
+                  <HeaderViewport style={{width: totalColumnWidth}}>
+                    <HeaderRow
+                      style={{
+                        gridTemplateColumns,
+                      }}
+                    >
+                      {Array.from({length: COLUMN_COUNT}, (_, columnIndex) => (
+                        <NetworkHeaderCell
+                          key={columnIndex}
+                          handleSort={handleSort}
+                          index={columnIndex}
+                          sortConfig={sortConfig}
+                          style={{height: HEADER_HEIGHT}}
+                        />
+                      ))}
+                    </HeaderRow>
+                  </HeaderViewport>
+                  {items.length === 0 ? (
+                    <NoRowsContainer>
                       <NoRowRenderer
                         unfilteredItems={networkFrames}
                         clearSearchTerm={clearSearchTerm}
@@ -215,23 +213,90 @@ export default function NetworkList() {
                             )
                           : t('No network requests recorded')}
                       </NoRowRenderer>
-                    )}
-                    onScrollbarPresenceChange={onScrollbarPresenceChange}
-                    onScroll={() => {
-                      if (scrollToRow !== undefined) {
-                        setScrollToRow(undefined);
-                      }
-                    }}
-                    onSectionRendered={onSectionRendered}
-                    overscanColumnCount={COLUMN_COUNT}
-                    overscanRowCount={5}
-                    rowCount={items.length + 1}
-                    rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : BODY_HEIGHT)}
-                    scrollToRow={scrollToRow}
-                    width={width}
-                  />
-                )}
-              </AutoSizer>
+                    </NoRowsContainer>
+                  ) : (
+                    <VirtualizedContent
+                      style={{
+                        height: virtualizer.getTotalSize(),
+                        width: totalColumnWidth,
+                      }}
+                    >
+                      <VirtualOffset
+                        offset={virtualRows[0]?.start ?? 0}
+                        style={{width: totalColumnWidth}}
+                      >
+                        {virtualRows.map(virtualRow => {
+                          const network = items[virtualRow.index];
+                          if (!network) {
+                            return null;
+                          }
+
+                          const rowIndex = virtualRow.index + 1;
+                          const isByTimestamp = sortConfig.by === 'startTimestamp';
+                          const hasOccurred = currentTime >= network.offsetMs;
+                          const isBeforeHover =
+                            currentHoverTime === undefined ||
+                            currentHoverTime >= network.offsetMs;
+                          const isAsc = isByTimestamp ? sortConfig.asc : false;
+
+                          const rowClassName = classNames({
+                            beforeCurrentTime: isByTimestamp
+                              ? isAsc
+                                ? hasOccurred
+                                : !hasOccurred
+                              : undefined,
+                            afterCurrentTime: isByTimestamp
+                              ? isAsc
+                                ? !hasOccurred
+                                : hasOccurred
+                              : undefined,
+                            beforeHoverTime:
+                              isByTimestamp && currentHoverTime !== undefined
+                                ? isAsc
+                                  ? isBeforeHover
+                                  : !isBeforeHover
+                                : undefined,
+                            afterHoverTime:
+                              isByTimestamp && currentHoverTime !== undefined
+                                ? isAsc
+                                  ? !isBeforeHover
+                                  : isBeforeHover
+                                : undefined,
+                            isLastDataRow: virtualRow.index === items.length - 1,
+                          });
+
+                          return (
+                            <VirtualRow
+                              key={virtualRow.key}
+                              className={rowClassName}
+                              data-index={virtualRow.index}
+                              style={{
+                                gridTemplateColumns,
+                                height: BODY_HEIGHT,
+                              }}
+                            >
+                              {Array.from({length: COLUMN_COUNT}, (_, columnIndex) => (
+                                <NetworkTableCell
+                                  key={`${virtualRow.key}-${columnIndex}`}
+                                  columnIndex={columnIndex}
+                                  frame={network}
+                                  onMouseEnter={onMouseEnter}
+                                  onMouseLeave={onMouseLeave}
+                                  onClickCell={onClickCell}
+                                  onClickTimestamp={onClickTimestamp}
+                                  rowIndex={rowIndex}
+                                  startTimestampMs={startTimestampMs}
+                                  style={{height: BODY_HEIGHT}}
+                                />
+                              ))}
+                            </VirtualRow>
+                          );
+                        })}
+                      </VirtualOffset>
+                    </VirtualizedContent>
+                  )}
+                </BodyScrollContainer>
+              </VirtualizedTable>
               {sortConfig.by === 'startTimestamp' && items.length ? (
                 <JumpButtons
                   jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
@@ -247,8 +312,7 @@ export default function NetworkList() {
             {...resizableDrawerProps}
             isSetup={isNetworkDetailsSetup}
             isCaptureBodySetup={isCaptureBodySetup}
-            // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
-            item={selectedIndex ? items[selectedIndex] : null}
+            item={selectedItem}
             onClose={onCloseDetailsSplit}
             projectId={projectId}
             startTimestampMs={startTimestampMs}
@@ -258,3 +322,89 @@ export default function NetworkList() {
     </Flex>
   );
 }
+
+const VirtualizedTable = styled('div')`
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+`;
+
+const HeaderViewport = styled('div')`
+  background: ${p => p.theme.tokens.background.primary};
+  min-width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+`;
+
+const HeaderRow = styled('div')`
+  display: grid;
+`;
+
+const BodyScrollContainer = styled('div')`
+  bottom: 0;
+  inset-inline: 0;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  position: absolute;
+  overscroll-behavior: contain;
+  top: 0;
+`;
+
+const VirtualizedContent = styled('div')`
+  position: relative;
+`;
+
+const VirtualRow = styled('div')`
+  display: grid;
+  position: relative;
+
+  &.beforeHoverTime + &.afterHoverTime:before {
+    border-top: 1px solid ${p => p.theme.tokens.border.transparent.accent.moderate};
+    content: '';
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 100%;
+  }
+
+  &.beforeHoverTime.isLastDataRow:before {
+    border-bottom: 1px solid ${p => p.theme.tokens.border.transparent.accent.moderate};
+    content: '';
+    left: 0;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+  }
+
+  &.beforeCurrentTime + &.afterCurrentTime:after {
+    border-top: 1px solid ${p => p.theme.tokens.border.transparent.accent.vibrant};
+    content: '';
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 100%;
+  }
+
+  &.beforeCurrentTime.isLastDataRow:after {
+    border-bottom: 1px solid ${p => p.theme.tokens.border.transparent.accent.vibrant};
+    content: '';
+    left: 0;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+  }
+`;
+
+const NoRowsContainer = styled('div')`
+  min-height: 100%;
+`;
+
+const VirtualOffset = styled('div')<{offset: number}>`
+  left: 0;
+  position: absolute;
+  top: 0;
+  transform: translateY(${p => p.offset}px);
+`;
