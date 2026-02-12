@@ -44,12 +44,10 @@ export function BookmarkStar({
     },
   });
 
-  const label = isBookmarked ? t('Remove Bookmark') : t('Bookmark');
-
   return (
     <Button
-      title={label}
-      aria-label={label}
+      tooltipProps={{title: isBookmarked ? t('Remove Bookmark') : t('Bookmark')}}
+      aria-label={isBookmarked ? t('Remove Bookmark') : t('Bookmark')}
       aria-pressed={isBookmarked}
       busy={isBookmarking}
       onClick={() => handleBookmarkToggle({isBookmarked: !isBookmarked})}
