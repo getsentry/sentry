@@ -142,21 +142,17 @@ jobs:
         with:
           mode: migrations
 
-      # G1: Pass specific tier files to pytest instead of `tests/`.
-      # This avoids discovering ALL 32K+ tests and discarding most of them.
-      # Collection scans only tier1 files (~1496) instead of ALL test files (~2226).
-      # DJANGO_SETTINGS_MODULE must be set before pytest starts because some conftest.py
-      # files access Django settings at import time, before pytest_configure runs.
-      - name: Run tier 1 tests (xdist -n 3, direct file collection)
+      # Use SELECTED_TESTS_FILE to filter to tier1 tests only.
+      # G1 (direct file collection) was reverted — passing individual files to pytest
+      # breaks conftest/plugin initialization order (DJANGO_SETTINGS_MODULE race).
+      - name: Run tier 1 tests (xdist -n 3)
         env:
-          DJANGO_SETTINGS_MODULE: sentry.conf.server
-          _SENTRY_SKIP_CONFIGURATION: '1'
+          SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
         run: |
           echo "=== Tier 1: Postgres + Redis only (no Snuba stack) ==="
           echo "Shard ${{ matrix.instance }} of 5, xdist workers: 3"
           echo "Test files: $(wc -l < /tmp/tier1-tests.txt)"
-          python3 -b -m pytest \
-            $(cat /tmp/tier1-tests.txt) \
+          python3 -b -m pytest tests \
             --reuse-db \
             -n 3 \
             --dist=loadfile \
@@ -218,18 +214,16 @@ jobs:
           mode: backend-ci
           skip-devservices: true
 
-      # G1 + H1: Start devservices + per-worker bootstrap in background while pytest
+      # H1: Start devservices + per-worker bootstrap in background while pytest
       # collects tests. Pytest collection (~100-120s) doesn't need services — it only
       # discovers test functions. By overlapping, we save ~80-113s per shard.
-      - name: Run tier 2 tests (overlapped startup + direct file collection)
+      - name: Run tier 2 tests (overlapped startup)
         env:
           # H1: _requires_snuba will wait up to 180s for per-worker Snuba to be ready
           SNUBA_WAIT_TIMEOUT: '180'
           # Docker bridge gateway is always 172.17.0.1 on GitHub Actions
           DJANGO_LIVE_TEST_SERVER_ADDRESS: '172.17.0.1'
-          # G1: Django settings must be configured before conftest.py files load
-          DJANGO_SETTINGS_MODULE: sentry.conf.server
-          _SENTRY_SKIP_CONFIGURATION: '1'
+          SELECTED_TESTS_FILE: /tmp/tier2-tests.txt
         run: |
           XDIST_N=${XDIST_WORKERS:-2}
           PHASE_START=$(date +%s)
@@ -314,17 +308,16 @@ jobs:
           ) 2>&1 &
           SERVICES_PID=$!
 
-          # ── G1 + H1: Start pytest immediately with specific tier files ──
+          # ── H1: Start pytest immediately ──
           # Pytest collection (~100-120s) runs in parallel with service startup above.
           # The _requires_snuba fixture will wait (SNUBA_WAIT_TIMEOUT) for services.
-          echo "=== Tier 2: Overlapped startup + direct file collection ==="
+          echo "=== Tier 2: Overlapped startup ==="
           echo "Shard ${{ matrix.instance }} of 17, xdist workers: $XDIST_N"
           echo "Test files: $(wc -l < /tmp/tier2-tests.txt)"
           echo "Services starting in background (PID $SERVICES_PID)..."
 
           PYTEST_EXIT=0
-          python3 -b -m pytest \
-            $(cat /tmp/tier2-tests.txt) \
+          python3 -b -m pytest tests \
             --reuse-db \
             -n $XDIST_N \
             --dist=loadfile \
