@@ -7,6 +7,8 @@ import {testableDebounce} from 'sentry/utils/url/testUtils';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
+import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';
 
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: jest.fn(),
@@ -28,6 +30,7 @@ jest.mock('sentry/views/dashboards/widgetLibrary/data', () => ({
 }));
 
 const mockUseNavigate = jest.mocked(useNavigate);
+const mockGetTopNConvertedDefaultWidgets = jest.mocked(getTopNConvertedDefaultWidgets);
 
 jest.mock('sentry/actionCreators/indicator');
 
@@ -160,11 +163,7 @@ describe('WidgetTemplatesList', () => {
   });
 
   it('should pre-select widget based on widgetTemplateId query parameter', async () => {
-    const {
-      getTopNConvertedDefaultWidgets,
-    } = require('sentry/views/dashboards/widgetLibrary/data');
-
-    getTopNConvertedDefaultWidgets.mockReturnValue([
+    mockGetTopNConvertedDefaultWidgets.mockReturnValueOnce([
       {
         id: 'duration-distribution',
         title: 'Duration Distribution',
@@ -183,7 +182,7 @@ describe('WidgetTemplatesList', () => {
         queries: [],
         isCustomizable: true,
       },
-    ]);
+    ] as unknown as WidgetTemplate[]);
 
     render(
       <WidgetBuilderProvider>
