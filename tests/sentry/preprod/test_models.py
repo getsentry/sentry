@@ -1,8 +1,14 @@
 from __future__ import annotations
 
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import (
+    PreprodArtifact,
+    SizeAnalysisDataSourceHandler,
+    SizeAnalysisSubscription,
+)
+from sentry.preprod.size_analysis.types import DATA_SOURCE_SIZE_ANALYSIS
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.workflow_engine.models import DataSource
 
 
 class PreprodArtifactModelTestBase(TestCase):
@@ -1599,3 +1605,84 @@ class PreprodArtifactBatchBaseArtifactTest(PreprodArtifactModelTestBase):
 
         assert len(result) == 1
         assert result[head_artifact.id] == base_artifact_with_config
+
+
+@region_silo_test
+class SizeAnalysisSubscriptionTest(TestCase):
+    def test_create_subscription(self):
+
+        subscription = SizeAnalysisSubscription.objects.create(
+            project=self.project,
+            config={"threshold": 1000000},
+            enabled=True,
+        )
+
+        assert subscription.project == self.project
+        assert subscription.config == {"threshold": 1000000}
+        assert subscription.enabled is True
+
+    def test_create_subscription_empty_config(self):
+        subscription = SizeAnalysisSubscription.objects.create(
+            project=self.project,
+            config={},
+            enabled=True,
+        )
+
+        assert subscription.config == {}
+
+    def test_create_subscription_default_values(self):
+        subscription = SizeAnalysisSubscription.objects.create(project=self.project)
+
+        assert subscription.config == {}
+        assert subscription.enabled is True
+
+
+@region_silo_test
+class SizeAnalysisDataSourceHandlerTest(TestCase):
+
+    def test_bulk_get_query_object(self):
+        subscription = SizeAnalysisSubscription.objects.create(
+            project=self.project,
+            config={"threshold": 1000000},
+        )
+
+        data_source = DataSource.objects.create(
+            organization=self.organization,
+            source_id=str(subscription.id),
+            type=DATA_SOURCE_SIZE_ANALYSIS,
+        )
+
+        result = SizeAnalysisDataSourceHandler.bulk_get_query_object([data_source])
+
+        assert len(result) == 1
+        assert result[data_source.id] == subscription
+
+    def test_bulk_get_query_object_not_found(self):
+        data_source = DataSource.objects.create(
+            organization=self.organization,
+            source_id="99999",
+            type=DATA_SOURCE_SIZE_ANALYSIS,
+        )
+
+        result = SizeAnalysisDataSourceHandler.bulk_get_query_object([data_source])
+
+        assert len(result) == 1
+        assert result[data_source.id] is None
+
+    def test_related_model(self):
+        subscription = SizeAnalysisSubscription.objects.create(
+            project=self.project,
+            config={},
+        )
+
+        data_source = DataSource.objects.create(
+            organization=self.organization,
+            source_id=str(subscription.id),
+            type=DATA_SOURCE_SIZE_ANALYSIS,
+        )
+
+        result = SizeAnalysisDataSourceHandler.related_model(data_source)
+
+        assert len(result) == 1
+        assert result[0].params["model"] == SizeAnalysisSubscription
+        assert result[0].params["query"] == {"id": str(subscription.id)}
