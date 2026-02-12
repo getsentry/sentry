@@ -4,6 +4,7 @@ import pytest
 
 from sentry.autopilot.tasks.common import AutopilotDetectorName
 from sentry.autopilot.tasks.missing_sdk_integration import (
+    MissingSdkIntegrationDetail,
     MissingSdkIntegrationFinishReason,
     MissingSdkIntegrationsResult,
     run_missing_sdk_integration_detector,
@@ -424,7 +425,18 @@ class TestRunMissingSdkIntegrationDetectorForProject(TestCase):
         mock_state.status = "completed"
         mock_state.blocks = []
         mock_state.get_artifact.return_value = MissingSdkIntegrationsResult(
-            missing_integrations=["anthropicIntegration", "openaiIntegration"],
+            missing_integrations=[
+                MissingSdkIntegrationDetail(
+                    name="anthropicIntegration",
+                    summary="Track your Anthropic API calls in Sentry — since your project already uses the anthropic package, this integration gives you token usage and model details on every request.",
+                    docs_url="https://docs.sentry.io/platforms/python/integrations/anthropic/",
+                ),
+                MissingSdkIntegrationDetail(
+                    name="openaiIntegration",
+                    summary="Track your OpenAI API calls in Sentry — since your project already uses the openai package, this integration gives you token usage and model details on every request.",
+                    docs_url="https://docs.sentry.io/platforms/python/integrations/openai/",
+                ),
+            ],
             finish_reason=MissingSdkIntegrationFinishReason.SUCCESS,
         )
         mock_client_instance.get_run.return_value = mock_state
@@ -463,11 +475,25 @@ class TestRunMissingSdkIntegrationDetectorForProject(TestCase):
         assert "Missing SDK Integration: anthropicIntegration" in titles
         assert "Missing SDK Integration: openaiIntegration" in titles
 
-        # Verify common attributes
+        # Verify common attributes and AI-generated content
         for call_kwargs in call_args_list:
             assert call_kwargs["project_id"] == self.project.id
             assert call_kwargs["detector_name"] == AutopilotDetectorName.MISSING_SDK_INTEGRATION
             assert call_kwargs["repository_name"] == "test-repo"
+            assert "docs.sentry.io" in call_kwargs["description"]
+            assert call_kwargs["subtitle"] != ""
+
+        # Verify the anthropic integration has its specific details
+        anthropic_call = next(c for c in call_args_list if "anthropicIntegration" in c["title"])
+        assert anthropic_call["subtitle"] == (
+            "Track your Anthropic API calls in Sentry — since your project already uses"
+            " the anthropic package, this integration gives you token usage and model"
+            " details on every request."
+        )
+        assert (
+            "docs.sentry.io/platforms/python/integrations/anthropic/"
+            in anthropic_call["description"]
+        )
 
         # Verify metrics were emitted
         mock_metrics_incr.assert_any_call(
