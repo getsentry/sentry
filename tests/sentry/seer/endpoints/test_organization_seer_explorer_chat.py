@@ -23,9 +23,12 @@ CONDUIT_SETTINGS = {
 
 @with_feature("organizations:seer-explorer")
 @with_feature("organizations:gen-ai-features")
+@with_feature("organizations:gen-ai-consent-flow-removal")
 class OrganizationSeerExplorerChatEndpointTest(APITestCase):
     def setUp(self):
         super().setUp()
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
         self.login_as(user=self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"
 

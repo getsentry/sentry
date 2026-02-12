@@ -176,6 +176,8 @@ class DashboardWidgetDisplayTypes(TypesClass):
     DETAILS = 8
     CATEGORICAL_BAR_CHART = 9
     WHEEL = 10
+    RAGE_AND_DEAD_CLICKS = 11
+    SERVER_TREE = 12
     TYPES = [
         (LINE_CHART, "line"),
         (AREA_CHART, "area"),
@@ -187,6 +189,8 @@ class DashboardWidgetDisplayTypes(TypesClass):
         (DETAILS, "details"),
         (CATEGORICAL_BAR_CHART, "categorical_bar"),
         (WHEEL, "wheel"),
+        (RAGE_AND_DEAD_CLICKS, "rage_and_dead_clicks"),
+        (SERVER_TREE, "server_tree"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 

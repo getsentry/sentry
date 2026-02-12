@@ -149,7 +149,7 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
         size="zero"
         priority="transparent"
         text={id.replaceAll('-', '')}
-        title={t('Copy full check-in identifier')}
+        tooltipProps={{title: t('Copy full check-in identifier')}}
         aria-label={t('Copy Check-In ID')}
       />
     </Flex>
