@@ -276,8 +276,13 @@ def create_preprod_status_check_task(
                         id__in=[a.id for a in all_artifacts]
                     ).values_list("id", "extras")
                 )
+                is_terminal = _all_artifacts_terminal(all_artifacts, size_metrics_map)
                 if _should_skip_status_check(
-                    all_artifacts, extras_by_artifact_id, size_metrics_map, status
+                    all_artifacts,
+                    extras_by_artifact_id,
+                    size_metrics_map,
+                    status,
+                    is_terminal,
                 ):
                     logger.info(
                         "preprod.status_checks.create.skipped",
@@ -289,7 +294,6 @@ def create_preprod_status_check_task(
                     )
                     return
 
-                is_terminal = _all_artifacts_terminal(all_artifacts, size_metrics_map)
                 _update_posted_status_claim(preprod_artifact, status.value, is_terminal)
         except UnableToAcquireLock:
             logger.warning(
@@ -554,6 +558,7 @@ def _should_skip_status_check(
     extras_by_artifact_id: dict[int, dict[str, Any] | None],
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
     status: StatusCheckStatus,
+    is_terminal: bool,
 ) -> bool:
     """Decide whether to skip posting a status check to reduce API calls.
 
@@ -578,7 +583,7 @@ def _should_skip_status_check(
         if not any_posted:
             return False
 
-        if not _all_artifacts_terminal(all_artifacts, size_metrics_map):
+        if not is_terminal:
             return True
 
         # We need is_terminal to distinguish "posted NEUTRAL while still processing" from
