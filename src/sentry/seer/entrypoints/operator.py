@@ -8,12 +8,13 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.autofix.autofix import trigger_autofix as _trigger_autofix
 from sentry.seer.autofix.autofix import update_autofix
+from sentry.seer.autofix.constants import AutofixStatus
 from sentry.seer.autofix.types import (
     AutofixCreatePRPayload,
     AutofixSelectRootCausePayload,
     AutofixSelectSolutionPayload,
 )
-from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint, get_autofix_state
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.metrics import (
     SeerOperatorEventLifecycleMetric,
@@ -127,6 +128,37 @@ class SeerOperator[CachePayloadT]:
                     "stopping_point": str(stopping_point),
                 }
             )
+            existing_state = (
+                get_autofix_state(
+                    run_id=run_id,
+                    organization_id=group.organization.id,
+                )
+                if run_id
+                else get_autofix_state(
+                    group_id=group.id,
+                    organization_id=group.organization.id,
+                )
+            )
+            if existing_state:
+                has_complete_stage = has_complete_stage_from_state(stopping_point, existing_state)
+                lifecycle.add_extras(
+                    {
+                        "existing_run_id": str(existing_state.run_id),
+                        "has_complete_stage": str(
+                            has_complete_stage_from_state(stopping_point, existing_state)
+                        ),
+                    }
+                )
+                if existing_state.status == AutofixStatus.PROCESSING:
+                    with SeerOperatorEventLifecycleMetric(
+                        interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ALREADY_EXISTS,
+                        entrypoint_key=self.entrypoint.key,
+                    ).capture():
+                        self.entrypoint.on_trigger_autofix_already_exists(
+                            state=existing_state, has_complete_stage=has_complete_stage
+                        )
+                    return
+
             if not run_id:
                 raw_response = _trigger_autofix(
                     group=group,
@@ -280,3 +312,35 @@ def process_autofix_updates(
                     )
                 except Exception as e:
                     ept_lifecycle.record_failure(failure_reason=e)
+
+
+def has_complete_stage_from_state(
+    stopping_point: AutofixStoppingPoint, autofix_state: AutofixState
+) -> bool:
+    """
+    Determines if a stopping point stage has been completed based on the autofix state.
+    """
+    match stopping_point:
+        case AutofixStoppingPoint.ROOT_CAUSE:
+            return any(
+                step.get("status") == AutofixStatus.COMPLETED
+                and step.get("key") == "root_cause_analysis"
+                for step in autofix_state.steps
+            )
+        case AutofixStoppingPoint.SOLUTION:
+            return any(
+                step.get("status") == AutofixStatus.COMPLETED and step.get("key") == "solution"
+                for step in autofix_state.steps
+            )
+        case AutofixStoppingPoint.CODE_CHANGES:
+            return any(
+                step.get("status") == AutofixStatus.COMPLETED and step.get("key") == "changes"
+                for step in autofix_state.steps
+            )
+        case AutofixStoppingPoint.OPEN_PR:
+            return any(
+                step.get("status") == AutofixStatus.COMPLETED
+                and step.get("key") == "changes"
+                and any(change.get("pull_request") for change in step.get("changes", []))
+                for step in autofix_state.steps
+            )

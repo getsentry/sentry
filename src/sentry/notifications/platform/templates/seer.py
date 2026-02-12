@@ -80,10 +80,6 @@ class SeerAutofixUpdate(NotificationData):
     source: NotificationSource = NotificationSource.SEER_AUTOFIX_UPDATE
 
     @property
-    def next_point(self) -> AutofixStoppingPoint | None:
-        return _get_next_stopping_point(self.current_point)
-
-    @property
     def has_next_trigger(self) -> bool:
         match self.current_point:
             case AutofixStoppingPoint.ROOT_CAUSE:
