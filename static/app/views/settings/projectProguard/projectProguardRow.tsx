@@ -64,7 +64,7 @@ function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Props) {
               icon={<IconDownload size="sm" />}
               disabled={!hasRole}
               href={downloadUrl}
-              title={hasRole ? t('Download Mapping') : undefined}
+              tooltipProps={{title: hasRole ? t('Download Mapping') : undefined}}
               aria-label={t('Download Mapping')}
             />
           </Tooltip>
@@ -83,7 +83,7 @@ function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Props) {
                   <Button
                     size="sm"
                     icon={<IconDelete size="sm" />}
-                    title={hasAccess ? t('Remove Mapping') : undefined}
+                    tooltipProps={{title: hasAccess ? t('Remove Mapping') : undefined}}
                     aria-label={t('Remove Mapping')}
                     disabled={!hasAccess}
                   />

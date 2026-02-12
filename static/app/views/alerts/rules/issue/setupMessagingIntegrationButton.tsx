@@ -88,11 +88,13 @@ function SetupMessagingIntegrationButton({
               </Flex>
             }
             disabled={disabled}
-            title={
-              disabled
+            tooltipProps={{
+              title: disabled
                 ? disabledReason
-                : t('Send alerts to your messaging service. Install the integration now.')
-            }
+                : t(
+                    'Send alerts to your messaging service. Install the integration now.'
+                  ),
+            }}
             onClick={() => {
               openModal(
                 deps => (

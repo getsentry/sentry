@@ -28,6 +28,7 @@ class Message(BaseModel):
     role: Literal["user", "assistant", "tool_use"]
     content: str | None = None
     tool_calls: list[ToolCall] | None = None
+    metadata: dict[str, str] | None = None
 
     class Config:
         extra = "allow"

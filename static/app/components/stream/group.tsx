@@ -84,6 +84,11 @@ type Props = {
    */
   group?: Group;
   hasGuideAnchor?: boolean;
+  /**
+   * Extra query params to include in the issue details navigation target.
+   * Applied to both the row click and the issue title link.
+   */
+  issueLinkExtraQuery?: Record<string, string>;
   memberList?: User[];
   onAssigneeChange?: (newAssignee: AssignableEntity | null) => void;
   onPriorityChange?: (newPriority: PriorityLevel) => void;
@@ -277,6 +282,7 @@ function StreamGroup({
   displayReprocessingLayout,
   hasGuideAnchor,
   memberList,
+  issueLinkExtraQuery,
   query,
   queryFilterDescription,
   source,
@@ -646,6 +652,7 @@ function StreamGroup({
           referrer,
           location,
           query,
+          extraQuery: issueLinkExtraQuery,
         })
       )
     );
@@ -668,7 +675,12 @@ function StreamGroup({
           />
         )}
         <GroupSummary canSelect={canSelect}>
-          <EventOrGroupHeader data={group} query={query} source={referrer} />
+          <EventOrGroupHeader
+            data={group}
+            query={query}
+            source={referrer}
+            issueLinkExtraQuery={issueLinkExtraQuery}
+          />
           <EventOrGroupExtraDetails data={group} showLifetime={false} />
         </GroupSummary>
       </Fragment>
