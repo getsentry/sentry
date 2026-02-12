@@ -19,6 +19,8 @@ class Trimming(Service):
     Handles fetching per-data-category trimming configuration for organizations.
     """
 
+    __all__ = ("get_trimming_configs",)
+
     def get_trimming_configs(self, organization: Organization, **kwargs) -> TrimmingConfigs:
         """
         Returns per-data-category trimming settings.
