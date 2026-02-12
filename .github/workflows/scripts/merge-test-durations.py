@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Merge pytest JSON reports into a scope-level test durations file.
+"""Merge pytest JSON reports into a per-test durations file.
 
 Reads one or more pytest JSON report files (from --json-report) and outputs
-a single JSON file mapping test scopes to their total duration in seconds.
+a single JSON file mapping full test nodeids to their duration in seconds.
 
-Scopes are "file::class" (or just "file" for module-level tests), matching
-the grouping used by --dist=loadfile and our sharding logic.
+Per-test granularity allows the LPT shard allocator to distribute individual
+tests across shards, avoiding the bottleneck where mega-scopes (e.g. a single
+test class with 600s+ of tests) get pinned to one shard.
 
 Usage:
     python merge-test-durations.py \
@@ -13,7 +14,7 @@ Usage:
         --output /tmp/test-durations.json
 
 Input: directory containing pytest JSON report files (*.json)
-Output: JSON file like {"tests/foo/test_bar.py::TestClass": 12.5, ...}
+Output: JSON file like {"tests/foo/test_bar.py::TestClass::test_method": 1.5, ...}
 """
 
 import argparse
@@ -24,11 +25,11 @@ from pathlib import Path
 
 
 def extract_durations(report_path: Path) -> dict[str, float]:
-    """Extract per-scope durations from a single pytest JSON report."""
+    """Extract per-test durations from a single pytest JSON report."""
     with report_path.open() as f:
         data = json.load(f)
 
-    scope_durations: dict[str, float] = defaultdict(float)
+    test_durations: dict[str, float] = {}
 
     for test in data.get("tests", []):
         nodeid = test.get("nodeid", "")
@@ -44,26 +45,23 @@ def extract_durations(report_path: Path) -> dict[str, float]:
         if not nodeid or duration <= 0:
             continue
 
-        # Scope = everything except the test function name
-        # e.g. "tests/foo/test_bar.py::TestClass::test_method" -> "tests/foo/test_bar.py::TestClass"
-        scope = nodeid.rsplit("::", 1)[0]
-        scope_durations[scope] += duration
+        test_durations[nodeid] = duration
 
-    return dict(scope_durations)
+    return test_durations
 
 
 def merge_durations(all_durations: list[dict[str, float]]) -> dict[str, float]:
-    """Merge multiple duration dicts, averaging durations for scopes seen multiple times."""
-    scope_totals: dict[str, float] = defaultdict(float)
-    scope_counts: dict[str, int] = defaultdict(int)
+    """Merge multiple duration dicts, averaging durations for tests seen multiple times."""
+    test_totals: dict[str, float] = defaultdict(float)
+    test_counts: dict[str, int] = defaultdict(int)
 
     for durations in all_durations:
-        for scope, dur in durations.items():
-            scope_totals[scope] += dur
-            scope_counts[scope] += 1
+        for nodeid, dur in durations.items():
+            test_totals[nodeid] += dur
+            test_counts[nodeid] += 1
 
     # Average across runs for stability
-    return {scope: scope_totals[scope] / scope_counts[scope] for scope in scope_totals}
+    return {nodeid: test_totals[nodeid] / test_counts[nodeid] for nodeid in test_totals}
 
 
 def main():
@@ -90,7 +88,7 @@ def main():
             if durations:
                 all_durations.append(durations)
                 if args.summary:
-                    print(f"  {report_file.name}: {len(durations)} scopes, {sum(durations.values()):.1f}s total")
+                    print(f"  {report_file.name}: {len(durations)} tests, {sum(durations.values()):.1f}s total")
         except (json.JSONDecodeError, KeyError) as e:
             print(f"WARNING: Skipping {report_file}: {e}", file=sys.stderr)
 
@@ -108,7 +106,7 @@ def main():
 
     if args.summary:
         total_dur = sum(merged.values())
-        print(f"\nMerged: {len(merged)} scopes from {len(report_files)} reports")
+        print(f"\nMerged: {len(merged)} tests from {len(report_files)} reports")
         print(f"Total duration: {total_dur:.1f}s ({total_dur/60:.1f}m)")
         print(f"Output: {args.output}")
 

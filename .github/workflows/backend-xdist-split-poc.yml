@@ -67,8 +67,8 @@ jobs:
         uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: /tmp/test-durations.json
-          key: test-durations-v2-will-not-match
-          restore-keys: test-durations-v2-
+          key: test-durations-v3-will-not-match
+          restore-keys: test-durations-v3-
 
       - name: Ensure durations file exists
         run: |
@@ -425,4 +425,4 @@ jobs:
         uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: /tmp/test-durations.json
-          key: test-durations-v2-${{ github.run_id }}
+          key: test-durations-v3-${{ github.run_id }}

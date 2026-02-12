@@ -609,14 +609,15 @@ def _force_serial(item: pytest.Item) -> bool:
 def _duration_based_split(
     items: list[pytest.Item], total_groups: int, current_group: int
 ) -> tuple[list[pytest.Item], list[pytest.Item]]:
-    """Split tests into shards using duration-based greedy bin packing.
+    """Split tests into shards using per-test duration-based greedy bin packing.
 
-    Reads per-scope durations from TEST_DURATIONS_FILE (JSON: {scope: seconds}).
-    Groups tests by scope (file::class), then assigns scopes to shards using
-    "longest processing time first" — the heaviest scope goes to the lightest
-    shard. This produces much better balance than hash-based round-robin.
+    Reads per-test durations from TEST_DURATIONS_FILE (JSON: {nodeid: seconds}).
+    Assigns individual tests to shards using "longest processing time first" —
+    the heaviest test goes to the lightest shard. This distributes mega test
+    classes (e.g. OrganizationEventsEndpointTest at 600s+) across all shards
+    instead of pinning them to one.
 
-    Falls back to hash-based if no durations file is available.
+    Falls back to per-test hash if no durations file is available.
     """
     import heapq
     import json
@@ -632,9 +633,6 @@ def _duration_based_split(
 
     if not durations:
         # No duration data — fall back to per-test hash distribution.
-        # Hash the full nodeid (not scope) so individual tests scatter
-        # across shards, giving better statistical balance than grouping
-        # entire classes onto one shard.
         keep, discard = [], []
         for item in items:
             to_hash = item.nodeid.encode()
@@ -645,70 +643,56 @@ def _duration_based_split(
                 discard.append(item)
         return keep, discard
 
-    # Group items by scope (file::class or file)
-    scope_items: dict[str, list[pytest.Item]] = {}
-    for item in items:
-        scope = item.nodeid.rsplit("::", 1)[0]
-        scope_items.setdefault(scope, []).append(item)
-
-    # Get duration per scope (sum of test durations, default 1.0s per test)
-    scope_durations: list[tuple[float, str]] = []
-    for scope, scope_tests in scope_items.items():
-        dur = durations.get(scope, 0.0)
-        if dur <= 0:
-            # Try file-level match (strip class from scope)
-            file_path = scope.split("::")[0]
-            dur = durations.get(file_path, 0.0)
-        if dur <= 0:
-            # Unknown scope — estimate 1s per test
-            dur = float(len(scope_tests))
-        scope_durations.append((dur, scope))
+    # Build per-test duration list: (duration, index)
+    # Use recorded duration if available, otherwise estimate 1.0s.
+    test_durations: list[tuple[float, int]] = []
+    matched = 0
+    for i, item in enumerate(items):
+        dur = durations.get(item.nodeid, 0.0)
+        if dur > 0:
+            matched += 1
+        else:
+            dur = 1.0  # conservative estimate for unknown tests
+        test_durations.append((dur, i))
 
     # Sort by duration descending (largest first — LPT algorithm)
-    scope_durations.sort(key=lambda x: -x[0])
+    test_durations.sort(key=lambda x: -x[0])
 
     # Greedy bin packing using a min-heap of (total_duration, group_index)
-    bins: list[list[str]] = [[] for _ in range(total_groups)]
+    bins: list[list[int]] = [[] for _ in range(total_groups)]
+    bin_durations: list[float] = [0.0] * total_groups
     heap: list[tuple[float, int]] = [(0.0, i) for i in range(total_groups)]
     heapq.heapify(heap)
 
-    for dur, scope in scope_durations:
+    for dur, idx in test_durations:
         lightest_dur, lightest_idx = heapq.heappop(heap)
-        bins[lightest_idx].append(scope)
+        bins[lightest_idx].append(idx)
+        bin_durations[lightest_idx] = lightest_dur + dur
         heapq.heappush(heap, (lightest_dur + dur, lightest_idx))
 
     # Log shard balance for CI visibility
-    bin_durations = []
-    for i, bin_scopes in enumerate(bins):
-        total = sum(
-            next((d for d, s in scope_durations if s == sc), 0.0) for sc in bin_scopes
-        )
-        bin_durations.append(total)
-
-    matched = sum(1 for _, scope in scope_durations if durations.get(scope, 0) > 0)
     import sys
 
     print(
-        f"[duration-split] {len(scope_durations)} scopes, "
+        f"[duration-split] {len(items)} tests, "
         f"{matched} with timing data, "
-        f"{len(scope_durations) - matched} estimated",
+        f"{len(items) - matched} estimated @ 1s",
         file=sys.stderr,
     )
     print(
         f"[duration-split] shard {current_group}/{total_groups}: "
-        f"{len(bins[current_group])} scopes, "
+        f"{len(bins[current_group])} tests, "
         f"predicted {bin_durations[current_group]:.0f}s "
         f"(range: {min(bin_durations):.0f}s – {max(bin_durations):.0f}s)",
         file=sys.stderr,
     )
 
     # Collect items for current group
-    current_scopes = set(bins[current_group])
+    current_indices = set(bins[current_group])
     keep = []
     discard = []
-    for item in items:
-        scope = item.nodeid.rsplit("::", 1)[0]
-        if scope in current_scopes:
+    for i, item in enumerate(items):
+        if i in current_indices:
             keep.append(item)
         else:
             discard.append(item)
