@@ -143,7 +143,7 @@ export function getWidgetExploreUrl(
   );
 }
 
-function getChartType(displayType: DisplayType) {
+export function getChartType(displayType: DisplayType) {
   let chartType: ChartType = ChartType.LINE;
   switch (displayType) {
     case DisplayType.BAR:
