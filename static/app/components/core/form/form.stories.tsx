@@ -211,6 +211,7 @@ function BasicForm() {
                 <field.Input
                   value={field.state.value ?? ''}
                   onChange={field.handleChange}
+                  disabled="Can't touch this"
                 />
               </field.Layout.Row>
             )}

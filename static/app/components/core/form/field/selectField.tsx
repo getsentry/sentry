@@ -1,6 +1,7 @@
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {SelectValue} from 'sentry/types/core';
@@ -18,37 +19,55 @@ function SelectInput({
 
 export function SelectField({
   onChange,
+  disabled,
   ...props
 }: BaseFieldProps &
-  Omit<React.ComponentProps<typeof Select>, 'value' | 'onChange' | 'onBlur'> & {
+  Omit<
+    React.ComponentProps<typeof Select>,
+    'value' | 'onChange' | 'onBlur' | 'disabled'
+  > & {
     onChange: (value: string) => void;
     value: string;
-    disabled?: boolean;
+    disabled?: boolean | string;
   }) {
   const autoSaveContext = useAutoSaveContext();
+  const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
+  const disabledReason = typeof disabled === 'string' ? disabled : undefined;
 
   return (
     <BaseField>
-      {(fieldProps, {indicator}) => (
-        <Select
-          {...fieldProps}
-          {...props}
-          disabled={props.disabled || autoSaveContext?.status === 'pending'}
-          components={{
-            ...props.components,
-            Input: SelectInput,
-            IndicatorsContainer: ({
-              children,
-            }: React.ComponentProps<typeof components.IndicatorsContainer>) => (
-              <Flex padding="sm" gap="sm" align="center">
-                {indicator}
-                {children}
-              </Flex>
-            ),
-          }}
-          onChange={(option: SelectValue<string>) => onChange(option?.value ?? '')}
-        />
-      )}
+      {(fieldProps, {indicator}) => {
+        const select = (
+          <Select
+            {...fieldProps}
+            {...props}
+            disabled={isDisabled}
+            components={{
+              ...props.components,
+              Input: SelectInput,
+              IndicatorsContainer: ({
+                children,
+              }: React.ComponentProps<typeof components.IndicatorsContainer>) => (
+                <Flex padding="sm" gap="sm" align="center">
+                  {indicator}
+                  {children}
+                </Flex>
+              ),
+            }}
+            onChange={(option: SelectValue<string>) => onChange(option?.value ?? '')}
+          />
+        );
+
+        if (disabledReason) {
+          return (
+            <Tooltip skipWrapper title={disabledReason}>
+              {select}
+            </Tooltip>
+          );
+        }
+
+        return select;
+      }}
     </BaseField>
   );
 }
