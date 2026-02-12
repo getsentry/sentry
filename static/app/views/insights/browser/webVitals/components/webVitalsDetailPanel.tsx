@@ -210,7 +210,7 @@ export function WebVitalsDetailPanel({
               organizationSlug: organization.slug,
               field: 'transaction',
               value: row.transaction,
-              widgetType: WidgetType.TRANSACTIONS,
+              widgetType: WidgetType.SPANS,
               dashboardFilters,
               locationQuery: location.query,
               projectIdOverride: String(row['project.id']),
