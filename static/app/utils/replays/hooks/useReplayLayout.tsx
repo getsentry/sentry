@@ -108,7 +108,9 @@ export default function useReplayLayout() {
 
   const [layoutValue, setLayoutValue] = useQueryState(
     'l_page',
-    parseAsStringLiteral(Object.values(LayoutKey)).withDefault(defaultLayout)
+    parseAsStringLiteral(Object.values(LayoutKey))
+      .withDefault(defaultLayout)
+      .withOptions({history: 'push', throttleMs: 0})
   );
 
   return {
