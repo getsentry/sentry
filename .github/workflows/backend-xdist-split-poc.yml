@@ -63,13 +63,31 @@ jobs:
           echo "tier1-test-count=$(wc -l < /tmp/tier1-tests.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
           echo "tier2-test-count=$(wc -l < /tmp/tier2-tests.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
 
-      - name: Upload tier file lists
+      - name: Restore test durations from cache
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: /tmp/test-durations.json
+          key: test-durations-will-not-match
+          restore-keys: test-durations-
+
+      - name: Ensure durations file exists
+        run: |
+          if [ -s /tmp/test-durations.json ]; then
+            SCOPES=$(python3 -c "import json; print(len(json.load(open('/tmp/test-durations.json'))))")
+            echo "Restored test durations: $SCOPES scopes"
+          else
+            echo "No cached durations — first run will use hash-based sharding"
+            echo '{}' > /tmp/test-durations.json
+          fi
+
+      - name: Upload tier file lists and durations
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: tier-file-lists
           path: |
             /tmp/tier1-tests.txt
             /tmp/tier2-tests.txt
+            /tmp/test-durations.json
           retention-days: 1
 
   # ─── Tier 1: Postgres + Redis only (no Snuba stack) ─────────────────
@@ -124,7 +142,7 @@ jobs:
 
     env:
       MATRIX_INSTANCE_TOTAL: 5
-      TEST_GROUP_STRATEGY: roundrobin
+      TEST_GROUP_STRATEGY: duration
       # Fixed hash seed ensures deterministic collection across xdist workers
       PYTHONHASHSEED: '0'
 
@@ -143,16 +161,22 @@ jobs:
         with:
           mode: migrations
 
-      # Use SELECTED_TESTS_FILE to filter to tier1 tests only.
-      # G1 (direct file collection) was reverted — passing individual files to pytest
-      # breaks conftest/plugin initialization order (DJANGO_SETTINGS_MODULE race).
+      # Duration-based sharding: TEST_GROUP_STRATEGY=duration reads /tmp/test-durations.json
+      # and uses greedy bin packing (LPT algorithm) to balance shard durations.
+      # Falls back to hash-based if no duration data available (first run).
       - name: Run tier 1 tests (xdist -n 6)
         env:
           SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
+          TEST_DURATIONS_FILE: /tmp/test-durations.json
         run: |
           echo "=== Tier 1: Postgres + Redis only (no Snuba stack) ==="
           echo "Shard ${{ matrix.instance }} of 5, xdist workers: 6"
           echo "Test files: $(wc -l < /tmp/tier1-tests.txt)"
+          if [ -s /tmp/test-durations.json ] && [ "$(cat /tmp/test-durations.json)" != "{}" ]; then
+            echo "Using duration-based shard allocation"
+          else
+            echo "No duration data — falling back to hash-based allocation"
+          fi
           python3 -b -m pytest tests \
             --reuse-db \
             -n 6 \
@@ -162,6 +186,15 @@ jobs:
             --json-report-omit=log \
             --junit-xml=".artifacts/pytest.junit.xml" \
             -o junit_suite_name=pytest-tier1
+
+      - name: Upload pytest report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pytest-report-tier1-${{ matrix.instance }}
+          path: .artifacts/pytest.json
+          retention-days: 3
+          if-no-files-found: ignore
 
       - name: Inspect failure
         if: failure()
@@ -191,7 +224,7 @@ jobs:
 
     env:
       MATRIX_INSTANCE_TOTAL: 17
-      TEST_GROUP_STRATEGY: roundrobin
+      TEST_GROUP_STRATEGY: duration
       PYTHONHASHSEED: '0'
       # Enable per-worker Snuba database routing
       XDIST_PER_WORKER_SNUBA: '1'
@@ -226,6 +259,7 @@ jobs:
           # Docker bridge gateway is always 172.17.0.1 on GitHub Actions
           DJANGO_LIVE_TEST_SERVER_ADDRESS: '172.17.0.1'
           SELECTED_TESTS_FILE: /tmp/tier2-tests.txt
+          TEST_DURATIONS_FILE: /tmp/test-durations.json
         run: |
           XDIST_N=${XDIST_WORKERS:-2}
           PHASE_START=$(date +%s)
@@ -339,6 +373,15 @@ jobs:
 
           exit $PYTEST_EXIT
 
+      - name: Upload pytest report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pytest-report-tier2-${{ matrix.instance }}
+          path: .artifacts/pytest.json
+          retention-days: 3
+          if-no-files-found: ignore
+
       - name: Inspect failure
         if: failure()
         run: |
@@ -351,3 +394,37 @@ jobs:
           if command -v devservices; then
             devservices logs
           fi
+
+  # ─── Merge test durations for next run's shard allocation ─────────
+  # Runs after all tests complete (off the critical path). Downloads
+  # per-shard pytest JSON reports, merges into a single durations file,
+  # and saves to GitHub Actions cache for the next run's split-tiers job.
+  merge-durations:
+    needs: [tier1-test, tier2-parallel-test]
+    if: always()
+    name: merge test durations
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          sparse-checkout: .github/workflows/scripts/merge-test-durations.py
+
+      - name: Download all pytest reports
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          path: /tmp/pytest-reports
+          pattern: pytest-report-*
+
+      - name: Merge durations
+        run: |
+          python3 .github/workflows/scripts/merge-test-durations.py \
+            --input-dir /tmp/pytest-reports \
+            --output /tmp/test-durations.json \
+            --summary
+
+      - name: Save to cache
+        uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: /tmp/test-durations.json
+          key: test-durations-${{ github.run_id }}

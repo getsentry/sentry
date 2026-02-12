@@ -582,6 +582,113 @@ def _force_serial(item: pytest.Item) -> bool:
     return any(test_file.startswith(d) for d in FORCE_SERIAL_DIRS)
 
 
+def _duration_based_split(
+    items: list[pytest.Item], total_groups: int, current_group: int
+) -> tuple[list[pytest.Item], list[pytest.Item]]:
+    """Split tests into shards using duration-based greedy bin packing.
+
+    Reads per-scope durations from TEST_DURATIONS_FILE (JSON: {scope: seconds}).
+    Groups tests by scope (file::class), then assigns scopes to shards using
+    "longest processing time first" — the heaviest scope goes to the lightest
+    shard. This produces much better balance than hash-based round-robin.
+
+    Falls back to hash-based if no durations file is available.
+    """
+    import heapq
+    import json
+    from pathlib import Path
+
+    durations_file = os.environ.get("TEST_DURATIONS_FILE", "")
+    durations: dict[str, float] = {}
+    if durations_file:
+        p = Path(durations_file)
+        if p.exists():
+            with p.open() as f:
+                durations = json.load(f)
+
+    if not durations:
+        # No duration data — fall back to hash-based distribution
+        keep, discard = [], []
+        for item in items:
+            to_hash = item.nodeid.rsplit("::", 1)[0].encode()
+            group_num = int(sha256(to_hash).hexdigest(), 16) % total_groups
+            if group_num == current_group:
+                keep.append(item)
+            else:
+                discard.append(item)
+        return keep, discard
+
+    # Group items by scope (file::class or file)
+    scope_items: dict[str, list[pytest.Item]] = {}
+    for item in items:
+        scope = item.nodeid.rsplit("::", 1)[0]
+        scope_items.setdefault(scope, []).append(item)
+
+    # Get duration per scope (sum of test durations, default 1.0s per test)
+    scope_durations: list[tuple[float, str]] = []
+    for scope, scope_tests in scope_items.items():
+        dur = durations.get(scope, 0.0)
+        if dur <= 0:
+            # Try file-level match (strip class from scope)
+            file_path = scope.split("::")[0]
+            dur = durations.get(file_path, 0.0)
+        if dur <= 0:
+            # Unknown scope — estimate 1s per test
+            dur = float(len(scope_tests))
+        scope_durations.append((dur, scope))
+
+    # Sort by duration descending (largest first — LPT algorithm)
+    scope_durations.sort(key=lambda x: -x[0])
+
+    # Greedy bin packing using a min-heap of (total_duration, group_index)
+    bins: list[list[str]] = [[] for _ in range(total_groups)]
+    heap: list[tuple[float, int]] = [(0.0, i) for i in range(total_groups)]
+    heapq.heapify(heap)
+
+    for dur, scope in scope_durations:
+        lightest_dur, lightest_idx = heapq.heappop(heap)
+        bins[lightest_idx].append(scope)
+        heapq.heappush(heap, (lightest_dur + dur, lightest_idx))
+
+    # Log shard balance for CI visibility
+    bin_durations = []
+    for i, bin_scopes in enumerate(bins):
+        total = sum(
+            next((d for d, s in scope_durations if s == sc), 0.0) for sc in bin_scopes
+        )
+        bin_durations.append(total)
+
+    matched = sum(1 for _, scope in scope_durations if durations.get(scope, 0) > 0)
+    import sys
+
+    print(
+        f"[duration-split] {len(scope_durations)} scopes, "
+        f"{matched} with timing data, "
+        f"{len(scope_durations) - matched} estimated",
+        file=sys.stderr,
+    )
+    print(
+        f"[duration-split] shard {current_group}/{total_groups}: "
+        f"{len(bins[current_group])} scopes, "
+        f"predicted {bin_durations[current_group]:.0f}s "
+        f"(range: {min(bin_durations):.0f}s – {max(bin_durations):.0f}s)",
+        file=sys.stderr,
+    )
+
+    # Collect items for current group
+    current_scopes = set(bins[current_group])
+    keep = []
+    discard = []
+    for item in items:
+        scope = item.nodeid.rsplit("::", 1)[0]
+        if scope in current_scopes:
+            keep.append(item)
+        else:
+            discard.append(item)
+
+    return keep, discard
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """After collection, select tests based on selective file filter and group strategy.
 
@@ -619,23 +726,29 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     # Reset keep/discard for sharding logic
     keep, discard = [], []
 
-    for index, item in enumerate(items):
-        # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
-        # we want to only include items in `accepted` list
-        to_hash = (
-            item.nodeid.rsplit("::", 1)[0].encode()
-            if grouping_strategy == "scope"
-            else item.nodeid.encode()
-        )
-        item_to_group = int(sha256(to_hash).hexdigest(), 16)
+    if grouping_strategy == "duration":
+        # Duration-based bin packing: assign test scopes to shards so each
+        # shard has roughly equal total duration. Uses a greedy "longest
+        # processing time first" algorithm for near-optimal balance.
+        keep, discard = _duration_based_split(items, total_groups, current_group)
+    else:
+        for index, item in enumerate(items):
+            # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
+            # we want to only include items in `accepted` list
+            to_hash = (
+                item.nodeid.rsplit("::", 1)[0].encode()
+                if grouping_strategy == "scope"
+                else item.nodeid.encode()
+            )
+            item_to_group = int(sha256(to_hash).hexdigest(), 16)
 
-        # Split tests in different groups
-        group_num = item_to_group % total_groups
+            # Split tests in different groups
+            group_num = item_to_group % total_groups
 
-        if group_num == current_group:
-            keep.append(item)
-        else:
-            discard.append(item)
+            if group_num == current_group:
+                keep.append(item)
+            else:
+                discard.append(item)
 
     items[:] = keep
 
