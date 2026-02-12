@@ -406,27 +406,16 @@ def configure_sdk():
                     if method_name == "capture_envelope":
                         if args[0].get_transaction_event() is not None:
                             is_transaction = True
-                            trace_id = args[0].headers.get("trace", {}).get(
-                                "trace_id"
-                            )
+                            trace_id = args[0].headers.get("trace", {}).get("trace_id")
                     elif method_name == "capture_event":
                         if args[0].get("type") == "transaction":
                             is_transaction = True
-                            trace_id = (
-                                args[0]
-                                .get("contexts", {})
-                                .get("trace", {})
-                                .get("trace_id")
-                            )
+                            trace_id = args[0].get("contexts", {}).get("trace", {}).get("trace_id")
                     if is_transaction and trace_id is not None:
-                        hash_value = int(
-                            hashlib.md5(trace_id.encode()).hexdigest()[:8], 16
-                        )
+                        hash_value = int(hashlib.md5(trace_id.encode()).hexdigest()[:8], 16)
                         if hash_value % 100 >= 1:
                             send_to_s4s = False
-                            metrics.incr(
-                                "internal.captured.events.upstream.s4s2_sampled"
-                            )
+                            metrics.incr("internal.captured.events.upstream.s4s2_sampled")
 
                 if send_to_s4s:
                     metrics.incr("internal.captured.events.upstream")
