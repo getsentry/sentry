@@ -87,6 +87,7 @@ from sentry.dynamic_sampling.utils import (
     is_project_mode_sampling,
 )
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
+from sentry.integrations.coding_agent.utils import get_coding_agent_providers
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
@@ -495,7 +496,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             integration_id=value,
             organization_id=organization.id,
         )
-        if not integration:
+        if not integration or integration.provider not in get_coding_agent_providers():
             raise serializers.ValidationError("Integration not found.")
         return value
 

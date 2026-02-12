@@ -1507,6 +1507,13 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {"defaultCodingAgentHandoff": integration.id}
         self.get_error_response(self.organization.slug, **data, status_code=400)
 
+    def test_default_coding_agent_handoff_non_coding_agent_integration(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="slack", external_id="slack-ext"
+        )
+        data = {"defaultCodingAgentHandoff": integration.id}
+        self.get_error_response(self.organization.slug, **data, status_code=400)
+
     @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_flag_set(self) -> None:
         with assume_test_silo_mode_of(AuditLogEntry):
