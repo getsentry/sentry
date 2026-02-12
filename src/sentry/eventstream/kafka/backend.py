@@ -136,7 +136,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
         eventstream_type: str | None = None,
         **kwargs: Any,
     ) -> None:
-
         event_type = self._get_event_type(event)
         assign_partitions_randomly = (
             (event_type == EventStreamEventType.Generic)

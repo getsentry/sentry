@@ -614,7 +614,9 @@ class RedisBuffer(Buffer):
         finally:
             client.delete(lock_key)
 
-    def process(self, key: str | None = None, batch_keys: list[str] | None = None, **kwargs: Any) -> None:  # type: ignore[override]
+    def process(  # type: ignore[override]
+        self, key: str | None = None, batch_keys: list[str] | None = None, **kwargs: Any
+    ) -> None:
         # NOTE: This method has a totally different signature than the base class
         assert not (key is None and batch_keys is None)
         assert not (key is not None and batch_keys is not None)

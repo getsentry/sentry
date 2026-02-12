@@ -275,8 +275,9 @@ class DashboardWidgetQueryOnDemand(Model):
         """ The widget was manually disabled by a user """
         DISABLED_SPEC_LIMIT = "disabled:spec-limit", gettext_lazy("disabled:spec-limit")
         """ This widget query was disabled during rollout due to the organization reaching it's spec limit. """
-        DISABLED_HIGH_CARDINALITY = "disabled:high-cardinality", gettext_lazy(
-            "disabled:high-cardinality"
+        DISABLED_HIGH_CARDINALITY = (
+            "disabled:high-cardinality",
+            gettext_lazy("disabled:high-cardinality"),
         )
         """ This widget query was disabled by the cardinality cron due to one of the columns having high cardinality """
         ENABLED_ENROLLED = "enabled:enrolled", gettext_lazy("enabled:enrolled")

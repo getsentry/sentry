@@ -210,7 +210,7 @@ def _get_hint_for_frame(
     if variant_name == "app" and desired_hint_type == "in-app":
         default_in_app_hint = "non app frame" if not frame_component.in_app else None
         client_in_app_hint = (
-            f"marked {"in-app" if client_in_app else "out of app"} by the client"
+            f"marked {'in-app' if client_in_app else 'out of app'} by the client"
             # Only create the hint if it's going to match the eventual outcome. Otherwise, we might
             # fall back to the client hint even though the client in-app value got overridden.
             if client_in_app is not None and client_in_app == rust_in_app

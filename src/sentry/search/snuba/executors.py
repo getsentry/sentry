@@ -427,7 +427,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             sf
             for sf in search_filters or ()
             # remove any search_filters that are only available in postgres, we special case date
-            if not (sf.key.name in self.postgres_only_fields.union(["date", "timestamp"]))
+            if sf.key.name not in self.postgres_only_fields.union(["date", "timestamp"])
         ]
 
         # common pinned parameters that won't change based off datasource

@@ -60,9 +60,7 @@ class TestSentryAppDeletionTask(TestCase):
         # use a raw sql query to ensure it still exists.
         c = connections[router.db_for_write(SentryApp)].cursor()
         c.execute(
-            "SELECT count(1) "
-            "FROM sentry_sentryapp "
-            "WHERE id = %s AND date_deleted IS NOT NULL",
+            "SELECT count(1) FROM sentry_sentryapp WHERE id = %s AND date_deleted IS NOT NULL",
             [self.sentry_app.id],
         )
 

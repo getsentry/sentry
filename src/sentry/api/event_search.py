@@ -511,7 +511,7 @@ class SearchValue(NamedTuple):
         elif self.is_wildcard() and isinstance(self.raw_value, str):
             return translate_wildcard(self.raw_value)
         elif self.is_wildcard() and isinstance(self.raw_value, (list, tuple)):
-            return f"({"|".join(map(translate_wildcard, self.raw_value))})"
+            return f"({'|'.join(map(translate_wildcard, self.raw_value))})"
         elif isinstance(self.raw_value, str):
             return translate_escape_sequences(self.raw_value)
         elif isinstance(self.raw_value, (list, tuple)):
@@ -734,10 +734,12 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
 
     @overload
     @classmethod
-    def create_from[TBool: (
-        Literal[True],
-        Literal[False],
-    )](
+    def create_from[
+        TBool: (
+            Literal[True],
+            Literal[False],
+        )
+    ](
         cls: type[SearchConfig[Any]],
         search_config: SearchConfig[Any],
         *,
@@ -747,10 +749,12 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
 
     @overload
     @classmethod
-    def create_from[TBool: (
-        Literal[True],
-        Literal[False],
-    )](
+    def create_from[
+        TBool: (
+            Literal[True],
+            Literal[False],
+        )
+    ](
         cls: type[SearchConfig[Any]],
         search_config: SearchConfig[TBool],
         **overrides: Any,

@@ -276,7 +276,7 @@ class DashboardWidgetSerializer(Serializer):
                 # using aggregateField instead of visualize + groupBy because that format will be deprecated
                 "aggregateField": visualize,
                 "field": fields,
-                "query": f"{spans_query.conditions}{f" AND release:{",".join(release)}" if release else ""}",
+                "query": f"{spans_query.conditions}{f' AND release:{",".join(release)}' if release else ''}",
                 "sort": sort,
                 "interval": obj.interval,
                 "referrer": "dashboards.widget-transaction-deprecation-warning",

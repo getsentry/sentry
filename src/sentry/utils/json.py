@@ -16,8 +16,11 @@ from django.utils.encoding import force_str
 from django.utils.functional import Promise
 from django.utils.safestring import SafeString, mark_safe
 from django.utils.timezone import is_aware
-from simplejson import _default_decoder  # type: ignore[attr-defined]  # noqa: S003
-from simplejson import JSONDecodeError, JSONEncoder  # noqa: S003
+from simplejson import (  # type: ignore[attr-defined]  # noqa: S003
+    JSONDecodeError,
+    JSONEncoder,
+    _default_decoder,  # noqa: S003
+)
 
 from bitfield.types import BitHandler
 
@@ -30,7 +33,6 @@ def datetime_to_str(o: datetime.datetime) -> str:
 
 
 def better_default_encoder(o: object) -> object:
-
     if isinstance(o, uuid.UUID):
         return o.hex
     elif isinstance(o, datetime.datetime):

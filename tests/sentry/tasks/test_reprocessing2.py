@@ -113,7 +113,6 @@ def test_basic(
         old_tombstone_fn(*args, **kwargs)
 
     with mock.patch("sentry.eventstream.backend.tombstone_events_unsafe", tombstone_called):
-
         abs_count = 0
 
         @register_event_preprocessor
@@ -448,7 +447,6 @@ def test_nodestore_missing(
     remaining_events,
     django_cache,
 ):
-
     event_id = process_and_save({"message": "hello world", "platform": "python"})
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     assert event is not None

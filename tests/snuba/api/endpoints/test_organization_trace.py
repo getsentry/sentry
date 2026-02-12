@@ -552,9 +552,9 @@ class OrganizationEventsTraceEndpointTest(
             expected = self._trace_item_to_api_span(expected_item)
             actual_without_children = {k: v for k, v in actual.items() if k != "children"}
             expected_without_children = {k: v for k, v in expected.items() if k != "children"}
-            assert (
-                actual_without_children == expected_without_children
-            ), f"Span {i} differs (excluding children)"
+            assert actual_without_children == expected_without_children, (
+                f"Span {i} differs (excluding children)"
+            )
 
         if expected_children_ids:
             final_span = max(
@@ -562,15 +562,15 @@ class OrganizationEventsTraceEndpointTest(
                 key=lambda s: s.get("additional_attributes", {}).get("request_sequence", -1),
             )
             actual_children = final_span.get("children", [])
-            assert len(actual_children) == len(
-                expected_children_ids
-            ), f"Expected {len(expected_children_ids)} children, got {len(actual_children)}"
+            assert len(actual_children) == len(expected_children_ids), (
+                f"Expected {len(expected_children_ids)} children, got {len(actual_children)}"
+            )
 
             actual_child_txns = {child.get("transaction") for child in actual_children}
             for expected_id in expected_children_ids:
-                assert (
-                    expected_id in actual_child_txns
-                ), f"Expected '{expected_id}' transaction in children"
+                assert expected_id in actual_child_txns, (
+                    f"Expected '{expected_id}' transaction in children"
+                )
 
     def _trace_item_to_api_span(self, trace_item: TraceItem, children=None) -> dict:
         """Convert a TraceItem to the exact format returned by the API."""

@@ -93,9 +93,9 @@ class VSTSIdentityProvider(OAuth2Provider):
         # the token.
 
         # TODO(ecosystem): We should not use scopes to determine which client_secret to use
-        assert isinstance(
-            identity, Identity
-        ), "Legacy VSTS identity provider only supports Identity"
+        assert isinstance(identity, Identity), (
+            "Legacy VSTS identity provider only supports Identity"
+        )
         if "vso.code" not in identity.scopes:
             client_secret = options.get("vsts-limited.client-secret")
 

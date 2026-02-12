@@ -424,6 +424,6 @@ class ItemHelpersTest(TestCase):
             )
 
             recovered_event_id = item_id_to_hex(result.item_id)
-            assert (
-                recovered_event_id == original_event_id
-            ), f"Encoding scheme failed for event_id {original_event_id}: got {recovered_event_id}"
+            assert recovered_event_id == original_event_id, (
+                f"Encoding scheme failed for event_id {original_event_id}: got {recovered_event_id}"
+            )

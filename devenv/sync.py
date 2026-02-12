@@ -7,8 +7,9 @@ import shlex
 import shutil
 import subprocess
 
-from devenv import constants
 from devenv.lib import colima, config, fs, limactl, proc
+
+from devenv import constants
 
 
 # TODO: need to replace this with a nicer process executor in devenv.lib

@@ -392,9 +392,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
         inviter_id: int | None = None,
         invite_status: int | None = None,
     ) -> RpcOrganizationMember:
-        assert (user_id is None and email) or (
-            user_id and email is None
-        ), "Must set either user_id or email"
+        assert (user_id is None and email) or (user_id and email is None), (
+            "Must set either user_id or email"
+        )
         if invite_status is None:
             invite_status = InviteStatus.APPROVED.value
 
