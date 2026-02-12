@@ -4,10 +4,7 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {act, fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {
-  initializeUrlState,
-  updateEnvironments,
-} from 'sentry/components/pageFilters/actions';
+import {updateEnvironments} from 'sentry/components/pageFilters/actions';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import PageFiltersStore from 'sentry/components/pageFilters/store';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -128,38 +125,5 @@ describe('EnvironmentPageFilter', () => {
 
     // <EnvironmentPageFilter /> is updated
     expect(screen.getByRole('button', {name: 'prod'})).toBeInTheDocument();
-  });
-
-  it('displays a desynced state message', async () => {
-    const desyncOrganization = OrganizationFixture({features: ['open-membership']});
-    // the environment parameter needs to be non-null for desync detection to work
-    const desyncLocation = {
-      pathname: '/organizations/org-slug/issues/',
-      query: {environment: 'prod'},
-    };
-
-    PageFiltersStore.reset();
-    initializeUrlState({
-      memberProjects: projects,
-      nonMemberProjects: [],
-      organization: desyncOrganization,
-      queryParams: {project: ['1'], environment: 'staging'},
-      router: RouterFixture({location: desyncLocation}),
-    });
-
-    render(<EnvironmentPageFilter />, {
-      organization: desyncOrganization,
-      initialRouterConfig: {location: desyncLocation},
-    });
-
-    // Open menu
-    await userEvent.click(screen.getByRole('button', {name: 'staging'}));
-
-    // Desync message is inside the menu
-    expect(screen.getByText('Filters Updated')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Restore Previous Values'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Got It'})).toBeInTheDocument();
   });
 });

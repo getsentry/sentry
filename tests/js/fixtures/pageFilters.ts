@@ -35,7 +35,6 @@ export function PageFilterStateFixture(
 ): PageFiltersState {
   return {
     isReady: true,
-    desyncedFilters: new Set<PinnedPageFilter>(),
     pinnedFilters: new Set<PinnedPageFilter>(),
     shouldPersist: true,
     selection: PageFiltersFixture(),
