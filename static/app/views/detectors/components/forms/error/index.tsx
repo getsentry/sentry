@@ -164,9 +164,11 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
           priority="primary"
           size="sm"
           disabled={!canEditWorkflowConnections}
-          title={
-            canEditWorkflowConnections ? undefined : getNoPermissionToEditMonitorTooltip()
-          }
+          tooltipProps={{
+            title: canEditWorkflowConnections
+              ? undefined
+              : getNoPermissionToEditMonitorTooltip(),
+          }}
         >
           {t('Save')}
         </Button>

@@ -102,10 +102,8 @@ def process_workflows_event(
     group_id: int,
     occurrence_id: str | None,
     group_state: GroupState,
-    has_reappeared: bool,
     has_escalated: bool,
     start_timestamp_seconds: float | None = None,
-    project_id: int | None = None,  # TODO: remove
     **kwargs: dict[str, Any],
 ) -> None:
     from sentry.workflow_engine.processors.workflow import process_workflows
@@ -120,7 +118,6 @@ def process_workflows_event(
                 group_id=group_id,
                 occurrence_id=occurrence_id,
                 group_state=group_state,
-                has_reappeared=has_reappeared,
                 has_escalated=has_escalated,
             )
         except (RetryError, OSError) as e:

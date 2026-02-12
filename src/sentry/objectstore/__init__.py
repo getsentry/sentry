@@ -2,6 +2,7 @@ import subprocess
 from datetime import timedelta
 from urllib.parse import urlparse, urlunparse
 
+import urllib3
 from django.conf import settings
 from objectstore_client import Client, MetricsBackend, Session, TimeToLive, Usecase
 from objectstore_client.metrics import Tags
@@ -54,7 +55,11 @@ def create_client() -> Client:
         propagate_traces=options.get("propagate_traces", False),
         retries=options.get("retries", None),
         timeout_ms=options.get("timeout_ms", None),
-        connection_kwargs=options.get("connection_kwargs", {}),
+        connection_kwargs=options.get(
+            "connection_kwargs",
+            # Workaround for 0.0.14's default read timeout. Can be removed with 0.0.15
+            {"timeout": urllib3.Timeout(connect=0.1)},
+        ),
     )
 
 

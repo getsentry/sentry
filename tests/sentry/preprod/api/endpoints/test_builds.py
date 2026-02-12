@@ -1,4 +1,4 @@
-from unittest.mock import ANY
+from unittest.mock import ANY, patch
 
 import pytest
 from django.urls import reverse
@@ -896,6 +896,19 @@ class BuildsEndpointTest(APITestCase):
         self.create_preprod_artifact(app_id="test.app")
         assert self._request({"query": "size_state:bogus"}).status_code == 400
         assert self._request({"query": "size_state:[bogus, completed]"}).status_code == 400
+
+    @with_feature("organizations:preprod-frontend-routes")
+    @patch("sentry.preprod.api.endpoints.builds.get_size_retention_cutoff")
+    def test_excludes_expired_artifacts(self, mock_cutoff) -> None:
+        mock_cutoff.return_value = before_now(days=30)
+        self.create_preprod_artifact(app_id="recent.app", date_added=before_now(days=10))
+        self.create_preprod_artifact(app_id="expired.app", date_added=before_now(days=60))
+
+        response = self._request({})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["app_info"]["app_id"] == "recent.app"
 
 
 class QuerysetForQueryTest(APITestCase):

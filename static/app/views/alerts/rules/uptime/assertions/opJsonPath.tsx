@@ -108,7 +108,7 @@ export function AssertionOpJsonPath({
                   size="zero"
                   priority="transparent"
                   showChevron={false}
-                  title={combinedTooltip}
+                  tooltipProps={{title: combinedTooltip}}
                   aria-label={t('JSON path operators trigger')}
                 >
                   <Text monospace>{combinedLabel}</Text>

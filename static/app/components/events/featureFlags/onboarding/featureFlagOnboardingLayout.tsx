@@ -6,6 +6,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import OnboardingAdditionalFeatures from 'sentry/components/events/featureFlags/onboarding/onboardingAdditionalFeatures';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
+import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
@@ -87,18 +88,20 @@ export function FeatureFlagOnboardingLayout({
 
   return (
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
-      <Wrapper>
-        <Steps>
-          {steps.map(step => (
-            <Step key={step.title ?? step.type} {...step} />
-          ))}
-          <StyledLinkButton to="/issues/" priority="primary">
-            {t('Take me to Issues')}
-          </StyledLinkButton>
-        </Steps>
-        <Divider />
-        <OnboardingAdditionalFeatures organization={organization} />
-      </Wrapper>
+      <TabSelectionScope>
+        <Wrapper>
+          <Steps>
+            {steps.map((step, index) => (
+              <Step key={step.title ?? step.type} stepIndex={index} {...step} />
+            ))}
+            <StyledLinkButton to="/issues/" priority="primary">
+              {t('Take me to Issues')}
+            </StyledLinkButton>
+          </Steps>
+          <Divider />
+          <OnboardingAdditionalFeatures organization={organization} />
+        </Wrapper>
+      </TabSelectionScope>
     </AuthTokenGeneratorProvider>
   );
 }

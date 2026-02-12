@@ -11,7 +11,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {initializeUrlState, updateProjects} from 'sentry/components/pageFilters/actions';
+import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import PageFiltersStore from 'sentry/components/pageFilters/store';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -201,42 +201,5 @@ describe('ProjectPageFilter', () => {
     // <ProjectPageFilter /> is updated
 
     expect(await screen.findByRole('button', {name: 'project-2'})).toBeInTheDocument();
-  });
-
-  it('displays a desynced state message', async () => {
-    const desyncOrganization = OrganizationFixture({features: ['open-membership']});
-    // the project parameter needs to be non-null for desync detection to work
-    const desyncLocation = {
-      pathname: '/organizations/org-slug/issues/',
-      query: {project: '1'},
-    };
-
-    PageFiltersStore.reset();
-    initializeUrlState({
-      memberProjects: projects.filter(p => p.isMember),
-      nonMemberProjects: projects.filter(p => !p.isMember),
-      organization: desyncOrganization,
-      queryParams: {project: ['2']},
-      router: RouterFixture({
-        location: desyncLocation,
-      }),
-    });
-
-    render(<ProjectPageFilter />, {
-      organization: desyncOrganization,
-      initialRouterConfig: {
-        location: desyncLocation,
-      },
-    });
-
-    // Open menu
-    await userEvent.click(screen.getByRole('button', {name: 'project-2'}));
-
-    // Desync message is inside the menu
-    expect(screen.getByText('Filters Updated')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Restore Previous Values'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Got It'})).toBeInTheDocument();
   });
 });

@@ -81,7 +81,6 @@ describe('useSaveAsItems', () => {
     mockUseNavigate.mockReturnValue(jest.fn());
     mockUsePageFilters.mockReturnValue({
       isReady: true,
-      desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       shouldPersist: true,
       selection: PageFiltersFixture({

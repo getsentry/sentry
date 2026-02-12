@@ -10,7 +10,6 @@ import {Flex} from '@sentry/scraps/layout';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import {DesyncedFilterMessage} from 'sentry/components/pageFilters/desyncedFilter';
 import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
 import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
 import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
@@ -103,7 +102,6 @@ export function ProjectPageFilter({
   const {
     selection: {projects: pageFilterValue},
     isReady: pageFilterIsReady,
-    desyncedFilters,
   } = usePageFilters();
 
   /**
@@ -253,9 +251,8 @@ export function ProjectPageFilter({
                     size="xs"
                     priority="transparent"
                     icon={<IconOpen variant="muted" />}
-                    title={t('Open Project Details')}
                     aria-label={t('Open Project Details')}
-                    tooltipProps={{delay: 400}}
+                    tooltipProps={{title: t('Open Project Details'), delay: 400}}
                     to={
                       makeProjectsPathname({
                         path: `/${project.slug}/`,
@@ -267,8 +264,7 @@ export function ProjectPageFilter({
                     size="xs"
                     priority="transparent"
                     icon={<IconSettings variant="muted" />}
-                    title={t('Open Project Settings')}
-                    tooltipProps={{delay: 400}}
+                    tooltipProps={{title: t('Open Project Settings'), delay: 400}}
                     aria-label={t('Open Project Settings')}
                     to={`/settings/${organization.slug}/projects/${project.slug}/`}
                   />
@@ -279,8 +275,7 @@ export function ProjectPageFilter({
                   size="xs"
                   project={project}
                   organization={organization}
-                  tooltipProps={{delay: 400}}
-                  title={project.isBookmarked ? t('Remove Bookmark') : t('Bookmark')}
+                  tooltipProps={{title: project.isBookmarked ? t('Remove Bookmark') : t('Bookmark'), delay: 400}}
                   onToggle={(isBookmarked: boolean) => {
                     trackAnalytics('projectselector.bookmark_toggle', {
                       bookmarked: isBookmarked,
@@ -326,7 +321,6 @@ export function ProjectPageFilter({
     pageFilterValue,
   ]);
 
-  const desynced = desyncedFilters.has('projects');
   const defaultMenuWidth = useMemo(() => {
     const flatOptions: Array<SelectOption<number>> = options.flatMap(item =>
       'options' in item ? item.options : [item]
@@ -390,7 +384,6 @@ export function ProjectPageFilter({
       emptyMessage={emptyMessage ?? t('No projects found')}
       menuTitle={menuTitle ?? t('Filter Projects')}
       menuWidth={menuWidth ?? defaultMenuWidth}
-      menuBody={desynced && <DesyncedFilterMessage />}
       menuFooter={
         hasProjectWrite ? (
           <LinkButton
@@ -413,7 +406,6 @@ export function ProjectPageFilter({
             memberProjects={memberProjects}
             nonMemberProjects={nonMemberProjects}
             ready={projectsLoaded && pageFilterIsReady}
-            desynced={desynced}
           />
         ))
       }

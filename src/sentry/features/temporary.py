@@ -126,10 +126,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:data-secrecy-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable default anomaly detection metric monitor for new projects
     manager.add("organizations:default-anomaly-detector", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enables access to the global data forwarding features
-    # Note: organizations:data-forwarding is a permanent, plan-based flag that enables access to the actual feature.
-    #       This flag will only be used to access the new UI/UX and endpoints before release.
-    manager.add("organizations:data-forwarding-revamp-access", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables synthesis of device.class in ingest
     manager.add("organizations:device-class-synthesis", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable device.class as a selectable column
@@ -253,6 +249,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:on-demand-metrics-ui-widgets", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Only enabled in sentry.io to enable onboarding flows.
     manager.add("organizations:onboarding", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
+    # Enable copy setup instructions button on onboarding surfaces
+    manager.add("organizations:onboarding-copy-setup-instructions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable new onboarding welcome and SDK setup UI
     manager.add("organizations:onboarding-new-welcome-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable large ownership rule file size limit
@@ -368,6 +366,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:preprod-enforce-size-quota", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable enforcement of preprod distribution quota checks (when disabled, distribution quota checks always return True)
     manager.add("organizations:preprod-enforce-distribution-quota", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable preprod size monitors frontend
+    manager.add("organizations:preprod-size-monitors-frontend", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables PR page
     manager.add("organizations:pr-page", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the playstation ingestion in relay
