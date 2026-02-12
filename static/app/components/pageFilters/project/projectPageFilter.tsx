@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
@@ -13,7 +13,10 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {DesyncedFilterMessage} from 'sentry/components/pageFilters/desyncedFilter';
-import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
+import type {
+  HybridFilterProps,
+  HybridFilterRef,
+} from 'sentry/components/pageFilters/hybridFilter';
 import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
 import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
@@ -81,6 +84,7 @@ export function ProjectPageFilter({
   const router = useRouter();
   const routes = useRoutes();
   const organization = useOrganization();
+  const hybridFilterRef = useRef<HybridFilterRef<number>>(null);
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const [memberProjects, otherProjects] = useMemo(
@@ -241,11 +245,13 @@ export function ProjectPageFilter({
     const getProjectItem = (project: Project) => {
       return {
         value: parseInt(project.id, 10),
-        leadingItems: ({isSelected, toggleOption}) => (
+        leadingItems: ({isSelected}) => (
           <Checkbox
             size="sm"
             checked={isSelected}
-            onChange={() => toggleOption?.(parseInt(project.id, 10))}
+            onChange={() =>
+              hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))
+            }
             aria-label={t('Select %s', project.slug)}
             tabIndex={-1}
           />
@@ -384,6 +390,7 @@ export function ProjectPageFilter({
 
   return (
     <HybridFilter
+      ref={hybridFilterRef}
       {...selectProps}
       searchable
       multiple

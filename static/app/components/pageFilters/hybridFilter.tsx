@@ -1,4 +1,12 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import xor from 'lodash/xor';
 
@@ -16,6 +24,10 @@ import {Grid} from '@sentry/scraps/layout';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {isModifierKeyPressed} from 'sentry/utils/isModifierKeyPressed';
+
+export interface HybridFilterRef<Value extends SelectKey> {
+  toggleOption: (val: Value) => void;
+}
 
 export interface HybridFilterProps<Value extends SelectKey> extends Omit<
   MultipleSelectProps<Value>,
@@ -66,6 +78,7 @@ export interface HybridFilterProps<Value extends SelectKey> extends Omit<
    */
   onStagedValueChange?: (selected: Value[]) => void;
   onToggle?: (selected: Value[]) => void;
+  ref?: React.Ref<HybridFilterRef<Value>>;
   storageNamespace?: string;
 }
 
@@ -79,6 +92,7 @@ export interface HybridFilterProps<Value extends SelectKey> extends Omit<
  * callback.
  */
 export function HybridFilter<Value extends SelectKey>({
+  ref,
   options,
   multiple,
   value,
@@ -157,6 +171,8 @@ export function HybridFilter<Value extends SelectKey>({
     [onToggle]
   );
 
+  useImperativeHandle(ref, () => ({toggleOption}), [toggleOption]);
+
   /**
    * Whether a modifier key (ctrl/alt/shift) is being pressed. If true, the selector is
    * in multiple selection mode.
@@ -180,8 +196,9 @@ export function HybridFilter<Value extends SelectKey>({
       leadingItems: ({isFocused, isSelected, disabled}) => {
         const children =
           typeof option.leadingItems === 'function'
-            ? option.leadingItems({isFocused, isSelected, disabled, toggleOption})
+            ? option.leadingItems({isFocused, isSelected, disabled})
             : option.leadingItems;
+
         return children ? (
           <Grid
             gap="md"
@@ -198,7 +215,7 @@ export function HybridFilter<Value extends SelectKey>({
       trailingItems: ({isFocused, isSelected, disabled}) => {
         const children =
           typeof option.trailingItems === 'function'
-            ? option.trailingItems({isFocused, isSelected, disabled, toggleOption})
+            ? option.trailingItems({isFocused, isSelected, disabled})
             : option.trailingItems;
         return children ? (
           <Grid
@@ -220,7 +237,7 @@ export function HybridFilter<Value extends SelectKey>({
         ? {...item, options: item.options.map(mapOption)}
         : mapOption(item)
     );
-  }, [options, toggleOption]);
+  }, [options]);
 
   const renderFooter = useMemo(() => {
     const footerMessage =
