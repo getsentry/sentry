@@ -469,7 +469,9 @@ class TestInvalidationTask:
             trigger="test", project_id=default_project.id, countdown=2
         )
 
-        assert oncommit.call_count == 1
+        # Outside an atomic block, the callback is called directly
+        # (on_commit is only used inside a transaction).
+        assert oncommit.call_count == 0
         assert schedule_inner.call_count == 1
         assert schedule_inner.call_args == mock.call(
             trigger="test",
@@ -533,3 +535,38 @@ def test_invalidate_hierarchy(
     assert len(calls) == 1
     cache = redis_cache.get(default_projectkey)
     assert cache["disabled"] is False
+
+
+@django_db_all(transaction=True)
+def test_schedule_invalidate_project_config_without_autocommit(default_project):
+    """
+    Regression test: schedule_invalidate_project_config must not raise
+    TransactionManagementError when called without autocommit and outside
+    an atomic block, as happens in the taskworker.
+
+    See: https://sentry.sentry.io/issues/7223923952/
+    """
+    from django.db import connections
+
+    conn = connections["default"]
+    conn.ensure_connection()
+    try:
+        conn.set_autocommit(False)
+        with mock.patch("sentry.tasks.relay._schedule_invalidate_project_config") as mock_schedule:
+            schedule_invalidate_project_config(
+                project_id=default_project.id,
+                trigger="test",
+            )
+            # The callback should have been called directly (not via on_commit)
+            assert mock_schedule.call_count == 1
+            mock_schedule.assert_called_once_with(
+                trigger="test",
+                trigger_details=None,
+                organization_id=None,
+                project_id=default_project.id,
+                public_key=None,
+                countdown=5,
+            )
+    finally:
+        conn.rollback()
+        conn.set_autocommit(True)

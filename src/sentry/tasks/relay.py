@@ -304,25 +304,32 @@ def schedule_invalidate_project_config(
     if transaction_db is None:
         transaction_db = router.db_for_write(Project)
 
+    callback = lambda: _schedule_invalidate_project_config(
+        trigger=trigger,
+        trigger_details=trigger_details,
+        organization_id=organization_id,
+        project_id=project_id,
+        public_key=public_key,
+        countdown=countdown,
+    )
+
     with sentry_sdk.start_span(
         op="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
     ) as span:
         span.set_tag("transaction_db", transaction_db)
 
-        # XXX(iker): updating a lot of organizations or projects in a single
-        # database transaction causes the `on_commit` list to grow considerably
-        # and may cause memory leaks.
-        transaction.on_commit(
-            lambda: _schedule_invalidate_project_config(
-                trigger=trigger,
-                trigger_details=trigger_details,
-                organization_id=organization_id,
-                project_id=project_id,
-                public_key=public_key,
-                countdown=countdown,
-            ),
-            using=transaction_db,
-        )
+        from django.db import connections
+
+        conn = connections[transaction_db]
+        if conn.in_atomic_block:
+            # Inside a transaction — defer until commit so the invalidation
+            # sees the committed state.
+            transaction.on_commit(callback, using=transaction_db)
+        else:
+            # No active transaction (autocommit or manual-transaction mode
+            # like in the taskworker). Execute immediately — this is what
+            # on_commit() does in autocommit mode anyway.
+            callback()
 
 
 def _schedule_invalidate_project_config(
