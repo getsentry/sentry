@@ -20,12 +20,14 @@ from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
 from sentry.notifications.platform.templates.seer import SeerAutofixUpdate
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.entrypoints.types import SeerEntrypointKey
+from sentry.seer.entrypoints.metrics import (
+    SlackEntrypointEventLifecycleMetric,
+    SlackEntrypointInteractionType,
+)
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
-from sentry.utils import metrics
 from sentry.utils.registry import NoRegistrationExistsError
 
 if TYPE_CHECKING:
@@ -45,50 +47,46 @@ def send_thread_update(
     ephemeral_user_id: str | None = None,
 ) -> None:
     """Actually sends the update, but requires a SlackIntegration, so we can't schedule it as a task."""
-    logging_ctx = {
-        "entrypoint_key": SeerEntrypointKey.SLACK.value,
-        "integration_id": install.model.id,
-        "thread_ts": thread["thread_ts"],
-        "channel_id": thread["channel_id"],
-        "data_source": data.source,
-        "ephemeral_user_id": ephemeral_user_id,
-    }
-    provider = provider_registry.get(NotificationProviderKey.SLACK)
-    template_cls = template_registry.get(data.source)
-    renderable = NotificationService.render_template(
-        data=data, template=template_cls(), provider=provider
-    )
-    metric_tags = {
-        "data_source": str(data.source),
-        "is_ephemeral": str(bool(ephemeral_user_id)),
-    }
-    try:
-        if ephemeral_user_id:
-            install.send_threaded_ephemeral_message(
-                channel_id=thread["channel_id"],
-                thread_ts=thread["thread_ts"],
-                renderable=renderable,
-                slack_user_id=ephemeral_user_id,
-            )
-        else:
-            install.send_threaded_message(
-                channel_id=thread["channel_id"],
-                thread_ts=thread["thread_ts"],
-                renderable=renderable,
-            )
-    except ValueError:
-        logger.exception(
-            "seer.entrypoint.slack.thread_update.invalid_integration", extra=logging_ctx
+    with SlackEntrypointEventLifecycleMetric(
+        interaction_type=SlackEntrypointInteractionType.SEND_THREAD_UPDATE,
+        integration_id=install.model.id,
+        organization_id=install.organization_id,
+    ).capture() as lifecycle:
+        lifecycle.add_extras(
+            {
+                "thread_ts": thread["thread_ts"],
+                "channel_id": thread["channel_id"],
+                "data_source": data.source,
+                "ephemeral_user_id": ephemeral_user_id,
+            }
         )
-        metrics.incr("seer.entrypoint.slack.thread_update.invalid_integration", tags=metric_tags)
-        # No need to retry since these are configuration errors, and will just repeat
-        return
-    logger.info("seer.entrypoint.slack.thread_update.sent", extra=logging_ctx)
-    metrics.incr("seer.entrypoint.slack.thread_update.sent", tags=metric_tags)
+        provider = provider_registry.get(NotificationProviderKey.SLACK)
+        template_cls = template_registry.get(data.source)
+        renderable = NotificationService.render_template(
+            data=data, template=template_cls(), provider=provider
+        )
+        try:
+            if ephemeral_user_id:
+                install.send_threaded_ephemeral_message(
+                    channel_id=thread["channel_id"],
+                    thread_ts=thread["thread_ts"],
+                    renderable=renderable,
+                    slack_user_id=ephemeral_user_id,
+                )
+            else:
+                install.send_threaded_message(
+                    channel_id=thread["channel_id"],
+                    thread_ts=thread["thread_ts"],
+                    renderable=renderable,
+                )
+        except ValueError as e:
+            lifecycle.record_failure(failure_reason="invalid_integration", extra={"error": str(e)})
+            return
 
 
 @instrumented_task(
     name="sentry.seer.entrypoints.slack.process_thread_update",
+    alias="sentry.seer.entrypoints.integrations.slack.process_thread_update",
     namespace=integrations_tasks,
     processing_deadline_duration=30,
     retry=Retry(times=2, delay=30),
@@ -108,27 +106,26 @@ def process_thread_update(
 
     from sentry.integrations.slack.integration import SlackIntegration
 
-    logging_ctx = {
-        "integration_id": integration_id,
-        "organization_id": organization_id,
-        "entrypoint_key": SeerEntrypointKey.SLACK.value,
-    }
-
-    try:
-        data_dto = NotificationDataDto.from_dict(serialized_data)
-    except (NotificationServiceError, NoRegistrationExistsError):
-        logger.exception("seer.entrypoint.slack.thread_update.deserialize_error", extra=logging_ctx)
-        return
-
-    integration = integration_service.get_integration(
+    with SlackEntrypointEventLifecycleMetric(
+        interaction_type=SlackEntrypointInteractionType.PROCESS_THREAD_UPDATE,
         integration_id=integration_id,
         organization_id=organization_id,
-        provider=IntegrationProviderSlug.SLACK.value,
-        status=ObjectStatus.ACTIVE,
-    )
-    if not integration:
-        logger.error("seer.entrypoint.slack.thread_update.integration_not_found", extra=logging_ctx)
-        return
+    ).capture() as lifecycle:
+        try:
+            data_dto = NotificationDataDto.from_dict(serialized_data)
+        except (NotificationServiceError, NoRegistrationExistsError) as e:
+            lifecycle.record_failure(failure_reason="deserialize_error", extra={"error": str(e)})
+            return
+
+        integration = integration_service.get_integration(
+            integration_id=integration_id,
+            organization_id=organization_id,
+            provider=IntegrationProviderSlug.SLACK.value,
+            status=ObjectStatus.ACTIVE,
+        )
+        if not integration:
+            lifecycle.record_failure(failure_reason="integration_not_found")
+            return
 
     send_thread_update(
         install=SlackIntegration(model=integration, organization_id=organization_id),
@@ -197,13 +194,6 @@ def update_existing_message(
 ) -> None:
     from sentry.integrations.slack.message_builder.types import SlackAction
 
-    logging_ctx = {
-        "entrypoint_key": SeerEntrypointKey.SLACK.value,
-        "channel_id": channel_id,
-        "message_ts": message_ts,
-        "organization_id": data.organization_id,
-    }
-
     def remove_autofix_button_transformer(elem: dict[str, Any]) -> dict[str, Any] | None:
         if elem.get("action_id", "").startswith(SlackAction.SEER_AUTOFIX_START.value):
             return None
@@ -212,39 +202,54 @@ def update_existing_message(
     def remove_all_buttons_transformer(elem: dict[str, Any]) -> dict[str, Any] | None:
         return None
 
-    transformer = (
-        remove_autofix_button_transformer
-        if data.current_point == AutofixStoppingPoint.ROOT_CAUSE
-        else remove_all_buttons_transformer
-    )
-    try:
-        message_data = request.data["message"]
-        original_blocks = message_data["blocks"]
-        original_text = message_data["text"]
-    except (KeyError, TypeError):
-        logger.exception("seer.entrypoint.slack.message_update.invalid_payload", extra=logging_ctx)
-        return
+    with SlackEntrypointEventLifecycleMetric(
+        interaction_type=SlackEntrypointInteractionType.UPDATE_EXISTING_MESSAGE,
+        integration_id=install.model.id,
+        organization_id=data.organization_id,
+    ).capture() as lifecycle:
+        lifecycle.add_extras(
+            {
+                "channel_id": channel_id,
+                "message_ts": message_ts,
+                "organization_id": data.organization_id,
+            }
+        )
 
-    blocks = _transform_block_actions(original_blocks, transformer)
+        transformer = (
+            remove_autofix_button_transformer
+            if data.current_point == AutofixStoppingPoint.ROOT_CAUSE
+            else remove_all_buttons_transformer
+        )
+        try:
+            message_data = request.data["message"]
+            original_blocks = message_data["blocks"]
+            original_text = message_data["text"]
+        except (KeyError, TypeError) as e:
+            lifecycle.record_failure(failure_reason="invalid_payload", extra={"error": str(e)})
+            return
 
-    parsed_blocks = [Block.parse(block) for block in blocks]
-    if slack_user_id:
-        parsed_blocks.extend(
-            SeerSlackRenderer.render_footer_blocks(
-                data=data, extra_text=f"(ty <@{slack_user_id}>)", stage_completed=False
+        blocks = _transform_block_actions(original_blocks, transformer)
+
+        parsed_blocks = [Block.parse(block) for block in blocks]
+        if slack_user_id:
+            parsed_blocks.extend(
+                SeerSlackRenderer.render_footer_blocks(
+                    data=data, extra_text=f"(ty <@{slack_user_id}>)", stage_completed=False
+                )
             )
-        )
-    else:
-        parsed_blocks.extend(
-            SeerSlackRenderer.render_footer_blocks(data=data, stage_completed=False)
+        else:
+            parsed_blocks.extend(
+                SeerSlackRenderer.render_footer_blocks(data=data, stage_completed=False)
+            )
+
+        renderable = SlackRenderable(
+            blocks=[block for block in parsed_blocks if block is not None],
+            text=original_text,
         )
 
-    renderable = SlackRenderable(
-        blocks=[block for block in parsed_blocks if block is not None],
-        text=original_text,
-    )
-
-    try:
-        install.update_message(channel_id=channel_id, message_ts=message_ts, renderable=renderable)
-    except IntegrationError:
-        logger.exception("seer.entrypoint.slack.message_update.failed", extra=logging_ctx)
+        try:
+            install.update_message(
+                channel_id=channel_id, message_ts=message_ts, renderable=renderable
+            )
+        except IntegrationError:
+            lifecycle.record_failure(failure_reason="integration_error")

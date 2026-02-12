@@ -15,6 +15,10 @@ from sentry.seer.autofix.types import (
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
+from sentry.seer.entrypoints.metrics import (
+    SeerOperatorEventLifecycleMetric,
+    SeerOperatorInteractionType,
+)
 from sentry.seer.entrypoints.registry import entrypoint_registry
 from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
 from sentry.seer.seer_setup import has_seer_access
@@ -23,7 +27,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.utils import metrics
 
 SEER_OPERATOR_AUTOFIX_UPDATE_EVENTS = {
     SentryAppEventType.SEER_ROOT_CAUSE_STARTED,
@@ -111,86 +114,111 @@ class SeerOperator[CachePayloadT]:
         instruction: str | None = None,
         run_id: int | None = None,
     ) -> None:
-        self.logging_ctx["group_id"] = str(group.id)
-        self.logging_ctx["user_id"] = str(user.id)
-        self.logging_ctx["stopping_point"] = str(stopping_point)
-        metric_tags = {
-            "stopping_point": str(stopping_point),
-            "entrypoint_key": str(self.entrypoint.key),
-            "is_continuation": str(run_id is not None),
-        }
+        event_lifecyle = SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_TRIGGER_AUTOFIX,
+            entrypoint_key=self.entrypoint.key,
+        )
 
         raw_response: Response | None = None
-
-        if not run_id:
-            raw_response = _trigger_autofix(
-                group=group,
-                user=user,
-                instruction=instruction,
-                stopping_point=stopping_point,
+        with event_lifecyle.capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "group_id": str(group.id),
+                    "user_id": str(user.id),
+                    "stopping_point": str(stopping_point),
+                }
             )
-        else:
-            payload: (
-                AutofixSelectRootCausePayload
-                | AutofixSelectSolutionPayload
-                | AutofixCreatePRPayload
-                | None
-            ) = None
-            if stopping_point == AutofixStoppingPoint.SOLUTION:
-                # TODO(Leander): We need to figure out a way to get the real cause_id for this.
-                # Probably need to add it to the root cause webhook from seer's side.
-                payload = AutofixSelectRootCausePayload(type="select_root_cause", cause_id=0)
-            elif stopping_point == AutofixStoppingPoint.CODE_CHANGES:
-                payload = AutofixSelectSolutionPayload(type="select_solution")
-            elif stopping_point == AutofixStoppingPoint.OPEN_PR:
-                payload = AutofixCreatePRPayload(type="create_pr")
-            else:
-                logger.error(
-                    "seer.operator.trigger_autofix.invalid_stopping_point", extra=self.logging_ctx
+            if not run_id:
+                raw_response = _trigger_autofix(
+                    group=group,
+                    user=user,
+                    instruction=instruction,
+                    stopping_point=stopping_point,
                 )
-                self.entrypoint.on_trigger_autofix_error(error="Invalid stopping point provided")
+            else:
+                payload: (
+                    AutofixSelectRootCausePayload
+                    | AutofixSelectSolutionPayload
+                    | AutofixCreatePRPayload
+                    | None
+                ) = None
+                if stopping_point == AutofixStoppingPoint.SOLUTION:
+                    # TODO(Leander): We need to figure out a way to get the real cause_id for this.
+                    # Probably need to add it to the root cause webhook from seer's side.
+                    payload = AutofixSelectRootCausePayload(type="select_root_cause", cause_id=0)
+                elif stopping_point == AutofixStoppingPoint.CODE_CHANGES:
+                    payload = AutofixSelectSolutionPayload(type="select_solution")
+                elif stopping_point == AutofixStoppingPoint.OPEN_PR:
+                    payload = AutofixCreatePRPayload(type="create_pr")
+                else:
+                    lifecycle.record_failure(failure_reason="invalid_stopping_point")
+                    with SeerOperatorEventLifecycleMetric(
+                        interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
+                        entrypoint_key=self.entrypoint.key,
+                    ).capture():
+                        self.entrypoint.on_trigger_autofix_error(
+                            error="Invalid stopping point provided"
+                        )
+                    return
+
+                raw_response = update_autofix(
+                    organization_id=group.organization.id, run_id=run_id, payload=payload
+                )
+
+            # Type-safety...
+            assert raw_response is not None
+
+            error_message = raw_response.data.get("detail")
+
+            # Let the entrypoint signal to the external service that no run was started :/
+            if error_message:
+                lifecycle.record_failure(failure_reason=error_message)
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_autofix_error(error=error_message)
                 return
 
-            raw_response = update_autofix(
-                organization_id=group.organization.id, run_id=run_id, payload=payload
-            )
+            run_id = raw_response.data.get("run_id") if not run_id else run_id
+            # Shouldn't ever happen, but if it we have no run_id, we can't listen for updates
+            if not run_id:
+                lifecycle.record_failure(failure_reason="no_run_id")
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_autofix_error(error="An unknown error has occurred")
+                return
+            lifecycle.add_extra("run_id", str(run_id))
 
-        # Type-safety...
-        assert raw_response is not None
+            # Let the entrypoint signal to the external service that the run started
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_SUCCESS,
+                entrypoint_key=self.entrypoint.key,
+            ).capture():
+                self.entrypoint.on_trigger_autofix_success(run_id=run_id)
 
-        error_message = raw_response.data.get("detail")
+            # Create a cache payload that will be picked up for subsequent updates
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_CREATE_AUTOFIX_CACHE_PAYLOAD,
+                entrypoint_key=self.entrypoint.key,
+            ).capture():
+                cache_payload = self.entrypoint.create_autofix_cache_payload()
 
-        # Let the entrypoint signal to the external service that no run was started :/
-        if error_message:
-            self.logging_ctx["error_message"] = error_message
-            logger.error("seer.operator.trigger_autofix.error", extra=self.logging_ctx)
-            metrics.incr("seer.operator.trigger_autofix.error", tags=metric_tags)
-            self.entrypoint.on_trigger_autofix_error(error=error_message)
-            return
-
-        run_id = raw_response.data.get("run_id") if not run_id else run_id
-        # Shouldn't ever happen, but if it we have no run_id, we can't listen for updates
-        if not run_id:
-            logger.error("seer.operator.trigger_autofix.no_run_id", extra=self.logging_ctx)
-            self.entrypoint.on_trigger_autofix_error(error="An unknown error has occurred")
-            return
-        self.logging_ctx["run_id"] = str(run_id)
-
-        # Let the entrypoint signal to the external service that the run started
-        self.entrypoint.on_trigger_autofix_success(run_id=run_id)
-
-        # Create a cache payload that will be picked up for subsequent updates
-        cache_payload = self.entrypoint.create_autofix_cache_payload()
-
-        if cache_payload:
+            if not cache_payload:
+                return
             cache_result = SeerOperatorAutofixCache.populate_post_autofix_cache(
                 entrypoint_key=str(self.entrypoint.key),
                 cache_payload=cache_payload,
                 run_id=run_id,
             )
-            self.logging_ctx["cache_key"] = cache_result["key"]
-        logger.info("seer.operator.trigger_autofix.success", extra=self.logging_ctx)
-        metrics.incr("seer.operator.trigger_autofix.success", tags=metric_tags)
+            lifecycle.add_extras(
+                {
+                    "cache_key": cache_result["key"],
+                    "cache_source": cache_result["source"],
+                }
+            )
 
 
 @instrumented_task(
@@ -231,29 +259,35 @@ def process_autofix_updates(
         return
 
     for entrypoint_key, entrypoint_cls in entrypoint_registry.registrations.items():
-        entrypoint_logging_ctx = {**logging_ctx, "entrypoint_key": str(entrypoint_key)}
-        cache_result = SeerOperatorAutofixCache.get(
-            entrypoint_key=entrypoint_key, group_id=group_id, run_id=run_id
-        )
-        if not cache_result:
-            logger.info("seer.operator.process_updates.cache_miss", extra=entrypoint_logging_ctx)
-            continue
-        entrypoint_logging_ctx["cache_source"] = cache_result["source"]
-        entrypoint_logging_ctx["cache_key"] = cache_result["key"]
-        metric_tags = {"entrypoint_key": str(entrypoint_key), "event_type": str(event_type)}
-        try:
-            entrypoint_cls.on_autofix_update(
-                event_type=event_type,
-                event_payload=event_payload,
-                cache_payload=cache_result["payload"],
+        with SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_AUTOFIX_UPDATE,
+            entrypoint_key=entrypoint_key,
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "group_id": str(group_id),
+                    "run_id": str(run_id),
+                    "organization_id": organization_id,
+                    "event_type": str(event_type),
+                }
             )
-        except Exception:
-            logger.exception(
-                "seer.operator.process_updates.entrypoint_error", extra=entrypoint_logging_ctx
+            cache_result = SeerOperatorAutofixCache.get(
+                entrypoint_key=entrypoint_key, group_id=group_id, run_id=run_id
             )
-            metrics.incr("seer.operator.process_updates.entrypoint_error", tags=metric_tags)
-        else:
-            logger.info(
-                "seer.operator.process_updates.entrypoint_success", extra=entrypoint_logging_ctx
+            if not cache_result:
+                lifecycle.record_halt(halt_reason="cache_miss")
+                continue
+            lifecycle.add_extras(
+                {
+                    "cache_source": cache_result["source"],
+                    "cache_key": cache_result["key"],
+                }
             )
-            metrics.incr("seer.operator.process_updates.entrypoint_success", tags=metric_tags)
+            try:
+                entrypoint_cls.on_autofix_update(
+                    event_type=event_type,
+                    event_payload=event_payload,
+                    cache_payload=cache_result["payload"],
+                )
+            except Exception as e:
+                lifecycle.record_failure(failure_reason=e)
