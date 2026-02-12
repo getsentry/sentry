@@ -47,7 +47,6 @@ a deep backlog doesn't soak up a worker indefinetly, and that slow but not timeo
 slow forwarding yields to other tasks
 """
 
-DISCARDED_PAYLOAD = "deliver_webhook_parallel.discard"
 
 BATCH_SCHEDULE_OFFSET = datetime.timedelta(minutes=BACKOFF_INTERVAL)
 """
@@ -279,7 +278,7 @@ def drain_mailbox(payload_id: int) -> None:
             except DeliveryFailed:
                 metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "retry"})
                 logger.warning(
-                    "deliver_webhook.delivery_failed",
+                    "deliver_webhook.delivery_retry",
                     extra={
                         "mailbox_name": payload.mailbox_name,
                         "id": record.id,
@@ -340,16 +339,17 @@ def _handle_parallel_delivery_result(
     """
     if err:
         if payload_record.attempts >= MAX_ATTEMPTS:
+            payload_id = payload_record.id
             payload_record.delete()
             metrics.incr(
                 "hybridcloud.deliver_webhooks.delivery",
                 tags={"outcome": "attempts_exceed"},
             )
             logger.warning(
-                DISCARDED_PAYLOAD,
+                "deliver_webhook_parallel.discard",
                 extra={
                     "mailbox_name": payload_record.mailbox_name,
-                    "id": payload_record.id,
+                    "id": payload_id,
                     "attempts": payload_record.attempts,
                     "outcome": "attempts_exceed",
                 },
@@ -358,19 +358,18 @@ def _handle_parallel_delivery_result(
         else:
             metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "retry"})
             logger.warning(
-                DISCARDED_PAYLOAD,
+                "deliver_webhook_parallel.delivery_retry",
                 extra={
                     "mailbox_name": payload_record.mailbox_name,
                     "id": payload_record.id,
                     "attempts": payload_record.attempts,
-                    "outcome": "retry",
                 },
             )
             payload_record.schedule_next_attempt()
             request_failed = True
         return (request_failed, not isinstance(err, DeliveryFailed))
-    payload_record.delete()
     _measure_delivery_time(payload_record)
+    payload_record.delete()
     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
     return (False, False)
 
@@ -481,14 +480,15 @@ def deliver_message_parallel(payload: WebhookPayload) -> tuple[WebhookPayload, E
 def deliver_message(payload: WebhookPayload) -> None:
     """Deliver a message if it still has delivery attempts remaining"""
     if payload.attempts >= MAX_ATTEMPTS:
+        payload_id = payload.id
         payload.delete()
 
         metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "attempts_exceed"})
         logger.warning(
-            DISCARDED_PAYLOAD,
+            "deliver_webhook.discard",
             extra={
                 "mailbox_name": payload.mailbox_name,
-                "id": payload.id,
+                "id": payload_id,
                 "attempts": payload.attempts,
                 "outcome": "attempts_exceed",
             },
@@ -497,9 +497,8 @@ def deliver_message(payload: WebhookPayload) -> None:
 
     payload.schedule_next_attempt()
     perform_request(payload)
-    payload.delete()
-
     _measure_delivery_time(payload)
+    payload.delete()
     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
 
 
