@@ -851,7 +851,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.demo_mode.tasks",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
-    "sentry.dynamic_sampling.tasks.custom_rule_notifications",
     "sentry.dynamic_sampling.tasks.recalibrate_orgs",
     "sentry.dynamic_sampling.tasks.sliding_window_org",
     "sentry.feedback.tasks.update_user_reports",
@@ -1112,14 +1111,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "dynamic-sampling-sliding-window-org": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.sliding_window_org",
         "schedule": task_crontab("*/10", "*", "*", "*", "*"),
-    },
-    "custom_rule_notifications": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.custom_rule_notifications",
-        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
-    },
-    "clean_custom_rule_notifications": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.clean_custom_rule_notifications",
-        "schedule": task_crontab("*/7", "*", "*", "*", "*"),
     },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
