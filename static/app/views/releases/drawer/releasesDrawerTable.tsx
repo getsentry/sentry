@@ -7,9 +7,11 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Count from 'sentry/components/count';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {
+  extractSelectionParameters,
+  normalizeDateTimeParams,
+} from 'sentry/components/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
 import type {
@@ -160,15 +162,20 @@ export function ReleasesDrawerTable({
         const value = dataRow[column.key];
         return value > 0 ? (
           <Tooltip title={t('Open in Issues')} position="auto-start">
-            <GlobalSelectionLink
-              to={getReleaseNewIssuesUrl(
-                organization.slug,
-                dataRow.project_id,
-                dataRow.release
-              )}
+            <Link
+              to={
+                {
+                  pathname: getReleaseNewIssuesUrl(
+                    organization.slug,
+                    dataRow.project_id,
+                    dataRow.release
+                  ),
+                  query: extractSelectionParameters(location.query),
+                } as any
+              }
             >
               <Count value={value} />
-            </GlobalSelectionLink>
+            </Link>
           </Tooltip>
         ) : (
           <Count value={value} />

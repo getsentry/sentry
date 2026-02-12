@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {space} from 'sentry/styles/space';
 
 export const SidebarSection = styled('section')`
@@ -18,6 +18,6 @@ export function SectionHeadingWrapper(props: FlexProps) {
   return <Flex justify="between" align="center" {...props} />;
 }
 
-export const SectionHeadingLink = styled(GlobalSelectionLink)`
+export const SectionHeadingLink = styled(Link)`
   display: flex;
 `;
