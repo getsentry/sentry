@@ -13,9 +13,7 @@ describe('metrics', () => {
     });
 
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(/SentrySdk\.Metrics\.Increment/)
-      )
+      screen.getByText(textWithMarkupMatcher(/SentrySdk\.Metrics\.Increment/))
     ).toBeInTheDocument();
   });
 
@@ -25,9 +23,7 @@ describe('metrics', () => {
     });
 
     expect(
-      screen.queryByText(
-        textWithMarkupMatcher(/SentrySdk\.Metrics\.Increment/)
-      )
+      screen.queryByText(textWithMarkupMatcher(/SentrySdk\.Metrics\.Increment/))
     ).not.toBeInTheDocument();
   });
 });
