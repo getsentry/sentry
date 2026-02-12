@@ -396,7 +396,9 @@ function _getWidgetExploreUrlForMultipleQueries(
     queries: widget.queries.map(query => ({
       chartType: getChartType(widget.displayType),
       query: applyDashboardFilters(query.conditions, dashboardFilters) ?? '',
-      sortBys: decodeSorts(query.orderby),
+      sortBys: decodeSorts(query.orderby).filter(
+        s => s.field !== SpanFields.IS_STARRED_TRANSACTION
+      ),
       yAxes: query.aggregates,
       fields: [],
       groupBys: query.columns.filter(
