@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import datetime
 from typing import Any, Literal, overload
 
 import orjson
@@ -432,6 +433,8 @@ class SeerExplorerClient:
         project_ids: list[int] | None = ...,
         expand: Literal["prs"] = ...,
         only_current_user: bool = ...,
+        start: datetime | None = ...,
+        end: datetime | None = ...,
     ) -> list[ExplorerRunWithPrs]: ...
 
     @overload
@@ -444,6 +447,8 @@ class SeerExplorerClient:
         project_ids: list[int] | None = ...,
         expand: None = ...,
         only_current_user: bool = ...,
+        start: datetime | None = ...,
+        end: datetime | None = ...,
     ) -> list[ExplorerRun]: ...
 
     def get_runs(
@@ -455,6 +460,8 @@ class SeerExplorerClient:
         project_ids: list[int] | None = None,
         expand: Literal["prs"] | None = None,
         only_current_user: bool = True,
+        start: datetime | None = None,
+        end: datetime | None = None,
     ) -> list[ExplorerRunWithPrs] | list[ExplorerRun]:
         """
         Get a list of Seer Explorer runs for the organization with optional filters.
@@ -495,6 +502,10 @@ class SeerExplorerClient:
             payload["limit"] = limit
         if expand is not None:
             payload["expand"] = expand
+        if start is not None:
+            payload["start"] = start
+        if end is not None:
+            payload["end"] = end
 
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 

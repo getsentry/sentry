@@ -62,6 +62,8 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
                     only_current_user=False,
                     expand="prs",
                     project_ids=project_ids,
+                    start=start,
+                    end=end,
                 )
             except SeerPermissionError as e:
                 raise PermissionDenied(e.message) from e
@@ -77,10 +79,6 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
 
             group_ids = [run.group_id for run in runs]
             qs = Group.objects.filter(id__in=group_ids, project_id__in=project_ids)
-            if start is not None:
-                qs = qs.filter(last_seen__gte=start)
-            if end is not None:
-                qs = qs.filter(last_seen__lte=end)
             groups = list(qs)
 
             if not groups:
