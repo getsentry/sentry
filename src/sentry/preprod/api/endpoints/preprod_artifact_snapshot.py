@@ -154,48 +154,44 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 commit_comparison=commit_comparison,
             )
 
+            manifest_key = f"{project.organization_id}/{project.id}/{artifact.id}/manifest.json"
+
             snapshot_metrics = PreprodSnapshotMetrics.objects.create(
                 preprod_artifact=artifact,
                 image_count=len(images),
+                extras={"manifest_key": manifest_key},
             )
 
-            logger.info(
-                "Created preprod artifact for snapshots",
-                extra={
-                    "preprod_artifact_id": artifact.id,
-                    "project_id": project.id,
-                    "organization_id": project.organization_id,
-                    "head_sha": head_sha,
-                },
-            )
+        logger.info(
+            "Created preprod artifact for snapshots",
+            extra={
+                "preprod_artifact_id": artifact.id,
+                "project_id": project.id,
+                "organization_id": project.organization_id,
+                "head_sha": head_sha,
+            },
+        )
 
-            session = get_preprod_session(project.organization_id, project.id)
-            manifest_key = f"{project.organization_id}/{project.id}/{artifact.id}/manifest.json"
+        session = get_preprod_session(project.organization_id, project.id)
+        manifest = SnapshotManifest(images=images)
+        manifest_json = manifest.json(exclude_none=True)
+        session.put(manifest_json.encode(), key=manifest_key)
 
-            manifest = SnapshotManifest(images=images)
-            manifest_json = manifest.json(exclude_none=True)
-            session.put(manifest_json.encode(), key=manifest_key)
+        logger.info(
+            "Stored snapshot manifest",
+            extra={
+                "preprod_artifact_id": artifact.id,
+                "snapshot_metrics_id": snapshot_metrics.id,
+                "manifest_key": manifest_key,
+                "image_count": len(images),
+            },
+        )
 
-            extras = snapshot_metrics.extras or {}
-            extras["manifest_key"] = manifest_key
-            snapshot_metrics.extras = extras
-            snapshot_metrics.save(update_fields=["extras"])
-
-            logger.info(
-                "Stored snapshot manifest",
-                extra={
-                    "preprod_artifact_id": artifact.id,
-                    "snapshot_metrics_id": snapshot_metrics.id,
-                    "manifest_key": manifest_key,
-                    "image_count": len(images),
-                },
-            )
-
-            return Response(
-                {
-                    "artifactId": str(artifact.id),
-                    "snapshotMetricsId": str(snapshot_metrics.id),
-                    "imageCount": snapshot_metrics.image_count,
-                },
-                status=200,
-            )
+        return Response(
+            {
+                "artifactId": str(artifact.id),
+                "snapshotMetricsId": str(snapshot_metrics.id),
+                "imageCount": snapshot_metrics.image_count,
+            },
+            status=200,
+        )
