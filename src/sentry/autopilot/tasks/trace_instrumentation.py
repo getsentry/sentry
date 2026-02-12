@@ -212,10 +212,18 @@ def run_trace_instrumentation_detector_for_project_task(
         organization = Organization.objects.get(id=organization_id)
         project = Project.objects.get(id=project_id, status=ObjectStatus.ACTIVE)
     except (Organization.DoesNotExist, Project.DoesNotExist):
+        logger.exception(
+            "trace_instrumentation_detector.entity_not_found",
+            extra={"organization_id": organization_id, "project_id": project_id},
+        )
         return None
 
     trace_metadata = sample_trace_for_instrumentation_analysis(project)
     if not trace_metadata:
+        logger.warning(
+            "trace_instrumentation_detector.no_trace_sampled",
+            extra={"organization_id": organization.id, "project_id": project.id},
+        )
         return None
 
     trace_id = trace_metadata.trace_id
