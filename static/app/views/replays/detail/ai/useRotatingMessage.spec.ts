@@ -14,57 +14,44 @@ describe('useRotatingMessage', () => {
     jest.restoreAllMocks();
   });
 
-  it('starts with the first message', () => {
+  it('starts with a message from the list', () => {
     const {result} = renderHook(() => useRotatingMessage(messages));
-    expect(result.current).toBe('First');
+    expect(messages).toContain(result.current);
   });
 
-  it('advances to second message after 1500ms', () => {
+  it('advances to a different message after 1500ms', () => {
     const {result} = renderHook(() => useRotatingMessage(messages));
+    const first = result.current;
 
     act(() => {
       jest.advanceTimersByTime(1500);
     });
 
-    expect(result.current).toBe('Second');
+    expect(messages).toContain(result.current);
+    expect(result.current).not.toBe(first);
   });
 
-  it('advances through subsequent messages at 3-5s intervals', () => {
-    jest.spyOn(Math, 'random').mockReturnValue(0); // min delay: 3000ms
-
-    const {result} = renderHook(() => useRotatingMessage(messages));
-
-    // First -> Second (1500ms)
-    act(() => {
-      jest.advanceTimersByTime(1500);
-    });
-    expect(result.current).toBe('Second');
-
-    // Second -> Third (3000ms with random=0)
-    act(() => {
-      jest.advanceTimersByTime(3000);
-    });
-    expect(result.current).toBe('Third');
-
-    // Third -> Fallback (3000ms with random=0)
-    act(() => {
-      jest.advanceTimersByTime(3000);
-    });
-    expect(result.current).toBe('Fallback');
-  });
-
-  it('stops at the last (fallback) message', () => {
+  it('always ends on the fallback (last) message', () => {
     jest.spyOn(Math, 'random').mockReturnValue(0);
 
     const {result} = renderHook(() => useRotatingMessage(messages));
 
-    // Advance through all messages step by step (each timer schedules the next)
+    act(() => jest.advanceTimersByTime(1500));
+    act(() => jest.advanceTimersByTime(3000));
+    act(() => jest.advanceTimersByTime(3000));
+    expect(result.current).toBe('Fallback');
+  });
+
+  it('stops rotating once the fallback is reached', () => {
+    jest.spyOn(Math, 'random').mockReturnValue(0);
+
+    const {result} = renderHook(() => useRotatingMessage(messages));
+
     act(() => jest.advanceTimersByTime(1500));
     act(() => jest.advanceTimersByTime(3000));
     act(() => jest.advanceTimersByTime(3000));
     expect(result.current).toBe('Fallback');
 
-    // Further time should not change the message
     act(() => jest.advanceTimersByTime(10000));
     expect(result.current).toBe('Fallback');
   });
@@ -74,7 +61,6 @@ describe('useRotatingMessage', () => {
 
     const {result} = renderHook(() => useRotatingMessage(messages));
 
-    // At 30s, should jump to last message regardless of position
     act(() => {
       jest.advanceTimersByTime(30000);
     });

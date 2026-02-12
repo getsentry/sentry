@@ -1,12 +1,10 @@
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
-
-import {Image} from '@sentry/scraps/image';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
 import {useRotatingMessage} from 'sentry/views/replays/detail/ai/useRotatingMessage';
 import {REPLAY_SUMMARY_PROCESSING_MESSAGES} from 'sentry/views/replays/detail/ai/utils';
@@ -16,7 +14,7 @@ export function ReplaySummaryLoading() {
 
   return (
     <Stack align="center" padding="lg" gap="md">
-      <Image src={aiBanner} alt="" />
+      <Placeholder height="100px" width="300px" />
       <ShimmerText size="md">{message}</ShimmerText>
     </Stack>
   );
