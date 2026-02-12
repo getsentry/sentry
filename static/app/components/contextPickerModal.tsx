@@ -22,7 +22,7 @@ import type {Integration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import Projects from 'sentry/utils/projects';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
@@ -407,7 +407,7 @@ class ContextPickerModal extends Component<Props> {
 }
 
 type ContainerProps = SharedProps & {
-  configUrl?: string;
+  configUrl?: ApiQueryKey;
 
   /**
    * List of slugs we want to be able to choose from
@@ -415,9 +415,11 @@ type ContainerProps = SharedProps & {
   projectSlugs?: string[];
 };
 
-export default function ContextPickerModalContainer(props: ContainerProps) {
-  const {configUrl, projectSlugs, ...sharedProps} = props;
-
+export default function ContextPickerModalContainer({
+  configUrl,
+  projectSlugs,
+  ...sharedProps
+}: ContainerProps) {
   const {organizations} = useLegacyStore(OrganizationsStore);
 
   const {organization} = useLegacyStore(OrganizationStore);
@@ -469,7 +471,7 @@ export default function ContextPickerModalContainer(props: ContainerProps) {
 
 function ConfigUrlContainer(
   props: SharedProps & {
-    configUrl: string;
+    configUrl: ApiQueryKey;
     selectedOrgSlug: string | undefined;
     setSelectedOrgSlug: Dispatch<SetStateAction<string | undefined>>;
   }
@@ -478,7 +480,7 @@ function ConfigUrlContainer(
 
   const {organizations} = useLegacyStore(OrganizationsStore);
 
-  const {data, isError, isPending, refetch} = useApiQuery<Integration[]>([configUrl], {
+  const {data, isError, isPending, refetch} = useApiQuery<Integration[]>(configUrl, {
     staleTime: Infinity,
   });
 

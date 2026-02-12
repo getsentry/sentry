@@ -150,7 +150,7 @@ function Search({
               ...item.to,
               pathname: replaceRouterParams(item.to.pathname, params),
             };
-      navigateTo(nextTo, router, item.configUrl);
+      navigateTo(nextTo, router, item.configUrl as any);
     },
     [entryPoint, router, params, onAction]
   );

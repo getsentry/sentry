@@ -29,6 +29,7 @@ export default function PullRequestDetails() {
   const pullRequestQuery: UseApiQueryResult<PullRequestDetailsResponse, RequestError> =
     useApiQuery<PullRequestDetailsResponse>(
       [
+        // @ts-expect-error TODO(ryan953): Invalid useApiQuery path
         `/projects/${organization.slug}/pullrequest-details/${params.repoOrg}/${params.repoName}/${params.prId}/`,
       ],
       {

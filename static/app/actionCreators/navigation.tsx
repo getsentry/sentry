@@ -4,6 +4,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
@@ -11,7 +12,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 export function navigateTo(
   to: string | {pathname: string; query?: Query},
   router: InjectedRouter & {location?: Location},
-  configUrl?: string
+  configUrl?: ApiQueryKey
 ) {
   let pathname: string;
   if (typeof to === 'string') {

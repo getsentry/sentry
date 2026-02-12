@@ -314,6 +314,7 @@ function useSeerExplorerRun(runId: number | undefined) {
   const organization = useOrganization();
 
   return useApiQuery<SeerExplorerRunResponse>(
+    // @ts-expect-error TODO(ryan953): Invalid useApiQuery path (definition is missing trailing slash)
     [`/organizations/${organization.slug}/seer/explorer-chat/${runId}/`],
     {
       staleTime: 60000,
@@ -400,7 +401,9 @@ function useClusterTagFacets(groupIds: number[]) {
 
   const queryResult = useApiQuery<DiscoverFacetTag[]>(
     [
-      `/organizations/${organization.slug}/events-facets/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/events-facets/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           dataset: DiscoverDatasets.ERRORS,

@@ -35,6 +35,7 @@ export const makeSeerExplorerQueryKey = (
   orgSlug: string,
   runId?: number
 ): ApiQueryKey => [
+  // @ts-expect-error TODO(ryan953): Invalid useApiQuery path
   `/organizations/${orgSlug}/seer/explorer-chat/${runId ? `${runId}/` : ''}`,
   {},
 ];
