@@ -29,7 +29,12 @@ export default function SeerOnboardingSeatBased() {
   const {isPending, initialStep} = useSeerOnboardingStep();
   const navigate = useNavigate();
 
-  const initialStepRef = useRef(initialStep);
+  const initialStepRef = useRef<Steps | undefined>(undefined);
+  useEffect(() => {
+    if (!isPending && initialStepRef.current === undefined) {
+      initialStepRef.current = initialStep;
+    }
+  }, [initialStep, isPending]);
 
   useEffect(() => {
     // GuidedSteps only returns the step number
