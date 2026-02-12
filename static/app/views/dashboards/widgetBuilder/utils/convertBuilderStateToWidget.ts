@@ -86,8 +86,11 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   if (isReleaseTable) {
     defaultSort = '';
   } else if (isCategoricalBar) {
-    // Categorical bars should sort by aggregate, not by category column
-    defaultSort = aggregates?.[0] ? `-${aggregates[0]}` : defaultQuery.orderby;
+    // Categorical bars should sort by the selected aggregate (last by default, matching Big Number)
+    const selectedIdx =
+      state.selectedAggregate ?? (aggregates.length > 0 ? aggregates.length - 1 : 0);
+    const selectedAgg = aggregates[selectedIdx] ?? aggregates[0];
+    defaultSort = selectedAgg ? `-${selectedAgg}` : defaultQuery.orderby;
   }
   const sort =
     defined(state.sort) && state.sort.length > 0

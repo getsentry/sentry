@@ -753,7 +753,16 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
     );
   }
 
-  const categoricalSeriesData = transformTableToCategoricalSeries(query, {
+  // When multiple aggregates exist, only plot the selected one (radio selection).
+  // This mirrors Big Number behavior — all aggregates are queried, but only
+  // one is rendered at a time.
+  const selectedIndex =
+    query.selectedAggregate ??
+    (query.aggregates.length > 0 ? query.aggregates.length - 1 : 0);
+  const selectedAgg = query.aggregates[selectedIndex];
+  const filteredQuery = selectedAgg ? {...query, aggregates: [selectedAgg]} : query;
+
+  const categoricalSeriesData = transformTableToCategoricalSeries(filteredQuery, {
     data: tableData.data,
     meta: {
       fields: (tableData.meta.fields ?? {}) as TabularData['meta']['fields'],

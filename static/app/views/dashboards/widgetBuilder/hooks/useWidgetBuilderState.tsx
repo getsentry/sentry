@@ -136,7 +136,7 @@ export interface WidgetBuilderState {
    * - Table: all columns (both plain fields and aggregates)
    * - Big Number: aggregate fields
    * - Line, Area, Bar (Time Series): grouping fields (non-aggregates)
-   * - Bar (Categorical): exactly one (FIELD kind) and exactly one (FUNCTION kind)
+   * - Bar (Categorical): one X-axis (FIELD kind) and one or more aggregates (FUNCTION/EQUATION kind)
    */
   fields?: Column[];
   legendAlias?: string[];
@@ -244,12 +244,24 @@ function useWidgetBuilderState(): {
       thresholds,
       linkedDashboards,
       traceMetric,
-      // The selected aggregate is the last aggregate for big number widgets
-      // if it hasn't been explicitly set
+      // The selected aggregate is the last aggregate for big number and categorical bar widgets
+      // if it hasn't been explicitly set.
+      // For categorical bar, only count aggregate fields (FUNCTION/EQUATION), not the X-axis FIELD column
       selectedAggregate:
         displayType === DisplayType.BIG_NUMBER && defined(fields) && fields.length > 1
           ? (selectedAggregate ?? fields.length - 1)
-          : undefined,
+          : displayType === DisplayType.CATEGORICAL_BAR && defined(fields)
+            ? (() => {
+                const aggregateCount = fields.filter(
+                  f =>
+                    f.kind === FieldValueKind.FUNCTION ||
+                    f.kind === FieldValueKind.EQUATION
+                ).length;
+                return aggregateCount > 1
+                  ? (selectedAggregate ?? aggregateCount - 1)
+                  : undefined;
+              })()
+            : undefined,
     }),
     [
       title,
@@ -362,14 +374,16 @@ function useWidgetBuilderState(): {
             setQuery(query?.slice(0, 1), options);
           } else if (action.payload === DisplayType.CATEGORICAL_BAR) {
             // Categorical bar widgets store both X-axis field (FIELD kind) and
-            // aggregate (FUNCTION kind) in state.fields, not yAxis
+            // aggregates (FUNCTION/EQUATION kind) in state.fields, not yAxis.
+            // Like Big Number, categorical bar supports multiple aggregates with
+            // radio selection to choose which one to plot.
             setYAxis([], options);
             setLegendAlias([], options);
 
-            // Build the aggregate list from existing state, similar to time-series charts
+            // Keep all aggregates from both fields and yAxis (like Big Number)
             const nextAggregates = [
-              ...aggregatesWithoutAlias.slice(0, 1),
-              ...(yAxisWithoutAlias?.slice(0, 1) ?? []),
+              ...aggregatesWithoutAlias,
+              ...(yAxisWithoutAlias ?? []),
             ];
 
             // If no existing aggregate found, use the dataset's default
@@ -390,17 +404,21 @@ function useWidgetBuilderState(): {
               });
             }
 
-            const categoricalBarFields = [...nextColumns, ...nextAggregates.slice(0, 1)];
+            const categoricalBarFields = [...nextColumns, ...nextAggregates];
             setFields(categoricalBarFields, options);
 
-            // Set default sort to descending on the aggregate (like tables).
-            // For equations, use the alias format (equation[0]) that getTableSortOptions produces
-            const aggregateField = nextAggregates[0];
-            if (aggregateField) {
+            // Set default sort to descending on the last aggregate (like Big Number).
+            // For equations, use the alias format (equation[N]) that getTableSortOptions produces
+            const selectedAggregateField = nextAggregates[nextAggregates.length - 1];
+            if (selectedAggregateField) {
+              const equationIndex =
+                nextAggregates
+                  .slice(0, nextAggregates.length)
+                  .filter(f => f.kind === FieldValueKind.EQUATION).length - 1;
               const sortField =
-                aggregateField.kind === FieldValueKind.EQUATION
-                  ? 'equation[0]'
-                  : generateFieldAsString(aggregateField);
+                selectedAggregateField.kind === FieldValueKind.EQUATION
+                  ? `equation[${Math.max(0, equationIndex)}]`
+                  : generateFieldAsString(selectedAggregateField);
               setSort([{kind: 'desc', field: sortField}], options);
             }
 
@@ -886,11 +904,18 @@ function useWidgetBuilderState(): {
                 (isEquationAlias(currentSortField) && hasEquations));
 
             if (!isSortValid && existingAggregates.length > 0) {
-              const firstAggregate = existingAggregates[0]!;
+              // Reset sort to the selected aggregate (last by default, matching Big Number)
+              const selectedIdx = selectedAggregate ?? existingAggregates.length - 1;
+              const targetAggregate =
+                existingAggregates[selectedIdx] ?? existingAggregates[0]!;
+              const equationIndex =
+                existingAggregates
+                  .slice(0, selectedIdx + 1)
+                  .filter(f => f.kind === FieldValueKind.EQUATION).length - 1;
               const sortField =
-                firstAggregate.kind === FieldValueKind.EQUATION
-                  ? 'equation[0]'
-                  : generateFieldAsString(firstAggregate);
+                targetAggregate.kind === FieldValueKind.EQUATION
+                  ? `equation[${Math.max(0, equationIndex)}]`
+                  : generateFieldAsString(targetAggregate);
               setSort([{kind: sort?.[0]?.kind ?? 'desc', field: sortField}], options);
             } else if (!isSortValid) {
               // No aggregates to fall back to, clear the sort
@@ -906,14 +931,19 @@ function useWidgetBuilderState(): {
               fields?.filter(f => f.kind === FieldValueKind.FIELD) ?? [];
             setFields([...existingXAxisFields, ...action.payload], options);
 
-            // Update sort to use the first aggregate (if any).
-            // For equations, use the alias format (equation[0]) that getTableSortOptions produces
+            // Update sort to use the selected aggregate (last by default, matching Big Number).
+            // For equations, use the alias format (equation[N]) that getTableSortOptions produces
             if (action.payload.length > 0) {
-              const firstAggregate = action.payload[0]!;
+              const selectedIdx = selectedAggregate ?? action.payload.length - 1;
+              const targetAggregate = action.payload[selectedIdx] ?? action.payload[0]!;
+              const equationIndex =
+                action.payload
+                  .slice(0, selectedIdx + 1)
+                  .filter(f => f.kind === FieldValueKind.EQUATION).length - 1;
               const sortField =
-                firstAggregate.kind === FieldValueKind.EQUATION
-                  ? 'equation[0]'
-                  : generateFieldAsString(firstAggregate);
+                targetAggregate.kind === FieldValueKind.EQUATION
+                  ? `equation[${Math.max(0, equationIndex)}]`
+                  : generateFieldAsString(targetAggregate);
               setSort([{kind: 'desc', field: sortField}], options);
             }
           }
@@ -944,6 +974,7 @@ function useWidgetBuilderState(): {
       sort,
       dataset,
       limit,
+      selectedAggregate,
       setTraceMetric,
       traceMetric,
     ]
