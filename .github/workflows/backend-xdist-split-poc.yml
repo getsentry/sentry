@@ -34,8 +34,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Download from most recent successful classify-services run
-          RUN_ID=$(gh run list --workflow=classify-services.yml --status=success --limit=1 --json databaseId --jq '.[0].databaseId')
+          # Pin to known-good classification run (2026-02-06 "rebalance")
+          # The latest run (21925785204) produced a bad classification
+          RUN_ID=21761769121
           if [ -z "$RUN_ID" ]; then
             echo "ERROR: No successful classify-services run found"
             exit 1
