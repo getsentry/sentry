@@ -12,6 +12,7 @@ import {
   isEquation,
   isEquationAlias,
   parseFunction,
+  stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {AggregationKey, FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {decodeBoolean, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
@@ -213,7 +214,12 @@ function _getWidgetExploreUrl(
       (widget.displayType === DisplayType.TABLE
         ? widget.queries[0]!.fields?.filter(isAggregateFieldOrEquation)
         : widget.queries[0]!.aggregates
-      )?.filter(aggregate => yAxisOptions.includes(aggregate))
+      )
+        ?.filter(aggregate => yAxisOptions.includes(aggregate))
+        // Strip equation| prefix since Explore expects raw aggregates
+        .map(aggregate =>
+          isEquation(aggregate) ? stripEquationPrefix(aggregate) : aggregate
+        )
     ),
   ];
 
@@ -270,7 +276,11 @@ function _getWidgetExploreUrl(
   const fields = [...new Set([...groupBy, ...yAxisFields])].filter(Boolean);
 
   const sortDirection = widget.queries[0]?.orderby?.startsWith('-') ? '-' : '';
-  const sortColumn = trimStart(widget.queries[0]?.orderby ?? '', '-');
+  const rawSortColumn = trimStart(widget.queries[0]?.orderby ?? '', '-');
+  // Strip equation| prefix from sort column for explore compatibility
+  const sortColumn = isEquation(rawSortColumn)
+    ? stripEquationPrefix(rawSortColumn)
+    : rawSortColumn;
 
   let sort: string | undefined = undefined;
   if (isAggregateField(sortColumn)) {
@@ -282,11 +292,11 @@ function _getWidgetExploreUrl(
         sort = `${sortDirection}${aggregateArguments[0]}`;
       }
     } else if (exploreMode === Mode.AGGREGATE) {
-      sort = widget.queries[0]?.orderby;
+      sort = `${sortDirection}${sortColumn}`;
     }
-  } else if (isEquationAlias(sortColumn) && exploreMode === Mode.AGGREGATE) {
+  } else if (isEquationAlias(rawSortColumn) && exploreMode === Mode.AGGREGATE) {
     const equations = query.fields?.filter(isEquation) ?? [];
-    const equationIndex = getEquationAliasIndex(sortColumn);
+    const equationIndex = getEquationAliasIndex(rawSortColumn);
 
     const orderby = equations[equationIndex];
     if (orderby) {
