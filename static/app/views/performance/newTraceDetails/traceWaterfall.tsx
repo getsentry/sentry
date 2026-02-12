@@ -72,12 +72,14 @@ import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 import {useTraceScrollToPath} from './useTraceScrollToPath';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 
+export type TraceWaterfallSource = 'issues' | 'performance' | 'replay' | 'trace_view';
+
 export interface TraceWaterfallProps {
   meta: TraceMetaQueryResults;
   organization: Organization;
   replay: ReplayRecord | null;
   rootEventResults: TraceRootEventQueryResults;
-  source: string;
+  source: TraceWaterfallSource;
   trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
   traceEventView: EventView;
   traceSlug: string;
@@ -672,6 +674,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         <TraceOpenInExploreButton
           trace_id={props.traceSlug}
           traceEventView={props.traceEventView}
+          source={props.source}
+          replayId={props.replay?.id}
         />
         <TraceResetZoomButton
           viewManager={viewManager}

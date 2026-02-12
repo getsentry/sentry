@@ -108,10 +108,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),
@@ -168,38 +164,6 @@ describe('SeerDrawer', () => {
     });
   });
 
-  it('renders consent state if not consented', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: false,
-          userHasAcknowledged: false,
-        },
-        integration: {ok: false, reason: null},
-        githubWriteIntegration: {ok: false, repos: []},
-      }),
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: null},
-    });
-
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    expect(screen.getByText(mockEvent.id)).toBeInTheDocument();
-
-    expect(screen.getByTestId('ai-setup-data-consent')).toBeInTheDocument();
-  });
-
   it('renders issue summary if consent flow is removed and there is no autofix quota', async () => {
     const orgWithConsentFlowRemoved = OrganizationFixture({
       hideAiFeatures: false,
@@ -208,10 +172,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: false, reason: null},
         githubWriteIntegration: {ok: false, repos: []},
         billing: {hasAutofixQuota: false},
@@ -269,10 +229,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: false, reason: null},
         githubWriteIntegration: {ok: false, repos: []},
       }),
@@ -325,45 +281,11 @@ describe('SeerDrawer', () => {
     expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
   });
 
-  it('hides ButtonBarWrapper when AI consent is needed', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: false,
-          userHasAcknowledged: false,
-        },
-        integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
-      }),
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: null},
-    });
-
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    // AutofixFeedback component should not be rendered when consent is needed
-    expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Start Over'})).not.toBeInTheDocument();
-  });
-
   it('shows ButtonBarWrapper but hides Start Over button when hasAutofix is false', async () => {
     // Mock AI consent as okay but no autofix capability
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),
@@ -404,10 +326,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),
@@ -437,10 +355,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),
@@ -532,10 +446,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: false, reason: null},
         githubWriteIntegration: {ok: false, repos: []},
       }),
@@ -571,10 +481,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),
@@ -600,10 +506,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),
@@ -630,10 +532,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),
