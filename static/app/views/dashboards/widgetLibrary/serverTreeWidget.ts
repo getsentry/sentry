@@ -3,8 +3,8 @@ import {DisplayType} from 'sentry/views/dashboards/types';
 import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';
 
 /**
- * Shared widget definitions for Web Vitals
- * Used in both the prebuilt Web Vitals dashboard and the widget library
+ * Shared widget definitions for Next.js Overview dashboard
+ * Used in both the prebuilt Next.js Overview dashboard and the widget library
  */
 
 export const SERVER_TREE_WIDGET_TEMPLATE: WidgetTemplate = {
