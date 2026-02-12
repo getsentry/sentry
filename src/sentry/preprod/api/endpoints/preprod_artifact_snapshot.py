@@ -162,6 +162,13 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 extras={"manifest_key": manifest_key},
             )
 
+            # Write manifest inside the transaction so that a failed objectstore
+            # write rolls back the DB records, ensuring both succeed or neither does.
+            session = get_preprod_session(project.organization_id, project.id)
+            manifest = SnapshotManifest(images=images)
+            manifest_json = manifest.json(exclude_none=True)
+            session.put(manifest_json.encode(), key=manifest_key)
+
         logger.info(
             "Created preprod artifact for snapshots",
             extra={
@@ -171,11 +178,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 "head_sha": head_sha,
             },
         )
-
-        session = get_preprod_session(project.organization_id, project.id)
-        manifest = SnapshotManifest(images=images)
-        manifest_json = manifest.json(exclude_none=True)
-        session.put(manifest_json.encode(), key=manifest_key)
 
         logger.info(
             "Stored snapshot manifest",
