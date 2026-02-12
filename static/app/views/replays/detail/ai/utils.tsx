@@ -18,7 +18,7 @@ export const REPLAY_SUMMARY_PROCESSING_MESSAGES = [
   t('Turning signals into a readable summary...'),
   t('Sanity-checking the summary against the Replay timeline...'),
   t('Finalizing, almost ready...'),
-  t('Still working — this Replay has a lot going on...'), // fallback (last)
+  t('Still working — this Replay has a lot going on...'),
 ];
 
 export enum ReplaySummaryStatus {
