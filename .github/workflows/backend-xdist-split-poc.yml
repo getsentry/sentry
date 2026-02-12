@@ -145,7 +145,12 @@ jobs:
       # G1: Pass specific tier files to pytest instead of `tests/`.
       # This avoids discovering ALL 32K+ tests and discarding most of them.
       # Collection scans only tier1 files (~1496) instead of ALL test files (~2226).
+      # DJANGO_SETTINGS_MODULE must be set before pytest starts because some conftest.py
+      # files access Django settings at import time, before pytest_configure runs.
       - name: Run tier 1 tests (xdist -n 3, direct file collection)
+        env:
+          DJANGO_SETTINGS_MODULE: sentry.conf.server
+          _SENTRY_SKIP_CONFIGURATION: '1'
         run: |
           echo "=== Tier 1: Postgres + Redis only (no Snuba stack) ==="
           echo "Shard ${{ matrix.instance }} of 5, xdist workers: 3"
@@ -222,6 +227,9 @@ jobs:
           SNUBA_WAIT_TIMEOUT: '180'
           # Docker bridge gateway is always 172.17.0.1 on GitHub Actions
           DJANGO_LIVE_TEST_SERVER_ADDRESS: '172.17.0.1'
+          # G1: Django settings must be configured before conftest.py files load
+          DJANGO_SETTINGS_MODULE: sentry.conf.server
+          _SENTRY_SKIP_CONFIGURATION: '1'
         run: |
           XDIST_N=${XDIST_WORKERS:-2}
           PHASE_START=$(date +%s)
