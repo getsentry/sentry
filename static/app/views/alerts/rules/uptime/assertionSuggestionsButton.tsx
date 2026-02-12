@@ -199,19 +199,20 @@ export function AssertionSuggestionsButton({
         data: {...payload},
       }),
     onSuccess: response => {
-      if (response.suggestions && response.suggestions.length > 0) {
-        setSuggestions(response.suggestions);
+      const {suggestions: responseSuggestions} = response;
+      if (responseSuggestions && responseSuggestions.length > 0) {
+        setSuggestions(responseSuggestions);
         openModal(modalProps => (
           <SuggestionsModal
             {...modalProps}
-            suggestions={response.suggestions!}
+            suggestions={responseSuggestions}
             currentAssertion={currentAssertionRef.current}
             onApplySuggestion={onApplySuggestion}
           />
         ));
         addSuccessMessage(
           tct('Generated [count] assertion suggestions', {
-            count: response.suggestions.length,
+            count: responseSuggestions.length,
           })
         );
       } else {
