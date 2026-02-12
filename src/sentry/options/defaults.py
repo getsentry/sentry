@@ -1408,6 +1408,16 @@ register("relay.drop-transaction-metrics", default=[], flags=FLAG_AUTOMATOR_MODI
 # Relay should emit a usage metric to track total spans.
 register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# When True, schedule_invalidate_project_config calls the invalidation callback
+# directly when outside an atomic block, instead of going through
+# transaction.on_commit(). This fixes TransactionManagementError in the
+# taskworker where autocommit is off.
+register(
+    "relay.invalidation-direct-outside-atomic",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch for the Relay cardinality limiter, one of `enabled`, `disabled`, `passive`.
 # In `passive` mode Relay's cardinality limiter is active but it does not enforce the limits.
 register(

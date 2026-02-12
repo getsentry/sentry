@@ -4,6 +4,7 @@ import time
 import sentry_sdk
 from django.db import router, transaction
 
+from sentry import options
 from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
 from sentry.silo.base import SiloMode
@@ -318,18 +319,23 @@ def schedule_invalidate_project_config(
     ) as span:
         span.set_tag("transaction_db", transaction_db)
 
-        from django.db import connections
+        use_direct_call = False
+        if options.get("relay.invalidation-direct-outside-atomic"):
+            from django.db import connections
 
-        conn = connections[transaction_db]
-        if conn.in_atomic_block:
+            conn = connections[transaction_db]
+            if not conn.in_atomic_block:
+                # No active transaction (autocommit or manual-transaction mode
+                # like in the taskworker). Execute immediately — this is what
+                # on_commit() does in autocommit mode anyway.
+                use_direct_call = True
+
+        if use_direct_call:
+            callback()
+        else:
             # Inside a transaction — defer until commit so the invalidation
             # sees the committed state.
             transaction.on_commit(callback, using=transaction_db)
-        else:
-            # No active transaction (autocommit or manual-transaction mode
-            # like in the taskworker). Execute immediately — this is what
-            # on_commit() does in autocommit mode anyway.
-            callback()
 
 
 def _schedule_invalidate_project_config(

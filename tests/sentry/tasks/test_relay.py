@@ -469,9 +469,7 @@ class TestInvalidationTask:
             trigger="test", project_id=default_project.id, countdown=2
         )
 
-        # Outside an atomic block, the callback is called directly
-        # (on_commit is only used inside a transaction).
-        assert oncommit.call_count == 0
+        assert oncommit.call_count == 1
         assert schedule_inner.call_count == 1
         assert schedule_inner.call_args == mock.call(
             trigger="test",
@@ -538,6 +536,7 @@ def test_invalidate_hierarchy(
 
 
 @django_db_all(transaction=True)
+@override_options({"relay.invalidation-direct-outside-atomic": True})
 def test_schedule_invalidate_project_config_without_autocommit(default_project):
     """
     Regression test: schedule_invalidate_project_config must not raise
