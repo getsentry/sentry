@@ -93,10 +93,10 @@ describe('BaseField a11y', () => {
     expect(screen.getByRole('textbox', {name: 'Email Address'})).toBeInTheDocument();
   });
 
-  it('renders the required indicator when required is true', () => {
+  it('includes required in accessible name when required is true', () => {
     render(<TestForm label="Required Field" required />);
 
-    expect(screen.getByText('*')).toBeInTheDocument();
+    expect(screen.getByText('(required)')).toBeInTheDocument();
   });
 });
 
