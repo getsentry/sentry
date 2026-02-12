@@ -105,7 +105,9 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
   const hasRuntimeAssertions = organization.features.includes(
     'uptime-runtime-assertions'
   );
-  const hasGenAiFeatures = organization.features.includes('gen-ai-features');
+  const hasAiAssertionSuggestions = organization.features.includes(
+    'uptime-ai-assertion-suggestions'
+  );
 
   const project =
     projects.find(p => selection.projects[0]?.toString() === p.id) ??
@@ -241,7 +243,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
               <Button priority="danger">{t('Delete Rule')}</Button>
             </Confirm>
           )}
-          {hasRuntimeAssertions && hasGenAiFeatures && (
+          {hasRuntimeAssertions && hasAiAssertionSuggestions && (
             <AssertionSuggestionsButton
               getFormData={() => {
                 const data = formModel.getTransformedData();

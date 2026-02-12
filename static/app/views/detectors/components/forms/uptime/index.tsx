@@ -69,7 +69,9 @@ export function NewUptimeDetectorForm() {
   const hasRuntimeAssertions = organization.features.includes(
     'uptime-runtime-assertions'
   );
-  const hasGenAiFeatures = organization.features.includes('gen-ai-features');
+  const hasAiAssertionSuggestions = organization.features.includes(
+    'uptime-ai-assertion-suggestions'
+  );
 
   return (
     <NewDetectorLayout
@@ -80,7 +82,7 @@ export function NewUptimeDetectorForm() {
       extraFooterButton={
         hasRuntimeAssertions ? (
           <Fragment>
-            {hasGenAiFeatures && <ConnectedAssertionSuggestionsButton />}
+            {hasAiAssertionSuggestions && <ConnectedAssertionSuggestionsButton />}
             <ConnectedTestUptimeMonitorButton />
           </Fragment>
         ) : undefined
@@ -97,7 +99,9 @@ export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDete
   const hasRuntimeAssertions = organization.features.includes(
     'uptime-runtime-assertions'
   );
-  const hasGenAiFeatures = organization.features.includes('gen-ai-features');
+  const hasAiAssertionSuggestions = organization.features.includes(
+    'uptime-ai-assertion-suggestions'
+  );
 
   return (
     <EditDetectorLayout
@@ -108,7 +112,9 @@ export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDete
       extraFooterButton={
         hasRuntimeAssertions ? (
           <Fragment>
-            {hasGenAiFeatures && <ConnectedAssertionSuggestionsButton size="sm" />}
+            {hasAiAssertionSuggestions && (
+              <ConnectedAssertionSuggestionsButton size="sm" />
+            )}
             <ConnectedTestUptimeMonitorButton size="sm" />
           </Fragment>
         ) : undefined
