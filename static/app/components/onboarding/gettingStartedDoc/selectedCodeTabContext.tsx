@@ -71,7 +71,7 @@ export function BlockPathProvider({
  * Used to match component-side selections with content-block-side
  * lookups in stepsToMarkdown.
  */
-function deriveTabKey(
+export function deriveTabKey(
   tabs: ReadonlyArray<{label: string}>,
   stepIndex?: number,
   blockPath?: string
@@ -147,3 +147,14 @@ export function useRegisteredTabSelection(
 
   return [selectedValue, setValue];
 }
+
+/**
+ * Returns the scope's tab selections map for use in stepsToMarkdown.
+ * Keys are derived from tab labels via deriveTabKey.
+ */
+export function useTabSelectionsMap(): ReadonlyMap<string, string> {
+  const ctx = useContext(TabRegistryContext);
+  return ctx?.selections ?? _emptyMap;
+}
+
+const _emptyMap: ReadonlyMap<string, string> = new Map();

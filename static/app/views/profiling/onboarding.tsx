@@ -3,11 +3,16 @@ import styled from '@emotion/styled';
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {
+  CopySetupInstructionsGate,
+  OnboardingCopyMarkdownButton,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
   TabSelectionScope,
@@ -304,6 +309,11 @@ export function Onboarding() {
       <SetupTitle project={project} />
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <ContinuousProfilingBillingRequirementBanner project={project} />
+      <CopySetupInstructionsGate>
+        <Container paddingBottom="md">
+          <OnboardingCopyMarkdownButton steps={steps} source="profiling_onboarding" />
+        </Container>
+      </CopySetupInstructionsGate>
       <GuidedSteps>
         {steps.map((step, index) => (
           <StepRenderer
