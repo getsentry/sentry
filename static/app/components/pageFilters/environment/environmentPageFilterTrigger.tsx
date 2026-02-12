@@ -3,13 +3,11 @@ import styled from '@emotion/styled';
 import {Badge} from '@sentry/scraps/badge';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
-import {DesyncedFilterIndicator} from 'sentry/components/pageFilters/desyncedFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
 
 export interface EnvironmentPageFilterTriggerProps extends Omit<TriggerProps, 'value'> {
-  desynced: boolean;
   environments: string[];
   ready: boolean;
   value: string[];
@@ -20,7 +18,6 @@ export function EnvironmentPageFilterTrigger({
   value,
   environments,
   ready,
-  desynced,
   label,
   ...props
 }: EnvironmentPageFilterTriggerProps) {
@@ -45,7 +42,6 @@ export function EnvironmentPageFilterTrigger({
     <OverlayTrigger.Button {...props} data-test-id="page-filter-environment-selector">
       <TriggerLabelWrap>
         <TriggerLabel>{ready ? readyLabel : t('Loading\u2026')}</TriggerLabel>
-        {desynced && <DesyncedFilterIndicator role="presentation" />}
       </TriggerLabelWrap>
       {remainingCount > 0 && (
         <StyledBadge variant="muted">{`+${remainingCount}`}</StyledBadge>

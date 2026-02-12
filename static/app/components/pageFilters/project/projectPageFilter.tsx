@@ -10,7 +10,6 @@ import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSe
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import {DesyncedFilterMessage} from 'sentry/components/pageFilters/desyncedFilter';
 import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
 import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
 import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
@@ -121,7 +120,6 @@ export function ProjectPageFilter({
   const {
     selection: {projects: pageFilterValue},
     isReady: pageFilterIsReady,
-    desyncedFilters,
   } = usePageFilters();
 
   /**
@@ -334,7 +332,6 @@ export function ProjectPageFilter({
     pageFilterValue,
   ]);
 
-  const desynced = desyncedFilters.has('projects');
   const defaultMenuWidth = useMemo(() => {
     const flatOptions: Array<SelectOption<number>> = options.flatMap(item =>
       'options' in item ? item.options : [item]
@@ -399,7 +396,6 @@ export function ProjectPageFilter({
       emptyMessage={emptyMessage ?? t('No projects found')}
       menuTitle={menuTitle ?? t('Filter Projects')}
       menuWidth={menuWidth ?? defaultMenuWidth}
-      menuBody={desynced && <DesyncedFilterMessage />}
       menuFooter={
         hasProjectWrite && (
           <LinkButton
@@ -422,7 +418,6 @@ export function ProjectPageFilter({
             memberProjects={memberProjects}
             nonMemberProjects={nonMemberProjects}
             ready={projectsLoaded && pageFilterIsReady}
-            desynced={desynced}
           />
         ))
       }
