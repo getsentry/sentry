@@ -16,6 +16,7 @@ from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
+from sentry.seer.explorer.utils import normalize_description
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
@@ -135,7 +136,7 @@ def create_issue_occurrence_from_detection(
     occurrence_id = uuid4().hex
     detection_time = datetime.now(UTC)
     trace_id = detected_issue.trace_id
-    transaction_name = detected_issue.transaction_name
+    transaction_name = normalize_description(detected_issue.transaction_name)
     title = detected_issue.title.lower().replace(" ", "-")
     fingerprint = [f"llm-detected-{title}-{transaction_name}"]
 
