@@ -5,6 +5,7 @@ on:
     branches:
       - master
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
 
 # Cancel in progress workflows on pull_requests.
@@ -231,7 +232,7 @@ jobs:
       - name: Calculate test shards
         id: calculate-shards
         env:
-          SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
+          SELECTED_TESTS_FILE: "${{ !contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') && needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}"
           SELECTED_TEST_COUNT: ${{ needs.prepare-selective-tests.outputs.test-count }}
         run: |
           python3 .github/workflows/scripts/calculate-backend-test-shards.py
@@ -275,7 +276,7 @@ jobs:
       - name: Run backend tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         id: run_backend_tests
         env:
-          SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
+          SELECTED_TESTS_FILE: "${{ !contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') && needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}"
         run: make test-python-ci
 
       - name: Inspect failure
