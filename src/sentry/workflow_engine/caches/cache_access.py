@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping
 
 from sentry.utils.cache import cache
 
@@ -86,7 +86,7 @@ class CacheMapping[K, V]:
     def delete(self, input: K) -> bool:
         return cache.delete(self.key(input))
 
-    def get_many(self, inputs: Sequence[K]) -> dict[K, V | None]:
+    def get_many(self, inputs: Collection[K]) -> dict[K, V | None]:
         """
         Fetch multiple cache values at once.
 
@@ -96,9 +96,9 @@ class CacheMapping[K, V]:
         """
         if not inputs:
             return {}
-        keys = [self.key(inp) for inp in inputs]
-        values = cache.get_many(keys)
-        return {inp: values.get(k) for inp, k in zip(inputs, keys)}
+        key_to_input = {self.key(inp): inp for inp in inputs}
+        values = cache.get_many(key_to_input.keys())
+        return {key_to_input[k]: values.get(k) for k in key_to_input}
 
     def set_many(self, data: Mapping[K, V], timeout: float | None = None) -> list[K]:
         """
@@ -114,9 +114,10 @@ class CacheMapping[K, V]:
             {k: val for k, (_, val) in keyed_data.items()},
             timeout,
         )
-        return [inp for k, (inp, _) in keyed_data.items() if k in (failed_keys or [])]
+        failed = set(failed_keys or [])
+        return [inp for k, (inp, _) in keyed_data.items() if k in failed]
 
-    def delete_many(self, inputs: Sequence[K]) -> None:
+    def delete_many(self, inputs: Collection[K]) -> None:
         """
         Delete multiple cache values at once.
 
