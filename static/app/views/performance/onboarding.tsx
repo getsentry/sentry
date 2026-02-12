@@ -589,11 +589,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
       <SetupTitle project={project} />
       <CopySetupInstructionsGate>
         <Container paddingBottom="md">
-          <OnboardingCopyMarkdownButton
-            steps={steps}
-            organization={organization}
-            source="performance_onboarding"
-          />
+          <OnboardingCopyMarkdownButton steps={steps} source="performance_onboarding" />
         </Container>
       </CopySetupInstructionsGate>
       <GuidedSteps

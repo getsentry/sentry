@@ -311,11 +311,7 @@ export function Onboarding() {
       <ContinuousProfilingBillingRequirementBanner project={project} />
       <CopySetupInstructionsGate>
         <Container paddingBottom="md">
-          <OnboardingCopyMarkdownButton
-            steps={steps}
-            organization={organization}
-            source="profiling_onboarding"
-          />
+          <OnboardingCopyMarkdownButton steps={steps} source="profiling_onboarding" />
         </Container>
       </CopySetupInstructionsGate>
       <GuidedSteps>

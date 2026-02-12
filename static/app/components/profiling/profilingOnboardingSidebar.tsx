@@ -371,7 +371,6 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
           <Container paddingBottom="md">
             <OnboardingCopyMarkdownButton
               steps={steps}
-              organization={props.organization}
               source="profiling_sidebar_onboarding"
             />
           </Container>

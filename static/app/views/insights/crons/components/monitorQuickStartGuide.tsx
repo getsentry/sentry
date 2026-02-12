@@ -289,11 +289,7 @@ export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
       />
       <CopySetupInstructionsGate>
         <Container paddingBottom="md">
-          <CopyMarkdownButton
-            getMarkdown={getGuideMarkdown}
-            organization={org}
-            source="crons_onboarding"
-          />
+          <CopyMarkdownButton getMarkdown={getGuideMarkdown} source="crons_onboarding" />
         </Container>
       </CopySetupInstructionsGate>
       <div ref={guideContainerRef}>

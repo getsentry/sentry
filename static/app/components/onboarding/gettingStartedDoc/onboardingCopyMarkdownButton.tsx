@@ -7,14 +7,11 @@ import type {OnboardingStep} from 'sentry/components/onboarding/gettingStartedDo
 import {stepsToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface CopyMarkdownButtonProps {
   getMarkdown: () => string;
-  organization: Organization;
   source: string;
 }
 
@@ -27,11 +24,7 @@ interface CopyMarkdownButtonProps {
  * surfaces that need tab-selection and auth-token context, use
  * `OnboardingCopyMarkdownButton` instead.
  */
-export function CopyMarkdownButton({
-  getMarkdown,
-  organization,
-  source,
-}: CopyMarkdownButtonProps) {
+export function CopyMarkdownButton({getMarkdown, source}: CopyMarkdownButtonProps) {
   return (
     <Tooltip
       title={t(
@@ -41,14 +34,10 @@ export function CopyMarkdownButton({
     >
       <Button
         icon={<IconCopy />}
-        onClick={() => {
-          trackAnalytics('setup_guide.copy_as_markdown', {
-            organization,
-            format: 'markdown',
-            source,
-          });
-          copyToClipboard(getMarkdown());
-        }}
+        analyticsEventKey="setup_guide.copy_as_markdown"
+        analyticsEventName="Setup Guide: Copy as Markdown"
+        analyticsParams={{format: 'markdown', source}}
+        onClick={() => copyToClipboard(getMarkdown())}
       >
         {t('Copy setup instructions')}
       </Button>
@@ -57,7 +46,6 @@ export function CopyMarkdownButton({
 }
 
 interface OnboardingCopyMarkdownButtonProps {
-  organization: Organization;
   source: string;
   steps: OnboardingStep[];
 }
@@ -68,7 +56,6 @@ interface OnboardingCopyMarkdownButtonProps {
  */
 export function OnboardingCopyMarkdownButton({
   steps,
-  organization,
   source,
 }: OnboardingCopyMarkdownButtonProps) {
   const authToken = useAuthToken();
@@ -85,13 +72,7 @@ export function OnboardingCopyMarkdownButton({
     }
   };
 
-  return (
-    <CopyMarkdownButton
-      getMarkdown={getMarkdown}
-      organization={organization}
-      source={source}
-    />
-  );
+  return <CopyMarkdownButton getMarkdown={getMarkdown} source={source} />;
 }
 
 const FEATURE_FLAG = 'onboarding-copy-setup-instructions';

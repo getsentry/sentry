@@ -347,7 +347,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         <Container paddingBottom="md">
           <OnboardingCopyMarkdownButton
             steps={steps}
-            organization={organization}
             source="performance_sidebar_onboarding"
           />
         </Container>

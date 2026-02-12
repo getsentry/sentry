@@ -192,7 +192,6 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                 <Container paddingBottom="md">
                   <OnboardingCopyMarkdownButton
                     steps={steps}
-                    organization={organization}
                     source="issues_onboarding"
                   />
                 </Container>

@@ -353,7 +353,6 @@ export function Onboarding() {
         <Container paddingBottom="md">
           <OnboardingCopyMarkdownButton
             steps={steps}
-            organization={organization}
             source="agent_monitoring_onboarding"
           />
         </Container>

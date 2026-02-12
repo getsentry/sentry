@@ -16,7 +16,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import MonitorCreateForm from 'sentry/views/insights/crons/components/monitorCreateForm';
@@ -29,15 +28,7 @@ import {useCronsUpsertGuideState} from './useCronsUpsertGuideState';
  * markdown copying. Without this, a shared ref would always point to
  * the last rendered tab panel instead of the active one.
  */
-function GuideWithCopy({
-  Guide,
-  organization,
-  source,
-}: {
-  Guide: ComponentType;
-  organization: Organization;
-  source: string;
-}) {
+function GuideWithCopy({Guide}: {Guide: ComponentType}) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // TODO: Migrate crons guides to the content block system so we can use
@@ -58,11 +49,7 @@ function GuideWithCopy({
     <GuideContainer>
       <CopySetupInstructionsGate>
         <Container paddingBottom="md">
-          <CopyMarkdownButton
-            getMarkdown={getMarkdown}
-            organization={organization}
-            source={source}
-          />
+          <CopyMarkdownButton getMarkdown={getMarkdown} source="crons_upsert_guide" />
         </Container>
       </CopySetupInstructionsGate>
       <div ref={containerRef}>
@@ -129,11 +116,7 @@ export function CronsLandingPanel() {
               {[
                 ...platform.guides.map(({key, Guide}) => (
                   <TabPanels.Item key={key}>
-                    <GuideWithCopy
-                      Guide={Guide}
-                      organization={organization}
-                      source="crons_upsert_guide"
-                    />
+                    <GuideWithCopy Guide={Guide} />
                   </TabPanels.Item>
                 )),
                 <TabPanels.Item key="manual">

@@ -148,7 +148,6 @@ export function ReplayOnboardingLayout({
             <Container paddingBottom="md">
               <OnboardingCopyMarkdownButton
                 steps={transformedSteps}
-                organization={organization}
                 source="replay_onboarding"
               />
             </Container>

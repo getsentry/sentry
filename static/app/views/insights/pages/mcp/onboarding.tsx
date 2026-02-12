@@ -340,11 +340,7 @@ export function Onboarding() {
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <CopySetupInstructionsGate>
         <Container paddingBottom="md">
-          <OnboardingCopyMarkdownButton
-            steps={steps}
-            organization={organization}
-            source="mcp_onboarding"
-          />
+          <OnboardingCopyMarkdownButton steps={steps} source="mcp_onboarding" />
         </Container>
       </CopySetupInstructionsGate>
       <GuidedSteps>

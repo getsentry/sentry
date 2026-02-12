@@ -99,7 +99,6 @@ export function FeatureFlagOnboardingLayout({
             <Container paddingBottom="md">
               <OnboardingCopyMarkdownButton
                 steps={steps}
-                organization={organization}
                 source="feature_flag_onboarding"
               />
             </Container>

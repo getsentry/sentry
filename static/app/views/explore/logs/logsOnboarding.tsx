@@ -322,11 +322,7 @@ function Onboarding({organization, project}: OnboardingProps) {
       <SetupTitle project={project} />
       <CopySetupInstructionsGate>
         <Container paddingBottom="md">
-          <OnboardingCopyMarkdownButton
-            steps={steps}
-            organization={organization}
-            source="logs_onboarding"
-          />
+          <OnboardingCopyMarkdownButton steps={steps} source="logs_onboarding" />
         </Container>
       </CopySetupInstructionsGate>
       <GuidedSteps

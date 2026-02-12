@@ -157,7 +157,6 @@ export function FeedbackOnboardingLayout({
             <Container paddingBottom="md">
               <OnboardingCopyMarkdownButton
                 steps={transformedSteps}
-                organization={organization}
                 source="feedback_onboarding"
               />
             </Container>
