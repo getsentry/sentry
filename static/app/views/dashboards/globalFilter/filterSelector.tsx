@@ -202,11 +202,15 @@ function FilterSelector({
 
     const optionMap = new Map<string, SelectOption<string>>();
     const fixedOptionMap = new Map<string, SelectOption<string>>();
-    const addOption = (value: string, map: Map<string, SelectOption<string>>) =>
-      map.set(value, {
+    const addOption = (value: string, map: Map<string, SelectOption<string>>) => {
+      const option: SelectOption<string> = {
         label: middleEllipsis(value, 70, /[\s-_:]/),
         value,
-        leadingItems: ({isSelected}: {isSelected: boolean}) => (
+      };
+
+      // Only add checkboxes for multi-select mode
+      if (canSelectMultipleValues) {
+        option.leadingItems = ({isSelected}: {isSelected: boolean}) => (
           <Checkbox
             size="sm"
             checked={isSelected}
@@ -214,8 +218,11 @@ function FilterSelector({
             aria-label={t('Select %s', value)}
             tabIndex={-1}
           />
-        ),
-      });
+        );
+      }
+
+      return map.set(value, option);
+    };
 
     // Filter values in the global filter
     activeFilterValues.forEach(value => addOption(value, optionMap));
