@@ -38,7 +38,7 @@ function makeAutofixSetupQueryKey(
       path: {organizationIdOrSlug: orgSlug, issueId: groupId},
     }),
     {
-      query: checkWriteAccess ? {checkWriteAccess: true} : undefined,
+      query: checkWriteAccess ? {check_write_access: true} : undefined,
     },
   ];
 }
