@@ -149,7 +149,7 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
               <LinkButton
                 to={issueLink}
                 icon={<IconLink variant="accent" />}
-                title={t('View latest event')}
+                tooltipProps={{title: t('View latest event')}}
                 aria-label={t('View latest event')}
                 priority="transparent"
                 size="xs"

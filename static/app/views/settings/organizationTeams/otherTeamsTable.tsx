@@ -214,7 +214,7 @@ function TeamAction({
         size={actionSize}
         onClick={onJoinTeam}
         disabled={isIdpProvisioned}
-        title={buttonHelpText}
+        tooltipProps={{title: buttonHelpText}}
       >
         {t('Join Team')}
       </Button>
@@ -227,7 +227,7 @@ function TeamAction({
       size={actionSize}
       onClick={onRequestAccess}
       disabled={isIdpProvisioned}
-      title={buttonHelpText}
+      tooltipProps={{title: buttonHelpText}}
     >
       {t('Request Access')}
     </Button>

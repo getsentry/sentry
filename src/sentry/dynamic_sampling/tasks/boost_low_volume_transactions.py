@@ -39,8 +39,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     set_transactions_resampling_rates,
 )
-from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task, sample_function
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
 from sentry.models.options.project_option import ProjectOption
@@ -223,7 +222,6 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
 
     if is_project_mode_sampling(organization):
         sample_rate = ProjectOption.objects.get_value(project_id, "sentry:target_sample_rate")
-        source = "project_setting"
     else:
         # We try to use the sample rate that was individually computed for each project, but if we don't find it, we will
         # resort to the blended sample rate of the org.
@@ -234,18 +232,6 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
                 organization_id=org_id
             ),
         )
-        source = "boost_low_volume_projects" if success else "blended_sample_rate"
-
-    sample_function(
-        function=log_sample_rate_source,
-        _sample_rate=0.1,
-        org_id=org_id,
-        project_id=project_id,
-        used_for="boost_low_volume_transactions",
-        source=source,
-        sample_rate=sample_rate,
-    )
-
     if sample_rate is None:
         sentry_sdk.capture_message(
             "Sample rate of project not found when trying to adjust the sample rates of "
