@@ -114,14 +114,18 @@ export default function ReleaseHealthTable({
           <Tooltip title={t('Open in Issues')} position="auto-start">
             <Link
               to={{
-                pathname: getReleaseNewIssuesUrl(
+                ...getReleaseNewIssuesUrl(
                   organization.slug,
                   dataRow.project_id,
                   dataRow.release
                 ),
                 query: {
+                  ...getReleaseNewIssuesUrl(
+                    organization.slug,
+                    dataRow.project_id,
+                    dataRow.release
+                  ).query,
                   ...extractSelectionParameters(location.query),
-                  statsPeriod: undefined,
                 },
               }}
             >
