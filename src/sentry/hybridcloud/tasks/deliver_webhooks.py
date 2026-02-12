@@ -98,7 +98,9 @@ def _extract_webhook_owner(payload: WebhookPayload) -> str | None:
     When provider is missing/empty, tries GitHub format for backwards compatibility.
     """
     try:
-        body = orjson.loads(payload.request_body)
+        with sentry_sdk.start_span(op="orjson.loads", name="parse request_body") as span:
+            span.set_data("payload_size", len(payload.request_body))
+            body = orjson.loads(payload.request_body)
     except orjson.JSONDecodeError:
         return None
     if not isinstance(body, dict):
@@ -555,7 +557,9 @@ def perform_region_request(region: Region, payload: WebhookPayload) -> None:
             logging_context["request_method"] = payload.request_method
             logging_context["request_path"] = payload.request_path
 
-            headers = orjson.loads(payload.request_headers)
+            with sentry_sdk.start_span(op="orjson.loads", name="parse request_headers") as span:
+                span.set_data("payload_size", len(payload.request_headers))
+                headers = orjson.loads(payload.request_headers)
             response = client.request(
                 method=payload.request_method,
                 path=payload.request_path,
@@ -725,7 +729,9 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
             return
 
         try:
-            headers = orjson.loads(payload.request_headers)
+            with sentry_sdk.start_span(op="orjson.loads", name="parse request_headers") as span:
+                span.set_data("payload_size", len(payload.request_headers))
+                headers = orjson.loads(payload.request_headers)
         except orjson.JSONDecodeError as err:
             metrics.incr(
                 "hybridcloud.deliver_webhooks.send_request_to_codecov.json_decode_error",
