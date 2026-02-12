@@ -12,6 +12,8 @@ from sentry.hybridcloud.models.webhookpayload import MAX_ATTEMPTS, DestinationTy
 from sentry.hybridcloud.tasks import deliver_webhooks
 from sentry.hybridcloud.tasks.deliver_webhooks import (
     MAX_MAILBOX_DRAIN,
+    SLOW_DELIVERY_THRESHOLD,
+    _extract_webhook_owner,
     drain_mailbox,
     drain_mailbox_parallel,
     schedule_webhook_delivery,
@@ -933,3 +935,87 @@ class DrainMailboxParallelTest(TestCase):
         assert hook.attempts == 1
 
         assert len(responses.calls) == 1
+
+
+@control_silo_test
+class ExtractWebhookOwnerTest(TestCase):
+    def test_extract_webhook_owner_github(self) -> None:
+        payload = self.create_webhook_payload(
+            mailbox_name="github:123",
+            region_name="us",
+            provider="github",
+            request_body='{"repository": {"owner": {"login": "getsentry"}}}',
+        )
+        assert _extract_webhook_owner(payload) == "getsentry"
+
+    def test_extract_webhook_owner_github_enterprise(self) -> None:
+        payload = self.create_webhook_payload(
+            mailbox_name="github_enterprise:123",
+            region_name="us",
+            provider="github_enterprise",
+            request_body='{"repository": {"owner": {"login": "myorg"}}}',
+        )
+        assert _extract_webhook_owner(payload) == "myorg"
+
+    def test_extract_webhook_owner_gitlab(self) -> None:
+        payload = self.create_webhook_payload(
+            mailbox_name="gitlab:123",
+            region_name="us",
+            provider="gitlab",
+            request_body='{"project": {"path_with_namespace": "getsentry/sentry"}}',
+        )
+        assert _extract_webhook_owner(payload) == "getsentry"
+
+    def test_extract_webhook_owner_bitbucket(self) -> None:
+        payload = self.create_webhook_payload(
+            mailbox_name="bitbucket:123",
+            region_name="us",
+            provider="bitbucket",
+            request_body='{"repository": {"owner": {"username": "getsentry"}}}',
+        )
+        assert _extract_webhook_owner(payload) == "getsentry"
+
+    def test_extract_webhook_owner_unsupported_provider(self) -> None:
+        payload = self.create_webhook_payload(
+            mailbox_name="slack:123",
+            region_name="us",
+            provider="slack",
+            request_body='{"repository": {"owner": {"login": "getsentry"}}}',
+        )
+        assert _extract_webhook_owner(payload) is None
+
+    def test_extract_webhook_owner_invalid_json(self) -> None:
+        payload = self.create_webhook_payload(
+            mailbox_name="github:123",
+            region_name="us",
+            provider="github",
+            request_body="not valid json",
+        )
+        assert _extract_webhook_owner(payload) is None
+
+
+@control_silo_test
+class SlowDeliveryLoggingTest(TestCase):
+    @responses.activate
+    @override_regions(region_config)
+    def test_slow_delivery_logged(self) -> None:
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook = self.create_webhook_payload(
+            mailbox_name="github:123",
+            region_name="us",
+            provider="github",
+            request_body='{"repository": {"owner": {"login": "getsentry"}}}',
+        )
+        WebhookPayload.objects.filter(id=webhook.id).update(
+            date_added=timezone.now() - SLOW_DELIVERY_THRESHOLD - timedelta(minutes=1)
+        )
+
+        with self.assertLogs("sentry.hybridcloud.tasks.deliver_webhooks", level="WARNING") as cm:
+            drain_mailbox(webhook.id)
+
+        assert any("deliver_webhook.slow_delivery" in log for log in cm.output)

@@ -47,6 +47,7 @@ a deep backlog doesn't soak up a worker indefinetly, and that slow but not timeo
 slow forwarding yields to other tasks
 """
 
+DISCARDED_PAYLOAD = "deliver_webhook_parallel.discard"
 
 BATCH_SCHEDULE_OFFSET = datetime.timedelta(minutes=BACKOFF_INTERVAL)
 """
@@ -74,6 +75,53 @@ PROVIDER_PRIORITY = {
 # Default priority for providers not explicitly listed above
 DEFAULT_PROVIDER_PRIORITY = 10
 
+SLOW_DELIVERY_THRESHOLD = datetime.timedelta(minutes=10)
+"""Duration threshold for logging slow webhook deliveries."""
+
+
+def _extract_webhook_owner(payload: WebhookPayload) -> str | None:
+    """
+    Extract owner/identifier from webhook payload body based on provider.
+    Returns None on parse errors or unsupported providers.
+    """
+    try:
+        body = orjson.loads(payload.request_body)
+    except orjson.JSONDecodeError:
+        return None
+    if not isinstance(body, dict):
+        return None
+
+    provider = (payload.provider or "").lower()
+
+    if provider in ("github", "github_enterprise"):
+        repository = body.get("repository") if isinstance(body.get("repository"), dict) else None
+        owner = (
+            repository.get("owner")
+            if repository and isinstance(repository.get("owner"), dict)
+            else None
+        )
+        login = owner.get("login") if owner else None
+        return login if isinstance(login, str) else None
+
+    if provider == "gitlab":
+        project = body.get("project") if isinstance(body.get("project"), dict) else None
+        path_with_namespace = project.get("path_with_namespace") if project else None
+        if isinstance(path_with_namespace, str) and "/" in path_with_namespace:
+            return path_with_namespace.split("/")[0]
+        return path_with_namespace if isinstance(path_with_namespace, str) else None
+
+    if provider in ("bitbucket", "bitbucket_server"):
+        repository = body.get("repository") if isinstance(body.get("repository"), dict) else None
+        owner = (
+            repository.get("owner")
+            if repository and isinstance(repository.get("owner"), dict)
+            else None
+        )
+        username = owner.get("username") if owner else None
+        return username if isinstance(username, str) else None
+
+    return None
+
 
 def _set_webhook_delivery_sentry_context(payload: WebhookPayload) -> None:
     """Set Sentry context at webhook delivery entrypoint for easier debugging."""
@@ -81,6 +129,7 @@ def _set_webhook_delivery_sentry_context(payload: WebhookPayload) -> None:
     context: dict[str, str] = {
         "mailbox_name": payload.mailbox_name,
         "provider": payload.provider or "unknown",
+        "owner": _extract_webhook_owner(payload),
     }
     sentry_sdk.set_context("webhook_delivery", context)
 
@@ -229,6 +278,14 @@ def drain_mailbox(payload_id: int) -> None:
                 delivered += 1
             except DeliveryFailed:
                 metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "retry"})
+                logger.warning(
+                    "deliver_webhook.delivery_failed",
+                    extra={
+                        "mailbox_name": payload.mailbox_name,
+                        "id": record.id,
+                        "attempts": record.attempts,
+                    },
+                )
                 return
 
         # No more messages to deliver
@@ -288,20 +345,33 @@ def _handle_parallel_delivery_result(
                 "hybridcloud.deliver_webhooks.delivery",
                 tags={"outcome": "attempts_exceed"},
             )
-            logger.info(
-                "deliver_webhook_parallel.discard",
-                extra={"id": payload_record.id, "attempts": payload_record.attempts},
+            logger.warning(
+                DISCARDED_PAYLOAD,
+                extra={
+                    "mailbox_name": payload_record.mailbox_name,
+                    "id": payload_record.id,
+                    "attempts": payload_record.attempts,
+                    "outcome": "attempts_exceed",
+                },
             )
             request_failed = False
         else:
             metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "retry"})
+            logger.warning(
+                DISCARDED_PAYLOAD,
+                extra={
+                    "mailbox_name": payload_record.mailbox_name,
+                    "id": payload_record.id,
+                    "attempts": payload_record.attempts,
+                    "outcome": "retry",
+                },
+            )
             payload_record.schedule_next_attempt()
             request_failed = True
         return (request_failed, not isinstance(err, DeliveryFailed))
     payload_record.delete()
-    duration = timezone.now() - payload_record.date_added
+    _measure_delivery_time(payload_record)
     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
-    metrics.timing("hybridcloud.deliver_webhooks.delivery_time", duration.total_seconds())
     return (False, False)
 
 
@@ -414,8 +484,14 @@ def deliver_message(payload: WebhookPayload) -> None:
         payload.delete()
 
         metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "attempts_exceed"})
-        logger.info(
-            "deliver_webhook.discard", extra={"id": payload.id, "attempts": payload.attempts}
+        logger.warning(
+            DISCARDED_PAYLOAD,
+            extra={
+                "mailbox_name": payload.mailbox_name,
+                "id": payload.id,
+                "attempts": payload.attempts,
+                "outcome": "attempts_exceed",
+            },
         )
         return
 
@@ -423,9 +499,26 @@ def deliver_message(payload: WebhookPayload) -> None:
     perform_request(payload)
     payload.delete()
 
+    _measure_delivery_time(payload)
+    metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
+
+
+def _measure_delivery_time(payload: WebhookPayload) -> None:
     duration = timezone.now() - payload.date_added
     metrics.timing("hybridcloud.deliver_webhooks.delivery_time", duration.total_seconds())
-    metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
+    if duration >= SLOW_DELIVERY_THRESHOLD:
+        logger.warning(
+            "deliver_webhook.slow_delivery",
+            extra={
+                "mailbox_name": payload.mailbox_name,
+                "id": payload.id,
+                "attempts": payload.attempts,
+                "date_added": payload.date_added.isoformat(),
+                "outcome": "slow_delivery",
+                "provider": payload.provider or "unknown",
+                "owner": _extract_webhook_owner(payload),
+            },
+        )
 
 
 def perform_request(payload: WebhookPayload) -> None:
@@ -441,10 +534,12 @@ def perform_request(payload: WebhookPayload) -> None:
 
 
 def perform_region_request(region: Region, payload: WebhookPayload) -> None:
-    logging_context: dict[str, str | int] = {
+    logging_context: dict[str, str | int | None] = {
         "payload_id": payload.id,
         "mailbox_name": payload.mailbox_name,
         "attempt": payload.attempts,
+        "provider": payload.provider or "unknown",
+        "owner": _extract_webhook_owner(payload),
     }
 
     try:
@@ -594,12 +689,14 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
     """
     We don't retry forwarding Codecov requests for now. We want to prove out that it would work.
     """
-    logging_context: dict[str, str | int] = {
+    logging_context: dict[str, str | int | None] = {
         "payload_id": payload.id,
         "mailbox_name": payload.mailbox_name,
         "attempt": payload.attempts,
         "request_method": payload.request_method,
         "request_path": payload.request_path,
+        "provider": payload.provider or "unknown",
+        "owner": _extract_webhook_owner(payload),
     }
 
     with metrics.timer(
