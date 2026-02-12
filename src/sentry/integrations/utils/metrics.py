@@ -86,12 +86,20 @@ class IntegrationEventLifecycleMetric(EventLifecycleMetric, ABC):
         tokens = ("integrations", self.get_metrics_domain(), str(outcome))
         return ".".join(tokens)
 
+    def get_organization_id(self) -> int | None:
+        """Return the organization ID if available. Override in subclasses."""
+        return None
+
     def get_metric_tags(self) -> Mapping[str, str]:
-        return {
+        tags: dict[str, str] = {
             "integration_domain": str(self.get_integration_domain()),
             "integration_name": self.get_integration_name(),
             "interaction_type": self.get_interaction_type(),
         }
+        organization_id = self.get_organization_id()
+        if organization_id is not None:
+            tags["organization_id"] = str(organization_id)
+        return tags
 
     def capture(
         self, assume_success: bool = True, sample_log_rate: float = 1.0

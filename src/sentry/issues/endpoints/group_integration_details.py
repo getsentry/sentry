@@ -163,6 +163,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         with ProjectManagementEvent(
             action_type=ProjectManagementActionType.CREATE_EXTERNAL_ISSUE_VIA_ISSUE_DETAIL,
             integration=integration,
+            organization_id=organization_id,
         ).capture() as lifecycle:
             lifecycle.add_extras(
                 {
@@ -263,6 +264,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         with ProjectManagementEvent(
             action_type=ProjectManagementActionType.LINK_EXTERNAL_ISSUE,
             integration=integration,
+            organization_id=organization_id,
         ).capture() as lifecycle:
             if not self._has_issue_feature_on_integration(integration):
                 return Response(

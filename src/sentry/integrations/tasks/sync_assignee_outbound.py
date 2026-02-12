@@ -66,7 +66,9 @@ def sync_assignee_outbound(
     installation = integration.get_installation(organization_id=external_issue.organization_id)
 
     with ProjectManagementEvent(
-        action_type=ProjectManagementActionType.OUTBOUND_ASSIGNMENT_SYNC, integration=integration
+        action_type=ProjectManagementActionType.OUTBOUND_ASSIGNMENT_SYNC,
+        integration=integration,
+        organization_id=external_issue.organization_id,
     ).capture() as lifecycle:
         lifecycle.add_extra("sync_task", "sync_assignee_outbound")
         lifecycle.add_extra("organization_id", external_issue.organization_id)

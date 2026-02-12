@@ -57,7 +57,9 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
         return None
 
     with ProjectManagementEvent(
-        action_type=ProjectManagementActionType.OUTBOUND_STATUS_SYNC, integration=integration
+        action_type=ProjectManagementActionType.OUTBOUND_STATUS_SYNC,
+        integration=integration,
+        organization_id=external_issue.organization_id,
     ).capture() as lifecycle:
         lifecycle.add_extra("sync_task", "sync_status_outbound")
         try:

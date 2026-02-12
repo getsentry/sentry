@@ -21,6 +21,11 @@ _METRICS_THAT_CAN_HAVE_BAD_TAGS = frozenset(
         "batching_consumer.batch.size",
         "batching_consumer.batch.flush",
         "batching_consumer.batch.flush.normalized",
+        # integration SLO metrics with org_id tag
+        "integrations.slo.started",
+        "integrations.slo.success",
+        "integrations.slo.halted",
+        "integrations.slo.failure",
     ]
 )
 
