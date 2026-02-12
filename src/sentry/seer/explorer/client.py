@@ -5,13 +5,12 @@ import time
 from typing import Any, Literal
 
 import orjson
-import requests
-from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from pydantic import BaseModel
 from rest_framework.request import Request
 
 from sentry.models.organization import Organization
+from sentry.seer.autofix.utils import autofix_connection_pool
 from sentry.seer.explorer.client_models import ExplorerRun, SeerRunState
 from sentry.seer.explorer.client_utils import (
     collect_user_org_context,
@@ -26,7 +25,7 @@ from sentry.seer.explorer.on_completion_hook import (
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access_with_detail
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -293,16 +292,14 @@ class SeerExplorerClient:
 
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            autofix_connection_pool,
+            path,
+            body,
         )
 
-        response.raise_for_status()
+        if response.status >= 400:
+            raise Exception(f"Seer request failed with status {response.status}")
         result = response.json()
         return result["run_id"]
 
@@ -372,16 +369,14 @@ class SeerExplorerClient:
 
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            autofix_connection_pool,
+            path,
+            body,
         )
 
-        response.raise_for_status()
+        if response.status >= 400:
+            raise Exception(f"Seer request failed with status {response.status}")
         result = response.json()
         return result["run_id"]
 
@@ -460,16 +455,14 @@ class SeerExplorerClient:
 
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            autofix_connection_pool,
+            path,
+            body,
         )
 
-        response.raise_for_status()
+        if response.status >= 400:
+            raise Exception(f"Seer request failed with status {response.status}")
         result = response.json()
 
         runs = [ExplorerRun(**run) for run in result.get("data", [])]
@@ -512,15 +505,13 @@ class SeerExplorerClient:
             },
         }
         body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            autofix_connection_pool,
+            path,
+            body,
         )
-        response.raise_for_status()
+        if response.status >= 400:
+            raise Exception(f"Seer request failed with status {response.status}")
 
         # Poll until PR creation completes
         start_time = time.time()

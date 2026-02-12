@@ -4,7 +4,6 @@ import logging
 from typing import Any
 
 import orjson
-import requests
 from django.conf import settings
 from rest_framework import status
 from rest_framework.request import Request
@@ -18,7 +17,10 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.seer.seer_setup import has_seer_access_with_detail
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_autofix_default_connection_pool,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,16 +33,14 @@ def fetch_search_agent_state(run_id: int, organization_id: int) -> dict[str, Any
     """
     body = orjson.dumps({"run_id": run_id, "organization_id": organization_id})
 
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}/v1/assisted-query/state",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
+    response = make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/assisted-query/state",
+        body,
         timeout=10,
     )
-    response.raise_for_status()
+    if response.status >= 400:
+        raise Exception(f"Seer request failed with status {response.status}")
     return response.json()
 
 
@@ -119,24 +119,6 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
             # Return the session data directly from Seer
             return Response(data)
 
-        except requests.HTTPError as e:
-            if e.response is not None and e.response.status_code == 404:
-                logger.warning(
-                    "search_agent.state_not_found",
-                    extra={"run_id": run_id_int},
-                )
-                return Response(
-                    {"session": None},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-            logger.exception(
-                "search_agent.state_error",
-                extra={"run_id": run_id_int},
-            )
-            return Response(
-                {"detail": "Failed to fetch run state"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
         except Exception:
             logger.exception(
                 "search_agent.state_error",

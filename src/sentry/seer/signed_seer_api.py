@@ -1,7 +1,6 @@
 import hashlib
 import hmac
 import logging
-from random import random
 from typing import Any
 from urllib.parse import urlparse
 
@@ -9,10 +8,24 @@ import sentry_sdk
 from django.conf import settings
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
-from sentry import options
+from sentry.net.http import connection_from_url
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+# Default connection pools for different Seer services
+# These can be reused across multiple requests to the same service
+seer_autofix_default_connection_pool = connection_from_url(
+    settings.SEER_AUTOFIX_URL,
+)
+
+seer_summarization_default_connection_pool = connection_from_url(
+    settings.SEER_SUMMARIZATION_URL,
+)
+
+seer_anomaly_detection_default_connection_pool = connection_from_url(
+    settings.SEER_ANOMALY_DETECTION_URL,
+)
 
 
 @sentry_sdk.tracing.trace
@@ -23,6 +36,7 @@ def make_signed_seer_api_request(
     timeout: int | float | None = None,
     retries: int | None | Retry = None,
     metric_tags: dict[str, Any] | None = None,
+    method: str = "POST",
 ) -> BaseHTTPResponse:
     host = connection_pool.host
     if connection_pool.port:
@@ -45,7 +59,7 @@ def make_signed_seer_api_request(
         tags={"endpoint": parsed.path, **(metric_tags or {})},
     ):
         return connection_pool.urlopen(
-            "POST",
+            method,
             parsed.path,
             body=body,
             headers={"content-type": "application/json;charset=utf-8", **auth_headers},
@@ -55,16 +69,16 @@ def make_signed_seer_api_request(
 
 def sign_with_seer_secret(body: bytes) -> dict[str, str]:
     auth_headers: dict[str, str] = {}
-    if random() < options.get("seer.api.use-shared-secret"):
-        if settings.SEER_API_SHARED_SECRET:
-            signature = hmac.new(
-                settings.SEER_API_SHARED_SECRET.encode("utf-8"),
-                body,
-                hashlib.sha256,
-            ).hexdigest()
-            auth_headers["Authorization"] = f"Rpcsignature rpc0:{signature}"
-        else:
-            logger.warning(
-                "Seer.api.use-shared-secret is set but secret is not set. Unable to add auth headers for call to Seer."
-            )
+    if settings.SEER_API_SHARED_SECRET:
+        signature = hmac.new(
+            settings.SEER_API_SHARED_SECRET.encode("utf-8"),
+            body,
+            hashlib.sha256,
+        ).hexdigest()
+        auth_headers["Authorization"] = f"Rpcsignature rpc0:{signature}"
+    else:
+        # TODO(jstanley): remove this once the shared secret is confirmed to always be set
+        logger.warning(
+            "Seer.api.use-shared-secret is set but secret is not set. Unable to add auth headers for call to Seer."
+        )
     return auth_headers
