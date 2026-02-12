@@ -222,89 +222,84 @@ sentry-cli releases finalize "$VERSION"`;
             {t('Full Documentation')}
           </LinkButton>
         </Flex>
-        <div ref={containerRef}>
-          <Stack gap="xl">
-            <Text>
-              {t(
-                'Find which release caused an issue, apply source maps, and get notified about your deploys.'
-              )}
-            </Text>
-            <Text>
-              {t(
-                'Select an Integration to provide your Auth Token, then add the following script to your CI config when you deploy your application.'
-              )}
-            </Text>
+        <Text>
+          {t(
+            'Find which release caused an issue, apply source maps, and get notified about your deploys.'
+          )}
+        </Text>
+        <Text>
+          {t(
+            'Select an Integration to provide your Auth Token, then add the following script to your CI config when you deploy your application.'
+          )}
+        </Text>
 
-            <CopySetupInstructionsGate>
-              <Container>
-                <CopyMarkdownButton
-                  getMarkdown={getMarkdown}
-                  source="releases_quickstart"
-                />
-              </Container>
-            </CopySetupInstructionsGate>
+        <CopySetupInstructionsGate>
+          <Container>
+            <CopyMarkdownButton getMarkdown={getMarkdown} source="releases_quickstart" />
+          </Container>
+        </CopySetupInstructionsGate>
 
-            <CompactSelect
-              size="sm"
-              options={apps.map(makeAppOption)}
-              value={selectedApp?.slug}
-              emptyMessage={t('No Integrations')}
-              searchable
-              disabled={false}
-              menuFooter={({closeOverlay}) => (
-                <Button
-                  tooltipProps={{
-                    title: canMakeIntegration
-                      ? undefined
-                      : t(
-                          'You must be an organization owner, manager or admin to create an integration.'
-                        ),
-                  }}
-                  size="xs"
-                  priority="transparent"
-                  disabled={!canMakeIntegration}
-                  onClick={() => {
-                    closeOverlay();
-                    openCreateReleaseIntegration({
-                      organization,
-                      project,
-                      onCreateSuccess: (app: SentryApp) => {
-                        setApps([app, ...apps]);
-                        setSelectedApp(app);
-                        generateAndSetNewToken(app.slug);
-                        trackQuickstartCreatedIntegration(app);
-                      },
-                      onCancel: trackCreateIntegrationModalClose,
-                    });
-                  }}
-                >
-                  {t('Add New Integration')}
-                </Button>
-              )}
-              trigger={triggerProps => (
-                <OverlayTrigger.Button
-                  {...triggerProps}
-                  prefix={selectedApp ? t('Token From') : undefined}
-                >
-                  {selectedApp ? triggerProps.children : t('Select Integration')}
-                </OverlayTrigger.Button>
-              )}
-              onChange={option => {
-                const app = apps.find(i => i.slug === option.value)!;
-                setSelectedApp(app);
-                generateAndSetNewToken(app.slug);
+        <CompactSelect
+          size="sm"
+          options={apps.map(makeAppOption)}
+          value={selectedApp?.slug}
+          emptyMessage={t('No Integrations')}
+          searchable
+          disabled={false}
+          menuFooter={({closeOverlay}) => (
+            <Button
+              tooltipProps={{
+                title: canMakeIntegration
+                  ? undefined
+                  : t(
+                      'You must be an organization owner, manager or admin to create an integration.'
+                    ),
               }}
-            />
-
-            <CodeBlock
-              dark
-              language="bash"
-              hideCopyButton={!token || !selectedApp}
-              onCopy={trackQuickstartCopy}
+              size="xs"
+              priority="transparent"
+              disabled={!canMakeIntegration}
+              onClick={() => {
+                closeOverlay();
+                openCreateReleaseIntegration({
+                  organization,
+                  project,
+                  onCreateSuccess: (app: SentryApp) => {
+                    setApps([app, ...apps]);
+                    setSelectedApp(app);
+                    generateAndSetNewToken(app.slug);
+                    trackQuickstartCreatedIntegration(app);
+                  },
+                  onCancel: trackCreateIntegrationModalClose,
+                });
+              }}
             >
-              {setupExample}
-            </CodeBlock>
-          </Stack>
+              {t('Add New Integration')}
+            </Button>
+          )}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              prefix={selectedApp ? t('Token From') : undefined}
+            >
+              {selectedApp ? triggerProps.children : t('Select Integration')}
+            </OverlayTrigger.Button>
+          )}
+          onChange={option => {
+            const app = apps.find(i => i.slug === option.value)!;
+            setSelectedApp(app);
+            generateAndSetNewToken(app.slug);
+          }}
+        />
+
+        <div ref={containerRef}>
+          <CodeBlock
+            dark
+            language="bash"
+            hideCopyButton={!token || !selectedApp}
+            onCopy={trackQuickstartCopy}
+          >
+            {setupExample}
+          </CodeBlock>
         </div>
       </Stack>
     </Panel>
