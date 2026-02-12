@@ -24,18 +24,24 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
             provider="github",
         )
 
-    def _create_code_mapping(self, project, repo_name: str):
+    def _create_code_mapping(
+        self,
+        project,
+        repo_name: str,
+        provider: str = "integrations:github",
+        stack_root: str = "",
+    ):
         """Helper to create a repository with code mapping."""
         repo = self.create_repo(
             project=project,
             name=repo_name,
-            provider="integrations:github",
+            provider=provider,
             integration_id=self.integration.id,
         )
         return self.create_code_mapping(
             project=project,
             repo=repo,
-            stack_root="",
+            stack_root=stack_root,
             source_root="",
         )
 
@@ -58,10 +64,13 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
         assert not mock_apply_async.called
 
     @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.has_seer_access", return_value=True)
     @mock.patch(
         "sentry.autopilot.tasks.missing_sdk_integration.run_missing_sdk_integration_detector_for_project_task.apply_async"
     )
-    def test_skips_unsupported_platform(self, mock_apply_async: mock.MagicMock) -> None:
+    def test_skips_unsupported_platform(
+        self, mock_apply_async: mock.MagicMock, _mock_has_seer_access: mock.MagicMock
+    ) -> None:
         # Set an unsupported platform
         self.project.platform = "go"
         self.project.save()
@@ -76,11 +85,12 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
         assert not mock_apply_async.called
 
     @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.has_seer_access", return_value=True)
     @mock.patch(
         "sentry.autopilot.tasks.missing_sdk_integration.run_missing_sdk_integration_detector_for_project_task.apply_async"
     )
     def test_skips_project_without_repository_mapping(
-        self, mock_apply_async: mock.MagicMock
+        self, mock_apply_async: mock.MagicMock, _mock_has_seer_access: mock.MagicMock
     ) -> None:
         self.project.platform = "python"
         self.project.save()
@@ -94,10 +104,13 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
         assert not mock_apply_async.called
 
     @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.has_seer_access", return_value=True)
     @mock.patch(
         "sentry.autopilot.tasks.missing_sdk_integration.run_missing_sdk_integration_detector_for_project_task.apply_async"
     )
-    def test_skips_inactive_repositories(self, mock_apply_async: mock.MagicMock) -> None:
+    def test_skips_inactive_repositories(
+        self, mock_apply_async: mock.MagicMock, _mock_has_seer_access: mock.MagicMock
+    ) -> None:
         self.project.platform = "python"
         self.project.save()
         # Create a code mapping with an inactive repository
@@ -114,10 +127,13 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
         assert not mock_apply_async.called
 
     @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.has_seer_access", return_value=True)
     @mock.patch(
         "sentry.autopilot.tasks.missing_sdk_integration.run_missing_sdk_integration_detector_for_project_task.apply_async"
     )
-    def test_spawns_task_for_project_with_mapping(self, mock_apply_async: mock.MagicMock) -> None:
+    def test_spawns_task_for_project_with_mapping(
+        self, mock_apply_async: mock.MagicMock, _mock_has_seer_access: mock.MagicMock
+    ) -> None:
         self.project.platform = "python"
         self.project.save()
         self._create_code_mapping(self.project, "test-repo")
@@ -134,10 +150,13 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
         )
 
     @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.has_seer_access", return_value=True)
     @mock.patch(
         "sentry.autopilot.tasks.missing_sdk_integration.run_missing_sdk_integration_detector_for_project_task.apply_async"
     )
-    def test_only_processes_supported_platforms(self, mock_apply_async: mock.MagicMock) -> None:
+    def test_only_processes_supported_platforms(
+        self, mock_apply_async: mock.MagicMock, _mock_has_seer_access: mock.MagicMock
+    ) -> None:
         # Create projects with supported platforms
         python_project = self.create_project(organization=self.organization, platform="python")
         node_project = self.create_project(organization=self.organization, platform="node")
@@ -204,6 +223,77 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
         assert go_project.id not in spawned_project_ids
         assert ruby_project.id not in spawned_project_ids
         assert java_project.id not in spawned_project_ids
+
+    @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.has_seer_access", return_value=True)
+    @mock.patch(
+        "sentry.autopilot.tasks.missing_sdk_integration.run_missing_sdk_integration_detector_for_project_task.apply_async"
+    )
+    def test_skips_non_github_repositories(
+        self, mock_apply_async: mock.MagicMock, _mock_has_seer_access: mock.MagicMock
+    ) -> None:
+        self.project.platform = "python"
+        self.project.save()
+        # Create a code mapping with a non-GitHub provider
+        self._create_code_mapping(self.project, "gitlab-repo", provider="integrations:gitlab")
+
+        with override_options(
+            {"autopilot.missing-sdk-integration.projects-allowlist": [self.project.id]}
+        ):
+            run_missing_sdk_integration_detector()
+
+        # No task should be spawned for non-GitHub repos
+        assert not mock_apply_async.called
+
+    @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.missing_sdk_integration.has_seer_access", return_value=True)
+    @mock.patch(
+        "sentry.autopilot.tasks.missing_sdk_integration.run_missing_sdk_integration_detector_for_project_task.apply_async"
+    )
+    def test_processes_github_repos_and_skips_non_github(
+        self, mock_apply_async: mock.MagicMock, _mock_has_seer_access: mock.MagicMock
+    ) -> None:
+        self.project.platform = "python"
+        self.project.save()
+        self._create_code_mapping(
+            self.project, "github-repo", provider="integrations:github", stack_root="src/"
+        )
+        self._create_code_mapping(
+            self.project, "gitlab-repo", provider="integrations:gitlab", stack_root="lib/"
+        )
+
+        with override_options(
+            {"autopilot.missing-sdk-integration.projects-allowlist": [self.project.id]}
+        ):
+            run_missing_sdk_integration_detector()
+
+        # Only the GitHub repo should have a task spawned
+        mock_apply_async.assert_called_once_with(
+            args=(self.organization.id, self.project.id, "github-repo", ""),
+            headers={"sentry-propagate-traces": False},
+        )
+
+    @pytest.mark.django_db
+    @mock.patch(
+        "sentry.autopilot.tasks.missing_sdk_integration.has_seer_access", return_value=False
+    )
+    @mock.patch(
+        "sentry.autopilot.tasks.missing_sdk_integration.run_missing_sdk_integration_detector_for_project_task.apply_async"
+    )
+    def test_skips_project_without_gen_ai_access(
+        self, mock_apply_async: mock.MagicMock, _mock_has_seer_access: mock.MagicMock
+    ) -> None:
+        self.project.platform = "python"
+        self.project.save()
+        self._create_code_mapping(self.project, "test-repo")
+
+        with override_options(
+            {"autopilot.missing-sdk-integration.projects-allowlist": [self.project.id]}
+        ):
+            run_missing_sdk_integration_detector()
+
+        # No task should be spawned when org lacks gen AI access
+        assert not mock_apply_async.called
 
 
 class TestRunMissingSdkIntegrationDetectorForProject(TestCase):

@@ -700,6 +700,13 @@ register("codecov.api-bridge-signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIOR
 register("codecov.forward-webhooks.rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # if a region is in this list, it's safe to forward to codecov
 register("codecov.forward-webhooks.regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# GitHub owners whose webhooks we skip forwarding to Codecov (payload is still deleted)
+register(
+    "codecov.forward-webhooks.skip-github-owners",
+    type=Sequence,
+    default=["getsentry"],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 
 # GitHub Integration

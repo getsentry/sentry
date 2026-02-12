@@ -1,7 +1,7 @@
-import {Fragment, useCallback, useEffect} from 'react';
-import styled from '@emotion/styled';
+import {useCallback, useEffect} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
 
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -66,7 +66,7 @@ export default function SeerOnboardingSeatBased() {
   }
 
   return (
-    <Fragment>
+    <Stack gap="xl">
       <SentryDocumentTitle title={t('Seer Setup Wizard')} orgSlug={organization.slug} />
       <SettingsPageHeader
         title={t('Set Up Seer')}
@@ -92,16 +92,12 @@ export default function SeerOnboardingSeatBased() {
           {isPending ? (
             <Placeholder />
           ) : (
-            <StyledGuidedSteps initialStep={initialStep} onStepChange={handleStepChange}>
+            <GuidedSteps initialStep={initialStep} onStepChange={handleStepChange}>
               <StepsManager />
-            </StyledGuidedSteps>
+            </GuidedSteps>
           )}
         </SeerOnboardingProvider>
       </NoProjectMessage>
-    </Fragment>
+    </Stack>
   );
 }
-
-const StyledGuidedSteps = styled(GuidedSteps)`
-  margin-top: ${p => p.theme.space.xl};
-`;

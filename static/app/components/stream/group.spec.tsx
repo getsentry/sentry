@@ -172,6 +172,7 @@ describe('StreamGroup', () => {
       <StreamGroup
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
+        issueLinkExtraQuery={{extraParam: '1'}}
       />
     );
 
@@ -183,6 +184,7 @@ describe('StreamGroup', () => {
       project: '13',
       query: 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
       referrer: 'issue-stream',
+      extraParam: '1',
     });
   });
 

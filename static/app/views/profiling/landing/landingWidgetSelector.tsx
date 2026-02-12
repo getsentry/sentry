@@ -56,7 +56,7 @@ export function LandingWidgetSelector({
   const onWidgetChange = useCallback(
     (opt: any) => {
       const newQuery = omit(router.location.query, [cursorName]);
-      router.push({
+      router.replace({
         pathname: router.location.pathname,
         query: newQuery,
       });

@@ -325,20 +325,33 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             units[key], meta[key] = self.get_unit_and_type(key, value)
         return meta, units
 
+    def _get_rate_unit(self, field: str) -> str | None:
+        """Get the rate unit for a field by checking for known rate functions."""
+        per_second_fns = {"eps()", "sps()", "tps()", "sample_eps()", "per_second()"}
+        per_minute_fns = {"epm()", "spm()", "tpm()", "sample_epm()", "per_minute()"}
+        if field in per_second_fns:
+            return "1/second"
+        if field in per_minute_fns:
+            return "1/minute"
+        # For equation fields, check if any known rate function appears in the expression
+        if field.startswith("equation|"):
+            for fn in per_second_fns:
+                if fn in field:
+                    return "1/second"
+            for fn in per_minute_fns:
+                if fn in field:
+                    return "1/minute"
+        return None
+
     def get_unit_and_type(self, field: str, field_type: str) -> tuple[str | None, str]:
         if field_type in SIZE_UNITS:
             return field_type, "size"
         elif field_type in DURATION_UNITS:
             return field_type, "duration"
         elif field_type == "rate":
-            if field in ["eps()", "sps()", "tps()", "sample_eps()"]:
-                return "1/second", field_type
-            elif field in ["epm()", "spm()", "tpm()", "sample_epm()"]:
-                return "1/minute", field_type
-            elif field in ["per_second()"]:
-                return "1/second", field_type
-            elif field in ["per_minute()"]:
-                return "1/minute", field_type
+            unit = self._get_rate_unit(field)
+            if unit is not None:
+                return unit, field_type
             else:
                 logger.warning(
                     "sentry.api.bases.organization_events.get_unit_and_type encountered an unknown rate type",
