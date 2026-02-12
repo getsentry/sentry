@@ -12,6 +12,7 @@ from sentry.models.project import Project
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.tools import get_trace_waterfall
 from sentry.seer.models import SeerPermissionError
+from sentry.seer.seer_setup import has_seer_access
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.llm_issue_detection.detection import TraceMetadataWithSpanCount
 from sentry.tasks.llm_issue_detection.trace_data import (
@@ -180,11 +181,20 @@ def run_trace_instrumentation_detector() -> None:
 
     for project_id in project_ids:
         try:
-            project = Project.objects.get(id=project_id, status=ObjectStatus.ACTIVE)
+            project = Project.objects.select_related("organization").get(
+                id=project_id, status=ObjectStatus.ACTIVE
+            )
         except Project.DoesNotExist:
             logger.warning(
                 "trace_instrumentation_detector.project_not_found",
                 extra={"project_id": project_id},
+            )
+            continue
+
+        if not has_seer_access(project.organization):
+            logger.info(
+                "trace_instrumentation_detector.no_gen_ai_access",
+                extra={"project_id": project_id, "organization_id": project.organization_id},
             )
             continue
 

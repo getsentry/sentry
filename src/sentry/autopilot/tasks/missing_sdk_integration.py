@@ -11,6 +11,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.models import SeerPermissionError
+from sentry.seer.seer_setup import has_seer_access
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import autopilot_tasks
 from sentry.utils import metrics
@@ -57,6 +58,14 @@ def run_missing_sdk_integration_detector() -> None:
             )
             continue
 
+        # Check gen AI consent before spawning child tasks
+        if not has_seer_access(project.organization):
+            logger.info(
+                "missing_sdk_integration_detector.no_gen_ai_access",
+                extra={"project_id": project_id, "organization_id": project.organization_id},
+            )
+            continue
+
         # Check platform support
         platform_supported = any(
             project.platform and project.platform.startswith(prefix)
@@ -74,11 +83,11 @@ def run_missing_sdk_integration_detector() -> None:
             RepositoryProjectPathConfig.objects.filter(
                 project=project,
                 repository__status=ObjectStatus.ACTIVE,
+                repository__provider="integrations:github",
             )
             .select_related("repository")
             .values("repository__name", "source_root")
         )
-
         for config in repo_configs:
             run_missing_sdk_integration_detector_for_project_task.apply_async(
                 args=(
