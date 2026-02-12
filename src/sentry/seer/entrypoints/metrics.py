@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import Any
 
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.metrics import EventLifecycleMetric
@@ -47,6 +48,12 @@ class SlackEntrypointEventLifecycleMetric(EventLifecycleMetric):
     interaction_type: SlackEntrypointInteractionType
     integration_id: int
     organization_id: int
+
+    def get_extras(self) -> Mapping[str, Any]:
+        return {
+            "integration_id": self.integration_id,
+            "organization_id": self.organization_id,
+        }
 
     def get_metric_key(self, outcome: EventLifecycleOutcome) -> str:
         tokens = ("seer", "entrypoint", "slack", self.interaction_type, str(outcome))

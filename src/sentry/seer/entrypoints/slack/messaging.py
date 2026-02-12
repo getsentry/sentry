@@ -144,18 +144,24 @@ def schedule_all_thread_updates(
     ephemeral_user_id: str | None = None,
 ) -> None:
     """Schedules a task for each thread update to allow retries."""
-    serialized_data = NotificationDataDto(notification_data=data).to_dict()
+    with SlackEntrypointEventLifecycleMetric(
+        interaction_type=SlackEntrypointInteractionType.SCHEDULE_ALL_THREAD_UPDATES,
+        integration_id=integration_id,
+        organization_id=organization_id,
+    ).capture() as lifecycle:
 
-    for thread in threads:
-        process_thread_update.apply_async(
-            kwargs={
-                "integration_id": integration_id,
-                "organization_id": organization_id,
-                "thread": thread,
-                "serialized_data": serialized_data,
-                "ephemeral_user_id": ephemeral_user_id,
-            },
-        )
+        serialized_data = NotificationDataDto(notification_data=data).to_dict()
+        lifecycle.add_extra({"thread_count": len(threads)})
+        for thread in threads:
+            process_thread_update.apply_async(
+                kwargs={
+                    "integration_id": integration_id,
+                    "organization_id": organization_id,
+                    "thread": thread,
+                    "serialized_data": serialized_data,
+                    "ephemeral_user_id": ephemeral_user_id,
+                },
+            )
 
 
 def _transform_block_actions(
@@ -251,5 +257,5 @@ def update_existing_message(
             install.update_message(
                 channel_id=channel_id, message_ts=message_ts, renderable=renderable
             )
-        except IntegrationError:
-            lifecycle.record_failure(failure_reason="integration_error")
+        except IntegrationError as e:
+            lifecycle.record_failure(failure_reason="integration_error", extra={"error": str(e)})
