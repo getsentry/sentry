@@ -535,7 +535,7 @@ function AddToDashboardModal({
             <Button
               onClick={handleAddAndStayOnCurrentPage}
               disabled={!canSubmit || selectedDashboardId === NEW_DASHBOARD_ID}
-              title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
+              tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}
             >
               {t('Add + Stay on this Page')}
             </Button>
@@ -545,7 +545,7 @@ function AddToDashboardModal({
               priority={hasMultipleWidgets ? 'primary' : 'default'}
               onClick={handleAddAndOpenDashboard}
               disabled={!canSubmit}
-              title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
+              tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}
             >
               {t('Add + Open Dashboard')}
             </Button>
@@ -555,7 +555,7 @@ function AddToDashboardModal({
               priority="primary"
               onClick={() => goToDashboard('builder')}
               disabled={!canSubmit}
-              title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
+              tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}
             >
               {t('Open in Widget Builder')}
             </Button>
