@@ -39,6 +39,7 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_CODE_REVIEW_TRIGGERS,
+    DEFAULT_CODING_AGENT_HANDOFF_DEFAULT,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
@@ -563,6 +564,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
     allowBackgroundAgentDelegation: bool
+    defaultCodingAgentHandoff: int | None
     autoEnableCodeReview: bool
     autoOpenPrs: bool
     defaultCodeReviewTriggers: list[str]
@@ -774,6 +776,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     "sentry:allow_background_agent_delegation",
                     ALLOW_BACKGROUND_AGENT_DELEGATION,
                 )
+            ),
+            "defaultCodingAgentHandoff": obj.get_option(
+                "sentry:default_coding_agent_handoff",
+                DEFAULT_CODING_AGENT_HANDOFF_DEFAULT,
             ),
             "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
             "trustedRelays": [

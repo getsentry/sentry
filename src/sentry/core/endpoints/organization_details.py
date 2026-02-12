@@ -50,6 +50,7 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_CODE_REVIEW_TRIGGERS,
+    DEFAULT_CODING_AGENT_HANDOFF_DEFAULT,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
@@ -274,6 +275,12 @@ ORG_OPTIONS = (
         ALLOW_BACKGROUND_AGENT_DELEGATION,
     ),
     (
+        "defaultCodingAgentHandoff",
+        "sentry:default_coding_agent_handoff",
+        int,
+        DEFAULT_CODING_AGENT_HANDOFF_DEFAULT,
+    ),
+    (
         "ingestThroughTrustedRelaysOnly",
         "sentry:ingest-through-trusted-relays-only",
         str,
@@ -375,6 +382,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         help_text="The default code review triggers for new repositories.",
     )
     allowBackgroundAgentDelegation = serializers.BooleanField(required=False)
+    defaultCodingAgentHandoff = serializers.IntegerField(required=False, allow_null=True)
     ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
         choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
     )
@@ -475,6 +483,23 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "Only staff members can change console SDK invite quota limit."
             )
 
+        return value
+
+    def validate_defaultCodingAgentHandoff(self, value):
+        if value is None:
+            return value
+
+        organization = self.context["organization"]
+        from sentry.integrations.services.integration import integration_service
+
+        integration = integration_service.get_integration(
+            integration_id=value,
+            organization_id=organization.id,
+        )
+        if not integration:
+            raise serializers.ValidationError(
+                "Integration not found or does not belong to this organization."
+            )
         return value
 
     def validate_targetSampleRate(self, value):

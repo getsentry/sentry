@@ -730,6 +730,9 @@ DEFAULT_CODE_REVIEW_TRIGGERS: list[str] = [
 ]
 # Org level setting to allow/disallow Projects to delegate Seer scanner automation to other LLMS
 ALLOW_BACKGROUND_AGENT_DELEGATION = True
+# Seer Org level default coding agent for new projects
+# None = Seer (default), otherwise an integration ID
+DEFAULT_CODING_AGENT_HANDOFF_DEFAULT: int | None = None
 ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
 CONSOLE_SDK_INVITE_QUOTA_DEFAULT = 0
 ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = False
