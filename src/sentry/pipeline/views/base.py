@@ -8,6 +8,7 @@ from django.http.response import HttpResponseBase
 
 from sentry.utils import json
 from sentry.web.client_config import get_client_config
+from sentry.web.frontend.base import determine_active_organization
 from sentry.web.helpers import render_to_response
 
 
@@ -26,6 +27,6 @@ def render_react_view(
         context={
             "pipelineName": pipeline_name,
             "props": json.dumps(props),
-            "react_config": get_client_config(request),
+            "react_config": get_client_config(request, determine_active_organization(request)),
         },
     )
