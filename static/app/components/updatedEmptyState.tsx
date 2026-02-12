@@ -10,6 +10,10 @@ import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {
+  StepIndexProvider,
+  TabSelectionScope,
+} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   DocsParams,
@@ -167,63 +171,67 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
 
   return (
     <AuthTokenGeneratorProvider projectSlug={project?.slug}>
-      <div>
-        <HeaderWrapper>
-          <Title>{t('Get Started with Sentry Issues')}</Title>
-          <Description>
-            {t('Your code sleuth eagerly awaits its first mission.')}
-          </Description>
-          <Image src={waitingForEventImg} />
-        </HeaderWrapper>
-        <Divider />
-        <Body>
-          <Setup>
-            <SetupTitle project={project} />
-            <GuidedSteps
-              initialStep={decodeInteger(location.query.guidedStep)}
-              onStepChange={step => {
-                navigate({
-                  pathname: location.pathname,
-                  query: {
-                    ...location.query,
-                    guidedStep: step,
-                  },
-                });
-              }}
-            >
-              {steps.map((step, index) => {
-                const title = step.title ?? StepTitles[step.type ?? 'install'];
-                const isLastStep = index === steps.length - 1;
-                return (
-                  <GuidedSteps.Step key={index} stepKey={title} title={title}>
-                    <ContentBlocksRenderer
-                      contentBlocks={step.content}
-                      spacing={space(1)}
-                    />
-                    <GuidedSteps.ButtonWrapper>
-                      <GuidedSteps.BackButton size="md" />
-                      <GuidedSteps.NextButton size="md" />
-                      {isLastStep && <WaitingIndicator project={project} />}
-                    </GuidedSteps.ButtonWrapper>
-                    {/* This spacer ensures the whole pulse effect is visible, as the parent has overflow: hidden */}
-                    {isLastStep && <PulseSpacer />}
-                  </GuidedSteps.Step>
-                );
-              })}
-            </GuidedSteps>
-          </Setup>
-          <Preview>
-            <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>
-            <ArcadeWrapper>
-              <Arcade
-                src="https://demo.arcade.software/bQko6ZTRFMyTm6fJaDzs?embed"
-                loading="lazy"
-                allowFullScreen
-              />
-            </ArcadeWrapper>
-          </Preview>
-        </Body>
-      </div>
+      <TabSelectionScope>
+        <div>
+          <HeaderWrapper>
+            <Title>{t('Get Started with Sentry Issues')}</Title>
+            <Description>
+              {t('Your code sleuth eagerly awaits its first mission.')}
+            </Description>
+            <Image src={waitingForEventImg} />
+          </HeaderWrapper>
+          <Divider />
+          <Body>
+            <Setup>
+              <SetupTitle project={project} />
+              <GuidedSteps
+                initialStep={decodeInteger(location.query.guidedStep)}
+                onStepChange={step => {
+                  navigate({
+                    pathname: location.pathname,
+                    query: {
+                      ...location.query,
+                      guidedStep: step,
+                    },
+                  });
+                }}
+              >
+                {steps.map((step, index) => {
+                  const title = step.title ?? StepTitles[step.type ?? 'install'];
+                  const isLastStep = index === steps.length - 1;
+                  return (
+                    <GuidedSteps.Step key={index} stepKey={title} title={title}>
+                      <StepIndexProvider index={index}>
+                        <ContentBlocksRenderer
+                          contentBlocks={step.content}
+                          spacing={space(1)}
+                        />
+                      </StepIndexProvider>
+                      <GuidedSteps.ButtonWrapper>
+                        <GuidedSteps.BackButton size="md" />
+                        <GuidedSteps.NextButton size="md" />
+                        {isLastStep && <WaitingIndicator project={project} />}
+                      </GuidedSteps.ButtonWrapper>
+                      {/* This spacer ensures the whole pulse effect is visible, as the parent has overflow: hidden */}
+                      {isLastStep && <PulseSpacer />}
+                    </GuidedSteps.Step>
+                  );
+                })}
+              </GuidedSteps>
+            </Setup>
+            <Preview>
+              <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>
+              <ArcadeWrapper>
+                <Arcade
+                  src="https://demo.arcade.software/bQko6ZTRFMyTm6fJaDzs?embed"
+                  loading="lazy"
+                  allowFullScreen
+                />
+              </ArcadeWrapper>
+            </Preview>
+          </Body>
+        </div>
+      </TabSelectionScope>
     </AuthTokenGeneratorProvider>
   );
 }
