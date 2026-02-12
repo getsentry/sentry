@@ -3,8 +3,7 @@ import {z} from 'zod';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {AutoSaveContextProvider} from '@sentry/scraps/form/autoSaveContext';
+import {AutoSaveField, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 interface TestFormProps {
   label: string;
@@ -36,14 +35,34 @@ function TestForm({label, hintText, required, defaultValue, validator}: TestForm
   );
 }
 
-function TestFormWithAutoSave({
-  autoSaveStatus,
-  ...props
-}: TestFormProps & {autoSaveStatus: 'pending' | 'success' | 'error' | 'idle'}) {
+const testSchema = z.object({
+  testField: z.string(),
+});
+
+interface AutoSaveTestFormProps {
+  mutationFn: (data: {testField: string}) => Promise<{testField: string}>;
+  initialValue?: string;
+  label?: string;
+}
+
+function AutoSaveTestForm({
+  mutationFn,
+  initialValue = '',
+  label = 'Username',
+}: AutoSaveTestFormProps) {
   return (
-    <AutoSaveContextProvider value={{status: autoSaveStatus}}>
-      <TestForm {...props} />
-    </AutoSaveContextProvider>
+    <AutoSaveField
+      name="testField"
+      schema={testSchema}
+      initialValue={initialValue}
+      mutationOptions={{mutationFn}}
+    >
+      {field => (
+        <field.Layout.Row label={label}>
+          <field.Input value={field.state.value} onChange={field.handleChange} />
+        </field.Layout.Row>
+      )}
+    </AutoSaveField>
   );
 }
 
@@ -125,16 +144,35 @@ describe('BaseField indicator', () => {
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 
-  it('shows spinner when auto-save is pending', () => {
-    render(<TestFormWithAutoSave label="Username" autoSaveStatus="pending" />);
+  it('shows spinner when auto-save is pending', async () => {
+    // Mutation that never resolves to keep the spinner visible
+    const mutationFn = jest.fn(() => new Promise<{testField: string}>(() => {}));
 
-    expect(screen.getByRole('status', {name: 'Saving testField'})).toBeInTheDocument();
+    render(<AutoSaveTestForm mutationFn={mutationFn} initialValue="initial" />);
+
+    const input = screen.getByRole('textbox');
+    await userEvent.clear(input);
+    await userEvent.type(input, 'changed');
+    await userEvent.tab(); // blur triggers auto-save
+
+    expect(
+      await screen.findByRole('status', {name: 'Saving testField'})
+    ).toBeInTheDocument();
+    expect(mutationFn).toHaveBeenCalledWith({testField: 'changed'});
   });
 
-  it('shows checkmark when auto-save succeeds', () => {
-    render(<TestFormWithAutoSave label="Username" autoSaveStatus="success" />);
+  it('shows checkmark when auto-save succeeds', async () => {
+    const mutationFn = jest.fn((data: {testField: string}) => Promise.resolve(data));
 
-    expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
+    render(<AutoSaveTestForm mutationFn={mutationFn} initialValue="initial" />);
+
+    const input = screen.getByRole('textbox');
+    await userEvent.clear(input);
+    await userEvent.type(input, 'changed');
+    await userEvent.tab(); // blur triggers auto-save
+
+    expect(await screen.findByTestId('icon-check-mark')).toBeInTheDocument();
+    expect(mutationFn).toHaveBeenCalledWith({testField: 'changed'});
   });
 
   it('shows warning icon when field has validation errors', async () => {
