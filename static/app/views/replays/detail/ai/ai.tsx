@@ -1,11 +1,11 @@
-import {useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -14,7 +14,6 @@ import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -55,27 +54,41 @@ export default function Ai() {
 
   if (replayRecord?.project_id && !project) {
     return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EndStateContainer>
+      <Stack
+        wrap="nowrap"
+        minHeight="0"
+        border="primary"
+        radius="md"
+        data-test-id="replay-details-ai-summary-tab"
+      >
+        <Stack overflow="auto" gap="3xl" padding="xl" align="center">
           <img src={replayEmptyState} height={300} alt="" />
-          <div>{t('Project not found. Unable to load replay summary.')}</div>
-        </EndStateContainer>
-      </Wrapper>
+          <Text align="center">
+            {t('Project not found. Unable to load replay summary.')}
+          </Text>
+        </Stack>
+      </Stack>
     );
   }
 
   if (!organization.features.includes('replay-ai-summaries') || !areAiFeaturesAllowed) {
     return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EndStateContainer>
+      <Stack
+        wrap="nowrap"
+        minHeight="0"
+        border="primary"
+        radius="md"
+        data-test-id="replay-details-ai-summary-tab"
+      >
+        <Stack overflow="auto" gap="3xl" padding="xl" align="center">
           <img src={replayEmptyState} height={300} alt="" />
-          <div>
+          <Text align="center">
             {areAiFeaturesAllowed
               ? t('Replay summaries are not available for this organization.')
               : t('AI features are not available for this organization.')}
-          </div>
-        </EndStateContainer>
-      </Wrapper>
+          </Text>
+        </Stack>
+      </Stack>
     );
   }
 
@@ -92,16 +105,23 @@ export default function Ai() {
     : t('Failed to load replay summary.');
 
   return (
-    <Wrapper data-test-id="replay-details-ai-summary-tab">
-      <Summary>
-        <SummaryLeft>
+    <Stack
+      wrap="nowrap"
+      minHeight="0"
+      border="primary"
+      radius="md"
+      data-test-id="replay-details-ai-summary-tab"
+    >
+      <Container padding="md lg" borderBottom="primary">
+        <Stack gap="xs">
           <Flex align="center" justify="between">
-            {t('Replay Summary')}
+            <Text size="lg" bold>
+              {t('Replay Summary')}
+            </Text>
             <Button
               priority="default"
               type="button"
               size="xs"
-              disabled={isSummaryPending}
               onClick={() => {
                 startSummaryRequest();
                 trackAnalytics('replay.ai-summary.regenerate-requested', {
@@ -127,17 +147,18 @@ export default function Ai() {
               <ThumbsUpDownButton type="negative" disabled={feedbackDisabled} />
             </Flex>
           </Flex>
-        </SummaryLeft>
-      </Summary>
+        </Stack>
+      </Container>
       <SummaryContent
         isSummaryPending={isSummaryPending}
         hasError={hasError}
+        errorMessage={errorMessage}
         hasSummaryData={hasSummaryData}
         isNoReplaySummary={isNoReplaySummary}
         summaryData={summaryData}
         segmentCount={segmentCount}
       />
-    </Wrapper>
+    </Stack>
   );
 }
 
@@ -154,12 +175,6 @@ function SummaryTextArea({
   isSummaryPending: boolean;
   summaryText: string | undefined;
 }) {
-  const noSummaryMessageRef = useRef(
-    NO_REPLAY_SUMMARY_MESSAGES[
-      Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
-    ]
-  );
-
   if (isSummaryPending) {
     return (
       <Flex flexGrow={1}>
@@ -169,30 +184,38 @@ function SummaryTextArea({
   }
 
   if (hasError) {
-    return <SummaryText>{errorMessage}</SummaryText>;
+    return (
+      <Text as="p" size="md" variant="secondary" wrap="pre-wrap" density="comfortable">
+        {errorMessage}
+      </Text>
+    );
   }
 
   if (!summaryText || isNoReplaySummary) {
     return (
-      <SummaryText>
-        {isNoReplaySummary
-          ? noSummaryMessageRef.current
-          : t('No summary available for this replay.')}
-      </SummaryText>
+      <Text as="p" size="md" variant="secondary" wrap="pre-wrap" density="comfortable">
+        {t('No summary available for this replay.')}
+      </Text>
     );
   }
 
-  return <SummaryText>{summaryText}</SummaryText>;
+  return (
+    <Text as="p" size="md" variant="secondary" wrap="pre-wrap" density="comfortable">
+      {summaryText}
+    </Text>
+  );
 }
 
 function SummaryContent({
   isSummaryPending,
   hasError,
+  errorMessage,
   hasSummaryData,
   isNoReplaySummary,
   summaryData,
   segmentCount,
 }: {
+  errorMessage: string;
   hasError: boolean;
   hasSummaryData: boolean;
   isNoReplaySummary: boolean;
@@ -204,11 +227,29 @@ function SummaryContent({
     return <ReplaySummaryLoading />;
   }
 
-  if (hasError || !hasSummaryData || isNoReplaySummary) {
+  if (hasError) {
     return (
-      <EndStateContainer>
+      <Stack overflow="auto" gap="3xl" padding="xl" align="center">
         <img src={aiBanner} alt="" />
-      </EndStateContainer>
+        <Text align="center">{errorMessage}</Text>
+      </Stack>
+    );
+  }
+
+  if (!hasSummaryData) {
+    return (
+      <Stack overflow="auto" gap="3xl" padding="xl" align="center">
+        <img src={aiBanner} alt="" />
+        <Text align="center">{t('No summary available for this replay.')}</Text>
+      </Stack>
+    );
+  }
+
+  if (isNoReplaySummary) {
+    return (
+      <Stack overflow="auto" gap="3xl" padding="xl" align="center">
+        <NoReplaySummary />
+      </Stack>
     );
   }
 
@@ -217,9 +258,11 @@ function SummaryContent({
       <Container as="section" flex="1 1 auto" overflow="auto">
         <ChapterList timeRanges={summaryData!.data!.time_ranges} />
         {segmentCount > MAX_SEGMENTS_TO_SUMMARIZE && (
-          <Subtext>
-            {t('If a replay is too long, we may only summarize a small portion of it.')}
-          </Subtext>
+          <Flex justify="center" padding="xl">
+            <Text size="sm" variant="secondary">
+              {t('If a replay is too long, we may only summarize a small portion of it.')}
+            </Text>
+          </Flex>
         )}
       </Container>
     </StyledTabItemContainer>
@@ -257,36 +300,26 @@ function ThumbsUpDownButton({
   );
 }
 
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  min-height: 0;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-`;
+/**
+ * Due to the random message generation, the component can show a new message on each render. This is not ideal because we
+ * cause a lot of re-renders when the replay is played.
+ *
+ * Use `useRef` to store the message so that it is not changed after the initial render. (Alternatively, React.memo or React Compiler would also work)
+ */
+function NoReplaySummary() {
+  const noSummaryMessageRef = useRef(
+    NO_REPLAY_SUMMARY_MESSAGES[
+      Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
+    ]
+  );
 
-const Summary = styled('div')`
-  padding: ${space(1)} ${space(1.5)};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-`;
-
-const SummaryLeft = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  font-size: ${p => p.theme.font.size.lg};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const SummaryText = styled('p')`
-  line-height: 1.6;
-  white-space: pre-wrap;
-  margin: 0;
-  font-size: ${p => p.theme.font.size.md};
-  color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-`;
+  return (
+    <Fragment>
+      <img src={aiBanner} alt="" />
+      <div>{noSummaryMessageRef.current}</div>
+    </Fragment>
+  );
+}
 
 const StyledTabItemContainer = styled(TabItemContainer)`
   border: none;
@@ -301,22 +334,4 @@ const StyledTabItemContainer = styled(TabItemContainer)`
   details.beforeCurrentTime + details.afterCurrentTime {
     border-top-color: transparent;
   }
-`;
-
-const EndStateContainer = styled('div')`
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-  gap: ${space(4)};
-  padding: ${space(2)};
-  align-items: center;
-  text-align: center;
-`;
-
-const Subtext = styled(Text)`
-  padding: ${space(2)};
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-  display: flex;
-  justify-content: center;
 `;

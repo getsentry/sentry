@@ -22,8 +22,8 @@ export function ReplaySummaryLoading() {
 }
 
 const textSweep = keyframes`
-  0%   { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
 `;
 
 // Uses content tokens in background intentionally — background-clip: text
