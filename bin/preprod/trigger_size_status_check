@@ -73,7 +73,7 @@ BUILD_3 = None
 
 # Set to True to test dedup behavior: creates 3 uploading apps, calls task for each
 # (expect 1 GitHub post), then transitions all to processed and calls again (expect 1 more post).
-TEST_DEDUP = False
+TEST_DEDUP = True
 
 # Available states:
 # - "uploading": Artifact is still uploading (no metrics)
@@ -523,12 +523,12 @@ def test_dedup_behavior(project: "Project") -> None:
         logger.info("  Calling task for %s (id=%s)...", artifact.app_id, artifact.id)
         create_preprod_status_check_task(preprod_artifact_id=artifact.id)
 
-    # Phase 2: Transition all to PROCESSED with completed metrics
-    logger.info("\nPhase 2: All 3 apps PROCESSED — calling task for each")
-    logger.info("Expected: 1 GitHub post (terminal), 2 skipped")
+    # Phase 2: Apps finish one at a time, each triggering a task
+    logger.info("\nPhase 2: Apps finish one by one — task called after each completes")
+    logger.info("Expected: first 2 skipped (others still processing), last one posts terminal")
     logger.info("-" * 40)
 
-    for artifact in artifacts:
+    for i, artifact in enumerate(artifacts):
         artifact.state = PreprodArtifact.ArtifactState.PROCESSED
         artifact.save(update_fields=["state"])
         PreprodArtifactSizeMetrics.objects.create(
@@ -541,9 +541,12 @@ def test_dedup_behavior(project: "Project") -> None:
             max_install_size=8 * 1024 * 1024,
             processing_version="1.0",
         )
-
-    for artifact in artifacts:
-        logger.info("  Calling task for %s (id=%s)...", artifact.app_id, artifact.id)
+        remaining = len(artifacts) - i - 1
+        logger.info(
+            "  %s finished (%s still processing) — calling task...",
+            artifact.app_id,
+            remaining,
+        )
         create_preprod_status_check_task(preprod_artifact_id=artifact.id)
 
     logger.info("\n" + "=" * 60)
