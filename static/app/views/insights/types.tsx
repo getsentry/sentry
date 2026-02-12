@@ -1,5 +1,3 @@
-import type {Simplify} from 'type-fest';
-
 import type {PlatformKey} from 'sentry/types/project';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
@@ -476,7 +474,7 @@ type CustomResponseFields = {
   [SpanFields.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
 };
 
-type SpanResponseRaw = {
+export type SpanResponse = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in SpanFunctions as `${Property}()`]: number;
@@ -513,7 +511,6 @@ type SpanResponseRaw = {
     [Property in SpanFields as `${SpanFunction.COUNT_IF}(${Property},${string},${string})`]: number;
   };
 
-export type SpanResponse = Simplify<SpanResponseRaw>;
 export type SpanProperty = keyof SpanResponse;
 
 export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
@@ -542,7 +539,7 @@ type NoArgErrorFunction =
   | ErrorFunction.EPM
   | ErrorFunction.LAST_SEEN;
 
-type ErrorResponseRaw = {
+export type ErrorResponse = {
   [Property in ErrorStringFields as `${Property}`]: string;
 } & {
   [Property in ErrorNumberFields as `${Property}`]: number;
@@ -550,7 +547,6 @@ type ErrorResponseRaw = {
   [Property in NoArgErrorFunction as `${Property}()`]: number;
 };
 
-export type ErrorResponse = Simplify<ErrorResponseRaw>;
 export type ErrorProperty = keyof ErrorResponse;
 
 // Maps the subregion code to the subregion name according to UN m49 standard
