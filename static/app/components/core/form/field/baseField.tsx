@@ -23,7 +23,9 @@ const useFieldStateIndicator = () => {
   const status = useAutoSaveContext()?.status;
 
   if (status === 'pending') {
-    return <Spinner />;
+    return (
+      <Spinner role="status" aria-label={`Saving ${field.name}`} aria-live="polite" />
+    );
   }
 
   if (status === 'success') {
