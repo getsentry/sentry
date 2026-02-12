@@ -71,7 +71,6 @@ class PostProcessJob(TypedDict, total=False):
     group_state: GroupState
     is_reprocessed: bool
     has_reappeared: bool
-    has_alert: bool
     has_escalated: bool
 
 
@@ -649,7 +648,6 @@ def post_process_group(
                     "group_state": group_state,
                     "is_reprocessed": is_reprocessed,
                     "has_reappeared": bool(not group_state["is_new"]),
-                    "has_alert": False,
                     "has_escalated": kwargs.get("has_escalated", False),
                 }
             )
@@ -1559,7 +1557,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
 
         generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
     else:
-        # Triage signals V0 behaviour
+        # Seat-based tier behaviour
         # If event count < 10, only generate summary (no automation)
         if group.times_seen_with_pending < 10:
             # Check if summary exists in cache
@@ -1591,7 +1589,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             if group.first_seen < (timezone.now() - timedelta(days=14)):
                 return
 
-            # Triage signals will not run issues if they are not fixable at MEDIUM threshold
+            # Will not run issues if they are not fixable at MEDIUM threshold
             if group.seer_fixability_score is not None:
                 if (
                     group.seer_fixability_score < FixabilityScoreThresholds.MEDIUM.value

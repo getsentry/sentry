@@ -11,6 +11,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.models import SeerPermissionError
+from sentry.seer.seer_setup import has_seer_access
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import autopilot_tasks
 from sentry.utils import metrics
@@ -57,6 +58,14 @@ def run_missing_sdk_integration_detector() -> None:
             )
             continue
 
+        # Check gen AI consent before spawning child tasks
+        if not has_seer_access(project.organization):
+            logger.info(
+                "missing_sdk_integration_detector.no_gen_ai_access",
+                extra={"project_id": project_id, "organization_id": project.organization_id},
+            )
+            continue
+
         # Check platform support
         platform_supported = any(
             project.platform and project.platform.startswith(prefix)
@@ -74,11 +83,11 @@ def run_missing_sdk_integration_detector() -> None:
             RepositoryProjectPathConfig.objects.filter(
                 project=project,
                 repository__status=ObjectStatus.ACTIVE,
+                repository__provider="integrations:github",
             )
             .select_related("repository")
             .values("repository__name", "source_root")
         )
-
         for config in repo_configs:
             run_missing_sdk_integration_detector_for_project_task.apply_async(
                 args=(
@@ -89,6 +98,17 @@ def run_missing_sdk_integration_detector() -> None:
                 ),
                 headers={"sentry-propagate-traces": False},
             )
+
+
+def _record_error(project_id: int, error_type: str) -> None:
+    metrics.incr(
+        "autopilot.missing_sdk_integration_detector.error",
+        tags={
+            "project_id": str(project_id),
+            "error_type": error_type,
+        },
+        sample_rate=1.0,
+    )
 
 
 @instrumented_task(
@@ -140,6 +160,7 @@ def run_missing_sdk_integration_detector_for_project_task(
             intelligence_level="medium",
         )
     except SeerPermissionError:
+        _record_error(project.id, "SeerPermissionError")
         logger.exception(
             "missing_sdk_integration_detector.no_seer_access",
             extra={"organization_id": organization.id, "project_id": project.id},
@@ -242,6 +263,7 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
         # Extract the structured result
         result = state.get_artifact("missing_integrations", MissingSdkIntegrationsResult)
         if result is None:
+            _record_error(project.id, "no_artifact_result")
             logger.warning(
                 "missing_sdk_integration_detector.no_artifact_result",
                 extra={
@@ -266,6 +288,7 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
                 "repo_name": repo_name,
                 "run_id": run_id,
                 "finish_reason": finish_reason,
+                "missing_integrations_count": len(missing_integrations),
             },
         )
 
@@ -305,18 +328,13 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
         return missing_integrations
 
     except Exception as e:
-        metrics.incr(
-            "autopilot.missing_sdk_integration_detector.error",
-            tags={"project_id": str(project.id), "error_type": type(e).__name__},
-            sample_rate=1.0,
-        )
+        _record_error(project.id, type(e).__name__)
         logger.exception(
             "autopilot.missing_sdk_integration_detector.error",
             extra={
                 "organization_id": organization.id,
                 "project_id": project.id,
                 "project_slug": project.slug,
-                "error_message": str(e),
             },
         )
         return None

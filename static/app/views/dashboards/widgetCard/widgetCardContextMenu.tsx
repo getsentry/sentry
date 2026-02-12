@@ -32,6 +32,7 @@ import {
   isUsingPerformanceScore,
   isWidgetEditable,
   performanceScoreTooltip,
+  widgetHasMenuOptions,
 } from 'sentry/views/dashboards/utils';
 import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
@@ -295,7 +296,7 @@ export function getMenuOptions(
 
   if (
     organization.features.includes('dashboards-edit') &&
-    isWidgetEditable(widget.displayType)
+    widgetHasMenuOptions(widget.displayType)
   ) {
     menuOptions.push({
       key: 'add-to-dashboard',
@@ -336,7 +337,10 @@ export function getMenuOptions(
       key: 'edit-widget',
       label: t('Edit Widget'),
       onAction: () => onEdit?.(),
-      disabled: !hasEditAccess,
+      disabled: !hasEditAccess || !isWidgetEditable(widget.displayType),
+      tooltip: isWidgetEditable(widget.displayType)
+        ? undefined
+        : t('Static widgets from the widget library cannot be edited.'),
     });
 
     menuOptions.push({

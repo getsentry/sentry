@@ -2,7 +2,8 @@ version = 1
 revision = 3
 requires-python = ">=3.13"
 resolution-markers = [
-    "sys_platform == 'darwin' or sys_platform == 'linux'",
+    "(python_full_version >= '3.14' and sys_platform == 'darwin') or (python_full_version >= '3.14' and sys_platform == 'linux')",
+    "(python_full_version < '3.14' and sys_platform == 'darwin') or (python_full_version < '3.14' and sys_platform == 'linux')",
 ]
 supported-markers = [
     "sys_platform == 'darwin' or sys_platform == 'linux'",
@@ -517,7 +518,8 @@ wheels = [
 
 [package.optional-dependencies]
 grpc = [
-    { name = "grpcio", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "grpcio", version = "1.67.0", source = { registry = "https://pypi.devinfra.sentry.io/simple" }, marker = "(python_full_version < '3.14' and sys_platform == 'darwin') or (python_full_version < '3.14' and sys_platform == 'linux')" },
+    { name = "grpcio", version = "1.75.1", source = { registry = "https://pypi.devinfra.sentry.io/simple" }, marker = "(python_full_version >= '3.14' and sys_platform == 'darwin') or (python_full_version >= '3.14' and sys_platform == 'linux')" },
     { name = "grpcio-status", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 
@@ -532,6 +534,34 @@ dependencies = [
 ]
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/google_auth-2.29.0-py2.py3-none-any.whl", hash = "sha256:d452ad095688cd52bae0ad6fafe027f6a6d6f560e810fec20914e17a09526415" },
+]
+
+[[package]]
+name = "google-cloud-appengine-logging"
+version = "1.8.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "google-api-core", extra = ["grpc"], marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "google-auth", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "grpcio", version = "1.67.0", source = { registry = "https://pypi.devinfra.sentry.io/simple" }, marker = "(python_full_version < '3.14' and sys_platform == 'darwin') or (python_full_version < '3.14' and sys_platform == 'linux')" },
+    { name = "grpcio", version = "1.75.1", source = { registry = "https://pypi.devinfra.sentry.io/simple" }, marker = "(python_full_version >= '3.14' and sys_platform == 'darwin') or (python_full_version >= '3.14' and sys_platform == 'linux')" },
+    { name = "proto-plus", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/google_cloud_appengine_logging-1.8.0-py3-none-any.whl", hash = "sha256:a4ce9ce94a9fd8c89ed07fa0b06fcf9ea3642f9532a1be1a8c7b5f82c0a70ec6" },
+]
+
+[[package]]
+name = "google-cloud-audit-log"
+version = "0.4.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "googleapis-common-protos", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/google_cloud_audit_log-0.4.0-py3-none-any.whl", hash = "sha256:6b88e2349df45f8f4cc0993b687109b1388da1571c502dc1417efa4b66ec55e0" },
 ]
 
 [[package]]
@@ -609,6 +639,25 @@ wheels = [
 ]
 
 [[package]]
+name = "google-cloud-logging"
+version = "3.13.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "google-api-core", extra = ["grpc"], marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "google-auth", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "google-cloud-appengine-logging", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "google-cloud-audit-log", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "google-cloud-core", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "grpc-google-iam-v1", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "opentelemetry-api", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "proto-plus", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/google_cloud_logging-3.13.0-py3-none-any.whl", hash = "sha256:f215e1c76ee29239c6cacf02443dffa985663c74bf47c9818854694805c6019f" },
+]
+
+[[package]]
 name = "google-cloud-pubsub"
 version = "2.23.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -616,7 +665,8 @@ dependencies = [
     { name = "google-api-core", extra = ["grpc"], marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "google-auth", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "grpc-google-iam-v1", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "grpcio", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "grpcio", version = "1.67.0", source = { registry = "https://pypi.devinfra.sentry.io/simple" }, marker = "(python_full_version < '3.14' and sys_platform == 'darwin') or (python_full_version < '3.14' and sys_platform == 'linux')" },
+    { name = "grpcio", version = "1.75.1", source = { registry = "https://pypi.devinfra.sentry.io/simple" }, marker = "(python_full_version >= '3.14' and sys_platform == 'darwin') or (python_full_version >= '3.14' and sys_platform == 'linux')" },
     { name = "grpcio-status", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "proto-plus", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -706,7 +756,8 @@ wheels = [
 
 [package.optional-dependencies]
 grpc = [
-    { name = "grpcio", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "grpcio", version = "1.67.0", source = { registry = "https://pypi.devinfra.sentry.io/simple" }, marker = "(python_full_version < '3.14' and sys_platform == 'darwin') or (python_full_version < '3.14' and sys_platform == 'linux')" },
+    { name = "grpcio", version = "1.75.1", source = { registry = "https://pypi.devinfra.sentry.io/simple" }, marker = "(python_full_version >= '3.14' and sys_platform == 'darwin') or (python_full_version >= '3.14' and sys_platform == 'linux')" },
 ]
 
 [[package]]
@@ -736,7 +787,8 @@ version = "0.13.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "googleapis-common-protos", extra = ["grpc"], marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "grpcio", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "grpcio", version = "1.67.0", source = { registry = "https://pypi.devinfra.sentry.io/simple" }, marker = "(python_full_version < '3.14' and sys_platform == 'darwin') or (python_full_version < '3.14' and sys_platform == 'linux')" },
+    { name = "grpcio", version = "1.75.1", source = { registry = "https://pypi.devinfra.sentry.io/simple" }, marker = "(python_full_version >= '3.14' and sys_platform == 'darwin') or (python_full_version >= '3.14' and sys_platform == 'linux')" },
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
@@ -748,7 +800,8 @@ name = "grpc-stubs"
 version = "1.53.0.5"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
-    { name = "grpcio", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "grpcio", version = "1.67.0", source = { registry = "https://pypi.devinfra.sentry.io/simple" }, marker = "(python_full_version < '3.14' and sys_platform == 'darwin') or (python_full_version < '3.14' and sys_platform == 'linux')" },
+    { name = "grpcio", version = "1.75.1", source = { registry = "https://pypi.devinfra.sentry.io/simple" }, marker = "(python_full_version >= '3.14' and sys_platform == 'darwin') or (python_full_version >= '3.14' and sys_platform == 'linux')" },
 ]
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/grpc_stubs-1.53.0.5-py3-none-any.whl", hash = "sha256:04183fb65a1b166a1febb9627e3d9647d3926ccc2dfe049fe7b6af243428dbe1" },
@@ -758,10 +811,29 @@ wheels = [
 name = "grpcio"
 version = "1.67.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+resolution-markers = [
+    "(python_full_version < '3.14' and sys_platform == 'darwin') or (python_full_version < '3.14' and sys_platform == 'linux')",
+]
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/grpcio-1.67.0-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:42199e704095b62688998c2d84c89e59a26a7d5d32eed86d43dc90e7a3bd04aa" },
     { url = "https://pypi.devinfra.sentry.io/wheels/grpcio-1.67.0-cp313-cp313-manylinux_2_17_aarch64.whl", hash = "sha256:c4c425f440fb81f8d0237c07b9322fc0fb6ee2b29fbef5f62a322ff8fcce240d" },
     { url = "https://pypi.devinfra.sentry.io/wheels/grpcio-1.67.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:662c8e105c5e5cee0317d500eb186ed7a93229586e431c1bf0c9236c2407352c" },
+]
+
+[[package]]
+name = "grpcio"
+version = "1.75.1"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+resolution-markers = [
+    "(python_full_version >= '3.14' and sys_platform == 'darwin') or (python_full_version >= '3.14' and sys_platform == 'linux')",
+]
+dependencies = [
+    { name = "typing-extensions", marker = "(python_full_version >= '3.14' and sys_platform == 'darwin') or (python_full_version >= '3.14' and sys_platform == 'linux')" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/grpcio-1.75.1-cp313-cp313-macosx_11_0_universal2.whl", hash = "sha256:5b8f381eadcd6ecaa143a21e9e80a26424c76a0a9b3d546febe6648f3a36a5ac" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/grpcio-1.75.1-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:5bf4001d3293e3414d0cf99ff9b1139106e57c3a66dfff0c5f60b2a6286ec133" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/grpcio-1.75.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:0ee119f4f88d9f75414217823d21d75bfe0e6ed40135b0cbbfc6376bc9f7757d" },
 ]
 
 [[package]]
@@ -770,7 +842,8 @@ version = "1.67.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "googleapis-common-protos", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "grpcio", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "grpcio", version = "1.67.0", source = { registry = "https://pypi.devinfra.sentry.io/simple" }, marker = "(python_full_version < '3.14' and sys_platform == 'darwin') or (python_full_version < '3.14' and sys_platform == 'linux')" },
+    { name = "grpcio", version = "1.75.1", source = { registry = "https://pypi.devinfra.sentry.io/simple" }, marker = "(python_full_version >= '3.14' and sys_platform == 'darwin') or (python_full_version >= '3.14' and sys_platform == 'linux')" },
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
@@ -907,6 +980,17 @@ version = "3.7"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/idna-3.7-py3-none-any.whl", hash = "sha256:82fee1fc78add43492d3a1898bfa6d8a904cc97d8427f683ed8e798d07761aa0" },
+]
+
+[[package]]
+name = "importlib-metadata"
+version = "8.7.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "zipp", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/importlib_metadata-8.7.0-py3-none-any.whl", hash = "sha256:e5dd1551894c77868a30651cef00984d50e1002d06942a7101d34870c5f02afd" },
 ]
 
 [[package]]
@@ -1266,6 +1350,18 @@ dependencies = [
 ]
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/openapi_spec_validator-0.7.1-py3-none-any.whl", hash = "sha256:3c81825043f24ccbcd2f4b149b11e8231abce5ba84f37065e14ec947d8f4e959" },
+]
+
+[[package]]
+name = "opentelemetry-api"
+version = "1.35.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "importlib-metadata", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/opentelemetry_api-1.35.0-py3-none-any.whl", hash = "sha256:c4ea7e258a244858daf18474625e9cc0149b8ee354f37843415771a40c25ee06" },
 ]
 
 [[package]]
@@ -1986,6 +2082,7 @@ dependencies = [
     { name = "google-cloud-core", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "google-cloud-functions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "google-cloud-kms", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "google-cloud-logging", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "google-cloud-pubsub", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "google-cloud-spanner", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "google-cloud-storage", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -1994,7 +2091,8 @@ dependencies = [
     { name = "googleapis-common-protos", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "granian", extra = ["pname", "reload"], marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "grpc-google-iam-v1", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "grpcio", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "grpcio", version = "1.67.0", source = { registry = "https://pypi.devinfra.sentry.io/simple" }, marker = "(python_full_version < '3.14' and sys_platform == 'darwin') or (python_full_version < '3.14' and sys_platform == 'linux')" },
+    { name = "grpcio", version = "1.75.1", source = { registry = "https://pypi.devinfra.sentry.io/simple" }, marker = "(python_full_version >= '3.14' and sys_platform == 'darwin') or (python_full_version >= '3.14' and sys_platform == 'linux')" },
     { name = "hiredis", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "iso3166", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "jsonschema", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2155,6 +2253,7 @@ requires-dist = [
     { name = "google-cloud-core", specifier = ">=2.4.1" },
     { name = "google-cloud-functions", specifier = ">=1.17.0" },
     { name = "google-cloud-kms", specifier = ">=2.24.2" },
+    { name = "google-cloud-logging", specifier = ">=3.10.0" },
     { name = "google-cloud-pubsub", specifier = ">=2.23.0" },
     { name = "google-cloud-spanner", specifier = ">=3.49.0" },
     { name = "google-cloud-storage", specifier = ">=2.18.0" },
@@ -2418,7 +2517,8 @@ version = "0.4.14"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "grpc-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "grpcio", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "grpcio", version = "1.67.0", source = { registry = "https://pypi.devinfra.sentry.io/simple" }, marker = "(python_full_version < '3.14' and sys_platform == 'darwin') or (python_full_version < '3.14' and sys_platform == 'linux')" },
+    { name = "grpcio", version = "1.75.1", source = { registry = "https://pypi.devinfra.sentry.io/simple" }, marker = "(python_full_version >= '3.14' and sys_platform == 'darwin') or (python_full_version >= '3.14' and sys_platform == 'linux')" },
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
@@ -3031,6 +3131,14 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/xmlsec-1.3.14-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:ccd9759b024a7a888f1896f752a1c913ce861df18a444adf3eaad562cf55cf70" },
     { url = "https://pypi.devinfra.sentry.io/wheels/xmlsec-1.3.14-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:042dbde8f487d31fe7d276382057f2e7172c4c39fb681b37a7a91c48febe4000" },
     { url = "https://pypi.devinfra.sentry.io/wheels/xmlsec-1.3.14-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:b5e132c98df6abd344336aeebdff5189c890113bcb5ee5f14e86f3ef37e90434" },
+]
+
+[[package]]
+name = "zipp"
+version = "3.23.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/zipp-3.23.0-py3-none-any.whl", hash = "sha256:071652d6115ed432f5ce1d34c336c0adfd6a884660d1e9712a256d3d3bd4b14e" },
 ]
 
 [[package]]

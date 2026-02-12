@@ -1836,7 +1836,11 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     allowWildcard: false,
   },
-  [FieldKey.PROJECT]: {kind: FieldKind.FIELD, valueType: FieldValueType.STRING},
+  [FieldKey.PROJECT]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
   [FieldKey.HAS]: {
     desc: t('Determines if a tag or field exists in an event'),
     kind: FieldKind.FIELD,
