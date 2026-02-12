@@ -22,7 +22,11 @@ from sentry.seer.autofix.utils import (
     is_seer_seat_based_tier_enabled,
     set_project_seer_preference,
 )
-from sentry.seer.models import SeerProjectPreference
+from sentry.seer.models import (
+    AutofixHandoffPoint,
+    SeerAutomationHandoffConfiguration,
+    SeerProjectPreference,
+)
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
@@ -543,7 +547,7 @@ def set_default_project_seer_scanner_automation(
 
 
 def set_default_project_auto_open_prs(organization: Organization, project: Project) -> None:
-    """Called once at project creation time to set the initial auto open PRs."""
+    """Called once at project creation time to set the initial auto open PRs and automation handoff."""
     if not is_seer_seat_based_tier_enabled(organization):
         return
 
@@ -551,12 +555,24 @@ def set_default_project_auto_open_prs(organization: Organization, project: Proje
     if organization.get_option("sentry:auto_open_prs"):
         stopping_point = AutofixStoppingPoint.OPEN_PR
 
+    # Apply org default automation handoff to new project
+    # None = Seer (default), otherwise an integration ID
+    automation_handoff = None
+    default_integration_id = organization.get_option("sentry:default_coding_agent_handoff")
+    if default_integration_id is not None:
+        automation_handoff = SeerAutomationHandoffConfiguration(
+            handoff_point=AutofixHandoffPoint.ROOT_CAUSE,
+            target="cursor_background_agent",
+            integration_id=default_integration_id,
+        )
+
     # We need to make an API call to Seer to set this preference
     preference = SeerProjectPreference(
         organization_id=organization.id,
         project_id=project.id,
         repositories=[],
         automated_run_stopping_point=stopping_point,
+        automation_handoff=automation_handoff,
     )
     try:
         set_project_seer_preference(preference)
