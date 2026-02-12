@@ -113,9 +113,9 @@ export default function SeerAutomationSettings() {
                 {
                   visible: false, // TODO(ryan953): Disabled until the backend is fully ready
                   name: 'allowBackgroundAgentDelegation',
-                  label: t('Allow Delegation to Background Agents'),
+                  label: t('Allow Delegation to External Coding Agents'),
                   help: tct(
-                    'Enable this to allow projects to use Agents other than Seer for automation tasks. [docs:Read the docs] to learn more.',
+                    'Enable this to allow projects to use coding agents other than Seer for automation tasks. [docs:Read the docs] to learn more.',
                     {
                       docs: (
                         <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
@@ -188,7 +188,7 @@ export default function SeerAutomationSettings() {
                           'Enable Seer workflows that streamline creating code changes for your review, such as the ability to create pull requests or branches. [docs:Read the docs] to learn more.',
                           {
                             docs: (
-                              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/#disabling-generative-ai-features" />
+                              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/root-cause-analysis/#code-generation" />
                             ),
                           }
                         )}

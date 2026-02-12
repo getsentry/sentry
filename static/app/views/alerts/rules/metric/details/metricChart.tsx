@@ -30,7 +30,7 @@ import {
 } from 'sentry/components/charts/styles';
 import {isEmptySeries} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
+import {parseStatsPeriod} from 'sentry/components/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
@@ -330,7 +330,7 @@ export default function MetricChart({
                 <LinkButton
                   size="sm"
                   disabled={disableEapButton}
-                  title={disabledTooltip}
+                  tooltipProps={{title: disabledTooltip}}
                   {...props}
                 >
                   {buttonText}

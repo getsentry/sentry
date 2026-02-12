@@ -185,8 +185,7 @@ export function CodeBlock({
             size="xs"
             priority="transparent"
             onClick={handleCopy}
-            title={tooltipTitle}
-            tooltipProps={{position: 'left'}}
+            tooltipProps={{position: 'left', title: tooltipTitle}}
             onMouseLeave={() => setTooltipState('copy')}
             isAlwaysVisible={!hasFloatingHeader || (!!icon && hasFloatingHeader)}
             aria-label={t('Copy snippet')}

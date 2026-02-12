@@ -411,7 +411,7 @@ function NativeFrame({
                 : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
             </ShowHideButton>
           ) : null}
-          <Flex>
+          <Flex align="center" gap="sm">
             {showStacktraceLink && (
               <ErrorBoundary>
                 <StacktraceLink

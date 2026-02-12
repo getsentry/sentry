@@ -9,8 +9,8 @@ import iconIe from 'sentry-logos/logo-ie.svg';
 import iconOpera from 'sentry-logos/logo-opera.svg';
 import iconSafari from 'sentry-logos/logo-safari.svg';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 
@@ -270,7 +270,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
             <FieldLabel disabled={disabled}>
               {t('Filter out legacy browsers')}:
             </FieldLabel>
-            <ButtonBar>
+            <Grid flow="column" align="center" gap="md">
               <Button
                 priority="link"
                 onClick={this.handleToggleSubfilters.bind(this, true)}
@@ -285,7 +285,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
               >
                 {t('None')}
               </Button>
-            </ButtonBar>
+            </Grid>
           </Flex>
           <FieldHelp>
             {t(

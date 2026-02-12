@@ -2,7 +2,7 @@ import {Fragment, useEffect, useState} from 'react';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import {t} from 'sentry/locale';
 import {SECOND} from 'sentry/utils/formatters';
 import useProjects from 'sentry/utils/useProjects';

@@ -12,13 +12,13 @@ import {
   THIRTY_DAYS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 enum ChartIntervalUnspecifiedStrategy {
   /** Use the second biggest possible interval (e.g., pretty big buckets) */

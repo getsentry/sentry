@@ -4,8 +4,9 @@ import moment from 'moment-timezone';
 import {sprintf} from 'sprintf-js';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
+import {Grid} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
@@ -103,14 +104,14 @@ export default function CustomIgnoreDurationModal(props: Props) {
         </Alert.Container>
       )}
       <Footer>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Button priority="default" onClick={closeModal}>
             {t('Cancel')}
           </Button>
           <Button priority="primary" onClick={snoozeClicked}>
             {t('Archive')}
           </Button>
-        </ButtonBar>
+        </Grid>
       </Footer>
     </Fragment>
   );

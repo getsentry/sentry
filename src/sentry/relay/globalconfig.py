@@ -20,10 +20,10 @@ RELAY_OPTIONS: list[str] = [
     "relay.cardinality-limiter.error-sample-rate",
     "relay.metric-bucket-set-encodings",
     "relay.metric-bucket-distribution-encodings",
+    "relay.sessions-eap.rollout-rate",
     "relay.span-normalization.allowed_hosts",
     "relay.drop-transaction-attachments",
     "replay.relay-snuba-publishing-disabled.sample-rate",
-    "relay.sessions-eap.rollout-rate",
 ]
 
 

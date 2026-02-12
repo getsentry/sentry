@@ -2751,7 +2751,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_feedback_filtered_by_default(self) -> None:
         with Feature(
             {
-                FeedbackGroup.build_visible_feature_name(): True,
+                **{f: True for f in FeedbackGroup.build_visible_feature_name()},
                 FeedbackGroup.build_ingest_feature_name(): True,
             }
         ):
@@ -2778,7 +2778,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_feedback_category_filter(self) -> None:
         with Feature(
             {
-                FeedbackGroup.build_visible_feature_name(): True,
+                **{f: True for f in FeedbackGroup.build_visible_feature_name()},
                 FeedbackGroup.build_ingest_feature_name(): True,
             }
         ):

@@ -16,7 +16,7 @@ import {SelectorLink} from 'sentry/views/replays/selectors/selectorLink';
 import {transformSelectorQuery} from 'sentry/views/replays/selectors/utils';
 import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
-export function DeadRageClicksWidget() {
+export function DeadRageClicksWidget({visulizationOnly}: {visulizationOnly?: boolean}) {
   const organization = useOrganization();
   const hasReplays = organization.features.includes('session-replay-ui');
   const {isLoading, error, data} = useDeadRageSelectors({
@@ -30,39 +30,38 @@ export function DeadRageClicksWidget() {
 
   const isEmpty = !isLoading && data.length === 0;
 
-  if (!hasReplays) {
-    return (
-      <Widget
-        Title={<Widget.WidgetTitle title={t('Rage & Dead Clicks')} />}
-        Visualization={
-          <FeatureWrapper>
-            <FeatureDisabled
-              features="organizations:session-replay-ui"
-              featureName={t('Replays')}
-              hideHelpToggle
-            />
-          </FeatureWrapper>
+  let visualization = (
+    <FeatureWrapper>
+      <FeatureDisabled
+        features="organizations:session-replay-ui"
+        featureName={t('Replays')}
+        hideHelpToggle
+      />
+    </FeatureWrapper>
+  );
+
+  if (hasReplays) {
+    visualization = (
+      <WidgetVisualizationStates
+        isLoading={isLoading}
+        error={error}
+        isEmpty={isEmpty}
+        emptyMessage={
+          <GenericWidgetEmptyStateWarning
+            message={t('Rage or dead clicks may not be listed due to the filters above')}
+          />
         }
+        VisualizationType={DeadRageClickWidgetVisualization}
+        visualizationProps={{
+          items: data,
+        }}
       />
     );
   }
 
-  const visualization = (
-    <WidgetVisualizationStates
-      isLoading={isLoading}
-      error={error}
-      isEmpty={isEmpty}
-      emptyMessage={
-        <GenericWidgetEmptyStateWarning
-          message={t('Rage or dead clicks may not be listed due to the filters above')}
-        />
-      }
-      VisualizationType={DeadRageClickWidgetVisualization}
-      visualizationProps={{
-        items: data,
-      }}
-    />
-  );
+  if (visulizationOnly) {
+    return visualization;
+  }
 
   return (
     <Widget

@@ -3,6 +3,7 @@ from typing import Any
 
 from rest_framework.response import Response
 
+from sentry.constants import DataCategory
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.autofix.autofix import trigger_autofix as _trigger_autofix
@@ -82,6 +83,25 @@ class SeerOperator[CachePayloadT]:
             for entrypoint_cls in entrypoint_registry.registrations.values()
         )
 
+    @classmethod
+    def can_trigger_autofix(cls, *, group: Group) -> bool:
+        """
+        Checks if a group is permitted to trigger autofix.
+        Validates Seer access for the organization, the issue category, and autofix quota.
+        """
+        from sentry import quotas
+        from sentry.seer.autofix.utils import is_issue_category_eligible
+        from sentry.seer.seer_setup import has_seer_access
+
+        return (
+            has_seer_access(group.organization)
+            and is_issue_category_eligible(group)
+            and quotas.backend.check_seer_quota(
+                org_id=group.organization.id,
+                data_category=DataCategory.SEER_AUTOFIX,
+            )
+        )
+
     def trigger_autofix(
         self,
         *,
@@ -119,12 +139,7 @@ class SeerOperator[CachePayloadT]:
             if stopping_point == AutofixStoppingPoint.SOLUTION:
                 # TODO(Leander): We need to figure out a way to get the real cause_id for this.
                 # Probably need to add it to the root cause webhook from seer's side.
-                payload = AutofixSelectRootCausePayload(
-                    type="select_root_cause",
-                    cause_id=0,
-                    # XXX: Continue from solution to code changes automatically.
-                    stopping_point=AutofixStoppingPoint.CODE_CHANGES.value,
-                )
+                payload = AutofixSelectRootCausePayload(type="select_root_cause", cause_id=0)
             elif stopping_point == AutofixStoppingPoint.CODE_CHANGES:
                 payload = AutofixSelectSolutionPayload(type="select_solution")
             elif stopping_point == AutofixStoppingPoint.OPEN_PR:

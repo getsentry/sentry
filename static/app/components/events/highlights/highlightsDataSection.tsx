@@ -2,7 +2,8 @@ import {useCallback, useMemo, useRef} from 'react';
 import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -101,7 +102,7 @@ function EditHighlightsButton({project, event}: {event: Event; project: Project}
       size="xs"
       icon={<IconEdit />}
       onClick={openEditHighlightsModal}
-      title={editProps.title}
+      tooltipProps={{title: editProps.title}}
       disabled={isPending || editProps.disabled}
     >
       {t('Edit')}
@@ -286,10 +287,10 @@ export default function HighlightsDataSection({
       data-test-id="event-highlights"
       actions={
         <ErrorBoundary mini>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             {viewAllButton}
             <EditHighlightsButton project={project} event={event} />
-          </ButtonBar>
+          </Grid>
         </ErrorBoundary>
       }
     >
