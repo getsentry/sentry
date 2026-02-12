@@ -8,11 +8,11 @@ import {
   useBootstrapProjectsQuery,
   useBootstrapTeamsQuery,
 } from 'sentry/bootstrap/bootstrapRequests';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {DEPLOY_PREVIEW_CONFIG} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';

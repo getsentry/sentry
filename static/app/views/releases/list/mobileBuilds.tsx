@@ -5,7 +5,7 @@ import {Stack} from '@sentry/scraps/layout';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {
   getPreprodBuildsDisplay,
   PreprodBuildsDisplay,
@@ -55,8 +55,14 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
       query.cursor = cursor;
     }
 
-    if (searchQuery?.trim()) {
-      query.query = searchQuery.trim();
+    const sizeStateFilter =
+      activeDisplay === PreprodBuildsDisplay.SIZE ? '!size_state:not_ran' : '';
+    const combinedQuery = [searchQuery?.trim(), sizeStateFilter]
+      .filter(Boolean)
+      .join(' ');
+
+    if (combinedQuery) {
+      query.query = combinedQuery;
     }
 
     // Add project filter for multi-project endpoint
@@ -65,7 +71,7 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
     }
 
     return query;
-  }, [cursor, location, searchQuery, selectedProjectIds]);
+  }, [activeDisplay, cursor, location, searchQuery, selectedProjectIds]);
 
   const {
     data: buildsData,

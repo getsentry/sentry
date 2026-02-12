@@ -2,7 +2,8 @@ import type {ReactNode} from 'react';
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import OnboardingDrawerStore, {
@@ -256,7 +257,9 @@ function ReplayOnboardingCTAUpsell({
   );
 }
 
-const ButtonList = styled(ButtonBar)`
+const ButtonList = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;
 

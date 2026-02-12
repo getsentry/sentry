@@ -2,6 +2,7 @@ import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import BaseSearchBar from 'sentry/components/searchBar';
 import SearchDropdown from 'sentry/components/searchBar/searchDropdown';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
@@ -15,7 +16,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';

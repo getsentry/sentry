@@ -8,7 +8,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
+import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {
   modifyFilterOperatorQuery,
   modifyFilterValue,
@@ -33,7 +34,6 @@ import {prettifyTagKey} from 'sentry/utils/fields';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import FilterSelectorTrigger, {

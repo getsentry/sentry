@@ -11,7 +11,7 @@ import {Heading, Prose, Text} from '@sentry/scraps/text';
 
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSelector/integratedOrgSelector';
 import {RepoSelector} from 'sentry/components/prevent/repoSelector/repoSelector';

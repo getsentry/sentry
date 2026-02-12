@@ -16,7 +16,6 @@ from sentry.api.helpers.deprecation import deprecated
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
-from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 
 logger = logging.getLogger(__name__)
@@ -44,14 +43,6 @@ class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
             return Response(
                 status=401,
                 data={"error": "You must be authenticated to use this endpoint"},
-            )
-
-        if not get_seer_org_acknowledgement(group.organization):
-            return Response(
-                status=403,
-                data={
-                    "error": "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer."
-                },
             )
 
         path = "/v1/automation/autofix/update"

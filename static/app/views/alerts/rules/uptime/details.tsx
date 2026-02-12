@@ -2,7 +2,8 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {updateUptimeRule} from 'sentry/actionCreators/uptime';
@@ -13,8 +14,8 @@ import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -150,19 +151,19 @@ export default function UptimeAlertDetails() {
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <StatusToggleButton
               uptimeDetector={detector}
               onToggleStatus={data => toggleStatus(data)}
               size="sm"
               disabled={!canEdit}
-              {...(canEdit ? {} : {title: permissionTooltipText})}
+              {...(canEdit ? {} : {tooltipProps: {title: permissionTooltipText}})}
             />
             <LinkButton
               size="sm"
               icon={<IconEdit />}
               disabled={!canEdit}
-              title={canEdit ? undefined : permissionTooltipText}
+              tooltipProps={{title: canEdit ? undefined : permissionTooltipText}}
               to={makeAlertsPathname({
                 path: `/uptime-rules/${project.slug}/${detectorId}/`,
                 organization,
@@ -170,7 +171,7 @@ export default function UptimeAlertDetails() {
             >
               {t('Edit Rule')}
             </LinkButton>
-          </ButtonBar>
+          </Grid>
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>

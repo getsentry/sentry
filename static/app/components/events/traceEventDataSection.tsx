@@ -1,9 +1,9 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
@@ -450,7 +450,7 @@ export function TraceEventDataSection({
       disableCollapsePersistence
       actions={
         !stackTraceNotFound && (
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             {!displayOptions.includes('raw-stack-trace') && (
               <SegmentedControl
                 size="xs"
@@ -470,7 +470,7 @@ export function TraceEventDataSection({
               <LinkButton
                 size="xs"
                 href={rawStackTraceDownloadLink}
-                title={t('Download raw stack trace file')}
+                tooltipProps={{title: t('Download raw stack trace file')}}
                 onClick={() => {
                   trackAnalytics('stack-trace.download_clicked', {
                     organization,
@@ -489,7 +489,7 @@ export function TraceEventDataSection({
                   {...triggerProps}
                   icon={<IconSort />}
                   size="xs"
-                  title={sortByTooltip}
+                  tooltipProps={{title: sortByTooltip}}
                 />
               )}
               disabled={!!sortByTooltip}
@@ -529,7 +529,7 @@ export function TraceEventDataSection({
                 markdown: undefined,
               })}
             />
-          </ButtonBar>
+          </Grid>
         )
       }
     >

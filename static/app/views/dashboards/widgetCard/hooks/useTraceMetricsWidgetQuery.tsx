@@ -22,6 +22,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type TraceMetricsSeriesResponse = EventsTimeSeriesResponse;
@@ -147,7 +148,7 @@ export function useTraceMetricsSeriesQuery(
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFn(),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
       retry: hasQueueFeature
         ? false
@@ -324,7 +325,7 @@ export function useTraceMetricsTableQuery(
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFnTable(),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
       retry: hasQueueFeature
         ? false

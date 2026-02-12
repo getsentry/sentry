@@ -3,10 +3,14 @@ from __future__ import annotations
 from io import BytesIO
 from unittest.mock import patch
 
+import click
+import pytest
+
 from sentry.constants import ObjectStatus
 from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.runner.commands.cleanup import (
+    _cleanup,
     prepare_deletes_by_project,
     run_bulk_deletes_by_project,
     task_execution,
@@ -254,3 +258,52 @@ class UptimeResponseCaptureCleanupTest(TestCase):
 
         assert not UptimeResponseCapture.objects.filter(id=capture_id).exists()
         assert not File.objects.filter(id=file_id).exists()
+
+
+class PartitionValidationTest(TestCase):
+    """Tests for --partition-bucket and --partition-total flag validation in the cleanup command."""
+
+    def _run_cleanup_with_partition(
+        self,
+        partition_bucket: int | None = None,
+        partition_total: int | None = None,
+    ) -> None:
+        _cleanup(
+            model=(),
+            days=30,
+            concurrency=1,
+            silent=True,
+            router=None,
+            partition_bucket=partition_bucket,
+            partition_total=partition_total,
+            partition_key="id",
+        )
+
+    def test_partition_bucket_without_total(self) -> None:
+        with pytest.raises(
+            click.ClickException,
+            match="--partition-bucket and --partition-total must be used together",
+        ):
+            self._run_cleanup_with_partition(partition_bucket=0)
+
+    def test_partition_total_without_bucket(self) -> None:
+        with pytest.raises(
+            click.ClickException,
+            match="--partition-bucket and --partition-total must be used together",
+        ):
+            self._run_cleanup_with_partition(partition_total=4)
+
+    def test_partition_bucket_exceeds_total(self) -> None:
+        with pytest.raises(
+            click.ClickException,
+            match="--partition-bucket: 4 must be less than --partition-total 4",
+        ):
+            self._run_cleanup_with_partition(partition_bucket=4, partition_total=4)
+
+    def test_partition_negative_bucket(self) -> None:
+        with pytest.raises(click.ClickException, match="--partition-bucket: must be non-negative"):
+            self._run_cleanup_with_partition(partition_bucket=-1, partition_total=4)
+
+    def test_partition_zero_total(self) -> None:
+        with pytest.raises(click.ClickException, match="--partition-total: must be greater than 0"):
+            self._run_cleanup_with_partition(partition_bucket=0, partition_total=0)

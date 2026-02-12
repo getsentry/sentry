@@ -56,7 +56,7 @@ def build_trigger_action_task_params(
         "group_id": event_data.event.group_id,
         "occurrence_id": occurrence_id,
         "group_state": event_data.group_state,
-        "has_reappeared": event_data.has_reappeared,
+        "has_reappeared": False,  # TODO: remove when deployed trigger_action task doesn't expect it
         "has_escalated": event_data.has_escalated,
     }
 
@@ -83,10 +83,10 @@ def trigger_action(
     group_id: int,
     occurrence_id: str | None,
     group_state: GroupState,
-    has_reappeared: bool,
     has_escalated: bool,
     detector_id: int | None = None,  # TODO: remove
     notification_uuid: str | None = None,
+    **kwargs: dict[str, object],
 ) -> None:
     import uuid
 
@@ -114,7 +114,6 @@ def trigger_action(
             workflow_id=workflow_id,
             occurrence_id=occurrence_id,
             group_state=group_state,
-            has_reappeared=has_reappeared,
             has_escalated=has_escalated,
         )
     elif activity_id is not None:

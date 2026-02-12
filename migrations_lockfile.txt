@@ -21,7 +21,7 @@ monitors: 0013_delete_monitor_is_muted_field
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notifications: 0002_notificationmessage_jsonfield
+notifications: 0003_notification_thread_models
 
 preprod: 0026_add_initial_snapshot_models
 
@@ -31,7 +31,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-sentry: 1026_add_index_groupopenperiodactivity_open_period_type_event_id
+sentry: 1029_delete_group_open_period_event_id
 
 social_auth: 0003_social_auth_json_field
 

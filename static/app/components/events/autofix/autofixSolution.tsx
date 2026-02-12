@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -325,7 +325,7 @@ function CopySolutionButton({
   return (
     <Button
       size="sm"
-      title="Copy plan as Markdown / LLM prompt"
+      tooltipProps={{title: 'Copy plan as Markdown / LLM prompt'}}
       onClick={() => copy(text, {successMessage: t('Solution copied to clipboard.')})}
       analyticsEventName="Autofix: Copy Solution as Markdown"
       analyticsEventKey="autofix.solution.copy"
@@ -551,7 +551,7 @@ function AutofixSolutionDisplay({
           <Button
             size="zero"
             priority="transparent"
-            title={t('Chat with Seer')}
+            tooltipProps={{title: t('Chat with Seer')}}
             onClick={handleSelectDescription}
             analyticsEventName="Autofix: Solution Chat"
             analyticsEventKey="autofix.solution.chat"
@@ -616,7 +616,7 @@ function AutofixSolutionDisplay({
             </SubmitButton>
           </InstructionsInputWrapper>
         </AddInstructionWrapper>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <CopySolutionButton solution={solution} event={event} rootCause={rootCause} />
           <Tooltip
             isHoverable
@@ -665,12 +665,12 @@ function AutofixSolutionDisplay({
               analyticsParams={{
                 instruction_provided: hasInstructions,
               }}
-              title={t('Implement this solution in code with Seer')}
+              tooltipProps={{title: t('Implement this solution in code with Seer')}}
             >
               {t('Code It Up')}
             </Button>
           </Tooltip>
-        </ButtonBar>
+        </Grid>
         {status === AutofixStatus.COMPLETED && (
           <AutofixStepFeedback stepType="solution" groupId={groupId} runId={runId} />
         )}

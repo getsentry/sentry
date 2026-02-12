@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -90,7 +90,7 @@ function DebugFileRow({
         </Description>
       </Stack>
       <Flex justify="end" align="start" marginTop="md">
-        <ButtonBar gap="xs">
+        <Grid flow="column" align="center" gap="xs">
           <Tooltip
             disabled={hasRole}
             title={tct(
@@ -136,7 +136,7 @@ function DebugFileRow({
               </Tooltip>
             )}
           </Access>
-        </ButtonBar>
+        </Grid>
       </Flex>
     </Fragment>
   );

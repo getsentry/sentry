@@ -60,8 +60,8 @@ logger = logging.getLogger(__name__)
 
 UPTIME_SUBSCRIPTION_TYPE = "uptime_monitor"
 MAX_AUTO_SUBSCRIPTIONS_PER_ORG = 1
-MAX_MANUAL_SUBSCRIPTIONS_PER_ORG = 100
-MAX_MONITORS_PER_DOMAIN = 100
+MAX_MANUAL_SUBSCRIPTIONS_PER_ORG = 500
+MAX_MONITORS_PER_DOMAIN = 500
 
 
 def resolve_uptime_issue(detector: Detector) -> None:

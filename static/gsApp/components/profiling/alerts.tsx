@@ -6,6 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -19,7 +20,6 @@ import {getProfileDurationCategoryForPlatform} from 'sentry/utils/profiling/plat
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {openAM2ProfilingUpsellModal} from 'getsentry/actionCreators/modal';
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
