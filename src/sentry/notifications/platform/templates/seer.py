@@ -5,11 +5,11 @@ from typing import TypedDict
 
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.notifications.platform.registry import template_registry
-from sentry.notifications.platform.templates.types import NotificationTemplateSource
 from sentry.notifications.platform.types import (
     NotificationCategory,
     NotificationData,
     NotificationRenderedTemplate,
+    NotificationSource,
     NotificationTemplate,
     ParagraphBlock,
     PlainTextBlock,
@@ -33,7 +33,7 @@ def _get_next_stopping_point(current: AutofixStoppingPoint) -> AutofixStoppingPo
 @dataclass(frozen=True)
 class SeerAutofixError(NotificationData):
     error_message: str
-    source: NotificationTemplateSource = NotificationTemplateSource.SEER_AUTOFIX_ERROR
+    source: NotificationSource = NotificationSource.SEER_AUTOFIX_ERROR
     error_title: str = "Seer had some trouble..."
 
 
@@ -41,7 +41,7 @@ class SeerAutofixError(NotificationData):
 class SeerAutofixErrorTemplate(NotificationTemplate[SeerAutofixError]):
     category = NotificationCategory.SEER
     example_data = SeerAutofixError(
-        source=NotificationTemplateSource.SEER_AUTOFIX_ERROR,
+        source=NotificationSource.SEER_AUTOFIX_ERROR,
         error_message="(401): Could not connect to your GitHub repository for this project.",
     )
 
@@ -77,8 +77,7 @@ class SeerAutofixUpdate(NotificationData):
     pull_requests: list[SeerAutofixPullRequest] = field(default_factory=list)
     summary: str | None = None
     has_progressed: bool = False
-    automation_stopping_point: AutofixStoppingPoint | None = None
-    source: NotificationTemplateSource = NotificationTemplateSource.SEER_AUTOFIX_UPDATE
+    source: NotificationSource = NotificationSource.SEER_AUTOFIX_UPDATE
 
     @property
     def next_point(self) -> AutofixStoppingPoint | None:
@@ -105,7 +104,7 @@ class SeerAutofixUpdate(NotificationData):
 class SeerAutofixUpdateTemplate(NotificationTemplate[SeerAutofixUpdate]):
     category = NotificationCategory.SEER
     example_data = SeerAutofixUpdate(
-        source=NotificationTemplateSource.SEER_AUTOFIX_UPDATE,
+        source=NotificationSource.SEER_AUTOFIX_UPDATE,
         run_id=12152025,
         project_id=123,
         group_id=456,
@@ -152,7 +151,7 @@ class SeerAutofixTrigger(NotificationData):
     project_id: int
     group_id: int
     run_id: int | None = None
-    source: NotificationTemplateSource = NotificationTemplateSource.SEER_AUTOFIX_TRIGGER
+    source: NotificationSource = NotificationSource.SEER_AUTOFIX_TRIGGER
     stopping_point: AutofixStoppingPoint = AutofixStoppingPoint.ROOT_CAUSE
 
     @staticmethod

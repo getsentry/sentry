@@ -221,6 +221,7 @@ export function SeerSectionCtaButton({
       analyticsEventKey="issue_details.seer_opened"
       analyticsEventName="Issue Details: Seer Opened"
       analyticsParams={{
+        group_id: group.id,
         has_streamlined_ui: hasStreamlinedUI,
         autofix_exists: Boolean(autofixData?.steps?.length),
         autofix_step_type: lastStep?.type ?? null,

@@ -48,7 +48,7 @@ from sentry.shared_integrations.exceptions import (
     UnknownHostError,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.occurrences_rpc import Occurrences
+from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.referrer import Referrer
 from sentry.users.models.identity import Identity
 from sentry.utils import metrics
@@ -541,6 +541,7 @@ class PRCommentWorkflow(ABC):
                 limit=5,
                 referrer=self.referrer.value,
                 config=SearchResolverConfig(),
+                occurrence_category=OccurrenceCategory.ERROR,
             )
             return [
                 {"group_id": row["group_id"], "event_count": row["count()"]}

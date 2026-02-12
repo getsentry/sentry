@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Badge} from '@sentry/scraps/badge';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
-import {DesyncedFilterIndicator} from 'sentry/components/pageFilters/desyncedFilter';
 import {PlatformList} from 'sentry/components/platformList';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -11,7 +10,6 @@ import type {Project} from 'sentry/types/project';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
 
 interface ProjectPageFilterTriggerProps extends Omit<TriggerProps, 'value'> {
-  desynced: boolean;
   memberProjects: Project[];
   nonMemberProjects: Project[];
   ready: boolean;
@@ -23,7 +21,6 @@ export function ProjectPageFilterTrigger({
   memberProjects,
   nonMemberProjects,
   ready,
-  desynced,
   ...props
 }: ProjectPageFilterTriggerProps) {
   const isMemberProjectsSelected = memberProjects.every(p =>
@@ -85,7 +82,6 @@ export function ProjectPageFilterTrigger({
     >
       <TriggerLabelWrap>
         <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
-        {desynced && <DesyncedFilterIndicator role="presentation" />}
       </TriggerLabelWrap>
       {remainingCount > 0 && (
         <StyledBadge variant="muted">{`+${remainingCount}`}</StyledBadge>

@@ -78,7 +78,7 @@ export function QueryField({
               priority="transparent"
               onClick={onDelete}
               icon={<IconDelete />}
-              title={t('Remove group')}
+              tooltipProps={{title: t('Remove group')}}
               aria-label={t('Remove group')}
               disabled={disabled}
             />

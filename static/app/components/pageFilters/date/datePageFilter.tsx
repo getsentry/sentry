@@ -1,5 +1,4 @@
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
-import {DesyncedFilterMessage} from 'sentry/components/pageFilters/desyncedFilter';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {TimeRangeSelectorProps} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
@@ -25,9 +24,8 @@ export function DatePageFilter({
   ...selectProps
 }: DatePageFilterProps) {
   const router = useRouter();
-  const {selection, desyncedFilters, isReady: pageFilterIsReady} = usePageFilters();
+  const {selection, isReady: pageFilterIsReady} = usePageFilters();
   const {start, end, period, utc} = selection.datetime;
-  const desynced = desyncedFilters.has('datetime');
 
   return (
     <TimeRangeSelector
@@ -37,7 +35,6 @@ export function DatePageFilter({
       utc={utc}
       relative={period}
       disabled={disabled ?? !pageFilterIsReady}
-      desynced={desynced}
       onChange={timePeriodUpdate => {
         const {relative, ...startEndUtc} = timePeriodUpdate;
         const newTimePeriod = {period: relative, ...startEndUtc};
@@ -50,8 +47,7 @@ export function DatePageFilter({
         });
       }}
       menuTitle={menuTitle ?? t('Filter Time Range')}
-      menuWidth={(menuWidth ?? desynced) ? '22em' : undefined}
-      menuBody={desynced && <DesyncedFilterMessage />}
+      menuWidth={menuWidth ?? '22em'}
     />
   );
 }

@@ -303,12 +303,13 @@ function DashboardTable({
                     (defined(dataRow.prebuiltId) &&
                       !organization.features.includes('dashboards-prebuilt-controls'))
                   }
-                  title={
-                    defined(dataRow.prebuiltId) &&
-                    !organization.features.includes('dashboards-prebuilt-controls')
-                      ? t('Prebuilt dashboards cannot be duplicated')
-                      : limitMessage
-                  }
+                  tooltipProps={{
+                    title:
+                      defined(dataRow.prebuiltId) &&
+                      !organization.features.includes('dashboards-prebuilt-controls')
+                        ? t('Prebuilt dashboards cannot be duplicated')
+                        : limitMessage,
+                  }}
                 />
               )}
             </DashboardCreateLimitWrapper>
@@ -329,11 +330,11 @@ function DashboardTable({
               disabled={
                 (dashboards && dashboards.length <= 1) || defined(dataRow.prebuiltId)
               }
-              title={
-                defined(dataRow.prebuiltId)
+              tooltipProps={{
+                title: defined(dataRow.prebuiltId)
                   ? t('Prebuilt dashboards cannot be deleted')
-                  : undefined
-              }
+                  : undefined,
+              }}
             />
           </Flex>
         </Flex>

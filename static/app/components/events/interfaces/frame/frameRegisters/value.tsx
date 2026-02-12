@@ -45,7 +45,7 @@ export function FrameRegisterValue({meta, value}: Props) {
           priority="transparent"
           icon={<IconSliders size="xs" />}
           onClick={toggleFormat}
-          title={formatLabel}
+          tooltipProps={{title: formatLabel}}
           aria-label={t('Toggle register value format')}
         />
       </div>
