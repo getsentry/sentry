@@ -168,6 +168,14 @@ This is an unsorted set that contains the spans payload corresponding to a segme
 - The parent span id represents the parent span of the root of the subsegment
 - Each entry is the payload of a span.
 
+```
+span-buf:p:{PROJECT_AND_TRACE}:{PARENT_SPAN_ID}
+```
+
+This is the equivalent of the key above, except that instead of storing full span payloads
+it will keys pointing to where the payloads are stored. The size at which payloads are stored
+separately is configurable.
+
 **Redirect set**
 
 ```
@@ -201,6 +209,13 @@ As new spans for a segments arrive they either
 - represent a subtree that is higher in the segment with respect to the existing
   spans. In that case everything is merged and this hash is updated to represent
   the current state of the tree.
+
+```
+span-buf:psr:{PROJECT_AND_TRACE}
+```
+
+This is the equivalent of the key above, except used exclusively for the spans that are using
+the payload set.
 
 **Priority Queue**
 

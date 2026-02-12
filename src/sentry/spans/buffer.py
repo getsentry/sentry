@@ -61,6 +61,9 @@ Glossary for types of keys:
     * span-buf:ssr:* -- redirect mappings so that each incoming span ID can be mapped to the right span-buf:s: set.
     * span-buf:ic:* -- ingested count, tracks total number of spans originally ingested for a segment (used to calculate dropped spans for outcome tracking)
     * span-buf:ibc:* -- ingested byte count, tracks total bytes originally ingested for a segment
+    * span-buf:p:* -- payload set keys, containing small span payloads or keys pointing to full payloads stored separately.
+    * span-buf:p:ld:* -- payload keys, containing chunked payloads of span payloads for a subsegment.
+    * span-buf:psr:* -- payload set redirect mappings so that each incoming span ID can be mapped to the right span-buf:p: set.
 """
 
 from __future__ import annotations
