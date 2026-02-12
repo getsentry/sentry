@@ -145,7 +145,7 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
 
         # Task should be spawned with correct arguments
         mock_apply_async.assert_called_once_with(
-            args=(self.organization.id, self.project.id, "test-repo", ""),
+            args=(self.organization.id, self.project.id, "test-repo"),
             headers={"sentry-propagate-traces": False},
         )
 
@@ -269,7 +269,7 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
 
         # Only the GitHub repo should have a task spawned
         mock_apply_async.assert_called_once_with(
-            args=(self.organization.id, self.project.id, "github-repo", ""),
+            args=(self.organization.id, self.project.id, "github-repo"),
             headers={"sentry-propagate-traces": False},
         )
 
@@ -366,7 +366,6 @@ class TestRunMissingSdkIntegrationDetectorForProject(TestCase):
             organization_id=999999,
             project_id=self.project.id,
             repo_name="test-repo",
-            source_root="",
         )
         assert result is None
         assert not mock_seer_client.called
@@ -387,7 +386,6 @@ class TestRunMissingSdkIntegrationDetectorForProject(TestCase):
             organization_id=self.organization.id,
             project_id=999999,
             repo_name="test-repo",
-            source_root="",
         )
         assert result is None
         assert not mock_seer_client.called
@@ -404,7 +402,6 @@ class TestRunMissingSdkIntegrationDetectorForProject(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             repo_name="test-repo",
-            source_root="",
         )
 
         assert result is None
@@ -433,11 +430,13 @@ class TestRunMissingSdkIntegrationDetectorForProject(TestCase):
         mock_client_instance.get_run.return_value = mock_state
         mock_seer_client.return_value = mock_client_instance
 
+        self.project.platform = "python"
+        self.project.save()
+
         result = run_missing_sdk_integration_detector_for_project_task(
             organization_id=self.organization.id,
             project_id=self.project.id,
             repo_name="test-repo",
-            source_root="src/",
         )
 
         # Should return the list of missing integrations
@@ -449,10 +448,11 @@ class TestRunMissingSdkIntegrationDetectorForProject(TestCase):
         assert call_kwargs.get("artifact_key") == "missing_integrations"
         assert call_kwargs.get("artifact_schema") == MissingSdkIntegrationsResult
 
-        # Check that the prompt includes the repo name and source root
+        # Check that the prompt includes the repo name, slug, and platform
         prompt = mock_client_instance.start_run.call_args[0][0]
         assert "test-repo" in prompt
-        assert "src/" in prompt
+        assert self.project.slug in prompt
+        assert "python" in prompt
 
         # Verify that an instrumentation issue was created for each missing integration
         assert mock_create_issue.call_count == 2
@@ -502,7 +502,6 @@ class TestRunMissingSdkIntegrationDetectorForProject(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             repo_name="test-repo",
-            source_root="",
         )
         assert result is None
 
@@ -538,7 +537,6 @@ class TestRunMissingSdkIntegrationDetectorForProject(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             repo_name="test-repo",
-            source_root="",
         )
 
         assert result == []
