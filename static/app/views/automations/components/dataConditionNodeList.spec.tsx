@@ -310,4 +310,44 @@ describe('DataConditionNodeList', () => {
       )
     ).toBeInTheDocument();
   });
+
+  describe('condition nodes', () => {
+    it('issue category node', async () => {
+      const condition = DataConditionFixture({
+        id: 'issue-category',
+        type: DataConditionType.ISSUE_CATEGORY,
+        comparison: {
+          value: 1,
+          include: false,
+        },
+      });
+
+      render(
+        <AutomationBuilderContext.Provider value={defaultContextProps}>
+          <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+            <AutomationBuilderConflictContext.Provider
+              value={defaultConflictContextProps}
+            >
+              <DataConditionNodeList {...defaultProps} conditions={[condition]} />
+            </AutomationBuilderConflictContext.Provider>
+          </AutomationBuilderErrorContext.Provider>
+        </AutomationBuilderContext.Provider>,
+        {organization}
+      );
+
+      await userEvent.click(await screen.findByLabelText('Include or exclude'));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'not equal to'}));
+
+      expect(mockUpdateCondition).toHaveBeenLastCalledWith('issue-category', {
+        comparison: {value: 1, include: false},
+      });
+
+      await userEvent.click(await screen.findByLabelText('Issue category'));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'metric'}));
+
+      expect(mockUpdateCondition).toHaveBeenLastCalledWith('issue-category', {
+        comparison: {value: 11, include: false},
+      });
+    });
+  });
 });
