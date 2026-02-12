@@ -310,10 +310,11 @@ describe('SelectField placeholder', () => {
 });
 
 describe('SelectField a11y', () => {
-  it('renders required indicator when required is true', () => {
+  it('includes required text for screen readers when required is true', () => {
     render(<TestForm label="Favorite Fruit" required />);
 
-    expect(screen.getByText('*')).toBeInTheDocument();
+    // The label should include visually-hidden "(required)" text for screen readers
+    expect(screen.getByText('(required)')).toBeInTheDocument();
   });
 
   it('renders hint text', () => {
