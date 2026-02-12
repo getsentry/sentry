@@ -10,7 +10,7 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Version from 'sentry/components/version';

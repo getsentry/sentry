@@ -8,10 +8,10 @@ export const sampleDurationCategoricalData: CategoricalSeries = {
     valueUnit: DurationUnit.MILLISECOND,
   },
   values: [
-    {category: '/api/users', value: 245},
-    {category: '/api/orders', value: 520},
-    {category: '/api/products', value: 180},
-    {category: '/api/auth', value: 95},
-    {category: '/api/search', value: 1200},
+    {category: 'Chrome', value: 245},
+    {category: 'Firefox', value: 520},
+    {category: 'Safari', value: 180},
+    {category: 'Edge', value: 95},
+    {category: 'Opera', value: 1200},
   ],
 };

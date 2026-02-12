@@ -246,12 +246,21 @@ def test_field_values(a, op, b) -> None:
         ("p50(transaction.duration)", "/", "p100(transaction.duration)"),
         ("count_if(user.email,equals,test@example.com)", "/", 2),
         (100, "-", 'count_if(some_tag,notEquals,"something(really)annoying,like\\"this\\"")'),
+        ("p50_if(span.duration,is_transaction,equals,true)", "/", 2),
+        ("tpm()", "+", "failure_rate_if(is_transaction,equals,true)"),
+        ("avg_if(span.duration,is_transaction,equals,true)", "*", 100),
         (
             "performance_score(measurements.score.lcp)",
             "+",
             "performance_score(measurements.score.fcp)",
         ),
         (100, "*", "performance_score(measurements.score.cls)"),
+        (
+            "opportunity_score(measurements.score.lcp)",
+            "+",
+            "opportunity_score(measurements.score.fcp)",
+        ),
+        (100, "*", "opportunity_score(measurements.score.cls)"),
     ],
 )
 def test_function_values(lhs, op, rhs) -> None:

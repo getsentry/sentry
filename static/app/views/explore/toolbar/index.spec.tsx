@@ -696,7 +696,6 @@ describe('ExploreToolbar', () => {
     expect(router.location.query).toEqual({
       aggregate: 'count(span.duration)',
       dataset: 'events_analytics_platform',
-      eventTypes: 'transaction',
       interval: '1h',
       project: 'proj-slug',
       query: '',

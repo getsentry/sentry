@@ -10,7 +10,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
-import * as pageFilters from 'sentry/actionCreators/pageFilters';
+import * as pageFilters from 'sentry/components/pageFilters/actions';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 import ProjectDetail from './projectDetail';

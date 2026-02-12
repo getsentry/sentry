@@ -17,6 +17,7 @@ from sentry.conduit.auth import get_conduit_credentials
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.explorer.client import SeerExplorerClient
+from sentry.seer.explorer.client_utils import has_seer_explorer_access_with_detail
 from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -78,6 +79,10 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         """
         Get the current state of a Seer Explorer session.
         """
+        has_access, error = has_seer_explorer_access_with_detail(organization, request.user)
+        if not has_access:
+            raise PermissionDenied(error)
+
         if not run_id:
             return Response({"session": None}, status=404)
 
@@ -107,6 +112,10 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         - run_id: The run ID.
         - conduit: Optional Conduit credentials for streaming (if streaming is enabled).
         """
+        has_access, error = has_seer_explorer_access_with_detail(organization, request.user)
+        if not has_access:
+            raise PermissionDenied(error)
+
         serializer = SeerExplorerChatSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)

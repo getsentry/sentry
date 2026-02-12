@@ -12,7 +12,8 @@ import {
 import cloneDeep from 'lodash/cloneDeep';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {TextArea} from '@sentry/scraps/textarea';
 
@@ -224,17 +225,18 @@ export function FeedbackModal<T extends Data>({
               <Button onClick={onBack}>{t('Back')}</Button>
             </BackButtonWrapper>
           )}
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <Button onClick={closeModal}>{t('Cancel')}</Button>
             <Button
               priority="primary"
-              title={
-                props.children === undefined
-                  ? defined(state.subject)
-                    ? undefined
-                    : t('Required fields must be filled out')
-                  : primaryDisabledReason
-              }
+              tooltipProps={{
+                title:
+                  props.children === undefined
+                    ? defined(state.subject)
+                      ? undefined
+                      : t('Required fields must be filled out')
+                    : primaryDisabledReason,
+              }}
               onClick={onNext ?? (() => handleSubmit(submitEventData))}
               disabled={
                 props.children === undefined
@@ -244,7 +246,7 @@ export function FeedbackModal<T extends Data>({
             >
               {onNext ? t('Next') : isScreenSmall ? t('Submit') : t('Submit Feedback')}
             </Button>
-          </ButtonBar>
+          </Grid>
         </Footer>
       );
     },

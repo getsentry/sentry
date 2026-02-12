@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import * as qs from 'query-string';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 export interface TraceViewQueryParams {

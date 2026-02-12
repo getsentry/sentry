@@ -5,16 +5,15 @@ from functools import wraps
 from typing import Any, TypedDict
 
 import sentry_sdk
-from django.db.models import Q
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import EventSerializer
-from sentry.constants import ObjectStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.seer.sentry_data_models import IssueDetails
+from sentry.seer.utils import filter_repo_by_provider
 
 logger = logging.getLogger(__name__)
 
@@ -64,10 +63,9 @@ def get_repo_and_projects(
     organization_id: int,
     provider: str,
     external_id: str,
+    owner: str,
+    name: str,
     run_id: int | None = None,
-    # TODO(kddubey): have seer supply this, then make all seer stuff use the same repo query
-    owner: str | None = None,
-    name: str | None = None,
 ) -> RepoProjects:
     """
     Returns auxilliary info about the repo and its projects.
@@ -81,12 +79,7 @@ def get_repo_and_projects(
             "run_id": run_id,
         }
     )
-    repo = Repository.objects.filter(
-        Q(provider=provider) | Q(provider=f"integrations:{provider}"),
-        organization_id=organization_id,
-        external_id=external_id,
-        status=ObjectStatus.ACTIVE,
-    ).first()
+    repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
     if repo is None:
         raise Repository.DoesNotExist
     repo_configs = list(

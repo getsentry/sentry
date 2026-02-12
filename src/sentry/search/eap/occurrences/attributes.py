@@ -46,13 +46,13 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
                 search_type="string",
             ),
             ResolvedAttribute(
-                public_alias="release",
-                internal_name="release",
+                public_alias="type",
+                internal_name="type",
                 search_type="string",
             ),
             ResolvedAttribute(
-                public_alias="type",
-                internal_name="type",
+                public_alias="release",
+                internal_name="release",
                 search_type="string",
             ),
         ]

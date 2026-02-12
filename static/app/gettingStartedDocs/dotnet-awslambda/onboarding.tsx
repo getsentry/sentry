@@ -6,6 +6,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {logsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
+import {metricsVerify} from 'sentry/gettingStartedDocs/dotnet/metrics';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -156,6 +157,8 @@ export const onboarding: OnboardingConfig = {
           language: 'shell',
           code: 'curl -X GET -I https://url.of.server.aws/api/bad',
         },
+        logsVerify(params),
+        metricsVerify(params),
         {
           type: 'text',
           text: tct(
@@ -169,13 +172,5 @@ export const onboarding: OnboardingConfig = {
         },
       ],
     },
-    ...(params.isLogsSelected
-      ? [
-          {
-            title: t('Verify Logs'),
-            content: [logsVerify(params)],
-          },
-        ]
-      : []),
   ],
 };

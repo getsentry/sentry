@@ -2,8 +2,8 @@ import {useCallback, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
@@ -51,10 +51,10 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
   }, [timelineScale, maxScale, setTimelineScale, organization]);
 
   return (
-    <ButtonBar gap="0">
+    <Grid flow="column" align="center" gap="0">
       <Button
         size="xs"
-        title={t('Zoom out')}
+        tooltipProps={{title: t('Zoom out')}}
         icon={<IconSubtract />}
         priority="transparent"
         onClick={handleZoomOut}
@@ -67,14 +67,14 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
       </span>
       <Button
         size="xs"
-        title={t('Zoom in')}
+        tooltipProps={{title: t('Zoom in')}}
         icon={<IconAdd />}
         priority="transparent"
         onClick={handleZoomIn}
         aria-label={t('Zoom in')}
         disabled={timelineScale === maxScale || isLoading}
       />
-    </ButtonBar>
+    </Grid>
   );
 }
 
@@ -101,7 +101,10 @@ export default function TimeAndScrubberGrid({
   });
 
   return (
-    <Grid id="replay-timeline-tooltip-container" isCompact={isCompact}>
+    <TimeAndScrubberGridLayout
+      id="replay-timeline-tooltip-container"
+      isCompact={isCompact}
+    >
       <Flex justify="center" padding="0 lg" area="currentTime">
         <ReplayCurrentTime />
       </Flex>
@@ -141,11 +144,11 @@ export default function TimeAndScrubberGrid({
           <Duration duration={[durationMs, 'ms']} precision="sec" />
         )}
       </Flex>
-    </Grid>
+    </TimeAndScrubberGridLayout>
   );
 }
 
-const Grid = styled('div')<{isCompact: boolean}>`
+const TimeAndScrubberGridLayout = styled('div')<{isCompact: boolean}>`
   width: 100%;
   display: grid;
   grid-template-areas:

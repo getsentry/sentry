@@ -2,9 +2,10 @@ import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import type {InputProps} from '@sentry/scraps/input';
 import {InputGroup} from '@sentry/scraps/input';
+import {Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -176,8 +177,7 @@ function EditTagHighlightSection({
                 size="xs"
                 onClick={() => onAddTag(tagKey)}
                 disabled={isDisabled}
-                title={isDisabled && t('Already highlighted')}
-                tooltipProps={{delay: 500}}
+                tooltipProps={{title: isDisabled && t('Already highlighted'), delay: 500}}
               />
               <HighlightKey
                 disabled={isDisabled}
@@ -278,8 +278,10 @@ function EditContextHighlightSection({
                         size="xs"
                         onClick={() => onAddContextKey(contextType, contextKey)}
                         disabled={isDisabled}
-                        title={isDisabled && t('Already highlighted')}
-                        tooltipProps={{delay: 500}}
+                        tooltipProps={{
+                          title: isDisabled && t('Already highlighted'),
+                          delay: 500,
+                        }}
                       />
                       <HighlightKey
                         disabled={isDisabled}
@@ -404,7 +406,7 @@ export default function EditHighlightsModal({
           <IconInfo />
           <div>{t('Changes are applied to all issues for this project')}</div>
         </FooterInfo>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Button
             onClick={() => {
               trackAnalytics('highlights.edit_modal.cancel_clicked', {organization});
@@ -458,7 +460,7 @@ export default function EditHighlightsModal({
           >
             {isPending ? t('Saving...') : t('Apply to Project')}
           </Button>
-        </ButtonBar>
+        </Grid>
       </Footer>
     </Fragment>
   );

@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -169,7 +170,7 @@ export default function AccountSecurity() {
                     </AuthenticatorTitle>
                     <AuthenticatorDescription>{description}</AuthenticatorDescription>
                   </AuthenticatorDetails>
-                  <ButtonBar>
+                  <Grid flow="column" align="center" gap="md">
                     {!isBackupInterface && !isEnrolled && hasVerifiedEmail && (
                       <LinkButton
                         to={`/settings/account/security/mfa/${id}/enroll/`}
@@ -203,18 +204,18 @@ export default function AccountSecurity() {
                           size="sm"
                           aria-label={t('Delete')}
                           icon={<IconDelete />}
-                          title={
-                            deleteDisabled
+                          tooltipProps={{
+                            title: deleteDisabled
                               ? t(
                                   `Two-factor authentication is required for organization(s): %s.`,
                                   formatOrgSlugs()
                                 )
-                              : undefined
-                          }
+                              : undefined,
+                          }}
                         />
                       </RemoveConfirm>
                     )}
-                  </ButtonBar>
+                  </Grid>
                 </AuthenticatorPanelItem>
               );
             })}
