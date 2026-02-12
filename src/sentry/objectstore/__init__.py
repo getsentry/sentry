@@ -57,8 +57,9 @@ def create_client() -> Client:
         timeout_ms=options.get("timeout_ms", None),
         connection_kwargs=options.get(
             "connection_kwargs",
-            # Workaround for 0.0.14's default read timeout. Can be removed with 0.0.15
-            {"timeout": urllib3.Timeout(connect=0.1)},
+            # Set explicit connect (0.1s) and read (5.0s) timeouts
+            # Read timeout needs to be higher to handle slower DELETE operations
+            {"timeout": urllib3.Timeout(connect=0.1, read=5.0)},
         ),
     )
 
