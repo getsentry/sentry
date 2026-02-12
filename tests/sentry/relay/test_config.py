@@ -21,7 +21,6 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import ProjectConfig, TransactionNameRule, get_project_config, trimming
-from sentry.relay.config.trimming.base import TrimmingConfig, TrimmingConfigs
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
@@ -1640,19 +1639,20 @@ def test_project_config_trusted_relay_settings(
 
 @django_db_all
 @region_silo_test
-@pytest.mark.parametrize("span_trimming_config", [None, TrimmingConfig(max_size=17)])
-def test_project_config_trimming(default_project, span_trimming_config):
+@pytest.mark.parametrize("trimming_configs", [{}, {"span": {"maxSize": 17}}])
+def test_project_config_trimming(default_project, trimming_configs):
     with patch.object(
         trimming.backend,
         "get_trimming_configs",
-        return_value=TrimmingConfigs(span=span_trimming_config),
+        return_value=trimming_configs,
     ):
         project_cfg = get_project_config(default_project)
 
         cfg = project_cfg.to_dict()["config"]
-        if span_trimming_config is None:
-            assert "trimming" not in cfg
-        else:
+
+        if trimming_configs:
             assert cfg["trimming"] == {"span": {"maxSize": 17}}
+        else:
+            assert "trimming" not in cfg
 
         _validate_project_config(cfg)

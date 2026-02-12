@@ -1184,8 +1184,8 @@ def _get_project_config(
 
     with sentry_sdk.start_span(op="get_trimming_configs"):
         trimming_configs = trimming.backend.get_trimming_configs(project.organization)
-        if not trimming_configs.is_empty():
-            config["trimming"] = trimming_configs.to_object()
+        if trimming_configs:
+            config["trimming"] = trimming_configs
 
     with sentry_sdk.start_span(op="get_all_quotas"):
         if quotas_config := get_quotas(project, keys=project_keys):

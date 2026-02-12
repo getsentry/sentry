@@ -123,9 +123,7 @@ def test_internal_relays_should_receive_full_configs(
     else:
         assert safe.get_path(cfg, "config", "retentions") is None
 
-    trimming_configs = trimming.backend.get_trimming_configs(
-        default_project.organization
-    ).to_object()
+    trimming_configs = trimming.backend.get_trimming_configs(default_project.organization)
     if trimming_configs:
         assert safe.get_path(cfg, "config", "trimming") == trimming_configs
     else:
