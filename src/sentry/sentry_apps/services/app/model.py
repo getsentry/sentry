@@ -202,3 +202,18 @@ class SentryAppUpdateArgs(TypedDict, total=False):
     events: list[str]
     name: str
     # TODO add whatever else as needed
+
+
+def _utc_now() -> datetime.datetime:
+    return datetime.datetime.now(datetime.UTC)
+
+
+class RpcInstallationTokenInfo(RpcModel):
+    """
+    Information about an installation token including its creation date.
+    Used for displaying token info with proper masking in the UI.
+    """
+
+    token: str = ""
+    token_last_characters: str = ""
+    date_added: datetime.datetime = Field(default_factory=_utc_now)

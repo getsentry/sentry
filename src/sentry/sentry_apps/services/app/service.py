@@ -20,7 +20,11 @@ from sentry.sentry_apps.services.app import (
     RpcSentryAppService,
     SentryAppInstallationFilterArgs,
 )
-from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext, SentryAppUpdateArgs
+from sentry.sentry_apps.services.app.model import (
+    RpcInstallationTokenInfo,
+    RpcSentryAppComponentContext,
+    SentryAppUpdateArgs,
+)
 from sentry.silo.base import SiloMode
 from sentry.users.services.user import RpcUser
 
@@ -118,6 +122,17 @@ class AppService(RpcService):
     @rpc_method
     @abc.abstractmethod
     def get_installation_token(self, *, organization_id: int, provider: str) -> str | None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def get_installation_token_info(
+        self, *, organization_id: int, provider: str
+    ) -> RpcInstallationTokenInfo | None:
+        """
+        Get installation token with metadata including creation date.
+        Used for displaying token info with proper masking in the UI.
+        """
         pass
 
     @rpc_method
