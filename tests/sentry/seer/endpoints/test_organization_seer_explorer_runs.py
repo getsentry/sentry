@@ -251,15 +251,14 @@ class TestOrganizationSeerExplorerRunsEndpointFeatureFlags(APITestCase):
 
     def test_missing_seer_explorer_flag(self) -> None:
         """Missing seer-explorer flag is caught by endpoint-level explorer access check"""
-        with self.feature({"organizations:gen-ai-features": True}):
-            response = self.client.get(self.url)
-            assert response.status_code == 403
-
-    def test_missing_seer_acknowledgement(self) -> None:
-        """Missing Seer acknowledgement is caught by endpoint-level explorer access check"""
         with self.feature(
-            {"organizations:gen-ai-features": True, "organizations:seer-explorer": True}
+            {
+                "organizations:gen-ai-features": True,
+                "organizations:gen-ai-consent-flow-removal": True,
+            }
         ):
+            self.organization.flags.allow_joinleave = True
+            self.organization.save()
             response = self.client.get(self.url)
             assert response.status_code == 403
 
