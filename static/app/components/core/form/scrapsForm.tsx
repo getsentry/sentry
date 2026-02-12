@@ -1,4 +1,9 @@
-import {createFormHook, formOptions, revalidateLogic} from '@tanstack/react-form';
+import {
+  createFormHook,
+  formOptions,
+  revalidateLogic,
+  type DeepKeys,
+} from '@tanstack/react-form';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {FieldMeta} from '@sentry/scraps/form/field/meta';
@@ -78,3 +83,41 @@ function FormWrapper({children}: {children: React.ReactNode}) {
 }
 
 export const useScrapsForm = useAppForm;
+
+/**
+ * Type for field errors that can be set after form submission (e.g., from backend validation).
+ * Keys are constrained to valid field paths (including nested paths like 'address.city').
+ */
+type FieldErrors<TFormData> = Partial<Record<DeepKeys<TFormData>, {message: string}>>;
+
+/**
+ * Infers the form data type from a form API instance.
+ */
+type InferFormData<T> = T extends {state: {values: infer D}} ? D : never;
+
+/**
+ * Sets field errors on a form after submission (e.g., from backend validation).
+ * This provides a type-safe way to set errors on specific fields.
+ *
+ * @example
+ * ```tsx
+ * const form = useScrapsForm({
+ *   defaultValues: { firstName: '', lastName: '', address: { city: '' } },
+ * });
+ *
+ * // In onSubmit handler or after receiving backend errors:
+ * setFieldErrors(form, {
+ *   firstName: { message: 'This name is already taken' },
+ *   'address.city': { message: 'City not found' },
+ * });
+ * ```
+ */
+export function setFieldErrors<
+  TForm extends {setErrorMap: (...args: any[]) => unknown; state: {values: unknown}},
+>(formApi: TForm, errors: FieldErrors<InferFormData<TForm>>): void {
+  formApi.setErrorMap({
+    onSubmit: {
+      fields: errors,
+    },
+  });
+}

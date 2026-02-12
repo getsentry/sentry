@@ -15,6 +15,7 @@ import {
   AutoSaveField,
   defaultFormOptions,
   FieldGroup,
+  setFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
@@ -187,9 +188,12 @@ function BasicForm() {
     validators: {
       onDynamic: baseUserSchema,
     },
-    onSubmit: ({value}) => {
+    onSubmit: ({value, formApi}) => {
       // eslint-disable-next-line no-alert
       alert(JSON.stringify(value));
+      setFieldErrors(formApi, {
+        firstName: {message: 'This name is already taken'},
+      });
     },
   });
 
