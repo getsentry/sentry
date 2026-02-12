@@ -36,7 +36,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
-from sentry import features, options
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
@@ -101,7 +101,6 @@ from sentry.seer.explorer.tools import (
 )
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.issue_detection import create_issue_occurrence
-from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.utils import filter_repo_by_provider
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.silo.base import SiloMode
@@ -228,7 +227,7 @@ class SeerRpcServiceEndpoint(Endpoint):
         sentry_sdk.set_tag("rpc.method", method_name)
         seer_referrer = request.headers.get("X-Seer-Referrer")
         if seer_referrer is not None:
-            sentry_sdk.set_tag("seer_referrer", seer_referrer)
+            sentry_sdk.set_tag("rpc.referrer", seer_referrer)
 
         if not self._is_authorized(request):
             raise PermissionDenied
@@ -294,12 +293,7 @@ class SentryOrganizaionIdsAndSlugs(TypedDict):
 
 
 def get_organization_autofix_consent(*, org_id: int) -> dict:
-    org: Organization = Organization.objects.get(id=org_id)
-    seer_org_acknowledgement = get_seer_org_acknowledgement(org)
-    github_extension_enabled = org_id in options.get("github-extension.enabled-orgs")
-    return {
-        "consent": seer_org_acknowledgement or github_extension_enabled,
-    }
+    return {"consent": True}
 
 
 def get_attributes_and_values(

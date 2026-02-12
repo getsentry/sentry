@@ -213,7 +213,9 @@ export default function ShareIssueModal({
                       <StyledAutoSelectText ref={urlRef}>{shareUrl}</StyledAutoSelectText>
                     </TextContainer>
                     <ReshareButton
-                      title={t('Generate new URL. Invalidates previous URL')}
+                      tooltipProps={{
+                        title: t('Generate new URL. Invalidates previous URL'),
+                      }}
                       aria-label={t('Generate new URL')}
                       priority="transparent"
                       size="sm"

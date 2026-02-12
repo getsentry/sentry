@@ -3,6 +3,7 @@ import type {UseQueryResult} from '@tanstack/react-query';
 import chunk from 'lodash/chunk';
 
 import type {ApiResult} from 'sentry/api';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {DEFAULT_RELEASES_SORT, ReleasesSortOption} from 'sentry/constants/releases';
 import type {Release} from 'sentry/types/release';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -16,7 +17,6 @@ import {
 } from 'sentry/utils/queryClient';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 type ReleaseWithCount = Release & {
   count?: number;

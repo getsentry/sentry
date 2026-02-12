@@ -14,7 +14,6 @@ from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.options.rollout import in_rollout_group
-from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.statistical_detectors import compute_delay
@@ -108,9 +107,7 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
                     if in_rollout_group("seer.explorer-index.rollout", project.organization_id):
                         is_eligible = True
 
-            has_feature = is_eligible and get_seer_org_acknowledgement(project.organization)
-
-        if not has_feature:
+        if not is_eligible:
             continue
 
         yield project.id, project.organization_id

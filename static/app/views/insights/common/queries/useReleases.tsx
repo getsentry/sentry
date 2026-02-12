@@ -1,5 +1,6 @@
 import chunk from 'lodash/chunk';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import type {NewQuery} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
@@ -14,7 +15,6 @@ import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {ReleasesSortByOption} from 'sentry/views/insights/common/components/releasesSort';
 
 export function useReleases(

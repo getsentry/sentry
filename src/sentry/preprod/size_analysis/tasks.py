@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.preprod.tasks.compare_preprod_artifact_size_analysis",
     namespace=preprod_tasks,
-    processing_deadline_duration=30,
+    processing_deadline_duration=120,
     silo_mode=SiloMode.REGION,
 )
 def compare_preprod_artifact_size_analysis(
@@ -249,7 +249,7 @@ def compare_preprod_artifact_size_analysis(
 @instrumented_task(
     name="sentry.preprod.tasks.manual_size_analysis_comparison",
     namespace=preprod_tasks,
-    processing_deadline_duration=30,
+    processing_deadline_duration=120,
     silo_mode=SiloMode.REGION,
 )
 def manual_size_analysis_comparison(

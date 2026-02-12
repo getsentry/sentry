@@ -1,9 +1,9 @@
 import {useCallback, useMemo} from 'react';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   useProgressiveQuery,
   type RPCQueryExtras,

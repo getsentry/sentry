@@ -5,6 +5,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,7 +18,6 @@ import {
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DisplayType,
@@ -298,7 +298,7 @@ function DeleteButton({onDelete}: {onDelete: () => void}) {
       priority="transparent"
       onClick={onDelete}
       icon={<IconDelete />}
-      title={t('Remove this filter')}
+      tooltipProps={{title: t('Remove this filter')}}
       aria-label={t('Remove this filter')}
       name="filter-delete-button"
     />

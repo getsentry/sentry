@@ -33,9 +33,9 @@ describe('TeamIssuesAge', () => {
     // Title
     expect(await screen.findByText('RequestError')).toBeInTheDocument();
     // Event count
-    expect(screen.getByText('327k')).toBeInTheDocument();
+    expect(screen.getByText('327K')).toBeInTheDocument();
     // User count
-    expect(screen.getByText('35k')).toBeInTheDocument();
+    expect(screen.getByText('35K')).toBeInTheDocument();
     expect(timeToResolutionApi).toHaveBeenCalledTimes(1);
     expect(issuesApi).toHaveBeenCalledTimes(1);
   });

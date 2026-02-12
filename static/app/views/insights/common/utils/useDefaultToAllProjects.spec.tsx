@@ -3,13 +3,13 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {updateProjects} from 'sentry/actionCreators/pageFilters';
+import {updateProjects} from 'sentry/components/pageFilters/actions';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/actionCreators/pageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
+jest.mock('sentry/components/pageFilters/actions');
 
 const pageFilterSelection = PageFiltersFixture({
   projects: [],

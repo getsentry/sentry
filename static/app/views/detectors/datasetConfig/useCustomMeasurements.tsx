@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import type {Query} from 'history';
 
 import {getFieldTypeFromUnit} from 'sentry/components/events/eventCustomPerformanceMetrics';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';

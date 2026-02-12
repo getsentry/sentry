@@ -1,7 +1,6 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -29,7 +28,12 @@ export function LinkButton({
   });
 
   return (
-    <Tooltip skipWrapper {...tooltipProps} title={props.title} disabled={!props.title}>
+    <Tooltip
+      skipWrapper
+      {...tooltipProps}
+      title={tooltipProps?.title}
+      disabled={!tooltipProps?.title}
+    >
       <StyledLinkButton
         aria-label={accessibleLabel}
         aria-disabled={disabled}
@@ -42,13 +46,6 @@ export function LinkButton({
         to={disabled ? undefined : 'to' in props ? props.to : undefined}
         onClick={handleClick}
       >
-        {props.priority !== 'link' && (
-          <InteractionStateLayer
-            higherOpacity={
-              props.priority && ['primary', 'danger'].includes(props.priority)
-            }
-          />
-        )}
         <Flex
           as="span"
           align="center"
@@ -79,7 +76,7 @@ export function LinkButton({
 }
 
 const StyledLinkButton = styled(
-  ({size: _size, title: _title, ...props}: LinkButtonProps) => {
+  ({size: _size, ...props}: LinkButtonProps) => {
     if ('to' in props && props.to) {
       return <Link {...props} to={props.to} role="button" />;
     }

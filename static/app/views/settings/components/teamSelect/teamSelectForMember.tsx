@@ -166,7 +166,7 @@ function TeamRow({
         <Button
           size="xs"
           icon={<IconSubtract />}
-          title={buttonHelpText}
+          tooltipProps={{title: buttonHelpText}}
           disabled={isRemoveDisabled}
           onClick={() => onRemoveTeam(team.slug)}
         >

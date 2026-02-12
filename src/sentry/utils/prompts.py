@@ -12,29 +12,17 @@ class _PromptConfig(TypedDict):
 
 DEFAULT_PROMPTS: dict[str, _PromptConfig] = {
     "alert_stream": {"required_fields": ["organization_id"]},
-    "chonk_ui_dot_indicator": {"required_fields": ["organization_id"]},
-    "chonk_ui_banner": {"required_fields": ["organization_id"]},
-    "code_owners": {"required_fields": ["organization_id", "project_id"]},
     "data_consent_banner": {"required_fields": ["organization_id"]},
     "data_consent_priority": {"required_fields": ["organization_id"]},
-    "distributed_tracing": {"required_fields": ["organization_id", "project_id"]},
     "github_missing_members": {"required_fields": ["organization_id"]},
     "issue_feedback_hidden": {"required_fields": ["organization_id", "project_id"]},
     "issue_priority": {"required_fields": ["organization_id"]},
     "issue_replay_inline_onboarding": {"required_fields": ["organization_id", "project_id"]},
     "metric_alert_ignore_archived_issues": {"required_fields": ["organization_id", "project_id"]},
-    "profiling_onboarding": {"required_fields": ["organization_id"]},
-    "quick_trace_missing": {"required_fields": ["organization_id", "project_id"]},
     "releases": {"required_fields": ["organization_id", "project_id"]},
-    "sdk_updates": {"required_fields": ["organization_id"]},
     "seer_autofix_setup_acknowledged": {"required_fields": ["organization_id"]},
-    "stacked_navigation_banner": {"required_fields": ["organization_id"]},
-    "stacked_navigation_help_menu": {"required_fields": ["organization_id"]},
     "stacktrace_link": {"required_fields": ["organization_id", "project_id"]},
-    "suggest_mobile_project": {"required_fields": ["organization_id"]},
-    "suspect_commits": {"required_fields": ["organization_id", "project_id"]},
     "user_snooze_deprecation": {"required_fields": ["organization_id", "project_id"]},
-    "vitals_alert": {"required_fields": ["organization_id"]},
 }
 
 

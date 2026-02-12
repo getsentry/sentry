@@ -30,7 +30,7 @@ import {
   WidgetViewerQueryField,
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageFiltersContainer from 'sentry/components/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -46,6 +46,7 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
+import {decodeBoolean} from 'sentry/utils/queryString';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -212,7 +213,12 @@ class DashboardDetail extends Component<Props, State> {
   componentDidMount() {
     this.checkIfShouldMountWidgetViewerModal();
     if (this.isWidgetBuilder()) {
-      this.setState({isWidgetBuilderOpen: true});
+      const {location} = this.props;
+      const shouldOpenTemplates = decodeBoolean(location.query.openWidgetTemplates);
+      this.setState({
+        isWidgetBuilderOpen: true,
+        openWidgetTemplates: shouldOpenTemplates,
+      });
     }
     window.addEventListener('beforeunload', this.handleBeforeUnload);
   }
@@ -221,7 +227,12 @@ class DashboardDetail extends Component<Props, State> {
     this.checkIfShouldMountWidgetViewerModal();
 
     if (!this.state.isWidgetBuilderOpen && this.isWidgetBuilder()) {
-      this.setState({isWidgetBuilderOpen: true});
+      const {location} = this.props;
+      const shouldOpenTemplates = decodeBoolean(location.query.openWidgetTemplates);
+      this.setState({
+        isWidgetBuilderOpen: true,
+        openWidgetTemplates: shouldOpenTemplates,
+      });
     }
 
     if (prevProps.initialState !== this.props.initialState) {

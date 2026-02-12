@@ -15,7 +15,11 @@ from sentry.api.event_search import (
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactQuerySet
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactQuerySet,
+    PreprodArtifactSizeMetrics,
+)
 
 search_config = SearchConfig.create_from(
     SearchConfig(),
@@ -63,6 +67,7 @@ search_config = SearchConfig.create_from(
         "installable",
         "is",
         "platform_name",
+        "size_state",
     },
     # Enable boolean operators
     # allow_boolean=True,
@@ -96,7 +101,22 @@ FIELD_MAPPINGS: dict[str, str] = {
     "git_head_ref": "commit_comparison__head_ref",
     "git_head_sha": "commit_comparison__head_sha",
     "git_pr_number": "commit_comparison__pr_number",
+    "size_state": "preprodartifactsizemetrics__state",
 }
+
+SIZE_STATE_VALUES: dict[str, int] = {
+    member.name.lower(): member.value for member in PreprodArtifactSizeMetrics.SizeAnalysisState
+}
+
+
+def _translate_size_state(value: object) -> int:
+    raw = str(value).lower()
+    if raw not in SIZE_STATE_VALUES:
+        raise InvalidSearchQuery(
+            f"Invalid size_state value: {value}. "
+            f"Valid values: {', '.join(sorted(SIZE_STATE_VALUES))}"
+        )
+    return SIZE_STATE_VALUES[raw]
 
 
 def queryset_for_query(
@@ -223,6 +243,16 @@ def apply_filters(
             continue
 
         db_field = FIELD_MAPPINGS.get(name, name)
+
+        if name == "size_state":
+            values = token.value.value if token.is_in_filter else [token.value.value]
+            q = Q(**{f"{db_field}__in": [_translate_size_state(v) for v in values]})
+            if token.is_negation:
+                queryset = queryset.exclude(q)
+            else:
+                queryset = queryset.filter(q)
+            queryset = queryset.distinct()
+            continue
 
         # We don't have to handle boolean operators or parens here
         # since allow_boolean is not set in SearchConfig.

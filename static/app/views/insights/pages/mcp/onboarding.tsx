@@ -10,6 +10,10 @@ import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {
+  StepIndexProvider,
+  TabSelectionScope,
+} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   DocsParams,
@@ -20,6 +24,7 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
@@ -34,7 +39,6 @@ import type {PlatformKey, Project} from 'sentry/types/project';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
@@ -111,18 +115,22 @@ function WaitingIndicator({project}: {project: Project}) {
 function StepRenderer({
   project,
   step,
+  stepIndex,
   isLastStep,
 }: {
   isLastStep: boolean;
   project: Project;
   step: OnboardingStep;
+  stepIndex: number;
 }) {
   return (
     <GuidedSteps.Step
       stepKey={step.type || step.title}
       title={step.title || (step.type && StepTitles[step.type])}
     >
-      <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+      <StepIndexProvider index={stepIndex}>
+        <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+      </StepIndexProvider>
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
         <GuidedSteps.NextButton size="md" />
@@ -145,49 +153,51 @@ function OnboardingPanel({
     <Panel>
       <PanelBody>
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
-          <div>
-            <HeaderWrapper>
-              <HeaderText>
-                <Title>{t('Monitor MCP Servers')}</Title>
-                <SubTitle>
-                  {t(
-                    'Monitor MCP server connections, resource access, tool executions, and errors across your entire pipeline—from client requests to server responses.'
-                  )}
-                </SubTitle>
-                <BulletList>
-                  <li>
+          <TabSelectionScope>
+            <div>
+              <HeaderWrapper>
+                <HeaderText>
+                  <Title>{t('Monitor MCP Servers')}</Title>
+                  <SubTitle>
                     {t(
-                      'Trace complete request flows to identify where connections are breaking'
+                      'Monitor MCP server connections, resource access, tool executions, and errors across your entire pipeline—from client requests to server responses.'
                     )}
-                  </li>
-                  <li>
-                    {t(
-                      'Debug resource requests and server responses when data is outdated or malformed'
-                    )}
-                  </li>
-                  <li>
-                    {t(
-                      'Identify performance bottlenecks in server startup, resource fetching, or tool execution'
-                    )}
-                  </li>
-                </BulletList>
-              </HeaderText>
-              <Image src={emptyTraceImg} />
-            </HeaderWrapper>
-            <Divider />
+                  </SubTitle>
+                  <BulletList>
+                    <li>
+                      {t(
+                        'Trace complete request flows to identify where connections are breaking'
+                      )}
+                    </li>
+                    <li>
+                      {t(
+                        'Debug resource requests and server responses when data is outdated or malformed'
+                      )}
+                    </li>
+                    <li>
+                      {t(
+                        'Identify performance bottlenecks in server startup, resource fetching, or tool execution'
+                      )}
+                    </li>
+                  </BulletList>
+                </HeaderText>
+                <Image src={emptyTraceImg} />
+              </HeaderWrapper>
+              <Divider />
 
-            <Body>
-              <Setup>{children}</Setup>
-              <Preview>
-                <BodyTitle>{t('Preview MCP Insights')}</BodyTitle>
-                <Arcade
-                  src="https://demo.arcade.software/dMIA7maXWbgcaAGP79ah?embed"
-                  loading="lazy"
-                  allowFullScreen
-                />
-              </Preview>
-            </Body>
-          </div>
+              <Body>
+                <Setup>{children}</Setup>
+                <Preview>
+                  <BodyTitle>{t('Preview MCP Insights')}</BodyTitle>
+                  <Arcade
+                    src="https://demo.arcade.software/dMIA7maXWbgcaAGP79ah?embed"
+                    loading="lazy"
+                    allowFullScreen
+                  />
+                </Preview>
+              </Body>
+            </div>
+          </TabSelectionScope>
         </AuthTokenGeneratorProvider>
       </PanelBody>
     </Panel>
@@ -314,7 +324,7 @@ export function Onboarding() {
     ...(mcpDocs.install?.(docParams) || []),
     ...(mcpDocs.configure?.(docParams) || []),
     ...(mcpDocs.verify?.(docParams) || []),
-  ];
+  ].filter(s => !s.collapsible);
 
   return (
     <OnboardingPanel project={project}>
@@ -324,17 +334,15 @@ export function Onboarding() {
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <GuidedSteps>
-        {steps
-          // Only show non-optional steps
-          .filter(step => !step.collapsible)
-          .map((step, index) => (
-            <StepRenderer
-              key={index}
-              project={project}
-              step={step}
-              isLastStep={index === steps.length - 1}
-            />
-          ))}
+        {steps.map((step, index) => (
+          <StepRenderer
+            key={index}
+            project={project}
+            step={step}
+            stepIndex={index}
+            isLastStep={index === steps.length - 1}
+          />
+        ))}
       </GuidedSteps>
     </OnboardingPanel>
   );

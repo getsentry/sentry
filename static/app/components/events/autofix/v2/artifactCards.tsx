@@ -650,7 +650,7 @@ export function TriageCard({data, group, organization}: TriageCardProps) {
                     <Flex justify="between">
                       <Flex align="center" gap="md" paddingLeft="xs">
                         {hasAssigneeMatch && userForAvatar ? (
-                          <UserAvatar user={userForAvatar} size={24} gravatar />
+                          <UserAvatar user={userForAvatar} size={24} />
                         ) : (
                           <IconUser size="md" variant="muted" />
                         )}

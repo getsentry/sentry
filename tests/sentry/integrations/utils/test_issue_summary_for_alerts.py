@@ -26,17 +26,17 @@ class FetchIssueSummaryTest(TestCase):
         assert result is None
 
     @with_feature("organizations:gen-ai-features")
-    @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.is_seer_scanner_rate_limited")
     @patch("sentry.quotas.backend.check_seer_quota")
     def test_fetch_issue_summary_with_hide_ai_features_enabled(
-        self, mock_has_budget, mock_rate_limited, mock_seer_ack
+        self,
+        mock_has_budget,
+        mock_rate_limited,
     ):
         """Test that fetch_issue_summary returns None when hideAiFeatures is True"""
         # Set up all the required conditions to pass except hideAiFeatures
         self.project.update_option("sentry:seer_scanner_automation", True)
         self.organization.update_option("sentry:hide_ai_features", True)
-        mock_seer_ack.return_value = True
         mock_rate_limited.return_value = False
         mock_has_budget.return_value = True
 
@@ -48,18 +48,16 @@ class FetchIssueSummaryTest(TestCase):
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary")
-    @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.is_seer_scanner_rate_limited")
     @patch("sentry.quotas.backend.check_seer_quota")
     def test_fetch_issue_summary_with_hide_ai_features_disabled(
-        self, mock_has_budget, mock_rate_limited, mock_seer_ack, mock_get_issue_summary
+        self, mock_has_budget, mock_rate_limited, mock_get_issue_summary
     ):
         """Test that fetch_issue_summary proceeds normally when hideAiFeatures is False"""
         # Set up all the required conditions to pass
         self.project.update_option("sentry:seer_scanner_automation", True)
         self.organization.update_option("sentry:hide_ai_features", False)
         self.organization.update_option("sentry:enable_seer_enhanced_alerts", True)
-        mock_seer_ack.return_value = True
         mock_rate_limited.return_value = False
         mock_has_budget.return_value = True
 
@@ -77,43 +75,26 @@ class FetchIssueSummaryTest(TestCase):
         mock_get_issue_summary.assert_called_once()
 
     @with_feature("organizations:gen-ai-features")
-    @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     def test_fetch_issue_summary_without_seer_scanner_automation(
-        self, mock_seer_ack: MagicMock
+        self,
     ) -> None:
         """Test that fetch_issue_summary returns None when seer_scanner_automation is disabled"""
         self.project.update_option("sentry:seer_scanner_automation", False)
-        mock_seer_ack.return_value = True
 
         result = fetch_issue_summary(self.group)
 
         assert result is None
 
     @with_feature("organizations:gen-ai-features")
-    @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
-    def test_fetch_issue_summary_without_org_acknowledgement(
-        self, mock_seer_ack: MagicMock
-    ) -> None:
-        """Test that fetch_issue_summary returns None when org hasn't acknowledged Seer"""
-        self.project.update_option("sentry:seer_scanner_automation", True)
-        mock_seer_ack.return_value = False
-
-        result = fetch_issue_summary(self.group)
-
-        assert result is None
-
-    @with_feature("organizations:gen-ai-features")
-    @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     @patch("sentry.quotas.backend.check_seer_quota")
     def test_fetch_issue_summary_without_enable_seer_enhanced_alerts(
-        self, mock_has_budget: MagicMock, mock_seer_ack: MagicMock
+        self, mock_has_budget: MagicMock
     ) -> None:
         """Test that fetch_issue_summary returns None when enable_seer_enhanced_alerts is disabled"""
         # Set up all the required conditions to pass except enable_seer_enhanced_alerts
         self.project.update_option("sentry:seer_scanner_automation", True)
         self.organization.update_option("sentry:hide_ai_features", False)
         self.organization.update_option("sentry:enable_seer_enhanced_alerts", False)
-        mock_seer_ack.return_value = True
 
         result = fetch_issue_summary(self.group)
 
@@ -131,14 +112,13 @@ class FetchIssueSummaryTest(TestCase):
         assert result is None
 
     @with_feature("organizations:gen-ai-features")
-    @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.is_seer_scanner_rate_limited")
     def test_fetch_issue_summary_rate_limited(
-        self, mock_rate_limited: MagicMock, mock_seer_ack: MagicMock
+        self,
+        mock_rate_limited: MagicMock,
     ) -> None:
         """Test that fetch_issue_summary returns None when rate limited"""
         self.project.update_option("sentry:seer_scanner_automation", True)
-        mock_seer_ack.return_value = True
         mock_rate_limited.return_value = True
 
         result = fetch_issue_summary(self.group)
@@ -146,15 +126,13 @@ class FetchIssueSummaryTest(TestCase):
         assert result is None
 
     @with_feature("organizations:gen-ai-features")
-    @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.is_seer_scanner_rate_limited")
     @patch("sentry.quotas.backend.check_seer_quota")
     def test_fetch_issue_summary_no_budget(
-        self, mock_has_budget: MagicMock, mock_rate_limited: MagicMock, mock_seer_ack: MagicMock
+        self, mock_has_budget: MagicMock, mock_rate_limited: MagicMock
     ) -> None:
         """Test that fetch_issue_summary returns None when no budget available"""
         self.project.update_option("sentry:seer_scanner_automation", True)
-        mock_seer_ack.return_value = True
         mock_rate_limited.return_value = False
         mock_has_budget.return_value = False
 
@@ -164,15 +142,13 @@ class FetchIssueSummaryTest(TestCase):
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary")
-    @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.is_seer_scanner_rate_limited")
     @patch("sentry.quotas.backend.check_seer_quota")
     def test_fetch_issue_summary_timeout_error(
-        self, mock_has_budget, mock_rate_limited, mock_seer_ack, mock_get_issue_summary
+        self, mock_has_budget, mock_rate_limited, mock_get_issue_summary
     ):
         """Test that fetch_issue_summary returns None when timeout occurs"""
         self.project.update_option("sentry:seer_scanner_automation", True)
-        mock_seer_ack.return_value = True
         mock_rate_limited.return_value = False
         mock_has_budget.return_value = True
 
@@ -187,15 +163,13 @@ class FetchIssueSummaryTest(TestCase):
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary")
-    @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.is_seer_scanner_rate_limited")
     @patch("sentry.quotas.backend.check_seer_quota")
     def test_fetch_issue_summary_api_error(
-        self, mock_has_budget, mock_rate_limited, mock_seer_ack, mock_get_issue_summary
+        self, mock_has_budget, mock_rate_limited, mock_get_issue_summary
     ):
         """Test that fetch_issue_summary returns None when API returns error status"""
         self.project.update_option("sentry:seer_scanner_automation", True)
-        mock_seer_ack.return_value = True
         mock_rate_limited.return_value = False
         mock_has_budget.return_value = True
 

@@ -93,7 +93,6 @@ class WorkflowEventData:
     event: GroupEvent | Activity
     group: Group
     group_state: GroupState | None = None
-    has_reappeared: bool | None = None
     has_escalated: bool | None = None
     workflow_env: Environment | None = None
 
@@ -395,7 +394,7 @@ class SnubaQueryDataSourceType(TypedDict):
 
 @dataclass(frozen=True)
 class DetectorSettings:
-    handler: type[DetectorHandler[Any, Any]] | None = None
+    handler: type[DetectorHandler[Any]] | None = None
     validator: type[BaseDetectorTypeValidator] | None = None
     config_schema: dict[str, Any] = field(default_factory=dict)
     filter: Q | None = None
