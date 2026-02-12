@@ -16,7 +16,6 @@ from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
-from sentry.seer.sentry_data_models import TraceMetadata
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
@@ -75,21 +74,22 @@ def mark_traces_as_processed(trace_ids: list[str]) -> None:
 
 class DetectedIssue(BaseModel):
     # LLM generated fields
+    title: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     explanation: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     impact: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     evidence: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     missing_telemetry: str | None = Field(None, max_length=MAX_LLM_FIELD_LENGTH)
     offender_span_ids: list[str]
-    title: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
-    subcategory: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
+    transaction_name: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     category: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
+    subcategory: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     verification_reason: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
-    # context fields, not LLM generated
+    # context field, not LLM generated
     trace_id: str
-    transaction_name: str
 
 
-class TraceMetadataWithSpanCount(TraceMetadata):
+class TraceMetadataWithSpanCount(BaseModel):
+    trace_id: str
     span_count: int
 
 
