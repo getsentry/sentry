@@ -248,7 +248,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         )
 
 
-def handle_prepare_autofix_update(
+def prepare_slack_thread_for_autofix_updates(
     *,
     thread_ts: str,
     channel_id: str,
@@ -303,10 +303,10 @@ def handle_prepare_autofix_update(
                 ),
             )
     except UnableToAcquireLock:
-        logger.exception("seer.entrypoint.slack.prepare_autofix.lock_failed", extra=logging_ctx)
+        logger.exception("seer.entrypoint.slack.prepare_thread.lock_failed", extra=logging_ctx)
         return
     logger.info(
-        "seer.entrypoint.slack.prepare_autofix.cache_populated",
+        "seer.entrypoint.slack.prepare_thread.cache_populated",
         extra={
             "cache_key": cache_result["key"],
             "cache_source": cache_result["source"],
@@ -315,10 +315,6 @@ def handle_prepare_autofix_update(
         },
     )
     metrics.incr(
-        "seer.entrypoint.slack.prepare_autofix.cache_populated",
-        tags={"cache_source": cache_result["source"]},
-    )
-    metrics.incr(
-        "seer.entrypoint.slack.prepare_autofix.cache_populated",
+        "seer.entrypoint.slack.prepare_thread.cache_populated",
         tags={"cache_source": cache_result["source"]},
     )

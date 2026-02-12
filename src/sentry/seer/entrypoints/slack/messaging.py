@@ -248,4 +248,3 @@ def update_existing_message(
         install.update_message(channel_id=channel_id, message_ts=message_ts, renderable=renderable)
     except IntegrationError:
         logger.exception("seer.entrypoint.slack.message_update.failed", extra=logging_ctx)
-        logger.exception("seer.entrypoint.slack.message_update.failed", extra=logging_ctx)
