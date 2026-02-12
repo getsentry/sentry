@@ -1,16 +1,21 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
+import type {
+  HybridFilterProps,
+  HybridFilterRef,
+} from 'sentry/components/pageFilters/hybridFilter';
 import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
 import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
@@ -40,7 +45,6 @@ export interface ProjectPageFilterProps extends Partial<
     | 'menuBody'
     | 'menuFooter'
     | 'menuFooterMessage'
-    | 'checkboxWrapper'
     | 'shouldCloseOnInteractOutside'
     | 'sizeLimitMessage'
   >
@@ -79,6 +83,7 @@ export function ProjectPageFilter({
   const router = useRouter();
   const routes = useRoutes();
   const organization = useOrganization();
+  const hybridFilterRef = useRef<HybridFilterRef<number>>(null);
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const [memberProjects, otherProjects] = useMemo(
@@ -238,9 +243,23 @@ export function ProjectPageFilter({
     const getProjectItem = (project: Project) => {
       return {
         value: parseInt(project.id, 10),
-        label: project.slug,
-        leadingItems: (
-          <ProjectBadge project={project} avatarSize={16} hideName disableLink />
+        textValue: project.slug,
+        leadingItems: ({isSelected}) => (
+          <Checkbox
+            size="sm"
+            checked={isSelected}
+            onChange={() =>
+              hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))
+            }
+            aria-label={t('Select %s', project.slug)}
+            tabIndex={-1}
+          />
+        ),
+        label: (
+          <Flex align="center" gap="sm">
+            <ProjectBadge project={project} avatarSize={16} hideName disableLink />
+            <Text ellipsis>{project.slug}</Text>
+          </Flex>
         ),
         trailingItems: (props: {isFocused: boolean}) => {
           return (
@@ -330,11 +349,10 @@ export function ProjectPageFilter({
     );
 
     // ProjectPageFilter will try to expand to accommodate the longest project slug
-    const longestSlugLength = flatOptions.slice(0, 25).reduce(
-      // eslint-disable-next-line @typescript-eslint/no-base-to-string
-      (acc, cur) => (String(cur.label).length > acc ? String(cur.label).length : acc),
-      0
-    );
+    const longestSlugLength = flatOptions.slice(0, 25).reduce((acc, cur) => {
+      const length = cur.textValue?.length ?? 0;
+      return length > acc ? length : acc;
+    }, 0);
 
     // Calculate an appropriate width for the menu. It should be between 22  and 28em.
     // Within that range, the width is a function of the length of the longest slug.
@@ -369,9 +387,9 @@ export function ProjectPageFilter({
 
   return (
     <HybridFilter
+      ref={hybridFilterRef}
       {...selectProps}
       searchable
-      checkboxPosition="trailing"
       multiple
       options={options}
       value={value}

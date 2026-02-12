@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useRef, useState} from 'react';
 
 import {
   fireEvent,
@@ -8,22 +8,79 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {Checkbox} from '@sentry/scraps/checkbox';
+
+import type {HybridFilterRef} from 'sentry/components/pageFilters/hybridFilter';
 import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
+
+function useTestOptions(hybridFilterRef: React.RefObject<HybridFilterRef<string>>) {
+  return [
+    {
+      value: 'one',
+      label: 'Option One',
+      leadingItems: ({isSelected}: {isSelected: boolean}) => (
+        <Checkbox
+          size="sm"
+          checked={isSelected}
+          onChange={() => hybridFilterRef.current?.toggleOption?.('one')}
+          aria-label="Select Option One"
+          tabIndex={-1}
+        />
+      ),
+    },
+    {
+      value: 'two',
+      label: 'Option Two',
+      leadingItems: ({isSelected}: {isSelected: boolean}) => (
+        <Checkbox
+          size="sm"
+          checked={isSelected}
+          onChange={() => hybridFilterRef.current?.toggleOption?.('two')}
+          aria-label="Select Option Two"
+          tabIndex={-1}
+        />
+      ),
+    },
+    {
+      value: 'three',
+      label: 'Option Three',
+      leadingItems: ({isSelected}: {isSelected: boolean}) => (
+        <Checkbox
+          size="sm"
+          checked={isSelected}
+          onChange={() => hybridFilterRef.current?.toggleOption?.('three')}
+          aria-label="Select Option Three"
+          tabIndex={-1}
+        />
+      ),
+    },
+  ];
+}
 
 const props = {
   searchable: true,
   multiple: true,
-  checkboxPosition: 'trailing' as const,
-  options: [
-    {value: 'one', label: 'Option One'},
-    {value: 'two', label: 'Option Two'},
-    {value: 'three', label: 'Option Three'},
-  ],
 };
 
 describe('ProjectPageFilter', () => {
   it('renders', async () => {
-    render(<HybridFilter {...props} value={[]} defaultValue={[]} onChange={() => {}} />);
+    function TestComponent() {
+      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
+      const options = useTestOptions(hybridFilterRef);
+
+      return (
+        <HybridFilter
+          {...props}
+          ref={hybridFilterRef}
+          options={options}
+          value={[]}
+          defaultValue={[]}
+          onChange={() => {}}
+        />
+      );
+    }
+
+    render(<TestComponent />);
 
     // Open menu, search input is focused & all the options are there
     await userEvent.click(screen.getByRole('button', {expanded: false}));
@@ -35,9 +92,24 @@ describe('ProjectPageFilter', () => {
 
   it('handles both single and multiple selection', async () => {
     const onChange = jest.fn();
-    const {rerender} = render(
-      <HybridFilter {...props} value={[]} defaultValue={[]} onChange={onChange} />
-    );
+
+    function TestComponent({value}: {value: string[]}) {
+      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
+      const options = useTestOptions(hybridFilterRef);
+
+      return (
+        <HybridFilter
+          {...props}
+          ref={hybridFilterRef}
+          options={options}
+          value={value}
+          defaultValue={[]}
+          onChange={onChange}
+        />
+      );
+    }
+
+    const {rerender} = render(<TestComponent value={[]} />);
 
     // Clicking on Option One selects it (single selection)
     await userEvent.click(screen.getByRole('button', {expanded: false}));
@@ -46,9 +118,7 @@ describe('ProjectPageFilter', () => {
     expect(screen.getByRole('button', {expanded: false})).toBeInTheDocument();
 
     // HybridFilter is controlled-only, so we need to rerender it with new value
-    rerender(
-      <HybridFilter {...props} value={['one']} defaultValue={[]} onChange={onChange} />
-    );
+    rerender(<TestComponent value={['one']} />);
 
     // Clicking on Option Two selects it and removes Option One from the selection state
     // (single selection mode)
@@ -61,10 +131,14 @@ describe('ProjectPageFilter', () => {
     const onChange = jest.fn();
     function ControlledHybridFilter() {
       const [value, setValue] = useState<string[]>([]);
+      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
+      const options = useTestOptions(hybridFilterRef);
 
       return (
         <HybridFilter
           {...props}
+          ref={hybridFilterRef}
+          options={options}
           defaultValue={[]}
           value={value}
           onChange={newValue => {
@@ -114,7 +188,24 @@ describe('ProjectPageFilter', () => {
 
   it('can cancel', async () => {
     const onChange = jest.fn();
-    render(<HybridFilter {...props} value={[]} defaultValue={[]} onChange={onChange} />);
+
+    function TestComponent() {
+      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
+      const options = useTestOptions(hybridFilterRef);
+
+      return (
+        <HybridFilter
+          {...props}
+          ref={hybridFilterRef}
+          options={options}
+          value={[]}
+          defaultValue={[]}
+          onChange={onChange}
+        />
+      );
+    }
+
+    render(<TestComponent />);
 
     // Open the menu, select Option One
     await userEvent.click(screen.getByRole('button', {expanded: false}));
@@ -133,15 +224,25 @@ describe('ProjectPageFilter', () => {
   it('can reset', async () => {
     const onChange = jest.fn();
     const onReset = jest.fn();
-    render(
-      <HybridFilter
-        {...props}
-        value={['one']}
-        defaultValue={['one']}
-        onChange={onChange}
-        onReset={onReset}
-      />
-    );
+
+    function TestComponent() {
+      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
+      const options = useTestOptions(hybridFilterRef);
+
+      return (
+        <HybridFilter
+          {...props}
+          ref={hybridFilterRef}
+          options={options}
+          value={['one']}
+          defaultValue={['one']}
+          onChange={onChange}
+          onReset={onReset}
+        />
+      );
+    }
+
+    render(<TestComponent />);
 
     // Open the menu, Reset button is not shown yet
     await userEvent.click(screen.getByRole('button', {expanded: false}));
@@ -165,7 +266,24 @@ describe('ProjectPageFilter', () => {
 
   it('supports keyboard navigation', async () => {
     const onChange = jest.fn();
-    render(<HybridFilter {...props} value={[]} defaultValue={[]} onChange={onChange} />);
+
+    function TestComponent() {
+      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
+      const options = useTestOptions(hybridFilterRef);
+
+      return (
+        <HybridFilter
+          {...props}
+          ref={hybridFilterRef}
+          options={options}
+          value={[]}
+          defaultValue={[]}
+          onChange={onChange}
+        />
+      );
+    }
+
+    render(<TestComponent />);
 
     // Open the menu, focus is on search input
     await userEvent.click(screen.getByRole('button', {expanded: false}));
