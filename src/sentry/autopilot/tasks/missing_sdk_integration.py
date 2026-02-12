@@ -239,7 +239,7 @@ Only report an integration if ALL of the following are true. Check each criterio
 4. [ ] The integration is NOT already configured in `Sentry.init`
 5. [ ] The integration is NOT explicitly disabled in `Sentry.init`
 
-General-purpose integrations that don't require a specific package (e.g., `extraErrorDataIntegration`, `replayIntegration`, `feedbackIntegration`, `captureConsoleIntegration`) will never pass criterion 1.
+General-purpose integrations that don't require a specific package (e.g., `extraErrorDataIntegration`, `replayIntegration`, `feedbackIntegration`, `captureConsoleIntegration`, `httpClientIntegration`, `browserTracingIntegration`) will never pass criterion 1.
 
 # Output
 
@@ -287,6 +287,7 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
 
         missing_integrations = result.missing_integrations
         finish_reason = result.finish_reason
+        integrations_count = len(missing_integrations)
 
         logger.warning(
             "missing_sdk_integration_detector.integrations_found",
@@ -298,10 +299,15 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
                 "repo_name": repo_name,
                 "run_id": run_id,
                 "finish_reason": finish_reason,
-                "missing_integrations_count": len(missing_integrations),
-                "missing_integrations": [i.name for i in missing_integrations],
+                "integrations_count": integrations_count,
             },
         )
+
+        if integrations_count > 0:
+            metrics.incr(
+                "autopilot.missing_sdk_integration_detector.integrations_found",
+                sample_rate=1.0,
+            )
 
         # Only create issues if the detection was successful
         if finish_reason == MissingSdkIntegrationFinishReason.SUCCESS:
