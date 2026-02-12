@@ -93,12 +93,10 @@ export default function Ai() {
   }
 
   const hasError = isError || isTimedOut;
-  const hasSummaryData = Boolean(summaryData?.data);
-  const isNoReplaySummary = Boolean(
-    hasSummaryData && summaryData!.data!.time_ranges.length <= 1 && onlyInitFrames
+  const hasInsufficientReplayFrames = Boolean(
+    !summaryData?.data || (summaryData.data?.time_ranges.length <= 1 && onlyInitFrames)
   );
-  const feedbackDisabled =
-    isSummaryPending || hasError || !hasSummaryData || isNoReplaySummary;
+  const feedbackDisabled = isSummaryPending || hasError || hasInsufficientReplayFrames;
 
   const errorMessage = isTimedOut
     ? t('Failed to load replay summary - timed out.')
@@ -140,7 +138,7 @@ export default function Ai() {
               hasError={hasError}
               errorMessage={errorMessage}
               summaryText={summaryData?.data?.summary}
-              isNoReplaySummary={isNoReplaySummary}
+              hasInsufficientReplayFrames={hasInsufficientReplayFrames}
             />
             <Flex gap="xs" flexShrink={0}>
               <ThumbsUpDownButton type="positive" disabled={feedbackDisabled} />
@@ -153,8 +151,7 @@ export default function Ai() {
         isSummaryPending={isSummaryPending}
         hasError={hasError}
         errorMessage={errorMessage}
-        hasSummaryData={hasSummaryData}
-        isNoReplaySummary={isNoReplaySummary}
+        hasInsufficientReplayFrames={hasInsufficientReplayFrames}
         summaryData={summaryData}
         segmentCount={segmentCount}
       />
@@ -167,11 +164,11 @@ function SummaryTextArea({
   hasError,
   errorMessage,
   summaryText,
-  isNoReplaySummary,
+  hasInsufficientReplayFrames,
 }: {
   errorMessage: string;
   hasError: boolean;
-  isNoReplaySummary: boolean;
+  hasInsufficientReplayFrames: boolean;
   isSummaryPending: boolean;
   summaryText: string | undefined;
 }) {
@@ -191,7 +188,7 @@ function SummaryTextArea({
     );
   }
 
-  if (!summaryText || isNoReplaySummary) {
+  if (!summaryText || hasInsufficientReplayFrames) {
     return (
       <Text as="p" size="md" variant="secondary" wrap="pre-wrap" density="comfortable">
         {t('No summary available for this replay.')}
@@ -210,15 +207,13 @@ function SummaryContent({
   isSummaryPending,
   hasError,
   errorMessage,
-  hasSummaryData,
-  isNoReplaySummary,
+  hasInsufficientReplayFrames,
   summaryData,
   segmentCount,
 }: {
   errorMessage: string;
   hasError: boolean;
-  hasSummaryData: boolean;
-  isNoReplaySummary: boolean;
+  hasInsufficientReplayFrames: boolean;
   isSummaryPending: boolean;
   segmentCount: number;
   summaryData: ReturnType<typeof useReplaySummaryContext>['summaryData'];
@@ -236,16 +231,7 @@ function SummaryContent({
     );
   }
 
-  if (!hasSummaryData) {
-    return (
-      <Stack overflow="auto" gap="3xl" padding="xl" align="center">
-        <img src={aiBanner} alt="" />
-        <Text align="center">{t('No summary available for this replay.')}</Text>
-      </Stack>
-    );
-  }
-
-  if (isNoReplaySummary) {
+  if (hasInsufficientReplayFrames) {
     return (
       <Stack overflow="auto" gap="3xl" padding="xl" align="center">
         <NoReplaySummary />
