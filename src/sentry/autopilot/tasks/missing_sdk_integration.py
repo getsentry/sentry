@@ -29,6 +29,7 @@ class MissingSdkIntegrationFinishReason(StrEnum):
     SUCCESS = "success"
     MISSING_SENTRY_INIT = "missing_sentry_init"
     MISSING_DEPENDENCY_FILE = "missing_dependency_file"
+    CODE_PATH_NOT_FOUND = "code_path_not_found"
 
 
 class MissingSdkIntegrationsResult(BaseModel):
@@ -79,7 +80,7 @@ def run_missing_sdk_integration_detector() -> None:
             continue
 
         # Get repo configs for this project
-        repo_configs = (
+        repo_names = (
             RepositoryProjectPathConfig.objects.filter(
                 project=project,
                 repository__status=ObjectStatus.ACTIVE,
@@ -87,15 +88,14 @@ def run_missing_sdk_integration_detector() -> None:
             )
             .order_by("repository__name")
             .distinct("repository__name")
-            .values("repository__name", "source_root")
+            .values_list("repository__name", flat=True)
         )
-        for config in repo_configs:
+        for repo_name in repo_names:
             run_missing_sdk_integration_detector_for_project_task.apply_async(
                 args=(
                     project.organization_id,
                     project.id,
-                    config["repository__name"],
-                    config["source_root"],
+                    repo_name,
                 ),
                 headers={"sentry-propagate-traces": False},
             )
@@ -118,7 +118,7 @@ def _record_error(project_id: int, error_type: str) -> None:
     processing_deadline_duration=280,
 )
 def run_missing_sdk_integration_detector_for_project_task(
-    organization_id: int, project_id: int, repo_name: str, source_root: str
+    organization_id: int, project_id: int, repo_name: str
 ) -> list[str] | None:
     """
     Detect missing SDK integrations for a project using Seer Explorer.
@@ -138,7 +138,6 @@ def run_missing_sdk_integration_detector_for_project_task(
             "organization_id": organization_id,
             "project_id": project_id,
             "repo_name": repo_name,
-            "source_root": source_root,
         },
     )
 
@@ -190,12 +189,15 @@ def run_missing_sdk_integration_detector_for_project_task(
 Find missing Sentry SDK integrations for the project `{project.slug}` in repository `{repo_name}`.
 
 # Locate Project Directory
-The project should be at: `{source_root or "/"}`
+Find the directory in the repository that contains the {project.platform} project `{project.slug}`.
 
-If this path doesn't exist or contains no dependency files:
-1. Check the repository root
-2. Look for a directory named `{project.slug}`
+Use these hints to locate it:
+1. Check the repository root for dependency files
+2. Look for a directory named `{project.slug}` or similarly named
 3. Check common monorepo locations: `packages/`, `apps/`, `services/`
+4. Look for directories containing {project.platform} dependency files
+
+If you cannot locate the project directory, return `{MissingSdkIntegrationFinishReason.CODE_PATH_NOT_FOUND}` as the finish reason and an empty list of missing integrations.
 
 Once located, analyze ONLY that directory. Do not read files from parent or sibling directories.
 
@@ -242,6 +244,7 @@ Return a JSON object with:
   - `{MissingSdkIntegrationFinishReason.SUCCESS}`: Successfully analyzed the project (even if no integrations are missing)
   - `{MissingSdkIntegrationFinishReason.MISSING_SENTRY_INIT}`: Could not find Sentry initialization code (`Sentry.init` or `sentry_sdk.init`)
   - `{MissingSdkIntegrationFinishReason.MISSING_DEPENDENCY_FILE}`: Could not find any dependency file for the project
+  - `{MissingSdkIntegrationFinishReason.CODE_PATH_NOT_FOUND}`: Could not locate the project directory in the repository
   - For other issues, use a descriptive snake_case reason (e.g., `docs_unavailable`)
 
 Example success: `{{"missing_integrations": ["zodErrorsIntegration"], "finish_reason": "{MissingSdkIntegrationFinishReason.SUCCESS}"}}`
