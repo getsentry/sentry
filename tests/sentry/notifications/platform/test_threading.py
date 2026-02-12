@@ -1,5 +1,7 @@
 import hashlib
 
+import pytest
+
 from sentry.notifications.models.notificationrecord import NotificationRecord
 from sentry.notifications.models.notificationthread import NotificationThread
 from sentry.notifications.platform.threading import ThreadingService
@@ -227,3 +229,49 @@ class ThreadingServiceStoreTest(TestCase):
         assert NotificationThread.objects.count() == 1
         # Two records in DB
         assert NotificationRecord.objects.count() == 2
+
+    def test_store_raises_error_when_thread_mismatches_provider_key(self) -> None:
+        # Create a thread with Slack
+        thread, _ = ThreadingService.store(
+            key_type=NotificationSource.ERROR_ALERT,
+            key_data={"rule_fire_history_id": 123},
+            provider_key=NotificationProviderKey.SLACK,
+            target_id="C1234567890",
+            message_id="1234567890.123456",
+            thread_identifier="1234567890.123456",
+        )
+
+        # Try to use that thread with Discord - should fail
+        with pytest.raises(ValueError, match="does not match parameters"):
+            ThreadingService.store(
+                key_type=NotificationSource.ERROR_ALERT,
+                key_data={"rule_fire_history_id": 123},
+                provider_key=NotificationProviderKey.DISCORD,
+                target_id="C1234567890",
+                message_id="discord-msg-123",
+                thread_identifier="discord-thread-123",
+                thread=thread,
+            )
+
+    def test_store_raises_error_when_thread_mismatches_target_id(self) -> None:
+        # Create a thread for channel A
+        thread, _ = ThreadingService.store(
+            key_type=NotificationSource.ERROR_ALERT,
+            key_data={"rule_fire_history_id": 123},
+            provider_key=NotificationProviderKey.SLACK,
+            target_id="C1111111111",
+            message_id="1234567890.123456",
+            thread_identifier="1234567890.123456",
+        )
+
+        # Try to use that thread for channel B - should fail
+        with pytest.raises(ValueError, match="does not match parameters"):
+            ThreadingService.store(
+                key_type=NotificationSource.ERROR_ALERT,
+                key_data={"rule_fire_history_id": 123},
+                provider_key=NotificationProviderKey.SLACK,
+                target_id="C2222222222",
+                message_id="1234567890.222222",
+                thread_identifier="1234567890.222222",
+                thread=thread,
+            )
