@@ -12,6 +12,7 @@ from sentry.models.project import Project
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.tools import get_trace_waterfall
 from sentry.seer.models import SeerPermissionError
+from sentry.seer.seer_setup import has_seer_access
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.llm_issue_detection.detection import TraceMetadataWithSpanCount
 from sentry.tasks.llm_issue_detection.trace_data import (
@@ -173,27 +174,32 @@ def sample_trace_for_instrumentation_analysis(
     processing_deadline_duration=60,
 )
 def run_trace_instrumentation_detector() -> None:
-    """Main scheduled task that coordinates trace instrumentation detection across organizations."""
-    organization_allowlist = options.get("autopilot.organization-allowlist")
-    if not organization_allowlist:
+    """Main scheduled task that coordinates trace instrumentation detection across projects."""
+    project_ids = options.get("autopilot.trace-instrumentation.projects-allowlist")
+    if not project_ids:
         return
 
-    organizations = Organization.objects.filter(slug__in=organization_allowlist)
+    for project_id in project_ids:
+        try:
+            project = Project.objects.select_related("organization").get(
+                id=project_id, status=ObjectStatus.ACTIVE
+            )
+        except Project.DoesNotExist:
+            logger.warning(
+                "trace_instrumentation_detector.project_not_found",
+                extra={"project_id": project_id},
+            )
+            continue
 
-    for organization in organizations:
-        run_trace_instrumentation_detector_for_organization(organization)
+        if not has_seer_access(project.organization):
+            logger.info(
+                "trace_instrumentation_detector.no_gen_ai_access",
+                extra={"project_id": project_id, "organization_id": project.organization_id},
+            )
+            continue
 
-
-def run_trace_instrumentation_detector_for_organization(organization: Organization) -> None:
-    """Queue per-project trace instrumentation detection tasks for active projects."""
-    projects = Project.objects.filter(
-        organization=organization,
-        status=ObjectStatus.ACTIVE,
-    )
-
-    for project in projects:
         run_trace_instrumentation_detector_for_project_task.apply_async(
-            args=(organization.id, project.id),
+            args=(project.organization_id, project.id),
             headers={"sentry-propagate-traces": False},
         )
 
@@ -216,10 +222,18 @@ def run_trace_instrumentation_detector_for_project_task(
         organization = Organization.objects.get(id=organization_id)
         project = Project.objects.get(id=project_id, status=ObjectStatus.ACTIVE)
     except (Organization.DoesNotExist, Project.DoesNotExist):
+        logger.exception(
+            "trace_instrumentation_detector.entity_not_found",
+            extra={"organization_id": organization_id, "project_id": project_id},
+        )
         return None
 
     trace_metadata = sample_trace_for_instrumentation_analysis(project)
     if not trace_metadata:
+        logger.warning(
+            "trace_instrumentation_detector.no_trace_sampled",
+            extra={"organization_id": organization.id, "project_id": project.id},
+        )
         return None
 
     trace_id = trace_metadata.trace_id
@@ -315,7 +329,6 @@ def run_trace_instrumentation_detector_for_project_task(
                 "project_id": project.id,
                 "project_slug": project.slug,
                 "trace_id": trace_id,
-                "transaction_name": trace_metadata.transaction_name,
                 "run_id": run_id,
                 "finish_reason": finish_reason,
                 "issue_count": len(issues),

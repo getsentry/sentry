@@ -28,7 +28,6 @@ class RelayRegisterTest(APITestCase):
     def register_relay(
         self, key_pair: tuple[SecretKey, PublicKey], version: str, relay_id: str | int
     ) -> None:
-
         private_key = key_pair[0]
         public_key = key_pair[1]
 

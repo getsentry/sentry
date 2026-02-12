@@ -134,7 +134,7 @@ export enum SpanFields {
 
   // Mobile fields
   MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
-  MEASUREMENTS_TIME_TO_FILL_DISPLAY = 'measurements.time_to_full_display',
+  MEASUREMENTS_TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
   MOBILE_FROZEN_FRAMES = 'mobile.frozen_frames',
   MOBILE_TOTAL_FRAMES = 'mobile.total_frames',
   MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
@@ -212,7 +212,7 @@ export type SpanNumberFields =
   | SpanFields.SLOW_FRAMES_RATE
   | SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH
   | SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY
-  | SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY
+  | SpanFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY
   | SpanFields.GEN_AI_COST_INPUT_TOKENS
   | SpanFields.GEN_AI_COST_OUTPUT_TOKENS
   | SpanFields.GEN_AI_COST_TOTAL_TOKENS
@@ -476,6 +476,14 @@ type CustomResponseFields = {
   [SpanFields.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
 };
 
+// Fields that are used as arguments to division() queries.
+// Kept narrow to avoid a cartesian product explosion in SpanResponseRaw.
+// See the comment on the division() line below for details.
+type DivisibleSpanFields =
+  | SpanFields.MOBILE_FROZEN_FRAMES
+  | SpanFields.MOBILE_TOTAL_FRAMES
+  | SpanFields.MOBILE_SLOW_FRAMES;
+
 type SpanResponseRaw = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
@@ -496,7 +504,12 @@ type SpanResponseRaw = {
       | `${Property}(${string},${string},${string})`
       | `${Property}(${string},${string},${string},${string})`]: number;
     // TODO: We should allow a nicer way to define functions with multiple arguments and different arg types
-  } & Record<`division(${SpanNumberFields},${SpanNumberFields})`, number> & {
+    // Subset of SpanNumberFields that are actually used in division() queries.
+    // Previously this was Record<`division(${SpanNumberFields},${SpanNumberFields})`, number>
+    // which produced a 56×56 = 3,136 key cartesian product. In practice only
+    // mobile frame rate fields are divided, so we restrict the domain here.
+    // If you need to divide a new field, add it to DivisibleSpanFields below.
+  } & Record<`division(${DivisibleSpanFields},${DivisibleSpanFields})`, number> & {
     // TODO: This should include all valid HTTP codes or just all integers
     [Property in HttpResponseFunctions as `${Property}(${number})`]: number;
   } & {

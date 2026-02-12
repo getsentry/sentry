@@ -1,5 +1,5 @@
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';

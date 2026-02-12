@@ -172,7 +172,7 @@ export function AutofixInsightCard({
                   type="button"
                   size="sm"
                   onClick={handleCancel}
-                  title={t('Cancel')}
+                  tooltipProps={{title: t('Cancel')}}
                   aria-label={t('Cancel')}
                 >
                   <IconClose size="sm" />
@@ -181,7 +181,7 @@ export function AutofixInsightCard({
                   type="submit"
                   priority="primary"
                   size="sm"
-                  title={t('Redo work from here')}
+                  tooltipProps={{title: t('Redo work from here')}}
                   aria-label={t('Redo work from here')}
                   analyticsEventName="Autofix: Insight Card Rethink Open"
                   analyticsEventKey="autofix.insight.rethink_open"
@@ -221,7 +221,9 @@ export function AutofixInsightCard({
               <Button
                 size="zero"
                 priority="transparent"
-                title={isExpanded ? t('Hide evidence') : t('Show evidence')}
+                tooltipProps={{
+                  title: isExpanded ? t('Hide evidence') : t('Show evidence'),
+                }}
                 icon={
                   <StyledIconChevron direction={isExpanded ? 'up' : 'down'} size="xs" />
                 }
@@ -234,7 +236,7 @@ export function AutofixInsightCard({
               onClick={handleEdit}
               icon={<FlippedReturnIcon />}
               aria-label={t('Edit insight')}
-              title={t('Rethink the answer from here')}
+              tooltipProps={{title: t('Rethink the answer from here')}}
               analyticsEventName="Autofix: Insight Card Rethink"
               analyticsEventKey="autofix.insight.rethink"
               analyticsParams={{

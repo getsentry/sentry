@@ -29,9 +29,9 @@ export const metricsVerify = (params: DocsParams): ContentBlock => ({
 
 SentrySdk.Experimental.Metrics.EmitCounter("button_click", 5,
     [new KeyValuePair<string, object>("browser", "Firefox"), new KeyValuePair<string, object>("app_version", "1.0.0")]);
-SentrySdk.Experimental.Metrics.EmitDistribution("page_load", 15.0, SentryUnits.Duration.Millisecond,
+SentrySdk.Experimental.Metrics.EmitDistribution("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
     [new KeyValuePair<string, object>("page", "/home")]);
-SentrySdk.Experimental.Metrics.EmitGauge("page_load", 15.0, SentryUnits.Duration.Millisecond,
+SentrySdk.Experimental.Metrics.EmitGauge("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
     [new KeyValuePair<string, object>("page", "/home")]);
 `,
     },
@@ -102,9 +102,9 @@ SentrySdk.Init(options =>
 
 SentrySdk.Experimental.Metrics.EmitCounter("button_click", 5,
     [new KeyValuePair<string, object>("browser", "Firefox"), new KeyValuePair<string, object>("app_version", "1.0.0")]);
-SentrySdk.Experimental.Metrics.EmitDistribution("page_load", 15.0, SentryUnits.Duration.Millisecond,
+SentrySdk.Experimental.Metrics.EmitDistribution("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
     [new KeyValuePair<string, object>("page", "/home")]);
-SentrySdk.Experimental.Metrics.EmitGauge("page_load", 15.0, SentryUnits.Duration.Millisecond,
+SentrySdk.Experimental.Metrics.EmitGauge("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
     [new KeyValuePair<string, object>("page", "/home")]);`,
         },
         {

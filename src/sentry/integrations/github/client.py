@@ -453,11 +453,14 @@ class GitHubBaseClient(
             "Bad credentials",  # No permission granted for this repo
         ):
             logger.warning(error_message, extra=extra)
-        elif error_message in (
-            "Server Error",  # Github failed to respond
-            "Connection reset by peer",  # Connection reset by GitHub
-            "Connection broken: invalid chunk length",  # Connection broken by chunk with invalid length
-            "Unable to reach host:",  # Unable to reach host at the moment
+        elif (
+            error_message
+            in (
+                "Server Error",  # Github failed to respond
+                "Connection reset by peer",  # Connection reset by GitHub
+                "Connection broken: invalid chunk length",  # Connection broken by chunk with invalid length
+                "Unable to reach host:",  # Unable to reach host at the moment
+            )
         ):
             should_count_error = True
         elif error_message and error_message.startswith(

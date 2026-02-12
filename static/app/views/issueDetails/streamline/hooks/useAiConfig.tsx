@@ -47,15 +47,10 @@ export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
   const hasAutofix = isAutofixEnabled && areAiFeaturesAllowed && !isSampleError;
   const hasGithubIntegration = !!autofixSetupData?.integration.ok;
 
-  const orgNeedsGenAiAcknowledgement =
-    !autofixSetupData?.setupAcknowledgement.orgHasAcknowledged &&
-    (isSummaryEnabled || isAutofixEnabled) &&
-    areAiFeaturesAllowed;
-
   return {
     hasSummary,
     hasAutofix,
-    orgNeedsGenAiAcknowledgement,
+    orgNeedsGenAiAcknowledgement: false,
     hasResources,
     isAutofixSetupLoading,
     areAiFeaturesAllowed,

@@ -2,9 +2,13 @@ import type {ReactNode} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -15,6 +19,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import ScoreBar from 'sentry/components/scoreBar';
@@ -41,8 +46,8 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import useRouter from 'sentry/utils/useRouter';
 import type {DataState} from 'sentry/views/profiling/useLandingAnalytics';
 import {getProfileTargetId} from 'sentry/views/profiling/utils';
 
@@ -61,6 +66,9 @@ const DEFAULT_CURSOR_NAME = 'slowFnCursor';
 
 type BreakdownFunction = 'avg()' | 'p50()' | 'p75()' | 'p95()' | 'p99()';
 type ChartFunctions<F extends BreakdownFunction> = F | 'all_examples()';
+type SortOption = 'sum()' | 'avg()' | 'p50()' | 'p75()' | 'p95()' | 'p99()';
+
+const DEFAULT_SORTING_OPTION: SortOption = 'sum()';
 
 interface SlowestFunctionsWidgetProps<F extends BreakdownFunction> {
   breakdownFunction: F;
@@ -79,13 +87,27 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   widgetHeight,
   onDataState,
 }: SlowestFunctionsWidgetProps<F>) {
+  const router = useRouter();
   const location = useLocation();
   const organization = useOrganization();
+
+  const [sortFunction, setSortFunction] = useState<SortOption>(DEFAULT_SORTING_OPTION);
 
   // strip the parenthesis to stay consistent in analytics
   const analyticsSource = breakdownFunction.slice(0, -2);
 
   const [expandedIndex, setExpandedIndex] = useState(0);
+
+  useEffect(() => {
+    setSortFunction(DEFAULT_SORTING_OPTION);
+    setExpandedIndex(0);
+  }, [
+    setSortFunction,
+    setExpandedIndex,
+    // we want to reset the sorting option and expanded index to the default
+    // every time the breakdown function changes.
+    breakdownFunction,
+  ]);
 
   const slowFnCursor = useMemo(
     () => decodeScalar(location.query[cursorName]),
@@ -114,10 +136,12 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   );
 
   const functionsQuery = useProfileFunctions<FunctionsField>({
-    fields: functionsFields,
+    fields: functionsFields.includes(sortFunction as any)
+      ? functionsFields
+      : [...functionsFields, sortFunction],
     referrer: 'api.profiling.suspect-functions.list',
     sort: {
-      key: 'sum()',
+      key: sortFunction,
       order: 'desc',
     },
     query: userQuery,
@@ -184,7 +208,35 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
     <WidgetContainer height={widgetHeight}>
       <HeaderContainer>
         {header ?? <HeaderTitleLegend>{t('Slowest Functions')}</HeaderTitleLegend>}
-        <Subtitle>{t('Slowest functions by total self time spent.')}</Subtitle>
+        <Subtitle>
+          <Flex gap="xs" align="center">
+            {tct('Slowest functions sorted by [sorting].', {
+              sorting: (
+                <StyledCompactSelect
+                  value={sortFunction}
+                  options={WIDGET_SORTING_OPTIONS}
+                  onChange={option => {
+                    setSortFunction(option.value as SortOption);
+                    setExpandedIndex(0);
+                    const newQuery = omit(router.location.query, [cursorName]);
+                    router.replace({
+                      pathname: router.location.pathname,
+                      query: newQuery,
+                    });
+                  }}
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button
+                      {...triggerProps}
+                      priority="transparent"
+                      size="zero"
+                    />
+                  )}
+                  offset={4}
+                />
+              ),
+            })}
+          </Flex>
+        </Subtitle>
         <StyledPagination
           pageLinks={functionsQuery.getResponseHeader?.('Link') ?? null}
           size="xs"
@@ -499,11 +551,38 @@ const functionsFields = [
   'sum()',
 ] as const;
 
-type FunctionsField = (typeof functionsFields)[number];
+type FunctionsField = (typeof functionsFields)[number] | SortOption;
 
 const totalsFields = ['project.id', 'sum()'] as const;
 
 type TotalsField = (typeof totalsFields)[number];
+
+const WIDGET_SORTING_OPTIONS: Array<SelectOption<SortOption>> = [
+  {
+    label: t('total self time spent'),
+    value: 'sum()' as const,
+  },
+  {
+    label: t('average self time spent'),
+    value: 'avg()' as const,
+  },
+  {
+    label: t('p50 self time spent'),
+    value: 'p50()' as const,
+  },
+  {
+    label: t('p75 self time spent'),
+    value: 'p75()' as const,
+  },
+  {
+    label: t('p95 self time spent'),
+    value: 'p95()' as const,
+  },
+  {
+    label: t('p99 self time spent'),
+    value: 'p99()' as const,
+  },
+];
 
 const StyledPagination = styled(Pagination)`
   margin: 0;
@@ -511,4 +590,11 @@ const StyledPagination = styled(Pagination)`
 
 const FunctionName = styled(TextOverflow)`
   flex: 1 1 auto;
+`;
+
+const StyledCompactSelect = styled(CompactSelect)`
+  > button {
+    border: None;
+    padding: 0;
+  }
 `;

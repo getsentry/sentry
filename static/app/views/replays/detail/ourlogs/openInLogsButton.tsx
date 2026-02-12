@@ -1,8 +1,8 @@
 import {LinkButton} from '@sentry/scraps/button';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 
 type Props = {

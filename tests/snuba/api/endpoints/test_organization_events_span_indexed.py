@@ -998,9 +998,9 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             assert result["span.description"] == source["description"], "description"
             ts = datetime.fromisoformat(result["timestamp"])
             assert ts.tzinfo == timezone.utc
-            assert ts.timestamp() == pytest.approx(
-                source["end_timestamp_precise"], abs=5
-            ), "timestamp"
+            assert ts.timestamp() == pytest.approx(source["end_timestamp_precise"], abs=5), (
+                "timestamp"
+            )
             assert result["transaction.span_id"] == source["segment_id"], "transaction.span_id"
             assert result["project"] == result["project.name"] == self.project.slug, "project"
         assert meta["dataset"] == "spans"
@@ -2475,6 +2475,35 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert meta["units"] == {"description": None, "tpm()": "1/minute"}
         assert meta["fields"] == {"description": "string", "tpm()": "rate"}
 
+    def test_equation_tpm_meta(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "is_segment": True,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+        )
+
+        response = self.do_request(
+            {
+                "field": ["description", "equation|tpm()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        assert meta["units"]["equation|tpm()"] == "1/minute"
+        assert meta["fields"]["equation|tpm()"] == "rate"
+
     def test_p75_if(self) -> None:
         self.store_spans(
             [
@@ -3545,7 +3574,6 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert meta["dataset"] == "spans"
 
     def test_performance_score_zero(self) -> None:
-
         response = self.do_request(
             {
                 "field": [

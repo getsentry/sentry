@@ -56,6 +56,11 @@ type Props = {
    * Defaults to `/organizations/${orgSlug}/issues/`
    */
   endpointPath?: string;
+  /**
+   * Extra query params to include in the issue details link.
+   * Useful for feature-specific deep-linking.
+   */
+  issueLinkExtraQuery?: Record<string, string>;
   onFetchSuccess?: (
     groupListState: State,
     onCursor: (
@@ -99,6 +104,7 @@ function GroupList({
   renderEmptyMessage,
   renderErrorMessage,
   customStatsPeriod,
+  issueLinkExtraQuery,
   queryFilterDescription,
   source,
   query,
@@ -356,6 +362,7 @@ function GroupList({
                     statsPeriod={statsPeriod}
                     queryFilterDescription={queryFilterDescription}
                     source={source}
+                    issueLinkExtraQuery={issueLinkExtraQuery}
                     query={query}
                     onAssigneeChange={newAssignee =>
                       updateQueryCacheAssigneeChange(group.id, newAssignee)

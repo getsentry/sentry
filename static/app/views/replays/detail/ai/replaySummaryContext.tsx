@@ -31,12 +31,10 @@ export function ReplaySummaryContextProvider({
   replay: ReplayReader;
 }) {
   const organization = useOrganization();
-  const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
   const mobileProject = replay.isVideoReplay();
   const hasAiSummary =
-    organization.features.includes('replay-ai-summaries') &&
-    areAiFeaturesAllowed &&
-    setupAcknowledgement.orgHasAcknowledged;
+    organization.features.includes('replay-ai-summaries') && areAiFeaturesAllowed;
   const hasMobileSummary = organization.features.includes('replay-ai-summaries-mobile');
 
   const summaryResult = useReplaySummary(replay, {

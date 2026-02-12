@@ -5,8 +5,8 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -14,7 +14,7 @@ import {DatabaseSpanSummaryPage} from 'sentry/views/insights/database/views/data
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useParams');
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 jest.mock('sentry/utils/useReleaseStats');
 

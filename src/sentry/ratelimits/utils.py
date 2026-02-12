@@ -259,9 +259,7 @@ def for_organization_member_invite(
                 **config["members:invite-by-org"],
             ),
             ratelimiter.is_limited(
-                "members:org-invite-to-email:{}-{}".format(
-                    organization.id, md5_text(email.lower()).hexdigest()
-                ),
+                f"members:org-invite-to-email:{organization.id}-{md5_text(email.lower()).hexdigest()}",
                 **config["members:org-invite-to-email"],
             ),
         )

@@ -44,7 +44,11 @@ export function NewDetectorFooter({
                   form?.isError ||
                   form?.isSaving
                 }
-                title={form ? getSubmitButtonTitle(form, disabledCreate) : disabledCreate}
+                tooltipProps={{
+                  title: form
+                    ? getSubmitButtonTitle(form, disabledCreate)
+                    : disabledCreate,
+                }}
               >
                 {t('Create Monitor')}
               </Button>

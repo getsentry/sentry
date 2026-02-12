@@ -288,7 +288,7 @@ export function AutofixSummary({
                           size="xs"
                           text={card.copyText}
                           priority="transparent"
-                          title={card.copyTitle}
+                          tooltipProps={{title: card.copyTitle}}
                           onClick={e => {
                             e.stopPropagation();
                           }}

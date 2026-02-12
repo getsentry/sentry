@@ -293,10 +293,7 @@ export function getMenuOptions(
     });
   }
 
-  if (
-    organization.features.includes('dashboards-edit') &&
-    isWidgetEditable(widget.displayType)
-  ) {
+  if (organization.features.includes('dashboards-edit')) {
     menuOptions.push({
       key: 'add-to-dashboard',
       label: t('Add to Dashboard'),
@@ -336,7 +333,10 @@ export function getMenuOptions(
       key: 'edit-widget',
       label: t('Edit Widget'),
       onAction: () => onEdit?.(),
-      disabled: !hasEditAccess,
+      disabled: !hasEditAccess || !isWidgetEditable(widget.displayType),
+      tooltip: isWidgetEditable(widget.displayType)
+        ? undefined
+        : t('Static widgets from the widget library cannot be edited.'),
     });
 
     menuOptions.push({

@@ -143,12 +143,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
       noAutofixQuota ||
       // needs to configure repos
       !aiConfig.seerReposLinked ||
-      // needs to have autofix enabled for this group's project
-      !aiConfig.autofixEnabled ||
-      // needs to enable autofix
-      !data?.isAutofixEnabled ||
-      // catch all, ensure seer is configured
-      !data?.isSeerConfigured
+      !data?.hasSupportedScmIntegration
     ) {
       return (
         <SeerDrawerContainer className="seer-drawer-container">
@@ -421,7 +416,7 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
                 external
                 href={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                 size="xs"
-                title={t('Project Settings for Seer')}
+                tooltipProps={{title: t('Project Settings for Seer')}}
                 aria-label={t('Project Settings for Seer')}
                 icon={<IconSettings />}
               />
@@ -433,13 +428,13 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
                   reset();
                   aiConfig.refetchAutofixSetup?.();
                 }}
-                title={
-                  autofixData?.last_triggered_at
+                tooltipProps={{
+                  title: autofixData?.last_triggered_at
                     ? tct('Last run at [date]', {
                         date: <DateTime date={lastTriggeredAt} />,
                       })
-                    : null
-                }
+                    : null,
+                }}
                 disabled={!autofixData}
               >
                 {t('Start Over')}

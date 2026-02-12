@@ -1187,7 +1187,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         for i in range(5):
             self.create_detector(
                 project=self.project,
-                name=f"Existing Detector {i+1}",
+                name=f"Existing Detector {i + 1}",
                 type=MetricIssue.slug,
                 status=ObjectStatus.ACTIVE,
             )

@@ -14,6 +14,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models.organization import Organization
 from sentry.seer.explorer.client import SeerExplorerClient
+from sentry.seer.explorer.client_utils import has_seer_explorer_access_with_detail
 from sentry.seer.models import SeerPermissionError
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,9 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
             category_key: Optional category key to filter by (e.g., "bug-fixer", "researcher")
             category_value: Optional category value to filter by (e.g., "issue-123", "a5b32")
         """
+        has_access, error = has_seer_explorer_access_with_detail(organization, request.user)
+        if not has_access:
+            raise PermissionDenied(error)
 
         category_key = request.GET.get("category_key")
         category_value = request.GET.get("category_value")

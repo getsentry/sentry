@@ -51,7 +51,6 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
             "type": Condition.GREATER,
             "comparison": 100,
             "conditionResult": DetectorPriorityLevel.HIGH,
-            "conditionGroupId": self.data_condition_group.id,
         }
 
     def test(self) -> None:
@@ -61,7 +60,6 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
             "comparison": 100.0,
             "condition_result": DetectorPriorityLevel.HIGH,
             "type": Condition.GREATER,
-            "condition_group_id": self.data_condition_group.id,
         }
 
     def test_invalid_condition(self) -> None:
@@ -285,7 +283,6 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
 
 
 class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator):
-
     @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_create_with_valid_data(

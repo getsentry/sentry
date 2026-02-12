@@ -8,9 +8,9 @@ import type {
 import moment, {type MomentInput} from 'moment-timezone';
 import * as qs from 'query-string';
 
-import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
 import ToolBox from 'sentry/components/charts/components/toolBox';
+import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import type {DateString} from 'sentry/types/core';
 import type {
   EChartChartReadyHandler,

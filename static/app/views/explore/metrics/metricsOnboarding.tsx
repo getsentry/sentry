@@ -4,12 +4,21 @@ import styled from '@emotion/styled';
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {
+  CopySetupInstructionsGate,
+  OnboardingCopyMarkdownButton,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {
+  StepIndexProvider,
+  TabSelectionScope,
+} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   ProductSolution,
@@ -17,10 +26,10 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
@@ -64,32 +73,34 @@ function OnboardingPanel({
     <Panel>
       <PanelBody>
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
-          <div>
-            <HeaderWrapper>
-              <HeaderText>
-                <Title>{t('Measure what matters with Metrics')}</Title>
-                <SubTitle>
-                  {t(
-                    'Track application metrics with powerful aggregation and visualization capabilities. Metrics will be connected to your errors, logs and spans enabling easier debugging'
-                  )}
-                </SubTitle>
-                {isUnsupportedPlatform && <div>{children}</div>}
-              </HeaderText>
-              <Image src={connectDotsImg} />
-            </HeaderWrapper>
-            <Divider />
-            <Body isUnsupportedPlatform={isUnsupportedPlatform}>
-              {!isUnsupportedPlatform && <Setup>{children}</Setup>}
-              <Preview isUnsupportedPlatform={isUnsupportedPlatform}>
-                <BodyTitle>{t('Preview a Sentry Metric')}</BodyTitle>
-                <Arcade
-                  src="https://demo.arcade.software/wNDJOXTJw64xiuVi7Hp6?embed"
-                  loading="lazy"
-                  allowFullScreen
-                />
-              </Preview>
-            </Body>
-          </div>
+          <TabSelectionScope>
+            <div>
+              <HeaderWrapper>
+                <HeaderText>
+                  <Title>{t('Measure what matters with Metrics')}</Title>
+                  <SubTitle>
+                    {t(
+                      'Track application metrics with powerful aggregation and visualization capabilities. Metrics will be connected to your errors, logs and spans enabling easier debugging'
+                    )}
+                  </SubTitle>
+                  {isUnsupportedPlatform && <div>{children}</div>}
+                </HeaderText>
+                <Image src={connectDotsImg} />
+              </HeaderWrapper>
+              <Divider />
+              <Body isUnsupportedPlatform={isUnsupportedPlatform}>
+                {!isUnsupportedPlatform && <Setup>{children}</Setup>}
+                <Preview isUnsupportedPlatform={isUnsupportedPlatform}>
+                  <BodyTitle>{t('Preview a Sentry Metric')}</BodyTitle>
+                  <Arcade
+                    src="https://demo.arcade.software/wNDJOXTJw64xiuVi7Hp6?embed"
+                    loading="lazy"
+                    allowFullScreen
+                  />
+                </Preview>
+              </Body>
+            </div>
+          </TabSelectionScope>
         </AuthTokenGeneratorProvider>
       </PanelBody>
     </Panel>
@@ -241,6 +252,11 @@ function Onboarding({organization, project}: OnboardingProps) {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
+      <CopySetupInstructionsGate>
+        <Container paddingBottom="md">
+          <OnboardingCopyMarkdownButton steps={steps} source="metrics_onboarding" />
+        </Container>
+      </CopySetupInstructionsGate>
       <GuidedSteps
         initialStep={decodeInteger(location.query.guidedStep)}
         onStepChange={step => {
@@ -257,7 +273,9 @@ function Onboarding({organization, project}: OnboardingProps) {
           const title = step.title ?? STEP_TITLES[step.type];
           return (
             <GuidedSteps.Step key={title} stepKey={title} title={title}>
-              <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+              <StepIndexProvider index={index}>
+                <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+              </StepIndexProvider>
               {index === steps.length - 1 ? (
                 <GuidedSteps.ButtonWrapper>
                   <GuidedSteps.BackButton size="md" />

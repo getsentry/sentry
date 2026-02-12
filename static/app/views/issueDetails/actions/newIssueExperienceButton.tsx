@@ -175,7 +175,7 @@ export function NewIssueExperienceButton() {
       <TryNewButton
         icon={<IconLab />}
         size="sm"
-        title={t('Switch to the new issue experience')}
+        tooltipProps={{title: t('Switch to the new issue experience')}}
         aria-label={t('Switch to the new issue experience')}
         onClick={() => {
           handleToggle();

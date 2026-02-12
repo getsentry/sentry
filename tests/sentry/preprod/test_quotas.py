@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest.mock import patch
 
 from sentry.preprod.quotas import should_run_distribution, should_run_size
@@ -82,3 +83,25 @@ class ShouldRunDistributionTest(TestCase):
         assert result is False
         assert reason == "disabled"
         mock_quota.assert_not_called()
+
+
+class GetSizeRetentionCutoffTest(TestCase):
+    @patch("sentry.preprod.quotas.quotas.backend.get_event_retention", return_value=None)
+    def test_default_retention_when_none(self, mock_retention):
+        from django.utils import timezone
+
+        from sentry.preprod.quotas import get_size_retention_cutoff
+
+        cutoff = get_size_retention_cutoff(self.organization)
+        expected = timezone.now() - timedelta(days=90)
+        assert abs((cutoff - expected).total_seconds()) < 2
+
+    @patch("sentry.preprod.quotas.quotas.backend.get_event_retention", return_value=30)
+    def test_custom_retention(self, mock_retention):
+        from django.utils import timezone
+
+        from sentry.preprod.quotas import get_size_retention_cutoff
+
+        cutoff = get_size_retention_cutoff(self.organization)
+        expected = timezone.now() - timedelta(days=30)
+        assert abs((cutoff - expected).total_seconds()) < 2

@@ -104,14 +104,14 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         #    - recovery codes
         response = serialize(interface, serializer=get_interface_serializer(interface))
         if interface.interface_id == "recovery":
-            assert isinstance(
-                interface, RecoveryCodeInterface
-            ), "Interace must be RecoveryCodeInterface to get unused codes"
+            assert isinstance(interface, RecoveryCodeInterface), (
+                "Interace must be RecoveryCodeInterface to get unused codes"
+            )
             response["codes"] = interface.get_unused_codes()
         if interface.interface_id == "u2f":
-            assert isinstance(
-                interface, U2fInterface
-            ), "Interace must be U2fInterface to get registered devices"
+            assert isinstance(interface, U2fInterface), (
+                "Interace must be U2fInterface to get registered devices"
+            )
             response["devices"] = interface.get_registered_devices()
 
         return Response(response)
@@ -167,9 +167,9 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         interface = authenticator.interface
         # Remove a single device and not entire authentication method
         if interface.interface_id == "u2f" and interface_device_id is not None:
-            assert isinstance(
-                interface, U2fInterface
-            ), "Interace must be U2fInterface to get registered devices"
+            assert isinstance(interface, U2fInterface), (
+                "Interace must be U2fInterface to get registered devices"
+            )
             device_name = interface.get_device_name(interface_device_id)
             # Can't remove if this is the last device, will return False if so
             if not interface.remove_u2f_device(interface_device_id):

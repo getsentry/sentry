@@ -76,7 +76,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
                 "label": "Comment",
                 "default": group.get_absolute_url(params={"referrer": "pivotal_plugin"}),
                 "type": "textarea",
-                "help": ("Leave blank if you don't want to " "add a comment to the Pivotal story."),
+                "help": ("Leave blank if you don't want to add a comment to the Pivotal story."),
                 "required": False,
             },
         ]

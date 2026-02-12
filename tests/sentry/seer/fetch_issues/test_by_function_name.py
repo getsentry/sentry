@@ -452,7 +452,6 @@ class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
     @patch("sentry.seer.fetch_issues.by_function_name._get_projects_and_filenames_from_source_file")
     @patch("sentry.seer.fetch_issues.by_function_name._get_issues_for_file")
     def test_no_projects_found_fallback(self, mock_get_issues, mock_get_projects):
-
         # Mock no projects found initially
         mock_get_projects.return_value = (set(), {"test.py"})
         mock_get_issues.return_value = []
@@ -481,7 +480,6 @@ class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
     @patch("sentry.seer.fetch_issues.by_function_name._get_projects_and_filenames_from_source_file")
     @patch("sentry.seer.fetch_issues.by_function_name._get_issues_for_file")
     def test_projects_found_no_fallback(self, mock_get_issues, mock_get_projects):
-
         # Mock projects found
         mock_get_projects.return_value = ({self.project}, {"test.py"})
         mock_get_issues.return_value = []

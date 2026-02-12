@@ -4,8 +4,9 @@ import configparser
 import shutil
 import subprocess
 
-from devenv import constants
 from devenv.lib import proc
+
+from devenv import constants
 
 # we only support apt-based linuxes
 LINUX = shutil.which("dpkg") is not None

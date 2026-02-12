@@ -5,35 +5,13 @@ import type {Broadcast} from 'sentry/types/system';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
-enum SourceMapProcessingIssueType {
-  UNKNOWN_ERROR = 'unknown_error',
-  MISSING_RELEASE = 'no_release_on_event',
-  MISSING_SOURCEMAPS = 'no_sourcemaps_on_release',
-  URL_NOT_VALID = 'url_not_valid',
-  NO_URL_MATCH = 'no_url_match',
-  PARTIAL_MATCH = 'partial_match',
-  DIST_MISMATCH = 'dist_mismatch',
-  SOURCEMAP_NOT_FOUND = 'sourcemap_not_found',
-  DEBUG_ID_NO_SOURCEMAPS = 'debug_id_no_sourcemaps',
-}
-
 type IssueStream = {
   group_id: string;
   was_shown_suggestion: boolean;
 };
 
-type SourceMapDebugParam = {
-  type: SourceMapProcessingIssueType;
-  group_id?: string;
-} & BaseEventAnalyticsParams;
-
 type ActionableItemDebugParam = {
   type: string;
-  group_id?: string;
-} & BaseEventAnalyticsParams;
-
-type SourceMapWizardParam = {
-  project_id: string;
   group_id?: string;
 } & BaseEventAnalyticsParams;
 
@@ -81,13 +59,6 @@ export type IssueEventParameters = {
   'errors.ai_query_applied': {
     query: string;
   };
-  'event_cause.dismissed': Record<string, unknown>;
-  'event_cause.docs_clicked': Record<string, unknown>;
-  'event_cause.snoozed': Record<string, unknown>;
-  'event_cause.viewed': {
-    platform?: string;
-    project_id?: string;
-  };
   'highlights.edit_modal.add_context_key': Record<string, unknown>;
   'highlights.edit_modal.add_tag': Record<string, unknown>;
   'highlights.edit_modal.cancel_clicked': Record<string, unknown>;
@@ -105,12 +76,7 @@ export type IssueEventParameters = {
   'issue.list.ai_query_applied': {
     query: string;
   };
-  'issue.search_sidebar_clicked': Record<string, unknown>;
-  'issue.share_from_icon': Record<string, unknown>;
   'issue.shared_publicly': Record<string, unknown>;
-  'issue_details.activity_comments_link_clicked': {
-    num_comments: number;
-  };
   'issue_details.activity_drawer.filter_changed': {
     filter: string;
   };
@@ -137,15 +103,6 @@ export type IssueEventParameters = {
   'issue_details.copy_issue_markdown_link_clicked': StreamlineGroupParams;
   'issue_details.copy_issue_short_id_clicked': StreamlineGroupParams;
   'issue_details.copy_issue_url_clicked': StreamlineGroupParams;
-  'issue_details.escalating_feedback_received': {
-    group_id: string;
-    is_high_priority: boolean;
-  };
-  'issue_details.escalating_issues_banner_feedback_received': {
-    group_id: string;
-    should_be_escalating: boolean;
-    reason?: string;
-  };
   'issue_details.event_dropdown_option_selected': EventDropdownParams;
   'issue_details.event_navigation_selected': {
     content: string;
@@ -159,9 +116,6 @@ export type IssueEventParameters = {
   };
   'issue_details.issue_status_docs_clicked': Record<string, unknown>;
   'issue_details.issue_tags_click': Record<string, unknown>;
-  'issue_details.performance.autogrouped_siblings_toggle': Record<string, unknown>;
-  'issue_details.performance.hidden_spans_expanded': Record<string, unknown>;
-  'issue_details.publish_issue_modal_opened': StreamlineGroupParams;
   'issue_details.related_trace_issue.trace_issue_clicked': {
     group_id: number;
   };
@@ -185,9 +139,6 @@ export type IssueEventParameters = {
     projectId?: string;
     wouldGroup?: string;
   };
-  'issue_details.sourcemap_wizard_copy': SourceMapWizardParam;
-  'issue_details.sourcemap_wizard_dismiss': SourceMapWizardParam;
-  'issue_details.sourcemap_wizard_learn_more': SourceMapWizardParam;
   'issue_details.streamline_ui_toggle': {
     enforced_streamline_ui: boolean;
     isEnabled: boolean;
@@ -220,19 +171,9 @@ export type IssueEventParameters = {
     group?: string;
     platform?: string;
   };
-  'issue_error_banner.viewed': {
-    error_message: string[];
-    error_type: string[];
-    group?: string;
-    platform?: string;
-  };
   'issue_group_details.anr_root_cause_detected': {
     culprit?: string;
     group?: string;
-  };
-  'issue_group_details.stack_traces.setup_source_maps_alert.clicked': {
-    platform?: string;
-    project_id?: string;
   };
   'issue_group_details.tab.clicked': {
     tab: string;
@@ -242,23 +183,6 @@ export type IssueEventParameters = {
     platform?: string;
   };
   'issue_group_details.tags.bar.clicked': {
-    is_mobile: boolean;
-    tag: string;
-    value: string;
-    platform?: string;
-  };
-  'issue_group_details.tags.show_all_tags.clicked': {
-    is_mobile: boolean;
-    platform?: string;
-    tag?: string;
-  };
-  'issue_group_details.tags.switcher.clicked': {
-    is_mobile: boolean;
-    previous_tag: string;
-    tag: string;
-    platform?: string;
-  };
-  'issue_group_details.tags_distribution.bar.clicked': {
     is_mobile: boolean;
     tag: string;
     value: string;
@@ -278,9 +202,6 @@ export type IssueEventParameters = {
     ownership: 'personal' | 'organization';
     surface: 'issue-views-list' | 'issue-view-details';
   };
-  'issue_views.deleted_view': Record<string, unknown>;
-  'issue_views.discarded_changes': Record<string, unknown>;
-  'issue_views.duplicated_view': Record<string, unknown>;
   'issue_views.edit_name': {
     ownership: 'personal' | 'organization';
     surface: 'issue-views-list' | 'issue-view-details';
@@ -289,7 +210,6 @@ export type IssueEventParameters = {
     query: string;
     query_label: string;
   };
-  'issue_views.renamed_view': {surface: 'issue-views-list' | 'issue-view-details'};
   'issue_views.reordered_views': Record<string, unknown>;
   'issue_views.reset.clicked': Record<string, unknown>;
   'issue_views.save.clicked': Record<string, unknown>;
@@ -338,18 +258,6 @@ export type IssueEventParameters = {
   'issues_stream.updated_priority': {
     priority: PriorityLevel;
   };
-  'issues_tab.viewed': {
-    issue_views_enabled: boolean;
-    num_issues: number;
-    num_new_issues: number;
-    num_old_issues: number;
-    num_perf_issues: number;
-    page: number;
-    query: string;
-    sort: string;
-    total_issues_count: number | null;
-    tab?: string;
-  };
   'one_other_related_trace_issue.clicked': {
     area: string;
     // Equivalent to 'issue_details.related_trace_issue.trace_issue_clicked', but `area` is dynamic.
@@ -363,21 +271,6 @@ export type IssueEventParameters = {
   'quick_trace.connected_services': {
     projects: number;
   };
-  'quick_trace.dropdown.clicked': {
-    node_key: string;
-  };
-  'quick_trace.dropdown.clicked_extra': {
-    node_key: string;
-  };
-  'quick_trace.missing_service.dismiss': {
-    platform: string;
-  };
-  'quick_trace.missing_service.docs': {
-    platform: string;
-  };
-  'quick_trace.node.clicked': {
-    node_key: string;
-  };
   'quick_trace.trace_id.clicked': {
     source: string;
   };
@@ -386,13 +279,6 @@ export type IssueEventParameters = {
     filter: string;
     new_state: FieldValue;
     project_id: number;
-  };
-  'source_map_debug.docs_link_clicked': SourceMapDebugParam;
-  'source_map_debug.expand_clicked': SourceMapDebugParam;
-  'span_view.embedded_child.hide': Record<string, unknown>;
-  'span_view.embedded_child.show': Record<string, unknown>;
-  'tag.clicked': {
-    is_clickable: boolean;
   };
   'tour-guide.dismiss': {id?: string; step_count?: number; tour_key?: string};
   'tour-guide.finish': {id?: string; step_count?: number; tour_key?: string};
@@ -408,10 +294,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'errors.ai_query_applied': 'Errors: AI Query Applied',
   'breadcrumbs.issue_details.drawer_opened': 'Breadcrumb Drawer Opened',
   'breadcrumbs.drawer.action': 'Breadcrumb Drawer Action Taken',
-  'event_cause.viewed': null,
-  'event_cause.docs_clicked': 'Event Cause Docs Clicked',
-  'event_cause.snoozed': 'Event Cause Snoozed',
-  'event_cause.dismissed': 'Event Cause Dismissed',
   'highlights.edit_modal.add_context_key': 'Highlights: Add Context in Edit Modal',
   'highlights.edit_modal.add_tag': 'Highlights: Add Tag in Edit Modal',
   'highlights.edit_modal.cancel_clicked': 'Highlights: Cancel from Edit Modal',
@@ -424,22 +306,15 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'highlights.issue_details.view_all_clicked': 'Highlights: View All Clicked',
   'highlights.project_settings.updated_manually':
     'Highlights: Updated Manually from Settings',
-  'issue_details.activity_comments_link_clicked':
-    'Issue Details: Activity Comments Link Clicked',
   'issue_details.activity_drawer.filter_changed':
     'Issue Details: Activity Drawer Filter Changed',
   'issue_details.copy_issue_short_id_clicked': 'Issue Details: Copy Issue Short ID',
   'issue_details.copy_issue_url_clicked': 'Issue Details: Copy Issue URL',
   'issue_details.copy_issue_markdown_link_clicked':
     'Issue Details: Copy Issue Markdown Link',
-  'issue_details.escalating_feedback_received':
-    'Issue Details: Escalating Feedback Received',
-  'issue_details.escalating_issues_banner_feedback_received':
-    'Issue Details: Escalating Issues Banner Feedback Received',
   'issue_details.event_navigation_selected': 'Issue Details: Event Navigation Selected',
   'issue_details.issue_content_selected': 'Issue Details: Issue Content Selected',
   'issue_details.issue_tags_click': 'Issue Details: Issue Tags Clicked',
-  'issue_details.publish_issue_modal_opened': 'Issue Details: Publish Issue Modal Opened',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
@@ -456,20 +331,14 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.issue_status_docs_clicked': 'Issue Details: Issue Status Docs Clicked',
   'issue_details.related_trace_issue.trace_issue_clicked':
     'Related Issue: Trace Issue Clicked',
-  'issue_error_banner.viewed': 'Issue Error Banner Viewed',
   'issue_error_banner.proguard_misconfigured.displayed':
     'Proguard Potentially Misconfigured Issue Error Banner Displayed',
   'issue_error_banner.proguard_missing_mapping.displayed':
     'Proguard Missing Mapping Issue Error Banner Displayed',
   'issue_error_banner.proguard_misconfigured.clicked':
     'Proguard Potentially Misconfigured Issue Error Banner Link Clicked',
-  'issues_tab.viewed': 'Viewed Issues Tab',
   'issue_views.switched_views': 'Issue Views: Switched Views',
   'issue_views.delete_view': 'Issue Views: Delete View',
-  'issue_views.discarded_changes': 'Issue Views: Discarded Changes',
-  'issue_views.renamed_view': 'Issue Views: Renamed View',
-  'issue_views.duplicated_view': 'Issue Views: Duplicated View',
-  'issue_views.deleted_view': 'Issue Views: Deleted View',
   'issue_views.reordered_views': 'Issue Views: Views Reordered',
   'issue_views.save_as.clicked': 'Issue Views: Save As Clicked',
   'issue_views.reset.clicked': 'Issue Views: Reset Clicked',
@@ -485,7 +354,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
   'issue.list.ai_query_applied': 'Issue List: AI Query Applied',
-  'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',
   'issues_stream.archived': 'Issues Stream: Archived',
   'issues_stream.updated_priority': 'Issues Stream: Updated Priority',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
@@ -494,42 +362,18 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.sort_changed': 'Changed Sort on Issues Stream',
   'issues_stream.paginate': 'Paginate Issues Stream',
   'issue.shared_publicly': 'Issue Shared Publicly',
-  'issue.share_from_icon': 'Issue Share Opened from Icon',
-  'issue_group_details.stack_traces.setup_source_maps_alert.clicked':
-    'Issue Group Details: Setup Source Maps Alert Clicked',
   resolve_issue: 'Resolve Issue',
-  'tag.clicked': 'Tag: Clicked',
   'project_modal.created': 'Project Modal: Created',
-  'quick_trace.missing_service.dismiss': 'Quick Trace: Missing Service Dismissed',
-  'quick_trace.missing_service.docs': 'Quick Trace: Missing Service Clicked',
-  'quick_trace.dropdown.clicked': 'Quick Trace: Dropdown clicked',
-  'quick_trace.dropdown.clicked_extra': 'Quick Trace: Dropdown clicked',
-  'quick_trace.node.clicked': 'Quick Trace: Node clicked',
   'quick_trace.connected_services': 'Quick Trace: Connected Services',
   'quick_trace.trace_id.clicked': 'Quick Trace: Trace ID clicked',
   'settings.inbound_filter_updated': 'Settings: Inbound Filter Updated',
-  'span_view.embedded_child.hide': 'Span View: Hide Embedded Transaction',
-  'span_view.embedded_child.show': 'Span View: Show Embedded Transaction',
   'issue_group_details.tab.clicked': 'Issue Group Details: Header Tab Clicked',
-  'issue_group_details.tags.show_all_tags.clicked':
-    'Issue Group Details: Tags show all clicked',
-  'issue_group_details.tags.switcher.clicked':
-    'Issue Group Details: Tags switcher clicked',
   'issue_group_details.tags.bar.clicked': 'Issue Group Details: Tags value bar clicked',
-  'issue_group_details.tags_distribution.bar.clicked':
-    'Issue Group Details: Tags distribution value bar clicked',
   'integrations.integration_reinstall_clicked': 'Integration Reinstall Button Clicked',
   'one_other_related_trace_issue.clicked': 'One Other Related Trace Issue Clicked',
   'issue_details.view_full_trace_waterfall_clicked':
     ' Issue Details: View Full Trace Waterfall Clicked',
 
-  // Performance Issue specific events here
-  'issue_details.performance.autogrouped_siblings_toggle':
-    'Performance Issue Details: Autogrouped Siblings Toggled',
-  'issue_details.performance.hidden_spans_expanded':
-    'Performance Issue Details: Hidden Spans Expanded',
-  'source_map_debug.docs_link_clicked': 'Source Map Debug: Docs Clicked',
-  'source_map_debug.expand_clicked': 'Source Map Debug: Expand Clicked',
   'actionable_items.expand_clicked': 'Actionable Item: Expand Clicked',
   'issue_details.copy_event_link_clicked': 'Issue Details: Copy Event Link Clicked',
   'issue_details.copy_event_id_clicked': 'Issue Details: Copy Event ID Clicked',
@@ -547,10 +391,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'device.classification.unclassified.ios.device':
     'Event from iOS device missing device.class',
   'device.classification.high.end.android.device': 'Event from high end Android device',
-  'issue_details.sourcemap_wizard_dismiss': 'Issue Details: Sourcemap Wizard Dismiss',
-  'issue_details.sourcemap_wizard_copy': 'Issue Details: Sourcemap Wizard Copy',
-  'issue_details.sourcemap_wizard_learn_more':
-    'Issue Details: Sourcemap Wizard Learn More',
   'issue_details.set_priority': 'Issue Details: Set Priority',
   'issue_details.section_fold': 'Issue Details: Section Fold',
   'issue_details.comment_created': 'Issue Details: Comment Created',
