@@ -11,7 +11,6 @@ from sentry.utils import json
 
 
 class ThreadingServiceComputeThreadKeyTest(TestCase):
-
     def test_compute_thread_key_is_deterministic(self) -> None:
         key_type = NotificationSource.ERROR_ALERT
         key_data = {"rule_fire_history_id": 123, "rule_action_uuid": "abc-123"}
