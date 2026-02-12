@@ -224,7 +224,7 @@ export interface PreviewCheckPayload {
 export interface AssertionSuggestion {
   assertion_json: Op;
   assertion_type: 'status_code' | 'json_path' | 'header';
-  comparison: 'equals' | 'not_equal' | 'less_than' | 'greater_than';
+  comparison: 'equals' | 'not_equal' | 'less_than' | 'greater_than' | 'always';
   confidence: number;
   expected_value: string;
   explanation: string;

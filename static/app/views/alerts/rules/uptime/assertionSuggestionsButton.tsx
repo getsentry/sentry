@@ -284,12 +284,22 @@ function SuggestionCard({suggestion, onApply}: SuggestionCardProps) {
           value: suggestion.expected_value,
         });
       case 'json_path':
-        return tct('JSON path [path] [comparison] [value]', {
+        if (suggestion.comparison === 'always') {
+          return tct('[path] exists', {
+            path: suggestion.json_path,
+          });
+        }
+        return tct('[path] [comparison] [value]', {
           path: suggestion.json_path,
           comparison: suggestion.comparison.replace('_', ' '),
           value: `"${suggestion.expected_value}"`,
         });
       case 'header':
+        if (suggestion.comparison === 'always') {
+          return tct('Header [name] exists', {
+            name: suggestion.header_name,
+          });
+        }
         return tct('Header [name] [comparison] [value]', {
           name: suggestion.header_name,
           comparison: suggestion.comparison.replace('_', ' '),

@@ -37,15 +37,15 @@ ASSERTION_SUGGESTIONS_SCHEMA: dict[str, Any] = {
                     },
                     "comparison": {
                         "type": "string",
-                        "description": "Comparison operator: 'equals', 'not_equal', 'less_than', 'greater_than'",
+                        "description": "Comparison operator: 'equals', 'not_equal', 'less_than', 'greater_than', or 'always' (for existence checks)",
                     },
                     "expected_value": {
                         "type": "string",
-                        "description": "The expected value as a string",
+                        "description": "The expected value as a string. For 'always' comparison (existence checks), use empty string.",
                     },
                     "json_path": {
                         "type": "string",
-                        "description": "JSONPath expression (for json_path assertions)",
+                        "description": "JSONPath expression (for json_path assertions), e.g. '$.status', '$.data.count'",
                     },
                     "header_name": {
                         "type": "string",
@@ -57,7 +57,7 @@ ASSERTION_SUGGESTIONS_SCHEMA: dict[str, Any] = {
                     },
                     "explanation": {
                         "type": "string",
-                        "description": "Why this assertion is useful",
+                        "description": "Why this assertion is useful for detecting problems",
                     },
                 },
                 "required": [
@@ -73,17 +73,43 @@ ASSERTION_SUGGESTIONS_SCHEMA: dict[str, Any] = {
     "required": ["suggestions"],
 }
 
-SYSTEM_PROMPT = """You are an expert at analyzing HTTP responses and suggesting monitoring assertions.
-Given an HTTP response from an uptime check, suggest practical assertions that would help detect
-when the endpoint is unhealthy or behaving incorrectly.
+SYSTEM_PROMPT = """You are an expert at analyzing HTTP responses and suggesting monitoring assertions \
+for an uptime checker. Given an HTTP response, suggest assertions that detect when the endpoint \
+is unhealthy or behaving incorrectly.
 
-Guidelines:
-1. Always suggest a status_code assertion (usually checking for 200 or 2xx range)
-2. If the body is JSON, suggest json_path assertions for key fields that indicate health
-3. Suggest header assertions only for headers that are meaningful for monitoring
-4. Focus on assertions that would detect real problems, not minor variations
-5. Prefer simple, robust assertions over complex ones
-6. Suggest 3-5 practical assertions total"""
+## Assertion Types
+
+### status_code
+Check the HTTP status code.
+- comparison: "equals", expected_value: "200"
+
+### json_path
+Check values in a JSON response body using JSONPath expressions. You can:
+- **Check a value equals something**: comparison="equals", json_path="$.status", expected_value="healthy"
+- **Check a numeric value**: comparison="greater_than", json_path="$.data.count", expected_value="0"
+- **Check a key exists**: comparison="always", json_path="$.data.items", expected_value=""
+
+### header
+Check HTTP response headers.
+- comparison: "equals", header_name: "content-type", expected_value: "application/json"
+
+## Comparison Operators
+- "equals": Value must equal expected_value exactly (with type coercion for numbers)
+- "not_equal": Value must NOT equal expected_value
+- "less_than": Numeric less-than comparison
+- "greater_than": Numeric greater-than comparison
+- "always": Check that the path/key exists (no value comparison, use expected_value="")
+
+## Guidelines
+1. Always suggest a status_code assertion checking for the observed status code
+2. For JSON bodies, STRONGLY PREFER value equality checks ("equals") over existence checks ("always"). \
+If a field has a concrete value like a string or number, assert on that value.
+3. Use existence checks ("always") only for fields whose values are expected to change between requests \
+(timestamps, request IDs, etc.) but whose presence is important
+4. For numeric fields, consider whether equality or a threshold (greater_than/less_than) is more appropriate
+5. Only suggest header assertions for headers meaningful for monitoring (content-type, cache-control, etc.)
+6. Use standard JSONPath syntax: $.field, $.nested.field, $[0].field, $.array[*].field
+7. Suggest 3-6 practical assertions total, prioritizing value checks over existence checks"""
 
 
 # Pydantic models for Seer artifact schema
@@ -94,7 +120,7 @@ class SuggestedAssertion(BaseModel):
         description="Type of assertion: 'status_code', 'json_path', or 'header'"
     )
     comparison: str = Field(
-        description="Comparison operator: 'equals', 'not_equal', 'less_than', 'greater_than'"
+        description="Comparison operator: 'equals', 'not_equal', 'less_than', 'greater_than', or 'always' (existence check)"
     )
     expected_value: str = Field(description="The expected value as a string")
     json_path: str | None = Field(
@@ -175,13 +201,8 @@ def suggestion_to_assertion_json(suggestion: SuggestedAssertion) -> dict[str, An
     Returns:
         Assertion in the uptime checker JSON format
     """
-    comparison_map = {
-        "equals": "equals",
-        "not_equal": "not_equal",
-        "less_than": "less_than",
-        "greater_than": "greater_than",
-    }
-    cmp = comparison_map.get(suggestion.comparison, "equals")
+    valid_comparisons = {"equals", "not_equal", "less_than", "greater_than", "always", "never"}
+    cmp = suggestion.comparison if suggestion.comparison in valid_comparisons else "equals"
 
     if suggestion.assertion_type == "status_code":
         return {
@@ -190,6 +211,14 @@ def suggestion_to_assertion_json(suggestion: SuggestedAssertion) -> dict[str, An
             "operator": {"cmp": cmp},
         }
     elif suggestion.assertion_type == "json_path":
+        # "always" means existence check — no value comparison needed
+        if cmp == "always":
+            return {
+                "op": "json_path",
+                "value": suggestion.json_path or "$",
+                "operator": {"cmp": "always"},
+                "operand": {"jsonpath_op": "none"},
+            }
         return {
             "op": "json_path",
             "value": suggestion.json_path or "$",
@@ -197,6 +226,15 @@ def suggestion_to_assertion_json(suggestion: SuggestedAssertion) -> dict[str, An
             "operand": {"jsonpath_op": "literal", "value": suggestion.expected_value},
         }
     elif suggestion.assertion_type == "header":
+        # "always" on a header means check the header exists with any value
+        if cmp == "always":
+            return {
+                "op": "header_check",
+                "key_op": {"cmp": "equals"},
+                "key_operand": {"header_op": "literal", "value": suggestion.header_name or ""},
+                "value_op": {"cmp": "always"},
+                "value_operand": {"header_op": "none"},
+            }
         return {
             "op": "header_check",
             "key_op": {"cmp": "equals"},
@@ -205,7 +243,6 @@ def suggestion_to_assertion_json(suggestion: SuggestedAssertion) -> dict[str, An
             "value_operand": {"header_op": "literal", "value": suggestion.expected_value},
         }
     else:
-        # Default to status code check
         return {
             "op": "status_code_check",
             "value": 200,
