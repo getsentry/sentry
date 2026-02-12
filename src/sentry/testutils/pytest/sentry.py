@@ -631,10 +631,13 @@ def _duration_based_split(
                 durations = json.load(f)
 
     if not durations:
-        # No duration data — fall back to hash-based distribution
+        # No duration data — fall back to per-test hash distribution.
+        # Hash the full nodeid (not scope) so individual tests scatter
+        # across shards, giving better statistical balance than grouping
+        # entire classes onto one shard.
         keep, discard = [], []
         for item in items:
-            to_hash = item.nodeid.rsplit("::", 1)[0].encode()
+            to_hash = item.nodeid.encode()
             group_num = int(sha256(to_hash).hexdigest(), 16) % total_groups
             if group_num == current_group:
                 keep.append(item)
