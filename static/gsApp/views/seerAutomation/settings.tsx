@@ -10,12 +10,17 @@ import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import CodingAgentsSection from 'getsentry/views/seerAutomation/components/codingAgentsSection';
 import SeerSettingsPageWrapper from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 export default function SeerAutomationSettings() {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
+
+  const showCodingAgentsSection = organization.features.includes(
+    'seer-coding-agent-integrations'
+  );
 
   return (
     <SeerSettingsPageWrapper>
@@ -28,8 +33,6 @@ export default function SeerAutomationSettings() {
           // Project<->Repo settings:
           defaultAutofixAutomationTuning: organization.defaultAutofixAutomationTuning,
           autoOpenPrs: organization.autoOpenPrs ?? false,
-          allowBackgroundAgentDelegation:
-            organization.allowBackgroundAgentDelegation ?? false,
 
           // Second section
           autoEnableCodeReview: organization.autoEnableCodeReview ?? true,
@@ -109,20 +112,6 @@ export default function SeerAutomationSettings() {
                   disabled: !canWrite || organization.enableSeerCoding === false,
                   setValue: (value: boolean): boolean =>
                     organization.enableSeerCoding === false ? false : value,
-                },
-                {
-                  visible: false, // TODO(ryan953): Disabled until the backend is fully ready
-                  name: 'allowBackgroundAgentDelegation',
-                  label: t('Allow Delegation to External Coding Agents'),
-                  help: tct(
-                    'Enable this to allow projects to use coding agents other than Seer for automation tasks. [docs:Read the docs] to learn more.',
-                    {
-                      docs: (
-                        <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
-                      ),
-                    }
-                  ),
-                  type: 'boolean',
                 },
               ],
             },
@@ -209,6 +198,8 @@ export default function SeerAutomationSettings() {
           ]}
         />
       </Form>
+
+      {showCodingAgentsSection && <CodingAgentsSection canWrite={canWrite} />}
     </SeerSettingsPageWrapper>
   );
 }

@@ -108,6 +108,7 @@ export interface Organization extends OrganizationSummary {
     | 'high'
     | 'always'
     | null;
+  defaultAutomationHandoff?: string | null;
   defaultSeerScannerAutomation?: boolean;
   desiredSampleRate?: number | null;
   enableSeerCoding?: boolean;
