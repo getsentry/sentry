@@ -68,6 +68,13 @@ BUILD_2 = {
     "error_message": None,  # Only used if state is "failed"
 }
 
+# Set to None to disable BUILD_3:
+BUILD_3 = None
+
+# Set to True to test dedup behavior: creates 3 uploading apps, calls task for each
+# (expect 1 GitHub post), then transitions all to processed and calls again (expect 1 more post).
+TEST_DEDUP = False
+
 # Available states:
 # - "uploading": Artifact is still uploading (no metrics)
 # - "uploaded": Artifact uploaded but not processed yet (no metrics)
@@ -465,6 +472,88 @@ def show_rule_evaluation(artifact_id: int) -> None:
         logger.info("\n❌ One or more rules triggered - check will fail")
 
 
+def test_dedup_behavior(project: "Project") -> None:
+    """Test dedup behavior: 3 uploading apps → 1 post, then all processed → 1 more post.
+
+    Expected: exactly 2 GitHub API calls instead of 6.
+    """
+    logger.info("\n" + "=" * 60)
+    logger.info("DEDUP TEST: 3 apps, expect 2 GitHub posts total")
+    logger.info("=" * 60)
+
+    commit_comparison, _ = CommitComparison.objects.get_or_create(
+        head_repo_name=REPO_NAME,
+        head_sha=COMMIT_SHA,
+        provider="github",
+        organization_id=project.organization.id,
+    )
+
+    # Clean up existing artifacts
+    existing = PreprodArtifact.objects.filter(
+        commit_comparison=commit_comparison,
+        project__organization_id=project.organization_id,
+    )
+    PreprodArtifactSizeMetrics.objects.filter(preprod_artifact__in=existing).delete()
+    existing.delete()
+
+    # Phase 1: Create 3 UPLOADING artifacts
+    app_ids = ["com.dedup.app1", "com.dedup.app2", "com.dedup.app3"]
+    artifacts = []
+    for app_id in app_ids:
+        artifact = PreprodArtifact.objects.create(
+            project=project,
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+            app_id=app_id,
+            commit_comparison=commit_comparison,
+            state=PreprodArtifact.ArtifactState.UPLOADING,
+        )
+        PreprodArtifactMobileAppInfo.objects.create(
+            preprod_artifact=artifact,
+            app_name=app_id.split(".")[-1],
+            build_version="1.0.0",
+            build_number=1,
+        )
+        artifacts.append(artifact)
+
+    logger.info("\nPhase 1: All 3 apps UPLOADING — calling task for each")
+    logger.info("Expected: 1 GitHub post (IN_PROGRESS), 2 skipped")
+    logger.info("-" * 40)
+
+    for artifact in artifacts:
+        logger.info("  Calling task for %s (id=%s)...", artifact.app_id, artifact.id)
+        create_preprod_status_check_task(preprod_artifact_id=artifact.id)
+
+    # Phase 2: Transition all to PROCESSED with completed metrics
+    logger.info("\nPhase 2: All 3 apps PROCESSED — calling task for each")
+    logger.info("Expected: 1 GitHub post (terminal), 2 skipped")
+    logger.info("-" * 40)
+
+    for artifact in artifacts:
+        artifact.state = PreprodArtifact.ArtifactState.PROCESSED
+        artifact.save(update_fields=["state"])
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=4 * 1024 * 1024,
+            max_download_size=4 * 1024 * 1024,
+            min_install_size=8 * 1024 * 1024,
+            max_install_size=8 * 1024 * 1024,
+            processing_version="1.0",
+        )
+
+    for artifact in artifacts:
+        logger.info("  Calling task for %s (id=%s)...", artifact.app_id, artifact.id)
+        create_preprod_status_check_task(preprod_artifact_id=artifact.id)
+
+    logger.info("\n" + "=" * 60)
+    logger.info("DEDUP TEST COMPLETE")
+    logger.info("Check logs above for 'preprod.status_checks.create.skipped' entries")
+    logger.info("Expected: 4 skipped, 2 posted")
+    logger.info("\nCheck GitHub: https://github.com/%s/commit/%s", REPO_NAME, COMMIT_SHA)
+    logger.info("=" * 60)
+
+
 def main() -> None:
     """Main function to test size analysis status checks."""
     try:
@@ -480,6 +569,10 @@ def main() -> None:
             sys.exit(0)
 
         logger.info("✅ Status checks: ENABLED")
+
+        if TEST_DEDUP:
+            test_dedup_behavior(project)
+            return
 
         commit_comparison, created = CommitComparison.objects.get_or_create(
             head_repo_name=REPO_NAME,
@@ -551,6 +644,8 @@ def main() -> None:
         build_configs = [BUILD_1]
         if BUILD_2 is not None:
             build_configs.append(BUILD_2)
+        if BUILD_3 is not None:
+            build_configs.append(BUILD_3)
 
         logger.info("🧪 Running test with %s build(s):", len(build_configs))
         for i, config in enumerate(build_configs, 1):
@@ -650,14 +745,12 @@ def main() -> None:
             if create_metrics:
                 create_size_metrics(preprod_artifact, build_config, metrics_state)
 
-        # Call the status check task for the first artifact (it will find all artifacts for the commit)
-        logger.info(
-            "\n🚀 Calling create_preprod_status_check_task with artifact %s...",
-            created_artifacts[0].id,
-        )
-        result = create_preprod_status_check_task(preprod_artifact_id=created_artifacts[0].id)
-        logger.info("Task result: %s", result)
-        logger.info("✅ Status check function called successfully!")
+        # Call the status check task for each artifact (dedup will skip redundant posts)
+        logger.info("\n🚀 Calling create_preprod_status_check_task for each artifact...")
+        for artifact in created_artifacts:
+            logger.info("  Calling task for %s (id=%s)...", artifact.app_id, artifact.id)
+            create_preprod_status_check_task(preprod_artifact_id=artifact.id)
+        logger.info("✅ Status check tasks completed!")
 
         show_rule_evaluation(created_artifacts[0].id)
 
