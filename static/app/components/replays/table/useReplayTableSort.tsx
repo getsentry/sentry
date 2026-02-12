@@ -23,7 +23,7 @@ export default function useReplayTableSort({
 
   const [sort, setSort] = useQueryState(
     queryParamKey,
-    parseAsSort.withDefault(defaultSort)
+    parseAsSort.withDefault(defaultSort).withOptions({history: 'push', throttleMs: 0})
   );
 
   const handleSortClick = useCallback(
