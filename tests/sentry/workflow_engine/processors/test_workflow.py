@@ -118,7 +118,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
                 "is_regression": True,
                 "is_new_group_environment": False,
             },
-            has_reappeared=False,
             has_escalated=False,
         )
         mock_fire_actions.assert_called_once()
@@ -155,7 +154,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
                 "is_regression": True,
                 "is_new_group_environment": False,
             },
-            has_reappeared=False,
             has_escalated=False,
         )
 
@@ -195,7 +193,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
                 "is_regression": True,
                 "is_new_group_environment": False,
             },
-            has_reappeared=False,
             has_escalated=False,
         )
 

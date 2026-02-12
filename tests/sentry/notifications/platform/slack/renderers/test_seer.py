@@ -100,13 +100,6 @@ class SeerSlackRendererTest(TestCase):
         assert element.text.text == "Fix with Seer"
         assert element.value == AutofixStoppingPoint.ROOT_CAUSE.value
 
-    def test_render_status_text(self) -> None:
-        text = SeerSlackRenderer.render_status_text(group=self.group)
-        assert ":hourglass: Seer is running a root cause analysis..." in text
-        assert "seerDrawer=true" in text
-        assert text.startswith("<")
-        assert text.endswith(">")
-
     @patch(
         "sentry.notifications.platform.templates.seer.organization_service.get_option",
         return_value=True,
