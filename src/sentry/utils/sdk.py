@@ -397,25 +397,24 @@ def configure_sdk():
             # Sentry4Sentry (upstream) should get the event first because
             # it is most isolated from the sentry installation.
             if sentry4sentry_transport:
-                # For s4s2 region, sample transactions at 1% based on trace_id
-                # to reduce transaction volume sent to S4S upstream.
+                # Sample transactions at 1% based on trace_id to reduce
+                # transaction volume sent to the S4S (s4s2) upstream.
                 send_to_s4s = True
-                if settings.SENTRY_REGION == "s4s2":
-                    is_transaction = False
-                    trace_id = None
-                    if method_name == "capture_envelope":
-                        if args[0].get_transaction_event() is not None:
-                            is_transaction = True
-                            trace_id = args[0].headers.get("trace", {}).get("trace_id")
-                    elif method_name == "capture_event":
-                        if args[0].get("type") == "transaction":
-                            is_transaction = True
-                            trace_id = args[0].get("contexts", {}).get("trace", {}).get("trace_id")
-                    if is_transaction and trace_id is not None:
-                        hash_value = int(hashlib.md5(trace_id.encode()).hexdigest()[:8], 16)
-                        if hash_value % 100 >= 1:
-                            send_to_s4s = False
-                            metrics.incr("internal.captured.events.upstream.s4s2_sampled")
+                is_transaction = False
+                trace_id = None
+                if method_name == "capture_envelope":
+                    if args[0].get_transaction_event() is not None:
+                        is_transaction = True
+                        trace_id = args[0].headers.get("trace", {}).get("trace_id")
+                elif method_name == "capture_event":
+                    if args[0].get("type") == "transaction":
+                        is_transaction = True
+                        trace_id = args[0].get("contexts", {}).get("trace", {}).get("trace_id")
+                if is_transaction and trace_id is not None:
+                    hash_value = int(hashlib.md5(trace_id.encode()).hexdigest()[:8], 16)
+                    if hash_value % 100 >= 1:
+                        send_to_s4s = False
+                        metrics.incr("internal.captured.events.upstream.s4s2_sampled")
 
                 if send_to_s4s:
                     metrics.incr("internal.captured.events.upstream")
