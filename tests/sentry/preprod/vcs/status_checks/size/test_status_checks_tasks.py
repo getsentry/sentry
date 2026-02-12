@@ -1594,49 +1594,56 @@ class StatusCheckDeduplicationTest(TestCase):
 
     def test_multiple_apps_terminal_posted_when_all_done(self):
         """Terminal status is posted when all artifacts are fully processed."""
-        in_progress_extras = {"posted_status_checks": {"size": {"posted_status": "in_progress"}}}
         _, artifacts, mock_provider, client_patch, provider_patch = self._create_multi_app_commit(
             [
                 {
                     "app_id": "com.app1",
-                    "state": PreprodArtifact.ArtifactState.PROCESSED,
-                    "metrics_state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-                    "extras": in_progress_extras,
+                    "state": PreprodArtifact.ArtifactState.UPLOADING,
+                    "metrics_state": None,
                 },
                 {
                     "app_id": "com.app2",
-                    "state": PreprodArtifact.ArtifactState.PROCESSED,
-                    "metrics_state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                    "state": PreprodArtifact.ArtifactState.UPLOADING,
+                    "metrics_state": None,
                 },
                 {
                     "app_id": "com.app3",
-                    "state": PreprodArtifact.ArtifactState.PROCESSED,
-                    "metrics_state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                    "state": PreprodArtifact.ArtifactState.UPLOADING,
+                    "metrics_state": None,
                 },
             ]
         )
 
         with client_patch, provider_patch:
             with self.tasks():
-                create_preprod_status_check_task(artifacts[0].id)
+                for a in artifacts:
+                    create_preprod_status_check_task(a.id)
+            assert mock_provider.create_status_check.call_count == 1
 
-        assert mock_provider.create_status_check.call_count == 1
+            # Transition all to PROCESSED
+            for a in artifacts:
+                a.state = PreprodArtifact.ArtifactState.PROCESSED
+                a.save(update_fields=["state"])
+                Factories.create_preprod_artifact_size_metrics(artifact=a)
+
+            with self.tasks():
+                for a in artifacts:
+                    create_preprod_status_check_task(a.id)
+            assert mock_provider.create_status_check.call_count == 2
 
     def test_multiple_apps_skip_when_some_still_processing(self):
         """Skip posting when some artifacts are still processing and IN_PROGRESS was already posted."""
-        in_progress_extras = {"posted_status_checks": {"size": {"posted_status": "in_progress"}}}
         _, artifacts, mock_provider, client_patch, provider_patch = self._create_multi_app_commit(
             [
                 {
                     "app_id": "com.app1",
-                    "state": PreprodArtifact.ArtifactState.PROCESSED,
-                    "metrics_state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-                    "extras": in_progress_extras,
+                    "state": PreprodArtifact.ArtifactState.UPLOADING,
+                    "metrics_state": None,
                 },
                 {
                     "app_id": "com.app2",
-                    "state": PreprodArtifact.ArtifactState.PROCESSED,
-                    "metrics_state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                    "state": PreprodArtifact.ArtifactState.UPLOADING,
+                    "metrics_state": None,
                 },
                 {
                     "app_id": "com.app3",
@@ -1649,20 +1656,28 @@ class StatusCheckDeduplicationTest(TestCase):
         with client_patch, provider_patch:
             with self.tasks():
                 create_preprod_status_check_task(artifacts[0].id)
+            assert mock_provider.create_status_check.call_count == 1
 
-        mock_provider.create_status_check.assert_not_called()
+            # Transition 2 of 3 to PROCESSED, leave one still UPLOADING
+            for a in artifacts[:2]:
+                a.state = PreprodArtifact.ArtifactState.PROCESSED
+                a.save(update_fields=["state"])
+                Factories.create_preprod_artifact_size_metrics(artifact=a)
+
+            with self.tasks():
+                for a in artifacts:
+                    create_preprod_status_check_task(a.id)
+            # Still 1 — not terminal yet, so skipped
+            assert mock_provider.create_status_check.call_count == 1
 
     def test_one_app_fails_others_still_processing_skips(self):
         """Skip posting when one app fails but others are still processing."""
-        in_progress_extras = {"posted_status_checks": {"size": {"posted_status": "in_progress"}}}
         _, artifacts, mock_provider, client_patch, provider_patch = self._create_multi_app_commit(
             [
                 {
                     "app_id": "com.app1",
-                    "state": PreprodArtifact.ArtifactState.FAILED,
+                    "state": PreprodArtifact.ArtifactState.UPLOADING,
                     "metrics_state": None,
-                    "error_message": "Upload failed",
-                    "extras": in_progress_extras,
                 },
                 {
                     "app_id": "com.app2",
@@ -1680,12 +1695,21 @@ class StatusCheckDeduplicationTest(TestCase):
         with client_patch, provider_patch:
             with self.tasks():
                 create_preprod_status_check_task(artifacts[0].id)
+            assert mock_provider.create_status_check.call_count == 1
 
-        mock_provider.create_status_check.assert_not_called()
+            # Fail one artifact, leave others still uploading
+            artifacts[0].state = PreprodArtifact.ArtifactState.FAILED
+            artifacts[0].error_message = "Upload failed"
+            artifacts[0].save(update_fields=["state", "error_message"])
+
+            with self.tasks():
+                for a in artifacts:
+                    create_preprod_status_check_task(a.id)
+            # Still 1 — others still processing, so skipped
+            assert mock_provider.create_status_check.call_count == 1
 
     def test_one_app_fails_others_done_posts_failure(self):
         """Post FAILURE when one app fails and all others are terminal."""
-        in_progress_extras = {"posted_status_checks": {"size": {"posted_status": "in_progress"}}}
         # Configure rules so status is preserved (not forced to NEUTRAL)
         self.project.update_option(
             "sentry:preprod_size_status_checks_rules",
@@ -1696,20 +1720,18 @@ class StatusCheckDeduplicationTest(TestCase):
             [
                 {
                     "app_id": "com.app1",
-                    "state": PreprodArtifact.ArtifactState.FAILED,
+                    "state": PreprodArtifact.ArtifactState.UPLOADING,
                     "metrics_state": None,
-                    "error_message": "Upload failed",
-                    "extras": in_progress_extras,
                 },
                 {
                     "app_id": "com.app2",
-                    "state": PreprodArtifact.ArtifactState.PROCESSED,
-                    "metrics_state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                    "state": PreprodArtifact.ArtifactState.UPLOADING,
+                    "metrics_state": None,
                 },
                 {
                     "app_id": "com.app3",
-                    "state": PreprodArtifact.ArtifactState.PROCESSED,
-                    "metrics_state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                    "state": PreprodArtifact.ArtifactState.UPLOADING,
+                    "metrics_state": None,
                 },
             ]
         )
@@ -1717,35 +1739,54 @@ class StatusCheckDeduplicationTest(TestCase):
         with client_patch, provider_patch:
             with self.tasks():
                 create_preprod_status_check_task(artifacts[0].id)
+            assert mock_provider.create_status_check.call_count == 1
 
-        assert mock_provider.create_status_check.call_count == 1
-        call_kwargs = mock_provider.create_status_check.call_args.kwargs
-        assert call_kwargs["status"] == StatusCheckStatus.FAILURE
+            # Fail one, process the others
+            artifacts[0].state = PreprodArtifact.ArtifactState.FAILED
+            artifacts[0].error_message = "Upload failed"
+            artifacts[0].save(update_fields=["state", "error_message"])
+            for a in artifacts[1:]:
+                a.state = PreprodArtifact.ArtifactState.PROCESSED
+                a.save(update_fields=["state"])
+                Factories.create_preprod_artifact_size_metrics(artifact=a)
+
+            with self.tasks():
+                for a in artifacts:
+                    create_preprod_status_check_task(a.id)
+            assert mock_provider.create_status_check.call_count == 2
+            assert (
+                mock_provider.create_status_check.call_args.kwargs["status"]
+                == StatusCheckStatus.FAILURE
+            )
 
     def test_rerun_always_posts(self):
         """Rerun endpoint always posts even when a terminal status was already posted."""
-        terminal_extras = {
-            "posted_status_checks": {"size": {"posted_status": "neutral", "is_terminal": True}}
-        }
-        _, artifacts, mock_provider, client_patch, provider_patch = self._create_multi_app_commit(
-            [
-                {
-                    "app_id": "com.app1",
-                    "state": PreprodArtifact.ArtifactState.PROCESSED,
-                    "metrics_state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-                    "extras": terminal_extras,
-                },
-            ]
+        artifact, mock_provider, client_patch, provider_patch = self._create_single_app_with_mocks(
+            app_id="com.app1",
+            state=PreprodArtifact.ArtifactState.UPLOADING,
         )
 
         with client_patch, provider_patch:
             with self.tasks():
+                create_preprod_status_check_task(artifact.id)
+            assert mock_provider.create_status_check.call_count == 1
+
+            # Transition to terminal
+            artifact.state = PreprodArtifact.ArtifactState.PROCESSED
+            artifact.save(update_fields=["state"])
+            Factories.create_preprod_artifact_size_metrics(artifact=artifact)
+
+            with self.tasks():
+                create_preprod_status_check_task(artifact.id)
+            assert mock_provider.create_status_check.call_count == 2
+
+            # Rerun — posts even though terminal already posted
+            with self.tasks():
                 create_preprod_status_check_task(
-                    artifacts[0].id,
+                    artifact.id,
                     post_policy=StatusCheckPostPolicy.ALWAYS_POST,
                 )
-
-        assert mock_provider.create_status_check.call_count == 1
+            assert mock_provider.create_status_check.call_count == 3
 
     def test_webhook_approval_posts_updated_status(self):
         """Webhook approval changes FAILURE -> SUCCESS and posts the update."""
@@ -1755,35 +1796,44 @@ class StatusCheckDeduplicationTest(TestCase):
             '[{"id": "rule1", "metric": "install_size", "measurement": "absolute", "value": 1}]',
         )
 
-        failure_extras = {
-            "posted_status_checks": {"size": {"posted_status": "failure", "is_terminal": True}}
-        }
-        _, artifacts, mock_provider, client_patch, provider_patch = self._create_multi_app_commit(
-            [
-                {
-                    "app_id": "com.app1",
-                    "state": PreprodArtifact.ArtifactState.PROCESSED,
-                    "metrics_state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-                    "extras": failure_extras,
-                },
-            ]
-        )
-
-        # Create an approval record — this converts FAILURE -> SUCCESS
-        PreprodComparisonApproval.objects.create(
-            preprod_artifact=artifacts[0],
-            preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
-            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
-            approved_by_id=self.user.id,
+        artifact, mock_provider, client_patch, provider_patch = self._create_single_app_with_mocks(
+            app_id="com.app1",
+            state=PreprodArtifact.ArtifactState.UPLOADING,
         )
 
         with client_patch, provider_patch:
             with self.tasks():
-                create_preprod_status_check_task(artifacts[0].id, caller="github_approve_webhook")
+                create_preprod_status_check_task(artifact.id)
+            assert mock_provider.create_status_check.call_count == 1
 
-        assert mock_provider.create_status_check.call_count == 1
-        call_kwargs = mock_provider.create_status_check.call_args.kwargs
-        assert call_kwargs["status"] == StatusCheckStatus.SUCCESS
+            # Transition to terminal (should be FAILURE due to rules with value=1)
+            artifact.state = PreprodArtifact.ArtifactState.PROCESSED
+            artifact.save(update_fields=["state"])
+            Factories.create_preprod_artifact_size_metrics(artifact=artifact)
+
+            with self.tasks():
+                create_preprod_status_check_task(artifact.id)
+            assert mock_provider.create_status_check.call_count == 2
+            assert (
+                mock_provider.create_status_check.call_args.kwargs["status"]
+                == StatusCheckStatus.FAILURE
+            )
+
+            # Add approval — converts FAILURE -> SUCCESS
+            PreprodComparisonApproval.objects.create(
+                preprod_artifact=artifact,
+                preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
+                approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+                approved_by_id=self.user.id,
+            )
+
+            with self.tasks():
+                create_preprod_status_check_task(artifact.id, caller="github_approve_webhook")
+            assert mock_provider.create_status_check.call_count == 3
+            assert (
+                mock_provider.create_status_check.call_args.kwargs["status"]
+                == StatusCheckStatus.SUCCESS
+            )
 
     def test_single_app_still_two_posts(self):
         """Single-app flow results in exactly 2 GitHub API calls: IN_PROGRESS + terminal."""
