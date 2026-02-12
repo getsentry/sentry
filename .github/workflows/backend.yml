@@ -237,7 +237,7 @@ jobs:
         run: |
           python3 .github/workflows/scripts/calculate-backend-test-shards.py
 
-  backend-test-selective:
+  backend-test:
     if: needs.files-changed.outputs.backend == 'true'
     needs: [files-changed, prepare-selective-tests, calculate-shards]
     name: backend tests
