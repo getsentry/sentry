@@ -73,7 +73,7 @@ BUILD_3 = None
 
 # Set to True to test dedup behavior: creates 3 uploading apps, calls task for each
 # (expect 1 GitHub post), then transitions all to processed and calls again (expect 1 more post).
-TEST_DEDUP = True
+TEST_DEDUP = False
 
 # Available states:
 # - "uploading": Artifact is still uploading (no metrics)

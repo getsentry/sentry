@@ -278,9 +278,7 @@ def create_preprod_status_check_task(
                 )
                 is_terminal = _all_artifacts_terminal(all_artifacts, size_metrics_map)
                 if _should_skip_status_check(
-                    all_artifacts,
                     extras_by_artifact_id,
-                    size_metrics_map,
                     status,
                     is_terminal,
                 ):
@@ -338,6 +336,8 @@ def create_preprod_status_check_task(
         raise
 
     if check_id is None:
+        if post_policy == StatusCheckPostPolicy.TRY_TO_DEDUPLICATE:
+            _update_posted_status_claim(preprod_artifact)
         logger.error(
             "preprod.status_checks.create.failed",
             extra={
@@ -554,9 +554,7 @@ def _all_artifacts_terminal(
 
 
 def _should_skip_status_check(
-    all_artifacts: list[PreprodArtifact],
     extras_by_artifact_id: dict[int, dict[str, Any] | None],
-    size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
     status: StatusCheckStatus,
     is_terminal: bool,
 ) -> bool:
