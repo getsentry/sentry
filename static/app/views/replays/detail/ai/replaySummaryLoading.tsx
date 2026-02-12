@@ -14,8 +14,9 @@ export function ReplaySummaryLoading() {
 
   return (
     <Stack align="center" padding="lg" gap="md">
-      <Placeholder height="100px" width="300px" />
-      <ShimmerText size="md">{message}</ShimmerText>
+      <Placeholder height="100px">
+        <ShimmerText size="md">{message}</ShimmerText>
+      </Placeholder>
     </Stack>
   );
 }

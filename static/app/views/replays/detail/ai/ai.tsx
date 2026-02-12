@@ -5,16 +5,16 @@ import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import Placeholder from 'sentry/components/placeholder';
 import {IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -36,10 +36,6 @@ export default function Ai() {
   const segmentCount = replayRecord?.count_segments ?? 0;
   const project = useProjectFromId({project_id: replayRecord?.project_id});
   const analyticsArea = useAnalyticsArea();
-
-  const replayTooLongMessage = t(
-    'If a replay is too long, we may only summarize a small portion of it.'
-  );
 
   const {
     summaryData,
@@ -83,146 +79,167 @@ export default function Ai() {
     );
   }
 
-  if (isError) {
-    return (
-      <AnalyticsArea name="error">
-        <ErrorState
-          organization={organization}
-          startSummaryRequest={startSummaryRequest}
-        />
-      </AnalyticsArea>
-    );
-  }
+  const hasError = isError || isTimedOut;
+  const hasSummaryData = Boolean(summaryData?.data);
+  const isNoReplaySummary = Boolean(
+    hasSummaryData && summaryData!.data!.time_ranges.length <= 1 && onlyInitFrames
+  );
+  const feedbackDisabled =
+    isSummaryPending || hasError || !hasSummaryData || isNoReplaySummary;
 
-  if (isTimedOut) {
-    return (
-      <AnalyticsArea name="timeout">
-        <ErrorState
-          organization={organization}
-          startSummaryRequest={startSummaryRequest}
-          extraMessage={t('timed out.')}
-        />
-      </AnalyticsArea>
-    );
-  }
-
-  if (isSummaryPending) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <ReplaySummaryLoading />
-      </Wrapper>
-    );
-  }
-
-  if (!summaryData?.data) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EndStateContainer>
-          <img src={aiBanner} alt="" />
-          <div>{t('No summary available for this replay.')}</div>
-        </EndStateContainer>
-      </Wrapper>
-    );
-  }
-
-  if (summaryData.data.time_ranges.length <= 1 && onlyInitFrames) {
-    return <NoReplaySummary />;
-  }
+  const errorMessage = isTimedOut
+    ? t('Failed to load replay summary - timed out.')
+    : t('Failed to load replay summary.');
 
   return (
     <Wrapper data-test-id="replay-details-ai-summary-tab">
       <Summary>
         <SummaryLeft>
-          <Flex align="center" gap="md">
-            <Flex align="center" gap="xs">
-              {t('Replay Summary')}
+          <Flex align="center" justify="between">
+            {t('Replay Summary')}
+            <Button
+              priority="default"
+              type="button"
+              size="xs"
+              disabled={isSummaryPending}
+              onClick={() => {
+                startSummaryRequest();
+                trackAnalytics('replay.ai-summary.regenerate-requested', {
+                  organization,
+                  area: analyticsArea + '.finished-summary',
+                });
+              }}
+              icon={<IconSync size="xs" />}
+            >
+              {hasError ? t('Retry') : t('Regenerate')}
+            </Button>
+          </Flex>
+          <Flex align="center" justify="between" gap="xs">
+            <SummaryTextArea
+              isSummaryPending={isSummaryPending}
+              hasError={hasError}
+              errorMessage={errorMessage}
+              summaryText={summaryData?.data?.summary}
+              isNoReplaySummary={isNoReplaySummary}
+            />
+            <Flex gap="xs" flexShrink={0}>
+              <ThumbsUpDownButton type="positive" disabled={feedbackDisabled} />
+              <ThumbsUpDownButton type="negative" disabled={feedbackDisabled} />
             </Flex>
           </Flex>
-          <SummaryText>{summaryData.data.summary}</SummaryText>
         </SummaryLeft>
-        <Stack align="end" gap="md">
-          <Flex gap="xs">
-            <ThumbsUpDownButton type="positive" />
-            <ThumbsUpDownButton type="negative" />
-          </Flex>
-          <Button
-            priority="default"
-            type="button"
-            size="xs"
-            onClick={() => {
-              startSummaryRequest();
-              trackAnalytics('replay.ai-summary.regenerate-requested', {
-                organization,
-                area: analyticsArea + '.finished-summary',
-              });
-            }}
-            icon={<IconSync size="xs" />}
-          >
-            {t('Regenerate')}
-          </Button>
-        </Stack>
       </Summary>
-      <StyledTabItemContainer>
-        <Container as="section" flex="1 1 auto" overflow="auto">
-          <ChapterList timeRanges={summaryData.data.time_ranges} />
-          {segmentCount > MAX_SEGMENTS_TO_SUMMARIZE && (
-            <Subtext>{replayTooLongMessage}</Subtext>
-          )}
-        </Container>
-      </StyledTabItemContainer>
+      <SummaryContent
+        isSummaryPending={isSummaryPending}
+        hasError={hasError}
+        hasSummaryData={hasSummaryData}
+        isNoReplaySummary={isNoReplaySummary}
+        summaryData={summaryData}
+        segmentCount={segmentCount}
+      />
     </Wrapper>
   );
 }
 
-function ErrorState({
-  organization,
-  startSummaryRequest,
-  extraMessage,
+function SummaryTextArea({
+  isSummaryPending,
+  hasError,
+  errorMessage,
+  summaryText,
+  isNoReplaySummary,
 }: {
-  organization: Organization;
-  startSummaryRequest: () => void;
-  extraMessage?: string;
+  errorMessage: string;
+  hasError: boolean;
+  isNoReplaySummary: boolean;
+  isSummaryPending: boolean;
+  summaryText: string | undefined;
 }) {
-  const analyticsArea = useAnalyticsArea();
+  const noSummaryMessageRef = useRef(
+    NO_REPLAY_SUMMARY_MESSAGES[
+      Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
+    ]
+  );
 
-  return (
-    <Wrapper data-test-id="replay-details-ai-summary-tab">
+  if (isSummaryPending) {
+    return (
+      <Flex flexGrow={1}>
+        <Placeholder height="20px" />
+      </Flex>
+    );
+  }
+
+  if (hasError) {
+    return <SummaryText>{errorMessage}</SummaryText>;
+  }
+
+  if (!summaryText || isNoReplaySummary) {
+    return (
+      <SummaryText>
+        {isNoReplaySummary
+          ? noSummaryMessageRef.current
+          : t('No summary available for this replay.')}
+      </SummaryText>
+    );
+  }
+
+  return <SummaryText>{summaryText}</SummaryText>;
+}
+
+function SummaryContent({
+  isSummaryPending,
+  hasError,
+  hasSummaryData,
+  isNoReplaySummary,
+  summaryData,
+  segmentCount,
+}: {
+  hasError: boolean;
+  hasSummaryData: boolean;
+  isNoReplaySummary: boolean;
+  isSummaryPending: boolean;
+  segmentCount: number;
+  summaryData: ReturnType<typeof useReplaySummaryContext>['summaryData'];
+}) {
+  if (isSummaryPending) {
+    return <ReplaySummaryLoading />;
+  }
+
+  if (hasError || !hasSummaryData || isNoReplaySummary) {
+    return (
       <EndStateContainer>
         <img src={aiBanner} alt="" />
-        <div>
-          {extraMessage
-            ? t('Failed to load replay summary - %s', extraMessage)
-            : t('Failed to load replay summary.')}
-        </div>
-        <div>
-          <Button
-            priority="default"
-            type="button"
-            size="xs"
-            onClick={() => {
-              startSummaryRequest();
-              trackAnalytics('replay.ai-summary.regenerate-requested', {
-                organization,
-                area: analyticsArea,
-              });
-            }}
-            icon={<IconSync size="xs" />}
-          >
-            {t('Retry')}
-          </Button>
-        </div>
       </EndStateContainer>
-    </Wrapper>
+    );
+  }
+
+  return (
+    <StyledTabItemContainer>
+      <Container as="section" flex="1 1 auto" overflow="auto">
+        <ChapterList timeRanges={summaryData!.data!.time_ranges} />
+        {segmentCount > MAX_SEGMENTS_TO_SUMMARIZE && (
+          <Subtext>
+            {t('If a replay is too long, we may only summarize a small portion of it.')}
+          </Subtext>
+        )}
+      </Container>
+    </StyledTabItemContainer>
   );
 }
 
-function ThumbsUpDownButton({type}: {type: 'positive' | 'negative'}) {
+function ThumbsUpDownButton({
+  type,
+  disabled,
+}: {
+  type: 'positive' | 'negative';
+  disabled?: boolean;
+}) {
   return (
     <FeedbackButton
       aria-label={t('Give feedback on the replay summary section')}
       icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
       title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
       size="xs"
+      disabled={disabled}
       feedbackOptions={{
         messagePlaceholder:
           type === 'positive'
@@ -240,29 +257,6 @@ function ThumbsUpDownButton({type}: {type: 'positive' | 'negative'}) {
   );
 }
 
-/**
- * Due to the random message generation, the component can show a new message on each render. This is not ideal because we
- * cause a lot of re-renders when the replay is played.
- *
- * Use `useRef` to store the message so that it is not changed after the initial render. (Alternatively, React.memo or React Compiler would also work)
- */
-function NoReplaySummary() {
-  const noSummaryMessageRef = useRef(
-    NO_REPLAY_SUMMARY_MESSAGES[
-      Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
-    ]
-  );
-
-  return (
-    <Wrapper data-test-id="replay-details-ai-summary-tab">
-      <EndStateContainer>
-        <img src={aiBanner} alt="" />
-        <div>{noSummaryMessageRef.current}</div>
-      </EndStateContainer>
-    </Wrapper>
-  );
-}
-
 const Wrapper = styled('div')`
   display: flex;
   flex-direction: column;
@@ -273,19 +267,14 @@ const Wrapper = styled('div')`
 `;
 
 const Summary = styled('div')`
-  display: flex;
-  align-items: center;
   padding: ${space(1)} ${space(1.5)};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  gap: ${space(4)};
-  justify-content: space-between;
 `;
 
 const SummaryLeft = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
-  justify-content: space-between;
   font-size: ${p => p.theme.font.size.lg};
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
