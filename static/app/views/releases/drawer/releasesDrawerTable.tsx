@@ -163,16 +163,21 @@ export function ReleasesDrawerTable({
         return value > 0 ? (
           <Tooltip title={t('Open in Issues')} position="auto-start">
             <Link
-              to={
-                {
-                  pathname: getReleaseNewIssuesUrl(
+              to={{
+                ...getReleaseNewIssuesUrl(
+                  organization.slug,
+                  dataRow.project_id,
+                  dataRow.release
+                ),
+                query: {
+                  ...getReleaseNewIssuesUrl(
                     organization.slug,
                     dataRow.project_id,
                     dataRow.release
-                  ),
-                  query: extractSelectionParameters(location.query),
-                } as any
-              }
+                  ).query,
+                  ...extractSelectionParameters(location.query),
+                },
+              }}
             >
               <Count value={value} />
             </Link>

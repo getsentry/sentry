@@ -195,16 +195,21 @@ function ReleaseCardProjectRow({
           ) : defined(crashCount) ? (
             <Tooltip title={t('Open in Issues')}>
               <Link
-                to={
-                  {
-                    pathname: getReleaseUnhandledIssuesUrl(
+                to={{
+                  ...getReleaseUnhandledIssuesUrl(
+                    organization.slug,
+                    project.id,
+                    releaseVersion
+                  ),
+                  query: {
+                    ...getReleaseUnhandledIssuesUrl(
                       organization.slug,
                       project.id,
                       releaseVersion
-                    ),
-                    query: extractSelectionParameters(location.query),
-                  } as any
-                }
+                    ).query,
+                    ...extractSelectionParameters(location.query),
+                  },
+                }}
               >
                 <Count value={crashCount} />
               </Link>
@@ -217,16 +222,14 @@ function ReleaseCardProjectRow({
         <NewIssuesColumn>
           <Tooltip title={t('Open in Issues')}>
             <Link
-              to={
-                {
-                  pathname: getReleaseNewIssuesUrl(
-                    organization.slug,
-                    project.id,
-                    releaseVersion
-                  ),
-                  query: extractSelectionParameters(location.query),
-                } as any
-              }
+              to={{
+                ...getReleaseNewIssuesUrl(organization.slug, project.id, releaseVersion),
+                query: {
+                  ...getReleaseNewIssuesUrl(organization.slug, project.id, releaseVersion)
+                    .query,
+                  ...extractSelectionParameters(location.query),
+                },
+              }}
             >
               <Count value={newGroups || 0} />
             </Link>

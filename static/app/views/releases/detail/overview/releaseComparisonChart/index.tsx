@@ -505,17 +505,23 @@ export default function ReleaseComparisonChart({
           {defined(issuesTotals?.handled) ? (
             <Tooltip title={t('Open in Issues')}>
               <Link
-                to={
-                  {
-                    pathname: getReleaseHandledIssuesUrl(
+                to={{
+                  ...getReleaseHandledIssuesUrl(
+                    organization.slug,
+                    project.id,
+                    release.version,
+                    {start, end, period: period ?? undefined}
+                  ),
+                  query: {
+                    ...getReleaseHandledIssuesUrl(
                       organization.slug,
                       project.id,
                       release.version,
                       {start, end, period: period ?? undefined}
-                    ),
-                    query: extractSelectionParameters(location.query),
-                  } as any
-                }
+                    ).query,
+                    ...extractSelectionParameters(location.query),
+                  },
+                }}
               >
                 {tct('[count] handled [issues]', {
                   count: issuesTotals?.handled
@@ -531,17 +537,23 @@ export default function ReleaseComparisonChart({
           {defined(issuesTotals?.unhandled) ? (
             <Tooltip title={t('Open in issues')}>
               <Link
-                to={
-                  {
-                    pathname: getReleaseUnhandledIssuesUrl(
+                to={{
+                  ...getReleaseUnhandledIssuesUrl(
+                    organization.slug,
+                    project.id,
+                    release.version,
+                    {start, end, period: period ?? undefined}
+                  ),
+                  query: {
+                    ...getReleaseUnhandledIssuesUrl(
                       organization.slug,
                       project.id,
                       release.version,
                       {start, end, period: period ?? undefined}
-                    ),
-                    query: extractSelectionParameters(location.query),
-                  } as any
-                }
+                    ).query,
+                    ...extractSelectionParameters(location.query),
+                  },
+                }}
               >
                 {tct('[count] unhandled [issues]', {
                   count: issuesTotals?.unhandled

@@ -13,8 +13,8 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Collapsible from 'sentry/components/collapsible';
-import Panel from 'sentry/components/panels/panel';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
+import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';

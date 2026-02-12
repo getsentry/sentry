@@ -13,8 +13,8 @@ import {
   inferPlatform,
 } from 'sentry/components/events/interfaces/utils';
 import ShortId from 'sentry/components/group/inboxBadges/shortId';
-import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';

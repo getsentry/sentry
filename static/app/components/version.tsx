@@ -89,7 +89,10 @@ function Version({
       const to = preservePageFilters
         ? typeof pathname === 'string'
           ? {pathname, query: extractSelectionParameters(location.query)}
-          : {...pathname, query: {...extractSelectionParameters(location.query), ...pathname.query}}
+          : {
+              ...pathname,
+              query: {...extractSelectionParameters(location.query), ...pathname.query},
+            }
         : pathname;
 
       return (

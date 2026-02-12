@@ -1,6 +1,5 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-
 import type {LocationDescriptor} from 'history';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -111,7 +110,13 @@ interface QuickLinkProps extends Omit<LinkProps, 'to'> {
   disabled?: boolean;
 }
 
-function QuickLinkComponent({disabled, to, className, children, ...props}: QuickLinkProps) {
+function QuickLinkComponent({
+  disabled,
+  to,
+  className,
+  children,
+  ...props
+}: QuickLinkProps) {
   const location = useLocation();
 
   if (disabled) {
