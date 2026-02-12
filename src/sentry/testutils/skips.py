@@ -27,6 +27,13 @@ def _wait_for_service(host: str, port: int, timeout: int) -> bool:
     return _service_available(host, port)
 
 
+# Tracks time spent waiting for Snuba to become available during H1 overlapped
+# startup. This wait inflates the first test's setup duration on each xdist
+# worker, contaminating duration-based shard allocation. Recorded here so
+# pytest_runtest_makereport can subtract it from the report.
+snuba_wait_overhead: float = 0.0
+
+
 def _requires_service_message(name: str) -> str:
     return f"requires '{name}' server running\n\t💡 Hint: run `devservices up`"
 
@@ -51,7 +58,10 @@ def _requires_snuba() -> None:
     # still be starting while pytest collects tests. Wait instead of failing.
     wait_timeout = int(os.environ.get("SNUBA_WAIT_TIMEOUT", "0"))
     if wait_timeout > 0:
+        global snuba_wait_overhead
+        wait_start = time.monotonic()
         if _wait_for_service("127.0.0.1", port, wait_timeout):
+            snuba_wait_overhead = time.monotonic() - wait_start
             return
         pytest.fail(
             f"snuba not available on port {port} after waiting {wait_timeout}s\n"

@@ -466,6 +466,30 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
     sentry_sdk.get_global_scope().set_client(None)
 
 
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> None:  # type: ignore[type-arg]
+    """Strip H1 overlapped-startup wait time from test setup duration reports.
+
+    When SNUBA_WAIT_TIMEOUT is set (overlapped startup / H1 mode), the
+    session-scoped ``_requires_snuba`` fixture blocks until Snuba becomes
+    available.  This wait inflates the first test's *setup* duration on each
+    xdist worker.  Without correction, ``merge-test-durations.py`` records
+    the inflated duration, causing ``_duration_based_split`` (LPT) to
+    over-estimate certain scopes and produce unbalanced shards.
+
+    We subtract the recorded wait time from the setup report exactly once
+    per worker so the JSON report reflects true test cost.
+    """
+    outcome = yield
+    report = outcome.get_result()
+    if report.when == "setup":
+        import sentry.testutils.skips as _skips
+
+        if _skips.snuba_wait_overhead > 0:
+            report.duration = max(0.0, report.duration - _skips.snuba_wait_overhead)
+            _skips.snuba_wait_overhead = 0.0
+
+
 def _shuffle(items: list[pytest.Item], r: random.Random) -> None:
     # goal: keep classes together, keep modules together but otherwise shuffle
     # this prevents duplicate setup/teardown work
