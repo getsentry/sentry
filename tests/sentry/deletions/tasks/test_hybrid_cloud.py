@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Generator
 from operator import itemgetter
-from typing import Any, ContextManager, NotRequired, TypedDict
+from typing import Any, ContextManager, NotRequired, TypedDict, cast
 from unittest.mock import patch
 
 import pytest
@@ -92,7 +92,7 @@ def reset_watermarks() -> None:
 
 @pytest.fixture
 def saved_search_owner_id_field() -> HybridCloudForeignKey[int, int]:
-    return SavedSearch._meta.get_field("owner_id")
+    return cast(HybridCloudForeignKey[int, int], SavedSearch._meta.get_field("owner_id"))
 
 
 @django_db_all
