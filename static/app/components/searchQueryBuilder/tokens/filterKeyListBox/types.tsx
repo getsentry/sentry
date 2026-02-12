@@ -52,7 +52,7 @@ export interface AskSeerItem extends SelectOptionWithKey<string> {
   value: string;
 }
 
-export interface AskSeerConsentItem extends SelectOptionWithKey<string> {
+interface AskSeerConsentItem extends SelectOptionWithKey<string> {
   type: 'ask-seer-consent';
   value: string;
 }

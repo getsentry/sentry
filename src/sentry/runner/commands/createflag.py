@@ -2,7 +2,7 @@ from datetime import date
 
 import click
 
-from flagpole import Feature, Segment
+from flagpole import Feature, OwnerInfo, Segment
 from flagpole.conditions import (
     ConditionBase,
     ConditionOperatorKind,
@@ -133,7 +133,7 @@ def createflag(
             segments = segment_wizard()
         feature = Feature(
             name=f"feature.{scope}:{name}",
-            owner=owner,
+            owner=OwnerInfo(team=owner),
             segments=segments,
             created_at=date.today().isoformat(),
         )
@@ -204,14 +204,14 @@ def createissueflag(
         click.echo("")
         click.echo("=== GENERATED YAML ===\n")
         for feature_name in [
-            group_type.build_visible_feature_name(),
+            *group_type.build_visible_feature_name(),
             group_type.build_ingest_feature_name(),
             group_type.build_post_process_group_feature_name(),
         ]:
 
             feature = Feature(
                 name=f"feature.{feature_name}",
-                owner=owner,
+                owner=OwnerInfo(team=owner),
                 segments=segments,
                 created_at=date.today().isoformat(),
             )

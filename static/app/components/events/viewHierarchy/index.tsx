@@ -80,6 +80,7 @@ export type ViewHierarchyWindow = {
 export type ViewHierarchyData = {
   rendering_system: string;
   windows: ViewHierarchyWindow[];
+  positioning?: 'absolute' | 'relative';
 };
 
 export type ViewHierarchyNodeField = 'type' | 'name';
@@ -237,6 +238,7 @@ function ViewHierarchy({
               selectedNode={userHasSelected ? selectedNode : undefined}
               onNodeSelect={onWireframeNodeSelect}
               platform={platform}
+              positioning={viewHierarchy.positioning}
             />
           </Right>
         )}

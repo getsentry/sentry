@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 
@@ -25,6 +25,8 @@ export interface Conversation {
   llmCalls: number;
   startTimestamp: number;
   toolCalls: number;
+  toolErrors: number;
+  toolNames: string[];
   totalCost: number | null;
   totalTokens: number;
   traceCount: number;

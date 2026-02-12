@@ -1,9 +1,9 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
 import type {FlexProps} from '@sentry/scraps/layout';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
@@ -16,7 +16,7 @@ import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import TimeSince from 'sentry/components/timeSince';
@@ -295,7 +295,7 @@ export function GroupTagValues() {
       <Layout.Main width="full">
         <Flex justify="between" align="center" wrap="wrap" marginBottom="xl">
           <Title>{t('Tag Details')}</Title>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <LinkButton
               size="sm"
               priority="default"
@@ -313,7 +313,7 @@ export function GroupTagValues() {
                 },
               }}
             />
-          </ButtonBar>
+          </Grid>
         </Flex>
         <StyledPanelTable
           isLoading={isLoading}

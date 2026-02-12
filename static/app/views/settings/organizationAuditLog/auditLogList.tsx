@@ -3,8 +3,7 @@ import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
-import {ButtonBar} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -320,7 +319,7 @@ function AuditLogList({
   }
 
   const headerActions = (
-    <ButtonBar gap="xl">
+    <Grid flow="column" align="center" gap="xl">
       <TimeRangeSelector
         start={start}
         end={end}
@@ -349,7 +348,7 @@ function AuditLogList({
           onEventSelect(options?.value);
         }}
       />
-    </ButtonBar>
+    </Grid>
   );
 
   return (

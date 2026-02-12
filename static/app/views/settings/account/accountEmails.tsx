@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 
 import {AlertLink} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {RequestOptions} from 'sentry/api';
@@ -201,7 +202,7 @@ function EmailRow({
         {!isVerified && <Tag variant="warning">{t('Unverified')}</Tag>}
         {isPrimary && <Tag variant="success">{t('Primary')}</Tag>}
       </EmailTags>
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         {!isPrimary && isVerified && (
           <Button size="sm" onClick={() => onSetPrimary?.(email)}>
             {t('Set as primary')}
@@ -229,7 +230,7 @@ function EmailRow({
             />
           </Confirm>
         )}
-      </ButtonBar>
+      </Grid>
     </EmailItem>
   );
 }

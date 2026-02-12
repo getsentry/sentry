@@ -1,5 +1,6 @@
 import pickBy from 'lodash/pickBy';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
@@ -13,7 +14,6 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   handleOrderByReset,
   type DatasetConfig,
@@ -190,6 +190,7 @@ export const LogsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
+  defaultCategoryField: 'severity',
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
@@ -208,6 +209,7 @@ export const LogsConfig: DatasetConfig<
     DisplayType.AREA,
     DisplayType.BAR,
     DisplayType.BIG_NUMBER,
+    DisplayType.CATEGORICAL_BAR,
     DisplayType.LINE,
     DisplayType.TABLE,
     DisplayType.TOP_N,

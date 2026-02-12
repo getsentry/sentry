@@ -350,3 +350,15 @@ export function getJsonPathCombinedLabelAndTooltip(op: JsonPathOp): {
 
   return {combinedLabel, combinedTooltip};
 }
+
+export function getGroupOpLabel(op: GroupOp, isNegated: boolean): string {
+  if (op.op === 'and') {
+    // By De Morgan's Laws, NOT (A AND B) is equivalent to (NOT A OR NOT B),
+    // i.e. passing when at least one child fails.
+    return isNegated ? t('Assert Not All') : t('Assert All');
+  }
+
+  // By De Morgan's Laws, NOT (A OR B) is equivalent to (NOT A AND NOT B),
+  // i.e. passing when all children fail.
+  return isNegated ? t('Assert None') : t('Assert Any');
+}

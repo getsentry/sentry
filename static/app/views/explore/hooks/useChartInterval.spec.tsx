@@ -1,6 +1,6 @@
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 
 import {getIntervalOptionsForPageFilter, useChartInterval} from './useChartInterval';

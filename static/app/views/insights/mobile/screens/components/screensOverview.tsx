@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
@@ -11,7 +12,6 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';

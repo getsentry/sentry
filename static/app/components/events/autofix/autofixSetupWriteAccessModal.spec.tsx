@@ -10,10 +10,6 @@ describe('AutofixSetupWriteAccessModal', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/autofix/setup/?check_write_access=true',
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: false,
-          userHasAcknowledged: false,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {
           ok: false,
@@ -61,10 +57,6 @@ describe('AutofixSetupWriteAccessModal', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/autofix/setup/?check_write_access=true',
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: false,
-          userHasAcknowledged: false,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {
           ok: true,

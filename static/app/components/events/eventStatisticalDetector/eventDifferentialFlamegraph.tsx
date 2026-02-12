@@ -8,6 +8,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {DifferentialFlamegraph} from 'sentry/components/profiling/flamegraph/differentialFlamegraph';
@@ -38,7 +39,6 @@ import {useDifferentialFlamegraphQuery} from 'sentry/utils/profiling/hooks/useDi
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {relativeChange} from 'sentry/utils/profiling/units/units';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {LOADING_PROFILE_GROUP} from 'sentry/views/profiling/profileGroupProvider';
 
 interface EventDifferentialFlamegraphProps {
@@ -567,7 +567,7 @@ function DifferentialFlamegraphChangedFunctionsTitle(props: {
           {props.subtitle}
         </DifferentialFlamegraphChangedFunctionsSubtitleText>
       </DifferentialFlamegraphChangedFunctionsTitleText>
-      <ButtonBar merged gap="0">
+      <ButtonBar>
         <DifferentialFlamegraphPaginationButton
           size="xs"
           disabled={!props.onPreviousPageClick}

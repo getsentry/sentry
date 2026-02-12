@@ -19,6 +19,7 @@ import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import ProgressBar from 'sentry/components/progressBar';
@@ -52,7 +53,6 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
@@ -84,6 +84,11 @@ type Props = {
    */
   group?: Group;
   hasGuideAnchor?: boolean;
+  /**
+   * Extra query params to include in the issue details navigation target.
+   * Applied to both the row click and the issue title link.
+   */
+  issueLinkExtraQuery?: Record<string, string>;
   memberList?: User[];
   onAssigneeChange?: (newAssignee: AssignableEntity | null) => void;
   onPriorityChange?: (newPriority: PriorityLevel) => void;
@@ -277,6 +282,7 @@ function StreamGroup({
   displayReprocessingLayout,
   hasGuideAnchor,
   memberList,
+  issueLinkExtraQuery,
   query,
   queryFilterDescription,
   source,
@@ -646,6 +652,7 @@ function StreamGroup({
           referrer,
           location,
           query,
+          extraQuery: issueLinkExtraQuery,
         })
       )
     );
@@ -668,7 +675,12 @@ function StreamGroup({
           />
         )}
         <GroupSummary canSelect={canSelect}>
-          <EventOrGroupHeader data={group} query={query} source={referrer} />
+          <EventOrGroupHeader
+            data={group}
+            query={query}
+            source={referrer}
+            issueLinkExtraQuery={issueLinkExtraQuery}
+          />
           <EventOrGroupExtraDetails data={group} showLifetime={false} />
         </GroupSummary>
       </Fragment>
