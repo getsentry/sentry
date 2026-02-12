@@ -36,7 +36,7 @@ def serialize_event_data_as_item(
     )
 
 
-def _encode_value(value: Any) -> AnyValue:
+def encode_value(value: Any) -> AnyValue:
     if isinstance(value, str):
         return AnyValue(string_value=value)
     elif isinstance(value, bool):
@@ -53,14 +53,14 @@ def _encode_value(value: Any) -> AnyValue:
     elif isinstance(value, list) or isinstance(value, tuple):
         # Not yet processed on EAP side
         return AnyValue(
-            array_value=ArrayValue(values=[_encode_value(v) for v in value if v is not None])
+            array_value=ArrayValue(values=[encode_value(v) for v in value if v is not None])
         )
     elif isinstance(value, dict):
         # Not yet processed on EAP side
         return AnyValue(
             kvlist_value=KeyValueList(
                 values=[
-                    KeyValue(key=str(kv[0]), value=_encode_value(kv[1]))
+                    KeyValue(key=str(kv[0]), value=encode_value(kv[1]))
                     for kv in value.items()
                     if kv[1] is not None
                 ]
@@ -81,12 +81,10 @@ def encode_attributes(
             continue
         if value is None:
             continue
-        attributes[key] = _encode_value(value)
+        attributes[key] = encode_value(value)
 
     if event.group_id:
         attributes["group_id"] = AnyValue(int_value=event.group_id)
-
-    format_tag_key = lambda key: f"tags[{key}]"
 
     tag_keys = set()
     tags = event_data.get("tags")
@@ -97,10 +95,10 @@ def encode_attributes(
             key, value = tag
             if value is None:
                 continue
-            formatted_key = format_tag_key(key)
-            attributes[formatted_key] = _encode_value(value)
+            formatted_key = f"tags[{key}]"
+            attributes[formatted_key] = encode_value(value)
             tag_keys.add(formatted_key)
 
-    attributes["tag_keys"] = _encode_value(sorted(tag_keys))
+    attributes["tag_keys"] = encode_value(sorted(tag_keys))
 
     return attributes
