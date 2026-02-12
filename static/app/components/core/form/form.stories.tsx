@@ -211,7 +211,6 @@ function BasicForm() {
                 <field.Input
                   value={field.state.value ?? ''}
                   onChange={field.handleChange}
-                  disabled="Can't touch this"
                 />
               </field.Layout.Row>
             )}
@@ -219,7 +218,11 @@ function BasicForm() {
           <form.AppField name="lastName">
             {field => (
               <field.Layout.Row label="Last Name:" hintText="Your family name" required>
-                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  disabled="Can't touch this"
+                />
               </field.Layout.Row>
             )}
           </form.AppField>

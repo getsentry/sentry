@@ -10,7 +10,7 @@ export function InputField({
   disabled,
   ...props
 }: BaseFieldProps &
-  Omit<InputProps, 'type' | 'value' | 'onChange' | 'onBlur' | 'disabled'> & {
+  Omit<InputProps, 'value' | 'onChange' | 'onBlur' | 'disabled'> & {
     onChange: (value: string) => void;
     value: string;
     disabled?: boolean | string;
@@ -27,7 +27,8 @@ export function InputField({
             <InputGroup.Input
               {...fieldProps}
               {...props}
-              disabled={isDisabled}
+              aria-disabled={isDisabled}
+              readOnly={isDisabled}
               onChange={e => onChange(e.target.value)}
             />
             <InputGroup.TrailingItems>{indicator}</InputGroup.TrailingItems>
