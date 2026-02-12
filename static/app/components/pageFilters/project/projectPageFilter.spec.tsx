@@ -114,6 +114,7 @@ describe('ProjectPageFilter', () => {
 
     // Move focus to Option One's "Project Details" link
     await userEvent.keyboard('{ArrowRight}');
+    await userEvent.keyboard('{ArrowRight}');
     expect(
       within(optionOne).getByRole('button', {name: 'Open Project Details'})
     ).toHaveFocus();
