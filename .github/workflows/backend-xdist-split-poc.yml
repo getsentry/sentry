@@ -73,12 +73,13 @@ jobs:
           retention-days: 1
 
   # ─── Tier 1: Postgres + Redis only (no Snuba stack) ─────────────────
-  # ~71% of tests. Lighter containers = more RAM headroom = can run -n 3.
-  # Setup is ~4-5 min faster than backend-ci mode.
+  # ~71% of tests. Lighter containers = more RAM headroom.
+  # 8-core / 32GB runners allow -n 6 xdist workers (up from -n 3 on 4-core).
   tier1-test:
     needs: split-tiers
     name: 'tier1 (${{ matrix.instance }})'
-    runs-on: ubuntu-24.04
+    runs-on:
+      group: Larger Runners Sentry
     timeout-minutes: 30
     permissions:
       contents: read
@@ -145,16 +146,16 @@ jobs:
       # Use SELECTED_TESTS_FILE to filter to tier1 tests only.
       # G1 (direct file collection) was reverted — passing individual files to pytest
       # breaks conftest/plugin initialization order (DJANGO_SETTINGS_MODULE race).
-      - name: Run tier 1 tests (xdist -n 3)
+      - name: Run tier 1 tests (xdist -n 6)
         env:
           SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
         run: |
           echo "=== Tier 1: Postgres + Redis only (no Snuba stack) ==="
-          echo "Shard ${{ matrix.instance }} of 5, xdist workers: 3"
+          echo "Shard ${{ matrix.instance }} of 5, xdist workers: 6"
           echo "Test files: $(wc -l < /tmp/tier1-tests.txt)"
           python3 -b -m pytest tests \
             --reuse-db \
-            -n 3 \
+            -n 6 \
             --dist=loadfile \
             --json-report \
             --json-report-file=".artifacts/pytest.json" \
@@ -177,7 +178,8 @@ jobs:
   tier2-parallel-test:
     needs: split-tiers
     name: 'tier2-parallel (${{ matrix.instance }})'
-    runs-on: ubuntu-24.04
+    runs-on:
+      group: Larger Runners Sentry
     timeout-minutes: 60
     permissions:
       contents: read
@@ -194,7 +196,7 @@ jobs:
       # Enable per-worker Snuba database routing
       XDIST_PER_WORKER_SNUBA: '1'
       # Number of xdist workers (must match -n below)
-      XDIST_WORKERS: '3'
+      XDIST_WORKERS: '6'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
