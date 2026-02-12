@@ -7,7 +7,6 @@ from unittest.mock import ANY, MagicMock, patch
 import pytest
 from sentry_relay.processing import normalize_project_config
 
-from sentry import quotas
 from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.discover.models import TeamKeyTransaction
 from sentry.dynamic_sampling import (
@@ -21,8 +20,8 @@ from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.models.projectkey import ProjectKey
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import TransactionMetric
-from sentry.quotas.base import TrimmingConfig, TrimmingConfigs
-from sentry.relay.config import ProjectConfig, TransactionNameRule, get_project_config
+from sentry.relay.config import ProjectConfig, TransactionNameRule, get_project_config, trimming
+from sentry.relay.config.trimming.base import TrimmingConfig, TrimmingConfigs
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
@@ -1644,7 +1643,7 @@ def test_project_config_trusted_relay_settings(
 @pytest.mark.parametrize("span_trimming_config", [None, TrimmingConfig(max_size=17)])
 def test_project_config_trimming(default_project, span_trimming_config):
     with patch.object(
-        quotas.backend,
+        trimming.backend,
         "get_trimming_configs",
         return_value=TrimmingConfigs(span=span_trimming_config),
     ):

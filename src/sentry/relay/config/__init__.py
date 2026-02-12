@@ -38,6 +38,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.quotas.base import RETENTIONS_CONFIG_MAPPING
+from sentry.relay.config import trimming
 from sentry.relay.config.experimental import TimeChecker, add_experimental_config
 from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
@@ -1182,7 +1183,7 @@ def _get_project_config(
             config["retentions"] = retentions_config
 
     with sentry_sdk.start_span(op="get_trimming_configs"):
-        trimming_configs = quotas.backend.get_trimming_configs(project.organization)
+        trimming_configs = trimming.backend.get_trimming_configs(project.organization)
         if not trimming_configs.is_empty():
             config["trimming"] = trimming_configs.to_object()
 
