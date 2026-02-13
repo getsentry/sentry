@@ -164,7 +164,7 @@ describe('UpdateRetentionSettingsModal', () => {
     });
 
     const updateMock = MockApiClient.addMockResponse({
-      url: `/_admin/${organization.slug}/retention-settings/`,
+      url: `/_admin/customers/${organization.slug}/retention-settings/`,
       method: 'POST',
       body: {},
     });
@@ -196,7 +196,7 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await waitFor(() => {
       expect(updateMock).toHaveBeenCalledWith(
-        `/_admin/${organization.slug}/retention-settings/`,
+        `/_admin/customers/${organization.slug}/retention-settings/`,
         expect.objectContaining({
           method: 'POST',
           data: {
@@ -244,7 +244,7 @@ describe('UpdateRetentionSettingsModal', () => {
     });
 
     const updateMock = MockApiClient.addMockResponse({
-      url: `/_admin/${organization.slug}/retention-settings/`,
+      url: `/_admin/customers/${organization.slug}/retention-settings/`,
       method: 'POST',
       body: {},
     });
@@ -275,7 +275,7 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await waitFor(() => {
       expect(updateMock).toHaveBeenCalledWith(
-        `/_admin/${organization.slug}/retention-settings/`,
+        `/_admin/customers/${organization.slug}/retention-settings/`,
         expect.objectContaining({
           method: 'POST',
           data: {
@@ -323,7 +323,7 @@ describe('UpdateRetentionSettingsModal', () => {
     });
 
     const updateMock = MockApiClient.addMockResponse({
-      url: `/_admin/${organization.slug}/retention-settings/`,
+      url: `/_admin/customers/${organization.slug}/retention-settings/`,
       method: 'POST',
       body: {},
     });
@@ -352,7 +352,7 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await waitFor(() => {
       expect(updateMock).toHaveBeenCalledWith(
-        `/_admin/${organization.slug}/retention-settings/`,
+        `/_admin/customers/${organization.slug}/retention-settings/`,
         expect.objectContaining({
           method: 'POST',
           data: {
@@ -400,7 +400,7 @@ describe('UpdateRetentionSettingsModal', () => {
     });
 
     const updateMock = MockApiClient.addMockResponse({
-      url: `/_admin/${organization.slug}/retention-settings/`,
+      url: `/_admin/customers/${organization.slug}/retention-settings/`,
       method: 'POST',
       body: {},
     });
@@ -431,7 +431,7 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await waitFor(() => {
       expect(updateMock).toHaveBeenCalledWith(
-        `/_admin/${organization.slug}/retention-settings/`,
+        `/_admin/customers/${organization.slug}/retention-settings/`,
         expect.objectContaining({
           method: 'POST',
           data: {
@@ -479,7 +479,7 @@ describe('UpdateRetentionSettingsModal', () => {
     });
 
     const updateMock = MockApiClient.addMockResponse({
-      url: `/_admin/${organization.slug}/retention-settings/`,
+      url: `/_admin/customers/${organization.slug}/retention-settings/`,
       method: 'POST',
       body: {},
     });
@@ -504,7 +504,7 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await waitFor(() => {
       expect(updateMock).toHaveBeenCalledWith(
-        `/_admin/${organization.slug}/retention-settings/`,
+        `/_admin/customers/${organization.slug}/retention-settings/`,
         expect.objectContaining({
           method: 'POST',
           data: {
@@ -550,7 +550,7 @@ describe('UpdateRetentionSettingsModal', () => {
     });
 
     const updateMock = MockApiClient.addMockResponse({
-      url: `/_admin/${organization.slug}/retention-settings/`,
+      url: `/_admin/customers/${organization.slug}/retention-settings/`,
       method: 'POST',
       body: {},
     });
@@ -575,7 +575,7 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await waitFor(() => {
       expect(updateMock).toHaveBeenCalledWith(
-        `/_admin/${organization.slug}/retention-settings/`,
+        `/_admin/customers/${organization.slug}/retention-settings/`,
         expect.objectContaining({
           method: 'POST',
           data: {
