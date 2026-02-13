@@ -86,7 +86,7 @@ function GridList({
 }: GridListProps) {
   const ref = useRef<HTMLUListElement>(null);
   const labelId = useId();
-  const {overlayState} = useContext(ControlContext);
+  const {overlayState, overlayIsOpen, search} = useContext(ControlContext);
   const {gridProps} = useGridList(
     {...props, 'aria-labelledby': label ? labelId : props['aria-labelledby']},
     listState,
@@ -105,8 +105,6 @@ function GridList({
       gridProps.onKeyDown?.(e);
     }
   };
-
-  const {overlayIsOpen, search} = useContext(ControlContext);
   const hiddenOptions = useContext(SelectFilterContext);
   const listItems = useMemo(
     () =>
