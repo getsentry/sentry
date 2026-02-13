@@ -735,11 +735,7 @@ function GroupDetailsContent({
   });
 
   // Track engaged view after 10 seconds on the issue details page
-  useEngagedViewTracking({
-    groupId: group.id,
-    projectId: project.id,
-    issueType: group.issueType,
-  });
+  useEngagedViewTracking({group, project});
 
   const isDisplayingEventDetails = [
     Tab.DETAILS,

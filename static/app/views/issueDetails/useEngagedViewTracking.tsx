@@ -1,14 +1,15 @@
 import {useEffect, useEffectEvent, useRef} from 'react';
 
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const ENGAGED_VIEW_THRESHOLD_MS = 10000;
 
 interface UseEngagedViewTrackingParams {
-  groupId: string;
-  issueType: string;
-  projectId: string;
+  group: Group;
+  project: Project;
 }
 
 /**
@@ -18,31 +19,27 @@ interface UseEngagedViewTrackingParams {
  * The event is only tracked once per group per component instance. If the user
  * navigates away before 10 seconds, no event is recorded.
  */
-export function useEngagedViewTracking({
-  groupId,
-  projectId,
-  issueType,
-}: UseEngagedViewTrackingParams) {
+export function useEngagedViewTracking({group, project}: UseEngagedViewTrackingParams) {
   const organization = useOrganization();
   const trackedGroupId = useRef<string | null>(null);
   const trackEngagedView = useEffectEvent(() => {
     trackAnalytics('issue.engaged_view', {
       organization,
-      group_id: parseInt(groupId, 10),
-      project_id: parseInt(projectId, 10),
-      issue_type: issueType,
+      group_id: parseInt(group.id, 10),
+      project_id: parseInt(project.id, 10),
+      issue_type: group.issueType,
     });
   });
 
   useEffect(() => {
     // Only track once per group
-    if (trackedGroupId.current === groupId) {
+    if (trackedGroupId.current === group.id) {
       return undefined;
     }
 
     const timeoutId = window.setTimeout(() => {
-      if (trackedGroupId.current !== groupId) {
-        trackedGroupId.current = groupId;
+      if (trackedGroupId.current !== group.id) {
+        trackedGroupId.current = group.id;
         trackEngagedView();
       }
     }, ENGAGED_VIEW_THRESHOLD_MS);
@@ -50,5 +47,5 @@ export function useEngagedViewTracking({
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [groupId]);
+  }, [group.id]);
 }
