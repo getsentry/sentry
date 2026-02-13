@@ -114,9 +114,7 @@ class LLMIssueDetectionTest(TestCase):
         assert occurrence.culprit == "test_transaction"
         assert occurrence.level == "warning"
 
-        assert occurrence.fingerprint == [
-            "llm-detected-database-connection-pool-exhaustion-test_transaction"
-        ]
+        assert occurrence.fingerprint == ["llm-detected--test_transaction"]
 
         assert occurrence.evidence_data["trace_id"] == "abc123xyz"
         assert occurrence.evidence_data["transaction"] == "test_transaction"
