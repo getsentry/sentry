@@ -37,6 +37,7 @@ const baseUserSchema = z.object({
   secret: z.string().optional(),
   notifications: z.boolean().optional(),
   volume: z.number().min(0).max(100).optional(),
+  bio: z.string().optional(),
   address: z.object({
     street: z.string().min(1, 'Street is required'),
     city: z.string().min(1, 'City is required'),
@@ -195,6 +196,24 @@ function AutoSaveExample() {
       </AutoSaveField>
 
       <AutoSaveField
+        name="bio"
+        schema={baseUserSchema}
+        initialValue={user.data?.bio ?? ''}
+        mutationOptions={userMutationOptions(client)}
+      >
+        {field => (
+          <field.Layout.Stack label="Bio:" hintText="Tell us about yourself">
+            <field.TextArea
+              value={field.state.value ?? ''}
+              onChange={field.handleChange}
+              rows={3}
+              autosize
+            />
+          </field.Layout.Stack>
+        )}
+      </AutoSaveField>
+
+      <AutoSaveField
         name="volume"
         schema={baseUserSchema}
         initialValue={user.data?.volume ?? 50}
@@ -279,6 +298,18 @@ function BasicForm() {
                 <field.Switch
                   checked={field.state.value ?? false}
                   onChange={field.handleChange}
+                />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+          <form.AppField name="bio">
+            {field => (
+              <field.Layout.Row label="Bio:" hintText="Tell us about yourself">
+                <field.TextArea
+                  value={field.state.value ?? ''}
+                  onChange={field.handleChange}
+                  rows={3}
+                  autosize
                 />
               </field.Layout.Row>
             )}
