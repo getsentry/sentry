@@ -228,22 +228,21 @@ function useStagedCompactSelect<Value extends SelectKey>({
   };
 }
 
-export interface HybridFilterProps<Value extends SelectKey>
-  extends Omit<
-    MultipleSelectProps<Value>,
-    | 'grid'
-    | 'multiple'
-    | 'value'
-    | 'defaultValue'
-    | 'onChange'
-    | 'clearable'
-    | 'onClear'
-    | 'onInteractOutside'
-    | 'closeOnSelect'
-    | 'onKeyDown'
-    | 'onKeyUp'
-    | 'onToggle'
-  > {
+export interface HybridFilterProps<Value extends SelectKey> extends Omit<
+  MultipleSelectProps<Value>,
+  | 'grid'
+  | 'multiple'
+  | 'value'
+  | 'defaultValue'
+  | 'onChange'
+  | 'clearable'
+  | 'onClear'
+  | 'onInteractOutside'
+  | 'closeOnSelect'
+  | 'onKeyDown'
+  | 'onKeyUp'
+  | 'onToggle'
+> {
   /**
    * Default selection value. When the user clicks "Reset", the selection value will
    * return to this value.
