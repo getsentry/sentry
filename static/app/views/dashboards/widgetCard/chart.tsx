@@ -71,6 +71,7 @@ import {
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
@@ -756,15 +757,15 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
   // When multiple aggregates exist, only plot the selected one (radio selection).
   // This mirrors Big Number behavior — all aggregates are queried, but only
   // one is rendered at a time.
-  const selectedIndex =
-    query.selectedAggregate ??
-    (query.aggregates.length > 0 ? query.aggregates.length - 1 : 0);
-  const selectedAgg = query.aggregates[selectedIndex];
-  // Filter query to only the selected aggregate. The raw format in
-  // query.aggregates (e.g. "equation|count() / 2") matches the keys in the
-  // API response, so no conversion is needed here. (The equation[N] alias
-  // format is only used for the sort/orderby API parameter, not data keys.)
-  const filteredQuery = selectedAgg ? {...query, aggregates: [selectedAgg]} : query;
+  const selectedIndex = getSelectedAggregateIndex(
+    query.selectedAggregate,
+    query.aggregates.length
+  );
+  const selectedAggregate = query.aggregates[selectedIndex];
+  // Filter query to only the selected aggregate.
+  const filteredQuery = selectedAggregate
+    ? {...query, aggregates: [selectedAggregate]}
+    : query;
 
   const categoricalSeriesData = transformTableToCategoricalSeries(filteredQuery, {
     data: tableData.data,

@@ -15,6 +15,16 @@ import {
 import {generateMetricAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/generateMetricAggregate';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
+/**
+ * Resolves the selected aggregate index, defaulting to the last aggregate.
+ */
+export function getSelectedAggregateIndex(
+  selectedAggregate: number | undefined,
+  aggregateCount: number
+): number {
+  return selectedAggregate ?? (aggregateCount > 0 ? aggregateCount - 1 : 0);
+}
+
 export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   const datasetConfig = getDatasetConfig(state.dataset ?? WidgetType.ERRORS);
   const defaultQuery = datasetConfig.defaultWidgetQuery;
@@ -88,16 +98,20 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   } else if (isCategoricalBar) {
     // Categorical bars should sort by the selected aggregate (last by default, matching Big Number).
     // For equations, use the alias format (equation[N]) that the API expects, not the raw equation|... string
-    const selectedIdx =
-      state.selectedAggregate ?? (aggregates.length > 0 ? aggregates.length - 1 : 0);
-    const selectedAgg = aggregates[selectedIdx] ?? aggregates[0];
-    if (selectedAgg) {
-      if (isEquation(selectedAgg)) {
-        const eqIndex =
-          aggregates.slice(0, selectedIdx + 1).filter(isEquation).length - 1;
-        defaultSort = `-equation[${Math.max(0, eqIndex)}]`;
+    const selectedIndex = getSelectedAggregateIndex(
+      state.selectedAggregate,
+      aggregates.length
+    );
+    const selectedAggregate = aggregates[selectedIndex] ?? aggregates[0];
+    if (selectedAggregate) {
+      if (isEquation(selectedAggregate)) {
+        const equationIndex =
+          aggregates.slice(0, selectedIndex + 1).filter(isEquation).length - 1;
+        // Defensive: equationIndex should always be >= 0 since selectedAggregate
+        // is an equation, but Math.max guards against an empty filter result.
+        defaultSort = `-equation[${Math.max(0, equationIndex)}]`;
       } else {
-        defaultSort = `-${selectedAgg}`;
+        defaultSort = `-${selectedAggregate}`;
       }
     }
   }

@@ -787,16 +787,16 @@ function useWidgetBuilderState(): {
               f =>
                 f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
             );
-            const targetAgg = aggregates[action.payload];
-            if (targetAgg) {
-              const eqIdx =
+            const targetAggregate = aggregates[action.payload];
+            if (targetAggregate) {
+              const equationIndex =
                 aggregates
                   .slice(0, action.payload + 1)
                   .filter(f => f.kind === FieldValueKind.EQUATION).length - 1;
               const sortField =
-                targetAgg.kind === FieldValueKind.EQUATION
-                  ? `equation[${Math.max(0, eqIdx)}]`
-                  : generateFieldAsString(targetAgg);
+                targetAggregate.kind === FieldValueKind.EQUATION
+                  ? `equation[${Math.max(0, equationIndex)}]`
+                  : generateFieldAsString(targetAggregate);
               setSort([{kind: sort?.[0]?.kind ?? 'desc', field: sortField}], options);
             }
           }
@@ -988,14 +988,14 @@ function useWidgetBuilderState(): {
 
                 if (!isSortValid) {
                   // Sort field was removed — fall back to last aggregate
-                  const lastAgg = action.payload[action.payload.length - 1]!;
-                  const eqIdx =
+                  const lastAggregate = action.payload[action.payload.length - 1]!;
+                  const equationIndex =
                     action.payload.filter(f => f.kind === FieldValueKind.EQUATION)
                       .length - 1;
                   const newSortField =
-                    lastAgg.kind === FieldValueKind.EQUATION
-                      ? `equation[${Math.max(0, eqIdx)}]`
-                      : generateFieldAsString(lastAgg);
+                    lastAggregate.kind === FieldValueKind.EQUATION
+                      ? `equation[${Math.max(0, equationIndex)}]`
+                      : generateFieldAsString(lastAggregate);
                   setSort(
                     [{kind: sort[0]?.kind ?? 'desc', field: newSortField}],
                     options
@@ -1003,14 +1003,14 @@ function useWidgetBuilderState(): {
                 }
               } else {
                 // No sort exists yet — set default to last aggregate
-                const lastAgg = action.payload[action.payload.length - 1]!;
-                const eqIdx =
+                const lastAggregate = action.payload[action.payload.length - 1]!;
+                const equationIndex =
                   action.payload.filter(f => f.kind === FieldValueKind.EQUATION).length -
                   1;
                 const newSortField =
-                  lastAgg.kind === FieldValueKind.EQUATION
-                    ? `equation[${Math.max(0, eqIdx)}]`
-                    : generateFieldAsString(lastAgg);
+                  lastAggregate.kind === FieldValueKind.EQUATION
+                    ? `equation[${Math.max(0, equationIndex)}]`
+                    : generateFieldAsString(lastAggregate);
                 setSort([{kind: 'desc', field: newSortField}], options);
               }
             }

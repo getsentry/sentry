@@ -468,7 +468,7 @@ function Visualize({error, setError}: VisualizeProps) {
     fields?.length &&
     fields.length > 1 &&
     state.displayType !== DisplayType.BIG_NUMBER &&
-    !isCategoricalBarWidget;
+    state.displayType !== DisplayType.CATEGORICAL_BAR;
 
   const draggableFieldIds = fields?.map((_field, index) => index.toString()) ?? [];
 
@@ -725,7 +725,7 @@ function Visualize({error, setError}: VisualizeProps) {
                       <FieldRow>
                         {fields.length > 1 &&
                           (state.displayType === DisplayType.BIG_NUMBER ||
-                            isCategoricalBarWidget) && (
+                            state.displayType === DisplayType.CATEGORICAL_BAR) && (
                             <RadioLineItem
                               index={index}
                               role="radio"
