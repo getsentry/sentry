@@ -734,7 +734,6 @@ function GroupDetailsContent({
     hasAutofixQuota,
   });
 
-  // Track engaged view after 10 seconds on the issue details page
   useEngagedViewTracking({group, project});
 
   const isDisplayingEventDetails = [
