@@ -45,6 +45,7 @@ logger = logging.getLogger(__name__)
 # entrypoint's ability to receive updates from those triggers. So 12 is plenty, even accounting for
 # incidents, since a run should not take nearly that long to complete.
 PROCESS_AUTOFIX_TIMEOUT_SECONDS = 60 * 5  # 5 minutes
+AUTOFIX_FALLBACK_CAUSE_ID = 0
 
 
 class SeerOperator[CachePayloadT]:
@@ -176,9 +177,9 @@ class SeerOperator[CachePayloadT]:
                     | None
                 ) = None
                 if stopping_point == AutofixStoppingPoint.SOLUTION:
-                    # TODO(Leander): We need to figure out a way to get the real cause_id for this.
-                    # Probably need to add it to the root cause webhook from seer's side.
-                    payload = AutofixSelectRootCausePayload(type="select_root_cause", cause_id=0)
+                    payload = AutofixSelectRootCausePayload(
+                        type="select_root_cause", cause_id=get_latest_cause_id(existing_state)
+                    )
                 elif stopping_point == AutofixStoppingPoint.CODE_CHANGES:
                     payload = AutofixSelectSolutionPayload(type="select_solution")
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:
@@ -198,9 +199,6 @@ class SeerOperator[CachePayloadT]:
                     organization_id=group.organization.id, run_id=run_id, payload=payload
                 )
 
-            # Type-safety...
-            assert raw_response is not None
-
             error_message = raw_response.data.get("detail")
 
             # Let the entrypoint signal to the external service that no run was started :/
@@ -214,7 +212,6 @@ class SeerOperator[CachePayloadT]:
                 return
 
             run_id = raw_response.data.get("run_id") if not run_id else run_id
-            # Shouldn't ever happen, but if it we have no run_id, we can't listen for updates
             if not run_id:
                 lifecycle.record_failure(failure_reason="no_run_id")
                 with SeerOperatorEventLifecycleMetric(
@@ -352,3 +349,27 @@ def get_stopping_point_status(
                 None,
             )
     return step
+
+
+def get_latest_cause_id(autofix_state: AutofixState | None) -> int:
+    """
+    Gets the latest cause_id from a given autofix state.
+    """
+    if not autofix_state:
+        return AUTOFIX_FALLBACK_CAUSE_ID
+    root_cause_step = next(
+        (
+            step
+            for step in reversed(autofix_state.steps)
+            if step.get("key") == "root_cause_analysis"
+        ),
+        None,
+    )
+    if not root_cause_step:
+        return AUTOFIX_FALLBACK_CAUSE_ID
+
+    root_causes = root_cause_step.get("causes", [])[-1]
+    if not root_causes:
+        return AUTOFIX_FALLBACK_CAUSE_ID
+
+    return root_causes[-1].get("cause_id", AUTOFIX_FALLBACK_CAUSE_ID)

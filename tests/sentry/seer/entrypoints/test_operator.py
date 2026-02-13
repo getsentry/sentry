@@ -9,7 +9,11 @@ from fixtures.seer.webhooks import MOCK_RUN_ID
 from sentry.models.organization import Organization
 from sentry.seer.autofix.constants import AutofixStatus
 from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint
-from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
+from sentry.seer.entrypoints.operator import (
+    AUTOFIX_FALLBACK_CAUSE_ID,
+    SeerOperator,
+    process_autofix_updates,
+)
 from sentry.seer.entrypoints.registry import entrypoint_registry
 from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey, SeerOperatorCacheResult
 from sentry.sentry_apps.metrics import SentryAppEventType
@@ -329,7 +333,7 @@ class SeerOperatorTest(TestCase):
         assert call_kwargs["organization_id"] == self.group.organization.id
         payload = call_kwargs["payload"]
         assert payload["type"] == "select_root_cause"
-        assert payload["cause_id"] == 0
+        assert payload["cause_id"] == AUTOFIX_FALLBACK_CAUSE_ID
 
     def test_can_trigger_autofix_returns_false_without_seer_access(self):
         assert SeerOperator.can_trigger_autofix(group=self.group) is False
