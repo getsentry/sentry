@@ -1609,7 +1609,6 @@ class PreprodArtifactBatchBaseArtifactTest(PreprodArtifactModelTestBase):
 
 @region_silo_test
 class SizeAnalysisDataSourceHandlerTest(TestCase):
-
     def test_bulk_get_query_object(self):
         subscription = SizeAnalysisSubscription.objects.create(
             project=self.project,
