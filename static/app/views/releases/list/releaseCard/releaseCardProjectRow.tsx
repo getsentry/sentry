@@ -202,12 +202,12 @@ function ReleaseCardProjectRow({
                     releaseVersion
                   ),
                   query: {
+                    ...extractSelectionParameters(location.query),
                     ...getReleaseUnhandledIssuesUrl(
                       organization.slug,
                       project.id,
                       releaseVersion
                     ).query,
-                    ...extractSelectionParameters(location.query),
                   },
                 }}
               >
@@ -225,9 +225,9 @@ function ReleaseCardProjectRow({
               to={{
                 ...getReleaseNewIssuesUrl(organization.slug, project.id, releaseVersion),
                 query: {
+                  ...extractSelectionParameters(location.query),
                   ...getReleaseNewIssuesUrl(organization.slug, project.id, releaseVersion)
                     .query,
-                  ...extractSelectionParameters(location.query),
                 },
               }}
             >
