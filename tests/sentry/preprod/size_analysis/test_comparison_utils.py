@@ -10,6 +10,7 @@ class CanCompareSizeMetricsTest(TestCase):
                 preprod_artifact_id=1,
                 metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
                 identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
                 max_install_size=1000,
                 max_download_size=500,
             )
@@ -19,6 +20,7 @@ class CanCompareSizeMetricsTest(TestCase):
                 preprod_artifact_id=2,
                 metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
                 identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
                 max_install_size=900,
                 max_download_size=450,
             )
@@ -44,6 +46,7 @@ class CanCompareSizeMetricsTest(TestCase):
                 preprod_artifact_id=2,
                 metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
                 identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
                 max_install_size=900,
                 max_download_size=450,
             )
@@ -61,6 +64,7 @@ class CanCompareSizeMetricsTest(TestCase):
                 preprod_artifact_id=1,
                 metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
                 identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
                 max_install_size=1000,
                 max_download_size=500,
             )
@@ -78,6 +82,7 @@ class CanCompareSizeMetricsTest(TestCase):
                 preprod_artifact_id=1,
                 metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
                 identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
                 max_install_size=1000,
                 max_download_size=500,
             ),
@@ -85,6 +90,7 @@ class CanCompareSizeMetricsTest(TestCase):
                 preprod_artifact_id=1,
                 metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
                 identifier="com.example.watch",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
                 max_install_size=200,
                 max_download_size=100,
             ),
@@ -94,6 +100,7 @@ class CanCompareSizeMetricsTest(TestCase):
                 preprod_artifact_id=2,
                 metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
                 identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
                 max_install_size=900,
                 max_download_size=450,
             )
@@ -112,6 +119,7 @@ class CanCompareSizeMetricsTest(TestCase):
                 preprod_artifact_id=1,
                 metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
                 identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
                 max_install_size=1000,
                 max_download_size=500,
             )
@@ -121,6 +129,7 @@ class CanCompareSizeMetricsTest(TestCase):
                 preprod_artifact_id=2,
                 metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
                 identifier="com.example.app.debug",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
                 max_install_size=900,
                 max_download_size=450,
             )
@@ -141,6 +150,7 @@ class CanCompareSizeMetricsTest(TestCase):
                 preprod_artifact_id=1,
                 metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
                 identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
                 max_install_size=1000,
                 max_download_size=500,
             )
@@ -150,6 +160,7 @@ class CanCompareSizeMetricsTest(TestCase):
                 preprod_artifact_id=2,
                 metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
                 identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
                 max_install_size=200,
                 max_download_size=100,
             )
@@ -164,12 +175,70 @@ class CanCompareSizeMetricsTest(TestCase):
         assert result.error_message is not None
         assert "mismatched metrics" in result.error_message
 
+    def test_cannot_compare_when_metrics_not_completed(self):
+        head_metrics = [
+            PreprodArtifactSizeMetrics(
+                preprod_artifact_id=1,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                max_install_size=1000,
+                max_download_size=500,
+            )
+        ]
+        base_metrics = [
+            PreprodArtifactSizeMetrics(
+                preprod_artifact_id=2,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                max_install_size=900,
+                max_download_size=450,
+            )
+        ]
+
+        result = can_compare_size_metrics(head_metrics, base_metrics)
+
+        assert result.can_compare is False
+        assert result.error_type == ComparisonValidationResult.ErrorType.NOT_ALL_COMPLETED
+        assert result.error_message is not None
+        assert "not completed" in result.error_message
+
+    def test_cannot_compare_when_all_metrics_pending(self):
+        head_metrics = [
+            PreprodArtifactSizeMetrics(
+                preprod_artifact_id=1,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                max_install_size=1000,
+                max_download_size=500,
+            )
+        ]
+        base_metrics = [
+            PreprodArtifactSizeMetrics(
+                preprod_artifact_id=2,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                max_install_size=900,
+                max_download_size=450,
+            )
+        ]
+
+        result = can_compare_size_metrics(head_metrics, base_metrics)
+
+        assert result.can_compare is False
+        assert result.error_type == ComparisonValidationResult.ErrorType.NOT_ALL_COMPLETED
+        assert "2 metric(s)" in result.error_message
+
     def test_different_metrics_error_type(self):
         head_metrics = [
             PreprodArtifactSizeMetrics(
                 preprod_artifact_id=1,
                 metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
                 identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
                 max_install_size=1000,
                 max_download_size=500,
             )
@@ -179,6 +248,7 @@ class CanCompareSizeMetricsTest(TestCase):
                 preprod_artifact_id=2,
                 metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
                 identifier="com.different.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
                 max_install_size=200,
                 max_download_size=100,
             )

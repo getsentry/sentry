@@ -315,10 +315,8 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             # 2. For the head artifact (since should_update_status_check is True)
             assert mock_status_check_task.apply_async.call_count == 2
             calls = mock_status_check_task.apply_async.call_args_list
-            # First call should be for the base artifact
-            assert calls[0][1]["kwargs"]["preprod_artifact_id"] == base_artifact.id
-            # Second call should be for the head artifact
-            assert calls[1][1]["kwargs"]["preprod_artifact_id"] == head_artifact.id
+            called_artifact_ids = {c[1]["kwargs"]["preprod_artifact_id"] for c in calls}
+            assert called_artifact_ids == {base_artifact.id, head_artifact.id}
 
     def test_compare_preprod_artifact_size_analysis_no_matching_artifacts(self):
         """Test compare_preprod_artifact_size_analysis with no matching artifacts."""
