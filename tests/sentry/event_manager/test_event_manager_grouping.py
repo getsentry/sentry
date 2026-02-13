@@ -457,26 +457,19 @@ class GroupHashCachingTest(TestCase):
             # testing grouphash object handling)
             cache_get_spy, cache_set_spy, database_fn_spy = spies
             cache_get_args = [cache_key]
-            cache_get_kwargs = {"version": expiry_option_version}
             cache_set_args = [cache_key, cached_value, cache_expiry]
-            cache_set_kwargs = {"version": expiry_option_version}
             database_fn_kwargs = {"project": self.project, "hash": hash_value}
 
-            # TODO: this (and the check below) can be simplified to use in/not in once version is gone
-            assert not cache.has_key(cache_key, version=expiry_option_version)
+            assert cache_key not in cache
 
             # ######### First call for grouphashes, with a hash we've never seen before ######### #
 
             get_or_create_grouphashes(event1, self.project, {}, [hash_value], grouping_config_id)
 
-            assert cache.has_key(cache_key, version=expiry_option_version) == cache_use_expected
+            assert (cache_key in cache) == cache_use_expected
 
-            cache_get_call_count = count_matching_calls(
-                cache_get_spy, *cache_get_args, **cache_get_kwargs
-            )
-            cache_set_call_count = count_matching_calls(
-                cache_set_spy, *cache_set_args, **cache_set_kwargs
-            )
+            cache_get_call_count = count_matching_calls(cache_get_spy, *cache_get_args)
+            cache_set_call_count = count_matching_calls(cache_set_spy, *cache_set_args)
             database_fn_call_count = count_matching_calls(database_fn_spy, **database_fn_kwargs)
 
             assert cache_get_call_count == (1 if cache_check_expected else 0)
@@ -488,12 +481,8 @@ class GroupHashCachingTest(TestCase):
 
             get_or_create_grouphashes(event2, self.project, {}, [hash_value], grouping_config_id)
 
-            cache_get_call_count = count_matching_calls(
-                cache_get_spy, *cache_get_args, **cache_get_kwargs
-            )
-            cache_set_call_count = count_matching_calls(
-                cache_set_spy, *cache_set_args, **cache_set_kwargs
-            )
+            cache_get_call_count = count_matching_calls(cache_get_spy, *cache_get_args)
+            cache_set_call_count = count_matching_calls(cache_set_spy, *cache_set_args)
             database_fn_call_count = count_matching_calls(database_fn_spy, **database_fn_kwargs)
 
             # With caching, call count increases by 1

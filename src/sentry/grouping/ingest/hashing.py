@@ -228,8 +228,7 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
             cache_key = get_grouphash_existence_cache_key(hash_value, project.id)
             cache_expiry = options.get("grouping.ingest_grouphash_existence_cache_expiry")
 
-            # TODO: We can remove the version once we've settled on a good retention period
-            grouphash_exists = cache.get(cache_key, version=option_version)
+            grouphash_exists = cache.get(cache_key)
             got_cache_hit = grouphash_exists is not None
             metrics_tags["cache_result"] = "hit" if got_cache_hit else "miss"
             # TODO: Temporary tag to let us compare hit rates across different retention periods
@@ -245,8 +244,7 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
             metrics_tags["grouphash_exists"] = grouphash_exists
             metrics_tags["cache_set"] = True
 
-            # TODO: We can remove the version once we've settled on a good retention period
-            cache.set(cache_key, grouphash_exists, cache_expiry, version=option_version)
+            cache.set(cache_key, grouphash_exists, cache_expiry)
 
         return grouphash_exists
 
@@ -272,8 +270,7 @@ def _get_or_create_single_grouphash(
             cache_key = get_grouphash_object_cache_key(hash_value, project.id)
             cache_expiry = options.get("grouping.ingest_grouphash_object_cache_expiry")
 
-            # TODO: We can remove the version once we've settled on a good retention period
-            grouphash = cache.get(cache_key, version=option_version)
+            grouphash = cache.get(cache_key)
             got_cache_hit = grouphash is not None
             metrics_tags["cache_result"] = "hit" if got_cache_hit else "miss"
             # TODO: Temporary tag to let us compare hit rates across different retention periods
@@ -290,8 +287,7 @@ def _get_or_create_single_grouphash(
         if use_caching and grouphash.group_id is not None:
             metrics_tags["cache_set"] = True
 
-            # TODO: We can remove the version once we've settled on a good retention period
-            cache.set(cache_key, grouphash, cache_expiry, version=option_version)
+            cache.set(cache_key, grouphash, cache_expiry)
 
         return (grouphash, created)
 
