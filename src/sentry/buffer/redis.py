@@ -5,7 +5,6 @@ import pickle
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
-from enum import Enum
 from time import time
 from typing import Any, TypeVar
 
@@ -174,18 +173,6 @@ class RedisBufferRouter:
 redis_buffer_router = RedisBufferRouter()
 
 
-# Note HMSET is not supported after redis 4.0.0, after updating we can use HSET directly.
-class RedisOperation(Enum):
-    SORTED_SET_ADD = "zadd"
-    SORTED_SET_GET_RANGE = "zrangebyscore"
-    SORTED_SET_DELETE_RANGE = "zremrangebyscore"
-    HASH_ADD = "hset"
-    HASH_ADD_BULK = "hmset"
-    HASH_GET_ALL = "hgetall"
-    HASH_DELETE = "hdel"
-    HASH_LENGTH = "hlen"
-
-
 class PendingBuffer:
     def __init__(self, size: int):
         assert size > 0
@@ -348,37 +335,6 @@ class RedisBuffer(Buffer):
 
         pipe = conn.pipeline(transaction=transaction)
         return pipe
-
-    def _execute_redis_operation_no_txn(
-        self, key: str, operation: RedisOperation, *args: Any, **kwargs: Any
-    ) -> Any:
-        metrics_str = f"redis_buffer.{operation.value}"
-        metrics.incr(metrics_str)
-        pipe = self.get_redis_connection(self.pending_key, transaction=False)
-        getattr(pipe, operation.value)(key, *args, **kwargs)
-        if args:
-            pipe.expire(key, self.key_expire)
-        return pipe.execute()[0]
-
-    def _execute_sharded_redis_operation(
-        self,
-        keys: list[str],
-        operation: RedisOperation,
-        *args: Any,
-        **kwargs: Any,
-    ) -> Any:
-        """
-        Execute a Redis operation on a list of keys, using the same args and kwargs for each key.
-        """
-
-        metrics_str = f"redis_buffer.{operation.value}"
-        metrics.incr(metrics_str, amount=len(keys))
-        pipe = self.get_redis_connection(self.pending_key, transaction=False)
-        for key in keys:
-            getattr(pipe, operation.value)(key, *args, **kwargs)
-            if args:
-                pipe.expire(key, self.key_expire)
-        return pipe.execute()
 
     def incr(
         self,
