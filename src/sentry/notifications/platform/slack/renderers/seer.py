@@ -49,26 +49,26 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
     AutofixStoppingPoint.ROOT_CAUSE: AutofixStageConfig(
         heading=":mag:  *Root Cause Analysis*",
         label="Fix with Seer",
-        working_text="Seer is analyzing the root cause...",
-        completed_text="Seer has already analyzed the root cause.",
+        working_text="Seer is peering into the void...",
+        completed_text="Seer's eye has seen the root cause",
     ),
     AutofixStoppingPoint.SOLUTION: AutofixStageConfig(
         heading=":test_tube:  *Proposed Solution*",
         label="Plan a Solution",
-        working_text="Seer is working on the solution...",
-        completed_text="Seer has already proposed a solution.",
+        working_text="Seer is conjuring a solution...",
+        completed_text="Seer has materialized a plan",
     ),
     AutofixStoppingPoint.CODE_CHANGES: AutofixStageConfig(
         heading=":pencil2:  *Code Change Suggestions*",
         label="Write Code Changes",
-        working_text="Seer is writing the code...",
-        completed_text="Seer has already written the code changes.",
+        working_text="Seer's many hands are typing...",
+        completed_text="Seer has synthesized the changes",
     ),
     AutofixStoppingPoint.OPEN_PR: AutofixStageConfig(
         heading=":link:  *Pull Request*",
         label="Draft a PR",
-        working_text="Seer is drafting a pull request...",
-        completed_text="Seer has already drafted a pull request.",
+        working_text="Seer is manifesting a PR...",
+        completed_text="Seer has summoned your pull request",
     ),
 }
 
