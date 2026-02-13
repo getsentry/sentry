@@ -526,11 +526,8 @@ function ExplorerPanel() {
   }, [
     isVisible,
     isMenuOpen,
-    isPolling,
     readOnly,
     focusedBlockIndex,
-    interruptRun,
-    interruptRequested,
     isMinimized,
     isFileApprovalPending,
     isQuestionPending,
