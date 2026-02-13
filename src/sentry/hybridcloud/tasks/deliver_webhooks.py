@@ -150,21 +150,30 @@ def schedule_webhook_delivery() -> None:
     )
 
     for record in scheduled_mailboxes[:BATCH_SIZE]:
-        # Reschedule the records that we will attempt to deliver next.
-        # We update schedule_for in an attempt to minimize races for potentially in-flight batches.
-        mailbox_batch = (
-            WebhookPayloadReplica.filter(id__gte=record["id"], mailbox_name=record["mailbox_name"])
-            .order_by("id")
-            .values("id")[:MAX_MAILBOX_DRAIN]
-        )
-        updated_count = WebhookPayload.objects.filter(id__in=Subquery(mailbox_batch)).update(
-            schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET
-        )
-        # If we have 1/5 or more in a mailbox we should process in parallel as we're likely behind.
-        if updated_count >= int(MAX_MAILBOX_DRAIN / 5):
-            drain_mailbox_parallel.delay(record["id"])
-        else:
-            drain_mailbox.delay(record["id"])
+        with sentry_sdk.start_transaction(
+            op="hybridcloud.deliver_webhooks.schedule_mailbox",
+            name=f"deliver_webhooks.schedule_mailbox.{record['mailbox_name']}",
+        ) as transaction:
+            transaction.set_data("mailbox_name", record["mailbox_name"])
+            transaction.set_data("payload_id", record["id"])
+            # Reschedule the records that we will attempt to deliver next.
+            # We update schedule_for in an attempt to minimize races for potentially in-flight batches.
+            mailbox_batch = (
+                WebhookPayloadReplica.filter(
+                    id__gte=record["id"], mailbox_name=record["mailbox_name"]
+                )
+                .order_by("id")
+                .values("id")[:MAX_MAILBOX_DRAIN]
+            )
+            updated_count = WebhookPayload.objects.filter(id__in=Subquery(mailbox_batch)).update(
+                schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET
+            )
+            transaction.set_data("updated_count", updated_count)
+            # If we have 1/5 or more in a mailbox we should process in parallel as we're likely behind.
+            if updated_count >= int(MAX_MAILBOX_DRAIN / 5):
+                drain_mailbox_parallel.delay(record["id"])
+            else:
+                drain_mailbox.delay(record["id"])
 
 
 @instrumented_task(
