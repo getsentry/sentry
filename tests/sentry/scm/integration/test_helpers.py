@@ -34,7 +34,7 @@ class TestFetchRepository(TestCase):
         assert result is not None
         assert result["name"] == "test-org/test-repo"
         assert result["organization_id"] == self.organization.id
-        assert result["status"] == ObjectStatus.ACTIVE
+        assert result["is_active"] is True
 
     def test_fetch_by_id_returns_none_for_nonexistent(self):
         result = fetch_repository(self.organization.id, 99999)
@@ -97,7 +97,7 @@ class TestMapRepositoryModelToRepository(TestCase):
         assert result["integration_id"] == integration.id
         assert result["name"] == "test-org/test-repo"
         assert result["organization_id"] == self.organization.id
-        assert result["status"] == ObjectStatus.ACTIVE
+        assert result["is_active"] is True
 
 
 class TestMapIntegrationToProvider(TestCase):

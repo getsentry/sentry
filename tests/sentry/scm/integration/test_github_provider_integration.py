@@ -379,4 +379,4 @@ class TestGitHubProviderIntegration(TestCase):
         assert self.repository["name"] == REPO_NAME
         assert self.repository["organization_id"] == self.organization.id
         assert self.repository["integration_id"] == self.integration.id
-        assert self.repository["status"] == ObjectStatus.ACTIVE
+        assert self.repository["is_active"] is True

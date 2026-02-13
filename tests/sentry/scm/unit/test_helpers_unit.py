@@ -16,7 +16,7 @@ def test_exec_provider_fn():
             "integration_id": 1,
             "name": "1",
             "organization_id": 1,
-            "status": 0,
+            "is_active": True,
         },
         fetch_service_provider=lambda a, b: BaseTestProvider(),
         provider_fn=lambda r, p: 42,
