@@ -43,6 +43,7 @@ function getMetaQueryParams(
   }
 
   return {
+    include_uptime: '1',
     statsPeriod: (statsPeriod || filters?.datetime?.period) ?? DEFAULT_STATS_PERIOD,
   };
 }
