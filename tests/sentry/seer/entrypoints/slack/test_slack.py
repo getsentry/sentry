@@ -48,7 +48,6 @@ class SlackEntrypointTest(TestCase):
     def _create_update(
         self,
         current_point: AutofixStoppingPoint = AutofixStoppingPoint.ROOT_CAUSE,
-        has_progressed: bool = False,
     ) -> SeerAutofixUpdate:
         return SeerAutofixUpdate(
             run_id=MOCK_RUN_ID,
@@ -57,7 +56,6 @@ class SlackEntrypointTest(TestCase):
             group_id=self.group.id,
             current_point=current_point,
             group_link=self.group.get_absolute_url(),
-            has_progressed=has_progressed,
         )
 
     def _get_entrypoint(self) -> SlackEntrypoint:
@@ -187,7 +185,7 @@ class SlackEntrypointTest(TestCase):
             }
         }
 
-        data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE, has_progressed=True)
+        data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
         install = self.integration.get_installation(organization_id=self.organization.id)
         update_existing_message(
             request=self.slack_request,
@@ -195,6 +193,7 @@ class SlackEntrypointTest(TestCase):
             channel_id=self.channel_id,
             message_ts=self.thread_ts,
             data=data,
+            has_complete_stage=False,
             slack_user_id=self.slack_user_id,
         )
 
@@ -203,8 +202,8 @@ class SlackEntrypointTest(TestCase):
         assert call_args.kwargs["channel_id"] == self.channel_id
         assert call_args.kwargs["message_ts"] == self.thread_ts
         renderable = call_args.kwargs["renderable"]
-        # Original section block + actions block (with non-autofix button) + footer section + footer context
-        assert len(renderable["blocks"]) == 4
+        # Original section block + actions block (with non-autofix button) + footer section
+        assert len(renderable["blocks"]) == 3
         # The second block is an ActionsBlock with only the non-autofix button remaining
         actions_block = renderable["blocks"][1]
         assert len(actions_block.elements) == 1
@@ -400,7 +399,7 @@ class SlackEntrypointTest(TestCase):
             }
         }
 
-        data = self._create_update(AutofixStoppingPoint.SOLUTION, has_progressed=True)
+        data = self._create_update(AutofixStoppingPoint.SOLUTION)
         install = self.integration.get_installation(organization_id=self.organization.id)
         update_existing_message(
             request=self.slack_request,
@@ -408,12 +407,13 @@ class SlackEntrypointTest(TestCase):
             channel_id=self.channel_id,
             message_ts=self.thread_ts,
             data=data,
+            has_complete_stage=False,
             slack_user_id=self.slack_user_id,
         )
         mock_update_message.assert_called_once()
         renderable: SlackRenderable = mock_update_message.call_args.kwargs["renderable"]
-        # Original section block + footer section + footer context (actions block removed entirely)
-        assert len(renderable["blocks"]) == 3
+        # Original section block + footer section (actions block removed entirely)
+        assert len(renderable["blocks"]) == 2
         assert all(block.type != "actions" for block in renderable["blocks"])
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
@@ -422,7 +422,7 @@ class SlackEntrypointTest(TestCase):
             "message": {"ts": self.thread_ts, "text": "Issue notification", "blocks": []}
         }
 
-        data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE, has_progressed=True)
+        data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
         install = self.integration.get_installation(organization_id=self.organization.id)
         update_existing_message(
             request=self.slack_request,
@@ -430,6 +430,7 @@ class SlackEntrypointTest(TestCase):
             channel_id=self.channel_id,
             message_ts=self.thread_ts,
             data=data,
+            has_complete_stage=False,
             slack_user_id=None,
         )
 
@@ -465,7 +466,7 @@ class SlackEntrypointTest(TestCase):
     def test_update_existing_message_handles_invalid_payload(self, mock_update_message):
         self.slack_request.data = {"message": None}
 
-        data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE, has_progressed=True)
+        data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
         install = self.integration.get_installation(organization_id=self.organization.id)
         update_existing_message(
             request=self.slack_request,
@@ -473,6 +474,7 @@ class SlackEntrypointTest(TestCase):
             channel_id=self.channel_id,
             message_ts=self.thread_ts,
             data=data,
+            has_complete_stage=False,
             slack_user_id=self.slack_user_id,
         )
 
