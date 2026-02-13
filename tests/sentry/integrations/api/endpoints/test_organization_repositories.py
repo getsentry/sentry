@@ -388,7 +388,6 @@ class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
         ExampleRepositoryProvider, "get_repository_data", return_value={"my_config_key": "some_var"}
     )
     def test_simple(self, mock_build_repository_config: MagicMock) -> None:
-
         with patch.object(
             ExampleRepositoryProvider, "build_repository_config", return_value=self.repo_config_data
         ) as mock_get_repository_data:

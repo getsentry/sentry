@@ -1156,8 +1156,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 100, 10)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.node",
@@ -1197,8 +1196,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 100, 20)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.node",
@@ -1259,8 +1257,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 100, 20)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.node",
@@ -1324,8 +1321,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 75, 15)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.node",
@@ -1377,8 +1373,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 100, 10)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.node",
@@ -1418,8 +1413,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 100, 10)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.node",
@@ -1459,8 +1453,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 75, 15)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.node",
@@ -1521,8 +1514,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 100, 10)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.node",
@@ -1595,8 +1587,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 100, 20)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.node",
@@ -1669,8 +1660,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 75, 15)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.node",
@@ -1743,8 +1733,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 60, 6)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.node",
@@ -1817,8 +1806,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 50, 10)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.node",
@@ -1861,8 +1849,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 50, 5)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.node",
@@ -1893,8 +1880,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 100, 5)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.node",
@@ -1943,8 +1929,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 40, 4)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.node",
@@ -2005,8 +1990,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 100, 5)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.node",
@@ -2058,8 +2042,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 100, 5)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.node",
@@ -2125,8 +2108,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 100, 10)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.remix",
@@ -2190,8 +2172,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 100, 10)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.remix",
@@ -2243,8 +2224,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 100, 1000)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.remix",
@@ -2287,8 +2267,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (1, 1, 40)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.node",
@@ -2346,8 +2325,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ],
             {"a" * 32: (0, 40, 4)},
             {
-                "a"
-                * 32: [
+                "a" * 32: [
                     {
                         "project": "foo",
                         "sdkName": "sentry.javascript.remix",
@@ -2424,8 +2402,7 @@ def test_quantize_range_error(
         },
     ]
     traces_range = {
-        "a"
-        * 32: {
+        "a" * 32: {
             "start": 0,
             "end": 100,
             "slices": 0,
@@ -2460,8 +2437,7 @@ def test_build_breakdown_error(
         },
     ]
     traces_range = {
-        "a"
-        * 32: {
+        "a" * 32: {
             "start": 0,
             "end": 100,
             "slices": 10,

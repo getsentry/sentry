@@ -208,15 +208,15 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         # Verify that "edge" browser exists in the baseline distribution sent to scoring
         # This is the key test: edge exists in all spans but NOT in suspect spans
         # Note: Internal attribute name is "sentry.browser"
-        assert (
-            "sentry.browser" in baseline_dict
-        ), "sentry.browser attribute should be in baseline distribution"
-        assert (
-            "edge" in baseline_dict["sentry.browser"]
-        ), "edge browser should be in baseline (it exists in all spans but not in suspect)"
-        assert (
-            baseline_dict["sentry.browser"]["edge"] > 0
-        ), "edge count should be positive in baseline"
+        assert "sentry.browser" in baseline_dict, (
+            "sentry.browser attribute should be in baseline distribution"
+        )
+        assert "edge" in baseline_dict["sentry.browser"], (
+            "edge browser should be in baseline (it exists in all spans but not in suspect)"
+        )
+        assert baseline_dict["sentry.browser"]["edge"] > 0, (
+            "edge count should be positive in baseline"
+        )
 
         # Also verify edge appears in the response (public name is "browser")
         browser_attr = next(
@@ -229,15 +229,15 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert edge_bucket["value"] > 0, "edge count should be positive in response"
 
         # Verify tablet device exists (also only in baseline)
-        assert (
-            "sentry.device" in baseline_dict
-        ), "sentry.device attribute should be in baseline distribution"
-        assert (
-            "tablet" in baseline_dict["sentry.device"]
-        ), "tablet device should be in baseline (exists in all spans but not in suspect)"
-        assert (
-            baseline_dict["sentry.device"]["tablet"] > 0
-        ), "tablet count should be positive in baseline"
+        assert "sentry.device" in baseline_dict, (
+            "sentry.device attribute should be in baseline distribution"
+        )
+        assert "tablet" in baseline_dict["sentry.device"], (
+            "tablet device should be in baseline (exists in all spans but not in suspect)"
+        )
+        assert baseline_dict["sentry.device"]["tablet"] > 0, (
+            "tablet count should be positive in baseline"
+        )
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
     def test_filters_out_internal_and_private_attributes(self, mock_compare_distributions) -> None:
@@ -266,23 +266,25 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         for attr in response.data["rankedAttributes"]:
             attr_name = attr["attributeName"]
             # Public alias filtering
-            assert not attr_name.startswith(
-                "tags["
-            ), f"Attribute '{attr_name}' should be filtered (starts with tags[)"
+            assert not attr_name.startswith("tags["), (
+                f"Attribute '{attr_name}' should be filtered (starts with tags[)"
+            )
             assert not (
                 attr_name.startswith("sentry.") and attr_name != "sentry.normalized_description"
-            ), f"Attribute '{attr_name}' should be filtered (starts with sentry.* but is not sentry.normalized_description)"
+            ), (
+                f"Attribute '{attr_name}' should be filtered (starts with sentry.* but is not sentry.normalized_description)"
+            )
 
             # Internal/private attribute filtering
-            assert not attr_name.startswith(
-                "sentry._internal."
-            ), f"Attribute '{attr_name}' should be filtered (internal attribute with sentry._internal. prefix)"
-            assert not attr_name.startswith(
-                "__sentry_internal"
-            ), f"Attribute '{attr_name}' should be filtered (internal attribute with __sentry_internal prefix)"
-            assert (
-                "sentry._meta" not in attr_name
-            ), f"Attribute '{attr_name}' should be filtered (meta attribute)"
+            assert not attr_name.startswith("sentry._internal."), (
+                f"Attribute '{attr_name}' should be filtered (internal attribute with sentry._internal. prefix)"
+            )
+            assert not attr_name.startswith("__sentry_internal"), (
+                f"Attribute '{attr_name}' should be filtered (internal attribute with __sentry_internal prefix)"
+            )
+            assert "sentry._meta" not in attr_name, (
+                f"Attribute '{attr_name}' should be filtered (meta attribute)"
+            )
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
     @patch(
@@ -329,14 +331,14 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         returned_attrs = [attr["attributeName"] for attr in response.data["rankedAttributes"]]
 
         # User-defined attribute should be included with original name
-        assert (
-            "custom_user_attr" in returned_attrs
-        ), "User-defined attributes should be included when translate returns None"
+        assert "custom_user_attr" in returned_attrs, (
+            "User-defined attributes should be included when translate returns None"
+        )
 
         # Filtered attribute should NOT be included even if translate returns None
-        assert (
-            "tags[filtered_tag]" not in returned_attrs
-        ), "Attributes with forbidden prefixes should be filtered even when translate returns None"
+        assert "tags[filtered_tag]" not in returned_attrs, (
+            "Attributes with forbidden prefixes should be filtered even when translate returns None"
+        )
 
         # Regular attribute should be included
         assert "regular_attr" in returned_attrs, "Regular attributes should be included"
@@ -456,9 +458,9 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         )
 
         assert response_count.status_code == 200, response_count.data
-        assert (
-            response_count.data["cohort1Total"] == 3
-        ), f"Expected 3 failed spans for failure_count(), got {response_count.data['cohort1Total']}."
-        assert (
-            response_count.data["cohort2Total"] == 6
-        ), f"Expected 6 spans in baseline for failure_count(), got {response_count.data['cohort2Total']}."
+        assert response_count.data["cohort1Total"] == 3, (
+            f"Expected 3 failed spans for failure_count(), got {response_count.data['cohort1Total']}."
+        )
+        assert response_count.data["cohort2Total"] == 6, (
+            f"Expected 6 spans in baseline for failure_count(), got {response_count.data['cohort2Total']}."
+        )

@@ -305,8 +305,8 @@ class UniversalImportExportService(ImportExportService):
                                     # this particular instance has a `RelocationScope` that permits
                                     # importing.
                                     if (
-                                        not model_instance.get_relocation_scope()
-                                        in ok_relocation_scopes
+                                        model_instance.get_relocation_scope()
+                                        not in ok_relocation_scopes
                                     ):
                                         continue
 
@@ -542,7 +542,7 @@ class UniversalImportExportService(ImportExportService):
                 # they have, store it in the `pk_map`, and then yield it again. If they have not, we
                 # know that some upstream model was filtered out, so we ignore this one as well.
                 for item in queryset_iterator:
-                    if not item.get_relocation_scope() in allowed_relocation_scopes:
+                    if item.get_relocation_scope() not in allowed_relocation_scopes:
                         continue
 
                     model = type(item)

@@ -100,7 +100,7 @@ function GridList({
     }
   };
 
-  const {overlayIsOpen, search} = useContext(ControlContext);
+  const {overlayIsOpen, searchable} = useContext(ControlContext);
   const hiddenOptions = useContext(SelectFilterContext);
   const listItems = useMemo(
     () =>
@@ -143,7 +143,7 @@ function GridList({
             );
           })}
 
-          {!search && hiddenOptions.size > 0 && (
+          {!searchable && hiddenOptions.size > 0 && (
             <SizeLimitMessage>
               {sizeLimitMessage ?? t('Use search to find more options…')}
             </SizeLimitMessage>

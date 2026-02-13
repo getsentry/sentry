@@ -1,6 +1,5 @@
-from typing_extensions import Self
-
 from amqp.channel import Channel
+from typing_extensions import Self
 
 class Connection:
     def __init__(

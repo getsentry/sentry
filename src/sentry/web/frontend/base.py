@@ -581,7 +581,9 @@ class AbstractOrganizationView(BaseView, abc.ABC):
             request=request, rpc_user_org_context=self.active_organization
         )
 
-    def get_context_data(self, request: HttpRequest, organization: RpcOrganization | Organization, **kwargs: Any) -> dict[str, Any]:  # type: ignore[override]
+    def get_context_data(  # type: ignore[override]
+        self, request: HttpRequest, organization: RpcOrganization | Organization, **kwargs: Any
+    ) -> dict[str, Any]:
         context = super().get_context_data(request)
         context["organization"] = organization
         return context
@@ -757,7 +759,9 @@ class ProjectView(OrganizationView):
     - project
     """
 
-    def get_context_data(self, request: HttpRequest, organization: Organization, project: Project, **kwargs: Any) -> dict[str, Any]:  # type: ignore[override]
+    def get_context_data(  # type: ignore[override]
+        self, request: HttpRequest, organization: Organization, project: Project, **kwargs: Any
+    ) -> dict[str, Any]:
         from sentry.api.serializers import serialize
 
         context = super().get_context_data(request, organization)
@@ -765,7 +769,14 @@ class ProjectView(OrganizationView):
         context["processing_issues"] = serialize(project).get("processingIssues", 0)
         return context
 
-    def has_permission(self, request: HttpRequest, organization: Organization, project: Project | None, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
+    def has_permission(  # type: ignore[override]
+        self,
+        request: HttpRequest,
+        organization: Organization,
+        project: Project | None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> bool:
         if project is None:
             return False
         rv = super().has_permission(request, organization)
@@ -788,7 +799,14 @@ class ProjectView(OrganizationView):
             return False
         return True
 
-    def convert_args(self, request: HttpRequest, organization_slug: str, project_id_or_slug: int | str, *args: Any, **kwargs: Any) -> tuple[tuple[Any, ...], dict[str, Any]]:  # type: ignore[override]
+    def convert_args(  # type: ignore[override]
+        self,
+        request: HttpRequest,
+        organization_slug: str,
+        project_id_or_slug: int | str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         organization: Organization | None = None
         active_project: Project | None = None
         if self.active_organization:

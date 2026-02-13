@@ -36,7 +36,6 @@ class OrganizationSpansFieldsStatsEndpoint(OrganizationEventsEndpointBase):
     owner = ApiOwner.DATA_BROWSING
 
     def get(self, request: Request, organization: Organization) -> Response:
-
         if not features.has(
             "organizations:performance-spans-fields-stats", organization, actor=request.user
         ):

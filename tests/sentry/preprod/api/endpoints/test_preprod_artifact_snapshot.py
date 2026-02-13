@@ -39,7 +39,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        with self.feature("organizations:preprod-frontend-routes"):
+        with self.feature("organizations:preprod-snapshots"):
             response = self.client.post(url, data, format="json")
 
         assert response.status_code == 200
@@ -75,7 +75,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        with self.feature("organizations:preprod-frontend-routes"):
+        with self.feature("organizations:preprod-snapshots"):
             response = self.client.post(url, data, format="json")
 
         assert response.status_code == 200
@@ -103,7 +103,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        with self.feature("organizations:preprod-frontend-routes"):
+        with self.feature("organizations:preprod-snapshots"):
             response = self.client.post(url, data, format="json")
 
         assert response.status_code == 200
@@ -125,7 +125,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "images": {},
         }
 
-        with self.feature("organizations:preprod-frontend-routes"):
+        with self.feature("organizations:preprod-snapshots"):
             response = self.client.post(url, data, format="json")
 
         assert response.status_code == 200
@@ -137,7 +137,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             # Missing images field
         }
 
-        with self.feature("organizations:preprod-frontend-routes"):
+        with self.feature("organizations:preprod-snapshots"):
             response = self.client.post(url, data, format="json")
 
         assert response.status_code == 400
@@ -155,7 +155,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        with self.feature("organizations:preprod-frontend-routes"):
+        with self.feature("organizations:preprod-snapshots"):
             response = self.client.post(url, data, format="json")
 
         assert response.status_code == 400
@@ -173,7 +173,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        with self.feature("organizations:preprod-frontend-routes"):
+        with self.feature("organizations:preprod-snapshots"):
             response = self.client.post(url, data, format="json")
 
         assert response.status_code == 400
@@ -194,7 +194,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
     def test_snapshot_invalid_json(self):
         url = self._get_create_url()
 
-        with self.feature("organizations:preprod-frontend-routes"):
+        with self.feature("organizations:preprod-snapshots"):
             response = self.client.post(url, "invalid json", content_type="application/json")
 
         assert response.status_code == 400
@@ -210,7 +210,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "images": {},
         }
 
-        with self.feature("organizations:preprod-frontend-routes"):
+        with self.feature("organizations:preprod-snapshots"):
             response = unauthenticated_client.post(url, data, format="json")
 
         assert response.status_code == 401
@@ -225,7 +225,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "images": {},
         }
 
-        with self.feature("organizations:preprod-frontend-routes"):
+        with self.feature("organizations:preprod-snapshots"):
             response = self.client.post(url, data, format="json")
 
         assert response.status_code == 403
@@ -238,7 +238,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "images": {},
         }
 
-        with self.feature("organizations:preprod-frontend-routes"):
+        with self.feature("organizations:preprod-snapshots"):
             response = self.client.post(url, data, format="json")
 
         assert response.status_code == 400

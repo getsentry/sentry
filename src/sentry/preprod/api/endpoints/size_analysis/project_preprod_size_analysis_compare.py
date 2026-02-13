@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from django.db import router, transaction
+from django.db import models, router, transaction
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,6 +11,10 @@ from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.exceptions import StaffRequired
+from sentry.auth.staff import is_active_staff
+from sentry.auth.superuser import is_active_superuser
+from sentry.models.files.file import File
 from sentry.models.project import Project
 from sentry.preprod.analytics import (
     PreprodArtifactApiSizeAnalysisCompareGetEvent,
@@ -38,6 +42,27 @@ from sentry.preprod.size_analysis.tasks import manual_size_analysis_comparison
 from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
 
 logger = logging.getLogger(__name__)
+
+
+def _delete_existing_comparisons(
+    comparisons_qs: models.QuerySet[PreprodArtifactSizeComparison],
+) -> tuple[int, int]:
+    comparisons = list(comparisons_qs)
+    file_ids = [c.file_id for c in comparisons if c.file_id is not None]
+    files = list(File.objects.filter(id__in=file_ids))
+
+    comparison_ids = [c.id for c in comparisons]
+    with transaction.atomic(using=router.db_for_write(PreprodArtifactSizeComparison)):
+        comparisons_deleted, _ = PreprodArtifactSizeComparison.objects.filter(
+            id__in=comparison_ids
+        ).delete()
+
+        files_deleted = 0
+        for file in files:
+            file.delete()
+            files_deleted += 1
+
+    return comparisons_deleted, files_deleted
 
 
 @region_silo_endpoint
@@ -360,40 +385,56 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             base_size_analysis__in=base_size_metrics,
         )
         if existing_comparisons.exists():
-            # Build SizeAnalysisComparison models for each existing comparison
-            comparison_models = []
-            for comparison in existing_comparisons:
-                comparison_models.append(
-                    SizeAnalysisComparison(
-                        head_size_metric_id=comparison.head_size_analysis.id,
-                        base_size_metric_id=comparison.base_size_analysis.id,
-                        metrics_artifact_type=comparison.head_size_analysis.metrics_artifact_type,
-                        identifier=comparison.head_size_analysis.identifier,
-                        state=comparison.state,
-                        comparison_id=(
-                            comparison.id
-                            if comparison.state == PreprodArtifactSizeComparison.State.SUCCESS
-                            else None
-                        ),
-                        error_code=(
-                            str(comparison.error_code)
-                            if comparison.state == PreprodArtifactSizeComparison.State.FAILED
-                            and comparison.error_code is not None
-                            else None
-                        ),
-                        error_message=(
-                            comparison.error_message
-                            if comparison.state == PreprodArtifactSizeComparison.State.FAILED
-                            else None
-                        ),
-                    )
+            if is_active_superuser(request) or is_active_staff(request):
+                comparisons_deleted, files_deleted = _delete_existing_comparisons(
+                    existing_comparisons
                 )
-            body = SizeAnalysisComparePOSTResponse(
-                status="exists",
-                message="A comparison already exists for the head and base size metrics.",
-                comparisons=comparison_models,
-            )
-            return Response(body.dict(), status=200)
+                logger.info(
+                    "preprod.size_analysis.compare.api.post.rerun_deleted_existing",
+                    extra={
+                        "head_artifact_id": head_artifact.id,
+                        "base_artifact_id": base_artifact.id,
+                        "comparisons_deleted": comparisons_deleted,
+                        "files_deleted": files_deleted,
+                        "user_id": request.user.id,
+                    },
+                )
+            elif request.user.is_staff:
+                raise StaffRequired
+            else:
+                comparison_models = []
+                for comparison in existing_comparisons:
+                    comparison_models.append(
+                        SizeAnalysisComparison(
+                            head_size_metric_id=comparison.head_size_analysis.id,
+                            base_size_metric_id=comparison.base_size_analysis.id,
+                            metrics_artifact_type=comparison.head_size_analysis.metrics_artifact_type,
+                            identifier=comparison.head_size_analysis.identifier,
+                            state=comparison.state,
+                            comparison_id=(
+                                comparison.id
+                                if comparison.state == PreprodArtifactSizeComparison.State.SUCCESS
+                                else None
+                            ),
+                            error_code=(
+                                str(comparison.error_code)
+                                if comparison.state == PreprodArtifactSizeComparison.State.FAILED
+                                and comparison.error_code is not None
+                                else None
+                            ),
+                            error_message=(
+                                comparison.error_message
+                                if comparison.state == PreprodArtifactSizeComparison.State.FAILED
+                                else None
+                            ),
+                        )
+                    )
+                body = SizeAnalysisComparePOSTResponse(
+                    status="exists",
+                    message="A comparison already exists for the head and base size metrics.",
+                    comparisons=comparison_models,
+                )
+                return Response(body.dict(), status=200)
 
         logger.info(
             "preprod.size_analysis.compare.api.post.creating_pending_comparisons",

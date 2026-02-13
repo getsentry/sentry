@@ -11,7 +11,6 @@ from sentry.monitors.clock_tasks.producer import MONITORS_CLOCK_TASKS_CODEC, pro
 @override_settings(KAFKA_TOPIC_OVERRIDES={"monitors-clock-tasks": "monitors-test-topic"})
 @mock.patch("sentry.monitors.clock_tasks.producer._clock_task_producer")
 def test_produce_task(mock_producer: mock.MagicMock) -> None:
-
     message: MarkTimeout = {
         "type": "mark_timeout",
         "ts": 123,

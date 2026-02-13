@@ -94,12 +94,12 @@ def emit_observability_metrics(
     For the longest evalsha, emit a special metric for that evalsha that is just the values
     without aggregation.
     """
-    latency_metrics_dict: dict[str, tuple[float, float, float, float]] = (
-        {}
-    )  # metric, min, max, sum, count
-    gauge_metrics_dict: dict[str, tuple[float, float, float, float]] = (
-        {}
-    )  # metric, min, max, sum, count
+    latency_metrics_dict: dict[
+        str, tuple[float, float, float, float]
+    ] = {}  # metric, min, max, sum, count
+    gauge_metrics_dict: dict[
+        str, tuple[float, float, float, float]
+    ] = {}  # metric, min, max, sum, count
 
     for evalsha_latency_metrics, evalsha_gauge_metrics in zip(latency_metrics, gauge_metrics):
         for raw_key, value in evalsha_latency_metrics:

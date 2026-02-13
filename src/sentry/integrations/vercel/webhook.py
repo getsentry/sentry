@@ -84,14 +84,14 @@ def get_repository(meta: Mapping[str, str]) -> str:
     try:
         if meta.get("githubCommitSha"):
             # We use these instead of githubOrg and githubRepo since it's the repo the user has access to.
-            return f'{meta["githubCommitOrg"]}/{meta["githubCommitRepo"]}'
+            return f"{meta['githubCommitOrg']}/{meta['githubCommitRepo']}"
 
         if meta.get("gitlabCommitSha"):
             # GitLab repos are formatted with a space for some reason.
-            return f'{meta["gitlabProjectNamespace"]} / {meta["gitlabProjectName"]}'
+            return f"{meta['gitlabProjectNamespace']} / {meta['gitlabProjectName']}"
 
         if meta.get("bitbucketCommitSha"):
-            return f'{meta["bitbucketRepoOwner"]}/{meta["bitbucketRepoName"]}'
+            return f"{meta['bitbucketRepoOwner']}/{meta['bitbucketRepoName']}"
 
     except KeyError:
         pass

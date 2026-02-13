@@ -8,7 +8,7 @@ from collections.abc import Sequence
 
 def _glob_to_re(s: str) -> str:
     if s.endswith(".*"):
-        pat = rf'{re.escape(s.removesuffix(".*"))}(?:|\..*+)'
+        pat = rf"{re.escape(s.removesuffix('.*'))}(?:|\..*+)"
     else:
         pat = re.escape(s)
     return f"^{pat}$"

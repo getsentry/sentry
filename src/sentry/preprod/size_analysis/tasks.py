@@ -105,7 +105,6 @@ def compare_preprod_artifact_size_analysis(
 
         validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
         if validation_result.can_compare:
-
             base_metrics_map = build_size_metrics_map(base_size_metrics)
             head_metrics_map = build_size_metrics_map(head_size_metrics)
 
@@ -332,7 +331,6 @@ def manual_size_analysis_comparison(
 
     validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
     if validation_result.can_compare:
-
         base_metrics_map = build_size_metrics_map(base_size_metrics)
         head_metrics_map = build_size_metrics_map(head_size_metrics)
 

@@ -13,11 +13,14 @@ from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.project import Project
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance, query_trace_connected_events
-from sentry.replays.usecases.ingest.event_parser import EventType
+from sentry.replays.usecases.ingest.event_parser import (
+    EventType,
+    parse_network_content_lengths,
+    which,
+)
 from sentry.replays.usecases.ingest.event_parser import (
     get_timestamp_ms as get_replay_event_timestamp_ms,
 )
-from sentry.replays.usecases.ingest.event_parser import parse_network_content_lengths, which
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
 from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.models import Event
