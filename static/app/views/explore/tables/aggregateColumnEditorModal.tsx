@@ -123,7 +123,7 @@ export function AggregateColumnEditorModal({
             {editableColumns.map((column, i) => {
               return (
                 <ColumnEditorRow
-                  key={column.id}
+                  key={column.uniqueId}
                   organization={organization}
                   canDelete={
                     isGroupBy(column.column) ? canDeleteGroupBy : canDeleteVisualize

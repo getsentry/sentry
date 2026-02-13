@@ -166,6 +166,53 @@ describe('AggregateColumnEditorModal', () => {
     ]);
   });
 
+  it('handles duplicate visualize columns without collapsing rows', async () => {
+    const onColumnsChange = jest.fn();
+
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <AggregateColumnEditorModal
+            {...modalProps}
+            columns={[
+              {groupBy: 'geo.country'},
+              new VisualizeFunction('count(span.duration)'),
+              new VisualizeFunction('count(span.duration)'),
+            ]}
+            onColumnsChange={onColumnsChange}
+            stringTags={stringTags}
+            numberTags={numberTags}
+            booleanTags={booleanTags}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    let rows = await screen.findAllByTestId('editor-row');
+    expectRows(rows).toHaveAggregateFields([
+      {groupBy: 'geo.country'},
+      new VisualizeFunction('count(span.duration)'),
+      new VisualizeFunction('count(span.duration)'),
+    ]);
+
+    await userEvent.click(screen.getAllByLabelText('Remove Column')[2]!);
+
+    rows = await screen.findAllByTestId('editor-row');
+    expectRows(rows).toHaveAggregateFields([
+      {groupBy: 'geo.country'},
+      new VisualizeFunction('count(span.duration)'),
+    ]);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+    expect(onColumnsChange).toHaveBeenCalledWith([
+      {groupBy: 'geo.country'},
+      {yAxes: ['count(span.duration)']},
+    ]);
+  });
+
   it('allows adding a column', async () => {
     const onColumnsChange = jest.fn();
 
