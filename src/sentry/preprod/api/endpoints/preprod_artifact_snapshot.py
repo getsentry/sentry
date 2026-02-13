@@ -152,17 +152,17 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         limit = request_data.limit
 
         # Paginate images: convert manifest dict to sorted list, apply offset/limit
-        sorted_images = sorted(manifest.images.items(), key=lambda item: item[0])
+        sorted_images = sorted(manifest.images.items())
         paginated = sorted_images[offset : offset + limit]
         images = [
             SnapshotImageResponse(
-                id=image_id,
+                key=key,
                 display_name="",  # TODO: Add first-class display name support
                 file_name=metadata.file_name,
                 width=metadata.width,
                 height=metadata.height,
             )
-            for image_id, metadata in paginated
+            for key, metadata in paginated
         ]
 
         analytics.record(

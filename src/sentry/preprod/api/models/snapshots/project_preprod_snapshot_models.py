@@ -33,7 +33,7 @@ class SnapshotGetRequest(BaseModel):
 
 
 class SnapshotImageResponse(BaseModel):
-    id: str
+    key: str
     display_name: str = ""
     file_name: str | None = None
     width: int
