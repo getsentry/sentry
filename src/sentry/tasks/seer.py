@@ -3,10 +3,11 @@ from __future__ import annotations
 import logging
 
 import orjson
-import requests
-from django.conf import settings
 
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_autofix_default_connection_pool,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -40,15 +41,13 @@ def cleanup_seer_repository_preferences(
     )
 
     try:
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            seer_autofix_default_connection_pool,
+            path,
+            body,
         )
-        response.raise_for_status()
+        if response.status >= 400:
+            raise Exception(f"Seer request failed with status {response.status}")
         logger.info(
             "cleanup_seer_repository_preferences.success",
             extra={
