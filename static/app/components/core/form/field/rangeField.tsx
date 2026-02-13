@@ -36,7 +36,7 @@ export function RangeField({
               disabled={isDisabled}
               onChange={(value: number) => onChange(value)}
             />
-            {indicator}
+            <Flex>{indicator}</Flex>
           </Flex>
         );
 
