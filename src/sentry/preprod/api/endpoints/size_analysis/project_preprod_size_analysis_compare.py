@@ -51,13 +51,14 @@ def _delete_existing_comparisons(
     file_ids = [c.file_id for c in comparisons if c.file_id is not None]
 
     comparison_ids = [c.id for c in comparisons]
-    comparisons_deleted, _ = PreprodArtifactSizeComparison.objects.filter(
-        id__in=comparison_ids
-    ).delete()
+    with transaction.atomic(using=router.db_for_write(PreprodArtifactSizeComparison)):
+        comparisons_deleted, _ = PreprodArtifactSizeComparison.objects.filter(
+            id__in=comparison_ids
+        ).delete()
 
-    files_deleted = 0
-    if file_ids:
-        files_deleted, _ = File.objects.filter(id__in=file_ids).delete()
+        files_deleted = 0
+        if file_ids:
+            files_deleted, _ = File.objects.filter(id__in=file_ids).delete()
 
     return comparisons_deleted, files_deleted
 
