@@ -68,7 +68,6 @@ class SnubaRateLimitedEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
     def get(self, request):
-
         # Rate limit middleware will set metadata to indicate the request is not limited by the endpoint itself
         request._request.rate_limit_metadata = RateLimitMeta(
             rate_limit_type=RateLimitType.NOT_LIMITED,

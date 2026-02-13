@@ -6,6 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {StepIndexProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {
   StepType,
   type OnboardingStep,
@@ -27,13 +28,19 @@ export function Step({
   onOptionalToggleClick,
   collapsible = false,
   trailingItems,
+  stepIndex,
   ...props
-}: Omit<React.HTMLAttributes<HTMLDivElement>, 'content'> & OnboardingStep) {
+}: Omit<React.HTMLAttributes<HTMLDivElement>, 'content'> &
+  // stepIndex is required so StepIndexProvider can disambiguate tab
+  // selection keys across steps (used by the Copy as Markdown feature).
+  OnboardingStep & {stepIndex: number}) {
   const [showOptionalConfig, setShowOptionalConfig] = useState(false);
 
   const config = (
     <ContentWrapper>
-      <ContentBlocksRenderer contentBlocks={content} />
+      <StepIndexProvider index={stepIndex}>
+        <ContentBlocksRenderer contentBlocks={content} />
+      </StepIndexProvider>
     </ContentWrapper>
   );
 

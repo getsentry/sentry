@@ -1,4 +1,5 @@
 import {useFieldId, useHintTextId} from '@sentry/scraps/form/field/baseField';
+import {RequiredIndicator} from '@sentry/scraps/form/icons';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -26,7 +27,7 @@ function Label(props: {children: string; required?: boolean}) {
           <Text {...containerProps} as="label" htmlFor={fieldId}>
             {props.children}
           </Text>
-          {props.required ? <Text variant="danger">*</Text> : null}
+          {props.required ? <RequiredIndicator /> : null}
         </Flex>
       )}
     </Container>

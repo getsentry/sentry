@@ -80,7 +80,9 @@ def bulk_delete_artifacts(
     with transaction.atomic(using=router.db_for_write(PreprodArtifact)):
         files_deleted = 0
         if all_file_ids:
-            files_deleted, _ = File.objects.filter(id__in=all_file_ids).delete()
+            for file in File.objects.filter(id__in=all_file_ids):
+                file.delete()
+                files_deleted += 1
 
         _, deleted_by_model = PreprodArtifact.objects.filter(id__in=preprod_artifact_ids).delete()
 

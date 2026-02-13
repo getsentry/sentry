@@ -202,10 +202,10 @@ export default function CreateAlertButton({
   return (
     <LinkButton
       disabled={!canCreateAlert}
-      title={canCreateAlert ? undefined : permissionTooltipText}
       icon={!hideIcon && <IconSiren {...iconProps} />}
       to={to ?? (projectSlug ? createAlertUrl(projectSlug) : '')}
       tooltipProps={{
+        title: canCreateAlert ? undefined : permissionTooltipText,
         isHoverable: true,
         position: 'top',
         overlayStyle: {

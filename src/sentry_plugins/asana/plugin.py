@@ -127,7 +127,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
                     group.get_absolute_url(params={"referrer": "asana_plugin"})
                 ),
                 "type": "textarea",
-                "help": ("Leave blank if you don't want to " "add a comment to the Asana issue."),
+                "help": ("Leave blank if you don't want to add a comment to the Asana issue."),
                 "required": False,
             },
         ]

@@ -11,7 +11,6 @@ AUTOFIX_CACHE_TIMEOUT_SECONDS = 60 * 60 * 12  # 12 hours
 
 
 class SeerOperatorAutofixCache[CachePayloadT]:
-
     @classmethod
     def _get_pre_autofix_cache_key(cls, *, entrypoint_key: str, group_id: int) -> str:
         """

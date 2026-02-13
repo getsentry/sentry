@@ -1,5 +1,7 @@
+import {Fragment} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
+import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {fadeOut, pulse} from 'sentry/styles/animations';
@@ -30,3 +32,23 @@ export const Checkmark = styled(IconCheckmark)`
 export const Warning = styled(IconWarning)`
   animation: ${() => pulse(1.15)} 1s ease infinite;
 `;
+
+const RequiredIndicatorBase = styled('div')`
+  display: inline-block;
+  background: ${p => p.theme.colors.red400};
+  opacity: 0.6;
+  width: 5px;
+  height: 5px;
+  border-radius: 5px;
+  text-indent: -9999em;
+  vertical-align: super;
+`;
+
+export function RequiredIndicator() {
+  return (
+    <Fragment>
+      <RequiredIndicatorBase aria-hidden />
+      <VisuallyHidden>(required)</VisuallyHidden>
+    </Fragment>
+  );
+}

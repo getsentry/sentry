@@ -32,7 +32,6 @@ class TestPreparerIssueLink(TestCase):
 
     @responses.activate
     def test_prepares_components_requiring_requests(self) -> None:
-
         # the webhook uris that we'll contact to get field options
         uris = ["sentry/foo", "sentry/beep", "sentry/bar"]
 
@@ -180,7 +179,6 @@ class TestPreparerAlertRuleAction(TestCase):
 
     @responses.activate
     def test_prepares_components_requiring_requests(self) -> None:
-
         # these get passed as query params in the url as dependentData
         dependent_data: list[Mapping[str, str]] = [
             {"name": "teamId", "value": "ecosystem"},

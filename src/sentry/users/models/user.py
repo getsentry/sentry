@@ -164,9 +164,7 @@ class User(Model, AbstractBaseUser):
     is_password_expired = models.BooleanField(
         _("password expired"),
         default=False,
-        help_text=_(
-            "If set to true then the user needs to change the " "password on next sign in."
-        ),
+        help_text=_("If set to true then the user needs to change the password on next sign in."),
     )
     last_password_change = models.DateTimeField(
         _("date of last password change"),

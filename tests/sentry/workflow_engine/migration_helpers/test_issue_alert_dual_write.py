@@ -124,7 +124,6 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
         assert workflow.enabled is True
 
     def test_ignores_per_user_rule_snooze(self) -> None:
-
         RuleSnooze.objects.create(rule=self.issue_alert, user_id=self.user.id)
         issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
 

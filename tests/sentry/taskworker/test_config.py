@@ -48,9 +48,9 @@ def test_taskworker_schedule_type(name: str, config: dict[str, Any], load_tasks)
 
     assert config["schedule"], f"Schedule {name} is missing a schedule"
     schedule = config.get("schedule")
-    assert isinstance(
-        schedule, (timedelta, crontab)
-    ), f"Schedule {name} has a schedule of type {type(schedule)}"
+    assert isinstance(schedule, (timedelta, crontab)), (
+        f"Schedule {name} has a schedule of type {type(schedule)}"
+    )
 
 
 def test_taskworker_schedule_parameters() -> None:

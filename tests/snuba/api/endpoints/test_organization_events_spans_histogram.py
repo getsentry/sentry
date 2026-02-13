@@ -108,9 +108,9 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
 
         assert response.status_code == 400, "failing for numBuckets"
-        assert response.data == {
-            "numBuckets": ["A valid integer is required."]
-        }, "failing for numBuckets"
+        assert response.data == {"numBuckets": ["A valid integer is required."]}, (
+            "failing for numBuckets"
+        )
 
     def test_bad_params_outside_range_num_buckets(self) -> None:
         query = {
@@ -215,9 +215,9 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 400, "failing for dataFilter"
-        assert response.data == {
-            "dataFilter": ['"invalid" is not a valid choice.']
-        }, "failing for dataFilter"
+        assert response.data == {"dataFilter": ['"invalid" is not a valid choice.']}, (
+            "failing for dataFilter"
+        )
 
     def test_histogram_empty(self) -> None:
         num_buckets = 5

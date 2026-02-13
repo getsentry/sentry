@@ -1,4 +1,4 @@
-import {useCallback, useEffect} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
@@ -29,9 +29,16 @@ export default function SeerOnboardingSeatBased() {
   const {isPending, initialStep} = useSeerOnboardingStep();
   const navigate = useNavigate();
 
+  const initialStepRef = useRef<Steps | undefined>(undefined);
+  useEffect(() => {
+    if (!isPending && initialStepRef.current === undefined) {
+      initialStepRef.current = initialStep;
+    }
+  }, [initialStep, isPending]);
+
   useEffect(() => {
     // GuidedSteps only returns the step number
-    if (!isPending && initialStep === Steps.WRAP_UP) {
+    if (!isPending && initialStepRef.current === Steps.WRAP_UP) {
       // users should not be linked to onboarding page after it's been completed, but just in case,
       // redirect them to Seer settings page.
       navigate(normalizeUrl(`/settings/${organization.slug}/seer/`), {replace: true});

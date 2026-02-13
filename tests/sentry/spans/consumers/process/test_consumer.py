@@ -239,7 +239,6 @@ def test_flusher_processes_limit() -> None:
     """Test that flusher respects the max_processes limit"""
     # Flush very aggressively to make test pass instantly
     with mock.patch("time.sleep"):
-
         topic = Topic("test")
         messages: list[KafkaPayload] = []
 

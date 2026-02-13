@@ -87,13 +87,13 @@ export function ExploreExport(props: ExploreExportProps) {
         onClick={handleExport}
         data-test-id="export-download-csv"
         icon={<IconDownload />}
-        title={
-          disabled
+        tooltipProps={{
+          title: disabled
             ? disabledTooltip
             : t(
                 "There aren't that many results, start your export and it'll download immediately."
-              )
-        }
+              ),
+        }}
       >
         {t('Export')}
       </Button>

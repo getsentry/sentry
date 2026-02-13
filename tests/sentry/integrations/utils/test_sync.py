@@ -229,7 +229,6 @@ class TestSyncAssigneeInbound(TestCase):
 @region_silo_test
 @with_feature("organizations:integrations-github-project-management")
 class TestSyncAssigneeInboundByExternalActor(TestCase):
-
     @pytest.fixture(autouse=True)
     def mock_where_should_sync(self):
         with mock.patch(

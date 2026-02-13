@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from rest_framework.request import Request
 
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.seer.explorer.client_models import ExplorerRun, SeerRunState
 from sentry.seer.explorer.client_utils import (
     collect_user_org_context,
@@ -164,6 +165,7 @@ class SeerExplorerClient:
         Args:
             organization: Sentry organization
             user: User for permission checks and user-specific context (can be User, AnonymousUser, or None)
+            project: Optional project for project-scoped runs (e.g. autofix for an issue)
             category_key: Optional category key for filtering/grouping runs (e.g., "bug-fixer", "trace-analyzer"). Must be provided together with category_value. Makes it easy to retrieve runs for your feature later.
             category_value: Optional category value for filtering/grouping runs (e.g., issue ID, trace ID). Must be provided together with category_key. Makes it easy to retrieve a specific run for your feature later.
             custom_tools: Optional list of `ExplorerTool` classes to make available as tools to the agent. Each tool must inherit from ExplorerTool, define a params_model (Pydantic BaseModel), and implement execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
@@ -177,6 +179,7 @@ class SeerExplorerClient:
         self,
         organization: Organization,
         user: User | AnonymousUser | None = None,
+        project: Project | None = None,
         category_key: str | None = None,
         category_value: str | None = None,
         custom_tools: list[type[ExplorerTool[Any]]] | None = None,
@@ -187,6 +190,7 @@ class SeerExplorerClient:
     ):
         self.organization = organization
         self.user = user
+        self.project = project
         self.custom_tools = custom_tools or []
         self.on_completion_hook = on_completion_hook
         self.intelligence_level = intelligence_level
@@ -260,6 +264,9 @@ class SeerExplorerClient:
             "is_interactive": self.is_interactive,
             "enable_coding": self.enable_coding,
         }
+
+        if self.project:
+            payload["project_id"] = self.project.id
 
         if prompt_metadata:
             payload["query_metadata"] = prompt_metadata

@@ -484,7 +484,7 @@ function mergeIntervals(first: Interval[], second: Interval[]) {
   return target;
 }
 
-function getStaleTimeForRelativePeriodTable(statsPeriod: string | undefined) {
+export function getStaleTimeForRelativePeriodTable(statsPeriod: string | undefined) {
   if (!defined(statsPeriod)) {
     return Infinity;
   }

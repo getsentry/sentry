@@ -36,11 +36,12 @@ export function SelectField({
 
   return (
     <BaseField>
-      {(fieldProps, {indicator}) => {
+      {({id, ...fieldProps}, {indicator}) => {
         const select = (
           <Select
             {...fieldProps}
             {...props}
+            inputId={id}
             disabled={isDisabled}
             components={{
               ...props.components,

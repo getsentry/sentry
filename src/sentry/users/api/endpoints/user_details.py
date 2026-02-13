@@ -163,7 +163,8 @@ class BaseUserSerializer(CamelSnakeModelSerializer[User]):
             # Django throws an exception if `id` is `None`, which it will be when we're importing
             # new users via the relocation logic on the `User` model. So we cast `None` to `0` to
             # make Django happy here.
-            .exclude(id=self.instance.id if hasattr(self.instance, "id") else 0).exists()
+            .exclude(id=self.instance.id if hasattr(self.instance, "id") else 0)
+            .exists()
         ):
             raise serializers.ValidationError("That username is already in use.")
         return value
