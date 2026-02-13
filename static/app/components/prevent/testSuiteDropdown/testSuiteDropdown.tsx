@@ -5,11 +5,12 @@ import sortBy from 'lodash/sortBy';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {
   HybridFilter,
+  HybridFilterComponents,
   useStagedCompactSelect,
   type HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
@@ -60,7 +61,7 @@ export function TestSuiteDropdown() {
         <Checkbox
           size="sm"
           checked={isSelected}
-          onChange={() => hybridFilterRef.current?.toggleOption?.(suite)}
+          onChange={() => hybridFilterRef.current?.toggleOption(suite)}
           aria-label={t('Select %s', suite)}
           tabIndex={-1}
         />
@@ -110,6 +111,14 @@ export function TestSuiteDropdown() {
       onSearch={handleOnSearch}
       emptyMessage={getEmptyMessage()}
       menuTitle={t('Filter Test Suites')}
+      menuFooter={
+        stagedSelect.hasStagedChanges ? (
+          <Flex gap="md" align="center" justify="end">
+            <HybridFilterComponents.CancelButton />
+            <HybridFilterComponents.ApplyButton />
+          </Flex>
+        ) : null
+      }
       trigger={triggerProps => {
         const areAllSuitesSelected =
           value.length === 0 || testSuites?.every(suite => value.includes(suite));

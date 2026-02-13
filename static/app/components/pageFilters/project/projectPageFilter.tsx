@@ -1,12 +1,14 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
-import {LinkButton} from '@sentry/scraps/button';
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -270,7 +272,7 @@ export function ProjectPageFilter({
             size="sm"
             checked={isSelected}
             onChange={() =>
-              hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))
+              hybridFilterRef.current?.toggleOption(parseInt(project.id, 10))
             }
             aria-label={t('Select %s', project.slug)}
             tabIndex={-1}
@@ -410,20 +412,6 @@ export function ProjectPageFilter({
     disableCommit: selectionLimitExceeded,
   });
 
-  const menuFooterMessage = useMemo(() => {
-    if (true) {
-      return (hasStagedChanges: any) =>
-        hasStagedChanges
-          ? tct(
-              'Only up to [limit] projects can be selected at a time. You can still press “Clear” to see all projects.',
-              {limit: SELECTION_COUNT_LIMIT}
-            )
-          : undefined;
-    }
-
-    return undefined;
-  }, [selectionLimitExceeded]);
-
   const hasProjectWrite = organization.access.includes('project:write');
 
   return (
@@ -439,20 +427,35 @@ export function ProjectPageFilter({
       menuTitle={menuTitle ?? t('Filter Projects')}
       menuWidth={menuWidth ?? defaultMenuWidth}
       menuFooter={
-        <HybridFilterComponents.Footer>
-          {hasProjectWrite ? (
-            <HybridFilterComponents.LinkButton
-              icon={<IconAdd />}
-              to={makeProjectsPathname({path: '/new/', organization})}
-            >
-              {t('Create Project')}
-            </HybridFilterComponents.LinkButton>
-          ) : undefined}
-          <Flex gap="md" align="center" justify="end">
-            <HybridFilterComponents.CancelButton />
-            <HybridFilterComponents.ApplyButton />
+        <Stack gap="md" direction="column">
+          {selectionLimitExceeded && (
+            <CondensedAlert variant="warning" showIcon={false}>
+              <Text size="sm">
+                {tct(
+                  `You've selected [count] projects, but only up to [limit] can be selected at a time. Clear your selection to view all projects.`,
+                  {
+                    limit: SELECTION_COUNT_LIMIT,
+                    count: stagedValue.length,
+                  }
+                )}
+              </Text>
+            </CondensedAlert>
+          )}
+          <Flex gap="md" align="center" justify="between">
+            {hasProjectWrite ? (
+              <HybridFilterComponents.LinkButton
+                icon={<IconAdd />}
+                to={makeProjectsPathname({path: '/new/', organization})}
+              >
+                {t('Create Project')}
+              </HybridFilterComponents.LinkButton>
+            ) : undefined}
+            <Flex gap="md" align="center" justify="end">
+              <HybridFilterComponents.CancelButton />
+              <HybridFilterComponents.ApplyButton />
+            </Flex>
           </Flex>
-        </HybridFilterComponents.Footer>
+        </Stack>
       }
       trigger={
         trigger ??
@@ -470,6 +473,11 @@ export function ProjectPageFilter({
     />
   );
 }
+
+const CondensedAlert = styled(Alert)`
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
+  text-wrap: balance;
+`;
 
 function shouldCloseOnInteractOutside(target: Element) {
   // Don't close select menu when clicking on power hovercard ("Requires Business Plan") or disabled feature hovercard

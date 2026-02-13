@@ -11,6 +11,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   HybridFilter,
+  HybridFilterComponents,
   useStagedCompactSelect,
   type HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
@@ -394,6 +395,14 @@ function FilterSelector({
       sizeLimitMessage={t('Use search to find more filter values…')}
       emptyMessage={
         isFetching ? t('Loading filter values...') : t('No filter values found')
+      }
+      menuFooter={
+        stagedSelect.hasStagedChanges ? (
+          <Flex gap="md" align="center" justify="end">
+            <HybridFilterComponents.CancelButton />
+            <HybridFilterComponents.ApplyButton />
+          </Flex>
+        ) : null
       }
       menuTitle={
         <MenuTitleWrapper>

@@ -3,6 +3,7 @@ import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {updateEnvironments} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
@@ -13,6 +14,7 @@ import {
 import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
 import {
   HybridFilter,
+  HybridFilterComponents,
   useStagedCompactSelect,
   type HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
@@ -186,7 +188,7 @@ export function EnvironmentPageFilter({
           <Checkbox
             size="sm"
             checked={isSelected}
-            onChange={() => hybridFilterRef.current?.toggleOption?.(env)}
+            onChange={() => hybridFilterRef.current?.toggleOption(env)}
             aria-label={t('Select %s', env)}
             tabIndex={-1}
           />
@@ -235,6 +237,14 @@ export function EnvironmentPageFilter({
       emptyMessage={emptyMessage ?? t('No environments found')}
       menuTitle={t('Filter Environments')}
       menuWidth={menuWidth ?? defaultMenuWidth}
+      menuFooter={
+        stagedSelect.hasStagedChanges ? (
+          <Flex gap="md" align="center" justify="end">
+            <HybridFilterComponents.CancelButton />
+            <HybridFilterComponents.ApplyButton />
+          </Flex>
+        ) : null
+      }
       trigger={
         trigger ??
         (tp => (

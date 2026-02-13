@@ -257,11 +257,6 @@ export interface HybridFilterProps<Value extends SelectKey> extends Omit<
    * This handles all the state management and provides props for CompactSelect.
    */
   stagedSelect: UseStagedCompactSelectReturn<Value>;
-  /**
-   * Message to show in the menu footer. Can be a function that receives
-   * whether there are staged changes.
-   */
-  // menuFooterMessage?: ((hasStagedChanges: boolean) => React.ReactNode) | React.ReactNode;
   ref?: React.Ref<HybridFilterRef<Value>>;
 }
 
@@ -446,32 +441,6 @@ export const HybridFilterComponents = {
       </Button>
     );
   },
-
-  Footer({children}: {children: React.ReactNode}) {
-    return (
-      <Flex gap="md" align="center" justify="between">
-        {children}
-      </Flex>
-    );
-  },
-
-  // Footer() {
-  //   const controlContext = useContext(ControlContext);
-  //   const stagedSelect = useContext(HybridFilterContext);
-
-  //   if (!menuFooter && !footerMessage && !stagedSelect.hasStagedChanges) {
-  //     return null;
-  //   }
-
-  //   return (
-  //     <Fragment>
-  //       {footerMessage && <FooterMessage>{footerMessage}</FooterMessage>}
-  //       <FooterWrap>
-  //         <FooterInnerWrap>{menuFooter}</FooterInnerWrap>
-  //       </FooterWrap>
-  //     </Fragment>
-  //   );
-  // },
 };
 
 const ResetButton = styled(Button)`
@@ -481,34 +450,3 @@ const ResetButton = styled(Button)`
   padding: 0 ${space(0.5)};
   margin: -${space(0.5)} -${space(0.5)};
 `;
-
-// const FooterMessage = styled('p')`
-//   padding: ${space(0.75)} ${space(1)};
-//   margin: ${space(0.5)} 0;
-//   border-radius: ${p => p.theme.radius.md};
-//   border: solid 1px ${p => p.theme.colors.yellow200};
-//   background: ${p => p.theme.colors.yellow100};
-//   color: ${p => p.theme.tokens.content.primary};
-//   font-size: ${p => p.theme.font.size.sm};
-// `;
-
-// const FooterInnerWrap = styled('div')`
-//   grid-row: -1;
-//   display: grid;
-//   grid-auto-flow: column;
-//   gap: ${space(1)};
-
-//   &:empty {
-//     display: none;
-//   }
-
-//   &:last-of-type {
-//     justify-self: end;
-//     justify-items: end;
-//   }
-//   &:first-of-type,
-//   &:only-child {
-//     justify-self: start;
-//     justify-items: start;
-//   }
-// `;
