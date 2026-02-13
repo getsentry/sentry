@@ -206,8 +206,6 @@ function AutoSaveExample() {
             <field.TextArea
               value={field.state.value ?? ''}
               onChange={field.handleChange}
-              rows={3}
-              autosize
             />
           </field.Layout.Stack>
         )}
@@ -308,8 +306,6 @@ function BasicForm() {
                 <field.TextArea
                   value={field.state.value ?? ''}
                   onChange={field.handleChange}
-                  rows={3}
-                  autosize
                 />
               </field.Layout.Row>
             )}
