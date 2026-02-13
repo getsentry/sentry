@@ -1047,6 +1047,27 @@ function useWidgetBuilderState(): {
                 setLimit(maxLimit, options);
               }
             }
+
+            // Replicate SET_Y_AXIS sort reconciliation
+            if (newYAxis.length > 0 && (!fields || fields.length === 0)) {
+              setSort([], options);
+            } else if (
+              newYAxis.length > 0 &&
+              dataset === WidgetType.TRACEMETRICS &&
+              traceMetric &&
+              sort?.length &&
+              !checkTraceMetricSortUsed(sort, traceMetric, newYAxis, fields)
+            ) {
+              setSort(
+                [
+                  {
+                    kind: 'desc',
+                    field: generateMetricAggregate(traceMetric, newYAxis[0]!),
+                  },
+                ],
+                options
+              );
+            }
           } else {
             // Table / other: fields list is flat, delete by index
             const newFields = fields?.filter((_, i) => i !== deleteIndex) ?? [];
