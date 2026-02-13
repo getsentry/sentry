@@ -15,10 +15,10 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {DrawerComponents} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {lockBodyOverflow} from 'sentry/utils/bodyOverflow';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
+import {useScrollLock} from 'sentry/utils/useScrollLock';
 
 export interface DrawerOptions {
   /**
@@ -119,17 +119,20 @@ export function GlobalDrawer({children}: any) {
 
   // If no config is set, the global drawer is closed.
   const isDrawerOpen = !!currentDrawerConfig;
-  const unlockBodyOverflowRef = useRef<(() => void) | null>(null);
-  const openDrawer = useCallback<DrawerContextType['openDrawer']>((renderer, options) => {
-    unlockBodyOverflowRef.current = lockBodyOverflow();
-    overwriteDrawerConfig({renderer, options});
-    options.onOpen?.();
-  }, []);
+  const scrollLock = useScrollLock(document.body);
+  const openDrawer = useCallback<DrawerContextType['openDrawer']>(
+    (renderer, options) => {
+      scrollLock.acquire();
+      overwriteDrawerConfig({renderer, options});
+      options.onOpen?.();
+    },
+    [scrollLock]
+  );
+
   const closeDrawer = useCallback<DrawerContextType['closeDrawer']>(() => {
-    unlockBodyOverflowRef.current?.();
-    unlockBodyOverflowRef.current = null;
+    scrollLock.release();
     overwriteDrawerConfig(undefined);
-  }, []);
+  }, [scrollLock]);
 
   const handleClose = useCallback(() => {
     currentDrawerConfig?.options?.onClose?.();

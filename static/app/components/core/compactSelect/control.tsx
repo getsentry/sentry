@@ -28,11 +28,11 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {lockBodyOverflow} from 'sentry/utils/bodyOverflow';
 import type {FormSize} from 'sentry/utils/theme';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
+import {useScrollLock} from 'sentry/utils/useScrollLock';
 
 import type {SingleListProps} from './list';
 import type {SelectKey, SelectOptionOrSection} from './types';
@@ -247,7 +247,8 @@ export function Control({
   const [search, setSearch] = useState('');
   const [searchInputValue, setSearchInputValue] = useState(search);
   const searchRef = useRef<HTMLInputElement>(null);
-  const unlockBodyOverflowRef = useRef<(() => void) | null>(null);
+  const scrollLock = useScrollLock(document.body);
+
   const updateSearch = (newValue: string) => {
     onSearch?.(newValue);
 
@@ -319,8 +320,7 @@ export function Control({
 
       nextFrameCallback(() => {
         if (open) {
-          // Prevent body scroll while the select menu is open
-          unlockBodyOverflowRef.current = lockBodyOverflow();
+          scrollLock.acquire();
 
           // Force a overlay update, as sometimes the overlay is misaligned when opened
           updateOverlay?.();
@@ -349,10 +349,7 @@ export function Control({
 
         // On close
         onClose?.();
-
-        // Restore body overflow
-        unlockBodyOverflowRef.current?.();
-        unlockBodyOverflowRef.current = null;
+        scrollLock.release();
 
         // Clear search string
         setSearchInputValue('');
@@ -369,13 +366,6 @@ export function Control({
       });
     },
   });
-
-  // Cleanup: Restore body overflow if component unmounts while menu is open
-  useEffect(() => {
-    return () => {
-      unlockBodyOverflowRef.current?.();
-    };
-  }, []);
 
   // Recalculate overlay position when its main content changes
   const prevMenuBody = usePrevious(menuBody);
