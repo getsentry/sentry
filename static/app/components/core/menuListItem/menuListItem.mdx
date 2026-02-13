@@ -17,7 +17,6 @@ import styled from '@emotion/styled';
 import {MenuListItem} from '@sentry/scraps/menuListItem';
 
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
 
 import documentation from '!!type-loader!@sentry/scraps/menuListItem';
 
@@ -263,7 +262,7 @@ const CustomMenu = () => {
 For more information, see the [WAI-ARIA Menu practices](https://www.w3.org/WAI/ARIA/apg/patterns/menu/).
 
 export const Container = styled('div')`
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.radius.md};
 `;
