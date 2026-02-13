@@ -8,7 +8,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import control_silo_test
 
 
-@patch("sentry.seer.services.test_generation.impl.requests.post")
+@patch("sentry.seer.services.test_generation.impl.make_signed_seer_api_request")
 @django_db_all
 @control_silo_test
 def test_start_unit_test_generation(posts_mock: MagicMock) -> None:

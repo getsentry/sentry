@@ -452,6 +452,6 @@ class TestRunExplorerIndexForProjects(TestCase):
 
     def test_skips_when_option_disabled(self):
         with self.options({"seer.explorer_index.enable": False}):
-            with mock.patch("sentry.tasks.seer_explorer_index.requests.post") as mock_post:
+            with mock.patch("sentry.tasks.seer_explorer_index.requests.post") as mock_request:
                 run_explorer_index_for_projects([(1, 100)], "2024-01-15T12:00:00+00:00")
-                mock_post.assert_not_called()
+                mock_request.assert_not_called()
