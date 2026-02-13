@@ -513,6 +513,76 @@ class BindAmbiguousOrgContextTest(TestCase):
             assert slug_list_in_org_context[-1] == "... (3 more)"
 
 
+class ShouldDropS4STest(TestCase):
+    """Tests for the _should_drop_s4s method on MultiplexingTransport."""
+
+    def _get_transport(self):
+        from sentry.utils.sdk import configure_sdk
+
+        with (
+            patch("sentry.utils.sdk.get_project_key", return_value=None),
+            patch("sentry.utils.sdk.make_transport", return_value=MagicMock()),
+            patch("sentry.utils.sdk.sentry_sdk.init") as mock_init,
+        ):
+            configure_sdk()
+            transport_cls = mock_init.call_args.kwargs["transport"]
+            return transport_cls()
+
+    def _make_envelope(self, is_transaction=True, trace_id="a" * 32):
+        envelope = MagicMock()
+        envelope.get_transaction_event.return_value = (
+            {"type": "transaction"} if is_transaction else None
+        )
+        envelope.headers = {"trace": {"trace_id": trace_id}}
+        return envelope
+
+    def test_default_rate_sends_everything(self):
+        transport = self._get_transport()
+        envelope = self._make_envelope()
+        assert transport._should_drop_s4s("capture_envelope", envelope) is False
+
+    def test_zero_rate_drops_all_transactions(self):
+        transport = self._get_transport()
+        with self.options({"store.s4s-transaction-sample-rate": 0.0}):
+            envelope = self._make_envelope()
+            assert transport._should_drop_s4s("capture_envelope", envelope) is True
+
+            event = {"type": "transaction", "contexts": {"trace": {"trace_id": "a" * 32}}}
+            assert transport._should_drop_s4s("capture_event", event) is True
+
+    def test_never_drops_error_envelopes(self):
+        transport = self._get_transport()
+        with self.options({"store.s4s-transaction-sample-rate": 0.0}):
+            envelope = self._make_envelope(is_transaction=False)
+            assert transport._should_drop_s4s("capture_envelope", envelope) is False
+
+    def test_never_drops_error_events(self):
+        transport = self._get_transport()
+        with self.options({"store.s4s-transaction-sample-rate": 0.0}):
+            event = {"type": "error", "contexts": {"trace": {"trace_id": "a" * 32}}}
+            assert transport._should_drop_s4s("capture_event", event) is False
+
+    def test_deterministic_by_trace_id(self):
+        transport = self._get_transport()
+        trace_id = "abcdef1234567890abcdef1234567890"
+        with self.options({"store.s4s-transaction-sample-rate": 0.5}):
+            envelope = self._make_envelope(trace_id=trace_id)
+            first = transport._should_drop_s4s("capture_envelope", envelope)
+            for _ in range(10):
+                assert transport._should_drop_s4s("capture_envelope", envelope) == first
+
+    def test_no_trace_id_not_dropped(self):
+        transport = self._get_transport()
+        with self.options({"store.s4s-transaction-sample-rate": 0.0}):
+            envelope = MagicMock()
+            envelope.get_transaction_event.return_value = {"type": "transaction"}
+            envelope.headers = {}
+            assert transport._should_drop_s4s("capture_envelope", envelope) is False
+
+            event = {"type": "transaction", "contexts": {}}
+            assert transport._should_drop_s4s("capture_event", event) is False
+
+
 def test_before_send_error_level() -> None:
     event = {
         "tags": {

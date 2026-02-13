@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-import hashlib
 import logging
 import sys
 import typing
@@ -393,30 +392,41 @@ def configure_sdk():
 
             self._capture_anything("capture_event", event)
 
+        def _should_drop_s4s(self, method_name, *args) -> bool:
+            """
+            Deterministically drop transaction/span data sent to S4S
+            based on trace_id. Rate is controlled by the
+            store.s4s-transaction-sample-rate option. Errors are never dropped.
+            """
+            sample_rate = options.get("store.s4s-transaction-sample-rate")
+            if sample_rate >= 1.0:
+                return False
+
+            trace_id = None
+            if method_name == "capture_envelope":
+                # Only drop envelopes containing transactions, not errors
+                if args[0].get_transaction_event() is None:
+                    return False
+                trace_id = args[0].headers.get("trace", {}).get("trace_id")
+            elif method_name == "capture_event":
+                # Only drop transaction events, not errors
+                if args[0].get("type") != "transaction":
+                    return False
+                trace_id = args[0].get("contexts", {}).get("trace", {}).get("trace_id")
+
+            if trace_id is None:
+                return False
+
+            # trace_ids are hex strings — parse directly, no hashing needed
+            return (int(trace_id[:8], 16) % 100) >= int(sample_rate * 100)
+
         def _capture_anything(self, method_name, *args, **kwargs):
             # Sentry4Sentry (upstream) should get the event first because
             # it is most isolated from the sentry installation.
             if sentry4sentry_transport:
-                # Sample transactions at 1% based on trace_id to reduce
-                # transaction volume sent to the S4S (s4s2) upstream.
-                send_to_s4s = True
-                is_transaction = False
-                trace_id = None
-                if method_name == "capture_envelope":
-                    if args[0].get_transaction_event() is not None:
-                        is_transaction = True
-                        trace_id = args[0].headers.get("trace", {}).get("trace_id")
-                elif method_name == "capture_event":
-                    if args[0].get("type") == "transaction":
-                        is_transaction = True
-                        trace_id = args[0].get("contexts", {}).get("trace", {}).get("trace_id")
-                if is_transaction and trace_id is not None:
-                    hash_value = int(hashlib.md5(trace_id.encode()).hexdigest()[:8], 16)
-                    if hash_value % 100 >= 1:
-                        send_to_s4s = False
-                        metrics.incr("internal.captured.events.upstream.s4s2_sampled")
-
-                if send_to_s4s:
+                if self._should_drop_s4s(method_name, *args):
+                    metrics.incr("internal.captured.events.upstream.s4s_dropped")
+                else:
                     metrics.incr("internal.captured.events.upstream")
                     # TODO(mattrobenolt): Bring this back safely.
                     # from sentry import options
