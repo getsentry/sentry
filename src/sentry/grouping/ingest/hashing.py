@@ -233,6 +233,8 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
                 metrics_tags["grouphash_exists"] = grouphash_exists
                 return grouphash_exists
 
+        # Get an answer from the database if we didn't find what we needed in the cache (or if
+        # caching is turned off)
         grouphash_exists = GroupHash.objects.filter(project=project, hash=hash_value).exists()
 
         if use_caching:
