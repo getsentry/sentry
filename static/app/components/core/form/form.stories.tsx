@@ -36,6 +36,7 @@ const baseUserSchema = z.object({
   lastName: z.string().min(2, 'Last name must be at least 2 characters'),
   secret: z.string().optional(),
   notifications: z.boolean().optional(),
+  volume: z.number().min(0).max(100).optional(),
   address: z.object({
     street: z.string().min(1, 'Street is required'),
     city: z.string().min(1, 'City is required'),
@@ -192,6 +193,25 @@ function AutoSaveExample() {
           </field.Layout.Stack>
         )}
       </AutoSaveField>
+
+      <AutoSaveField
+        name="volume"
+        schema={baseUserSchema}
+        initialValue={user.data?.volume ?? 50}
+        mutationOptions={userMutationOptions(client)}
+      >
+        {field => (
+          <field.Layout.Stack label="Volume:">
+            <field.Range
+              value={field.state.value ?? 50}
+              onChange={field.handleChange}
+              min={0}
+              max={100}
+              step={10}
+            />
+          </field.Layout.Stack>
+        )}
+      </AutoSaveField>
     </FieldGroup>
   );
 }
@@ -259,6 +279,19 @@ function BasicForm() {
                 <field.Switch
                   checked={field.state.value ?? false}
                   onChange={field.handleChange}
+                />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+          <form.AppField name="volume">
+            {field => (
+              <field.Layout.Row label="Volume:" hintText="Adjust the volume level">
+                <field.Range
+                  value={field.state.value ?? 50}
+                  onChange={field.handleChange}
+                  min={0}
+                  max={100}
+                  step={10}
                 />
               </field.Layout.Row>
             )}
