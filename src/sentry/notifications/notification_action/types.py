@@ -79,9 +79,9 @@ def invoke_future_with_error_handling(
 ) -> None:
     # WorkflowEventData should only ever be a GroupEvent in this context, so we
     # narrow the type here to keep mypy happy.
-    assert isinstance(
-        event_data.event, GroupEvent
-    ), f"Expected a GroupEvent, received: {type(event_data.event).__name__}"
+    assert isinstance(event_data.event, GroupEvent), (
+        f"Expected a GroupEvent, received: {type(event_data.event).__name__}"
+    )
     try:
         callback(event_data.event, future)
     except EXCEPTION_IGNORE_LIST:
@@ -451,7 +451,6 @@ class BaseMetricAlertHandler(ABC):
 
     @classmethod
     def invoke_legacy_registry(cls, invocation: ActionInvocation) -> None:
-
         event = invocation.event_data.event
 
         # Extract evidence data and priority based on event type

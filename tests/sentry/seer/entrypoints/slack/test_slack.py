@@ -7,11 +7,13 @@ from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import SeerAutofixUpdate
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.entrypoints.integrations.slack import (
+from sentry.seer.entrypoints.slack.entrypoint import (
     SlackEntrypoint,
     SlackEntrypointCachePayload,
     SlackThreadDetails,
-    handle_prepare_autofix_update,
+    prepare_slack_thread_for_autofix_updates,
+)
+from sentry.seer.entrypoints.slack.messaging import (
     process_thread_update,
     schedule_all_thread_updates,
     send_thread_update,
@@ -111,7 +113,7 @@ class SlackEntrypointTest(TestCase):
         assert cache_payload["group_id"] == self.group.id
         assert cache_payload["threads"] == [self.thread]
 
-    @patch("sentry.seer.entrypoints.integrations.slack.schedule_all_thread_updates")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
     def test_on_autofix_update(self, mock_schedule_all_thread_updates):
         ep = self._get_entrypoint()
         for event_type, event_payload in MOCK_SEER_WEBHOOKS.items():
@@ -245,7 +247,7 @@ class SlackEntrypointTest(TestCase):
         assert str(self.group.id) in lock_key
         assert AutofixStoppingPoint.ROOT_CAUSE.value in lock_key
 
-    @patch("sentry.seer.entrypoints.integrations.slack.process_thread_update")
+    @patch("sentry.seer.entrypoints.slack.messaging.process_thread_update")
     def test_schedule_all_thread_updates(self, mock_process_thread_update):
         threads = [
             SlackThreadDetails(thread_ts="1234567890.123456", channel_id="C1234567890"),
@@ -281,15 +283,17 @@ class SlackEntrypointTest(TestCase):
         )
 
     @patch(
-        "sentry.seer.entrypoints.integrations.slack.SeerOperatorAutofixCache.populate_pre_autofix_cache",
+        "sentry.seer.entrypoints.slack.entrypoint.SeerOperatorAutofixCache.populate_pre_autofix_cache",
         return_value={"key": "just_returning_for_logging", "source": "group_id"},
     )
-    @patch("sentry.seer.entrypoints.integrations.slack.SeerOperatorAutofixCache.get")
-    def test_handle_prepare_autofix_update_empty_cache(self, mock_cache_get, mock_populate_cache):
+    @patch("sentry.seer.entrypoints.slack.entrypoint.SeerOperatorAutofixCache.get")
+    def test_prepare_slack_thread_for_autofix_updates_empty_cache(
+        self, mock_cache_get, mock_populate_cache
+    ):
         mock_cache_get.return_value = None
         mock_populate_cache.return_value = {"key": "test_key", "source": "group_id"}
 
-        handle_prepare_autofix_update(
+        prepare_slack_thread_for_autofix_updates(
             thread_ts=self.thread_ts,
             channel_id=self.channel_id,
             organization_id=self.organization.id,
@@ -305,11 +309,11 @@ class SlackEntrypointTest(TestCase):
         assert cache_payload["threads"][0]["channel_id"] == self.channel_id
 
     @patch(
-        "sentry.seer.entrypoints.integrations.slack.SeerOperatorAutofixCache.populate_pre_autofix_cache",
+        "sentry.seer.entrypoints.slack.entrypoint.SeerOperatorAutofixCache.populate_pre_autofix_cache",
         return_value={"key": "just_returning_for_logging", "source": "group_id"},
     )
-    @patch("sentry.seer.entrypoints.integrations.slack.SeerOperatorAutofixCache.get")
-    def test_handle_prepare_autofix_update_merges_threads(
+    @patch("sentry.seer.entrypoints.slack.entrypoint.SeerOperatorAutofixCache.get")
+    def test_prepare_slack_thread_for_autofix_updates_merges_threads(
         self, mock_cache_get, mock_populate_cache
     ):
         existing_thread = SlackThreadDetails(
@@ -322,7 +326,7 @@ class SlackEntrypointTest(TestCase):
         }
         mock_populate_cache.return_value = {"key": "test_key", "source": "group_id"}
 
-        handle_prepare_autofix_update(
+        prepare_slack_thread_for_autofix_updates(
             thread_ts=self.thread_ts,
             channel_id=self.channel_id,
             organization_id=self.organization.id,
@@ -339,11 +343,11 @@ class SlackEntrypointTest(TestCase):
         assert new_thread in cache_payload["threads"]
 
     @patch(
-        "sentry.seer.entrypoints.integrations.slack.SeerOperatorAutofixCache.populate_pre_autofix_cache",
+        "sentry.seer.entrypoints.slack.entrypoint.SeerOperatorAutofixCache.populate_pre_autofix_cache",
         return_value={"key": "just_returning_for_logging", "source": "group_id"},
     )
-    @patch("sentry.seer.entrypoints.integrations.slack.SeerOperatorAutofixCache.get")
-    def test_handle_prepare_autofix_update_no_duplicate_threads(
+    @patch("sentry.seer.entrypoints.slack.entrypoint.SeerOperatorAutofixCache.get")
+    def test_prepare_slack_thread_for_autofix_updates_no_duplicate_threads(
         self, mock_cache_get, mock_populate_cache
     ):
         existing_thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
@@ -353,7 +357,7 @@ class SlackEntrypointTest(TestCase):
             "key": "test_key",
         }
 
-        handle_prepare_autofix_update(
+        prepare_slack_thread_for_autofix_updates(
             thread_ts=self.thread_ts,
             channel_id=self.channel_id,
             organization_id=self.organization.id,

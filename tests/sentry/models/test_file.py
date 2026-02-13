@@ -123,7 +123,6 @@ class FileTest(TestCase):
         assert results[1].offset == 3
         assert results[2].offset == 6
 
-        fp = None
         with file1.getfile() as fp:
             assert fp.read().decode("utf-8") == "foo bar"
             fp.seek(2)

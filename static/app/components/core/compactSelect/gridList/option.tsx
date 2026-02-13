@@ -12,7 +12,6 @@ import {LeadWrap} from '@sentry/scraps/compactSelect';
 import {InnerWrap, MenuListItem} from '@sentry/scraps/menuListItem';
 
 import {IconCheckmark} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
 
 export interface GridListOptionProps extends AriaGridListItemOptions {
@@ -140,6 +139,6 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
 
 const StyledMenuListItem = styled(MenuListItem)`
   > ${InnerWrap} {
-    padding-left: ${space(1)};
+    padding-left: ${p => p.theme.space.md};
   }
 `;

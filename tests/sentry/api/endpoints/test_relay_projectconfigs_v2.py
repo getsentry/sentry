@@ -142,17 +142,20 @@ def test_relays_dyamic_sampling(call_endpoint, default_projectkey) -> None:
             "config",
             "sampling",
         )
-        assert dynamic_sampling == {
-            "version": 2,
-            "rules": [
-                {
-                    "samplingValue": {"type": "sampleRate", "value": 1.0},
-                    "type": "trace",
-                    "condition": {"op": "and", "inner": []},
-                    "id": 1000,  # this is reserved id for RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE which is being created
-                }
-            ],
-        }
+        assert (
+            dynamic_sampling
+            == {
+                "version": 2,
+                "rules": [
+                    {
+                        "samplingValue": {"type": "sampleRate", "value": 1.0},
+                        "type": "trace",
+                        "condition": {"op": "and", "inner": []},
+                        "id": 1000,  # this is reserved id for RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE which is being created
+                    }
+                ],
+            }
+        )
 
 
 @django_db_all

@@ -209,7 +209,6 @@ class ConfigOptionsTest(CliTestCase):
         assert ConsolePresenter.ERROR_MSG % ("set_on_disk_option", "option_on_disk") in rv.output
 
     def test_sync_unset_options(self) -> None:
-
         # test options set on disk with and without prioritize disk, tracked
         # and not tracked
         # test options set on db, verify that untracked options are properly deleted

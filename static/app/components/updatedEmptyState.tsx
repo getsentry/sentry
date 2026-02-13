@@ -4,12 +4,16 @@ import styled from '@emotion/styled';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {
+  CopySetupInstructionsGate,
+  OnboardingCopyMarkdownButton,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
   TabSelectionScope,
@@ -184,6 +188,14 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
           <Body>
             <Setup>
               <SetupTitle project={project} />
+              <CopySetupInstructionsGate>
+                <Container paddingBottom="md">
+                  <OnboardingCopyMarkdownButton
+                    steps={steps}
+                    source="issues_onboarding"
+                  />
+                </Container>
+              </CopySetupInstructionsGate>
               <GuidedSteps
                 initialStep={decodeInteger(location.query.guidedStep)}
                 onStepChange={step => {

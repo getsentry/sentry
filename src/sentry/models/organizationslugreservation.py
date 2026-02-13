@@ -51,17 +51,17 @@ class OrganizationSlugReservation(ReplicatedControlModel):
     __repr__ = sane_repr("slug", "organization_id", "reservation_type")
 
     def save(self, *args: Any, **kwds: Any) -> None:
-        assert kwds.get(
-            "unsafe_write", None
-        ), "Cannot write changes to OrganizationSlugReservation unless they go through a provisioning flow"
+        assert kwds.get("unsafe_write", None), (
+            "Cannot write changes to OrganizationSlugReservation unless they go through a provisioning flow"
+        )
 
         kwds.pop("unsafe_write")
         return super().save(*args, **kwds)
 
     def update(self, *args: Any, **kwds: Any):
-        assert kwds.get(
-            "unsafe_write", None
-        ), "Cannot write changes to OrganizationSlugReservation unless they go through a provisioning flow"
+        assert kwds.get("unsafe_write", None), (
+            "Cannot write changes to OrganizationSlugReservation unless they go through a provisioning flow"
+        )
 
         kwds.pop("unsafe_write")
         return super().update(*args, **kwds)

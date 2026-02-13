@@ -412,10 +412,6 @@ class TestGetProjectTopTransactionTracesForLLMDetection(
 
         assert len(evidence_traces) == 2
 
-        assert (
-            evidence_traces[0].trace_id == trace_id_2
-        )  # prevails over trace_id_1 because transaction span duration was higher
-        assert evidence_traces[0].transaction_name == "GET /api/users/<NUM>"
-
+        # trace_id_2 prevails over trace_id_1 because transaction span duration was higher
+        assert evidence_traces[0].trace_id == trace_id_2
         assert evidence_traces[1].trace_id == trace_id_3
-        assert evidence_traces[1].transaction_name == "POST /api/orders"

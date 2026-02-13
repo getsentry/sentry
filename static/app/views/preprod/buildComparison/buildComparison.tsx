@@ -2,13 +2,20 @@ import {useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import {
+  fetchMutation,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+  type UseApiQueryResult,
+} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -18,6 +25,11 @@ import {BuildCompareHeaderContent} from 'sentry/views/preprod/buildComparison/he
 import {SizeCompareMainContent} from 'sentry/views/preprod/buildComparison/main/sizeCompareMainContent';
 import {SizeCompareSelectionContent} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectionContent';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {getCompareApiUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
+import {
+  handleStaffPermissionError,
+  type StaffErrorDetail,
+} from 'sentry/views/preprod/utils/staffPermissionError';
 
 export default function BuildComparison() {
   const organization = useOrganization();
@@ -54,6 +66,38 @@ export default function BuildComparison() {
         enabled: !!projectId && !!headArtifactId,
       }
     );
+
+  const compareUrl = getCompareApiUrl({
+    organizationSlug: organization.slug,
+    projectId,
+    headArtifactId: headArtifactId!,
+    baseArtifactId: baseArtifactId!,
+  });
+
+  const queryClient = useQueryClient();
+  const {mutate: rerunComparison, isPending: isRerunning} = useMutation<
+    {status: string},
+    RequestError
+  >({
+    mutationFn: () => {
+      return fetchMutation({url: compareUrl, method: 'POST'});
+    },
+    onSuccess: response => {
+      if (response?.status === 'exists') {
+        addErrorMessage(t('Comparison already exists'));
+      } else {
+        addSuccessMessage(t('Comparison rerun triggered'));
+      }
+      queryClient.invalidateQueries({queryKey: [compareUrl]});
+    },
+    onError: (error: RequestError) => {
+      if (error.status === 403) {
+        handleStaffPermissionError(error.responseJSON?.detail as StaffErrorDetail);
+        return;
+      }
+      addErrorMessage(t('Failed to rerun comparison'));
+    },
+  });
 
   if (headBuildDetailsQuery.isLoading) {
     return (
@@ -103,6 +147,10 @@ export default function BuildComparison() {
           <BuildCompareHeaderContent
             buildDetails={headBuildDetailsQuery.data}
             projectId={projectId}
+            headArtifactId={headArtifactId}
+            baseArtifactId={baseArtifactId}
+            onRerunComparison={() => rerunComparison()}
+            isRerunning={isRerunning}
           />
         </Layout.Header>
 

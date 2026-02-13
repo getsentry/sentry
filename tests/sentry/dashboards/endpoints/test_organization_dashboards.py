@@ -1674,9 +1674,9 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert len(response.data) > 1
         # Ensure the "permissions" field exists in each dashboard
         for dashboard in response.data:
-            assert (
-                "permissions" in dashboard
-            ), f"Permissions field not found in dashboard: {dashboard}"
+            assert "permissions" in dashboard, (
+                f"Permissions field not found in dashboard: {dashboard}"
+            )
         self.assert_equal_dashboards(self.dashboard, response.data[1])
         assert response.data[1]["permissions"] is None
 
