@@ -42,7 +42,10 @@ def test_simple() -> None:
         "POST",
         PATH,
         body=REQUEST_BODY,
-        headers={"content-type": "application/json;charset=utf-8"},
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            "Authorization": "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07",
+        },
     )
 
 
@@ -53,7 +56,10 @@ def test_uses_given_timeout() -> None:
         "POST",
         PATH,
         body=REQUEST_BODY,
-        headers={"content-type": "application/json;charset=utf-8"},
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            "Authorization": "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07",
+        },
         timeout=5,
     )
 
@@ -65,7 +71,10 @@ def test_uses_given_retries() -> None:
         "POST",
         PATH,
         body=REQUEST_BODY,
-        headers={"content-type": "application/json;charset=utf-8"},
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            "Authorization": "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07",
+        },
         retries=5,
     )
 
