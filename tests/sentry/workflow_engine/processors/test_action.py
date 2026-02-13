@@ -1,6 +1,7 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
+from django.db import connection
 from django.utils import timezone
 
 from sentry.integrations.base import IntegrationFeatures
@@ -239,6 +240,41 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             timezone.now(), set(), statuses_to_create
         )
 
+        assert uncreated_statuses == [(self.workflow.id, self.action.id)]
+
+    def test_update_workflow_action_group_statuses_missing_group(self) -> None:
+        new_group = self.create_group()
+        new_group2 = self.create_group()
+        _, new_action = self.create_workflow_action(workflow=self.workflow)
+
+        to_create = [
+            WorkflowActionGroupStatus(
+                workflow=self.workflow,
+                action=self.action,
+                group_id=new_group.id,
+                date_updated=timezone.now(),
+            ),
+            WorkflowActionGroupStatus(
+                workflow=self.workflow,
+                action=new_action,
+                group_id=new_group2.id,
+                date_updated=timezone.now(),
+            ),
+        ]
+
+        new_group.delete()
+
+        # The FK constraint on group_id is DEFERRABLE INITIALLY DEFERRED,
+        # so within the test transaction the delete above doesn't enforce the
+        # FK check. Set constraints to immediate so the INSERT behaves like
+        # production (separate transactions).
+        with connection.cursor() as cursor:
+            cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
+
+        _, created_count, uncreated_statuses = update_workflow_action_group_statuses(
+            timezone.now(), set(), to_create
+        )
+        assert created_count == 1
         assert uncreated_statuses == [(self.workflow.id, self.action.id)]
 
     @patch("sentry.workflow_engine.processors.action.update_workflow_action_group_statuses")

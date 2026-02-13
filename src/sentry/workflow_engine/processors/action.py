@@ -124,10 +124,12 @@ def update_workflow_action_group_statuses(
     if not missing_statuses:
         return updated_count, 0, []
 
-    # Use raw SQL: only returns successfully created rows
+    # Use INSERT ... SELECT with EXISTS checks so that rows referencing
+    # deleted groups / workflows / actions are silently skipped instead of
+    # raising an IntegrityError.  Combined with ON CONFLICT DO NOTHING this
+    # handles both FK-missing and unique-conflict cases in one statement.
     # XXX: the query does not currently include batch size limit like bulk_create does
     with connection.cursor() as cursor:
-        # Build values for batch insert
         values_placeholders = []
         values_data = []
         for s in missing_statuses:
@@ -137,7 +139,12 @@ def update_workflow_action_group_statuses(
         sql = f"""
             INSERT INTO workflow_engine_workflowactiongroupstatus
             (workflow_id, action_id, group_id, date_added, date_updated)
-            VALUES {", ".join(values_placeholders)}
+            SELECT v.workflow_id, v.action_id, v.group_id, v.date_added, v.date_updated
+            FROM (VALUES {", ".join(values_placeholders)})
+                AS v(workflow_id, action_id, group_id, date_added, date_updated)
+            WHERE EXISTS (SELECT 1 FROM workflow_engine_workflow w WHERE w.id = v.workflow_id)
+              AND EXISTS (SELECT 1 FROM workflow_engine_action a WHERE a.id = v.action_id)
+              AND EXISTS (SELECT 1 FROM sentry_groupedmessage g WHERE g.id = v.group_id)
             ON CONFLICT (workflow_id, action_id, group_id) DO NOTHING
             RETURNING workflow_id, action_id
         """
