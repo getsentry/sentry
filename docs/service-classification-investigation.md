@@ -2682,9 +2682,63 @@ Solid arrows = direct dependency, dashed arrows = exposed/required relationship.
 | D | Reclassify Snuba dependencies (runtime-only detection) | Move 1,844 tests to Tier 1 | Moderate | **Deployed** (Iteration 20) — `SENTRY_SKIP_SNUBA_CHECK` bypass |
 | D+ | Test-level splitting (not file-level) | Rescue 1,700+ tests from Tier 2 | Moderate | **Deployed** (Iteration 19) — `--granularity test` |
 | E | Increase total shards (22→26+) | ~90s+ savings | Cost increase (more runners) | Not started |
-| F1 | Docker image pre-pull (background overlap) | ~10-15s per tier2 shard | Low | **Deployed** — pre-pull locally-defined images during setup-sentry; `docker save/load` approach reverted (added 55s sequential overhead, see below) |
-| F2 | Tier 1 devservices mode (replace service containers) | ~40s per tier1 shard | Medium | **Planned** — create dedicated `devservices` mode for tier1 (Postgres+Redis+Kafka) to enable caching; GH Actions service containers cannot be cached |
+| F1 | Docker image pre-pull (background overlap) | ~10-15s per tier2 shard | Low | **Deployed** — pre-pull locally-defined images during setup-sentry; `docker save/load` reverted (see Iteration 21) |
+| F2 | Tier 1 devservices mode (replace service containers) | ~40s per tier1 shard | Medium | **Planned** — dedicated `devservices` mode for tier1 (Postgres+Redis+Kafka); GH Actions service containers cannot be cached |
 | G1 | Pass specific tier files to pytest | ~15-20s per shard | Low | **Reverted** — breaks conftest init |
 | G2 | Remove "Clear Python cache" step | ~5-10s per shard | Trivial | Noted for later |
 | G3 | Pre-compile .pyc files | ~5-10s per shard | Low | Noted for later |
 | H1 | Overlap devservices with pytest collection | ~80-113s per tier2 shard | Medium | **Deployed** |
+| I1 | Shard balancing (sorted round-robin or lightweight LPT) | Reduce ~134s spread → ~30-50s | Moderate | **Next** — biggest remaining lever; see end-of-day notes |
+| I2 | Increase xdist workers (`-n 4`) | ~20-25% faster test phase | Low | **Evaluate** — may OOM on 7GB runners; needs memory profiling |
+
+### Current State & Next Steps (Feb 12, 2026)
+
+**Where we are:** The POC workflow runs 22 shards (7 Tier 1 + 15 Tier 2) with test-level
+classification, reclassification (Optimization D), overlapped startup (H1), and per-worker
+Snuba databases. All optimizations are deployed and stable.
+
+**Current performance (run 21974448623):**
+
+| Metric | Tier 1 (7 shards) | Tier 2 (15 shards) |
+|---|---|---|
+| Avg | 10m33s | 9m55s |
+| Max | 11m20s | 11m00s |
+| Min | 9m06s | 8m46s |
+| Spread | 134s | 134s |
+| **Overall wall-clock** | **~11m40s** | |
+
+**Baseline comparison (run 21973191837):** T1 avg 10m40s, T2 avg 10m04s, overall max ~11m14s.
+Averages improved slightly; overall max within runner variance (~6s difference).
+
+**The bottleneck is now shard variance, not setup overhead.** Per-shard setup is lean:
+- Tier 1: ~54s (job init + service containers + checkout + setup-sentry)
+- Tier 2: ~29s (job init + checkout + pre-pull + setup-sentry)
+
+Test execution dominates (~90-95% of shard time). The 134s spread between fastest and slowest
+shards means the overall wall-clock is dictated by whichever shard draws a heavy test batch.
+
+**Docker caching investigation summary (Iteration 21):**
+- `docker save`/`docker load` + `actions/cache` + zstd: **reverted** — added 55s sequential
+  overhead before H1 could start; native `docker pull` is already hidden behind pytest collection
+- Background pre-pull of 2 locally-defined images: **deployed** — marginal improvement (~10s),
+  but zero cost (runs in background during setup-sentry)
+- Combined/premade image approach: **rejected** — enormous maintenance burden, Docker antipattern,
+  breaks individual image updates and layer sharing
+- Key insight: Docker image acquisition is NOT on the critical path thanks to H1 overlap
+
+**Most promising next steps (priority order):**
+
+1. **Shard balancing (I1):** Round-robin assigns tests without considering duration. Even a
+   simple sorted round-robin (sort by estimated duration, deal like cards) would reduce the
+   134s spread significantly. Full LPT was reverted (Iteration 18) due to cache complexity,
+   but a lighter approach (e.g., single-run durations file, no cross-run merging) could work.
+   Expected: reduce spread to ~30-50s, saving ~40-50s wall-clock consistently.
+
+2. **More xdist workers (I2):** `-n 4` instead of `-n 3` would speed up the test phase ~25%,
+   but risks OOM on 7GB runners. Needs a test run with memory monitoring.
+
+3. **More shards (E):** Each additional shard costs one runner but directly reduces per-shard
+   test count. Current 7/15 → 8/16 = 24 shards for ~8-10% faster max.
+
+4. **Tier 1 devservices mode (F2):** Replace GH Actions service containers (18s init) with a
+   lightweight devservices mode for tier1. Would enable caching and overlapped startup.
