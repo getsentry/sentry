@@ -87,7 +87,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         """
 
         if not settings.IS_DEV and not features.has(
-            "organizations:preprod-frontend-routes", project.organization, actor=request.user
+            "organizations:preprod-snapshots", project.organization, actor=request.user
         ):
             return Response({"detail": "Feature not enabled"}, status=403)
 
@@ -109,7 +109,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
     def post(self, request: Request, project: Project) -> Response:
         if not settings.IS_DEV and not features.has(
-            "organizations:preprod-frontend-routes", project.organization, actor=request.user
+            "organizations:preprod-snapshots", project.organization, actor=request.user
         ):
             return Response({"detail": "Feature not enabled"}, status=403)
 
