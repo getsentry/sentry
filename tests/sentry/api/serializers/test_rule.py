@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
@@ -12,8 +14,10 @@ from sentry.rules.conditions.tagged_event import TaggedEventCondition
 from sentry.rules.filters.age_comparison import AgeComparisonFilter
 from sentry.rules.filters.event_attribute import EventAttributeFilter
 from sentry.rules.filters.tagged_event import TaggedEventFilter
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import WorkflowDataConditionGroup, WorkflowFireHistory
@@ -70,7 +74,7 @@ class RuleSerializerTest(TestCase):
 @freeze_time()
 class WorkflowRuleSerializerTest(TestCase):
     def setUp(self) -> None:
-        conditions = [
+        self.conditions = [
             {"id": ReappearedEventCondition.id},
             {"id": RegressionEventCondition.id},
             {"id": TaggedEventCondition.id, "key": "foo", "match": "eq", "value": "bar"},
@@ -89,7 +93,7 @@ class WorkflowRuleSerializerTest(TestCase):
         ]
         self.issue_alert = self.create_project_rule(
             name="test",
-            condition_data=conditions,
+            condition_data=self.conditions,
             action_match="any",
             filter_match="any",
             frequency=5,
@@ -324,3 +328,28 @@ class WorkflowRuleSerializerTest(TestCase):
         )
 
         self.assert_equal_serializers(issue_alert)
+
+    def test_slack_action(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = self.create_integration(
+                organization=self.organization,
+                name="slack",
+                provider="slack",
+                external_id="slack:1",
+                metadata={"access_token": "xoxb-access-token"},
+            )
+        self.uuid = "5bac5dcc-e201-4cb2-8da2-bac39788a13d"
+        self.action_data = {
+            "workspace": str(self.integration.id),
+            "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+            "channel_id": "C0123456789",
+            "tags": "",
+            "channel": "test-notifications",
+            "uuid": self.uuid,
+        }
+        self.rule = self.create_project_rule(
+            project=self.project,
+            action_data=[deepcopy(self.action_data)],
+            condition_data=self.conditions,
+        )
+        self.assert_equal_serializers(self.rule)

@@ -453,6 +453,8 @@ class WorkflowEngineRuleSerializer(Serializer):
         return {wf_id: date for wf_id, date in results.items() if date is not None}
 
     def get_attrs(self, item_list: Sequence[Workflow], user, **kwargs):
+        from sentry.notifications.notification_action.registry import issue_alert_handler_registry
+
         # Bulk fetch users that created workflows
         users = self._fetch_workflow_users(item_list)
 
@@ -490,19 +492,10 @@ class WorkflowEngineRuleSerializer(Serializer):
 
             serialized_actions = []
             for action in self._fetch_actions(workflow_dcg.condition_group):
-                serialized_actions.append(
-                    {
-                        "workspace": "1",
-                        "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                        "channel": "slack-demo",
-                        "channel_id": "C06H93DSF2T",
-                        "notes": "",
-                        "tags": "",
-                        "uuid": "142d5d2e-a2f4-45e2-bb03-8c9b2975bff2",
-                        "name": "Send a notification to the Sentry Slack workspace to #slack-demo",
-                    }
-                )
-                # TODO actually format like a rule action
+                handler = issue_alert_handler_registry.get(action.type)
+                action_data = handler.build_rule_action_blob(action, workflow.organization_id)
+                serialized_actions.append(action_data)
+                # this _sort of_ is the same data, but not exactly
 
             # Generate conditions and filters
             conditions, filters = self._generate_rule_conditions_filters(
