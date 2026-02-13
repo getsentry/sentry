@@ -61,12 +61,7 @@ def _make_recording_filename(
     segment_id: int,
 ) -> str:
     """Return a recording segment filename."""
-    return "{}/{}/{}/{}".format(
-        retention_days or 30,
-        project_id,
-        replay_id,
-        segment_id,
-    )
+    return f"{retention_days or 30}/{project_id}/{replay_id}/{segment_id}"
 
 
 def _make_video_filename(

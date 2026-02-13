@@ -214,11 +214,11 @@ function DetectorListTable({
                       ? t('Collapse visualization')
                       : t('Expand visualization')
                   }
-                  title={
-                    isVisualizationExpanded
+                  tooltipProps={{
+                    title: isVisualizationExpanded
                       ? t('Collapse visualization')
-                      : t('Expand visualization')
-                  }
+                      : t('Expand visualization'),
+                  }}
                   onClick={() => setIsVisualizationExpanded(v => !v)}
                 />
               </VisualizationExpandButton>

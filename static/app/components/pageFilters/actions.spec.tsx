@@ -8,7 +8,6 @@ import {act} from 'sentry-test/reactTestingLibrary';
 
 import {
   initializeUrlState,
-  revertToPinnedFilters,
   updateDateTime,
   updateEnvironments,
   updatePersistence,
@@ -791,58 +790,6 @@ describe('PageFilters ActionCreators', () => {
           end: '2020-04-21T00:53:38',
         },
       });
-    });
-  });
-
-  describe('revertToPinnedFilters()', () => {
-    it('reverts all filters that are desynced from localStorage', () => {
-      const router = RouterFixture({
-        location: {
-          pathname: '/test/',
-          query: {},
-        },
-      });
-      // Mock storage to have a saved value
-      const pageFilterStorageMock = jest
-        .spyOn(PageFilterPersistence, 'getPageFilterStorage')
-        .mockReturnValueOnce({
-          state: {
-            project: [1],
-            environment: [],
-            start: null,
-            end: null,
-            period: '14d',
-            utc: null,
-          },
-          pinnedFilters: new Set(['projects', 'environments', 'datetime']),
-        });
-
-      PageFiltersStore.onInitializeUrlState({
-        projects: [2],
-        environments: ['prod'],
-        datetime: {
-          start: null,
-          end: null,
-          period: '1d',
-          utc: null,
-        },
-      });
-      PageFiltersStore.updateDesyncedFilters(
-        new Set(['projects', 'environments', 'datetime'])
-      );
-
-      revertToPinnedFilters('org-slug', router);
-
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/test/',
-        query: {
-          environment: [],
-          project: ['1'],
-          statsPeriod: '14d',
-        },
-      });
-
-      pageFilterStorageMock.mockRestore();
     });
   });
 });

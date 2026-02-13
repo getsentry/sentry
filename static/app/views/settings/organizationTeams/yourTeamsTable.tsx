@@ -198,7 +198,7 @@ function YourTeamRow({
             size={isMobile ? 'xs' : 'sm'}
             onClick={() => leaveTeam()}
             disabled={isIdpProvisioned}
-            title={buttonHelpText}
+            tooltipProps={{title: buttonHelpText}}
           >
             {t('Leave Team')}
           </Button>

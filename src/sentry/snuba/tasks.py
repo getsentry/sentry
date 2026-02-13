@@ -281,7 +281,7 @@ def _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscrip
     if SNUBA_INFO:
         import pprint
 
-        print(  # NOQA: only prints when an env variable is set
+        print(  # noqa: S002, T201 -- only prints when an env variable is set
             f"subscription.body:\n {pprint.pformat(body)}"
         )
 

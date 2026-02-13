@@ -44,7 +44,7 @@ function CustomerProjects({orgId}: Props) {
               priority="link"
               href={`/${orgId}/${row.slug}/`}
               icon={<IconProject size="xs" />}
-              title="View in Sentry"
+              tooltipProps={{title: 'View in Sentry'}}
               aria-label="View in Sentry"
             />
             <Link to={`/_admin/customers/${orgId}/projects/${row.slug}/`}>

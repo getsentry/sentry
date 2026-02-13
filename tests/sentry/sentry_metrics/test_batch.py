@@ -1799,14 +1799,12 @@ def test_one_org_limited(caplog, settings) -> None:
 
 
 def test_aggregation_options() -> None:
-
     with override_options(
         {
             "sentry-metrics.10s-granularity": False,
             "sentry-metrics.drop-percentiles.per-use-case": ["transactions"],
         }
     ):
-
         assert get_aggregation_options("c:transactions/count@none") == {
             AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
         }
@@ -1820,7 +1818,6 @@ def test_aggregation_options() -> None:
             "sentry-metrics.drop-percentiles.per-use-case": ["transactions"],
         }
     ):
-
         assert get_aggregation_options("c:transactions/count@none") == {
             AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
         }
@@ -1834,7 +1831,6 @@ def test_aggregation_options() -> None:
             "sentry-metrics.drop-percentiles.per-use-case": ["transactions", "spans"],
         }
     ):
-
         assert get_aggregation_options("c:transactions/count@none") == {
             AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
         }
@@ -1858,7 +1854,6 @@ def test_aggregation_options() -> None:
             "sentry-metrics.drop-percentiles.per-use-case": ["transactions"],
         }
     ):
-
         assert get_aggregation_options("d:transactions/measurements.fcp@millisecond") == {
             AggregationOption.HIST: TimeWindow.NINETY_DAYS
         }
@@ -1869,7 +1864,6 @@ def test_aggregation_options() -> None:
             "sentry-metrics.drop-percentiles.per-use-case": ["transactions", "spans"],
         }
     ):
-
         assert get_aggregation_options("d:transactions/measurements.fcp@millisecond") == {
             AggregationOption.HIST: TimeWindow.NINETY_DAYS
         }

@@ -1,11 +1,10 @@
+from collections import defaultdict
 from collections.abc import Collection, Sequence
 from dataclasses import asdict, replace
 from datetime import datetime
 from enum import StrEnum
-from typing import DefaultDict
 
 import sentry_sdk
-from django.db import router, transaction
 from django.db.models import Q
 
 from sentry import features
@@ -14,13 +13,7 @@ from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
 from sentry.workflow_engine.caches.workflow import get_workflows_by_detectors
-from sentry.workflow_engine.models import (
-    Action,
-    DataConditionGroup,
-    Detector,
-    DetectorWorkflow,
-    Workflow,
-)
+from sentry.workflow_engine.models import DataConditionGroup, Detector, DetectorWorkflow, Workflow
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
@@ -49,38 +42,12 @@ class WorkflowDataConditionGroupType(StrEnum):
     WORKFLOW_TRIGGER = "workflow_trigger"
 
 
-def delete_workflow(workflow: Workflow) -> bool:
-    with transaction.atomic(router.db_for_write(Workflow)):
-        action_filters = DataConditionGroup.objects.filter(
-            workflowdataconditiongroup__workflow=workflow
-        )
-
-        actions = Action.objects.filter(
-            dataconditiongroupaction__condition_group__in=action_filters
-        )
-
-        # Delete the actions associated with a workflow, this is not a cascade delete
-        # because we want to create a UI to maintain notification actions separately
-        if actions:
-            actions.delete()
-
-        if action_filters:
-            action_filters.delete()
-
-        if workflow.when_condition_group:
-            workflow.when_condition_group.delete()
-
-        workflow.delete()
-
-    return True
-
-
 @scopedstats.timer()
 def enqueue_workflows(
     client: DelayedWorkflowClient,
     items_by_workflow: dict[Workflow, DelayedWorkflowItem],
 ) -> None:
-    items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
+    items_by_project_id = defaultdict[int, list[DelayedWorkflowItem]](list)
     for queue_item in items_by_workflow.values():
         if not queue_item.delayed_if_group_ids and not queue_item.passing_if_group_ids:
             # Skip because there are no IF groups we could possibly fire actions for if

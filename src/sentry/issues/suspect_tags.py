@@ -10,6 +10,7 @@ from sentry.models.project import Project
 from sentry.search.eap.occurrences.common_queries import count_occurrences
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.seer.workflows.compare import KeyedValueCount, keyed_kl_score
+from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
@@ -287,6 +288,7 @@ def _query_error_counts_eap(
         referrer=Referrer.ISSUES_SUSPECT_TAGS_QUERY_ERROR_COUNTS.value,
         group_id=group_id,
         environments=environments,
+        occurrence_category=OccurrenceCategory.ERROR,
     )
 
 

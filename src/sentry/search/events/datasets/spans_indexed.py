@@ -489,7 +489,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
             )
             if fixed_percentile == 1
             else Function(
-                f'quantile({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
+                f"quantile({fixed_percentile if fixed_percentile is not None else args['percentile']})",
                 [args["column"]],
                 alias,
             )
@@ -1024,7 +1024,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         # we can directly aggregate on the column
         if attr is None:
             return Function(
-                f'quantileTDigestWeighted({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
+                f"quantileTDigestWeighted({fixed_percentile if fixed_percentile is not None else args['percentile']})",
                 # Only convert to UInt64 when we have to since we lose rounding accuracy
                 [args["column"], Function("toUInt64", [self.sampling_weight])],
                 alias,
@@ -1035,7 +1035,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         attr_col, attr_name = attr
 
         return Function(
-            f'quantileTDigestWeightedIf({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
+            f"quantileTDigestWeightedIf({fixed_percentile if fixed_percentile is not None else args['percentile']})",
             # Only convert to UInt64 when we have to since we lose rounding accuracy
             [
                 args["column"],

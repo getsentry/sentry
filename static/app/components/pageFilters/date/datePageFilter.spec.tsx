@@ -1,9 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {initializeUrlState} from 'sentry/components/pageFilters/actions';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import PageFiltersStore from 'sentry/components/pageFilters/store';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -50,7 +48,6 @@ describe('DatePageFilter', () => {
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
       shouldPersist: true,
-      desyncedFilters: new Set(),
       pinnedFilters: new Set(['projects', 'environments', 'datetime']),
       selection: {
         datetime: {
@@ -99,7 +96,6 @@ describe('DatePageFilter', () => {
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
       shouldPersist: true,
-      desyncedFilters: new Set(),
       pinnedFilters: new Set(['projects', 'environments', 'datetime']),
       selection: {
         datetime: {
@@ -121,39 +117,5 @@ describe('DatePageFilter', () => {
       'aria-selected',
       'true'
     );
-  });
-
-  it('displays a desynced state message', async () => {
-    const desyncOrganization = OrganizationFixture();
-    // the datetime parameters need to be non-null for desync detection to work
-    const desyncLocation = {pathname: '/test', query: {statsPeriod: '7d'}};
-
-    PageFiltersStore.reset();
-    initializeUrlState({
-      memberProjects: [],
-      nonMemberProjects: [],
-      organization: desyncOrganization,
-      queryParams: {statsPeriod: '14d'},
-      router: RouterFixture({
-        location: desyncLocation,
-      }),
-    });
-
-    render(<DatePageFilter />, {
-      organization: desyncOrganization,
-      initialRouterConfig: {
-        location: desyncLocation,
-      },
-    });
-
-    // Open menu
-    await userEvent.click(screen.getByRole('button', {name: '14D', expanded: false}));
-
-    // Desync message is inside the menu
-    expect(screen.getByText('Filters Updated')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Restore Previous Values'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Got It'})).toBeInTheDocument();
   });
 });

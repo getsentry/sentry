@@ -133,7 +133,9 @@ class SearchResolver:
         )
 
     @sentry_sdk.trace
-    def resolve_query(self, querystring: str | None) -> tuple[
+    def resolve_query(
+        self, querystring: str | None
+    ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
@@ -197,7 +199,9 @@ class SearchResolver:
             )
         )
 
-    def __resolve_query(self, querystring: str | None) -> tuple[
+    def __resolve_query(
+        self, querystring: str | None
+    ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
@@ -230,7 +234,9 @@ class SearchResolver:
         else:
             return self._resolve_terms(parsed_terms)
 
-    def _resolve_boolean_conditions(self, terms: event_filter.ParsedTerms) -> tuple[
+    def _resolve_boolean_conditions(
+        self, terms: event_filter.ParsedTerms
+    ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
@@ -324,7 +330,9 @@ class SearchResolver:
 
         return where, having, contexts
 
-    def _resolve_terms(self, terms: event_filter.ParsedTerms) -> tuple[
+    def _resolve_terms(
+        self, terms: event_filter.ParsedTerms
+    ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
@@ -855,7 +863,9 @@ class SearchResolver:
         return final_contexts
 
     @sentry_sdk.trace
-    def resolve_columns(self, selected_columns: list[str], has_aggregates: bool = False) -> tuple[
+    def resolve_columns(
+        self, selected_columns: list[str], has_aggregates: bool = False
+    ) -> tuple[
         list[ResolvedAttribute | ResolvedFunction],
         list[VirtualColumnDefinition | None],
     ]:
@@ -1001,7 +1011,9 @@ class SearchResolver:
             raise InvalidSearchQuery(f"Could not parse {column}")
 
     @sentry_sdk.trace
-    def resolve_functions(self, columns: list[str]) -> tuple[
+    def resolve_functions(
+        self, columns: list[str]
+    ) -> tuple[
         list[ResolvedFunction],
         list[VirtualColumnDefinition | None],
     ]:
@@ -1141,7 +1153,9 @@ class SearchResolver:
         self._resolved_function_cache[alias] = (resolved_function, resolved_context)
         return self._resolved_function_cache[alias]
 
-    def resolve_equations(self, equations: list[str]) -> tuple[
+    def resolve_equations(
+        self, equations: list[str]
+    ) -> tuple[
         list[ResolvedColumn],
         list[VirtualColumnDefinition],
     ]:
@@ -1153,7 +1167,9 @@ class SearchResolver:
             contexts.extend(context)
         return formulas, contexts
 
-    def resolve_equation(self, equation: str) -> tuple[
+    def resolve_equation(
+        self, equation: str
+    ) -> tuple[
         ResolvedColumn,
         list[VirtualColumnDefinition],
     ]:
@@ -1204,7 +1220,9 @@ class SearchResolver:
             lhs_contexts + rhs_contexts,
         )
 
-    def _resolve_operation(self, operation: arithmetic.OperandType) -> tuple[
+    def _resolve_operation(
+        self, operation: arithmetic.OperandType
+    ) -> tuple[
         Column,
         list[VirtualColumnDefinition],
     ]:

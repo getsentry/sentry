@@ -260,6 +260,11 @@ class JiraIntegration(IssueSyncIntegration):
                     "emptyMessage": _("All projects configured"),
                     "noResultsMessage": _("Could not find Jira project"),
                     "items": [],  # Populated with projects
+                    "url": reverse(
+                        "sentry-extensions-jira-search",
+                        args=[self.organization.slug, self.model.id],
+                    ),
+                    "searchField": "project",
                 },
                 "mappedSelectors": {},
                 "columnLabels": {
@@ -767,7 +772,7 @@ class JiraIntegration(IssueSyncIntegration):
                 extra={"organization_id": self.organization_id, "jira_project": project_id},
             )
             raise IntegrationError(
-                "Jira returned: Unauthorized. " "Please check your configuration settings."
+                "Jira returned: Unauthorized. Please check your configuration settings."
             )
         except ApiError as e:
             logger.info(
@@ -852,7 +857,7 @@ class JiraIntegration(IssueSyncIntegration):
         projects_form_field = {
             "name": "project",
             "label": "Jira Project",
-            "choices": [(p["id"], f"{p["key"]} - {p["name"]}") for p in jira_projects],
+            "choices": [(p["id"], f"{p['key']} - {p['name']}") for p in jira_projects],
             "default": meta["id"],
             "type": "select",
             "updatesForm": True,

@@ -181,7 +181,6 @@ class AuthVerifyEndpointTest(APITestCase):
         user = self.create_user("foo@example.com")
         self.login_as(user)
         with freeze_time("2025-02-13"):
-
             for _ in range(5 + 1):
                 response = self.client.put(self.path, data={"password": "wrongguess"})
             assert response.status_code == 429

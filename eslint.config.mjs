@@ -169,6 +169,10 @@ const restrictedImportPaths = [
     message:
       'The @figma/code-connect package should only be imported in *.figma.tsx files for Figma Code Connect integration',
   },
+  {
+    name: '@tanstack/react-form',
+    message: 'Use @sentry/scraps/form instead',
+  },
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
