@@ -95,16 +95,23 @@ export function useStagedCompactSelect<Value extends SelectKey>({
   hasExternalChanges = false,
 }: UseStagedCompactSelectOptions<Value>): UseStagedCompactSelectReturn<Value> {
   /**
-   * An internal set of staged, uncommitted values. In multiple selection mode (the user
+   * An internal set of uncommitted staged values. In multiple selection mode (the user
    * command/ctrl-clicked on an option or clicked directly on a checkbox), changes
    * aren't committed right away. They are stored as a temporary set of staged values
    * that can be reset by clicking "Cancel" or committed by clicking "Apply".
+   *
+   * When null, there are no uncommitted changes and we use the prop `value` directly.
    */
-  const [stagedValue, setStagedValue] = useState<Value[]>([]);
+  const [uncommittedStagedValue, setUncommittedStagedValue] = useState<Value[] | null>(
+    null
+  );
 
-  // Update `stagedValue` whenever the external `value` changes
-  // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-  useEffect(() => setStagedValue(value), [value]);
+  /**
+   * The actual staged value to display. This is derived from:
+   * - uncommittedStagedValue (if the user has made uncommitted changes)
+   * - value prop (if there are no uncommitted changes)
+   */
+  const stagedValue = uncommittedStagedValue ?? value;
 
   useEffect(() => {
     onStagedValueChange?.(stagedValue);
@@ -121,13 +128,13 @@ export function useStagedCompactSelect<Value extends SelectKey>({
 
   const commit = useCallback(
     (val: Value[]) => {
-      setStagedValue(val); // reset staged value
+      setUncommittedStagedValue(null); // clear uncommitted changes
       onChange?.(val);
     },
     [onChange]
   );
 
-  const removeStagedChanges = useCallback(() => setStagedValue(value), [value]);
+  const removeStagedChanges = useCallback(() => setUncommittedStagedValue(null), []);
 
   const commitStagedChanges = useCallback(() => {
     if (disableCommit) {
@@ -140,20 +147,18 @@ export function useStagedCompactSelect<Value extends SelectKey>({
 
   const toggleOption = useCallback(
     (val: Value) => {
-      setStagedValue(cur => {
-        const newSet = new Set(cur);
-        if (newSet.has(val)) {
-          newSet.delete(val);
-        } else {
-          newSet.add(val);
-        }
+      const newSet = new Set(stagedValue);
+      if (newSet.has(val)) {
+        newSet.delete(val);
+      } else {
+        newSet.add(val);
+      }
 
-        const newValue = [...newSet];
-        onToggle?.(newValue);
-        return newValue;
-      });
+      const newValue = [...newSet];
+      setUncommittedStagedValue(newValue);
+      onToggle?.(newValue);
     },
-    [onToggle]
+    [stagedValue, onToggle]
   );
 
   /**
