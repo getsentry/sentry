@@ -11,6 +11,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {
   HybridFilter,
   type HybridFilterRef,
+  useStagedCompactSelect,
 } from 'sentry/components/pageFilters/hybridFilter';
 import {useTestSuites} from 'sentry/components/prevent/testSuiteDropdown/useTestSuites';
 import {t} from 'sentry/locale';
@@ -93,15 +94,19 @@ export function TestSuiteDropdown() {
     return urlTestSuites.filter(suite => testSuites?.includes(suite));
   }, [urlSearchParams, testSuites]);
 
+  const stagedSelect = useStagedCompactSelect({
+    value,
+    defaultValue: [],
+    onChange: handleChange,
+    multiple: true,
+  });
+
   return (
     <HybridFilter
       ref={hybridFilterRef}
+      stagedSelect={stagedSelect}
       searchable
-      multiple
       options={options}
-      value={value}
-      defaultValue={[]}
-      onChange={handleChange}
       onSearch={handleOnSearch}
       emptyMessage={getEmptyMessage()}
       menuTitle={t('Filter Test Suites')}

@@ -13,6 +13,7 @@ import {
 import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
 import {
   HybridFilter,
+  useStagedCompactSelect,
   type HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
@@ -24,32 +25,47 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 
-export interface EnvironmentPageFilterProps extends Partial<
-  Omit<
-    HybridFilterProps<string>,
-    | 'searchable'
-    | 'multiple'
-    | 'options'
-    | 'value'
-    | 'defaultValue'
-    | 'onReplace'
-    | 'onToggle'
-    | 'menuTitle'
-    | 'menuBody'
-    | 'menuFooter'
-    | 'menuFooterMessage'
-    | 'shouldCloseOnInteractOutside'
-    | 'triggerProps'
-  >
-> {
+export interface EnvironmentPageFilterProps
+  extends Partial<
+    Omit<
+      HybridFilterProps<string>,
+      | 'searchable'
+      | 'multiple'
+      | 'options'
+      | 'value'
+      | 'defaultValue'
+      | 'onReplace'
+      | 'onReset'
+      | 'onToggle'
+      | 'menuTitle'
+      | 'menuBody'
+      | 'menuFooter'
+      | 'menuFooterMessage'
+      | 'shouldCloseOnInteractOutside'
+      | 'triggerProps'
+      | 'stagedSelect'
+    >
+  > {
   /**
    * Message to show in the menu footer
    */
   footerMessage?: React.ReactNode;
   /**
+   * Called when the selection changes
+   */
+  onChange?: (selected: string[]) => void;
+  /**
+   * Called when the reset button is clicked
+   */
+  onReset?: () => void;
+  /**
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
+  /**
+   * Optional prefix for the storage key
+   */
+  storageNamespace?: string;
   triggerProps?: Partial<EnvironmentPageFilterTriggerProps>;
 }
 
@@ -204,19 +220,23 @@ export function EnvironmentPageFilter({
     return `${Math.max(16, Math.min(24, longestSlugLength * 0.6 + 6))}em`;
   }, [options]);
 
+  const stagedSelect = useStagedCompactSelect({
+    value,
+    defaultValue: [],
+    onChange: handleChange,
+    onToggle,
+    onReplace,
+    onReset,
+    multiple: true,
+  });
+
   return (
     <HybridFilter
       {...selectProps}
       ref={hybridFilterRef}
+      stagedSelect={stagedSelect}
       searchable
-      multiple
       options={options}
-      value={value}
-      defaultValue={[]}
-      onChange={handleChange}
-      onReset={onReset}
-      onReplace={onReplace}
-      onToggle={onToggle}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}
       sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more environments…')}

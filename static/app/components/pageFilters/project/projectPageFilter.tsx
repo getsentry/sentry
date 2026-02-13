@@ -16,7 +16,10 @@ import type {
   HybridFilterProps,
   HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
-import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
+import {
+  HybridFilter,
+  useStagedCompactSelect,
+} from 'sentry/components/pageFilters/hybridFilter';
 import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
@@ -41,14 +44,24 @@ export interface ProjectPageFilterProps extends Partial<
     | 'value'
     | 'defaultValue'
     | 'onReplace'
+    | 'onReset'
     | 'onToggle'
     | 'menuBody'
     | 'menuFooter'
     | 'menuFooterMessage'
     | 'shouldCloseOnInteractOutside'
     | 'sizeLimitMessage'
+    | 'stagedSelect'
   >
 > {
+  /**
+   * Called when the selection changes
+   */
+  onChange?: (selected: number[]) => void;
+  /**
+   * Called when the reset button is clicked
+   */
+  onReset?: () => void;
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
@@ -384,6 +397,18 @@ export function ProjectPageFilter({
     return mappedValue.length > SELECTION_COUNT_LIMIT;
   }, [stagedValue, mapNormalValueToURLValue]);
 
+  const stagedSelect = useStagedCompactSelect({
+    value,
+    defaultValue,
+    onChange: handleChange,
+    onStagedValueChange: setStagedValue,
+    onToggle,
+    onReplace,
+    onReset: handleReset,
+    multiple: true,
+    disableCommit: selectionLimitExceeded,
+  });
+
   const menuFooterMessage = useMemo(() => {
     if (selectionLimitExceeded) {
       return (hasStagedChanges: any) =>
@@ -404,18 +429,10 @@ export function ProjectPageFilter({
     <HybridFilter
       ref={hybridFilterRef}
       {...selectProps}
+      stagedSelect={stagedSelect}
       searchable
-      multiple
       options={options}
-      value={value}
-      defaultValue={defaultValue}
-      onChange={handleChange}
-      onStagedValueChange={setStagedValue}
-      onReset={handleReset}
-      onReplace={onReplace}
-      onToggle={onToggle}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
-      disableCommit={selectionLimitExceeded}
       sizeLimit={sizeLimit ?? 25}
       emptyMessage={emptyMessage ?? t('No projects found')}
       menuTitle={menuTitle ?? t('Filter Projects')}
