@@ -113,7 +113,7 @@ table.insert(latency_table, {"payload_set_sunionstore_args_step_latency_ms", sun
 
 -- Merge spans into the parent span set.
 -- Used outside the if statement
-local spop_end_time_ms = -1
+local arg_cleanup_end_time_ms = -1
 if #sunionstore_args > 0 then
     local start_output_size = redis.call("scard", set_key)
     local output_size = redis.call("sunionstore", set_key, set_key, unpack(sunionstore_args))
@@ -143,22 +143,9 @@ if #sunionstore_args > 0 then
         redis.call("del", merged_ibc_key)
     end
 
-    local arg_cleanup_end_time_ms = get_time_ms()
+    arg_cleanup_end_time_ms = get_time_ms()
     table.insert(latency_table, {"payload_set_arg_cleanup_step_latency_ms", arg_cleanup_end_time_ms - sunionstore_end_time_ms})
-
-    -- Use SPOP for size limiting. Unlike ZPOPMIN, SPOP removes random elements
-    -- rather than the oldest. This is acceptable since we rarely hit the size limit.
-    local spopcalls = 0
-    while (redis.call("memory", "usage", set_key) or 0) > max_segment_bytes do
-        redis.call("spop", set_key)
-        spopcalls = spopcalls + 1
-    end
-
-    spop_end_time_ms = get_time_ms()
-    table.insert(latency_table, {"payload_set_spop_step_latency_ms", spop_end_time_ms - arg_cleanup_end_time_ms})
-    table.insert(metrics_table, {"payload_set_spopcalls", spopcalls})
 end
-
 
 -- Track total number of spans ingested for this segment
 local ingested_count_key = string.format("span-buf:ic:%s", set_key)
@@ -172,8 +159,8 @@ redis.call("expire", set_key, set_timeout)
 
 local ingested_count_end_time_ms = get_time_ms()
 local ingested_count_step_latency_ms = 0
-if spop_end_time_ms >= 0 then
-    ingested_count_step_latency_ms = ingested_count_end_time_ms - spop_end_time_ms
+if arg_cleanup_end_time_ms >= 0 then
+    ingested_count_step_latency_ms = ingested_count_end_time_ms - arg_cleanup_end_time_ms
 else
     ingested_count_step_latency_ms = ingested_count_end_time_ms - sunionstore_args_end_time_ms
 end

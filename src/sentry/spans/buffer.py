@@ -143,6 +143,8 @@ def validate_mode_consistency(
 ) -> None:
     if not write_to_set and not write_to_payload_set:
         raise ValueError("must write to at least set or payload set")
+    if not read_from_set and not read_from_payload_set:
+        raise ValueError("must read from at least set or payload set")
     if not write_to_set and not read_from_payload_set:
         raise ValueError("cannot read from set if not writing to set")
     if not write_to_set and read_from_set:
