@@ -24,33 +24,19 @@ class IntegrationEventLifecycleMetricTest(TestCase):
         def get_interaction_type(self) -> str:
             return "my_interaction"
 
-    class TestLifecycleMetricWithOrg(IntegrationEventLifecycleMetric):
-        def get_integration_domain(self) -> IntegrationDomain:
-            return IntegrationDomain.MESSAGING
-
-        def get_integration_name(self) -> str:
-            return "my_integration"
-
-        def get_interaction_type(self) -> str:
-            return "my_interaction"
-
         def get_organization_id(self) -> int | None:
             return 123
+
+    def setUp(self) -> None:
+        patcher = mock.patch("sentry.integrations.utils.metrics.options.get", return_value=True)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def test_key_and_tag_assignment(self) -> None:
         metric_obj = self.TestLifecycleMetric()
 
         key = metric_obj.get_metric_key(EventLifecycleOutcome.STARTED)
         assert key == "integrations.slo.started"
-        assert metric_obj.get_metric_tags() == {
-            "integration_domain": "messaging",
-            "integration_name": "my_integration",
-            "interaction_type": "my_interaction",
-        }
-
-    def test_key_and_tag_assignment_with_org_id(self) -> None:
-        metric_obj = self.TestLifecycleMetricWithOrg()
-
         assert metric_obj.get_metric_tags() == {
             "integration_domain": "messaging",
             "integration_name": "my_integration",
@@ -67,6 +53,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
                     "integration_domain": "messaging",
                     "integration_name": "my_integration",
                     "interaction_type": "my_interaction",
+                    "organization_id": "123",
                 },
                 sample_rate=1.0,
             ),
@@ -76,6 +63,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
                     "integration_domain": "messaging",
                     "integration_name": "my_integration",
                     "interaction_type": "my_interaction",
+                    "organization_id": "123",
                 },
                 sample_rate=1.0,
             ),
@@ -108,6 +96,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
                 "integration_domain": "messaging",
                 "integration_name": "my_integration",
                 "interaction_type": "my_interaction",
+                "organization_id": "123",
             },
         )
 
@@ -130,6 +119,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
                 "integration_domain": "messaging",
                 "integration_name": "my_integration",
                 "interaction_type": "my_interaction",
+                "organization_id": "123",
                 "exception_summary": repr(ExampleException("")),
             },
         )
@@ -154,6 +144,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
                 "integration_domain": "messaging",
                 "integration_name": "my_integration",
                 "interaction_type": "my_interaction",
+                "organization_id": "123",
             },
         )
 
@@ -183,6 +174,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
                 "integration_domain": "messaging",
                 "integration_name": "my_integration",
                 "interaction_type": "my_interaction",
+                "organization_id": "123",
                 "exception_summary": repr(ExampleException()),
                 "slo_event_id": "test-event-id",
             },
@@ -214,6 +206,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
                 "integration_domain": "messaging",
                 "integration_name": "my_integration",
                 "interaction_type": "my_interaction",
+                "organization_id": "123",
                 "exception_summary": repr(ExampleException()),
                 "slo_event_id": "test-event-id",
             },
@@ -239,6 +232,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
                 "integration_domain": "messaging",
                 "integration_name": "my_integration",
                 "interaction_type": "my_interaction",
+                "organization_id": "123",
             },
         )
 
@@ -267,6 +261,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
                 "integration_domain": "messaging",
                 "integration_name": "my_integration",
                 "interaction_type": "my_interaction",
+                "organization_id": "123",
                 "exception_summary": repr(ExampleException("test")),
                 "slo_event_id": "test-event-id",
             },
@@ -293,6 +288,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
                 "integration_domain": "messaging",
                 "integration_name": "my_integration",
                 "interaction_type": "my_interaction",
+                "organization_id": "123",
                 "exception_summary": repr(ExampleException("test")),
             },
         )

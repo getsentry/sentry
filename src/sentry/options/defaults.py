@@ -4018,3 +4018,11 @@ register(
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# TODO(telkins): Remove once we no longer need organization_id on SLO metrics
+register(
+    "integrations.slo.organization-id-tag-enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)

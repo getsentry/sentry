@@ -9,6 +9,7 @@ from typing import Any, Self
 
 import sentry_sdk
 
+from sentry import options
 from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import EventLifecycleOutcome
@@ -96,8 +97,11 @@ class IntegrationEventLifecycleMetric(EventLifecycleMetric, ABC):
             "integration_name": self.get_integration_name(),
             "interaction_type": self.get_interaction_type(),
         }
+        # TODO(telkins): Remove killswitch once we no longer need organization_id on SLO metrics
         organization_id = self.get_organization_id()
-        if organization_id is not None:
+        if organization_id is not None and options.get(
+            "integrations.slo.organization-id-tag-enabled"
+        ):
             tags["organization_id"] = str(organization_id)
         return tags
 

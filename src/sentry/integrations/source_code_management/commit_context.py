@@ -125,7 +125,7 @@ class CommitContextIntegration(ABC):
     Base class for integrations that include commit context features: suspect commits, suspect PR comments
     """
 
-    # Provided by IntegrationInstallation, which all implementations mix in
+    # Provided by IntegrationInstallation, which all concrete implementations mix in
     organization_id: int
 
     @property
