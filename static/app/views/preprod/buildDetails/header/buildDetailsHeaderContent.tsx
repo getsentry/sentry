@@ -189,11 +189,11 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             icon={<IconTelescope />}
             onClick={handleCompareClick}
             disabled={!areActionsEnabled}
-            title={
-              areActionsEnabled
+            tooltipProps={{
+              title: areActionsEnabled
                 ? undefined
-                : t('Size analysis must be completed to compare builds')
-            }
+                : t('Size analysis must be completed to compare builds'),
+            }}
           >
             {t('Compare Build')}
           </Button>
@@ -203,7 +203,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
                 size="sm"
                 icon={<IconSettings />}
                 aria-label={t('Settings')}
-                to={`/settings/${organization.slug}/projects/${project?.slug}/mobile-builds/`}
+                to={`/settings/${organization.slug}/projects/${project.slug}/mobile-builds/`}
               />
             )}
           </Feature>

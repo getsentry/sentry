@@ -547,7 +547,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             allowed_max_keys = [key.value for key in ThresholdMaxKeys]
             if max_values:
                 for i in range(len(max_values)):
-                    max_key = f"max{i+1}"
+                    max_key = f"max{i + 1}"
 
                     if max_key not in allowed_max_keys:
                         raise serializers.ValidationError(
@@ -593,9 +593,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             )
             for field, low_cardinality in field_cardinality.items():
                 if not low_cardinality:
-                    self.query_warnings["columns"][
-                        field
-                    ] = OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
+                    self.query_warnings["columns"][field] = (
+                        OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
+                    )
 
         widget_type = data.get("widget_type")
         if widget_type and widget_type in {

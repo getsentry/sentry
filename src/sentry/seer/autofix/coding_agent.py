@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import secrets
 import string
+from typing import Any
 
 import orjson
 from django.conf import settings
@@ -239,14 +240,15 @@ def _launch_agents_for_repos(
 
     # Repos that were in the repos but not in the autofix state
     repos_not_found = repos - autofix_state_repos
-    logger.warning(
-        "coding_agent.post.repos_not_found",
-        extra={
-            "organization_id": organization.id,
-            "run_id": run_id,
-            "repos_not_found": repos_not_found,
-        },
-    )
+    if repos_not_found:
+        logger.warning(
+            "coding_agent.post.repos_not_found",
+            extra={
+                "organization_id": organization.id,
+                "run_id": run_id,
+                "repos_not_found": repos_not_found,
+            },
+        )
 
     validated_repos = repos - repos_not_found
 
@@ -465,15 +467,17 @@ def launch_coding_agents_for_run(
 
 
 def poll_github_copilot_agents(
-    autofix_state: AutofixState,
-    user_id: int,
+    autofix_state: AutofixState | None = None,
+    user_id: int = 0,
+    coding_agents: dict[str, Any] | None = None,
 ) -> None:
-    if not autofix_state.coding_agents:
+    agents = coding_agents or (autofix_state.coding_agents if autofix_state else None)
+    if not agents:
         return
 
     user_access_token: str | None = None
 
-    for agent_id, agent_state in autofix_state.coding_agents.items():
+    for agent_id, agent_state in agents.items():
         if agent_state.provider != CodingAgentProviderType.GITHUB_COPILOT_AGENT:
             continue
 

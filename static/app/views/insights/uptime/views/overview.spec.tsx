@@ -7,11 +7,11 @@ import {UptimeSummaryFixture} from 'sentry-fixture/uptimeSummary';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import UptimeOverview from 'sentry/views/insights/uptime/views/overview';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('Uptime Overview', () => {
   const project = ProjectFixture();

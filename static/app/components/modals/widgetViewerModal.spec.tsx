@@ -18,8 +18,8 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import WidgetViewerModal from 'sentry/components/modals/widgetViewerModal';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import MemberListStore from 'sentry/stores/memberListStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
@@ -1240,7 +1240,7 @@ describe('Modals -> WidgetViewerModal', () => {
       expect(await screen.findByText('release')).toBeInTheDocument();
       expect(await screen.findByText('e102abb2c46e')).toBeInTheDocument();
       expect(screen.getByText('sum(session)')).toBeInTheDocument();
-      expect(screen.getByText('6.3k')).toBeInTheDocument();
+      expect(screen.getByText('6.3K')).toBeInTheDocument();
     });
 
     it('renders Release widget viewer', async () => {

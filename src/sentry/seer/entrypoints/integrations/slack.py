@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, TypedDict
 from slack_sdk.models.blocks.blocks import Block
 
 from sentry import features
-from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
+from sentry.constants import ENABLE_SEER_ENHANCED_ALERTS_DEFAULT, ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.locks import locks
@@ -23,12 +23,6 @@ from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
 from sentry.notifications.platform.templates.seer import SeerAutofixError, SeerAutofixUpdate
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
 from sentry.notifications.utils.actions import BlockKitMessageAction
-from sentry.organizations.services.organization.service import organization_service
-from sentry.seer.autofix.issue_summary import (
-    STOPPING_POINT_HIERARCHY,
-    get_automation_stopping_point,
-    is_group_triggering_automation,
-)
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import entrypoint_registry
@@ -38,6 +32,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
+from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.registry import NoRegistrationExistsError
 
@@ -61,7 +56,6 @@ class SlackEntrypointCachePayload(TypedDict):
     integration_id: int
     group_link: str
     threads: list[SlackThreadDetails]
-    automation_stopping_point: AutofixStoppingPoint | None
 
 
 @entrypoint_registry.register(key=SeerEntrypointKey.SLACK)
@@ -94,7 +88,14 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
 
     @staticmethod
     def has_access(organization: Organization) -> bool:
-        return features.has("organizations:seer-slack-workflows", organization)
+        has_feature_flag = features.has("organizations:seer-slack-workflows", organization)
+        has_enhanced_alerts = bool(
+            organization.get_option(
+                "sentry:enable_seer_enhanced_alerts",
+                default=ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
+            )
+        )
+        return has_feature_flag and has_enhanced_alerts
 
     @staticmethod
     def get_group_link(group: Group) -> str:
@@ -115,8 +116,8 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         try:
             stopping_point = AutofixStoppingPoint(action.value)
         except ValueError:
-            logger.warning(
-                "entrypoint.invalid_autofix_stopping_point",
+            logger.exception(
+                "seer.entrypoint.slack.invalid_stopping_point",
                 extra={
                     "entrypoint_key": SeerEntrypointKey.SLACK.value,
                     "stopping_point": action.value,
@@ -167,7 +168,6 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             project_id=self.group.project_id,
             group_id=self.group.id,
             group_link=self.get_group_link(self.group),
-            automation_stopping_point=None,
         )
 
     @staticmethod
@@ -242,40 +242,26 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                 )
             case _:
                 logging_ctx["event_type"] = event_type
-                logger.info("entrypoint.unsupported_event_type", extra=logging_ctx)
+                logger.info("seer.entrypoint.slack.unsupported_event_type", extra=logging_ctx)
                 return
 
-        # Determine whether an automation has progressed beyond the current stopping point
-        automation_stopping_point = cache_payload["automation_stopping_point"]
-        if automation_stopping_point:
-            data_kwargs["has_progressed"] = (
-                STOPPING_POINT_HIERARCHY[automation_stopping_point]
-                > STOPPING_POINT_HIERARCHY[data_kwargs["current_point"]]
-            )
-            logging_ctx["automation_stopping_point"] = str(automation_stopping_point)
-        logging_ctx["has_progressed"] = data_kwargs.get("has_progressed", False)
-
-        # Special case for solution stopping point, we progress beyond it if coding is enabled
-        # (if triggered manually, we always respect automation stopping point)
-        if (
-            data_kwargs["current_point"] == AutofixStoppingPoint.SOLUTION
-            and not automation_stopping_point
-        ):
-            has_coding_enabled = organization_service.get_option(
-                organization_id=cache_payload["organization_id"],
-                key="sentry:enable_seer_coding",
-            )
-            if has_coding_enabled is None:
-                has_coding_enabled = ENABLE_SEER_CODING_DEFAULT
-            data_kwargs["has_progressed"] = has_coding_enabled
-
+        data = SeerAutofixUpdate(**data_kwargs)
         schedule_all_thread_updates(
             threads=cache_payload["threads"],
             integration_id=cache_payload["integration_id"],
             organization_id=cache_payload["organization_id"],
-            data=SeerAutofixUpdate(**data_kwargs),
+            data=data,
         )
-        logger.info("entrypoint.on_autofix_update_success", extra=logging_ctx)
+        logger.info("seer.entrypoint.slack.autofix_update_scheduled", extra=logging_ctx)
+        metrics.incr(
+            "seer.entrypoint.slack.autofix_update_scheduled",
+            tags={
+                "event_type": str(event_type),
+                "current_point": str(data.current_point),
+                "has_progressed": str(data.has_progressed),
+                "thread_count": len(cache_payload["threads"]),
+            },
+        )
 
 
 def send_thread_update(
@@ -299,6 +285,10 @@ def send_thread_update(
     renderable = NotificationService.render_template(
         data=data, template=template_cls(), provider=provider
     )
+    metric_tags = {
+        "data_source": str(data.source),
+        "is_ephemeral": str(bool(ephemeral_user_id)),
+    }
     try:
         if ephemeral_user_id:
             install.send_threaded_ephemeral_message(
@@ -313,12 +303,15 @@ def send_thread_update(
                 thread_ts=thread["thread_ts"],
                 renderable=renderable,
             )
-    except ValueError as e:
-        logging_ctx["error"] = str(e)
-        logger.warning("entrypoint.send_thread_update.invalid_integration", extra=logging_ctx)
+    except ValueError:
+        logger.exception(
+            "seer.entrypoint.slack.thread_update.invalid_integration", extra=logging_ctx
+        )
+        metrics.incr("seer.entrypoint.slack.thread_update.invalid_integration", tags=metric_tags)
         # No need to retry since these are configuration errors, and will just repeat
         return
-    logger.info("entrypoint.send_thread_update.success", extra=logging_ctx)
+    logger.info("seer.entrypoint.slack.thread_update.sent", extra=logging_ctx)
+    metrics.incr("seer.entrypoint.slack.thread_update.sent", tags=metric_tags)
 
 
 @instrumented_task(
@@ -342,13 +335,16 @@ def process_thread_update(
 
     from sentry.integrations.slack.integration import SlackIntegration
 
+    logging_ctx = {
+        "integration_id": integration_id,
+        "organization_id": organization_id,
+        "entrypoint_key": SeerEntrypointKey.SLACK.value,
+    }
+
     try:
         data_dto = NotificationDataDto.from_dict(serialized_data)
-    except (NotificationServiceError, NoRegistrationExistsError) as e:
-        logger.warning(
-            "entrypoint.process_thread_update.deserialize_error",
-            extra={"error": e, "data": serialized_data},
-        )
+    except (NotificationServiceError, NoRegistrationExistsError):
+        logger.exception("seer.entrypoint.slack.thread_update.deserialize_error", extra=logging_ctx)
         return
 
     integration = integration_service.get_integration(
@@ -358,14 +354,7 @@ def process_thread_update(
         status=ObjectStatus.ACTIVE,
     )
     if not integration:
-        logger.warning(
-            "entrypoint.process_thread_update.integration_not_found",
-            extra={
-                "integration_id": integration_id,
-                "organization_id": organization_id,
-                "entrypoint_key": SeerEntrypointKey.SLACK.value,
-            },
-        )
+        logger.error("seer.entrypoint.slack.thread_update.integration_not_found", extra=logging_ctx)
         return
 
     send_thread_update(
@@ -455,13 +444,12 @@ def update_existing_message(
         if data.current_point == AutofixStoppingPoint.ROOT_CAUSE
         else remove_all_buttons_transformer
     )
-
     try:
         message_data = request.data["message"]
         original_blocks = message_data["blocks"]
         original_text = message_data["text"]
     except (KeyError, TypeError):
-        logger.exception("entrypoint.update_message_invalid_payload", extra=logging_ctx)
+        logger.exception("seer.entrypoint.slack.message_update.invalid_payload", extra=logging_ctx)
         return
 
     blocks = _transform_block_actions(original_blocks, transformer)
@@ -486,7 +474,7 @@ def update_existing_message(
     try:
         install.update_message(channel_id=channel_id, message_ts=message_ts, renderable=renderable)
     except IntegrationError:
-        logger.exception("entrypoint.update_message_failed", extra=logging_ctx)
+        logger.exception("seer.entrypoint.slack.message_update.failed", extra=logging_ctx)
 
 
 def handle_prepare_autofix_update(
@@ -517,20 +505,6 @@ def handle_prepare_autofix_update(
         stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
     )
 
-    try:
-        automation_stopping_point = (
-            get_automation_stopping_point(group) if is_group_triggering_automation(group) else None
-        )
-    except Exception as e:
-        logger.warning(
-            "entrypoint.get_automation_stopping_point_error",
-            extra={"error": str(e), **logging_ctx},
-        )
-        automation_stopping_point = None
-
-    if automation_stopping_point:
-        logging_ctx["automation_stopping_point"] = str(automation_stopping_point)
-
     lock = locks.get(lock_key, duration=10, name="autofix_entrypoint_slack")
     try:
         with lock.blocking_acquire(initial_delay=0.1, timeout=3):
@@ -555,19 +529,21 @@ def handle_prepare_autofix_update(
                     project_id=group.project_id,
                     group_id=group.id,
                     group_link=SlackEntrypoint.get_group_link(group),
-                    automation_stopping_point=automation_stopping_point,
                 ),
             )
     except UnableToAcquireLock:
-        logger.warning("entrypoint.handle_prepare_autofix_update.lock_failed", extra=logging_ctx)
+        logger.exception("seer.entrypoint.slack.prepare_autofix.lock_failed", extra=logging_ctx)
         return
-
     logger.info(
-        "entrypoint.handle_prepare_autofix_update",
+        "seer.entrypoint.slack.prepare_autofix.cache_populated",
         extra={
             "cache_key": cache_result["key"],
             "cache_source": cache_result["source"],
             "thread_count": len(threads),
             **logging_ctx,
         },
+    )
+    metrics.incr(
+        "seer.entrypoint.slack.prepare_autofix.cache_populated",
+        tags={"cache_source": cache_result["source"]},
     )

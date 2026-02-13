@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 
 import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -47,7 +47,9 @@ function NoProjectMessage({
 
   const joinTeamAction = (
     <LinkButton
-      title={canJoinTeam ? undefined : t('You do not have permission to join a team.')}
+      tooltipProps={{
+        title: canJoinTeam ? undefined : t('You do not have permission to join a team.'),
+      }}
       disabled={!canJoinTeam}
       priority={orgHasProjects ? 'primary' : 'default'}
       to={`/settings/${organization.slug}/teams/`}
@@ -58,11 +60,11 @@ function NoProjectMessage({
 
   const createProjectAction = (
     <LinkButton
-      title={
-        canUserCreateProject
+      tooltipProps={{
+        title: canUserCreateProject
           ? undefined
-          : t('You do not have permission to create a project.')
-      }
+          : t('You do not have permission to create a project.'),
+      }}
       disabled={!canUserCreateProject}
       priority={orgHasProjects ? 'default' : 'primary'}
       to={makeProjectsPathname({path: '/new/', organization})}
@@ -118,6 +120,8 @@ const HelpMessage = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const Actions = styled(ButtonBar)`
+const Actions = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   width: fit-content;
 `;

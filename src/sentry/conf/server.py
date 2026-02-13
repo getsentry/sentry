@@ -893,7 +893,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.relocation.tasks.transfer",
     "sentry.replays.data_export",
     "sentry.replays.tasks",
-    "sentry.rules.processing.delayed_processing",
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.sentry_apps.tasks.service_hooks",
     "sentry.seer.autofix.issue_summary",
@@ -979,10 +978,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "flush-buffers": {
         "task": "buffer:sentry.tasks.process_buffer.process_pending",
         "schedule": timedelta(seconds=10),
-    },
-    "flush-buffers-batch": {
-        "task": "buffer:sentry.tasks.process_buffer.process_pending_batch",
-        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
     },
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
@@ -1438,8 +1433,8 @@ SENTRY_PROJECT_KEY: int | None = None
 # Used as a default when in SINGLE_ORGANIZATION mode.
 SENTRY_ORGANIZATION: int | None = None
 
-# Default organization ID for granting superuser privileges (typically organization 1 in SaaS mode)
-SENTRY_DEFAULT_ORGANIZATION_ID = 1
+# Organization ID for granting superuser/staff privileges.
+SUPERUSER_ORG_ID: int | None = None
 
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT: int | None = None

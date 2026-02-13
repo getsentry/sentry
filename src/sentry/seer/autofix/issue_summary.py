@@ -28,12 +28,12 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_state,
     is_seer_autotriggered_autofix_rate_limited,
+    is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.seer.models import SummarizeIssueResponse
-from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -349,7 +349,7 @@ def run_automation(
     if source == SeerAutomationSource.ISSUE_DETAILS:
         return
 
-    # Check event count for ALERT source with triage-signals-v0-org
+    # Check event count for ALERT source with seat-based tier
     if is_seer_seat_based_tier_enabled(group.organization):
         if source == SeerAutomationSource.ALERT:
             # Use times_seen_with_pending if available (set by post_process), otherwise fall back
@@ -360,18 +360,6 @@ def run_automation(
             )
             if times_seen < 10:
                 return
-
-        try:
-            times_seen = group.times_seen_with_pending
-        except (AssertionError, AttributeError):
-            times_seen = group.times_seen
-        logger.info(
-            "Triage signals V0: %s: run_automation called: project_slug=%s, source=%s, times_seen=%s",
-            group.id,
-            group.project.slug,
-            source.value,
-            times_seen,
-        )
 
     user_id = user.id if user else None
     auto_run_source = auto_run_source_map.get(source, "unknown_source")
@@ -387,7 +375,15 @@ def run_automation(
         }
     )
 
+    autofix_state = get_autofix_state(group_id=group.id, organization_id=group.organization.id)
+    if autofix_state:
+        return  # already have an autofix on this issue
+
     if not is_group_triggering_automation(group):
+        return
+
+    # Increment the rate limit counter only when we are actually about to trigger.
+    if is_seer_autotriggered_autofix_rate_limited_and_increment(group.project, group.organization):
         return
 
     stopping_point = None
@@ -405,9 +401,8 @@ def run_automation(
 
 def is_group_triggering_automation(group: Group) -> bool:
     """
-    Checks if a group is eligible for automation.
+    Checks if a group is going to be picked up for automation. Does not check for existing run.
     Checks project options (fixability tuning, preferences), billing quota, and rate limiting.
-    Note: If an autofix run is currently in progress, returns False.
     """
     fixability_score = get_and_update_group_fixability_score(group)
 
@@ -423,10 +418,6 @@ def is_group_triggering_automation(group: Group) -> bool:
     )
     if not has_budget:
         return False
-
-    autofix_state = get_autofix_state(group_id=group.id, organization_id=group.organization.id)
-    if autofix_state:
-        return False  # already have an autofix on this issue
 
     is_rate_limited = is_seer_autotriggered_autofix_rate_limited(group.project, group.organization)
     if is_rate_limited:
@@ -536,9 +527,6 @@ def get_issue_summary(
 
     if group.organization.get_option("sentry:hide_ai_features"):
         return {"detail": "AI features are disabled for this organization."}, 403
-
-    if not get_seer_org_acknowledgement(group.organization):
-        return {"detail": "AI Autofix has not been acknowledged by the organization."}, 403
 
     cache_key = get_issue_summary_cache_key(group.id)
     lock_key, lock_name = get_issue_summary_lock_key(group.id)

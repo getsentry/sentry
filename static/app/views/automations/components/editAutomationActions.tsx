@@ -1,7 +1,8 @@
 import {useCallback} from 'react';
 import {Observer} from 'mobx-react-lite';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -58,7 +59,7 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
 
   return (
     <div>
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         <Button
           priority="default"
           size="sm"
@@ -77,7 +78,7 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
             </Button>
           )}
         </Observer>
-      </ButtonBar>
+      </Grid>
     </div>
   );
 }

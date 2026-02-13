@@ -10,8 +10,8 @@ import {Text} from '@sentry/scraps/text';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {PAGE_URL_PARAM} from 'sentry/components/pageFilters/constants';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
-import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -370,7 +370,7 @@ function ResourceImage(props: {
           size="zero"
           text={fileName}
           aria-label={t('Copy file name to clipboard')}
-          title={t('Copy file name')}
+          tooltipProps={{title: t('Copy file name')}}
         />
       </Flex>
       {showImage && !hasError ? (

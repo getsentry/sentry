@@ -1,9 +1,7 @@
-import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {MAX_PERIOD_FOR_CROSS_EVENTS} from 'sentry/views/explore/constants';
 
 import {ExploreContent} from './content';
@@ -52,15 +50,6 @@ describe('ExploreContent', () => {
       url: `/organizations/${organization.slug}/traces/`,
       method: 'GET',
       body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/setup-check/`,
-      body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
-      }),
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,

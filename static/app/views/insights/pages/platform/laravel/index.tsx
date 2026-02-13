@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import {type DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
+import {type DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';

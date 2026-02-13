@@ -561,15 +561,15 @@ function CustomerOverview({customer, onAction, organization}: Props) {
               size="xs"
               onClick={() => updateCustomerStatus(`allowTrial${formattedApiName}`)}
               disabled={!hasUsedProductTrial || hasActiveProductTrial}
-              title={
-                hasActiveProductTrial
+              tooltipProps={{
+                title: hasActiveProductTrial
                   ? `A product trial is currently active for ${formattedTrialName}`
                   : hasUsedProductTrial
                     ? isAdminOnly
                       ? `Reset trial eligibility for ${formattedTrialName}`
                       : `Allow customer to start a new trial for ${formattedTrialName}`
-                    : `A product trial is already available for ${formattedTrialName}`
-              }
+                    : `A product trial is already available for ${formattedTrialName}`,
+              }}
             >
               Allow Trial
             </Button>
@@ -577,13 +577,13 @@ function CustomerOverview({customer, onAction, organization}: Props) {
               size="xs"
               onClick={() => updateCustomerStatus(`startTrial${formattedApiName}`)}
               disabled={hasActiveProductTrial || hasUsedProductTrial}
-              title={
-                hasActiveProductTrial
+              tooltipProps={{
+                title: hasActiveProductTrial
                   ? `A product trial is currently active for ${formattedTrialName}`
                   : hasUsedProductTrial
                     ? `No product trial is available for ${formattedTrialName}`
-                    : `Start the 14-day ${formattedTrialName} product trial`
-              }
+                    : `Start the 14-day ${formattedTrialName} product trial`,
+              }}
             >
               Start Trial
             </Button>
@@ -591,13 +591,13 @@ function CustomerOverview({customer, onAction, organization}: Props) {
               size="xs"
               onClick={() => updateCustomerStatus(`stopTrial${formattedApiName}`)}
               disabled={!hasActiveProductTrial || lessThanOneDayLeft}
-              title={
-                lessThanOneDayLeft
+              tooltipProps={{
+                title: lessThanOneDayLeft
                   ? `Current product trial will end in less than one day`
                   : hasActiveProductTrial
                     ? `Stop the current product trial for ${formattedTrialName}`
-                    : `No product trial is active for ${formattedTrialName}`
-              }
+                    : `No product trial is active for ${formattedTrialName}`,
+              }}
             >
               Stop Trial
             </Button>

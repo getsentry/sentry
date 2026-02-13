@@ -2,7 +2,8 @@ import {Fragment, useCallback, useEffect, useState, type ReactNode} from 'react'
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
 import {fetchDashboard, fetchDashboards} from 'sentry/actionCreators/dashboards';
@@ -185,7 +186,7 @@ export function LinkToDashboardModal({
         <StyledButtonBar gap="lg">
           <Button
             disabled={!canSubmit}
-            title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
+            tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}
             onClick={() => linkToDashboard()}
             aria-label={t('Link to dashboard')}
           >
@@ -201,7 +202,9 @@ const Wrapper = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const StyledButtonBar = styled(ButtonBar)`
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   @media (max-width: ${props => props.theme.breakpoints.sm}) {
     grid-template-rows: repeat(2, 1fr);
     gap: ${space(1.5)};

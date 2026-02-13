@@ -246,9 +246,9 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         # Find our rule in the response (should be the second one, first is self.alert_rule)
         rule = next(rule for rule in resp.data if rule["id"] == str(alert_rule.id))
 
-        assert (
-            rule["aggregate"] == "count()"
-        ), "LIST should return count() to user, hiding internal upsampled_count() storage"
+        assert rule["aggregate"] == "count()", (
+            "LIST should return count() to user, hiding internal upsampled_count() storage"
+        )
 
 
 @freeze_time()
@@ -1940,7 +1940,10 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         data["extrapolation_mode"] = "server_weighted"
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_error_response(self.organization.slug, status_code=400, **data)
-        assert resp.data[0] == "server_weighted extrapolation mode is not supported for new alerts."
+        assert (
+            resp.data[0]
+            == "server_weighted extrapolation mode is not supported for new alerts. Allowed modes are: client_and_server_weighted, unknown."
+        )
 
     def test_owner_team_not_member_denied(self) -> None:
         """

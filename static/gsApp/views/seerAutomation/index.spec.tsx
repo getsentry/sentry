@@ -13,10 +13,6 @@ describe('SeerAutomation', () => {
       url: '/organizations/org-slug/seer/setup-check/',
       method: 'GET',
       body: {
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         billing: {
           hasAutofixQuota: true,
           hasScannerQuota: true,

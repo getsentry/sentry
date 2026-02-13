@@ -93,7 +93,6 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
         assert response.data["id"] == str(row.id)
 
     def test_user_scope(self) -> None:
-
         notification_settings = [
             NotificationSettingEnum.QUOTA,
             NotificationSettingEnum.QUOTA_WARNINGS,

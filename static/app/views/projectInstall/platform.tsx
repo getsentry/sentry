@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import NotFound from 'sentry/components/errors/notFound';
@@ -11,11 +12,11 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
-import {setPageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
+import {setPageFiltersStorage} from 'sentry/components/pageFilters/persistence';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {performance as performancePlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {space} from 'sentry/styles/space';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -144,7 +145,9 @@ export function ProjectInstallPlatform({project, platform}: Props) {
   );
 }
 
-const StyledButtonBar = styled(ButtonBar)`
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   margin-top: ${space(3)};
   width: max-content;
 

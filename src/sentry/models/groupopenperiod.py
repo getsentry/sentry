@@ -58,7 +58,6 @@ class GroupOpenPeriod(DefaultFieldsModel):
     date_ended = models.DateTimeField(null=True)
 
     data = models.JSONField(default=dict)
-    event_id = models.CharField(max_length=32, null=True)
 
     class Meta:
         app_label = "sentry"
@@ -206,7 +205,6 @@ def create_open_period(group: Group, start_time: datetime, event_id: str | None 
             date_started=start_time,
             date_ended=None,
             resolution_activity=None,
-            event_id=event_id,
         )
 
         # If we care about this group's activity, create activity entry

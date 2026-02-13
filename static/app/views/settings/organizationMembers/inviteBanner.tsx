@@ -2,8 +2,8 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -186,7 +186,7 @@ export function InviteBanner({
               />
             </Subtitle>
           </Stack>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <Button
               priority="primary"
               size="xs"
@@ -205,7 +205,7 @@ export function InviteBanner({
                 'aria-label': t('Actions'),
               }}
             />
-          </ButtonBar>
+          </Grid>
         </Flex>
         <Carousel>
           <MemberCards

@@ -21,8 +21,8 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 export default function ProjectUserFeedback() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-  const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
-  const hasAiEnabled = areAiFeaturesAllowed && setupAcknowledgement.orgHasAcknowledged;
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
+  const hasAiEnabled = areAiFeaturesAllowed;
 
   const handleClick = () => {
     Sentry.showReportDialog({

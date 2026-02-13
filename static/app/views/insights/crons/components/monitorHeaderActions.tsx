@@ -1,17 +1,18 @@
-import {Button, ButtonBar, LinkButton, type ButtonProps} from '@sentry/scraps/button';
+import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconDelete, IconEdit, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 
@@ -62,12 +63,12 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
     {settingsLink: <Link to={`/settings/${organization.slug}/`} />}
   );
 
-  const disableProps: Pick<ButtonProps, 'disabled' | 'title'> = {
+  const disableProps: Pick<ButtonProps, 'disabled' | 'tooltipProps'> = {
     disabled: !canEdit,
   };
 
   if (!canEdit) {
-    disableProps.title = permissionTooltipText;
+    disableProps.tooltipProps = {title: permissionTooltipText};
   }
 
   const hasEnvironments = monitor.environments.length > 0;
@@ -75,13 +76,13 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
 
   if (!hasEnvironments) {
     muteDisableProps.disabled = true;
-    muteDisableProps.title = t(
-      'Muting is only available when there are monitor environments'
-    );
+    muteDisableProps.tooltipProps = {
+      title: t('Muting is only available when there are monitor environments'),
+    };
   }
 
   return (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       <FeedbackButton />
       <Button
         size="sm"
@@ -106,7 +107,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
           size="sm"
           icon={<IconDelete size="xs" />}
           aria-label={t('Delete')}
-          title={canEdit ? undefined : permissionTooltipText}
+          tooltipProps={{title: canEdit ? undefined : permissionTooltipText}}
         />
       </Confirm>
       <LinkButton
@@ -130,7 +131,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
       >
         {t('Edit Monitor')}
       </LinkButton>
-    </ButtonBar>
+    </Grid>
   );
 }
 

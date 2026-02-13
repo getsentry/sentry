@@ -5,8 +5,9 @@ import debounce from 'lodash/debounce';
 import pick from 'lodash/pick';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Switch} from '@sentry/scraps/switch';
@@ -576,7 +577,7 @@ function ManageDashboards() {
                     </Layout.Title>
                   </Layout.HeaderContent>
                   <Layout.HeaderActions>
-                    <ButtonBar gap="lg">
+                    <Grid flow="column" align="center" gap="lg">
                       <TemplateSwitch>
                         {t('Show Templates')}
                         <Switch
@@ -604,9 +605,9 @@ function ManageDashboards() {
                             disabled={
                               hasReachedDashboardLimit || isLoadingDashboardsLimit
                             }
-                            title={limitMessage}
                             tooltipProps={{
                               isHoverable: true,
+                              title: limitMessage,
                             }}
                           >
                             {t('Create Dashboard')}
@@ -629,7 +630,7 @@ function ManageDashboards() {
                           {t('Import Dashboard from JSON')}
                         </Button>
                       </Feature>
-                    </ButtonBar>
+                    </Grid>
                   </Layout.HeaderActions>
                 </Layout.Header>
                 <Layout.Body>
