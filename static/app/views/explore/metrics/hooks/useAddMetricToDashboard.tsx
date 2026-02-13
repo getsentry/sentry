@@ -29,8 +29,8 @@ export function useAddMetricToDashboard() {
   const getEventView = useCallback(
     (metricQuery: BaseMetricQuery) => {
       const queryValues = metricQuery?.queryParams;
-      const visualize = queryValues?.aggregateFields?.find(isVisualize);
-      const yAxis = visualize?.yAxis;
+      const visualizes = queryValues?.aggregateFields?.filter(isVisualize);
+      const yAxes = visualizes?.map(v => v.yAxis);
       const fields = queryValues?.groupBys ?? [];
       const aggregateSortBys = queryValues?.aggregateSortBys ?? [];
 
@@ -42,7 +42,7 @@ export function useAddMetricToDashboard() {
         query: search.formatString(),
         version: 2,
         dataset: DiscoverDatasets.TRACEMETRICS,
-        yAxis: [yAxis ?? ''],
+        yAxis: yAxes,
       };
 
       const newEventView = EventView.fromNewQueryWithPageFilters(
@@ -50,7 +50,7 @@ export function useAddMetricToDashboard() {
         selection
       );
       newEventView.display =
-        CHART_TYPE_TO_DISPLAY_TYPE[visualize?.chartType ?? ChartType.LINE];
+        CHART_TYPE_TO_DISPLAY_TYPE[visualizes[0]?.chartType ?? ChartType.LINE];
 
       if (fields.length > 0) {
         newEventView.sorts = aggregateSortBys;
