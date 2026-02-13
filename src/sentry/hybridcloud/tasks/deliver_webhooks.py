@@ -297,9 +297,12 @@ def _handle_parallel_delivery_result(
             payload_record.schedule_next_attempt()
             request_failed = True
         return (request_failed, not isinstance(err, DeliveryFailed))
-    _measure_delivery_time(payload_record)
     payload_record.delete()
+    duration = timezone.now() - payload_record.date_added
     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
+    metrics.timing("hybridcloud.deliver_webhooks.delivery_time", duration.total_seconds())
+    if duration >= SLOW_DELIVERY_THRESHOLD:
+        logger.warning("deliver_webhook.slow_delivery", extra=payload_record.as_dict())
     return (False, False)
 
 
@@ -412,17 +415,13 @@ def deliver_message(payload: WebhookPayload) -> None:
 
     payload.schedule_next_attempt()
     perform_request(payload)
-    _measure_delivery_time(payload)
     payload.delete()
-    metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
 
-
-def _measure_delivery_time(payload: WebhookPayload) -> None:
-    # date_added is when the payload was added to the mailbox
     duration = timezone.now() - payload.date_added
     metrics.timing("hybridcloud.deliver_webhooks.delivery_time", duration.total_seconds())
     if duration >= SLOW_DELIVERY_THRESHOLD:
         logger.warning("deliver_webhook.slow_delivery", extra=payload.as_dict())
+    metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
 
 
 def perform_request(payload: WebhookPayload) -> None:
