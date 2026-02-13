@@ -67,7 +67,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             "name": "Test Workflow",
             "enabled": True,
             "config": {},
-            "triggers": {"logicType": "any", "conditions": []},
+            "triggers": {"logicType": "any-short", "conditions": []},
             "actionFilters": [],
         }
         validator = WorkflowValidator(
@@ -928,7 +928,7 @@ class OrganizationWorkflowDetailsProjectAccessTest(APITestCase, ProjectAccessTes
                 "name": "Hacked Workflow",
                 "enabled": True,
                 "config": {},
-                "triggers": {"logicType": "any", "conditions": []},
+                "triggers": {"logicType": "any-short", "conditions": []},
                 "actionFilters": [],
             },
             status_code=403,
