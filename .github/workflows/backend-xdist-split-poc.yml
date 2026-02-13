@@ -21,7 +21,7 @@ env:
   # - file:  entire file → tier2 if any test needs Snuba
   # - class: file::class scope → tier2 if any test in class needs Snuba
   # - test:  each individual test independently classified
-  TIER_GRANULARITY: file
+  TIER_GRANULARITY: test
 
 jobs:
   # ─── Step 1: Download runtime classification and split into tiers ────
