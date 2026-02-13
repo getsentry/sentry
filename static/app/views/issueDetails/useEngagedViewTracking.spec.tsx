@@ -31,13 +31,10 @@ describe('useEngagedViewTracking', () => {
       initialProps: {group, project},
     });
 
-    // Verify event not yet tracked
     expect(trackAnalytics).not.toHaveBeenCalled();
 
-    // Advance timer by 10 seconds
     jest.advanceTimersByTime(10000);
 
-    // Verify event was tracked
     expect(trackAnalytics).toHaveBeenCalledWith('issue.engaged_view', {
       organization,
       group_id: 123,
@@ -52,16 +49,10 @@ describe('useEngagedViewTracking', () => {
       initialProps: {group, project},
     });
 
-    // Advance timer by 5 seconds (not enough)
     jest.advanceTimersByTime(5000);
-
-    // Unmount before the 10 second threshold
     unmount();
-
-    // Advance timer past threshold
     jest.advanceTimersByTime(10000);
 
-    // Verify event was NOT tracked
     expect(trackAnalytics).not.toHaveBeenCalled();
   });
 
@@ -71,15 +62,10 @@ describe('useEngagedViewTracking', () => {
       initialProps: {group, project},
     });
 
-    // Advance timer by 10 seconds to trigger first event
     jest.advanceTimersByTime(10000);
-
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
 
-    // Advance timer by another 10 seconds
     jest.advanceTimersByTime(10000);
-
-    // Should still only have tracked once
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
   });
 
@@ -91,25 +77,17 @@ describe('useEngagedViewTracking', () => {
       initialProps: {group, project},
     });
 
-    // Advance timer by 5 seconds
     jest.advanceTimersByTime(5000);
-
-    // Verify not yet tracked
     expect(trackAnalytics).not.toHaveBeenCalled();
 
-    // Change to a different group
     rerender({group: newGroup, project});
 
-    // Advance timer by another 5 seconds (total 10 from start, but only 5 on new group)
+    // 10s total from start, but only 5s on the new group
     jest.advanceTimersByTime(5000);
-
-    // Still not tracked - need full 10 seconds on new group
     expect(trackAnalytics).not.toHaveBeenCalled();
 
-    // Advance timer by another 5 seconds to hit 10 seconds on new group
+    // 10s on the new group
     jest.advanceTimersByTime(5000);
-
-    // Now it should be tracked with the new group ID
     expect(trackAnalytics).toHaveBeenCalledWith('issue.engaged_view', {
       organization,
       group_id: 789,
@@ -126,22 +104,16 @@ describe('useEngagedViewTracking', () => {
       initialProps: {group, project},
     });
 
-    // Advance timer by 10 seconds to trigger event for first group
     jest.advanceTimersByTime(10000);
-
     expect(trackAnalytics).toHaveBeenCalledWith(
       'issue.engaged_view',
       expect.objectContaining({group_id: 123})
     );
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
 
-    // Change to a different group
     rerender({group: newGroup, project});
 
-    // Advance timer by 10 seconds
     jest.advanceTimersByTime(10000);
-
-    // Should track for the new group
     expect(trackAnalytics).toHaveBeenCalledWith(
       'issue.engaged_view',
       expect.objectContaining({group_id: 789})
