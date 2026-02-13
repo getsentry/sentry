@@ -2,9 +2,10 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconInfo} from 'sentry/icons';
+import {IconQuestion} from 'sentry/icons';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 
-interface InfoTooltipProps {
+interface InfoTooltipProps extends SVGIconProps {
   title: React.ReactNode;
   size?: 'xs' | 'sm' | 'md';
 }
@@ -12,14 +13,18 @@ interface InfoTooltipProps {
 export function InfoTip({title, size = 'sm'}: InfoTooltipProps) {
   return (
     <Tooltip title={title} skipWrapper isHoverable>
-      <StyledIconInfo size={size} tabIndex={0} role="img" aria-label="More information" />
+      <StyledIconQuestion
+        size={size}
+        tabIndex={0}
+        role="img"
+        aria-label="More information"
+      />
     </Tooltip>
   );
 }
 
-const StyledIconInfo = styled(IconInfo)`
+const StyledIconQuestion = styled(IconQuestion)`
   border-radius: 50%;
-  cursor: help;
   outline: none;
 
   &:focus-visible {

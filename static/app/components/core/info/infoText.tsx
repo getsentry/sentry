@@ -18,7 +18,6 @@ export function InfoText({title, children, ...textProps}: InfoTextProps) {
 }
 
 const StyledText = styled(Text)`
-  cursor: help;
   outline: none;
 
   &:focus-visible {
