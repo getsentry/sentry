@@ -22,7 +22,9 @@ export function UptimeResolutionNotificationToggle() {
   const {state} = useAutomationBuilderContext();
 
   // Only show this if connected to at least one uptime detector
-  const hasUptimeDetectors = connectedDetectors.some(d => d.type === 'uptime');
+  const hasUptimeDetectors = connectedDetectors.some(
+    d => d.type === 'uptime_domain_failure'
+  );
 
   // Check if resolution notifications are currently configured
   const hasResolutionFilter = state.actionFilters.some(filter =>
@@ -38,11 +40,9 @@ export function UptimeResolutionNotificationToggle() {
   return (
     <UptimeResolutionContainer>
       {hasResolutionFilter ? (
-        <Alert type="success" icon={<IconCheckmark />}>
+        <Alert variant="success" icon={<IconCheckmark />}>
           <Flex direction="column" gap="xs">
-            <Text weight="bold">
-              {t('Resolution notifications are configured')}
-            </Text>
+            <Text bold>{t('Resolution notifications are configured')}</Text>
             <Text size="sm">
               {t(
                 'This automation will send notifications when uptime monitor outages are resolved.'
@@ -51,9 +51,9 @@ export function UptimeResolutionNotificationToggle() {
           </Flex>
         </Alert>
       ) : (
-        <Alert type="info" icon={<IconInfo />}>
+        <Alert variant="info" icon={<IconInfo />}>
           <Flex direction="column" gap="xs">
-            <Text weight="bold">
+            <Text bold>
               {t('Want to be notified when uptime monitor outages are resolved?')}
             </Text>
             <Text size="sm">

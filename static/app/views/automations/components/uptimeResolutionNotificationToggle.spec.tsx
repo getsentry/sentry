@@ -1,6 +1,10 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
+import {
+  DataConditionGroupLogicType,
+  DataConditionType,
+} from 'sentry/types/workflowEngine/dataConditions';
+import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
 import {AutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import {UptimeResolutionNotificationToggle} from 'sentry/views/automations/components/uptimeResolutionNotificationToggle';
 
@@ -28,16 +32,19 @@ describe('UptimeResolutionNotificationToggle', () => {
     updateIfLogicType: jest.fn(),
   };
 
-  const mockState = {
+  const mockState: AutomationBuilderState = {
     triggers: {
       id: 'when',
-      logicType: 'any' as const,
+      logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
       conditions: [],
     },
     actionFilters: [],
   };
 
-  const renderComponent = (state = mockState, detectors: any[] = []) => {
+  const renderComponent = (
+    state: AutomationBuilderState = mockState,
+    detectors: any[] = []
+  ) => {
     mockUseConnectedDetectors.mockReturnValue({
       connectedDetectors: detectors,
       isLoading: false,
@@ -73,26 +80,23 @@ describe('UptimeResolutionNotificationToggle', () => {
   });
 
   it('renders guidance message when uptime detector is connected but no resolution filter exists', () => {
-    renderComponent(mockState, [{id: '1', type: 'uptime', name: 'Uptime Monitor'}]);
+    renderComponent(mockState, [
+      {id: '1', type: 'uptime_domain_failure', name: 'Uptime Monitor'},
+    ]);
 
     expect(
       screen.getByText('Want to be notified when uptime monitor outages are resolved?')
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        /Add an If\/Then block with the/,
-        {exact: false}
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Add an If\/Then block with the/, {exact: false})).toBeInTheDocument();
   });
 
   it('renders success message when resolution filter is configured', () => {
-    const stateWithResolution = {
+    const stateWithResolution: AutomationBuilderState = {
       ...mockState,
       actionFilters: [
         {
           id: 'filter-1',
-          logicType: 'any' as const,
+          logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
           conditions: [
             {
               id: 'cond-1',
@@ -106,7 +110,7 @@ describe('UptimeResolutionNotificationToggle', () => {
     };
 
     renderComponent(stateWithResolution, [
-      {id: '1', type: 'uptime', name: 'Uptime Monitor'},
+      {id: '1', type: 'uptime_domain_failure', name: 'Uptime Monitor'},
     ]);
 
     expect(
@@ -122,7 +126,7 @@ describe('UptimeResolutionNotificationToggle', () => {
   it('renders for mixed detector types when at least one is uptime', () => {
     renderComponent(mockState, [
       {id: '1', type: 'metric_issue', name: 'Metric Detector'},
-      {id: '2', type: 'uptime', name: 'Uptime Monitor'},
+      {id: '2', type: 'uptime_domain_failure', name: 'Uptime Monitor'},
       {id: '3', type: 'error', name: 'Error Detector'},
     ]);
 
