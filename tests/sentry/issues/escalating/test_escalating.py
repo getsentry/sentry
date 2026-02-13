@@ -7,15 +7,11 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
-    TraceItemColumnValues,
-    TraceItemTableResponse,
-)
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue
 
 from sentry.issues.escalating.escalating import (
     GroupsCountResponse,
     _query_groups_past_counts_eap,
+    _query_groups_past_counts_snuba,
     _start_and_end_dates,
     get_group_hourly_count_eap,
     get_group_hourly_count_snuba,
@@ -26,11 +22,15 @@ from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupFo
 from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox
-from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.sentry_metrics.client.snuba import build_mri
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.services.eventstore.models import Event, GroupEvent
-from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase, TestCase
+from sentry.testutils.cases import (
+    BaseMetricsTestCase,
+    PerformanceIssueTestCase,
+    SnubaTestCase,
+    TestCase,
+)
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
@@ -364,261 +364,97 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         assert cache.get(f"hourly-group-count:{archived_group.project.id}:{archived_group.id}") == 6
 
 
-class TestGetGroupHourlyCountEAP(TestCase):
-    @patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
-    def test_returns_count_from_eap(self, mock_table_rpc: mock.MagicMock) -> None:
-        group = self.create_group()
+class TestEAPIsEscalating(TestCase, SnubaTestCase):
+    FROZEN_TIME = datetime(2026, 2, 11, 6, 30, 0)
 
-        mock_response = TraceItemTableResponse(
-            column_values=[
-                TraceItemColumnValues(
-                    attribute_name="count()",
-                    results=[AttributeValue(val_double=42.0)],
-                )
-            ]
+    def _store_events_with_dual_write(
+        self,
+        fingerprint: str,
+        count: int,
+        hours_ago: int = 0,
+    ) -> Group:
+        # Timestamps at the start of the frozen hour so they fall within the
+        # hourly count query window [current_hour, now).
+        event_timestamp = self.FROZEN_TIME.replace(minute=0, second=0, microsecond=0) - timedelta(
+            hours=hours_ago
         )
-        mock_table_rpc.return_value = [mock_response]
+        group = None
 
-        result = get_group_hourly_count_eap(group)
+        with self.options({"eventstream.eap_forwarding_rate": 1.0}):
+            for _ in range(count):
+                event = self.store_event(
+                    data={
+                        "message": "escalating test error",
+                        "fingerprint": [fingerprint],
+                        "timestamp": event_timestamp.timestamp(),
+                        "event_id": uuid4().hex,
+                        "contexts": {"trace": {"trace_id": uuid4().hex}},
+                    },
+                    project_id=self.project.id,
+                    assert_no_errors=False,
+                )
+                if group is None:
+                    group = event.group
 
-        assert result == 42
-        mock_table_rpc.assert_called_once()
+        assert group is not None
+        return group
 
-    @patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
-    def test_returns_zero_on_empty_column_values(self, mock_table_rpc: mock.MagicMock) -> None:
-        group = self.create_group()
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_hourly_counts_match(self) -> None:
+        group = self._store_events_with_dual_write(fingerprint="hourly-count-match", count=6)
 
-        mock_response = TraceItemTableResponse(column_values=[])
-        mock_table_rpc.return_value = [mock_response]
+        snuba_count = get_group_hourly_count_snuba(group)
+        eap_count = get_group_hourly_count_eap(group)
 
-        result = get_group_hourly_count_eap(group)
+        assert snuba_count == eap_count == 6
 
-        assert result == 0
+    @freeze_time(FROZEN_TIME)
+    def test_eap_hourly_count_excludes_old_events(self) -> None:
+        self._store_events_with_dual_write(fingerprint="time-window-test", count=2, hours_ago=1)
+        group = self._store_events_with_dual_write(fingerprint="time-window-test", count=1)
 
-    @patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc")
-    def test_returns_zero_on_exception(self, mock_table_rpc: mock.MagicMock) -> None:
-        group = self.create_group()
-        mock_table_rpc.side_effect = Exception("RPC failed")
+        snuba_count = get_group_hourly_count_snuba(group)
+        eap_count = get_group_hourly_count_eap(group)
 
-        result = get_group_hourly_count_eap(group)
+        assert snuba_count == eap_count == 1
 
-        assert result == 0
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_past_counts_match_single_group(self) -> None:
+        group = self._store_events_with_dual_write(fingerprint="past-counts-single", count=3)
 
-    @patch("sentry.issues.escalating.escalating.EscalatingGroupForecast.fetch_todays_forecast")
-    @patch("sentry.issues.escalating.escalating.get_group_hourly_count_eap")
-    @patch("sentry.issues.escalating.escalating.get_group_hourly_count_snuba")
-    def test_uses_snuba_count_as_source_of_truth(
-        self, mock_snuba: mock.MagicMock, mock_eap: mock.MagicMock, mock_forecast: mock.MagicMock
-    ) -> None:
-        group = self.create_group()
+        snuba_results = _query_groups_past_counts_snuba([group])
+        eap_results = _query_groups_past_counts_eap([group])
 
-        mock_snuba.return_value = 100
-        mock_eap.return_value = 5
-        mock_forecast.return_value = 50
+        assert len(snuba_results) == len(eap_results) == 1
+        assert snuba_results[0]["group_id"] == eap_results[0]["group_id"] == group.id
+        assert snuba_results[0]["project_id"] == eap_results[0]["project_id"] == self.project.id
+        assert snuba_results[0]["count()"] == eap_results[0]["count()"] == 3
 
-        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
-            result = is_escalating(group)
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_past_counts_match_multiple_groups(self) -> None:
+        group_a = self._store_events_with_dual_write(fingerprint="past-counts-a", count=2)
+        group_b = self._store_events_with_dual_write(fingerprint="past-counts-b", count=4)
+        group_c = self._store_events_with_dual_write(fingerprint="past-counts-c", count=6)
 
-        # Should escalate because Snuba count (100) > forecast (50)
-        assert result == (True, 50)
-        mock_snuba.assert_called_once_with(group)
-        mock_eap.assert_called_once_with(group)
+        snuba_results = _query_groups_past_counts_snuba([group_a, group_b, group_c])
+        eap_results = _query_groups_past_counts_eap([group_a, group_b, group_c])
 
-    @patch("sentry.issues.escalating.escalating.EscalatingGroupForecast.fetch_todays_forecast")
-    @patch("sentry.issues.escalating.escalating.get_group_hourly_count_eap")
-    @patch("sentry.issues.escalating.escalating.get_group_hourly_count_snuba")
-    def test_uses_eap_count_as_source_of_truth(
-        self, mock_snuba: mock.MagicMock, mock_eap: mock.MagicMock, mock_forecast: mock.MagicMock
-    ) -> None:
-        group = self.create_group()
+        snuba_counts = {r["group_id"]: r["count()"] for r in snuba_results}
+        eap_counts = {r["group_id"]: r["count()"] for r in eap_results}
 
-        mock_snuba.return_value = 100
-        mock_eap.return_value = 5
-        mock_forecast.return_value = 50
+        assert snuba_counts == eap_counts
+        assert eap_counts[group_a.id] == 2
+        assert eap_counts[group_b.id] == 4
+        assert eap_counts[group_c.id] == 6
 
-        with self.options(
-            {
-                EAPOccurrencesComparator._should_eval_option_name(): True,
-                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
-                    "issues.escalating.is_escalating"
-                ],
-            }
-        ):
-            result = is_escalating(group)
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_past_counts_aggregate_same_hour(self) -> None:
+        group = self._store_events_with_dual_write(fingerprint="zero-filter-test", count=2)
 
-        # Shouldn't escalate because EAP count (5) < forecast (50)
-        assert result == (False, None)
-        mock_snuba.assert_called_once_with(group)
-        mock_eap.assert_called_once_with(group)
+        snuba_results = _query_groups_past_counts_snuba([group])
+        eap_results = _query_groups_past_counts_eap([group])
 
-
-class TestQueryGroupsPastCountsEAP(TestCase):
-    def test_empty_groups_returns_empty_list(self) -> None:
-        result = query_groups_past_counts([])
-        assert result == []
-
-    @patch("sentry.snuba.occurrences_rpc.Occurrences.run_grouped_timeseries_query")
-    def test_returns_empty_list_on_exception(self, mock_timeseries: mock.MagicMock) -> None:
-        group = self.create_group()
-        mock_timeseries.side_effect = Exception("RPC failed")
-
-        result = _query_groups_past_counts_eap([group])
-        assert result == []
-
-    @patch("sentry.issues.escalating.escalating._query_groups_past_counts_eap")
-    @patch("sentry.issues.escalating.escalating._query_groups_past_counts_snuba")
-    def test_uses_snuba_result_as_source_of_truth(
-        self, mock_snuba: mock.MagicMock, mock_eap: mock.MagicMock
-    ) -> None:
-        group = self.create_group()
-        mock_snuba.return_value = [
-            {
-                "project_id": 1,
-                "group_id": group.id,
-                "hourBucket": "2025-01-05 10:00:00",
-                "count()": 5,
-            }
-        ]
-        mock_eap.return_value = [
-            {
-                "project_id": 2,
-                "group_id": group.id,
-                "hourBucket": "2025-01-05 11:00:00",
-                "count()": 10,
-            }
-        ]
-
-        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
-            result = query_groups_past_counts([group])
-
-        assert result == mock_snuba.return_value
-        mock_snuba.assert_called_once()
-        mock_eap.assert_called_once()
-
-    @patch("sentry.issues.escalating.escalating._query_groups_past_counts_eap")
-    @patch("sentry.issues.escalating.escalating._query_groups_past_counts_snuba")
-    def test_uses_eap_result_as_source_of_truth(
-        self, mock_snuba: mock.MagicMock, mock_eap: mock.MagicMock
-    ) -> None:
-        group = self.create_group()
-        mock_snuba.return_value = [
-            {
-                "project_id": 1,
-                "group_id": group.id,
-                "hourBucket": "2025-01-05 10:00:00",
-                "count()": 5,
-            }
-        ]
-        mock_eap.return_value = [
-            {
-                "project_id": 2,
-                "group_id": group.id,
-                "hourBucket": "2025-01-05 11:00:00",
-                "count()": 10,
-            }
-        ]
-
-        with self.options(
-            {
-                EAPOccurrencesComparator._should_eval_option_name(): True,
-                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
-                    "issues.escalating.query_groups_past_counts"
-                ],
-            }
-        ):
-            result = query_groups_past_counts([group])
-
-        assert result == mock_eap.return_value
-        mock_snuba.assert_called_once()
-        mock_eap.assert_called_once()
-
-    @patch("sentry.snuba.occurrences_rpc.Occurrences.run_grouped_timeseries_query")
-    def test_eap_impl_transforms_results_correctly(self, mock_timeseries: mock.MagicMock) -> None:
-        group = self.create_group()
-
-        # Mock the timeseries response format
-        mock_timeseries.return_value = [
-            {
-                "project_id": group.project_id,
-                "group_id": group.id,
-                "time": 1736074800,
-                "count()": 5.0,
-            },
-            {
-                "project_id": group.project_id,
-                "group_id": group.id,
-                "time": 1736078400,
-                "count()": 3.0,
-            },
-        ]
-
-        result = _query_groups_past_counts_eap([group])
-
-        mock_timeseries.assert_called_once()
-        assert len(result) == 2
-        # Check first result
-        assert result[0]["project_id"] == group.project_id
-        assert result[0]["group_id"] == group.id
-        assert result[0]["count()"] == 5
-        assert "hourBucket" in result[0]
-        # Check second result
-        assert result[1]["count()"] == 3
-
-    @patch("sentry.snuba.occurrences_rpc.Occurrences.run_grouped_timeseries_query")
-    def test_eap_impl_filters_zero_counts(self, mock_timeseries: mock.MagicMock) -> None:
-        group = self.create_group()
-
-        mock_timeseries.return_value = [
-            {
-                "project_id": group.project_id,
-                "group_id": group.id,
-                "time": 1736074800,
-                "count()": 5.0,
-            },
-            {
-                "project_id": group.project_id,
-                "group_id": group.id,
-                "time": 1736078400,
-                "count()": 0.0,
-            },
-            {
-                "project_id": group.project_id,
-                "group_id": group.id,
-                "time": 1736082000,
-                "count()": 3.0,
-            },
-        ]
-
-        result = _query_groups_past_counts_eap([group])
-
-        # Zero count row should be filtered out
-        assert len(result) == 2
-        assert all(r["count()"] > 0 for r in result)
-
-    @patch("sentry.snuba.occurrences_rpc.Occurrences.run_grouped_timeseries_query")
-    def test_eap_impl_handles_multiple_groups(self, mock_timeseries: mock.MagicMock) -> None:
-        group1 = self.create_group()
-        group2 = self.create_group()
-
-        mock_timeseries.return_value = [
-            {
-                "project_id": group1.project_id,
-                "group_id": group1.id,
-                "time": 1736074800,
-                "count()": 5.0,
-            },
-            {
-                "project_id": group2.project_id,
-                "group_id": group2.id,
-                "time": 1736074800,
-                "count()": 10.0,
-            },
-        ]
-
-        result = _query_groups_past_counts_eap([group1, group2])
-
-        assert len(result) == 2
-        # Results should be sorted by project_id, group_id, hourBucket
-        group_ids_in_result = [r["group_id"] for r in result]
-        assert group1.id in group_ids_in_result
-        assert group2.id in group_ids_in_result
+        # Events were all stored in the same hour, so both backends should
+        # return exactly one bucket with count 2.
+        assert len(snuba_results) == len(eap_results) == 1
+        assert snuba_results[0]["count()"] == eap_results[0]["count()"] == 2
