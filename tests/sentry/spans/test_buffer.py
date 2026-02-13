@@ -976,9 +976,9 @@ class TestSpansBuffer:
             for c in mock_metrics.call_args_list
             if c.args and c.args[0] == "spans.buffer.flush_segments.ingested_spans_per_segment"
         ]
-        assert (
-            len(ingested_spans_timing_calls) == 1
-        ), "Should emit ingested_spans_per_segment metric"
+        assert len(ingested_spans_timing_calls) == 1, (
+            "Should emit ingested_spans_per_segment metric"
+        )
         assert ingested_spans_timing_calls[0].args[1] == 6, "Should have ingested 6 spans"
 
         ingested_bytes_timing_calls = [
@@ -986,9 +986,9 @@ class TestSpansBuffer:
             for c in mock_metrics.call_args_list
             if c.args and c.args[0] == "spans.buffer.flush_segments.ingested_bytes_per_segment"
         ]
-        assert (
-            len(ingested_bytes_timing_calls) == 1
-        ), "Should emit ingested_bytes_per_segment metric"
+        assert len(ingested_bytes_timing_calls) == 1, (
+            "Should emit ingested_bytes_per_segment metric"
+        )
         assert ingested_bytes_timing_calls[0].args[1] == expected_bytes
 
     def test_preassigned_disconnected_segment(self, buffer: SpansBuffer) -> None:
@@ -1286,9 +1286,9 @@ def test_dual_write_separate_redirect_tables_payload_set() -> None:
         assert len(payload_set_redirects) > 0, "Payload SET redirect table should have entries"
 
         # Both should have equivalent mappings (same span_id -> parent_span_id)
-        assert (
-            set_redirects == payload_set_redirects
-        ), "SET and payload SET redirect tables should have equivalent mappings"
+        assert set_redirects == payload_set_redirects, (
+            "SET and payload SET redirect tables should have equivalent mappings"
+        )
 
         # Flush and verify cleanup
         rv = buffer.flush_segments(now=11)
@@ -1298,9 +1298,9 @@ def test_dual_write_separate_redirect_tables_payload_set() -> None:
         set_redirects_after = buffer.client.hgetall(set_redirect_key)
         payload_set_redirects_after = buffer.client.hgetall(payload_set_redirect_key)
         assert len(set_redirects_after) == 0, "SET redirect table should be cleaned up"
-        assert (
-            len(payload_set_redirects_after) == 0
-        ), "Payload SET redirect table should be cleaned up"
+        assert len(payload_set_redirects_after) == 0, (
+            "Payload SET redirect table should be cleaned up"
+        )
 
         assert_clean(buffer.client)
 
