@@ -1,3 +1,5 @@
+brew 'uv'
+
 # required to run devservices
 # colima is a docker-compatible container runtime
 # devenv installs and manages it as we want control over the version,

@@ -1785,7 +1785,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.data["metadata"]["title"] == "foo bar"
 
     def test_error_event_type(self) -> None:
-
         manager = EventManager(
             make_event(**{"exception": {"values": [{"type": "Foo", "value": "bar"}]}})
         )
@@ -1803,10 +1802,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         }
 
     def test_error_event_with_minified_stacktrace(self) -> None:
-        with patch(
-            "sentry.receivers.onboarding.record_event_with_first_minified_stack_trace_for_project",  # autospec=True
-        ) as mock_record_event_with_first_minified_stack_trace_for_project:
-
+        with (
+            patch(
+                "sentry.receivers.onboarding.record_event_with_first_minified_stack_trace_for_project",  # autospec=True
+            ) as mock_record_event_with_first_minified_stack_trace_for_project
+        ):
             first_event_with_minified_stack_trace_received.connect(
                 mock_record_event_with_first_minified_stack_trace_for_project, weak=False
             )

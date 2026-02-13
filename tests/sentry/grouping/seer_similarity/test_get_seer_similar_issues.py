@@ -123,7 +123,6 @@ class GetSeerSimilarIssuesTest(TestCase):
     def test_sends_second_seer_request_when_seer_matches_are_unusable(
         self, mock_incr: MagicMock
     ) -> None:
-
         existing_event = save_new_event(
             {"message": "Dogs are great!", "fingerprint": ["{{ default }}", "maisey"]},
             self.project,
@@ -1244,7 +1243,6 @@ class MultipleParentGroupsFoundTest(TestCase):
     def test_non_hybrid_fingerprint_uses_first_non_hybrid_result(
         self, mock_incr: MagicMock, mock_distribution: MagicMock
     ) -> None:
-
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
         existing_hash = existing_event.get_primary_hash()
         existing_grouphash = GroupHash.objects.filter(

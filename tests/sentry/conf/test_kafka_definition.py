@@ -19,9 +19,9 @@ def test_topic_definition() -> None:
 
     for topic in Topic:
         cluster_name = settings.KAFKA_TOPIC_TO_CLUSTER[topic.value]
-        assert (
-            cluster_name in settings.KAFKA_CLUSTERS
-        ), f"{cluster_name} is not defined in KAFKA_CLUSTERS"
+        assert cluster_name in settings.KAFKA_CLUSTERS, (
+            f"{cluster_name} is not defined in KAFKA_CLUSTERS"
+        )
 
     for default_topic in settings.KAFKA_TOPIC_OVERRIDES:
         # Ensure all override topics are in the enum

@@ -128,11 +128,19 @@ class RuleConditionTranslationTest(ConditionTestCase):
         payload = {"id": "sentry.rules.filters.issue_category.IssueCategoryFilter", "value": 2}
         self.assert_basic_filter_translated(payload)
 
+    def test_issue_category_include(self) -> None:
+        payload = {
+            "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
+            "value": 2,
+            "include": "true",
+        }
+        self.assert_basic_filter_translated(payload)
+
     def test_issue_category_exclude(self) -> None:
         payload = {
             "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
             "value": 2,
-            "include": False,
+            "include": "false",
         }
         self.assert_basic_filter_translated(payload)
 

@@ -79,7 +79,6 @@ class FlaggedInsight(BaseModel):
 
 
 class TreemapElement(BaseModel):
-
     model_config = ConfigDict(frozen=True)
 
     name: str
@@ -140,7 +139,6 @@ class AppComponent(BaseModel):
 
 
 class SizeAnalysisResults(BaseModel):
-
     model_config = ConfigDict(frozen=True)
 
     analysis_duration: float
