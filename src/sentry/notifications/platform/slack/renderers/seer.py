@@ -201,6 +201,9 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         extra_text: str | None = None,
         has_complete_stage: bool = True,
     ) -> list[Block]:
+        if has_complete_stage and data.current_point == AutofixStoppingPoint.OPEN_PR:
+            return []
+
         config = AUTOFIX_CONFIG[data.current_point]
         raw_text = config["completed_text"] if has_complete_stage else config["working_text"]
         markdown_text = f"_{raw_text}_"

@@ -1,5 +1,6 @@
 from unittest.mock import Mock, patch
 
+from django.test import override_settings
 from slack_sdk.models.blocks import (
     ActionsBlock,
     ButtonElement,
@@ -24,7 +25,6 @@ class SeerSlackRendererTest(TestCase):
     def _create_update(
         self,
         current_point: AutofixStoppingPoint,
-        has_progressed: bool = False,
         summary: str | None = None,
         steps: list[str] | None = None,
         changes: list[SeerAutofixCodeChange] | None = None,
@@ -46,29 +46,22 @@ class SeerSlackRendererTest(TestCase):
     def test_render_footer_blocks_with_has_complete_stage(self) -> None:
         data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
         blocks = SeerSlackRenderer.render_footer_blocks(data=data, has_complete_stage=True)
-        assert len(blocks) == 2
-        # The first block has the next stages working text and a link
-        config = AUTOFIX_CONFIG[AutofixStoppingPoint.SOLUTION]
-        working_text = config["working_text"]
-        assert working_text is not None
+        assert len(blocks) == 1
+        config = AUTOFIX_CONFIG[AutofixStoppingPoint.ROOT_CAUSE]
+        completed_text = config["completed_text"]
+        assert completed_text is not None
         section_block = blocks[0]
         assert isinstance(section_block, SectionBlock)
         assert section_block.text is not None
-        assert working_text in section_block.text.text
+        assert completed_text in section_block.text.text
         assert section_block.accessory is not None
         assert isinstance(section_block.accessory, LinkButtonElement)
         assert section_block.accessory.url == data.group_link
-        # The second block should be a context block with run_id
-        assert isinstance(blocks[1], ContextBlock)
-        context_element = blocks[1].elements[0]
-        assert isinstance(context_element, PlainTextObject)
-        assert f"Run ID: {MOCK_RUN_ID}" in context_element.text
 
     def test_render_footer_blocks_with_stage_not_completed(self) -> None:
         data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
         blocks = SeerSlackRenderer.render_footer_blocks(data=data, has_complete_stage=False)
-        assert len(blocks) == 2
-        # The first block should contain the working text for the CURRENT stage
+        assert len(blocks) == 1
         config = AUTOFIX_CONFIG[AutofixStoppingPoint.ROOT_CAUSE]
         working_text = config["working_text"]
         assert working_text is not None
@@ -81,7 +74,7 @@ class SeerSlackRendererTest(TestCase):
         data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
         extra_text = "(ty <@U12345>)"
         blocks = SeerSlackRenderer.render_footer_blocks(data=data, extra_text=extra_text)
-        assert len(blocks) == 2
+        assert len(blocks) == 1
         section_block = blocks[0]
         assert isinstance(section_block, SectionBlock)
         assert section_block.text is not None
@@ -91,6 +84,16 @@ class SeerSlackRendererTest(TestCase):
         data = self._create_update(AutofixStoppingPoint.OPEN_PR)
         blocks = SeerSlackRenderer.render_footer_blocks(data=data, has_complete_stage=True)
         assert len(blocks) == 0
+
+    @override_settings(DEBUG=True)
+    def test_render_footer_debug_block(self) -> None:
+        data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
+        blocks = SeerSlackRenderer.render_footer_blocks(data=data)
+        assert len(blocks) == 2
+        assert isinstance(blocks[1], ContextBlock)
+        context_element = blocks[1].elements[0]
+        assert isinstance(context_element, PlainTextObject)
+        assert f"Run ID: {MOCK_RUN_ID}" in context_element.text
 
     def test_render_autofix_button(self) -> None:
         element = SeerSlackRenderer.render_autofix_button(group=self.group)
@@ -124,30 +127,6 @@ class SeerSlackRendererTest(TestCase):
         # Second button is trigger for next stage
         assert isinstance(actions_block.elements[1], ButtonElement)
         assert actions_block.elements[1].value == AutofixStoppingPoint.SOLUTION.value
-
-    @patch(
-        "sentry.notifications.platform.templates.seer.organization_service.get_option",
-        return_value=True,
-    )
-    def test_render_autofix_update_with_progress_shows_footer(self, _mock_get_option: Mock) -> None:
-        data = self._create_update(current_point=AutofixStoppingPoint.ROOT_CAUSE)
-        renderable = SeerSlackRenderer._render_autofix_update(data)
-        # Should have footer blocks (section + context)
-        has_context_block = any(isinstance(b, ContextBlock) for b in renderable["blocks"])
-        assert has_context_block
-
-    @patch(
-        "sentry.notifications.platform.templates.seer.organization_service.get_option",
-        return_value=True,
-    )
-    def test_render_autofix_update_with_progress_no_action_buttons(
-        self, _mock_get_option: Mock
-    ) -> None:
-        data = self._create_update(current_point=AutofixStoppingPoint.ROOT_CAUSE)
-        renderable = SeerSlackRenderer._render_autofix_update(data)
-        # Should NOT have actions block (no buttons for progressed updates)
-        has_actions = any(isinstance(b, ActionsBlock) for b in renderable["blocks"])
-        assert not has_actions
 
     @patch(
         "sentry.notifications.platform.templates.seer.organization_service.get_option",
