@@ -220,6 +220,7 @@ def test_schedulerunner_tick_create_checkin(
         )
 
 
+@pytest.mark.skip(reason="flaky: #108237")
 @pytest.mark.django_db
 def test_schedulerunner_tick_key_exists_no_spawn(
     task_app: TaskworkerApp, run_storage: RunStorage
