@@ -9,6 +9,7 @@ from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.notifications.platform.templates.seer import SeerAutofixError, SeerAutofixUpdate
 from sentry.notifications.utils.actions import BlockKitMessageAction
+from sentry.seer.autofix.constants import AutofixStatus
 from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import entrypoint_registry
@@ -156,12 +157,12 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
         self._update_existing_message(run_id=run_id, has_complete_stage=False, include_user=True)
 
-    def on_trigger_autofix_already_exists(
-        self, *, state: AutofixState, has_complete_stage: bool
-    ) -> None:
+    def on_trigger_autofix_already_exists(self, *, state: AutofixState, step_state: dict) -> None:
         # We don't include the user since we don't know that they started the original run.
         self._update_existing_message(
-            run_id=state.run_id, has_complete_stage=has_complete_stage, include_user=False
+            run_id=state.run_id,
+            has_complete_stage=step_state.get("status") == AutofixStatus.COMPLETED,
+            include_user=False,
         )
 
     def create_autofix_cache_payload(self) -> SlackEntrypointCachePayload:

@@ -31,11 +31,10 @@ class SeerEntrypoint[CachePayloadT](Protocol):
         """
         ...
 
-    def on_trigger_autofix_already_exists(
-        self, *, state: AutofixState, has_complete_stage: bool
-    ) -> None:
+    def on_trigger_autofix_already_exists(self, *, state: AutofixState, step_state: dict) -> None:
         """
         Called when an autofix run already exists for the group.
+        Also passes the most recent state from the matching stopping_point step for convenience.
 
         Example Usage: Sending a 'run in progress' message, etc.
         """

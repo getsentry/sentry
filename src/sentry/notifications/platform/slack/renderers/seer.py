@@ -50,25 +50,25 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
         heading=":mag:  *Root Cause Analysis*",
         label="Fix with Seer",
         working_text="Seer is analyzing the root cause...",
-        completed_text="Seer has analyzed the root cause.",
+        completed_text="Seer has already analyzed the root cause.",
     ),
     AutofixStoppingPoint.SOLUTION: AutofixStageConfig(
         heading=":test_tube:  *Proposed Solution*",
         label="Plan a Solution",
         working_text="Seer is working on the solution...",
-        completed_text="Seer has proposed a solution.",
+        completed_text="Seer has already proposed a solution.",
     ),
     AutofixStoppingPoint.CODE_CHANGES: AutofixStageConfig(
         heading=":pencil2:  *Code Change Suggestions*",
         label="Write Code Changes",
         working_text="Seer is writing the code...",
-        completed_text="Seer has written the code changes.",
+        completed_text="Seer has already written the code changes.",
     ),
     AutofixStoppingPoint.OPEN_PR: AutofixStageConfig(
         heading=":link:  *Pull Request*",
         label="Draft a PR",
         working_text="Seer is drafting a pull request...",
-        completed_text="Seer has drafted a pull request.",
+        completed_text="Seer has already drafted a pull request.",
     ),
 }
 
@@ -201,9 +201,6 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         extra_text: str | None = None,
         has_complete_stage: bool = True,
     ) -> list[Block]:
-        if has_complete_stage and data.current_point == AutofixStoppingPoint.OPEN_PR:
-            return []
-
         config = AUTOFIX_CONFIG[data.current_point]
         raw_text = config["completed_text"] if has_complete_stage else config["working_text"]
         markdown_text = f"_{raw_text}_"

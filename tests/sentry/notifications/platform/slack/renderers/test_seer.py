@@ -80,11 +80,6 @@ class SeerSlackRendererTest(TestCase):
         assert section_block.text is not None
         assert extra_text in section_block.text.text
 
-    def test_render_footer_blocks_returns_empty_for_open_pr_completed(self) -> None:
-        data = self._create_update(AutofixStoppingPoint.OPEN_PR)
-        blocks = SeerSlackRenderer.render_footer_blocks(data=data, has_complete_stage=True)
-        assert len(blocks) == 0
-
     @override_settings(DEBUG=True)
     def test_render_footer_debug_block(self) -> None:
         data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)

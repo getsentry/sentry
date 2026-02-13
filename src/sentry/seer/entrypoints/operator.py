@@ -8,7 +8,6 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.autofix.autofix import trigger_autofix as _trigger_autofix
 from sentry.seer.autofix.autofix import update_autofix
-from sentry.seer.autofix.constants import AutofixStatus
 from sentry.seer.autofix.types import (
     AutofixCreatePRPayload,
     AutofixSelectRootCausePayload,
@@ -129,21 +128,10 @@ class SeerOperator[CachePayloadT]:
                 }
             )
             try:
-                existing_state = (
-                    get_autofix_state(
-                        run_id=run_id,
-                        organization_id=group.organization.id,
-                    )
-                    if run_id
-                    else get_autofix_state(
-                        group_id=group.id,
-                        organization_id=group.organization.id,
-                    )
+                existing_state = get_autofix_state(
+                    group_id=group.id, organization_id=group.organization.id
                 )
             except Exception as e:
-                lifecycle.record_failure(
-                    failure_reason="failed_to_get_autofix_state", extra={"error": str(e)}
-                )
                 with SeerOperatorEventLifecycleMetric(
                     interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
                     entrypoint_key=self.entrypoint.key,
@@ -151,22 +139,25 @@ class SeerOperator[CachePayloadT]:
                     self.entrypoint.on_trigger_autofix_error(
                         error="Encountered an error while talking to Seer"
                     )
+                lifecycle.record_failure(failure_reason=e)
                 return
             if existing_state:
-                has_complete_stage = has_complete_stage_from_state(stopping_point, existing_state)
+                stopping_point_step = get_stopping_point_status(stopping_point, existing_state)
                 lifecycle.add_extras(
                     {
                         "existing_run_id": str(existing_state.run_id),
-                        "has_complete_stage": str(has_complete_stage),
+                        "existing_run_status": str(existing_state.status),
                     }
                 )
-                if existing_state.status == AutofixStatus.PROCESSING:
+                # For now, we don't support re-runs over slack -- it causes a confusing UX without
+                # reliably being able to edit messages.
+                if stopping_point_step:
                     with SeerOperatorEventLifecycleMetric(
                         interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ALREADY_EXISTS,
                         entrypoint_key=self.entrypoint.key,
                     ).capture():
                         self.entrypoint.on_trigger_autofix_already_exists(
-                            state=existing_state, has_complete_stage=has_complete_stage
+                            state=existing_state, step_state=stopping_point_step
                         )
                     return
 
@@ -325,35 +316,29 @@ def process_autofix_updates(
                     ept_lifecycle.record_failure(failure_reason=e)
 
 
-def has_complete_stage_from_state(
+def get_stopping_point_status(
     stopping_point: AutofixStoppingPoint, autofix_state: AutofixState
-) -> bool:
+) -> dict | None:
     """
-    Determines if a stopping point stage has been completed based on the autofix state.
-    The AutofixState type only somewhat matches the stopping points, so we have to check the keys of
-    each step, and the status of a matching step are the best mapping we have for
+    Gets the most recent matching step state from a given stopping point.
     """
+    # The most recent of a repeated step is at the end of the list, that's what we want to surface
+    steps = reversed(autofix_state.steps)
     match stopping_point:
         case AutofixStoppingPoint.ROOT_CAUSE:
-            return any(
-                step.get("key") == "root_cause_analysis"
-                and step.get("status") == AutofixStatus.COMPLETED
-                for step in autofix_state.steps
-            )
+            step = next((step for step in steps if step.get("key") == "root_cause_analysis"), {})
         case AutofixStoppingPoint.SOLUTION:
-            return any(
-                step.get("key") == "solution" and step.get("status") == AutofixStatus.COMPLETED
-                for step in autofix_state.steps
-            )
+            step = next((step for step in steps if step.get("key") == "solution"), {})
         case AutofixStoppingPoint.CODE_CHANGES:
-            return any(
-                step.get("key") == "changes" and step.get("status") == AutofixStatus.COMPLETED
-                for step in autofix_state.steps
-            )
+            step = next((step for step in steps if step.get("key") == "changes"), {})
         case AutofixStoppingPoint.OPEN_PR:
-            return any(
-                step.get("key") == "changes"
-                and step.get("status") == AutofixStatus.COMPLETED
-                and any(change.get("pull_request") for change in step.get("changes", []))
-                for step in autofix_state.steps
+            step = next(
+                (
+                    step
+                    for step in steps
+                    if step.get("key") == "changes"
+                    and any(change.get("pull_request") for change in step.get("changes", []))
+                ),
+                {},
             )
+    return step

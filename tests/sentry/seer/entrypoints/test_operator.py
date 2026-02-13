@@ -30,16 +30,14 @@ class MockEntrypoint(SeerEntrypoint[MockCachePayload]):
         self.autofix_errors = []
         self.autofix_run_ids = []
         self.autofix_update_cache_payloads = []
-        self.autofix_already_exists_states: list[tuple[AutofixState, bool]] = []
+        self.autofix_already_exists_states: list[tuple[AutofixState, dict]] = []
 
     @staticmethod
     def has_access(organization: Organization) -> bool:
         return True
 
-    def on_trigger_autofix_already_exists(
-        self, *, state: AutofixState, has_complete_stage: bool
-    ) -> None:
-        self.autofix_already_exists_states.append((state, has_complete_stage))
+    def on_trigger_autofix_already_exists(self, *, state: AutofixState, step_state: dict) -> None:
+        self.autofix_already_exists_states.append((state, step_state))
 
     def on_trigger_autofix_error(self, *, error: str) -> None:
         self.autofix_errors.append(error)
@@ -143,6 +141,7 @@ class SeerOperatorTest(TestCase):
     def test_trigger_autofix_already_exists(
         self, mock_get_autofix_state, mock_trigger_autofix_helper
     ):
+        existing_rca_step_state = {"key": "root_cause_analysis", "status": AutofixStatus.COMPLETED}
         existing_state = AutofixState(
             run_id=MOCK_RUN_ID,
             request={
@@ -153,6 +152,7 @@ class SeerOperatorTest(TestCase):
             },
             updated_at=datetime.now(),
             status=AutofixStatus.PROCESSING,
+            steps=[existing_rca_step_state],
         )
         mock_get_autofix_state.return_value = existing_state
 
@@ -161,7 +161,9 @@ class SeerOperatorTest(TestCase):
         )
 
         mock_trigger_autofix_helper.assert_not_called()
-        assert self.entrypoint.autofix_already_exists_states == [(existing_state, False)]
+        assert self.entrypoint.autofix_already_exists_states == [
+            (existing_state, existing_rca_step_state)
+        ]
         assert self.entrypoint.autofix_run_ids == []
         assert self.entrypoint.autofix_errors == []
 
