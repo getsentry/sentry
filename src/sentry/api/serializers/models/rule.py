@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
-from django.db.models import Max, Prefetch, Q, prefetch_related_objects
+from django.db.models import Max, Prefetch, Q, Subquery, prefetch_related_objects
 from rest_framework import serializers
 
 from sentry.api.serializers import Serializer, register
@@ -21,9 +21,11 @@ from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.models import (
+    Action,
     AlertRuleWorkflow,
     DataCondition,
     DataConditionGroup,
+    DataConditionGroupAction,
     Workflow,
     WorkflowDataConditionGroup,
 )
@@ -408,6 +410,12 @@ class WorkflowEngineRuleSerializer(Serializer):
             return actor.identifier
         return None
 
+    def _fetch_actions(self, condition_group: DataConditionGroup) -> BaseQuerySet[Action]:
+        dcgas = DataConditionGroupAction.objects.filter(
+            condition_group=condition_group
+        ).values_list("action_id", flat=True)
+        return Action.objects.filter(id__in=Subquery(dcgas))
+
     def _generate_rule_conditions_filters(
         self, workflow: Workflow, project: Project, workflow_dcg: WorkflowDataConditionGroup
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -451,7 +459,7 @@ class WorkflowEngineRuleSerializer(Serializer):
         # Bulk fetch projects for workflows (attached through detectors)
         workflow_to_projects = self._fetch_workflow_projects(item_list)
 
-        # Bulk fetch wokflows with trigger and filter conditionx
+        # Bulk fetch wokflows with trigger and filter conditions
         workflows = self._fetch_workflows(item_list)
 
         # Bulk fetch workflow -> rule ids
@@ -460,8 +468,6 @@ class WorkflowEngineRuleSerializer(Serializer):
         last_triggered_lookup: dict[int, datetime] = {}
         if "lastTriggered" in self.expand:
             last_triggered_lookup = self._fetch_workflow_last_triggered(item_list)
-
-        # TODO: SERIALIZE ACTIONS
 
         result: dict[Workflow, dict[str, Any]] = defaultdict(dict)
         for workflow in workflows:
@@ -482,6 +488,22 @@ class WorkflowEngineRuleSerializer(Serializer):
             workflow_dcg = workflow.prefetched_wdcgs[0]  # type: ignore[attr-defined]
             result[workflow]["filter_match"] = workflow_dcg.condition_group.logic_type
 
+            serialized_actions = []
+            for action in self._fetch_actions(workflow_dcg.condition_group):
+                serialized_actions.append(
+                    {
+                        "workspace": "1",
+                        "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                        "channel": "slack-demo",
+                        "channel_id": "C06H93DSF2T",
+                        "notes": "",
+                        "tags": "",
+                        "uuid": "142d5d2e-a2f4-45e2-bb03-8c9b2975bff2",
+                        "name": "Send a notification to the Sentry Slack workspace to #slack-demo",
+                    }
+                )
+                # TODO actually format like a rule action
+
             # Generate conditions and filters
             conditions, filters = self._generate_rule_conditions_filters(
                 workflow, result[workflow]["projects"][0], workflow_dcg
@@ -492,6 +514,8 @@ class WorkflowEngineRuleSerializer(Serializer):
 
             if workflow.id in last_triggered_lookup:
                 result[workflow]["last_triggered"] = last_triggered_lookup[workflow.id]
+
+            result[workflow]["actions"] = serialized_actions
 
         return result
 
@@ -510,7 +534,7 @@ class WorkflowEngineRuleSerializer(Serializer):
             "id": str(attrs["rule_id"]) if attrs.get("rule_id") else None,
             "conditions": attrs["conditions"],
             "filters": attrs["filters"],
-            "actions": [],  # TODO: reverse translate actions
+            "actions": attrs["actions"],
             "actionMatch": action_match,
             "filterMatch": filter_match,
             "frequency": obj.config.get("frequency", 0),

@@ -122,9 +122,12 @@ class WorkflowRuleSerializerTest(TestCase):
         for filter in rule_filters:
             assert filter in workflow_filters
 
-        # TODO: test with actions
-        serialized_rule.pop("actions")
-        serialized_workflow_rule.pop("actions")
+        rule_actions = serialized_rule.pop("actions")
+        workflow_actions = serialized_workflow_rule.pop("actions")
+
+        assert len(rule_actions) == len(workflow_actions)
+        for action in rule_actions:
+            assert action in workflow_actions
 
         assert serialized_rule == serialized_workflow_rule
 
