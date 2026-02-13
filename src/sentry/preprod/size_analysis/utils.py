@@ -21,6 +21,7 @@ class ComparisonValidationResult:
         DIFFERENT_BUILD_CONFIGURATIONS = "different_build_configurations"
         DIFFERENT_METRICS = "different_metrics"
         NOT_ALL_COMPLETED = "not_all_completed"
+        METRICS_FAILED = "metrics_failed"
 
     can_compare: bool
     error_message: str | None = None
@@ -45,6 +46,22 @@ def can_compare_size_metrics(
         )
 
     all_metrics = head_metrics + base_metrics
+    failed_metrics = [
+        m
+        for m in all_metrics
+        if m.state
+        in (
+            PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
+            PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+        )
+    ]
+    if failed_metrics:
+        return ComparisonValidationResult(
+            can_compare=False,
+            error_message=f"{len(failed_metrics)} metric(s) failed size analysis.",
+            error_type=ComparisonValidationResult.ErrorType.METRICS_FAILED,
+        )
+
     incomplete = [
         m for m in all_metrics if m.state != PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
     ]

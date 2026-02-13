@@ -230,7 +230,93 @@ class CanCompareSizeMetricsTest(TestCase):
 
         assert result.can_compare is False
         assert result.error_type == ComparisonValidationResult.ErrorType.NOT_ALL_COMPLETED
+        assert result.error_message is not None
         assert "2 metric(s)" in result.error_message
+
+    def test_cannot_compare_when_metric_failed(self):
+        head_metrics = [
+            PreprodArtifactSizeMetrics(
+                preprod_artifact_id=1,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                max_install_size=1000,
+                max_download_size=500,
+            )
+        ]
+        base_metrics = [
+            PreprodArtifactSizeMetrics(
+                preprod_artifact_id=2,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
+                max_install_size=900,
+                max_download_size=450,
+            )
+        ]
+
+        result = can_compare_size_metrics(head_metrics, base_metrics)
+
+        assert result.can_compare is False
+        assert result.error_type == ComparisonValidationResult.ErrorType.METRICS_FAILED
+        assert result.error_message is not None
+        assert "failed" in result.error_message
+
+    def test_cannot_compare_when_metric_not_ran(self):
+        head_metrics = [
+            PreprodArtifactSizeMetrics(
+                preprod_artifact_id=1,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+                max_install_size=1000,
+                max_download_size=500,
+            )
+        ]
+        base_metrics = [
+            PreprodArtifactSizeMetrics(
+                preprod_artifact_id=2,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                max_install_size=900,
+                max_download_size=450,
+            )
+        ]
+
+        result = can_compare_size_metrics(head_metrics, base_metrics)
+
+        assert result.can_compare is False
+        assert result.error_type == ComparisonValidationResult.ErrorType.METRICS_FAILED
+        assert result.error_message is not None
+        assert "failed" in result.error_message
+
+    def test_failed_takes_priority_over_pending(self):
+        head_metrics = [
+            PreprodArtifactSizeMetrics(
+                preprod_artifact_id=1,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                max_install_size=1000,
+                max_download_size=500,
+            )
+        ]
+        base_metrics = [
+            PreprodArtifactSizeMetrics(
+                preprod_artifact_id=2,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
+                max_install_size=900,
+                max_download_size=450,
+            )
+        ]
+
+        result = can_compare_size_metrics(head_metrics, base_metrics)
+
+        assert result.can_compare is False
+        assert result.error_type == ComparisonValidationResult.ErrorType.METRICS_FAILED
 
     def test_different_metrics_error_type(self):
         head_metrics = [
