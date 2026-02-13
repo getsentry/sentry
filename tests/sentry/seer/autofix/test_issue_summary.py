@@ -128,9 +128,11 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         cached_summary = cache.get(f"ai-group-summary-v2:{self.group.id}")
         assert cached_summary == expected_response_summary
 
-    @patch("sentry.seer.autofix.issue_summary.requests.post")
+    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
     @patch("sentry.seer.autofix.issue_summary._get_event")
-    def test_call_seer_integration(self, mock_get_event: MagicMock, mock_post: MagicMock) -> None:
+    def test_call_seer_integration(
+        self, mock_get_event: MagicMock, mock_request: MagicMock
+    ) -> None:
         event = Mock(
             event_id="test_event_id",
             data="test_event_data",
@@ -140,6 +142,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         serialized_event = {"event_id": "test_event_id", "data": "test_event_data"}
         mock_get_event.return_value = [serialized_event, event]
         mock_response = Mock()
+        mock_response.status = 200
         mock_response.json.return_value = {
             "group_id": str(self.group.id),
             "whats_wrong": "Test whats wrong",
@@ -154,7 +157,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
                 "fixability_score_version": 1,
             },
         }
-        mock_post.return_value = mock_response
+        mock_request.return_value = mock_response
 
         expected_response_summary = mock_response.json.return_value
         expected_response_summary["event_id"] = event.event_id
@@ -163,8 +166,8 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         assert status_code == 200
         assert summary_data == convert_dict_key_case(expected_response_summary, snake_to_camel_case)
-        mock_post.assert_called_once()
-        payload = orjson.loads(mock_post.call_args_list[0].kwargs["data"])
+        mock_request.assert_called_once()
+        payload = orjson.loads(mock_request.call_args_list[0].kwargs["data"])
         assert payload["trace_tree"] is None
 
         assert cache.get(f"ai-group-summary-v2:{self.group.id}") == expected_response_summary
@@ -306,8 +309,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         # Ensure generation was called directly
         mock_generate_summary.assert_called_once()
 
-    @patch("sentry.seer.autofix.issue_summary.sign_with_seer_secret", return_value={})
-    @patch("sentry.seer.autofix.issue_summary.requests.post")
+    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
     def test_call_seer_routes_to_summarization_url(self, post: MagicMock, _sign: MagicMock) -> None:
         resp = Mock()
         resp.json.return_value = {
@@ -334,7 +336,6 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert payload["trace_tree"] == {"trace": "tree"}
         resp.raise_for_status.assert_called_once()
 
-    @patch("sentry.seer.autofix.issue_summary.sign_with_seer_secret", return_value={})
     @patch(
         "sentry.seer.autofix.issue_summary.requests.post", side_effect=Exception("primary error")
     )
@@ -806,50 +807,45 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
 
 
 class TestFetchUserPreference:
-    @patch("sentry.seer.autofix.issue_summary.sign_with_seer_secret", return_value={})
-    @patch("sentry.seer.autofix.issue_summary.requests.post")
-    def test_fetch_user_preference_success(self, mock_post, mock_sign):
+    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    def test_fetch_user_preference_success(self, mock_request):
         mock_response = Mock()
+        mock_response.status = 200
         mock_response.json.return_value = {
             "preference": {"automated_run_stopping_point": "solution"}
         }
-        mock_response.raise_for_status = Mock()
-        mock_post.return_value = mock_response
+        mock_request.return_value = mock_response
 
         result = _fetch_user_preference(project_id=123)
 
         assert result == "solution"
-        mock_post.assert_called_once()
-        mock_response.raise_for_status.assert_called_once()
+        mock_request.assert_called_once()
 
-    @patch("sentry.seer.autofix.issue_summary.sign_with_seer_secret", return_value={})
-    @patch("sentry.seer.autofix.issue_summary.requests.post")
-    def test_fetch_user_preference_no_preference(self, mock_post, mock_sign):
+    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    def test_fetch_user_preference_no_preference(self, mock_request):
         mock_response = Mock()
+        mock_response.status = 200
         mock_response.json.return_value = {"preference": None}
-        mock_response.raise_for_status = Mock()
-        mock_post.return_value = mock_response
+        mock_request.return_value = mock_response
 
         result = _fetch_user_preference(project_id=123)
 
         assert result is None
 
-    @patch("sentry.seer.autofix.issue_summary.sign_with_seer_secret", return_value={})
-    @patch("sentry.seer.autofix.issue_summary.requests.post")
-    def test_fetch_user_preference_empty_preference(self, mock_post, mock_sign):
+    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    def test_fetch_user_preference_empty_preference(self, mock_request):
         mock_response = Mock()
+        mock_response.status = 200
         mock_response.json.return_value = {"preference": {"automated_run_stopping_point": None}}
-        mock_response.raise_for_status = Mock()
-        mock_post.return_value = mock_response
+        mock_request.return_value = mock_response
 
         result = _fetch_user_preference(project_id=123)
 
         assert result is None
 
-    @patch("sentry.seer.autofix.issue_summary.sign_with_seer_secret", return_value={})
-    @patch("sentry.seer.autofix.issue_summary.requests.post")
-    def test_fetch_user_preference_api_error(self, mock_post, mock_sign):
-        mock_post.side_effect = Exception("API error")
+    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    def test_fetch_user_preference_api_error(self, mock_request):
+        mock_request.side_effect = Exception("API error")
 
         result = _fetch_user_preference(project_id=123)
 
