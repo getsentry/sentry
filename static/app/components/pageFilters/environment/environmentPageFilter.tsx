@@ -238,13 +238,22 @@ export function EnvironmentPageFilter({
       menuTitle={t('Filter Environments')}
       menuWidth={menuWidth ?? defaultMenuWidth}
       menuHeaderTrailingItems={
-        stagedSelect.shouldShowReset ? <HybridFilterComponents.ResetButton /> : null
+        stagedSelect.shouldShowReset ? (
+          <HybridFilterComponents.ResetButton
+            onClick={() => stagedSelect.handleReset()}
+          />
+        ) : null
       }
       menuFooter={
         stagedSelect.hasStagedChanges ? (
           <Flex gap="md" align="center" justify="end">
-            <HybridFilterComponents.CancelButton />
-            <HybridFilterComponents.ApplyButton />
+            <HybridFilterComponents.CancelButton
+              disabled={!stagedSelect.hasStagedChanges}
+              onClick={() => stagedSelect.removeStagedChanges()}
+            />
+            <HybridFilterComponents.ApplyButton
+              onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+            />
           </Flex>
         ) : null
       }

@@ -112,13 +112,21 @@ export function TestSuiteDropdown() {
       emptyMessage={getEmptyMessage()}
       menuTitle={t('Filter Test Suites')}
       menuHeaderTrailingItems={
-        stagedSelect.shouldShowReset ? <HybridFilterComponents.ResetButton /> : null
+        stagedSelect.shouldShowReset ? (
+          <HybridFilterComponents.ResetButton
+            onClick={() => stagedSelect.handleReset()}
+          />
+        ) : null
       }
       menuFooter={
         stagedSelect.hasStagedChanges ? (
           <Flex gap="md" align="center" justify="end">
-            <HybridFilterComponents.CancelButton />
-            <HybridFilterComponents.ApplyButton />
+            <HybridFilterComponents.CancelButton
+              onClick={() => stagedSelect.removeStagedChanges()}
+            />
+            <HybridFilterComponents.ApplyButton
+              onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+            />
           </Flex>
         ) : null
       }

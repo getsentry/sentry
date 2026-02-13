@@ -356,28 +356,16 @@ export const HybridFilterComponents = {
     return <LinkButton size="xs" {...props} />;
   },
 
-  ResetButton(
-    props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size' | 'onClick'>
-  ) {
-    const stagedSelect = useContext(HybridFilterContext);
+  ResetButton(props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size'>) {
     const controlContext = useContext(ControlContext);
-    if (!stagedSelect || !controlContext.overlayState) {
-      throw new Error(
-        'HybridFilterContext not found, please make sure that you are not calling this outside of HybridFilter component!'
-      );
-    }
-
-    if (!stagedSelect.shouldShowReset) {
-      return null;
-    }
 
     return (
       <ResetButton
         {...props}
         priority="transparent"
         size="zero"
-        onClick={() => {
-          stagedSelect.handleReset();
+        onClick={e => {
+          props.onClick?.(e);
           controlContext.overlayState?.close();
         }}
       >
@@ -386,27 +374,18 @@ export const HybridFilterComponents = {
     );
   },
 
-  ApplyButton(
-    props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'onClick' | 'size'>
-  ) {
+  ApplyButton(props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size'>) {
     const controlContext = useContext(ControlContext);
-    const stagedSelect = useContext(HybridFilterContext);
-
-    if (!stagedSelect || !controlContext.overlayState) {
-      throw new Error(
-        'HybridFilterContext or OverlayContext not found, please make sure that you are not calling this outside of HybridFilter component!'
-      );
-    }
 
     return (
       <Button
         {...props}
         size="xs"
         priority="primary"
-        disabled={stagedSelect.disableCommit || props.disabled}
-        onClick={() => {
+        disabled={props.disabled}
+        onClick={e => {
+          props.onClick?.(e);
           controlContext.overlayState?.close();
-          stagedSelect.commit(stagedSelect.stagedValue);
         }}
       >
         {t('Apply')}
@@ -414,26 +393,17 @@ export const HybridFilterComponents = {
     );
   },
 
-  CancelButton(
-    props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'onClick' | 'size'>
-  ) {
+  CancelButton(props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size'>) {
     const controlContext = useContext(ControlContext);
-    const stagedSelect = useContext(HybridFilterContext);
-
-    if (!stagedSelect || !controlContext.overlayState) {
-      throw new Error(
-        'HybridFilterContext or OverlayContext not found, please make sure that you are not calling this outside of HybridFilter component!'
-      );
-    }
 
     return (
       <Button
         {...props}
         size="xs"
         priority="transparent"
-        onClick={() => {
+        onClick={e => {
+          props.onClick?.(e);
           controlContext.overlayState?.close();
-          stagedSelect.removeStagedChanges?.();
         }}
       >
         {t('Cancel')}

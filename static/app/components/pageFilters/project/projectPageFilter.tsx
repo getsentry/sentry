@@ -427,7 +427,11 @@ export function ProjectPageFilter({
       menuTitle={menuTitle ?? t('Filter Projects')}
       menuWidth={menuWidth ?? defaultMenuWidth}
       menuHeaderTrailingItems={
-        stagedSelect.shouldShowReset ? <HybridFilterComponents.ResetButton /> : null
+        stagedSelect.shouldShowReset ? (
+          <HybridFilterComponents.ResetButton
+            onClick={() => stagedSelect.handleReset()}
+          />
+        ) : null
       }
       menuFooter={
         <Stack gap="md" direction="column">
@@ -449,14 +453,20 @@ export function ProjectPageFilter({
               <HybridFilterComponents.LinkButton
                 icon={<IconAdd />}
                 to={makeProjectsPathname({path: '/new/', organization})}
+                onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                disabled={stagedSelect.disableCommit}
               >
                 {t('Create Project')}
               </HybridFilterComponents.LinkButton>
             ) : undefined}
             {stagedSelect.hasStagedChanges ? (
               <Flex gap="md" align="center" justify="end">
-                <HybridFilterComponents.CancelButton />
-                <HybridFilterComponents.ApplyButton />
+                <HybridFilterComponents.CancelButton
+                  onClick={() => stagedSelect.removeStagedChanges()}
+                />
+                <HybridFilterComponents.ApplyButton
+                  onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+                />
               </Flex>
             ) : null}
           </Flex>
