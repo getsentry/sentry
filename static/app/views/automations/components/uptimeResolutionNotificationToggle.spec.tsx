@@ -87,7 +87,9 @@ describe('UptimeResolutionNotificationToggle', () => {
     expect(
       screen.getByText('Want to be notified when uptime monitor outages are resolved?')
     ).toBeInTheDocument();
-    expect(screen.getByText(/Add an If\/Then block with the/, {exact: false})).toBeInTheDocument();
+    expect(
+      screen.getByText(/Add an If\/Then block with the/, {exact: false})
+    ).toBeInTheDocument();
   });
 
   it('renders success message when resolution filter is configured', () => {
