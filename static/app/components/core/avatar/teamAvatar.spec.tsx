@@ -2,6 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {TeamFixture} from 'sentry-fixture/team';
 
+// eslint-disable-next-line boundaries/entry-point
 import {TeamAvatar} from './teamAvatar';
 
 describe('TeamAvatar', () => {
@@ -63,12 +64,10 @@ describe('TeamAvatar', () => {
       name: 'Name Can Change',
     });
 
-    const {container} = render(<TeamAvatar team={team} />);
+    render(<TeamAvatar team={team} />);
 
     // The identifier should be based on slug so color stays consistent
-    // even if name changes. Verify SVG is rendered (color is applied via CSS)
-    const svg = container.querySelector('svg');
-    expect(svg).toBeInTheDocument();
-    expect(svg).toHaveAttribute('viewBox', '0 0 120 120');
+    // even if name changes. Verify the avatar with consistent initials is rendered
+    expect(screen.getByText('CS')).toBeInTheDocument();
   });
 });
