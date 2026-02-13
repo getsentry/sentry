@@ -20,8 +20,6 @@ import type {EAPTraceMeta, TraceMeta} from './types';
 type TraceMetaQueryParams =
   | {
       include_uptime: string;
-      // demo has the format ${projectSlug}:${eventId}
-      // used to query a demo transaction event from the backend.
       statsPeriod: string;
     }
   | {
