@@ -161,6 +161,10 @@ jobs:
       - name: Run tier 1 tests (xdist -n 3)
         env:
           SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
+          # Reclassified tests inherit _requires_snuba/reset_snuba via SnubaTestCase
+          # but don't actually query Snuba (verified by runtime classifier).
+          # Skip the Snuba availability check so they can run in Tier 1.
+          SENTRY_SKIP_SNUBA_CHECK: '1'
         run: |
           echo "=== Tier 1: Postgres + Redis only (no Snuba stack) ==="
           echo "Shard ${{ matrix.instance }} of 5, xdist workers: 3"

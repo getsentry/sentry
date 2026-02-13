@@ -47,6 +47,12 @@ def _requires_snuba() -> None:
         except Exception:
             pass
 
+    # In Tier 1, Snuba is not running but some tests inherit _requires_snuba
+    # via SnubaTestCase even though they don't actually query Snuba.
+    # The classifier verified these tests don't use Snuba at runtime.
+    if os.environ.get("SENTRY_SKIP_SNUBA_CHECK") == "1":
+        return
+
     # When SNUBA_WAIT_TIMEOUT is set (overlapped startup mode), services may
     # still be starting while pytest collects tests. Wait instead of failing.
     wait_timeout = int(os.environ.get("SNUBA_WAIT_TIMEOUT", "0"))
