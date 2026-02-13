@@ -1,0 +1,69 @@
+name: detect-test-pollution
+
+on:
+  workflow_dispatch:
+    inputs:
+      job-url:
+        description: 'GitHub Actions job URL (e.g. https://github.com/getsentry/sentry/actions/runs/21654747518/job/62427093320)'
+        required: true
+
+jobs:
+  detect-test-pollution:
+    name: detect test pollution
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
+        with:
+          version: '0.8.2'
+
+      - uses: getsentry/action-setup-venv@5a80476d175edf56cb205b08bc58986fa99d1725 # v3.2.0
+        with:
+          cache-dependency-path: uv.lock
+          install-cmd: echo
+
+      - name: Install detect-test-pollution
+        run: uv pip install --index-url='https://pypi.org/simple' detect-test-pollution
+
+      - name: Extract test info from job logs
+        id: extract
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/workflows/scripts/extract-test-pollution-info.py '${{ inputs.job-url }}'
+
+      - name: Checkout SENTRY_REVISION
+        run: git fetch origin ${{ steps.extract.outputs.SENTRY_REVISION }} && git checkout ${{ steps.extract.outputs.SENTRY_REVISION }}
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - name: Detect test pollution
+        env:
+          SENTRY_SHUFFLE_TESTS_SEED: ${{ steps.extract.outputs.SENTRY_SHUFFLE_TESTS_SEED }}
+          TEST_GROUP: ${{ steps.extract.outputs.TEST_GROUP }}
+          TOTAL_TEST_GROUPS: ${{ steps.extract.outputs.TOTAL_TEST_GROUPS }}
+          FLAKY_TEST: ${{ steps.extract.outputs.FLAKY_TEST }}
+        run: |
+          # avoid doing any webpack stuff
+          rm tests/acceptance/conftest.py
+
+          SENTRY_SHUFFLE_TESTS=1 \
+          SENTRY_SHUFFLE_TESTS_SEED=$SENTRY_SHUFFLE_TESTS_SEED \
+          TEST_GROUP=$TEST_GROUP \
+          TOTAL_TEST_GROUPS=$TOTAL_TEST_GROUPS \
+          python3 -b -m pytest --collect-only -q \
+            tests \
+            --reuse-db \
+            --ignore tests/acceptance \
+            --ignore tests/apidocs \
+            --ignore tests/js \
+            --ignore tests/tools \
+            | grep '^tests/.*\.py::' | grep -v tests/relay_integration | grep -v tests/symbolicator > testids
+
+          detect-test-pollution \
+            --failing-test "$FLAKY_TEST" \
+            --testids-file ./testids
