@@ -23,9 +23,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {useSeerOnboardingContext} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
 import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
+import RepositorySelector from 'getsentry/views/seerAutomation/onboarding/repositorySelector';
 
 import {MaxWidthPanel, PanelDescription, StepContent} from './common';
-import {RepositorySelector} from './repositorySelector';
 
 // This is the max # of repos that we will allow to be pre-selected.
 const MAX_REPOSITORIES_TO_PRESELECT = 10;

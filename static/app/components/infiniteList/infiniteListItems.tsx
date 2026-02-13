@@ -130,6 +130,7 @@ function LoadingCompleteMessage() {
 
 const FlexOverscroll = styled('div')`
   display: flex;
+  flex-grow: 1; /* For when the parent is a flex container */
   width: 100%;
   height: 100%;
   flex-direction: column;

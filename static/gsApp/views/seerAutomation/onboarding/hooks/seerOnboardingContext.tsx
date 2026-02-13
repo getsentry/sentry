@@ -34,13 +34,13 @@ interface SeerOnboardingContextProps {
   installationData: OrganizationIntegration[] | undefined;
   isInstallationPending: boolean;
   isProviderPending: boolean;
-  isRepositoriesFetching: boolean;
+  // isRepositoriesFetching: boolean;
   provider: IntegrationProvider | undefined;
   removeRootCauseAnalysisRepository: (repoId: string) => void;
   repositories: RepositoryWithSettings[] | undefined;
   repositoryProjectMapping: Record<string, string[]>;
   selectedCodeReviewRepositories: RepositoryWithSettings[];
-  selectedCodeReviewRepositoriesMap: Record<string, boolean>;
+  // selectedCodeReviewRepositoriesMap: Record<string, boolean>;
   selectedRootCauseAnalysisRepositories: RepositoryWithSettings[];
   setAutoCreatePR: (value: boolean) => void;
   setCodeReviewRepositories: (newSelections: Record<string, boolean>) => void;
@@ -52,11 +52,11 @@ const SeerOnboardingContext = createContext<SeerOnboardingContextProps>({
   installationData: undefined,
   isInstallationPending: false,
   isProviderPending: false,
-  isRepositoriesFetching: false,
+  // isRepositoriesFetching: false,
   provider: undefined,
   repositories: undefined,
   selectedCodeReviewRepositories: [],
-  selectedCodeReviewRepositoriesMap: {},
+  // selectedCodeReviewRepositoriesMap: {},
   selectedRootCauseAnalysisRepositories: [],
   unselectedCodeReviewRepositories: [],
   repositoryProjectMapping: {},
@@ -307,14 +307,14 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
     <SeerOnboardingContext.Provider
       value={{
         repositories,
-        isRepositoriesFetching,
+        // isRepositoriesFetching,
         installationData,
         isInstallationPending,
         provider,
         isProviderPending,
         selectedCodeReviewRepositories,
         unselectedCodeReviewRepositories,
-        selectedCodeReviewRepositoriesMap,
+        // selectedCodeReviewRepositoriesMap,
         setCodeReviewRepositories,
         selectedRootCauseAnalysisRepositories,
         removeRootCauseAnalysisRepository,
