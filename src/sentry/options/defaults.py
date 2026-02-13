@@ -3849,6 +3849,17 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Lists all the consumers we need verbose multiprocess logs for.
+# We observed some consumers hanging after restarts. We narrowed down the
+# issue to the shared memory manager initialization. Specifically,
+# the consumer hangs when the shared memory manager initializes a subprocess.
+register(
+    "consumer.verbose_multiprocessing_logs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Rate at which to forward events to eap_items. 1.0
 # means that 100% of projects will forward events to eap_items.
@@ -4000,12 +4011,4 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# TODO(telkins): Remove once we no longer need integration_id on SLO metrics
-register(
-    "integrations.slo.integration-id-tag-enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )

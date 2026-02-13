@@ -315,10 +315,8 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             # 2. For the head artifact (since should_update_status_check is True)
             assert mock_status_check_task.apply_async.call_count == 2
             calls = mock_status_check_task.apply_async.call_args_list
-            # First call should be for the base artifact
-            assert calls[0][1]["kwargs"]["preprod_artifact_id"] == base_artifact.id
-            # Second call should be for the head artifact
-            assert calls[1][1]["kwargs"]["preprod_artifact_id"] == head_artifact.id
+            called_artifact_ids = {c[1]["kwargs"]["preprod_artifact_id"] for c in calls}
+            assert called_artifact_ids == {base_artifact.id, head_artifact.id}
 
     def test_compare_preprod_artifact_size_analysis_no_matching_artifacts(self):
         """Test compare_preprod_artifact_size_analysis with no matching artifacts."""
@@ -577,6 +575,134 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
                 kwargs={"preprod_artifact_id": base_artifact.id, "caller": "compare_completion"}
             )
 
+    def test_compare_preprod_artifact_size_analysis_skips_pending_base_metrics(self):
+        """Test that automatic comparison skips when base artifact's metrics are still PENDING (race condition)."""
+        head_commit = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+        )
+        base_commit = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+        )
+
+        head_artifact = Factories.create_preprod_artifact(
+            project=self.project,
+            commit_comparison=head_commit,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+        base_artifact = Factories.create_preprod_artifact(
+            project=self.project,
+            commit_comparison=base_commit,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=head_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        )
+        # Base still PENDING (analysis hasn't completed yet)
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=base_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+        )
+
+        with (
+            patch(
+                "sentry.preprod.size_analysis.tasks._run_size_analysis_comparison"
+            ) as mock_run_comparison,
+            patch("sentry.preprod.size_analysis.tasks.create_preprod_status_check_task"),
+        ):
+            compare_preprod_artifact_size_analysis(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                artifact_id=head_artifact.id,
+            )
+
+            mock_run_comparison.assert_not_called()
+
+        assert PreprodArtifactSizeComparison.objects.count() == 0
+
+    def test_compare_preprod_artifact_size_analysis_skips_pending_head_metrics_as_base(self):
+        """Test that automatic comparison skips when head artifact's metrics are PENDING (reverse race condition)."""
+        base_commit = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+        )
+        head_commit = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="c" * 40,
+            base_sha="a" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+        )
+
+        base_artifact = Factories.create_preprod_artifact(
+            project=self.project,
+            commit_comparison=base_commit,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+        head_artifact = Factories.create_preprod_artifact(
+            project=self.project,
+            commit_comparison=head_commit,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=base_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        )
+        # Head still PENDING (analysis hasn't completed yet)
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=head_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+        )
+
+        with (
+            patch(
+                "sentry.preprod.size_analysis.tasks._run_size_analysis_comparison"
+            ) as mock_run_comparison,
+            patch("sentry.preprod.size_analysis.tasks.create_preprod_status_check_task"),
+        ):
+            compare_preprod_artifact_size_analysis(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                artifact_id=base_artifact.id,
+            )
+
+            mock_run_comparison.assert_not_called()
+
+        assert PreprodArtifactSizeComparison.objects.count() == 0
+
 
 class ManualSizeAnalysisComparisonTest(TestCase):
     def setUp(self):
@@ -618,6 +744,33 @@ class ManualSizeAnalysisComparisonTest(TestCase):
                 head_size_metrics,
                 base_size_metrics,
             )
+
+    def test_manual_size_analysis_comparison_skips_pending_metrics(self):
+        """Test manual comparison skips when metrics are not COMPLETED."""
+        head_metrics = self._create_size_metrics()
+        base_artifact = Factories.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+        # Base has PENDING metrics
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=base_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+        )
+
+        with patch(
+            "sentry.preprod.size_analysis.tasks._run_size_analysis_comparison"
+        ) as mock_run_comparison:
+            manual_size_analysis_comparison(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                head_artifact_id=head_metrics.preprod_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+            mock_run_comparison.assert_not_called()
 
     def test_manual_size_analysis_comparison_nonexistent_head_metric(self):
         """Test manual_size_analysis_comparison with nonexistent head metric."""
