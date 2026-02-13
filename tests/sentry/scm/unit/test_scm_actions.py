@@ -4,7 +4,6 @@ from typing import Any
 
 import pytest
 
-from sentry.constants import ObjectStatus
 from sentry.scm.actions import SourceCodeManager
 from sentry.scm.errors import SCMCodedError, SCMProviderException
 from sentry.scm.types import ReactionResult, Repository
@@ -23,7 +22,7 @@ def fetch_repository(oid, rid) -> Repository:
         "integration_id": 1,
         "name": "test",
         "organization_id": 1,
-        "status": ObjectStatus.ACTIVE,
+        "is_active": True,
     }
 
 
@@ -146,7 +145,7 @@ def test_repository_inactive(method: str, kwargs: dict[str, Any]):
             "integration_id": 1,
             "name": "test",
             "organization_id": 1,
-            "status": ObjectStatus.DISABLED,
+            "is_active": False,
         },
     )
 
@@ -550,32 +549,6 @@ def test_action_success(method, kwargs: dict[str, Any], check):
         ("sentry.scm.actions.success", 1, {"provider": "BaseTestProvider"}),
         ("sentry.scm.actions.success", 1, {"referrer": "shared"}),
     ]
-
-
-def test_active_repository_with_int_status_is_not_rejected():
-    """ObjectStatus.ACTIVE is 0 (int), but exec_provider_fn compares against the string "active".
-
-    map_repository_model_to_repository copies RepositoryModel.status as-is (an int),
-    so every real repository will fail the status check with repository_inactive.
-    """
-    from sentry.constants import ObjectStatus
-
-    scm = SourceCodeManager(
-        organization_id=1,
-        repository_id=1,
-        fetch_repository=lambda _a, _b: {
-            "integration_id": 1,
-            "name": "test",
-            "organization_id": 1,
-            "status": ObjectStatus.ACTIVE,
-        },
-        fetch_service_provider=lambda _a, _b: BaseTestProvider(),
-    )
-
-    # This should succeed, but currently raises SCMCodedError("repository_inactive")
-    # because 0 != "active" is always True.
-    result = scm.get_issue_comments(issue_id="1")
-    assert len(result) == 1
 
 
 def test_provider_exception_is_not_wrapped():

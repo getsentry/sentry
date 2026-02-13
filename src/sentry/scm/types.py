@@ -89,7 +89,7 @@ class Repository(TypedDict):
     integration_id: int
     name: str
     organization_id: int
-    status: int
+    is_active: str
 
 
 class GitRef(TypedDict):
@@ -312,8 +312,6 @@ class Provider(Protocol):
     intent and translate it into a concrete interface. Therefore, providers provide a large range
     of behaviors which may or may not be explicitly defined on a service-provider.
     """
-
-    name: str
 
     def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool: ...
 

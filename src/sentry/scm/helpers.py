@@ -74,7 +74,7 @@ def map_repository_model_to_repository(repository: RepositoryModel) -> Repositor
         "integration_id": repository.integration_id,
         "name": repository.name,
         "organization_id": repository.organization_id,
-        "status": repository.status,
+        "is_active": repository.status == ObjectStatus.ACTIVE,
     }
 
 
@@ -126,7 +126,7 @@ def exec_provider_fn[T](
     repository = fetch_repository(organization_id, repository_id)
     if not repository:
         raise SCMCodedError(organization_id, repository_id, code="repository_not_found")
-    if repository["status"] != ObjectStatus.ACTIVE:
+    if not repository["is_active"]:
         raise SCMCodedError(repository, code="repository_inactive")
     if repository["organization_id"] != organization_id:
         raise SCMCodedError(repository, code="repository_organization_mismatch")
