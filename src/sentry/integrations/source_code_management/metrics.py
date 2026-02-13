@@ -52,6 +52,9 @@ class SCMIntegrationInteractionType(StrEnum):
     # Status Checks
     CREATE_STATUS_CHECK = "create_status_check"
 
+    # Rate Limiting
+    GET_RATE_LIMIT = "get_rate_limit"
+
 
 @dataclass
 class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
