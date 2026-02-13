@@ -733,7 +733,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             **self.valid_workflow,
             "actionFilters": [
                 {
-                    "logicType": "any",
+                    "logicType": "any-short",
                     "conditions": [
                         {
                             "conditionGroupId": other_dcg.id,
