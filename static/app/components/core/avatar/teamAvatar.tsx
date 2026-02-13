@@ -17,11 +17,7 @@ export function TeamAvatar({team, tooltip: tooltipProp, ...props}: TeamAvatarPro
   const teamAvatarProps = getTeamAvatarProps(team);
   const displayName = explodeSlug(team?.slug ?? '');
   return (
-    <Avatar
-      {...props}
-      {...teamAvatarProps}
-      tooltip={tooltipProp ?? `#${displayName}`}
-    />
+    <Avatar {...props} {...teamAvatarProps} tooltip={tooltipProp ?? `#${displayName}`} />
   );
 }
 

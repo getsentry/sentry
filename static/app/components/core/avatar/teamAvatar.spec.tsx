@@ -1,6 +1,6 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
-
 import {TeamFixture} from 'sentry-fixture/team';
+
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 // eslint-disable-next-line boundaries/entry-point
 import {TeamAvatar} from './teamAvatar';
