@@ -79,8 +79,12 @@ def send_thread_update(
                     thread_ts=thread["thread_ts"],
                     renderable=renderable,
                 )
-        except (IntegrationError, IntegrationConfigurationError) as e:
+        except IntegrationConfigurationError as e:
             lifecycle.record_halt(halt_reason=e)
+        except IntegrationError as e:
+            lifecycle.record_failure(failure_reason=e)
+            # Retry, hopefully it's transient
+            raise
 
 
 @instrumented_task(
