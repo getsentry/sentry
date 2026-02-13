@@ -368,6 +368,7 @@ def get_latest_cause_id(autofix_state: AutofixState | None) -> int:
     root_cause_step = next(
         (
             step
+            # If there are multiple RCA steps, we want the latest, so we reverse the list
             for step in reversed(autofix_state.steps)
             if step.get("key") == "root_cause_analysis"
         ),
@@ -376,8 +377,9 @@ def get_latest_cause_id(autofix_state: AutofixState | None) -> int:
     if not root_cause_step:
         return AUTOFIX_FALLBACK_CAUSE_ID
 
-    root_causes = root_cause_step.get("causes", [])[-1]
+    root_causes = root_cause_step.get("causes", [])
     if not root_causes:
         return AUTOFIX_FALLBACK_CAUSE_ID
 
+    # The most recent cause is at the end of the list
     return root_causes[-1].get("cause_id", AUTOFIX_FALLBACK_CAUSE_ID)
