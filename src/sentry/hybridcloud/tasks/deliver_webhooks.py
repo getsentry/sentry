@@ -155,7 +155,6 @@ def schedule_webhook_delivery() -> None:
             name=f"deliver_webhooks.schedule_mailbox.{record['mailbox_name']}",
         ) as transaction:
             transaction.set_data("mailbox_name", record["mailbox_name"])
-            transaction.set_data("payload_id", record["id"])
             # Reschedule the records that we will attempt to deliver next.
             # We update schedule_for in an attempt to minimize races for potentially in-flight batches.
             mailbox_batch = (
