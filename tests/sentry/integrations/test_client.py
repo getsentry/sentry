@@ -337,6 +337,104 @@ class ApiClientTest(TestCase):
                 )
 
     @responses.activate
+    def test_track_response_data_logs_github_request_id(self) -> None:
+        responses.add(
+            responses.GET,
+            "http://example.com",
+            json={},
+            headers={"X-GitHub-Request-Id": "abc-123"},
+        )
+
+        client = ApiClient()
+        with mock.patch.object(client, "logger") as mock_logger:
+            client.get("http://example.com")
+            mock_logger.info.assert_called_once()
+            extra = mock_logger.info.call_args.kwargs["extra"]
+            assert extra["github_request_id"] == "abc-123"
+
+    @responses.activate
+    def test_track_response_data_logs_rate_limit_remaining(self) -> None:
+        responses.add(
+            responses.GET,
+            "http://example.com",
+            json={},
+            headers={"X-RateLimit-Remaining": "42"},
+        )
+
+        client = ApiClient()
+        with mock.patch.object(client, "logger") as mock_logger:
+            client.get("http://example.com")
+            extra = mock_logger.info.call_args.kwargs["extra"]
+            assert extra["rate_limit_remaining"] == "42"
+
+    @responses.activate
+    def test_track_response_data_logs_retry_after(self) -> None:
+        responses.add(
+            responses.GET,
+            "http://example.com",
+            json={},
+            status=429,
+            headers={"Retry-After": "60"},
+        )
+
+        client = ApiClient()
+        with mock.patch.object(client, "logger") as mock_logger:
+            with pytest.raises(ApiError):
+                client.get("http://example.com")
+            extra = mock_logger.info.call_args.kwargs["extra"]
+            assert extra["retry_after"] == "60"
+
+    @responses.activate
+    def test_track_response_data_logs_all_response_headers(self) -> None:
+        responses.add(
+            responses.GET,
+            "http://example.com",
+            json={},
+            headers={
+                "X-GitHub-Request-Id": "req-456",
+                "X-RateLimit-Remaining": "10",
+                "Retry-After": "30",
+            },
+        )
+
+        client = ApiClient()
+        with mock.patch.object(client, "logger") as mock_logger:
+            client.get("http://example.com")
+            extra = mock_logger.info.call_args.kwargs["extra"]
+            assert extra["github_request_id"] == "req-456"
+            assert extra["rate_limit_remaining"] == "10"
+            assert extra["retry_after"] == "30"
+
+    @responses.activate
+    def test_track_response_data_omits_missing_headers(self) -> None:
+        responses.add(responses.GET, "http://example.com", json={})
+
+        client = ApiClient()
+        with mock.patch.object(client, "logger") as mock_logger:
+            client.get("http://example.com")
+            extra = mock_logger.info.call_args.kwargs["extra"]
+            assert "github_request_id" not in extra
+            assert "rate_limit_remaining" not in extra
+            assert "retry_after" not in extra
+
+    @responses.activate
+    def test_track_response_data_logs_headers_on_error_response(self) -> None:
+        responses.add(
+            responses.GET,
+            "http://example.com",
+            json={},
+            status=403,
+            headers={"X-GitHub-Request-Id": "err-789"},
+        )
+
+        client = ApiClient()
+        with mock.patch.object(client, "logger") as mock_logger:
+            with pytest.raises(ApiError):
+                client.get("http://example.com")
+            extra = mock_logger.info.call_args.kwargs["extra"]
+            assert extra["github_request_id"] == "err-789"
+
+    @responses.activate
     def test_parameters_passed_correctly(self) -> None:
         responses.add(responses.GET, "https://example.com", json={})
         client = ApiClient(verify_ssl=False)
