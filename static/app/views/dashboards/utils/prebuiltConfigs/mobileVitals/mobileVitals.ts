@@ -143,10 +143,13 @@ const AVG_TTFD_BIG_NUMBER_WIDGET: Widget = {
   },
 };
 
+// Uses the Sessions (Release) dataset, so most dashboard global filters (which target Spans)
+// don't apply. Still valuable as a top-level health signal alongside the span-based vitals.
 const CRASH_FREE_SESSION_RATE_BIG_NUMBER_WIDGET: Widget = {
   id: 'crash-free-session-rate-big-number',
   title: t('Crash Free Session Rate'),
-  description: 'Percentage of sessions that did not crash',
+  description:
+    'Percentage of sessions that did not crash. Based on session data, so span filters do not apply.',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.RELEASE,
   interval: '1h',
@@ -163,7 +166,7 @@ const CRASH_FREE_SESSION_RATE_BIG_NUMBER_WIDGET: Widget = {
   ],
   layout: {
     h: 1,
-    x: 4,
+    x: 3,
     y: 1,
     w: 1,
     minH: 1,
@@ -209,7 +212,7 @@ const SLOW_FRAME_RATE_WIDGET: Widget = {
     h: 1,
     x: 0,
     y: 1,
-    w: 2,
+    w: 1,
     minH: 1,
   },
 };
@@ -251,9 +254,9 @@ const FROZEN_FRAME_RATE_WIDGET: Widget = {
   ],
   layout: {
     h: 1,
-    x: 2,
+    x: 1,
     y: 1,
-    w: 2,
+    w: 1,
     minH: 1,
   },
 };
@@ -278,9 +281,9 @@ const AVG_FRAME_DELAY_WIDGET: Widget = {
   ],
   layout: {
     h: 1,
-    x: 4,
+    x: 2,
     y: 1,
-    w: 2,
+    w: 1,
     minH: 1,
   },
 };
@@ -428,13 +431,13 @@ const FIRST_ROW_WIDGETS: Widget[] = [
   WARM_START_BIG_NUMBER_WIDGET,
   AVG_TTID_BIG_NUMBER_WIDGET,
   AVG_TTFD_BIG_NUMBER_WIDGET,
-  CRASH_FREE_SESSION_RATE_BIG_NUMBER_WIDGET,
 ];
 
 const SECOND_ROW_WIDGETS: Widget[] = [
   SLOW_FRAME_RATE_WIDGET,
   FROZEN_FRAME_RATE_WIDGET,
   AVG_FRAME_DELAY_WIDGET,
+  CRASH_FREE_SESSION_RATE_BIG_NUMBER_WIDGET,
 ];
 
 export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
