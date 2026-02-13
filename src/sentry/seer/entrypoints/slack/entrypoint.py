@@ -159,10 +159,13 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
 
     def on_trigger_autofix_already_exists(self, *, state: AutofixState, step_state: dict) -> None:
         # We don't include the user since we don't know that they started the original run.
+        has_complete_stage = (
+            False
+            if step_state.get("key") in {"root_cause_analysis_processing", "solution_processing"}
+            else step_state.get("status") == AutofixStatus.COMPLETED
+        )
         self._update_existing_message(
-            run_id=state.run_id,
-            has_complete_stage=step_state.get("status") == AutofixStatus.COMPLETED,
-            include_user=False,
+            run_id=state.run_id, has_complete_stage=has_complete_stage, include_user=False
         )
 
     def create_autofix_cache_payload(self) -> SlackEntrypointCachePayload:

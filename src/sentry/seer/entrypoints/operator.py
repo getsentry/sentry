@@ -326,11 +326,21 @@ def get_stopping_point_status(
     steps = reversed(autofix_state.steps)
     match stopping_point:
         case AutofixStoppingPoint.ROOT_CAUSE:
-            step = next((step for step in steps if step.get("key") == "root_cause_analysis"), {})
+            step = next(
+                (
+                    step
+                    for step in steps
+                    if step.get("key") in {"root_cause_analysis", "root_cause_analysis_processing"}
+                ),
+                None,
+            )
         case AutofixStoppingPoint.SOLUTION:
-            step = next((step for step in steps if step.get("key") == "solution"), {})
+            step = next(
+                (step for step in steps if step.get("key") in {"solution", "solution_processing"}),
+                None,
+            )
         case AutofixStoppingPoint.CODE_CHANGES:
-            step = next((step for step in steps if step.get("key") == "changes"), {})
+            step = next((step for step in steps if step.get("key") == "changes"), None)
         case AutofixStoppingPoint.OPEN_PR:
             step = next(
                 (
@@ -339,6 +349,6 @@ def get_stopping_point_status(
                     if step.get("key") == "changes"
                     and any(change.get("pull_request") for change in step.get("changes", []))
                 ),
-                {},
+                None,
             )
     return step
