@@ -259,7 +259,7 @@ function useWidgetBuilderState(): {
                     f.kind === FieldValueKind.EQUATION
                 ).length;
                 return aggregateCount > 1
-                  ? (selectedAggregate ?? aggregateCount - 1)
+                  ? Math.min(selectedAggregate ?? aggregateCount - 1, aggregateCount - 1)
                   : undefined;
               })()
             : undefined,
