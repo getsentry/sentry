@@ -137,6 +137,9 @@ export function AutoSaveField<
       },
     },
     onSubmit: ({value}) => {
+      if (mutation.status === 'pending') {
+        return Promise.resolve();
+      }
       return mutation.mutateAsync(value);
     },
   });
