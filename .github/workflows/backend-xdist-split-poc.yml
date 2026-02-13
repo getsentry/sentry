@@ -400,7 +400,10 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
-      XDIST_WORKERS: '3'
+      # Heavy shard uses 2 workers (not 3) because full backend-ci mode runs 9
+      # containers (incl. symbolicator, objectstore, bigtable) — 3 workers causes
+      # Snuba API timeouts from resource contention on a single runner.
+      XDIST_WORKERS: '2'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -459,18 +462,27 @@ jobs:
             docker ps -a
 
             # Per-worker ClickHouse databases + Snuba instances
+            # Heavy shard: bootstrap sequentially to avoid resource contention
+            # (9 containers on one runner leaves little headroom for parallel bootstrap)
             SNUBA_IMAGE=$(docker inspect snuba-snuba-1 --format '{{.Config.Image}}')
             SNUBA_NETWORK=$(docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
             echo "[services] Snuba image: $SNUBA_IMAGE, network: $SNUBA_NETWORK"
 
             BOOTSTRAP_START=$(date +%s)
             for i in $(seq 0 $((XDIST_N - 1))); do
-              (
                 WORKER_DB="default_gw${i}"
                 WORKER_PORT=$((1230 + i))
                 echo "[services][gw${i}] Setting up: database=$WORKER_DB, port=$WORKER_PORT"
 
-                curl -s 'http://localhost:8123/' --data-binary "CREATE DATABASE IF NOT EXISTS ${WORKER_DB}"
+                # Create ClickHouse database with retry (may timeout under heavy load)
+                for retry in 1 2 3; do
+                  if curl -sf --connect-timeout 10 --max-time 30 'http://localhost:8123/' \
+                       --data-binary "CREATE DATABASE IF NOT EXISTS ${WORKER_DB}"; then
+                    break
+                  fi
+                  echo "[services][gw${i}] ClickHouse CREATE DB retry $retry..."
+                  sleep 3
+                done
 
                 echo "[services][gw${i}] Running Snuba bootstrap for $WORKER_DB..."
                 docker run --rm \
@@ -503,22 +515,20 @@ jobs:
                   -e "DEBUG=1" \
                   "$SNUBA_IMAGE" api
                 echo "[services][gw${i}] Started Snuba container on port $WORKER_PORT"
-              ) &
             done
-            wait
             BOOTSTRAP_END=$(date +%s)
-            echo "[services] All bootstrap jobs complete in $((BOOTSTRAP_END - BOOTSTRAP_START))s"
+            echo "[services] All bootstrap jobs complete (sequential) in $((BOOTSTRAP_END - BOOTSTRAP_START))s"
 
             # Wait for per-worker Snuba health
             for i in $(seq 0 $((XDIST_N - 1))); do
               WORKER_PORT=$((1230 + i))
-              for attempt in $(seq 1 30); do
-                if curl -sf "http://localhost:${WORKER_PORT}/health" > /dev/null 2>&1; then
+              for attempt in $(seq 1 45); do
+                if curl -sf --connect-timeout 5 "http://localhost:${WORKER_PORT}/health" > /dev/null 2>&1; then
                   echo "[services] snuba-gw${i} (port $WORKER_PORT) ready"
                   break
                 fi
-                [ "$attempt" -eq 30 ] && echo "[services] ERROR: snuba-gw${i} failed" && docker logs "snuba-gw${i}" 2>&1 | tail -20 && exit 1
-                sleep 1
+                [ "$attempt" -eq 45 ] && echo "[services] ERROR: snuba-gw${i} failed" && docker logs "snuba-gw${i}" 2>&1 | tail -20 && exit 1
+                sleep 2
               done
             done
 
