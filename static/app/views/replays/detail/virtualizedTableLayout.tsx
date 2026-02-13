@@ -1,4 +1,3 @@
-import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 const Root = styled('div')`
@@ -46,74 +45,69 @@ const Offset = styled('div')<{offset: number}>`
   transform: translateY(${p => p.offset}px);
 `;
 
-interface TimelineRowStylesOpts {
-  theme: Theme;
-  useTransparentBorders?: boolean;
-}
+const BodyRow = styled('div')<{useTransparentBorders?: boolean}>`
+  display: grid;
+  position: relative;
 
-export function getTimelineRowStyles({
-  theme,
-  useTransparentBorders = false,
-}: TimelineRowStylesOpts) {
-  return css`
-    display: grid;
-    position: relative;
+  &.beforeHoverTime + &.afterHoverTime:before {
+    border-top: 1px solid
+      ${p =>
+        p.useTransparentBorders
+          ? p.theme.tokens.border.transparent.accent.moderate
+          : p.theme.tokens.border.accent.moderate};
+    content: '';
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 100%;
+  }
 
-    &.beforeHoverTime + &.afterHoverTime:before {
-      border-top: 1px solid
-        ${useTransparentBorders
-          ? theme.tokens.border.transparent.accent.moderate
-          : theme.tokens.border.accent.moderate};
-      content: '';
-      left: 0;
-      position: absolute;
-      top: 0;
-      width: 100%;
-    }
+  &.beforeHoverTime.isLastDataRow:before {
+    border-bottom: 1px solid
+      ${p =>
+        p.useTransparentBorders
+          ? p.theme.tokens.border.transparent.accent.moderate
+          : p.theme.tokens.border.accent.moderate};
+    content: '';
+    left: 0;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+  }
 
-    &.beforeHoverTime.isLastDataRow:before {
-      border-bottom: 1px solid
-        ${useTransparentBorders
-          ? theme.tokens.border.transparent.accent.moderate
-          : theme.tokens.border.accent.moderate};
-      content: '';
-      left: 0;
-      position: absolute;
-      bottom: 0;
-      width: 100%;
-    }
+  &.beforeCurrentTime + &.afterCurrentTime:after {
+    border-top: 1px solid
+      ${p =>
+        p.useTransparentBorders
+          ? p.theme.tokens.border.transparent.accent.vibrant
+          : p.theme.tokens.border.accent.vibrant};
+    content: '';
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 100%;
+  }
 
-    &.beforeCurrentTime + &.afterCurrentTime:after {
-      border-top: 1px solid
-        ${useTransparentBorders
-          ? theme.tokens.border.transparent.accent.vibrant
-          : theme.tokens.border.accent.vibrant};
-      content: '';
-      left: 0;
-      position: absolute;
-      top: 0;
-      width: 100%;
-    }
-
-    &.beforeCurrentTime.isLastDataRow:after {
-      border-bottom: 1px solid
-        ${useTransparentBorders
-          ? theme.tokens.border.transparent.accent.vibrant
-          : theme.tokens.border.accent.vibrant};
-      content: '';
-      left: 0;
-      position: absolute;
-      bottom: 0;
-      width: 100%;
-    }
-  `;
-}
+  &.beforeCurrentTime.isLastDataRow:after {
+    border-bottom: 1px solid
+      ${p =>
+        p.useTransparentBorders
+          ? p.theme.tokens.border.transparent.accent.vibrant
+          : p.theme.tokens.border.accent.vibrant};
+    content: '';
+    left: 0;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+  }
+`;
 
 export const VirtualTable = Object.assign(Root, {
-  BodyScrollContainer,
-  Content,
-  HeaderRow,
   HeaderViewport,
+  HeaderRow,
+  BodyScrollContainer,
   NoRowsContainer,
+  Content,
   Offset,
+  BodyRow,
 });

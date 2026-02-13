@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useRef} from 'react';
-import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -32,10 +31,7 @@ import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFil
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
-import {
-  getTimelineRowStyles,
-  VirtualTable,
-} from 'sentry/views/replays/detail/virtualizedTableLayout';
+import {VirtualTable} from 'sentry/views/replays/detail/virtualizedTableLayout';
 import {
   getTimelineRowClassName,
   getVisibleRangeFromVirtualRows,
@@ -241,7 +237,8 @@ export default function NetworkList() {
                           });
 
                           return (
-                            <VirtualRow
+                            <VirtualTable.BodyRow
+                              useTransparentBorders
                               key={virtualRow.key}
                               className={rowClassName}
                               data-index={virtualRow.index}
@@ -264,7 +261,7 @@ export default function NetworkList() {
                                   style={{height: BODY_HEIGHT}}
                                 />
                               ))}
-                            </VirtualRow>
+                            </VirtualTable.BodyRow>
                           );
                         })}
                       </VirtualTable.Offset>
@@ -297,7 +294,3 @@ export default function NetworkList() {
     </Flex>
   );
 }
-
-const VirtualRow = styled('div')`
-  ${p => getTimelineRowStyles({theme: p.theme, useTransparentBorders: true})}
-`;

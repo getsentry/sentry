@@ -22,10 +22,7 @@ import useErrorFilters from 'sentry/views/replays/detail/errorList/useErrorFilte
 import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
-import {
-  getTimelineRowStyles,
-  VirtualTable,
-} from 'sentry/views/replays/detail/virtualizedTableLayout';
+import {VirtualTable} from 'sentry/views/replays/detail/virtualizedTableLayout';
 import {
   getTimelineRowClassName,
   getVisibleRangeFromVirtualRows,
@@ -165,7 +162,7 @@ export default function ErrorList() {
                       });
 
                       return (
-                        <VirtualRow
+                        <VirtualTable.BodyRow
                           key={virtualRow.key}
                           className={rowClassName}
                           data-index={virtualRow.index}
@@ -186,7 +183,7 @@ export default function ErrorList() {
                               style={{height: BODY_HEIGHT}}
                             />
                           ))}
-                        </VirtualRow>
+                        </VirtualTable.BodyRow>
                       );
                     })}
                   </VirtualTable.Offset>
@@ -219,8 +216,4 @@ const ErrorTable = styled('div')`
 
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-`;
-
-const VirtualRow = styled('div')`
-  ${p => getTimelineRowStyles({theme: p.theme})}
 `;
