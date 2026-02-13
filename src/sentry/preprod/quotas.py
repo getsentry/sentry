@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
+from django.utils import timezone
 
 from sentry import features, quotas
 from sentry.constants import DataCategory
@@ -17,6 +19,19 @@ from sentry.preprod.producer import PreprodFeature
 from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_SIZE_RETENTION_DAYS = 90
+
+
+def get_size_retention_cutoff(organization: Organization) -> datetime:
+    retention_days = (
+        quotas.backend.get_event_retention(
+            organization=organization, category=DataCategory.SIZE_ANALYSIS
+        )
+        or DEFAULT_SIZE_RETENTION_DAYS
+    )
+    return timezone.now() - timedelta(days=retention_days)
+
 
 SIZE_ENABLED_KEY = "sentry:preprod_size_enabled_by_customer"
 SIZE_ENABLED_QUERY_KEY = "sentry:preprod_size_enabled_query"

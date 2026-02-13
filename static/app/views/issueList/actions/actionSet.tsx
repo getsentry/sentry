@@ -223,7 +223,7 @@ function ActionSet({
         size="xs"
         onClick={handleMergeClick}
         disabled={mergeDisabled}
-        title={makeMergeTooltip()}
+        tooltipProps={{title: makeMergeTooltip()}}
       >
         {t('Merge')}
       </Button>

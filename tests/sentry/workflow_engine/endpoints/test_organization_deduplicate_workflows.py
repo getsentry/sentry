@@ -317,9 +317,9 @@ class OrganizationDeduplicateWorkflowsTest(APITestCase):
         all_actions_in_org = Action.objects.filter(
             dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow__organization=org
         )
-        assert (
-            remaining_actions.count() == all_actions_in_org.count()
-        ), f"Found orphaned Action objects in org {org.name}"
+        assert remaining_actions.count() == all_actions_in_org.count(), (
+            f"Found orphaned Action objects in org {org.name}"
+        )
 
         # Verify no orphaned DataConditionGroupAction objects exist
         remaining_dcga = DataConditionGroupAction.objects.filter(
@@ -328,9 +328,9 @@ class OrganizationDeduplicateWorkflowsTest(APITestCase):
         all_dcga_in_org = DataConditionGroupAction.objects.filter(
             condition_group__workflowdataconditiongroup__workflow__organization=org
         )
-        assert (
-            remaining_dcga.count() == all_dcga_in_org.count()
-        ), f"Found orphaned DataConditionGroupAction objects in org {org.name}"
+        assert remaining_dcga.count() == all_dcga_in_org.count(), (
+            f"Found orphaned DataConditionGroupAction objects in org {org.name}"
+        )
 
     def run_configuration(self, idx: int) -> None:
         self.set_up_workflows(idx)

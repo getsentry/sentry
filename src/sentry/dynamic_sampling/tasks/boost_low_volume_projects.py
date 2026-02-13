@@ -51,8 +51,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
-from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task, sample_function
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
 from sentry.models.options import OrganizationOption
@@ -232,6 +231,7 @@ def _record_partitioning_metrics(orgs_by_measure: dict[SamplingMeasure, list[int
             "dynamic_sampling.partition_by_measure.measure",
             amount=len(org_ids),
             tags={"measure": measure.value},
+            sample_rate=1,
         )
 
 
@@ -508,27 +508,6 @@ def calculate_sample_rates_of_projects(
         org_id=org_id,
         default_sample_rate=default_sample_rate,
     )
-
-    if success:
-        sample_function(
-            function=log_sample_rate_source,
-            _sample_rate=0.1,
-            org_id=org_id,
-            project_id=None,
-            used_for="boost_low_volume_projects",
-            source="sliding_window_org",
-            sample_rate=sample_rate,
-        )
-    else:
-        sample_function(
-            function=log_sample_rate_source,
-            _sample_rate=0.1,
-            org_id=org_id,
-            project_id=None,
-            used_for="boost_low_volume_projects",
-            source="blended_sample_rate",
-            sample_rate=sample_rate,
-        )
 
     # If we didn't find any sample rate, it doesn't make sense to run the adjustment model.
     if sample_rate is None:

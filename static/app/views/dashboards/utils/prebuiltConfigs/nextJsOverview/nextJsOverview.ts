@@ -5,6 +5,8 @@ import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/type
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/nextJsOverview/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
+import {RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE} from 'sentry/views/dashboards/widgetLibrary/rageAndDeadClicksWidget';
+import {SERVER_TREE_WIDGET_TEMPLATE} from 'sentry/views/dashboards/widgetLibrary/serverTreeWidget';
 import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {WEB_VITALS_OPS} from 'sentry/views/insights/pages/frontend/settings';
@@ -100,21 +102,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
 const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     SCORE_BREAKDOWN_WHEEL_WIDGET,
-    {
-      id: 'rage-and-dead-clicks-widget',
-      title: t('Rage and Dead Clicks'),
-      displayType: DisplayType.RAGE_AND_DEAD_CLICKS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: '',
-          aggregates: [],
-          columns: [],
-          orderby: '',
-        },
-      ],
-    },
+    RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE,
     {
       id: 'slow-ssr-widget',
       title: t('Slow SSR'),
@@ -244,19 +232,7 @@ const SERVER_TRANSACTIONS_TABLE: Widget = {
 };
 
 const SERVER_TREE_WIDGET: Widget = {
-  id: 'server-tree-widget',
-  title: t('Server Tree'),
-  displayType: DisplayType.SERVER_TREE,
-  interval: '5m',
-  queries: [
-    {
-      name: '',
-      conditions: '',
-      aggregates: [],
-      columns: [],
-      orderby: '',
-    },
-  ],
+  ...SERVER_TREE_WIDGET_TEMPLATE,
   layout: {
     x: 0,
     y: 9,

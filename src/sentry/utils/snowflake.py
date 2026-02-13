@@ -48,9 +48,9 @@ def uses_snowflake_id(model_class: type[ModelT]) -> bool:
 def save_with_snowflake_id(
     instance: BaseModel, snowflake_redis_key: str, save_callback: Callable[[], object]
 ) -> None:
-    assert uses_snowflake_id(
-        instance.__class__
-    ), "Only models decorated with uses_snowflake_id can be saved with save_with_snowflake_id()"
+    assert uses_snowflake_id(instance.__class__), (
+        "Only models decorated with uses_snowflake_id can be saved with save_with_snowflake_id()"
+    )
 
     for _ in range(settings.MAX_REDIS_SNOWFLAKE_RETRY_COUNTER):
         if not instance.id:

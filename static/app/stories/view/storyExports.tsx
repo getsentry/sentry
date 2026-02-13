@@ -192,7 +192,7 @@ function StoryUsage() {
   return (
     <Fragment>
       {Story && (
-        <Storybook.Section>
+        <Storybook.Section flexGrow={1}>
           <ErrorBoundary
             fallback={
               <Alert variant="danger" showIcon={false}>

@@ -1277,7 +1277,7 @@ class _ConfigBase:
 
     def __str__(self) -> str:
         try:
-            return utils.json.dumps(self.to_dict(), sort_keys=True)  # type: ignore[arg-type]
+            return utils.json.dumps(self.to_dict(), sort_keys=True)
         except Exception as e:
             return f"Content Error:{e}"
 
@@ -1322,8 +1322,8 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
     """
     if setting is None:
         raise ValueError(
-            "Could not find filter state for filter {}."
-            " You need to register default filter state in projectoptions.defaults.".format(flt.id)
+            f"Could not find filter state for filter {flt.id}."
+            " You need to register default filter state in projectoptions.defaults."
         )
 
     is_enabled = setting != "0"

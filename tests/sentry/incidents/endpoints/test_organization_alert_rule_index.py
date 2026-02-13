@@ -246,9 +246,9 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         # Find our rule in the response (should be the second one, first is self.alert_rule)
         rule = next(rule for rule in resp.data if rule["id"] == str(alert_rule.id))
 
-        assert (
-            rule["aggregate"] == "count()"
-        ), "LIST should return count() to user, hiding internal upsampled_count() storage"
+        assert rule["aggregate"] == "count()", (
+            "LIST should return count() to user, hiding internal upsampled_count() storage"
+        )
 
 
 @freeze_time()

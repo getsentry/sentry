@@ -224,7 +224,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         member: OrganizationMember,
         omt: OrganizationMemberTeam,
     ) -> Response:
-
         return Response(
             serialize(omt, request.user, OrganizationMemberTeamDetailsSerializer()), status=200
         )

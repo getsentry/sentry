@@ -785,7 +785,6 @@ class TestConvertEnumKeysToStrings:
 
 
 class CodeReviewExperimentAssignmentTest(TestCase):
-
     def test_enabled(self) -> None:
         org = self.create_organization(slug="test-org")
         with self.feature("organizations:code-review-experiments-enabled"):

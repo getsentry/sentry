@@ -454,7 +454,6 @@ class TestSetSentryExceptionLevels:
 
 class TestQuietRedisNoise:
     def test_redis_cluster_exception_captured_and_reraised(self) -> None:
-
         with patch("sentry_sdk.capture_exception") as mock_capture:
             try:
                 with quiet_redis_noise():

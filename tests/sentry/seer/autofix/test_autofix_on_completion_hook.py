@@ -14,6 +14,7 @@ from sentry.seer.explorer.client_models import (
     FilePatch,
     MemoryBlock,
     Message,
+    SeerRunState,
 )
 from sentry.seer.models import (
     AutofixHandoffPoint,
@@ -27,51 +28,141 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 
 
+def run_state(run_id=123, blocks: list[MemoryBlock] | None = None, metadata=None):
+    return SeerRunState(
+        run_id=run_id,
+        blocks=blocks if blocks is not None else [],
+        status="completed",
+        updated_at="2026-02-10T00:00:00Z",
+        metadata=metadata,
+    )
+
+
+def root_cause_memory_block() -> MemoryBlock:
+    return MemoryBlock(
+        id="block-root-cause",
+        message=Message(
+            role="assistant",
+            content="message root cause",
+            metadata={"step": "root_cause"},
+        ),
+        timestamp="2026-02-10T00:00:00Z",
+        artifacts=[
+            Artifact(
+                key="root_cause",
+                data={"one_line_description": "Null pointer in auth module"},
+                reason="explorer",
+            )
+        ],
+    )
+
+
+def solution_memory_block() -> MemoryBlock:
+    return MemoryBlock(
+        id="block-solution",
+        message=Message(
+            role="assistant",
+            content="message solution",
+            metadata={"step": "solution"},
+        ),
+        timestamp="2026-02-10T00:00:00Z",
+        artifacts=[
+            Artifact(
+                key="solution",
+                data={},  # TODO
+                reason="explorer",
+            )
+        ],
+    )
+
+
+def code_changes_memory_block() -> MemoryBlock:
+    return MemoryBlock(
+        id="block-code-changes",
+        message=Message(
+            role="assistant",
+            content="message code changes",
+            metadata={"step": "code_changes"},
+        ),
+        timestamp="2026-02-10T00:00:00Z",
+        merged_file_patches=[
+            ExplorerFilePatch(
+                repo_name="test-repo",
+                patch=FilePatch(path="test.py", type="M", added=5, removed=2),
+            )
+        ],
+    )
+
+
+def triage_memory_block() -> MemoryBlock:
+    return MemoryBlock(
+        id="block-triage",
+        message=Message(
+            role="assistant",
+            content="message triage",
+            metadata={"step": "triage"},
+        ),
+        timestamp="2026-02-10T00:00:00Z",
+        artifacts=[
+            Artifact(
+                key="triage",
+                data={},  # TODO
+                reason="explorer",
+            )
+        ],
+    )
+
+
+def impact_assessment_memory_block() -> MemoryBlock:
+    return MemoryBlock(
+        id="block-impact-assessment",
+        message=Message(
+            role="assistant",
+            content="message impact assessment",
+            metadata={"step": "impact_assessment"},
+        ),
+        timestamp="2026-02-10T00:00:00Z",
+        artifacts=[
+            Artifact(
+                key="impact_assessment",
+                data={},  # TODO
+                reason="explorer",
+            )
+        ],
+    )
+
+
 class TestAutofixOnCompletionHookHelpers(TestCase):
     """Tests for helper methods in AutofixOnCompletionHook."""
 
     def test_get_current_step_root_cause(self):
         """Returns ROOT_CAUSE when root_cause artifact exists."""
-        artifacts = {
-            "root_cause": Artifact(key="root_cause", data={"cause": "test"}, reason="test")
-        }
-        state = MagicMock()
-        state.has_code_changes.return_value = (False, True)
-
-        result = AutofixOnCompletionHook._get_current_step(artifacts, state)
+        state = run_state(blocks=[root_cause_memory_block()])
+        result = AutofixOnCompletionHook._get_current_step(state)
         assert result == AutofixStep.ROOT_CAUSE
 
     def test_get_current_step_solution(self):
         """Returns SOLUTION when solution artifact exists."""
-        artifacts = {
-            "root_cause": Artifact(key="root_cause", data={"cause": "test"}, reason="test"),
-            "solution": Artifact(key="solution", data={"steps": []}, reason="test"),
-        }
-        state = MagicMock()
-        state.has_code_changes.return_value = (False, True)
-
-        result = AutofixOnCompletionHook._get_current_step(artifacts, state)
+        state = run_state(blocks=[root_cause_memory_block(), solution_memory_block()])
+        result = AutofixOnCompletionHook._get_current_step(state)
         assert result == AutofixStep.SOLUTION
 
     def test_get_current_step_code_changes(self):
         """Returns CODE_CHANGES when code changes exist."""
-        artifacts = {
-            "root_cause": Artifact(key="root_cause", data={"cause": "test"}, reason="test"),
-            "solution": Artifact(key="solution", data={"steps": []}, reason="test"),
-        }
-        state = MagicMock()
-        state.has_code_changes.return_value = (True, False)
-
-        result = AutofixOnCompletionHook._get_current_step(artifacts, state)
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+            ]
+        )
+        result = AutofixOnCompletionHook._get_current_step(state)
         assert result == AutofixStep.CODE_CHANGES
 
     def test_get_current_step_none(self):
         """Returns None when no artifacts or code changes exist."""
-        artifacts: dict[str, Artifact] = {}
-        state = MagicMock()
-        state.has_code_changes.return_value = (False, True)
-
-        result = AutofixOnCompletionHook._get_current_step(artifacts, state)
+        state = run_state()
+        result = AutofixOnCompletionHook._get_current_step(state)
         assert result is None
 
     def test_get_next_step_root_cause_to_solution(self):
@@ -107,44 +198,28 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_explorer")
     def test_maybe_continue_pipeline_no_metadata(self, mock_trigger):
         """Does not continue when metadata is missing."""
-        state = MagicMock()
-        state.metadata = None
-        artifacts = {
-            "root_cause": Artifact(key="root_cause", data={"cause": "test"}, reason="test")
-        }
-
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, artifacts)
-
+        state = run_state(blocks=[root_cause_memory_block()])
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
         mock_trigger.assert_not_called()
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_explorer")
     def test_maybe_continue_pipeline_no_stopping_point_in_metadata(self, mock_trigger):
         """Does not continue when stopping_point is missing from metadata."""
-        state = MagicMock()
-        state.metadata = {"group_id": self.group.id}
-        artifacts = {
-            "root_cause": Artifact(key="root_cause", data={"cause": "test"}, reason="test")
-        }
-
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, artifacts)
-
+        state = run_state(blocks=[root_cause_memory_block()], metadata={"group_id": self.group.id})
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
         mock_trigger.assert_not_called()
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_explorer")
     def test_maybe_continue_pipeline_at_stopping_point(self, mock_trigger):
         """Does not continue when current step matches stopping point."""
-        state = MagicMock()
-        state.metadata = {
-            "stopping_point": AutofixStoppingPoint.ROOT_CAUSE.value,
-            "group_id": self.group.id,
-        }
-        state.has_code_changes.return_value = (False, True)
-        artifacts = {
-            "root_cause": Artifact(key="root_cause", data={"cause": "test"}, reason="test")
-        }
-
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, artifacts)
-
+        state = run_state(
+            blocks=[root_cause_memory_block()],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.ROOT_CAUSE.value,
+            },
+        )
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
         mock_trigger.assert_not_called()
 
     @patch("sentry.seer.autofix.on_completion_hook.get_project_seer_preferences")
@@ -154,18 +229,14 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         # No handoff configured - should continue with normal pipeline
         mock_get_prefs.return_value = None
 
-        state = MagicMock()
-        state.metadata = {
-            "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
-            "group_id": self.group.id,
-        }
-        state.has_code_changes.return_value = (False, True)
-        artifacts = {
-            "root_cause": Artifact(key="root_cause", data={"cause": "test"}, reason="test")
-        }
-
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, artifacts)
-
+        state = run_state(
+            blocks=[root_cause_memory_block()],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
+            },
+        )
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
         mock_trigger.assert_called_once()
         call_kwargs = mock_trigger.call_args.kwargs
         assert call_kwargs["group"].id == self.group.id
@@ -178,19 +249,18 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
 
-        state = MagicMock()
-        state.metadata = {
-            "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
-            "group_id": self.group.id,
-        }
-        state.has_code_changes.return_value = (True, False)  # has changes, not synced
-        artifacts = {
-            "root_cause": Artifact(key="root_cause", data={"cause": "test"}, reason="test"),
-            "solution": Artifact(key="solution", data={"steps": []}, reason="test"),
-        }
-
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, artifacts)
-
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+            ],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
+            },
+        )
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
         mock_client.push_changes.assert_called_once_with(123)
 
 
@@ -225,33 +295,28 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         run_id = 123
 
         class TestCaseDict(TypedDict):
-            artifact_key: str
-            artifact_data: dict
+            block: MemoryBlock
             expected_event: SeerActionType
             expected_payload_key: str
 
         test_cases: list[TestCaseDict] = [
             {
-                "artifact_key": "root_cause",
-                "artifact_data": {"cause": "test"},
+                "block": root_cause_memory_block(),
                 "expected_event": SeerActionType.ROOT_CAUSE_COMPLETED,
                 "expected_payload_key": "root_cause",
             },
             {
-                "artifact_key": "solution",
-                "artifact_data": {"steps": ["step1"]},
+                "block": solution_memory_block(),
                 "expected_event": SeerActionType.SOLUTION_COMPLETED,
                 "expected_payload_key": "solution",
             },
             {
-                "artifact_key": "triage",
-                "artifact_data": {"suspect_commit": "abc123"},
+                "block": triage_memory_block(),
                 "expected_event": SeerActionType.TRIAGE_COMPLETED,
                 "expected_payload_key": "triage",
             },
             {
-                "artifact_key": "impact_assessment",
-                "artifact_data": {"impact": "high"},
+                "block": impact_assessment_memory_block(),
                 "expected_event": SeerActionType.IMPACT_ASSESSMENT_COMPLETED,
                 "expected_payload_key": "impact_assessment",
             },
@@ -259,20 +324,8 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
 
         for i, test_case in enumerate(test_cases):
             mock_broadcast.reset_mock()
-            block = MemoryBlock(
-                id=f"block{i+1}",
-                message=Message(message="test", role="tool_use"),
-                timestamp="2024-01-01T00:00:00Z",
-                artifacts=[
-                    Artifact(
-                        key=test_case["artifact_key"],
-                        data=test_case["artifact_data"],
-                        reason="test",
-                    )
-                ],
-            )
-            state.blocks = [block]
-            AutofixOnCompletionHook._send_step_webhook(self.organization, run_id, {}, state)
+            state = run_state(blocks=[test_case["block"]])
+            AutofixOnCompletionHook._send_step_webhook(self.organization, run_id, state)
 
             mock_broadcast.assert_called_once()
             call_kwargs = mock_broadcast.call_args.kwargs
@@ -283,27 +336,20 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
             assert call_kwargs["event_name"] == test_case["expected_event"].value
             assert (
                 call_kwargs["payload"][test_case["expected_payload_key"]]
-                == test_case["artifact_data"]
+                == test_case["block"].artifacts[0].data
             )
 
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_send_step_webhook_coding(self, mock_broadcast):
         """Sends coding_completed webhook when file patches exist."""
-        state = MagicMock()
-        file_patch = ExplorerFilePatch(
-            repo_name="test-repo",
-            patch=FilePatch(path="test.py", type="M", added=5, removed=2),
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+            ]
         )
-        block = MemoryBlock(
-            id="block_coding",
-            message=Message(message="test", role="tool_use"),
-            timestamp="2024-01-01T00:00:00Z",
-            file_patches=[file_patch],
-        )
-        state.blocks = [block]
-        state.get_diffs_by_repo.return_value = {"test-repo": [file_patch]}
-
-        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, {}, state)
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state)
 
         mock_broadcast.assert_called_once()
         call_kwargs = mock_broadcast.call_args.kwargs
@@ -315,16 +361,14 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_send_step_webhook_no_artifacts_no_webhook(self, mock_broadcast):
         """Does not send webhook when no artifacts or file patches exist."""
-        state = MagicMock()
         block = MemoryBlock(
             id="block_empty",
-            message=Message(message="test", role="tool_use"),
+            message=Message(role="tool_use", content="test"),
             timestamp="2024-01-01T00:00:00Z",
             artifacts=[],
         )
-        state.blocks = [block]
-
-        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, {}, state)
+        state = run_state(blocks=[block])
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state)
 
         mock_broadcast.assert_not_called()
 
@@ -342,52 +386,32 @@ class TestAutofixOnCompletionHookSupergroups(TestCase):
     @patch("sentry.seer.autofix.on_completion_hook.trigger_supergroups_embedding")
     def test_triggers_embedding_on_root_cause(self, mock_trigger_sg):
         """Triggers supergroups embedding when root cause completes with feature flag enabled."""
-        artifact_data = {"one_line_description": "Null pointer in auth module"}
-        artifacts = {"root_cause": Artifact(key="root_cause", data=artifact_data, reason="test")}
-        state = MagicMock()
-        state.metadata = {"group_id": self.group.id}
-
-        AutofixOnCompletionHook._maybe_trigger_supergroups_embedding(
-            self.organization, 123, state, artifacts
-        )
+        block = root_cause_memory_block()
+        state = run_state(blocks=[block], metadata={"group_id": self.group.id})
+        AutofixOnCompletionHook._maybe_trigger_supergroups_embedding(self.organization, 123, state)
 
         mock_trigger_sg.assert_called_once_with(
             organization_id=self.organization.id,
             group_id=self.group.id,
-            artifact_data=artifact_data,
+            artifact_data=block.artifacts[0].data,
         )
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_supergroups_embedding")
     def test_skips_embedding_when_flag_disabled(self, mock_trigger_sg):
         """Does not trigger supergroups embedding when feature flag is disabled."""
-        artifacts = {
-            "root_cause": Artifact(
-                key="root_cause", data={"one_line_description": "test"}, reason="test"
-            )
-        }
-        state = MagicMock()
-        state.metadata = {"group_id": self.group.id}
-
-        AutofixOnCompletionHook._maybe_trigger_supergroups_embedding(
-            self.organization, 123, state, artifacts
+        state = run_state(
+            blocks=[root_cause_memory_block()],
+            metadata={"group_id": self.group.id},
         )
+        AutofixOnCompletionHook._maybe_trigger_supergroups_embedding(self.organization, 123, state)
 
         mock_trigger_sg.assert_not_called()
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_supergroups_embedding")
     def test_skips_embedding_when_no_group_id(self, mock_trigger_sg):
         """Does not trigger supergroups embedding when group_id is missing from metadata."""
-        artifacts = {
-            "root_cause": Artifact(
-                key="root_cause", data={"one_line_description": "test"}, reason="test"
-            )
-        }
-        state = MagicMock()
-        state.metadata = {}
-
-        AutofixOnCompletionHook._maybe_trigger_supergroups_embedding(
-            self.organization, 123, state, artifacts
-        )
+        state = run_state(blocks=[root_cause_memory_block()])
+        AutofixOnCompletionHook._maybe_trigger_supergroups_embedding(self.organization, 123, state)
 
         mock_trigger_sg.assert_not_called()
 
@@ -523,17 +547,15 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         mock_get_prefs.return_value = self._make_preference_response(handoff_config=handoff_config)
         mock_trigger_handoff.return_value = {"successes": [], "failures": []}
 
-        state = MagicMock()
-        state.metadata = {
-            "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
-            "group_id": self.group.id,
-        }
-        state.has_code_changes.return_value = (False, True)
-        artifacts = {
-            "root_cause": Artifact(key="root_cause", data={"cause": "test"}, reason="test")
-        }
+        state = run_state(
+            blocks=[root_cause_memory_block()],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
+            },
+        )
 
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, artifacts)
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state)
 
         mock_trigger_handoff.assert_called_once()
 
@@ -554,3 +576,61 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         call_kwargs = mock_trigger.call_args.kwargs
         assert call_kwargs["run_id"] == 123
         assert call_kwargs["integration_id"] == 123
+
+
+class AutofixOnCompletionHookTest(TestCase):
+    """Test the AutofixOnCompletionHook behavior."""
+
+    @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_explorer")
+    def test_next_step_not_triggered_when_coding_disabled(
+        self, mock_trigger_autofix, mock_fetch_run_status
+    ):
+        """Test that next step is not triggered if next step is CODE_CHANGES and sentry:enable_seer_coding is disabled."""
+        self.organization.update_option("sentry:enable_seer_coding", False)
+        group = self.create_group(project=self.project)
+
+        # Mock run state: SOLUTION step just completed
+        state = run_state(
+            blocks=[solution_memory_block()],
+            metadata={
+                "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
+                "group_id": group.id,
+            },
+        )
+        mock_fetch_run_status.return_value = state
+
+        # Execute the hook
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        # Verify: trigger_autofix_explorer was NOT called (next step blocked)
+        mock_trigger_autofix.assert_not_called()
+
+    @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_explorer")
+    def test_next_step_triggered_when_coding_enabled(
+        self, mock_trigger_autofix, mock_fetch_run_status
+    ):
+        """Test that next step IS triggered when next step is CODE_CHANGES and sentry:enable_seer_coding is enabled."""
+        self.organization.update_option("sentry:enable_seer_coding", True)
+        group = self.create_group(project=self.project)
+
+        # Mock run state: SOLUTION step just completed
+        state = run_state(
+            blocks=[solution_memory_block()],
+            metadata={
+                "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
+                "group_id": group.id,
+            },
+        )
+        mock_fetch_run_status.return_value = state
+
+        # Execute the hook
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        # Verify: trigger_autofix_explorer WAS called with CODE_CHANGES step
+        mock_trigger_autofix.assert_called_once()
+        call_kwargs = mock_trigger_autofix.call_args.kwargs
+        assert call_kwargs["step"] == AutofixStep.CODE_CHANGES
+        assert call_kwargs["group"] == group
+        assert call_kwargs["run_id"] == 123

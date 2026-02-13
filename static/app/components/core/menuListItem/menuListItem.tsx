@@ -12,7 +12,6 @@ import type {TooltipProps} from '@sentry/scraps/tooltip';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {space} from 'sentry/styles/space';
 import type {FormSize, Theme} from 'sentry/utils/theme';
 
 /**
@@ -47,15 +46,15 @@ function getTextColor({
  * Returns the appropriate vertical padding based on the size prop. To be used
  * as top/bottom padding/margin in InnerWrap
  */
-const getVerticalPadding = (size?: FormSize) => {
+const getVerticalPadding = (size: FormSize | undefined, theme: Theme) => {
   switch (size) {
     case 'xs':
-      return space(0.5);
+      return theme.space.xs;
     case 'sm':
-      return space(0.75);
+      return theme.space.sm;
     case 'md':
     default:
-      return space(1);
+      return theme.space.md;
   }
 };
 
@@ -72,9 +71,9 @@ const StyledInnerWrap = styled('div', {
 }>`
   display: flex;
   position: relative;
-  padding: 0 ${space(1)} 0 ${space(1.5)};
-  padding-top: ${p => getVerticalPadding(p.size)};
-  padding-bottom: ${p => getVerticalPadding(p.size)};
+  padding: 0 ${p => p.theme.space.md} 0 ${p => p.theme.space.lg};
+  padding-top: ${p => getVerticalPadding(p.size, p.theme)};
+  padding-bottom: ${p => getVerticalPadding(p.size, p.theme)};
   border-radius: ${p => p.theme.radius.md};
   box-sizing: border-box;
 
@@ -119,7 +118,7 @@ const StyledContentWrap = styled('div')<{
   width: 100%;
   min-width: 0;
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   justify-content: space-between;
   padding: 0;
 `;
@@ -129,8 +128,8 @@ const StyledLeadingItems = styled('div')<{
   size?: FormSize;
 }>`
   display: flex;
-  gap: ${space(1)};
-  margin-right: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  margin-right: ${p => p.theme.space.md};
   flex-shrink: 0;
   align-items: flex-start;
 
@@ -408,9 +407,9 @@ const MenuItemWrap = styled('li')`
   position: static;
   list-style-type: none;
   margin: 0;
-  padding: 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space.xs};
   cursor: pointer;
-  scroll-margin: ${space(0.5)} 0;
+  scroll-margin: ${p => p.theme.space.xs} 0;
 
   &:focus {
     outline: none;
@@ -428,8 +427,8 @@ const TrailingItems = styled('div')<{disabled: boolean}>`
   display: flex;
   align-items: center;
   height: 1.4em;
-  gap: ${space(1)};
-  margin-right: ${space(0.5)};
+  gap: ${p => p.theme.space.md};
+  margin-right: ${p => p.theme.space.xs};
 
   ${p => p.disabled && `opacity: 0.5;`}
 `;

@@ -25,7 +25,6 @@ describe('PageFiltersStore', () => {
     expect(PageFiltersStore.getState()).toEqual({
       isReady: false,
       shouldPersist: true,
-      desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       selection: {
         projects: [],

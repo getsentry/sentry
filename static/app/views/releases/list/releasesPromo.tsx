@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 import commitImage from 'sentry-images/spot/releases-tour-commits.svg';
 import emailImage from 'sentry-images/spot/releases-tour-email.svg';
@@ -9,7 +9,7 @@ import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -17,6 +17,11 @@ import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import {TourImage, TourText} from 'sentry/components/modals/featureTourModal';
+import {
+  CopyMarkdownButton,
+  CopySetupInstructionsGate,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import type {SentryApp} from 'sentry/types/integrations';
@@ -105,6 +110,7 @@ function ReleasesPromo({organization, project}: Props) {
   );
 
   const api = useApi();
+  const containerRef = useRef<HTMLDivElement>(null);
   const [token, setToken] = useState<string | null>(null);
   const [apps, setApps] = useState<SentryApp[]>([]);
   const [selectedApp, setSelectedApp] = useState<SentryApp | null>(null);
@@ -121,6 +127,17 @@ function ReleasesPromo({organization, project}: Props) {
       project_id: project.id,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const getMarkdown = useCallback(() => {
+    if (!containerRef.current) {
+      return '';
+    }
+    try {
+      return simpleHtmlToMarkdown(containerRef.current.innerHTML);
+    } catch {
+      return '';
+    }
   }, []);
 
   const trackQuickstartCopy = useCallback(() => {
@@ -216,6 +233,12 @@ sentry-cli releases finalize "$VERSION"`;
           )}
         </Text>
 
+        <CopySetupInstructionsGate>
+          <Container>
+            <CopyMarkdownButton getMarkdown={getMarkdown} source="releases_quickstart" />
+          </Container>
+        </CopySetupInstructionsGate>
+
         <CompactSelect
           size="sm"
           options={apps.map(makeAppOption)}
@@ -225,13 +248,13 @@ sentry-cli releases finalize "$VERSION"`;
           disabled={false}
           menuFooter={({closeOverlay}) => (
             <Button
-              title={
-                canMakeIntegration
+              tooltipProps={{
+                title: canMakeIntegration
                   ? undefined
                   : t(
                       'You must be an organization owner, manager or admin to create an integration.'
-                    )
-              }
+                    ),
+              }}
               size="xs"
               priority="transparent"
               disabled={!canMakeIntegration}
@@ -268,14 +291,16 @@ sentry-cli releases finalize "$VERSION"`;
           }}
         />
 
-        <CodeBlock
-          dark
-          language="bash"
-          hideCopyButton={!token || !selectedApp}
-          onCopy={trackQuickstartCopy}
-        >
-          {setupExample}
-        </CodeBlock>
+        <div ref={containerRef}>
+          <CodeBlock
+            dark
+            language="bash"
+            hideCopyButton={!token || !selectedApp}
+            onCopy={trackQuickstartCopy}
+          >
+            {setupExample}
+          </CodeBlock>
+        </div>
       </Stack>
     </Panel>
   );

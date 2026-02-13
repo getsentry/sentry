@@ -495,9 +495,7 @@ class SnubaTagStorage(TagStorage):
         if should_cache:
             filtering_strings = [f"{key}={value}" for key, value in filters.items()]
             filtering_strings.append(f"dataset={dataset.name}")
-            cache_key = "tagstore.__get_tag_keys:{}".format(
-                md5_text(*filtering_strings).hexdigest()
-            )
+            cache_key = f"tagstore.__get_tag_keys:{md5_text(*filtering_strings).hexdigest()}"
             key_hash = hash(cache_key)
 
             # Needs to happen before creating the cache suffix otherwise rounding will cause different durations
@@ -808,7 +806,7 @@ class SnubaTagStorage(TagStorage):
             Condition(Column(self.format_string.format(key)), Op.EQ, value),
         ]
         if translated_params.get("environment"):
-            Condition(Column("environment"), Op.IN, translated_params["environment"]),
+            (Condition(Column("environment"), Op.IN, translated_params["environment"]),)
 
         snuba_request = Request(
             dataset="search_issues",

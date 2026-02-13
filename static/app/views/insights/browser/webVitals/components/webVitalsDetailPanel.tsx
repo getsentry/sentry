@@ -19,6 +19,11 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {DashboardFilters} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/types';
+import {getLinkedDashboardUrl} from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
 import {WebVitalStatusLineChart} from 'sentry/views/insights/browser/webVitals/components/charts/webVitalStatusLineChart';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {WebVitalDescription} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
@@ -51,7 +56,13 @@ const sort: GridColumnSortBy<keyof Row> = {key: 'count()', order: 'desc'};
 
 const MAX_ROWS = 10;
 
-export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
+export function WebVitalsDetailPanel({
+  webVital,
+  dashboardFilters,
+}: {
+  webVital: WebVitals | null;
+  dashboardFilters?: DashboardFilters;
+}) {
   const location = useLocation();
   const organization = useOrganization();
   const moduleUrl = useModuleURL(ModuleName.VITAL);
@@ -59,6 +70,10 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
   const subregions = decodeList(
     location.query[SpanFields.USER_GEO_SUBREGION]
   ) as SubregionCode[];
+
+  const {dashboard: linkedWebVitalsSummaryDashboard} = useGetPrebuiltDashboard(
+    dashboardFilters === undefined ? undefined : PrebuiltDashboardId.WEB_VITALS_SUMMARY
+  );
 
   const {data: projectData} = useProjectRawWebVitalsQuery({browserTypes, subregions});
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
@@ -184,19 +199,39 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
       return <AlignRight>{value}</AlignRight>;
     }
     if (key === 'transaction') {
+      const linkedDashboardUrl =
+        dashboardFilters !== undefined && linkedWebVitalsSummaryDashboard?.id
+          ? getLinkedDashboardUrl({
+              linkedDashboard: {
+                dashboardId: linkedWebVitalsSummaryDashboard.id,
+                field: SpanFields.TRANSACTION,
+                additionalGlobalFilterDatasetTargets: [WidgetType.ISSUE],
+              },
+              organizationSlug: organization.slug,
+              field: 'transaction',
+              value: row.transaction,
+              widgetType: WidgetType.SPANS,
+              dashboardFilters,
+              locationQuery: location.query,
+              projectIdOverride: String(row['project.id']),
+            })
+          : undefined;
+
       return (
         <NoOverflow>
           <Link
-            to={{
-              ...location,
-              pathname: `${moduleUrl}/overview/`,
-              query: {
-                ...location.query,
-                transaction: row.transaction,
-                webVital,
-                project: row['project.id'],
-              },
-            }}
+            to={
+              linkedDashboardUrl || {
+                ...location,
+                pathname: `${moduleUrl}/overview/`,
+                query: {
+                  ...location.query,
+                  transaction: row.transaction,
+                  webVital,
+                  project: row['project.id'],
+                },
+              }
+            }
           >
             {row.transaction}
           </Link>

@@ -97,7 +97,7 @@ function ArtifactsTableRow({
             icon={<IconDownload size="sm" />}
             disabled={!hasRole}
             href={downloadUrl}
-            title={hasRole ? t('Download Artifact') : undefined}
+            tooltipProps={{title: hasRole ? t('Download Artifact') : undefined}}
             aria-label={t('Download Artifact')}
           />
         </Tooltip>

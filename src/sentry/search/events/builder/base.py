@@ -1078,10 +1078,7 @@ class BaseQueryBuilder:
                 lhs = condition.lhs
                 if isinstance(lhs, CurriedFunction) and lhs not in self.columns:
                     raise InvalidSearchQuery(
-                        "Aggregate {} used in a condition but is not a selected column{}.".format(
-                            lhs.alias,
-                            error_extra,
-                        )
+                        f"Aggregate {lhs.alias} used in a condition but is not a selected column{error_extra}."
                     )
 
     def validate_aggregate_arguments(self) -> None:
