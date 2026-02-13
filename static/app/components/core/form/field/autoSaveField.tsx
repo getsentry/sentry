@@ -2,7 +2,7 @@ import {useId} from 'react';
 // eslint-disable-next-line no-restricted-imports
 import type {DeepKeys, DeepValue, FieldApi} from '@tanstack/react-form';
 import {useMutation, type UseMutationOptions} from '@tanstack/react-query';
-import type {z} from 'zod';
+import {ZodBoolean, ZodNullable, ZodOptional, type z} from 'zod';
 
 import {AutoSaveContextProvider} from '@sentry/scraps/form/autoSaveContext';
 import {useScrapsForm, type BoundFieldComponents} from '@sentry/scraps/form/scrapsForm';
@@ -111,6 +111,19 @@ interface AutoSaveFieldProps<
   schema: TSchema;
 }
 
+/**
+ * Checks if a Zod schema field is a boolean type (including optional/nullable booleans).
+ */
+function isBooleanField(fieldSchema: z.core.$ZodType): boolean {
+  if (fieldSchema instanceof ZodBoolean) {
+    return true;
+  }
+  if (fieldSchema instanceof ZodOptional || fieldSchema instanceof ZodNullable) {
+    return isBooleanField(fieldSchema.unwrap());
+  }
+  return false;
+}
+
 export function AutoSaveField<
   TSchema extends z.ZodObject<z.ZodRawShape>,
   TFieldName extends Extract<keyof z.infer<TSchema>, string>,
@@ -119,6 +132,10 @@ export function AutoSaveField<
 
   const id = useId();
   const mutation = useMutation(mutationOptions);
+
+  // Boolean fields (like switches) save on change, others save on blur
+  const fieldSchema = schema.shape[name];
+  const saveOnChange = fieldSchema ? isBooleanField(fieldSchema) : false;
 
   const form = useScrapsForm({
     formId: `${name}-${id}-(auto-save)`,
@@ -129,13 +146,21 @@ export function AutoSaveField<
     validators: {
       onChange: schema.pick({[name]: true}) as never,
     },
-    listeners: {
-      onBlur: ({formApi, fieldApi}) => {
-        if (!fieldApi.state.meta.isDefaultValue) {
-          void formApi.handleSubmit();
+    listeners: saveOnChange
+      ? {
+          onChange: ({formApi, fieldApi}) => {
+            if (!fieldApi.state.meta.isDefaultValue) {
+              void formApi.handleSubmit();
+            }
+          },
         }
-      },
-    },
+      : {
+          onBlur: ({formApi, fieldApi}) => {
+            if (!fieldApi.state.meta.isDefaultValue) {
+              void formApi.handleSubmit();
+            }
+          },
+        },
     onSubmit: ({value}) => {
       return mutation.mutateAsync(value);
     },
