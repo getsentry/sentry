@@ -11,11 +11,11 @@ def make_csp_snapshot(insta_snapshot):
             data={"csp": data, "logentry": {"message": "XXX CSP MESSAGE NOT THROUGH RELAY XXX"}}
         )
         mgr.normalize()
-        data = mgr.get_data()
-        event_type = get_event_type(data)
-        event_metadata = event_type.get_metadata(data)
-        data.update(materialize_metadata(data, event_type, event_metadata))
-        evt = eventstore.backend.create_event(project_id=1, data=data)
+        event_data = mgr.get_data()
+        event_type = get_event_type(event_data)
+        event_metadata = event_type.get_metadata(event_data)
+        event_data.update(materialize_metadata(event_data, event_type, event_metadata))
+        evt = eventstore.backend.create_event(project_id=1, data=event_data)
         interface = evt.interfaces.get("csp")
 
         insta_snapshot(
