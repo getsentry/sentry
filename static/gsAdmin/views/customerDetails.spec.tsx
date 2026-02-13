@@ -2228,7 +2228,7 @@ describe('Customer Details', () => {
         body: Subscription,
       });
       MockApiClient.addMockResponse({
-        url: `/subscriptions/${sub.slug}/`,
+        url: `/customers/${sub.slug}/`,
         body: sub,
       });
 
@@ -2276,7 +2276,7 @@ describe('Customer Details', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: `/subscriptions/${sub.slug}/`,
+        url: `/customers/${sub.slug}/`,
         body: sub,
       });
 

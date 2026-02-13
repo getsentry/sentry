@@ -23,7 +23,7 @@ describe('CancelSubscription', () => {
       body: subscription,
     });
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: subscription,
     });

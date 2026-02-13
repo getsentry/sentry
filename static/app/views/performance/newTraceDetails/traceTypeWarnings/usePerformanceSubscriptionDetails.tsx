@@ -45,7 +45,7 @@ export function usePerformanceSubscriptionDetails({
   const organization = useOrganization();
 
   const {data: subscription, ...rest} = useApiQuery<Subscription>(
-    [`/subscriptions/${organization.slug}/`],
+    [`/customers/${organization.slug}/`],
     {
       staleTime: Infinity,
     }
