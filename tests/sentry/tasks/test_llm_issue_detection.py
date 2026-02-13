@@ -115,8 +115,7 @@ class LLMIssueDetectionTest(TestCase):
         assert occurrence.level == "warning"
 
         assert occurrence.fingerprint == [
-            "llm-detected",
-            "database-connection-pool-exhaustion",
+            "llm-detected-database-connection-pool-exhaustion-test_transaction"
         ]
 
         assert occurrence.evidence_data["trace_id"] == "abc123xyz"
@@ -170,7 +169,7 @@ class LLMIssueDetectionTest(TestCase):
             project=self.project,
         )
         occurrence = mock_produce_occurrence.call_args.kwargs["occurrence"]
-        assert occurrence.fingerprint == ["llm-detected", "seer-group-key-123"]
+        assert occurrence.fingerprint == ["llm-detected-seer-group-key-123-get-/api"]
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.mark_traces_as_processed")

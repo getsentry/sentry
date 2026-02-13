@@ -145,7 +145,7 @@ def create_issue_occurrence_from_detection(
         if group_for_fingerprint and group_for_fingerprint.strip()
         else title
     )
-    fingerprint = ["llm-detected", key]
+    fingerprint = [f"llm-detected-{key}-{transaction_name.lower().replace(' ', '-')}"]
 
     evidence_data = {
         "trace_id": trace_id,
