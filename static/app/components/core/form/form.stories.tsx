@@ -35,6 +35,7 @@ const baseUserSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().min(2, 'Last name must be at least 2 characters'),
   secret: z.string().optional(),
+  notifications: z.boolean().optional(),
   address: z.object({
     street: z.string().min(1, 'Street is required'),
     city: z.string().min(1, 'City is required'),
@@ -175,6 +176,22 @@ function AutoSaveExample() {
           </field.Layout.Stack>
         )}
       </AutoSaveField>
+
+      <AutoSaveField
+        name="notifications"
+        schema={baseUserSchema}
+        initialValue={user.data?.notifications ?? false}
+        mutationOptions={userMutationOptions(client)}
+      >
+        {field => (
+          <field.Layout.Stack label="Email Notifications:">
+            <field.Switch
+              checked={field.state.value ?? false}
+              onChange={field.handleChange}
+            />
+          </field.Layout.Stack>
+        )}
+      </AutoSaveField>
     </FieldGroup>
   );
 }
@@ -230,6 +247,19 @@ function BasicForm() {
             {field => (
               <field.Layout.Row label="Age:" hintText="Minimum 13" required>
                 <field.Number value={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+          <form.AppField name="notifications">
+            {field => (
+              <field.Layout.Row
+                label="Email Notifications:"
+                hintText="Receive email updates"
+              >
+                <field.Switch
+                  checked={field.state.value ?? false}
+                  onChange={field.handleChange}
+                />
               </field.Layout.Row>
             )}
           </form.AppField>
