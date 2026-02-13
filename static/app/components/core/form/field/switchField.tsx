@@ -23,7 +23,7 @@ export function SwitchField({
     <BaseField>
       {(fieldProps, {indicator}) => {
         const switchElement = (
-          <Flex gap="sm" align="center">
+          <Flex gap="sm" align="center" justify="between">
             <Switch
               {...fieldProps}
               {...props}
