@@ -1,6 +1,7 @@
 import logging
 import multiprocessing
 import multiprocessing.context
+import queue
 import threading
 import time
 from collections.abc import Callable, Mapping
@@ -18,7 +19,8 @@ from django.conf import settings
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.processing.backpressure.memory import ServiceMemory
-from sentry.spans.buffer import SpansBuffer
+from sentry.spans.buffer import SpansBuffer, parse_segment_key
+from sentry.spans.buffer_logger import FlusherLogger
 from sentry.utils import metrics
 from sentry.utils.arroyo import run_with_initialized_sentry
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -141,6 +143,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.redis_was_full = False
         self.current_drift = mp_context.Value("i", 0)
         self.produce_to_pipe = produce_to_pipe
+        self._flusher_log_queue: multiprocessing.Queue[tuple[list[tuple[str, int, int]], int]] = (
+            mp_context.Queue()
+        )
+        self._flusher_logger = FlusherLogger()
 
         # Determine which shards get their own processes vs shared processes
         self.num_processes = min(self.max_processes, len(buffer.assigned_shards))
@@ -226,6 +232,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 self.process_backpressure_since[process_index],
                 self.process_healthy_since[process_index],
                 self.produce_to_pipe,
+                self._flusher_log_queue,
             ),
             daemon=True,
         )
@@ -252,6 +259,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         backpressure_since,
         healthy_since,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
+        flusher_log_queue: "multiprocessing.Queue[tuple[list[tuple[str, int, int]], int]] | None" = None,
     ) -> None:
         logger.info("Flusher process main started for shards %s", shards)
 
@@ -283,7 +291,9 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             while not stopped.value:
                 system_now = int(time.time())
                 now = system_now + current_drift.value
+                flush_start = time.monotonic()
                 flushed_segments = buffer.flush_segments(now=now)
+                flush_latency_ms = int((time.monotonic() - flush_start) * 1000)
 
                 if first_iteration:
                     logger.info("Flusher first flush_segments completed for shards %s", shard_tag)
@@ -306,19 +316,37 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                     time.sleep(1)
                     continue
 
+                # (project_and_trace, span_count, payload_size)
+                flusher_log_entries: list[tuple[str, int, int]] = []
                 with metrics.timer("spans.buffer.flusher.produce", tags={"shard": shard_tag}):
-                    for flushed_segment in flushed_segments.values():
+                    for segment_key, flushed_segment in flushed_segments.items():
                         if not flushed_segment.spans:
                             continue
 
                         spans = [span.payload for span in flushed_segment.spans]
                         kafka_payload = KafkaPayload(None, orjson.dumps({"spans": spans}), [])
+                        payload_size = len(kafka_payload.value)
                         metrics.timing(
                             "spans.buffer.segment_size_bytes",
-                            len(kafka_payload.value),
+                            payload_size,
                             tags={"shard": shard_tag},
                         )
                         produce(kafka_payload)
+
+                        try:
+                            project_id, trace_id, _ = parse_segment_key(segment_key)
+                            project_and_trace = (
+                                f"{project_id.decode('utf-8', 'replace')}"
+                                f":{trace_id.decode('utf-8', 'replace')}"
+                            )
+                            flusher_log_entries.append(
+                                (project_and_trace, len(spans), payload_size)
+                            )
+                        except Exception:
+                            pass
+
+                if flusher_log_queue is not None and flusher_log_entries:
+                    flusher_log_queue.put_nowait((flusher_log_entries, flush_latency_ms))
 
                 with metrics.timer("spans.buffer.flusher.wait_produce", tags={"shards": shard_tag}):
                     for future in producer_futures:
@@ -383,12 +411,21 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             self._create_process_for_shards(process_index, shards)
             self._wait_for_process_to_become_healthy(process_index)
 
+    def _drain_flusher_log_queue(self) -> None:
+        while True:
+            try:
+                entries, flush_latency_ms = self._flusher_log_queue.get_nowait()
+            except queue.Empty:
+                break
+            self._flusher_logger.log(entries, flush_latency_ms)
+
     def submit(self, message: Message[FilteredPayload | int]) -> None:
         # Note that submit is not actually a hot path. Their message payloads
         # are mapped from *batches* of spans, and there are a handful of spans
         # per second at most. If anything, self.poll() might even be called
         # more often than submit()
 
+        self._drain_flusher_log_queue()
         self._ensure_processes_alive()
 
         for buffer in self.buffers.values():

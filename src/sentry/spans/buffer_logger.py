@@ -73,6 +73,84 @@ class BufferLogger:
             self._last_log_time = None
 
 
+class FlusherLogger:
+    """
+    Tracks per-trace flush operations and logs the dominant traces by
+    cumulative bytes flushed.
+
+    This logger keeps a bounded map (max 50 entries) of project_and_trace keys
+    to their segment counts, span counts, and cumulative bytes.
+    Every minute the top 50 traces by cumulative bytes are logged at INFO level,
+    along with the cumulative flush_segments latency over the logging interval.
+    """
+
+    def __init__(self) -> None:
+        self._data: dict[str, tuple[int, int, int]] = {}
+        self._cumulative_flush_latency_ms: int = 0
+        self._last_log_time: float | None = None
+
+    def log(self, entries: list[tuple[str, int, int]], flush_latency_ms: int) -> None:
+        """
+        Record a batch of flush operations and periodically log the top offenders.
+
+        :param entries: List of tuples containing
+            (project_and_trace, span_count, bytes_flushed) per segment.
+        :param flush_latency_ms: Total latency of the flush_segments Redis call
+            that produced this batch.
+        """
+
+        if not options.get("spans.buffer.flusher-cumulative-logger-enabled"):
+            return
+
+        if not self._last_log_time:
+            self._last_log_time = time.time()
+
+        self._cumulative_flush_latency_ms += flush_latency_ms
+
+        for project_and_trace, span_count, bytes_flushed in entries:
+            if project_and_trace in self._data:
+                prev_segments, prev_spans, prev_bytes = self._data[project_and_trace]
+                self._data[project_and_trace] = (
+                    prev_segments + 1,
+                    prev_spans + span_count,
+                    prev_bytes + bytes_flushed,
+                )
+            else:
+                self._data[project_and_trace] = (1, span_count, bytes_flushed)
+
+        if len(self._data) > MAX_ENTRIES:
+            sorted_items = sorted(self._data.items(), key=lambda x: x[1][2], reverse=True)
+            keys_to_remove = [key for key, _ in sorted_items[MAX_ENTRIES:]]
+            for key in keys_to_remove:
+                del self._data[key]
+
+        if time.time() - self._last_log_time >= LOGGING_INTERVAL:
+            sorted_items = sorted(self._data.items(), key=lambda x: x[1][2], reverse=True)
+
+            if len(sorted_items) > 0:
+                entries_str = [
+                    f"{key}:{segment_count}:{span_count}:{cumulative_bytes}"
+                    for key, (
+                        segment_count,
+                        span_count,
+                        cumulative_bytes,
+                    ) in sorted_items
+                ]
+
+                logger.info(
+                    "spans.buffer.top_flush_operations_by_bytes",
+                    extra={
+                        "top_flush_operations": entries_str,
+                        "cumulative_flush_latency_ms": self._cumulative_flush_latency_ms,
+                        "num_tracked_keys": len(self._data),
+                        "pruned_list": len(self._data) == MAX_ENTRIES,
+                    },
+                )
+            self._data.clear()
+            self._cumulative_flush_latency_ms = 0
+            self._last_log_time = None
+
+
 type DataPoint = tuple[bytes, float]
 type EvalshaData = list[DataPoint]
 
