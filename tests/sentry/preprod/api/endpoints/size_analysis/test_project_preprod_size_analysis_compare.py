@@ -581,6 +581,31 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         )
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
+    def test_post_comparison_mixed_completed_and_pending_returns_202(self):
+        self.create_preprod_artifact_size_metrics(
+            self.head_artifact,
+            analysis_file_id=self.head_analysis_file.id,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            identifier="watch",
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+        )
+
+        self.create_preprod_artifact_size_metrics(
+            self.base_artifact,
+            analysis_file_id=self.base_analysis_file.id,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            identifier="watch",
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        )
+
+        response = self.client.post(self._get_url())
+
+        assert response.status_code == 202
+        data = response.json()
+        assert data["status"] == "processing"
+        assert "not completed size analysis yet" in data["message"]
+
+    @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_post_comparison_existing_comparison(self):
         """Test POST endpoint returns existing comparison when comparison already exists"""
         # Create an existing comparison

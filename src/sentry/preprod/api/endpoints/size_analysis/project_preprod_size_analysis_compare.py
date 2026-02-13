@@ -39,7 +39,11 @@ from sentry.preprod.models import (
 )
 from sentry.preprod.quotas import get_size_retention_cutoff
 from sentry.preprod.size_analysis.tasks import manual_size_analysis_comparison
-from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
+from sentry.preprod.size_analysis.utils import (
+    ComparisonValidationResult,
+    build_size_metrics_map,
+    can_compare_size_metrics,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -375,6 +379,15 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
         # Check if the size metrics can be compared
         validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
         if not validation_result.can_compare:
+            if (
+                validation_result.error_type
+                == ComparisonValidationResult.ErrorType.NOT_ALL_COMPLETED
+            ):
+                body = SizeAnalysisComparePOSTResponse(
+                    status="processing",
+                    message=validation_result.error_message,
+                )
+                return Response(body.dict(), status=202)
             return Response(
                 {"detail": validation_result.error_message},
                 status=400,
