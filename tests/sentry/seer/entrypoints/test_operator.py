@@ -360,7 +360,7 @@ class SeerOperatorTest(TestCase):
                 {
                     "key": "root_cause_analysis",
                     "status": AutofixStatus.COMPLETED,
-                    "causes": [{"cause_id": 12}, {"cause_id": 34}],
+                    "causes": [{"id": 12}, {"id": 34}],
                 },
             ],
         )

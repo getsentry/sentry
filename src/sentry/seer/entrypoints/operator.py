@@ -382,4 +382,4 @@ def get_latest_cause_id(autofix_state: AutofixState | None) -> int:
         return AUTOFIX_FALLBACK_CAUSE_ID
 
     # The most recent cause is at the end of the list
-    return root_causes[-1].get("cause_id", AUTOFIX_FALLBACK_CAUSE_ID)
+    return root_causes[-1].get("id", AUTOFIX_FALLBACK_CAUSE_ID)
