@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {createTeam} from 'sentry/actionCreators/teams';
 import CreateTeamForm from 'sentry/components/teams/createTeamForm';
@@ -26,7 +27,13 @@ function CreateTeamModal({Body, Header, organization, onClose, closeModal}: Prop
       closeModal();
       onClose?.(team);
       onSuccess(team);
-    } catch (err) {
+    } catch (err: any) {
+      const errorMessage =
+        err?.responseJSON?.slug?.[0] ||
+        err?.responseJSON?.non_field_errors?.[0] ||
+        err?.responseJSON?.detail ||
+        t('Failed to create team');
+      addErrorMessage(errorMessage);
       onError(err as Team);
     }
   };
