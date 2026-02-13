@@ -63,5 +63,10 @@ export function useScrollLock(container: HTMLElement) {
     };
   }, [container, lock, id]);
 
-  return {acquire: () => lock.acquire(id), release: () => lock.release(id)};
+  return useMemo(() => {
+    return {
+      acquire: () => lock.acquire(id),
+      release: () => lock.release(id),
+    };
+  }, [lock, id]);
 }
