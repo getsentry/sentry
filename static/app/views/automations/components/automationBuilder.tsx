@@ -31,6 +31,7 @@ import {
 } from 'sentry/views/automations/components/automationFormData';
 import DataConditionNodeList from 'sentry/views/automations/components/dataConditionNodeList';
 import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
+import {UptimeResolutionNotificationToggle} from 'sentry/views/automations/components/uptimeResolutionNotificationToggle';
 import {useSendTestNotification} from 'sentry/views/automations/hooks';
 import {findConflictingConditions} from 'sentry/views/automations/hooks/utils';
 
@@ -111,6 +112,7 @@ export default function AutomationBuilder() {
             {(mutationErrors as any).actionFilters.all}
           </StyledAlert>
         )}
+        <UptimeResolutionNotificationToggle />
         {state.actionFilters.map(actionFilter => (
           <ActionFilterBlock
             key={`actionFilters.${actionFilter.id}`}
