@@ -1,6 +1,5 @@
 import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
-import classNames from 'classnames';
 
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -33,6 +32,14 @@ import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFil
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
+import {
+  getTimelineRowStyles,
+  VirtualTable,
+} from 'sentry/views/replays/detail/virtualizedTableLayout';
+import {
+  getTimelineRowClassName,
+  getVisibleRangeFromVirtualRows,
+} from 'sentry/views/replays/detail/virtualizedTableUtils';
 
 const HEADER_HEIGHT = 25;
 const BODY_HEIGHT = 25;
@@ -87,27 +94,12 @@ export default function NetworkList() {
   );
 
   const visibleRange = useMemo<VisibleRange>(() => {
-    if (virtualRows.length === 0) {
-      return {startIndex: 0, stopIndex: 0};
-    }
-
-    const scrollOffset = virtualizer.scrollOffset ?? 0;
-    const viewportHeight = virtualizer.scrollRect?.height ?? 0;
-    const viewportEnd = scrollOffset + viewportHeight;
-
-    const visibleItems = virtualRows.filter(item => {
-      const itemEnd = item.start + item.size;
-      return itemEnd > scrollOffset && item.start < viewportEnd;
+    return getVisibleRangeFromVirtualRows({
+      indexOffset: 1,
+      scrollOffset: virtualizer.scrollOffset ?? 0,
+      viewportHeight: virtualizer.scrollRect?.height ?? 0,
+      virtualRows,
     });
-
-    if (visibleItems.length === 0) {
-      return {startIndex: 0, stopIndex: 0};
-    }
-
-    return {
-      startIndex: visibleItems[0]!.index + 1,
-      stopIndex: visibleItems[visibleItems.length - 1]!.index + 1,
-    };
   }, [virtualRows, virtualizer.scrollOffset, virtualizer.scrollRect?.height]);
 
   const {
@@ -174,10 +166,10 @@ export default function NetworkList() {
         >
           {networkFrames ? (
             <OverflowHidden>
-              <VirtualizedTable ref={wrapperRef}>
-                <BodyScrollContainer ref={scrollContainerRef}>
-                  <HeaderViewport style={{width: totalColumnWidth}}>
-                    <HeaderRow
+              <VirtualTable ref={wrapperRef}>
+                <VirtualTable.BodyScrollContainer ref={scrollContainerRef}>
+                  <VirtualTable.HeaderViewport style={{width: totalColumnWidth}}>
+                    <VirtualTable.HeaderRow
                       style={{
                         gridTemplateColumns,
                       }}
@@ -191,10 +183,10 @@ export default function NetworkList() {
                           style={{height: HEADER_HEIGHT}}
                         />
                       ))}
-                    </HeaderRow>
-                  </HeaderViewport>
+                    </VirtualTable.HeaderRow>
+                  </VirtualTable.HeaderViewport>
                   {items.length === 0 ? (
-                    <NoRowsContainer>
+                    <VirtualTable.NoRowsContainer>
                       <NoRowRenderer
                         unfilteredItems={networkFrames}
                         clearSearchTerm={clearSearchTerm}
@@ -213,15 +205,15 @@ export default function NetworkList() {
                             )
                           : t('No network requests recorded')}
                       </NoRowRenderer>
-                    </NoRowsContainer>
+                    </VirtualTable.NoRowsContainer>
                   ) : (
-                    <VirtualizedContent
+                    <VirtualTable.Content
                       style={{
                         height: virtualizer.getTotalSize(),
                         width: totalColumnWidth,
                       }}
                     >
-                      <VirtualOffset
+                      <VirtualTable.Offset
                         offset={virtualRows[0]?.start ?? 0}
                         style={{width: totalColumnWidth}}
                       >
@@ -239,29 +231,12 @@ export default function NetworkList() {
                             currentHoverTime >= network.offsetMs;
                           const isAsc = isByTimestamp ? sortConfig.asc : false;
 
-                          const rowClassName = classNames({
-                            beforeCurrentTime: isByTimestamp
-                              ? isAsc
-                                ? hasOccurred
-                                : !hasOccurred
-                              : undefined,
-                            afterCurrentTime: isByTimestamp
-                              ? isAsc
-                                ? !hasOccurred
-                                : hasOccurred
-                              : undefined,
-                            beforeHoverTime:
-                              isByTimestamp && currentHoverTime !== undefined
-                                ? isAsc
-                                  ? isBeforeHover
-                                  : !isBeforeHover
-                                : undefined,
-                            afterHoverTime:
-                              isByTimestamp && currentHoverTime !== undefined
-                                ? isAsc
-                                  ? !isBeforeHover
-                                  : isBeforeHover
-                                : undefined,
+                          const rowClassName = getTimelineRowClassName({
+                            hasHoverTime: currentHoverTime !== undefined,
+                            hasOccurred,
+                            isAsc,
+                            isBeforeHover,
+                            isByTimestamp,
                             isLastDataRow: virtualRow.index === items.length - 1,
                           });
 
@@ -292,11 +267,11 @@ export default function NetworkList() {
                             </VirtualRow>
                           );
                         })}
-                      </VirtualOffset>
-                    </VirtualizedContent>
+                      </VirtualTable.Offset>
+                    </VirtualTable.Content>
                   )}
-                </BodyScrollContainer>
-              </VirtualizedTable>
+                </VirtualTable.BodyScrollContainer>
+              </VirtualTable>
               {sortConfig.by === 'startTimestamp' && items.length ? (
                 <JumpButtons
                   jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
@@ -323,88 +298,6 @@ export default function NetworkList() {
   );
 }
 
-const VirtualizedTable = styled('div')`
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  position: relative;
-`;
-
-const HeaderViewport = styled('div')`
-  background: ${p => p.theme.tokens.background.primary};
-  min-width: 100%;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-`;
-
-const HeaderRow = styled('div')`
-  display: grid;
-`;
-
-const BodyScrollContainer = styled('div')`
-  bottom: 0;
-  inset-inline: 0;
-  min-height: 0;
-  min-width: 0;
-  overflow: auto;
-  position: absolute;
-  overscroll-behavior: contain;
-  top: 0;
-`;
-
-const VirtualizedContent = styled('div')`
-  position: relative;
-`;
-
 const VirtualRow = styled('div')`
-  display: grid;
-  position: relative;
-
-  &.beforeHoverTime + &.afterHoverTime:before {
-    border-top: 1px solid ${p => p.theme.tokens.border.transparent.accent.moderate};
-    content: '';
-    left: 0;
-    position: absolute;
-    top: 0;
-    width: 100%;
-  }
-
-  &.beforeHoverTime.isLastDataRow:before {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.transparent.accent.moderate};
-    content: '';
-    left: 0;
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-  }
-
-  &.beforeCurrentTime + &.afterCurrentTime:after {
-    border-top: 1px solid ${p => p.theme.tokens.border.transparent.accent.vibrant};
-    content: '';
-    left: 0;
-    position: absolute;
-    top: 0;
-    width: 100%;
-  }
-
-  &.beforeCurrentTime.isLastDataRow:after {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.transparent.accent.vibrant};
-    content: '';
-    left: 0;
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-  }
-`;
-
-const NoRowsContainer = styled('div')`
-  min-height: 100%;
-`;
-
-const VirtualOffset = styled('div')<{offset: number}>`
-  left: 0;
-  position: absolute;
-  top: 0;
-  transform: translateY(${p => p.offset}px);
+  ${getTimelineRowStyles({useTransparentBorders: true})}
 `;
