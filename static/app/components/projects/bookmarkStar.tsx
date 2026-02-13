@@ -47,10 +47,8 @@ export function BookmarkStar({
 
   return (
     <Button
-      {...props}
       tooltipProps={{
         ...tooltipProps,
-        // Always use optimistic state for title
         title: isBookmarked ? t('Remove Bookmark') : t('Bookmark'),
       }}
       aria-label={isBookmarked ? t('Remove Bookmark') : t('Bookmark')}
@@ -62,6 +60,7 @@ export function BookmarkStar({
       icon={
         <IconStar variant={isBookmarked ? 'warning' : 'muted'} isSolid={isBookmarked} />
       }
+      {...props}
     />
   );
 }
