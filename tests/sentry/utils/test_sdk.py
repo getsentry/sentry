@@ -528,6 +528,13 @@ def test_before_send_error_level() -> None:
 
 
 class TracesSamplerTest(TestCase):
+    MOCK_SAMPLED_API_ENDPOINTS = {
+        "/api/0/organizations/{organization_id_or_slug}/chunk-upload/": 0.05,
+        "/api/0/organizations/{organization_id_or_slug}/artifactbundle/assemble/": 0.05,
+        "/api/0/organizations/{organization_id_or_slug}/events/": 0.05,
+        "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/overview/": 0.05,
+    }
+
     def _make_context(self, wsgi_path=None, transaction_name=None, parent_sampled=None):
         ctx: dict[str, object] = {"parent_sampled": parent_sampled}
         if wsgi_path is not None:
@@ -540,37 +547,37 @@ class TracesSamplerTest(TestCase):
         ctx = self._make_context(wsgi_path="/_warmup/")
         assert sdk.traces_sampler(ctx) == 0.0
 
+    @patch.dict(sdk.SAMPLED_API_ENDPOINTS, MOCK_SAMPLED_API_ENDPOINTS, clear=True)
     def test_sampled_api_endpoint_via_transaction_context(self):
         ctx = self._make_context(
             wsgi_path="/api/0/organizations/my-org/chunk-upload/",
             transaction_name="/api/0/organizations/{organization_id_or_slug}/chunk-upload/",
         )
-        expected = 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING
-        assert sdk.traces_sampler(ctx) == expected
+        assert sdk.traces_sampler(ctx) == 0.05
 
+    @patch.dict(sdk.SAMPLED_API_ENDPOINTS, MOCK_SAMPLED_API_ENDPOINTS, clear=True)
     def test_sampled_api_endpoint_artifactbundle_assemble(self):
         ctx = self._make_context(
             wsgi_path="/api/0/organizations/my-org/artifactbundle/assemble/",
             transaction_name="/api/0/organizations/{organization_id_or_slug}/artifactbundle/assemble/",
         )
-        expected = 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING
-        assert sdk.traces_sampler(ctx) == expected
+        assert sdk.traces_sampler(ctx) == 0.05
 
+    @patch.dict(sdk.SAMPLED_API_ENDPOINTS, MOCK_SAMPLED_API_ENDPOINTS, clear=True)
     def test_sampled_api_endpoint_events(self):
         ctx = self._make_context(
             wsgi_path="/api/0/organizations/my-org/events/",
             transaction_name="/api/0/organizations/{organization_id_or_slug}/events/",
         )
-        expected = 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING
-        assert sdk.traces_sampler(ctx) == expected
+        assert sdk.traces_sampler(ctx) == 0.05
 
+    @patch.dict(sdk.SAMPLED_API_ENDPOINTS, MOCK_SAMPLED_API_ENDPOINTS, clear=True)
     def test_sampled_api_endpoint_project_overview(self):
         ctx = self._make_context(
             wsgi_path="/api/0/projects/my-org/my-project/overview/",
             transaction_name="/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/overview/",
         )
-        expected = 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING
-        assert sdk.traces_sampler(ctx) == expected
+        assert sdk.traces_sampler(ctx) == 0.05
 
     def test_exact_route_takes_priority_over_transaction_context(self):
         ctx = self._make_context(
@@ -579,12 +586,13 @@ class TracesSamplerTest(TestCase):
         )
         assert sdk.traces_sampler(ctx) == 0.0
 
+    @patch.object(settings, "SENTRY_BACKEND_APM_SAMPLING", 0.5)
     def test_unmatched_route_falls_through_to_default(self):
         ctx = self._make_context(
             wsgi_path="/api/0/organizations/my-org/projects/",
             transaction_name="/api/0/organizations/{organization_id_or_slug}/projects/",
         )
-        assert sdk.traces_sampler(ctx) == float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
+        assert sdk.traces_sampler(ctx) == 0.5
 
     def test_parent_sampled_used_when_no_route_match(self):
         ctx = self._make_context(
