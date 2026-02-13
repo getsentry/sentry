@@ -51,7 +51,6 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
             "type": Condition.GREATER,
             "comparison": 100,
             "conditionResult": DetectorPriorityLevel.HIGH,
-            "conditionGroupId": self.data_condition_group.id,
         }
 
     def test(self) -> None:
@@ -61,7 +60,6 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
             "comparison": 100.0,
             "condition_result": DetectorPriorityLevel.HIGH,
             "type": Condition.GREATER,
-            "condition_group_id": self.data_condition_group.id,
         }
 
     def test_invalid_condition(self) -> None:
@@ -285,7 +283,6 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
 
 
 class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator):
-
     @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_create_with_valid_data(
@@ -1507,12 +1504,12 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         }
 
         validator = MetricIssueDetectorValidator(data=data, context=self.context)
-        assert validator.is_valid(), validator.errors
-        with self.assertRaisesMessage(
-            ValidationError,
-            expected_message="server_weighted extrapolation mode is not supported for new detectors.",
-        ):
-            validator.save()
+        assert not validator.is_valid()
+        assert validator.errors
+        assert (
+            validator.errors["dataSources"]["nonFieldErrors"][0]
+            == "Invalid extrapolation mode for this alert type: server_weighted. Allowed modes are: client_and_server_weighted, unknown."
+        )
 
     def test_invalid_extrapolation_mode_update(self) -> None:
         data = {
@@ -1553,12 +1550,12 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         update_validator = MetricIssueDetectorValidator(
             instance=detector, data=update_data, context=self.context, partial=True
         )
-        assert update_validator.is_valid(), update_validator.errors
-        with self.assertRaisesMessage(
-            ValidationError,
-            expected_message="Invalid extrapolation mode for this detector type.",
-        ):
-            update_validator.save()
+        assert not update_validator.is_valid()
+        assert update_validator.errors
+        assert (
+            update_validator.errors["dataSources"]["nonFieldErrors"][0]
+            == "Invalid extrapolation mode for this alert type: server_weighted. Allowed modes are: client_and_server_weighted, unknown."
+        )
 
     def test_nonexistent_extrapolation_mode_create(self) -> None:
         data = {
@@ -1580,7 +1577,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         validator = MetricIssueDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid(), validator.errors
         assert (
-            validator.errors["dataSources"]["extrapolationMode"][0]
+            validator.errors["dataSources"]["nonFieldErrors"][0]
             == "Invalid extrapolation mode: blah"
         )
 
@@ -1626,6 +1623,6 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
 
         assert not update_validator.is_valid(), update_validator.errors
         assert (
-            update_validator.errors["dataSources"]["extrapolationMode"][0]
+            update_validator.errors["dataSources"]["nonFieldErrors"][0]
             == "Invalid extrapolation mode: blah"
         )

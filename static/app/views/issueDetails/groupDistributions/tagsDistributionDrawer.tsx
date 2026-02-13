@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
@@ -78,7 +79,7 @@ export default function TagsDistributionDrawer({
               <div />
             )}
 
-            <ButtonBar>
+            <Grid flow="column" align="center" gap="md">
               <GroupDistributionsSearchInput
                 includeFeatureFlagsTab={includeFeatureFlagsTab}
                 search={search}
@@ -97,7 +98,7 @@ export default function TagsDistributionDrawer({
                   </Tooltip>
                 </Fragment>
               ) : null}
-            </ButtonBar>
+            </Grid>
           </EventStickyControls>
         )}
 

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {ButtonBar} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import PanelBody from 'sentry/components/panels/panelBody';
 import {space} from 'sentry/styles/space';
@@ -24,7 +24,9 @@ export const SubscriptionBody = styled(PanelBody)`
   }
 `;
 
-export const ButtonWrapper = styled(ButtonBar)`
+export const ButtonWrapper = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   align-self: center;
   justify-self: end;
 `;

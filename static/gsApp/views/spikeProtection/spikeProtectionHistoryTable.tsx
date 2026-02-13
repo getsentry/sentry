@@ -260,7 +260,7 @@ class SpikeProtectionHistoryTable extends Component<Props> {
             size="sm"
             icon={<IconSettings />}
             aria-label={t('Settings')}
-            title={t('Go to spike protection settings')}
+            tooltipProps={{title: t('Go to spike protection settings')}}
             to={`/settings/${organization.slug}/spike-protection/`}
           />
         </Flex>

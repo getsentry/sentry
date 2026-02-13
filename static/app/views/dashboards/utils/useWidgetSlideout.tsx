@@ -21,7 +21,12 @@ function getSlideoutComponent(
     case SlideoutId.INP:
     case SlideoutId.CLS:
     case SlideoutId.TTFB:
-      return <WebVitalsDetailPanel webVital={slideOutId as WebVitals} />;
+      return (
+        <WebVitalsDetailPanel
+          webVital={slideOutId as WebVitals}
+          dashboardFilters={dashboardFilters}
+        />
+      );
     case SlideoutId.LCP_SUMMARY:
     case SlideoutId.FCP_SUMMARY:
     case SlideoutId.INP_SUMMARY:

@@ -1,9 +1,9 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Stack} from '@sentry/scraps/layout';
+import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
@@ -145,7 +145,7 @@ export default function ShareIssueModal({
               {t('Include Event ID in link')}
             </CheckboxContainer>
           )}
-          <StyledButtonBar gap="xs">
+          <StyledButtonBar>
             <Button
               size="sm"
               onClick={handleCopyMarkdownLink}
@@ -213,7 +213,9 @@ export default function ShareIssueModal({
                       <StyledAutoSelectText ref={urlRef}>{shareUrl}</StyledAutoSelectText>
                     </TextContainer>
                     <ReshareButton
-                      title={t('Generate new URL. Invalidates previous URL')}
+                      tooltipProps={{
+                        title: t('Generate new URL. Invalidates previous URL'),
+                      }}
                       aria-label={t('Generate new URL')}
                       priority="transparent"
                       size="sm"
@@ -286,7 +288,9 @@ const CheckboxContainer = styled('label')`
   font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
-const StyledButtonBar = styled(ButtonBar)`
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="xs" {...props} />
+))`
   justify-content: flex-end;
 `;
 

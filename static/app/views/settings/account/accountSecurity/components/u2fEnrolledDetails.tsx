@@ -1,8 +1,9 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
+import {Grid} from '@sentry/scraps/layout';
 
 import Confirm from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
@@ -84,7 +85,7 @@ function Device(props: DeviceProps) {
           {device.name}
           <FadedDateTime date={device.timestamp} />
         </DeviceInformation>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Button size="sm" onClick={() => setEditting(true)}>
             {t('Rename device')}
           </Button>
@@ -98,10 +99,12 @@ function Device(props: DeviceProps) {
               size="sm"
               priority="danger"
               icon={<IconDelete />}
-              title={isLastDevice ? t('Can not remove last U2F device') : undefined}
+              tooltipProps={{
+                title: isLastDevice ? t('Can not remove last U2F device') : undefined,
+              }}
             />
           </Confirm>
-        </ButtonBar>
+        </Grid>
       </PanelItem>
     );
   }
@@ -119,7 +122,7 @@ function Device(props: DeviceProps) {
         />
         <FadedDateTime date={device.timestamp} />
       </DeviceInformation>
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         <Button
           priority="primary"
           size="sm"
@@ -132,7 +135,7 @@ function Device(props: DeviceProps) {
         </Button>
         <Button
           size="sm"
-          title={t('Cancel Rename')}
+          tooltipProps={{title: t('Cancel Rename')}}
           aria-label={t('Cancel Rename')}
           icon={<IconClose />}
           onClick={() => {
@@ -140,7 +143,7 @@ function Device(props: DeviceProps) {
             setEditting(false);
           }}
         />
-      </ButtonBar>
+      </Grid>
     </PanelItem>
   );
 }

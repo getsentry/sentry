@@ -182,7 +182,7 @@ def process_commit_context(
             metrics.incr(
                 "sentry.tasks.process_commit_context.success",
                 tags={
-                    "detail": f'successfully {"created" if created else "updated"}',
+                    "detail": f"successfully {'created' if created else 'updated'}",
                 },
             )
             try:

@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useOutdatedSDKProjects} from 'sentry/views/insights/database/queries/useOutdatedSDKProjects';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/database/settings';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';

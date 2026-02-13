@@ -10,7 +10,7 @@ import {
   measurementType,
 } from 'sentry/utils/discover/fields';
 
-import grammar from './grammar.pegjs';
+import {parse} from './grammar.pegjs';
 import {getKeyName} from './utils';
 
 type TextFn = () => string;
@@ -1516,7 +1516,7 @@ function tryParseSearch<T extends {config: SearchConfig}>(
   config: T
 ): ParseResult | null {
   try {
-    return grammar.parse(query, config);
+    return parse(query, config);
   } catch (e: any) {
     Sentry.logger.error('Search syntax parse error', {
       message: e.message?.slice(-100),

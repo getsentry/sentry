@@ -7,6 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconClock, IconEllipsis, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
@@ -16,9 +17,8 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {
   DashboardWidgetSource,
@@ -281,7 +281,7 @@ function ContextMenu({
         organization,
         dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
         interval,
-        eventTypes: 'trace_item_log',
+        eventTypes: [EventTypes.TRACE_ITEM_LOG],
       }),
       onAction: () => {
         trackAnalytics('logs.save_as', {

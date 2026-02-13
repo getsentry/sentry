@@ -3,12 +3,21 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {ButtonBar} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {
+  CopySetupInstructionsGate,
+  OnboardingCopyMarkdownButton,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {
+  StepIndexProvider,
+  TabSelectionScope,
+} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   DocsParams,
@@ -20,15 +29,16 @@ import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import EventWaiter from 'sentry/utils/eventWaiter';
 import {decodeInteger} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIndicator';
 
 export function SetupTitle({project}: {project: Project}) {
   return (
@@ -41,6 +51,37 @@ export function SetupTitle({project}: {project: Project}) {
         ),
       })}
     </BodyTitle>
+  );
+}
+
+function WaitingIndicator({project}: {project: Project}) {
+  const organization = useOrganization();
+
+  return (
+    <EventWaiter organization={organization} project={project} eventType="error">
+      {({firstIssue}) =>
+        firstIssue ? (
+          <LinkButton
+            onClick={() =>
+              trackAnalytics('growth.onboarding_take_to_error', {
+                organization,
+                platform: project.platform,
+              })
+            }
+            to={`/organizations/${organization.slug}/issues/${
+              firstIssue && firstIssue !== true && 'id' in firstIssue
+                ? `${firstIssue.id}/`
+                : ''
+            }?referrer=onboarding-first-event-indicator`}
+            priority="primary"
+          >
+            {t('Take me to my error')}
+          </LinkButton>
+        ) : (
+          <EventWaitingIndicator />
+        )
+      }
+    </EventWaiter>
   );
 }
 
@@ -134,80 +175,105 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
 
   return (
     <AuthTokenGeneratorProvider projectSlug={project?.slug}>
-      <div>
-        <HeaderWrapper>
-          <Title>{t('Get Started with Sentry Issues')}</Title>
-          <Description>
-            {t('Your code sleuth eagerly awaits its first mission.')}
-          </Description>
-          <Image src={waitingForEventImg} />
-        </HeaderWrapper>
-        <Divider />
-        <Body>
-          <Setup>
-            <SetupTitle project={project} />
-            <GuidedSteps
-              initialStep={decodeInteger(location.query.guidedStep)}
-              onStepChange={step => {
-                navigate({
-                  pathname: location.pathname,
-                  query: {
-                    ...location.query,
-                    guidedStep: step,
-                  },
-                });
-              }}
-            >
-              {steps.map((step, index) => {
-                const title = step.title ?? StepTitles[step.type ?? 'install'];
-                return (
-                  <GuidedSteps.Step key={index} stepKey={title} title={title}>
-                    <ContentBlocksRenderer
-                      contentBlocks={step.content}
-                      spacing={space(1)}
-                    />
-                    {index === steps.length - 1 ? (
-                      <FirstEventIndicator
-                        organization={organization}
-                        project={project}
-                        eventType="error"
-                      >
-                        {({indicator, firstEventButton}) => (
-                          <FirstEventWrapper>
-                            <IndicatorWrapper>{indicator}</IndicatorWrapper>
-                            <StyledButtonBar>
-                              <GuidedSteps.BackButton size="md" />
-                              {firstEventButton}
-                            </StyledButtonBar>
-                          </FirstEventWrapper>
-                        )}
-                      </FirstEventIndicator>
-                    ) : (
+      <TabSelectionScope>
+        <div>
+          <HeaderWrapper>
+            <Title>{t('Get Started with Sentry Issues')}</Title>
+            <Description>
+              {t('Your code sleuth eagerly awaits its first mission.')}
+            </Description>
+            <Image src={waitingForEventImg} />
+          </HeaderWrapper>
+          <Divider />
+          <Body>
+            <Setup>
+              <SetupTitle project={project} />
+              <CopySetupInstructionsGate>
+                <Container paddingBottom="md">
+                  <OnboardingCopyMarkdownButton
+                    steps={steps}
+                    source="issues_onboarding"
+                  />
+                </Container>
+              </CopySetupInstructionsGate>
+              <GuidedSteps
+                initialStep={decodeInteger(location.query.guidedStep)}
+                onStepChange={step => {
+                  navigate({
+                    pathname: location.pathname,
+                    query: {
+                      ...location.query,
+                      guidedStep: step,
+                    },
+                  });
+                }}
+              >
+                {steps.map((step, index) => {
+                  const title = step.title ?? StepTitles[step.type ?? 'install'];
+                  const isLastStep = index === steps.length - 1;
+                  return (
+                    <GuidedSteps.Step key={index} stepKey={title} title={title}>
+                      <StepIndexProvider index={index}>
+                        <ContentBlocksRenderer
+                          contentBlocks={step.content}
+                          spacing={space(1)}
+                        />
+                      </StepIndexProvider>
                       <GuidedSteps.ButtonWrapper>
                         <GuidedSteps.BackButton size="md" />
                         <GuidedSteps.NextButton size="md" />
+                        {isLastStep && <WaitingIndicator project={project} />}
                       </GuidedSteps.ButtonWrapper>
-                    )}
-                  </GuidedSteps.Step>
-                );
-              })}
-            </GuidedSteps>
-          </Setup>
-          <Preview>
-            <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>
-            <ArcadeWrapper>
-              <Arcade
-                src="https://demo.arcade.software/bQko6ZTRFMyTm6fJaDzs?embed"
-                loading="lazy"
-                allowFullScreen
-              />
-            </ArcadeWrapper>
-          </Preview>
-        </Body>
-      </div>
+                      {/* This spacer ensures the whole pulse effect is visible, as the parent has overflow: hidden */}
+                      {isLastStep && <PulseSpacer />}
+                    </GuidedSteps.Step>
+                  );
+                })}
+              </GuidedSteps>
+            </Setup>
+            <Preview>
+              <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>
+              <ArcadeWrapper>
+                <Arcade
+                  src="https://demo.arcade.software/bQko6ZTRFMyTm6fJaDzs?embed"
+                  loading="lazy"
+                  allowFullScreen
+                />
+              </ArcadeWrapper>
+            </Preview>
+          </Body>
+        </div>
+      </TabSelectionScope>
     </AuthTokenGeneratorProvider>
   );
 }
+
+const PulsingIndicator = styled('div')`
+  ${pulsingIndicatorStyles};
+  flex-shrink: 0;
+`;
+
+function EventWaitingIndicator() {
+  return (
+    <EventWaitingIndicatorContainer
+      align="center"
+      position="relative"
+      padding="0 md"
+      paddingRight="3xl"
+      gap="md"
+      flexGrow={1}
+    >
+      {t("Waiting for this project's first error")}
+      <PulsingIndicator />
+    </EventWaitingIndicatorContainer>
+  );
+}
+
+const EventWaitingIndicatorContainer = styled(Flex)`
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.promotion};
+  z-index: 10;
+`;
 
 const ProjectBadgeWrapper = styled('div')`
   display: inline-block;
@@ -298,16 +364,6 @@ const Arcade = styled('iframe')`
   color-scheme: auto;
 `;
 
-const StyledButtonBar = styled(ButtonBar)`
-  display: flex;
-`;
-
-const IndicatorWrapper = styled('div')`
-  width: 300px;
-  max-width: 100%;
-  margin-bottom: ${space(1)};
-`;
-
-const FirstEventWrapper = styled('div')`
-  padding-top: ${space(1)};
+const PulseSpacer = styled('div')`
+  height: ${p => p.theme.space['3xl']};
 `;

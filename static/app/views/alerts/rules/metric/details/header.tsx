@@ -1,7 +1,8 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import Access from 'sentry/components/acl/access';
 import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
@@ -111,7 +112,7 @@ function DetailsHeader({
         </RuleTitle>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           {rule && project && (
             <Access access={['alerts:write']}>
               {({hasAccess}) => (
@@ -131,22 +132,22 @@ function DetailsHeader({
             icon={<IconCopy />}
             to={duplicateLink}
             disabled={deprecateTransactionsAlerts}
-            title={
-              deprecateTransactionsAlerts
+            tooltipProps={{
+              title: deprecateTransactionsAlerts
                 ? hasEAPAlerts(organization)
                   ? t(
                       'Transaction alerts are being deprecated. Please create Span alerts instead.'
                     )
                   : t('Transaction alerts are being deprecated.')
-                : undefined
-            }
+                : undefined,
+            }}
           >
             {t('Duplicate')}
           </LinkButton>
           <LinkButton size="sm" icon={<IconEdit />} to={settingsLink}>
             {t('Edit Rule')}
           </LinkButton>
-        </ButtonBar>
+        </Grid>
       </Layout.HeaderActions>
     </Layout.Header>
   );

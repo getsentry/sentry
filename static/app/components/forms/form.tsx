@@ -81,7 +81,7 @@ export interface FormProps extends Pick<
   submitPriority?: ButtonProps['priority'];
 }
 
-function getSubmitButtonTitle(form: FormModel) {
+export function getSubmitButtonTitle(form: FormModel) {
   if (form.isFormIncomplete) {
     return t('Required fields must be filled out');
   }
@@ -269,7 +269,7 @@ function Form({
               <Observer>
                 {() => (
                   <Button
-                    title={getSubmitButtonTitle(formModel)}
+                    tooltipProps={{title: getSubmitButtonTitle(formModel)}}
                     data-test-id="form-submit"
                     priority={submitPriority ?? 'primary'}
                     disabled={

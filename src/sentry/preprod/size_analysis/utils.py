@@ -20,6 +20,8 @@ class ComparisonValidationResult:
         DIFFERENT_APP_IDS = "different_app_ids"
         DIFFERENT_BUILD_CONFIGURATIONS = "different_build_configurations"
         DIFFERENT_METRICS = "different_metrics"
+        NOT_ALL_COMPLETED = "not_all_completed"
+        METRICS_FAILED = "metrics_failed"
 
     can_compare: bool
     error_message: str | None = None
@@ -34,27 +36,61 @@ def build_size_metrics_map(
 
 
 def can_compare_size_metrics(
-    head_metrics: list[PreprodArtifactSizeMetrics], base_metric: list[PreprodArtifactSizeMetrics]
+    head_metrics: list[PreprodArtifactSizeMetrics], base_metrics: list[PreprodArtifactSizeMetrics]
 ) -> ComparisonValidationResult:
+    if not head_metrics or not base_metrics:
+        return ComparisonValidationResult(
+            can_compare=False,
+            error_message="Head or base has no completed size metrics to compare.",
+            error_type=ComparisonValidationResult.ErrorType.DIFFERENT_LENGTH,
+        )
+
+    all_metrics = head_metrics + base_metrics
+    failed_metrics = [
+        m
+        for m in all_metrics
+        if m.state
+        in (
+            PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
+            PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+        )
+    ]
+    if failed_metrics:
+        return ComparisonValidationResult(
+            can_compare=False,
+            error_message=f"{len(failed_metrics)} metric(s) failed size analysis.",
+            error_type=ComparisonValidationResult.ErrorType.METRICS_FAILED,
+        )
+
+    incomplete = [
+        m for m in all_metrics if m.state != PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+    ]
+    if incomplete:
+        return ComparisonValidationResult(
+            can_compare=False,
+            error_message=f"{len(incomplete)} metric(s) have not completed size analysis yet.",
+            error_type=ComparisonValidationResult.ErrorType.NOT_ALL_COMPLETED,
+        )
+
     # Check that both lists have the same length
-    if len(head_metrics) != len(base_metric):
+    if len(head_metrics) != len(base_metrics):
         # TODO: Add ability to compare size metrics with different lengths
         logger.info(
             "preprod.size_analysis.compare.cannot_compare_size_metrics.different_length",
             extra={
                 "head_metrics_length": len(head_metrics),
-                "base_metric_length": len(base_metric),
+                "base_metrics_length": len(base_metrics),
             },
         )
         return ComparisonValidationResult(
             can_compare=False,
-            error_message=f"Head and base have different numbers of size metrics. Head has {len(head_metrics)} metric(s), base has {len(base_metric)} metric(s).",
+            error_message=f"Head and base have different numbers of size metrics. Head has {len(head_metrics)} metric(s), base has {len(base_metrics)} metric(s).",
             error_type=ComparisonValidationResult.ErrorType.DIFFERENT_LENGTH,
         )
 
     # Build sets of (metrics_artifact_type, identifier) for both lists
     head_set = {(m.metrics_artifact_type, m.identifier) for m in head_metrics}
-    base_set = {(m.metrics_artifact_type, m.identifier) for m in base_metric}
+    base_set = {(m.metrics_artifact_type, m.identifier) for m in base_metrics}
 
     # Return True if the sets are equal (all metrics match on both dimensions)
     if head_set == base_set:
@@ -65,9 +101,9 @@ def can_compare_size_metrics(
     base_only = base_set - head_set
 
     head_artifact_types = {m.metrics_artifact_type for m in head_metrics}
-    base_artifact_types = {m.metrics_artifact_type for m in base_metric}
+    base_artifact_types = {m.metrics_artifact_type for m in base_metrics}
     head_identifiers = {m.identifier for m in head_metrics}
-    base_identifiers = {m.identifier for m in base_metric}
+    base_identifiers = {m.identifier for m in base_metrics}
 
     # Check if only identifiers differ (same artifact types)
     if head_artifact_types == base_artifact_types and head_identifiers != base_identifiers:

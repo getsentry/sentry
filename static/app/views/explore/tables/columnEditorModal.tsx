@@ -3,9 +3,10 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -169,7 +170,7 @@ export function ColumnEditorModal({
             {editableColumns.map((column, i) => {
               return (
                 <ColumnEditorRow
-                  key={column.id}
+                  key={`${column.column}-${column.id}`}
                   canDelete={editableColumns.length > 1}
                   required={requiredTags?.includes(column.column)}
                   column={column}
@@ -180,7 +181,7 @@ export function ColumnEditorModal({
               );
             })}
             <RowContainer>
-              <ButtonBar>
+              <Grid flow="column" align="center" gap="md">
                 <Button
                   size="sm"
                   aria-label={t('Add a Column')}
@@ -189,11 +190,11 @@ export function ColumnEditorModal({
                 >
                   {t('Add a Column')}
                 </Button>
-              </ButtonBar>
+              </Grid>
             </RowContainer>
           </Body>
           <Footer data-test-id="editor-footer">
-            <ButtonBar>
+            <Grid flow="column" align="center" gap="md">
               {!isDocsButtonHidden && (
                 <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
                   {t('Read the Docs')}
@@ -213,7 +214,7 @@ export function ColumnEditorModal({
               <Button aria-label={t('Apply')} priority="primary" onClick={handleApply}>
                 {t('Apply')}
               </Button>
-            </ButtonBar>
+            </Grid>
           </Footer>
         </Fragment>
       )}

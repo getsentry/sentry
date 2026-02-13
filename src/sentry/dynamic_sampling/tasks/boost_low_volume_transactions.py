@@ -39,8 +39,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     set_transactions_resampling_rates,
 )
-from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task, sample_function
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
 from sentry.models.options.project_option import ProjectOption
@@ -82,6 +81,13 @@ class ProjectTransactionsTotals(ProjectIdentity, total=True):
     total_num_classes: int | float
 
 
+def _use_segments_for_all_orgs() -> bool:
+    """
+    Returns True if segment metrics should be used for ALL orgs in this task.
+    """
+    return bool(options.get("dynamic-sampling.transactions.segment-metric.enabled"))
+
+
 def _get_segments_org_ids() -> set[int]:
     """
     Returns the set of organization IDs that should use SEGMENTS measure.
@@ -105,17 +111,21 @@ def boost_low_volume_transactions() -> None:
         options.get("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions")
     )
 
+    use_segments_globally = _use_segments_for_all_orgs()
     segments_org_ids = _get_segments_org_ids()
 
-    # Process orgs using segment metrics (opted-in via option)
-    if segments_org_ids:
+    # Process orgs using segment metrics (all orgs when global switch is on, or opted-in via option)
+    if use_segments_globally or segments_org_ids:
         for orgs in GetActiveOrgs(
             max_projects=MAX_PROJECTS_PER_QUERY,
             granularity=Granularity(60),
             measure=SamplingMeasure.SEGMENTS,
         ):
-            # Filter to only orgs in the segments option
-            segment_orgs = [org_id for org_id in orgs if org_id in segments_org_ids]
+            segment_orgs = (
+                orgs
+                if use_segments_globally
+                else [org_id for org_id in orgs if org_id in segments_org_ids]
+            )
             metrics.incr(
                 "dynamic_sampling.boost_low_volume_transactions.orgs_partitioned",
                 tags={"metric_type": "segment"},
@@ -126,26 +136,26 @@ def boost_low_volume_transactions() -> None:
                     segment_orgs, num_big_trans, num_small_trans, measure=SamplingMeasure.SEGMENTS
                 )
 
-    # Process orgs using transaction metrics (default)
-    for orgs in GetActiveOrgs(
-        max_projects=MAX_PROJECTS_PER_QUERY,
-        granularity=Granularity(60),
-        measure=SamplingMeasure.TRANSACTIONS,
-    ):
-        # Filter out orgs that use segment metrics
-        transaction_orgs = [org_id for org_id in orgs if org_id not in segments_org_ids]
-        metrics.incr(
-            "dynamic_sampling.boost_low_volume_transactions.orgs_partitioned",
-            tags={"metric_type": "transaction"},
-            amount=len(transaction_orgs),
-        )
-        if transaction_orgs:
-            _process_orgs_for_boost_low_volume_transactions(
-                transaction_orgs,
-                num_big_trans,
-                num_small_trans,
-                measure=SamplingMeasure.TRANSACTIONS,
+    # Process orgs using transaction metrics (skip entirely when global switch is on)
+    if not use_segments_globally:
+        for orgs in GetActiveOrgs(
+            max_projects=MAX_PROJECTS_PER_QUERY,
+            granularity=Granularity(60),
+            measure=SamplingMeasure.TRANSACTIONS,
+        ):
+            transaction_orgs = [org_id for org_id in orgs if org_id not in segments_org_ids]
+            metrics.incr(
+                "dynamic_sampling.boost_low_volume_transactions.orgs_partitioned",
+                tags={"metric_type": "transaction"},
+                amount=len(transaction_orgs),
             )
+            if transaction_orgs:
+                _process_orgs_for_boost_low_volume_transactions(
+                    transaction_orgs,
+                    num_big_trans,
+                    num_small_trans,
+                    measure=SamplingMeasure.TRANSACTIONS,
+                )
 
 
 def _process_orgs_for_boost_low_volume_transactions(
@@ -212,7 +222,6 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
 
     if is_project_mode_sampling(organization):
         sample_rate = ProjectOption.objects.get_value(project_id, "sentry:target_sample_rate")
-        source = "project_setting"
     else:
         # We try to use the sample rate that was individually computed for each project, but if we don't find it, we will
         # resort to the blended sample rate of the org.
@@ -223,18 +232,6 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
                 organization_id=org_id
             ),
         )
-        source = "boost_low_volume_projects" if success else "blended_sample_rate"
-
-    sample_function(
-        function=log_sample_rate_source,
-        _sample_rate=0.1,
-        org_id=org_id,
-        project_id=project_id,
-        used_for="boost_low_volume_transactions",
-        source=source,
-        sample_rate=sample_rate,
-    )
-
     if sample_rate is None:
         sentry_sdk.capture_message(
             "Sample rate of project not found when trying to adjust the sample rates of "
@@ -396,7 +393,6 @@ class FetchProjectTransactionTotals:
         return self._get_from_cache()
 
     def _get_from_cache(self) -> ProjectTransactionsTotals:
-
         if self._cache_empty():
             raise StopIteration()
 

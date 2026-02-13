@@ -213,7 +213,6 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
     def upsert_replicated_auth_identity(
         self, *, auth_identity: RpcAuthIdentity, region_name: str
     ) -> None:
-
         destination = AuthIdentityReplica(
             auth_identity_id=auth_identity.id,
             user_id=auth_identity.user_id,

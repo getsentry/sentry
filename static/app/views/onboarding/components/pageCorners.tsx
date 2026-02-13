@@ -163,4 +163,5 @@ const Container = styled('div')`
   right: 0;
   bottom: 0;
   color: ${p => p.theme.tokens.graphics.accent.muted};
+  opacity: 0.4;
 `;

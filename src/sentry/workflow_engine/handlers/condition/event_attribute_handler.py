@@ -86,7 +86,7 @@ class EventAttributeConditionHandler(DataConditionHandler[WorkflowEventData]):
 
         match = comparison.get("match")
         desired_value = comparison.get("value")
-        if not (match and desired_value) and not (match in (MatchType.IS_SET, MatchType.NOT_SET)):
+        if not (match and desired_value) and match not in (MatchType.IS_SET, MatchType.NOT_SET):
             return False
 
         desired_value = str(desired_value).lower()

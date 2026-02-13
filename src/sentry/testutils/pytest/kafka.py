@@ -85,7 +85,7 @@ def scope_consumers():
                 # stop the consumer
                 consumer.signal_shutdown()
                 consumer.run()
-            except:  # noqa:
+            except Exception:
                 _log.warning("Failed to cleanup consumer %s", consumer_name)
 
 

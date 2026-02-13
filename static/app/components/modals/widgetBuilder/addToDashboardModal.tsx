@@ -4,8 +4,9 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
 import {
@@ -19,7 +20,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
+import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
@@ -57,6 +58,7 @@ import {
   getDashboardFiltersFromURL,
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
+  isWidgetEditable,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
@@ -66,6 +68,7 @@ import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
@@ -132,6 +135,13 @@ function AddToDashboardModal({
 
   // Check if we have multiple widgets to adjust UI accordingly
   const hasMultipleWidgets = widgets.length > 1;
+
+  // Check if the widget is a static widget from a widget template
+  const widgetTemplates = getTopNConvertedDefaultWidgets(organization);
+  const widgetTemplate = widgetTemplates.find(w => w.displayType === widget.displayType);
+  const shouldOpenWidgetLibrary =
+    !isWidgetEditable(widget.displayType) ||
+    (widgetTemplate && widgetTemplate.isCustomizable === false);
 
   const handleWidgetTableSort = (sort: Sort) => {
     const newOrderBy = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
@@ -204,13 +214,22 @@ function AddToDashboardModal({
       page === 'builder' ? `${dashboardsPath}${builderSuffix}` : dashboardsPath;
 
     const widgetAsQueryParams = convertWidgetToBuilderStateParams(widget);
+
     navigate(
       normalizeUrl({
         pathname,
         query: {
-          ...widgetAsQueryParams,
-          title: newWidgetTitle,
-          sort: orderBy ?? widgetAsQueryParams.sort,
+          // Static widgets don't forward widget configuration to the widget builder, instead they open the widget library
+          ...(shouldOpenWidgetLibrary && widgetTemplate
+            ? {
+                openWidgetTemplates: 'true',
+                widgetTemplateId: widgetTemplate.id,
+              }
+            : {
+                ...widgetAsQueryParams,
+                title: newWidgetTitle,
+                sort: orderBy ?? widgetAsQueryParams.sort,
+              }),
           source,
           ...(selectedDashboard
             ? getSavedPageFilters(selectedDashboard)
@@ -513,7 +532,7 @@ function AddToDashboardModal({
             <Button
               onClick={handleAddAndStayOnCurrentPage}
               disabled={!canSubmit || selectedDashboardId === NEW_DASHBOARD_ID}
-              title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
+              tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}
             >
               {t('Add + Stay on this Page')}
             </Button>
@@ -523,7 +542,7 @@ function AddToDashboardModal({
               priority={hasMultipleWidgets ? 'primary' : 'default'}
               onClick={handleAddAndOpenDashboard}
               disabled={!canSubmit}
-              title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
+              tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}
             >
               {t('Add + Open Dashboard')}
             </Button>
@@ -533,9 +552,11 @@ function AddToDashboardModal({
               priority="primary"
               onClick={() => goToDashboard('builder')}
               disabled={!canSubmit}
-              title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
+              tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}
             >
-              {t('Open in Widget Builder')}
+              {shouldOpenWidgetLibrary
+                ? t('Open in Widget Library')
+                : t('Open in Widget Builder')}
             </Button>
           )}
         </StyledButtonBar>
@@ -550,7 +571,9 @@ const Wrapper = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const StyledButtonBar = styled(ButtonBar)`
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   @media (max-width: ${props => props.theme.breakpoints.sm}) {
     grid-template-rows: repeat(2, 1fr);
     gap: ${space(1.5)};

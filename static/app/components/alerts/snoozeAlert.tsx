@@ -1,7 +1,8 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {IconMute, IconSound} from 'sentry/icons';
@@ -142,7 +143,7 @@ function SnoozeAlert({
     );
   }
   return (
-    <ButtonBar gap="0">
+    <Grid flow="column" align="center" gap="0">
       <MuteButton
         size="sm"
         icon={<IconSound />}
@@ -154,7 +155,7 @@ function SnoozeAlert({
       >
         {t('Mute for everyone')}
       </MuteButton>
-    </ButtonBar>
+    </Grid>
   );
 }
 

@@ -1,10 +1,10 @@
 import {useEffect, useState, type ChangeEvent} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TextArea} from '@sentry/scraps/textarea';
 
 import Confirm from 'sentry/components/confirm';
@@ -181,7 +181,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                             setIsDirty(true);
                           }}
                           aria-label={t('Clear branch and use default')}
-                          title={t('Clear branch and use default')}
+                          tooltipProps={{title: t('Clear branch and use default')}}
                         />
                       </InputGroup.TrailingItems>
                     )}
@@ -261,7 +261,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                         icon={<IconDelete size="sm" variant="muted" />}
                         onClick={() => removeBranchOverride(index)}
                         aria-label={t('Remove override')}
-                        title={t('Remove override')}
+                        tooltipProps={{title: t('Remove override')}}
                       />
                     </BranchOverrideItem>
                   ))}
@@ -292,14 +292,14 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                 </Button>
               </Confirm>
               {isDirty && (
-                <ButtonBar gap="xs">
+                <Grid flow="column" align="center" gap="xs">
                   <Button size="md" onClick={cancelChanges}>
                     {t('Cancel')}
                   </Button>
                   <Button size="md" priority="primary" onClick={saveChanges}>
                     {t('Save')}
                   </Button>
-                </ButtonBar>
+                </Grid>
               )}
             </Flex>
           </Stack>

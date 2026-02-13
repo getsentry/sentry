@@ -4,7 +4,7 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {ScreenSummaryContentPage} from 'sentry/views/insights/mobile/appStarts/views/screenSummaryPage';
 import {SpanFields} from 'sentry/views/insights/types';
 

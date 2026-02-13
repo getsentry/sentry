@@ -141,9 +141,9 @@ def get_available_derived_metrics(
         # derived metric and check if they have already been found and if that is the case,
         # then we add that instance of composite metric to the found derived metric.
         composite_derived_metric_obj = all_derived_metrics[composite_derived_metric_mri]
-        assert isinstance(
-            composite_derived_metric_obj, CompositeEntityDerivedMetric
-        ), composite_derived_metric_obj
+        assert isinstance(composite_derived_metric_obj, CompositeEntityDerivedMetric), (
+            composite_derived_metric_obj
+        )
         single_entity_constituents = (
             composite_derived_metric_obj.naively_generate_singular_entity_constituents(use_case_id)
         )

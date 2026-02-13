@@ -2,14 +2,15 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
 import IdBadge from 'sentry/components/idBadge';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import BookmarkStar from 'sentry/components/projects/bookmarkStar';
+import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {
   Score,
@@ -124,17 +125,17 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
             hideOverflow
             disableLink={!hasProjectAccess}
           />
-          <ButtonBar gap="xs">
+          <Grid flow="column" align="center" gap="xs">
             <SettingsButton
               priority="transparent"
               size="zero"
               icon={<IconSettings variant="muted" />}
-              title={t('Settings')}
+              tooltipProps={{title: t('Settings')}}
               aria-label={t('Settings')}
               to={`/settings/${organization.slug}/projects/${slug}/`}
             />
             <BookmarkStar organization={organization} project={project} />
-          </ButtonBar>
+          </Grid>
         </HeaderRow>
         <SummaryLinks data-test-id="summary-links">
           {stats ? (

@@ -44,7 +44,6 @@ class TestReappearedEventCondition(ConditionTestCase):
         job = WorkflowEventData(
             event=self.group_event,
             group=self.group_event.group,
-            has_reappeared=False,
             has_escalated=True,
         )
         dc = self.create_data_condition(

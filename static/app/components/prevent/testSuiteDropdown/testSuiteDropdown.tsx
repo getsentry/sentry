@@ -1,13 +1,17 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import {Badge} from '@sentry/scraps/badge';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
+import {
+  HybridFilter,
+  type HybridFilterRef,
+} from 'sentry/components/pageFilters/hybridFilter';
 import {useTestSuites} from 'sentry/components/prevent/testSuiteDropdown/useTestSuites';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,6 +25,7 @@ export function TestSuiteDropdown() {
   const [dropdownSearch, setDropdownSearch] = useState<string>('');
   const [urlSearchParams, setUrlSearchParams] = useSearchParams();
   const {data: testSuites} = useTestSuites();
+  const hybridFilterRef = useRef<HybridFilterRef<string>>(null);
 
   const handleChange = useCallback(
     (newTestSuites: string[]) => {
@@ -50,6 +55,15 @@ export function TestSuiteDropdown() {
       label: suite,
       value: suite,
       isSelected: selectedSet.has(suite.toLowerCase()),
+      leadingItems: ({isSelected}: {isSelected: boolean}) => (
+        <Checkbox
+          size="sm"
+          checked={isSelected}
+          onChange={() => hybridFilterRef.current?.toggleOption?.(suite)}
+          aria-label={t('Select %s', suite)}
+          tabIndex={-1}
+        />
+      ),
     }));
 
     const sorted = sortBy(mapped, [option => !option.isSelected]);
@@ -81,7 +95,7 @@ export function TestSuiteDropdown() {
 
   return (
     <HybridFilter
-      checkboxPosition="leading"
+      ref={hybridFilterRef}
       searchable
       multiple
       options={options}

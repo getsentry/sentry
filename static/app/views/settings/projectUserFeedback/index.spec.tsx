@@ -8,15 +8,10 @@ describe('ProjectUserFeedback', () => {
   const url = `/projects/${organization.slug}/${project.slug}/`;
   let seerSetupMock: any;
 
-  const mockSeerSetup = (overrides: any = {}) => {
+  const mockSeerSetup = () => {
     return MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/setup-check/`,
       body: {
-        setupAcknowledgement: {
-          orgHasAcknowledged: false,
-          userHasAcknowledged: false,
-          ...overrides.setupAcknowledgement,
-        },
         billing: {
           hasAutofixQuota: false,
           hasScannerQuota: false,
@@ -63,36 +58,7 @@ describe('ProjectUserFeedback', () => {
 
   it('cannot toggle spam detection when the user does not have the spam feature flag', () => {
     organization.features.push('gen-ai-features');
-    seerSetupMock = mockSeerSetup({setupAcknowledgement: {orgHasAcknowledged: true}});
-
-    render(<ProjectUserFeedback />, {
-      organization,
-      outletContext: {project},
-    });
-
-    expect(
-      screen.queryByRole('checkbox', {name: 'Enable Spam Detection'})
-    ).not.toBeInTheDocument();
-  });
-
-  it('cannot toggle spam detection when the user does not have ai features', () => {
-    organization.features.push('user-feedback-spam-ingest');
-    seerSetupMock = mockSeerSetup({setupAcknowledgement: {orgHasAcknowledged: false}});
-
-    render(<ProjectUserFeedback />, {
-      organization,
-      outletContext: {project},
-    });
-
-    expect(
-      screen.queryByRole('checkbox', {name: 'Enable Spam Detection'})
-    ).not.toBeInTheDocument();
-  });
-
-  it('cannot toggle spam detection when the user does not seer acknowledged', () => {
-    organization.features.push('user-feedback-spam-ingest');
-    organization.features.push('gen-ai-features');
-    seerSetupMock = mockSeerSetup({setupAcknowledgement: {orgHasAcknowledged: false}});
+    seerSetupMock = mockSeerSetup();
 
     render(<ProjectUserFeedback />, {
       organization,
@@ -107,7 +73,7 @@ describe('ProjectUserFeedback', () => {
   it('can toggle spam detection', async () => {
     organization.features.push('user-feedback-spam-ingest');
     organization.features.push('gen-ai-features');
-    seerSetupMock = mockSeerSetup({setupAcknowledgement: {orgHasAcknowledged: true}});
+    seerSetupMock = mockSeerSetup();
 
     render(<ProjectUserFeedback />, {
       organization,

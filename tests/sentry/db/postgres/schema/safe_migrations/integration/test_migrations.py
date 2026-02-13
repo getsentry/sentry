@@ -322,7 +322,6 @@ class DeletionModelGoodDeleteRemoveFKConstraints(BaseSafeMigrationTest):
     migrate_to = "0003"
 
     def test(self) -> None:
-
         self._run_migration(self.app, "0001_initial")
         assert f"{self.app}_testtable" in connection.introspection.table_names()
         self._run_migration(self.app, "0002_remove_constraints_and_pending")

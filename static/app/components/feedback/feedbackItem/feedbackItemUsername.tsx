@@ -25,7 +25,7 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
   const email = feedbackIssue.metadata.contact_email;
 
   const organization = useOrganization();
-  const {setupAcknowledgement, areAiFeaturesAllowed} = useOrganizationSeerSetup();
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
   const nameOrEmail = name || email;
   const isSameNameAndEmail = name === email;
 
@@ -33,9 +33,7 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
 
   const summary = feedbackIssue.metadata.summary;
   const isAiSummaryEnabled =
-    areAiFeaturesAllowed &&
-    setupAcknowledgement.orgHasAcknowledged &&
-    organization.features.includes('user-feedback-ai-titles');
+    areAiFeaturesAllowed && organization.features.includes('user-feedback-ai-titles');
 
   const userNodeId = useId();
 

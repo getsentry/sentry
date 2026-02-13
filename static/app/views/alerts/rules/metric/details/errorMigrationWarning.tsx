@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import type {PromptResponse} from 'sentry/actionCreators/prompts';
 import {
@@ -101,7 +102,7 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
       <Alert
         variant="warning"
         trailingItems={
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <LinkButton
               to={{
                 pathname: `/organizations/${organization.slug}/alerts/metric-rules/${
@@ -119,9 +120,9 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
               icon={<IconClose />}
               onClick={dismissPrompt}
               aria-label={t('Dismiss Alert')}
-              title={t('Dismiss Alert')}
+              tooltipProps={{title: t('Dismiss Alert')}}
             />
-          </ButtonBar>
+          </Grid>
         }
       >
         {t(

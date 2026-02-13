@@ -1,27 +1,16 @@
-import type {ComponentType} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Client} from 'sentry/api';
-import {openConfirmModal} from 'sentry/components/confirm';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import type {PromotionModalBodyProps} from 'getsentry/components/promotionModal';
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import type {
-  Invoice,
-  Plan,
-  PreviewData,
-  Promotion,
-  PromotionClaimed,
-  Subscription,
-} from 'getsentry/types';
+import type {Invoice, Plan, PreviewData, Subscription} from 'getsentry/types';
 import {displayBudgetName, hasBillingAccess, supportsPayg} from 'getsentry/utils/billing';
 import type {AM2UpdateSurfaces} from 'getsentry/utils/trackGetsentryAnalytics';
 
@@ -211,72 +200,6 @@ export async function openAM2ProfilingUpsellModal(options: ProfilingUpsellModalP
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
-
-type PromotionModalOptions = {
-  organization: Organization;
-  price: number;
-  promotion: Promotion;
-  promptFeature: string;
-  PromotionModalBody?: ComponentType<PromotionModalBodyProps>;
-  acceptButtonText?: string;
-  api?: Client;
-  declineButtonText?: string;
-  onAccept?: () => void;
-};
-
-export async function openPromotionModal(options: PromotionModalOptions) {
-  const {default: Modal, modalCss} = await import('getsentry/components/promotionModal');
-  openModal(deps => <Modal {...deps} {...options} />, {closeEvents: 'none', modalCss});
-}
-
-export function openPromotionReminderModal(
-  promotionClaimed: PromotionClaimed,
-  onCancel?: () => void,
-  onConfirm?: () => void
-) {
-  const {dateCompleted} = promotionClaimed;
-  const promo = promotionClaimed.promotion;
-  const {amount, billingInterval, billingPeriods, maxCentsPerPeriod, reminderText} =
-    promo.discountInfo;
-  const date = new Date(dateCompleted);
-  const percentOff = amount / 100;
-
-  const interval = billingInterval === 'monthly' ? t('months') : t('years');
-  const intervalSingular = interval.slice(0, -1);
-
-  /**
-   * Removed translation because of complicated pluralization and lots of changing
-   * parameters from the different promotions we can use this for
-   */
-
-  openConfirmModal({
-    message: (
-      <div>
-        <p>{reminderText}</p>
-        <Subheader>{t('Current Promotion:')} </Subheader>
-        <p>
-          {percentOff}% off (up to ${maxCentsPerPeriod / 100} per {intervalSingular}) for{' '}
-          {billingPeriods} {interval} starting on {date.toLocaleDateString('en-US')}
-        </p>
-      </div>
-    ),
-    header: <HeaderText>Promotion Conflict</HeaderText>,
-    priority: 'danger',
-    confirmText: 'Downgrade Anyway',
-    onCancel: () => onCancel?.(),
-    onConfirm: () => onConfirm?.(),
-  });
-}
-
-const HeaderText = styled('div')`
-  font-size: ${p => p.theme.font.size.xl};
-  font-weight: bold;
-`;
-
-const Subheader = styled('div')`
-  font-weight: bold;
-  font-size: ${p => p.theme.font.size.md};
-`;
 
 export async function openDataConsentModal() {
   const {default: Modal} = await import('getsentry/components/dataConsentModal');

@@ -1,11 +1,10 @@
+from collections import defaultdict
 from collections.abc import Collection, Sequence
 from dataclasses import asdict, replace
 from datetime import datetime
 from enum import StrEnum
-from typing import DefaultDict
 
 import sentry_sdk
-from django.db import router, transaction
 from django.db.models import Q
 
 from sentry import features
@@ -13,13 +12,8 @@ from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
-from sentry.workflow_engine.models import (
-    Action,
-    DataConditionGroup,
-    Detector,
-    DetectorWorkflow,
-    Workflow,
-)
+from sentry.workflow_engine.caches.workflow import get_workflows_by_detectors
+from sentry.workflow_engine.models import DataConditionGroup, Detector, DetectorWorkflow, Workflow
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
@@ -48,38 +42,12 @@ class WorkflowDataConditionGroupType(StrEnum):
     WORKFLOW_TRIGGER = "workflow_trigger"
 
 
-def delete_workflow(workflow: Workflow) -> bool:
-    with transaction.atomic(router.db_for_write(Workflow)):
-        action_filters = DataConditionGroup.objects.filter(
-            workflowdataconditiongroup__workflow=workflow
-        )
-
-        actions = Action.objects.filter(
-            dataconditiongroupaction__condition_group__in=action_filters
-        )
-
-        # Delete the actions associated with a workflow, this is not a cascade delete
-        # because we want to create a UI to maintain notification actions separately
-        if actions:
-            actions.delete()
-
-        if action_filters:
-            action_filters.delete()
-
-        if workflow.when_condition_group:
-            workflow.when_condition_group.delete()
-
-        workflow.delete()
-
-    return True
-
-
 @scopedstats.timer()
 def enqueue_workflows(
     client: DelayedWorkflowClient,
     items_by_workflow: dict[Workflow, DelayedWorkflowItem],
 ) -> None:
-    items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
+    items_by_project_id = defaultdict[int, list[DelayedWorkflowItem]](list)
     for queue_item in items_by_workflow.values():
         if not queue_item.delayed_if_group_ids and not queue_item.passing_if_group_ids:
             # Skip because there are no IF groups we could possibly fire actions for if
@@ -378,27 +346,21 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
     raise TypeError(f"Cannot access the environment from, {type(event_data.event)}.")
 
 
-@scopedstats.timer()
 def _get_associated_workflows(
-    detectors: Collection[Detector], environment: Environment | None, event_data: WorkflowEventData
+    detectors: Collection[Detector], environment: Environment | None
 ) -> set[Workflow]:
     """
-    This is a wrapper method to get the workflows associated with a detector and environment.
-    Used in process_workflows to wrap the query + logging into a single method
+    Get workflows associated with detectors and environment via direct DB query.
+    Used as fallback when cache is disabled via feature flag.
     """
-    detector_ids = []
-    detector_types = []
-
-    for detector in detectors:
-        detector_ids.append(detector.id)
-        detector_types.append(detector.type)
+    detector_ids = [detector.id for detector in detectors]
 
     environment_filter = (
         (Q(environment_id=None) | Q(environment_id=environment.id))
         if environment
         else Q(environment_id=None)
     )
-    workflows = set(
+    return set(
         Workflow.objects.filter(
             environment_filter,
             detectorworkflow__detector_id__in=detector_ids,
@@ -407,32 +369,6 @@ def _get_associated_workflows(
         .select_related("environment")
         .distinct()
     )
-
-    if workflows:
-        metrics_incr(
-            "process_workflows",
-            len(workflows),
-        )
-
-        event_id = (
-            event_data.event.event_id
-            if isinstance(event_data.event, GroupEvent)
-            else event_data.event.id
-        )
-        logger.debug(
-            "workflow_engine.process_workflows",
-            extra={
-                "payload": event_data,
-                "group_id": event_data.group.id,
-                "event_id": event_id,
-                "event_data": asdict(event_data),
-                "event_environment_id": environment.id if environment else None,
-                "workflows": [workflow.id for workflow in workflows],
-                "detector_types": detector_types,
-            },
-        )
-
-    return workflows
 
 
 @log_context.root()
@@ -506,7 +442,32 @@ def process_workflows(
     if features.has("organizations:workflow-engine-process-workflows-logs", organization):
         log_context.set_verbose(True)
 
-    workflows = _get_associated_workflows(event_detectors.detectors, environment, event_data)
+    if features.has("organizations:workflow-engine-process-workflows-cache", organization):
+        workflows = get_workflows_by_detectors(event_detectors.detectors, environment)
+    else:
+        workflows = _get_associated_workflows(event_detectors.detectors, environment)
+
+    if workflows:
+        metrics_incr("process_workflows", len(workflows))
+
+        event_id = (
+            event_data.event.event_id
+            if isinstance(event_data.event, GroupEvent)
+            else event_data.event.id
+        )
+        logger.debug(
+            "workflow_engine.process_workflows",
+            extra={
+                "payload": event_data,
+                "group_id": event_data.group.id,
+                "event_id": event_id,
+                "event_data": asdict(event_data),
+                "event_environment_id": environment.id if environment else None,
+                "workflows": [workflow.id for workflow in workflows],
+                "detector_types": [d.type for d in event_detectors.detectors],
+            },
+        )
+
     workflow_evaluation_data.workflows = workflows
 
     if not workflows:
