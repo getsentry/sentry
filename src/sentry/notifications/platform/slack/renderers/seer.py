@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, TypedDict
 
 import orjson
+from django.conf import settings
 from slack_sdk.models.blocks import (
     ActionsBlock,
     Block,
@@ -36,7 +37,8 @@ if TYPE_CHECKING:
 class AutofixStageConfig(TypedDict):
     heading: str
     label: str
-    working_text: str | None
+    working_text: str
+    completed_text: str
 
 
 MAX_STEPS = 10
@@ -48,21 +50,25 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
         heading=":mag:  *Root Cause Analysis*",
         label="Fix with Seer",
         working_text="Seer is analyzing the root cause...",
+        completed_text="Seer has already analyzed the root cause.",
     ),
     AutofixStoppingPoint.SOLUTION: AutofixStageConfig(
         heading=":test_tube:  *Proposed Solution*",
         label="Plan a Solution",
         working_text="Seer is working on the solution...",
+        completed_text="Seer has already proposed a solution.",
     ),
     AutofixStoppingPoint.CODE_CHANGES: AutofixStageConfig(
         heading=":pencil2:  *Code Change Suggestions*",
         label="Write Code Changes",
         working_text="Seer is writing the code...",
+        completed_text="Seer has already written the code changes.",
     ),
     AutofixStoppingPoint.OPEN_PR: AutofixStageConfig(
         heading=":link:  *Pull Request*",
         label="Draft a PR",
         working_text="Seer is drafting a pull request...",
+        completed_text="Seer has already drafted a pull request.",
     ),
 }
 
@@ -128,11 +134,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             project_id=data.project_id,
             group_link=data.group_link,
         )
-        action_elements: list[InteractiveElement] = []
-        if not data.has_progressed:
-            action_elements.append(link_button)
-
-        if not data.has_progressed and data.has_next_trigger:
+        action_elements: list[InteractiveElement] = [link_button]
+        if data.has_next_trigger:
             action_elements.append(
                 cls._render_autofix_button(data=SeerAutofixTrigger.from_update(data))
             )
@@ -172,8 +175,6 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         if action_elements:
             blocks.append(ActionsBlock(elements=action_elements))
 
-        if data.has_progressed and data.current_point != AutofixStoppingPoint.OPEN_PR:
-            blocks.extend(cls.render_footer_blocks(data=data))
         return SlackRenderable(blocks=blocks, text="Seer has an update on fixing the issue")
 
     @classmethod
@@ -198,18 +199,16 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         cls,
         data: SeerAutofixUpdate,
         extra_text: str | None = None,
-        stage_completed: bool = True,
+        has_complete_stage: bool = True,
     ) -> list[Block]:
-        rendered_point = data.next_point if stage_completed else data.current_point
-        if not rendered_point:
-            return []
-        config = AUTOFIX_CONFIG[rendered_point]
-        markdown_text = (
-            f"_{config['working_text']}_\n_{extra_text}_"
-            if extra_text
-            else f"_{config['working_text']}_"
-        )
-        return [
+        config = AUTOFIX_CONFIG[data.current_point]
+        raw_text = config["completed_text"] if has_complete_stage else config["working_text"]
+        markdown_text = f"_{raw_text}_"
+
+        if extra_text:
+            markdown_text += f"\n_{extra_text}_"
+
+        blocks: list[Block] = [
             SectionBlock(
                 text=MarkdownTextObject(text=markdown_text),
                 accessory=cls._render_link_button(
@@ -218,8 +217,12 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                     group_link=data.group_link,
                 ),
             ),
-            ContextBlock(elements=[PlainTextObject(text=f"Run ID: {data.run_id}")]),
         ]
+
+        if settings.DEBUG:
+            blocks.append(ContextBlock(elements=[PlainTextObject(text=f"Run ID: {data.run_id}")]))
+
+        return blocks
 
     @classmethod
     def render_autofix_button(cls, group: Group) -> InteractiveElement:

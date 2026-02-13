@@ -3,11 +3,12 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Count from 'sentry/components/count';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
 import type {
   GridColumnHeader,
@@ -111,15 +112,25 @@ export default function ReleaseHealthTable({
       if (column.key === 'error_count') {
         return (value as number) > 0 ? (
           <Tooltip title={t('Open in Issues')} position="auto-start">
-            <GlobalSelectionLink
-              to={getReleaseNewIssuesUrl(
-                organization.slug,
-                dataRow.project_id,
-                dataRow.release
-              )}
+            <Link
+              to={{
+                ...getReleaseNewIssuesUrl(
+                  organization.slug,
+                  dataRow.project_id,
+                  dataRow.release
+                ),
+                query: {
+                  ...extractSelectionParameters(location.query),
+                  ...getReleaseNewIssuesUrl(
+                    organization.slug,
+                    dataRow.project_id,
+                    dataRow.release
+                  ).query,
+                },
+              }}
             >
               <Count value={value as number} />
-            </GlobalSelectionLink>
+            </Link>
           </Tooltip>
         ) : (
           <Count value={value as number} />

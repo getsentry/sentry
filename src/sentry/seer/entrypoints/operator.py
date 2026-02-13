@@ -13,7 +13,7 @@ from sentry.seer.autofix.types import (
     AutofixSelectRootCausePayload,
     AutofixSelectSolutionPayload,
 )
-from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint, get_autofix_state
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.metrics import (
     SeerOperatorEventLifecycleMetric,
@@ -127,6 +127,40 @@ class SeerOperator[CachePayloadT]:
                     "stopping_point": str(stopping_point),
                 }
             )
+            try:
+                existing_state = get_autofix_state(
+                    group_id=group.id, organization_id=group.organization.id
+                )
+            except Exception as e:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_autofix_error(
+                        error="Encountered an error while talking to Seer"
+                    )
+                lifecycle.record_failure(failure_reason=e)
+                return
+            if existing_state:
+                stopping_point_step = get_stopping_point_status(stopping_point, existing_state)
+                lifecycle.add_extras(
+                    {
+                        "existing_run_id": str(existing_state.run_id),
+                        "existing_run_status": str(existing_state.status),
+                    }
+                )
+                # For now, we don't support re-runs over slack -- it causes a confusing UX without
+                # reliably being able to edit messages.
+                if stopping_point_step:
+                    with SeerOperatorEventLifecycleMetric(
+                        interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ALREADY_EXISTS,
+                        entrypoint_key=self.entrypoint.key,
+                    ).capture():
+                        self.entrypoint.on_trigger_autofix_already_exists(
+                            state=existing_state, step_state=stopping_point_step
+                        )
+                    return
+
             if not run_id:
                 raw_response = _trigger_autofix(
                     group=group,
@@ -280,3 +314,41 @@ def process_autofix_updates(
                     )
                 except Exception as e:
                     ept_lifecycle.record_failure(failure_reason=e)
+
+
+def get_stopping_point_status(
+    stopping_point: AutofixStoppingPoint, autofix_state: AutofixState
+) -> dict | None:
+    """
+    Gets the most recent matching step state from a given stopping point.
+    """
+    # The most recent of a repeated step is at the end of the list, that's what we want to surface
+    steps = reversed(autofix_state.steps)
+    match stopping_point:
+        case AutofixStoppingPoint.ROOT_CAUSE:
+            step = next(
+                (
+                    step
+                    for step in steps
+                    if step.get("key") in {"root_cause_analysis", "root_cause_analysis_processing"}
+                ),
+                None,
+            )
+        case AutofixStoppingPoint.SOLUTION:
+            step = next(
+                (step for step in steps if step.get("key") in {"solution", "solution_processing"}),
+                None,
+            )
+        case AutofixStoppingPoint.CODE_CHANGES:
+            step = next((step for step in steps if step.get("key") == "changes"), None)
+        case AutofixStoppingPoint.OPEN_PR:
+            step = next(
+                (
+                    step
+                    for step in steps
+                    if step.get("key") == "changes"
+                    and any(change.get("pull_request") for change in step.get("changes", []))
+                ),
+                None,
+            )
+    return step
