@@ -39,8 +39,11 @@ SERVICE_PORTS: dict[int, str] = {
 }
 
 # --- Static detection: known fixture names that indicate service requirements ---
+# NOTE: _requires_snuba is intentionally excluded. Snuba dependency is detected
+# purely via runtime socket monitoring (port 1218). This avoids over-classifying
+# tests that inherit SnubaTestCase but never actually connect to Snuba at runtime.
+# The _requires_snuba fixture only checks port availability, not actual usage.
 FIXTURE_SERVICE_MAP: dict[str, str] = {
-    "_requires_snuba": "snuba",
     "_requires_kafka": "kafka",
     "_requires_symbolicator": "symbolicator",
     "_requires_objectstore": "objectstore",

@@ -33,6 +33,11 @@ def _requires_service_message(name: str) -> str:
 
 @pytest.fixture(scope="session")
 def _requires_snuba() -> None:
+    # When SENTRY_SKIP_SNUBA_RESET is set, allow tests to run without Snuba.
+    # Used during classification to discover which tests truly need Snuba
+    # vs. which only connect to it through reset_snuba cleanup.
+    if os.environ.get("SENTRY_SKIP_SNUBA_RESET") == "1":
+        return
     # Determine which port to check. Per-worker Snuba uses ports 1230+N;
     # the SNUBA env var (set in sentry.py for xdist workers) tells us.
     port = 1218

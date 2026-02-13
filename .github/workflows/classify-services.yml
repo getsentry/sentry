@@ -2,6 +2,9 @@ name: classify test services
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - mchen/reclassify-snuba-v2
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -28,6 +31,10 @@ jobs:
     env:
       MATRIX_INSTANCE_TOTAL: 22
       TEST_GROUP_STRATEGY: roundrobin
+      # Skip reset_snuba and _requires_snuba fixture calls during classification
+      # so the socket monitor only detects tests that truly connect to Snuba
+      # (store_event, queries) vs. those that only connect through cleanup.
+      SENTRY_SKIP_SNUBA_RESET: '1'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
