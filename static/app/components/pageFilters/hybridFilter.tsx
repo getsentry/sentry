@@ -241,8 +241,10 @@ export function useStagedCompactSelect<Value extends SelectKey>({
   };
 }
 
-export interface HybridFilterProps<Value extends SelectKey>
-  extends Omit<MultipleSelectProps<Value>, 'value' | 'onChange' | 'grid' | 'multiple'> {
+export interface HybridFilterProps<Value extends SelectKey> extends Omit<
+  MultipleSelectProps<Value>,
+  'value' | 'onChange' | 'grid' | 'multiple'
+> {
   /**
    * The staged selection state manager from useStagedCompactSelect.
    * This handles all the state management and provides props for CompactSelect.

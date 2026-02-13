@@ -25,27 +25,26 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 
-export interface EnvironmentPageFilterProps
-  extends Partial<
-    Omit<
-      HybridFilterProps<string>,
-      | 'searchable'
-      | 'multiple'
-      | 'options'
-      | 'value'
-      | 'defaultValue'
-      | 'onReplace'
-      | 'onReset'
-      | 'onToggle'
-      | 'menuTitle'
-      | 'menuBody'
-      | 'menuFooter'
-      | 'menuFooterMessage'
-      | 'shouldCloseOnInteractOutside'
-      | 'triggerProps'
-      | 'stagedSelect'
-    >
-  > {
+export interface EnvironmentPageFilterProps extends Partial<
+  Omit<
+    HybridFilterProps<string>,
+    | 'searchable'
+    | 'multiple'
+    | 'options'
+    | 'value'
+    | 'defaultValue'
+    | 'onReplace'
+    | 'onReset'
+    | 'onToggle'
+    | 'menuTitle'
+    | 'menuBody'
+    | 'menuFooter'
+    | 'menuFooterMessage'
+    | 'shouldCloseOnInteractOutside'
+    | 'triggerProps'
+    | 'stagedSelect'
+  >
+> {
   /**
    * Message to show in the menu footer
    */
