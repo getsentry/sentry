@@ -426,6 +426,7 @@ export function ProjectPageFilter({
       emptyMessage={emptyMessage ?? t('No projects found')}
       menuTitle={menuTitle ?? t('Filter Projects')}
       menuWidth={menuWidth ?? defaultMenuWidth}
+      menuHeaderTrailingItems={<HybridFilterComponents.ResetButton />}
       menuFooter={
         <Stack gap="md" direction="column">
           {selectionLimitExceeded && (
@@ -450,10 +451,12 @@ export function ProjectPageFilter({
                 {t('Create Project')}
               </HybridFilterComponents.LinkButton>
             ) : undefined}
-            <Flex gap="md" align="center" justify="end">
-              <HybridFilterComponents.CancelButton />
-              <HybridFilterComponents.ApplyButton />
-            </Flex>
+            {stagedSelect.hasStagedChanges ? (
+              <Flex gap="md" align="center" justify="end">
+                <HybridFilterComponents.CancelButton />
+                <HybridFilterComponents.ApplyButton />
+              </Flex>
+            ) : null}
           </Flex>
         </Stack>
       }

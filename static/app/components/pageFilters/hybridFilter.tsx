@@ -351,16 +351,18 @@ export const HybridFilterComponents = {
     return <LinkButton size="xs" {...props} />;
   },
 
-  ResetButton(props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size'>) {
+  ResetButton(
+    props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size' | 'onClick'>
+  ) {
     const stagedSelect = useContext(HybridFilterContext);
-
-    if (!stagedSelect) {
+    const controlContext = useContext(ControlContext);
+    if (!stagedSelect || !controlContext.overlayState) {
       throw new Error(
         'HybridFilterContext not found, please make sure that you are not calling this outside of HybridFilter component!'
       );
     }
 
-    if (!stagedSelect?.shouldShowReset) {
+    if (!stagedSelect.shouldShowReset) {
       return null;
     }
 
@@ -369,9 +371,9 @@ export const HybridFilterComponents = {
         {...props}
         priority="transparent"
         size="zero"
-        onClick={e => {
+        onClick={() => {
           stagedSelect.handleReset();
-          props.onClick?.(e);
+          controlContext.overlayState?.close();
         }}
       >
         {t('Reset')}
@@ -389,10 +391,6 @@ export const HybridFilterComponents = {
       throw new Error(
         'HybridFilterContext or OverlayContext not found, please make sure that you are not calling this outside of HybridFilter component!'
       );
-    }
-
-    if (!stagedSelect.hasStagedChanges) {
-      return null;
     }
 
     return (
@@ -421,10 +419,6 @@ export const HybridFilterComponents = {
       throw new Error(
         'HybridFilterContext or OverlayContext not found, please make sure that you are not calling this outside of HybridFilter component!'
       );
-    }
-
-    if (!stagedSelect.hasStagedChanges) {
-      return null;
     }
 
     return (
