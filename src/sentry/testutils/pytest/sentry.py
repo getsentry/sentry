@@ -466,30 +466,6 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
     sentry_sdk.get_global_scope().set_client(None)
 
 
-@pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> None:  # type: ignore[type-arg]
-    """Strip H1 overlapped-startup wait time from test setup duration reports.
-
-    When SNUBA_WAIT_TIMEOUT is set (overlapped startup / H1 mode), the
-    session-scoped ``_requires_snuba`` fixture blocks until Snuba becomes
-    available.  This wait inflates the first test's *setup* duration on each
-    xdist worker.  Without correction, ``merge-test-durations.py`` records
-    the inflated duration, causing ``_duration_based_split`` (LPT) to
-    over-estimate certain scopes and produce unbalanced shards.
-
-    We subtract the recorded wait time from the setup report exactly once
-    per worker so the JSON report reflects true test cost.
-    """
-    outcome = yield
-    report = outcome.get_result()
-    if report.when == "setup":
-        import sentry.testutils.skips as _skips
-
-        if _skips.snuba_wait_overhead > 0:
-            report.duration = max(0.0, report.duration - _skips.snuba_wait_overhead)
-            _skips.snuba_wait_overhead = 0.0
-
-
 def _shuffle(items: list[pytest.Item], r: random.Random) -> None:
     # goal: keep classes together, keep modules together but otherwise shuffle
     # this prevents duplicate setup/teardown work
@@ -606,100 +582,6 @@ def _force_serial(item: pytest.Item) -> bool:
     return any(test_file.startswith(d) for d in FORCE_SERIAL_DIRS)
 
 
-def _duration_based_split(
-    items: list[pytest.Item], total_groups: int, current_group: int
-) -> tuple[list[pytest.Item], list[pytest.Item]]:
-    """Split tests into shards using per-test duration-based greedy bin packing.
-
-    Reads per-test durations from TEST_DURATIONS_FILE (JSON: {nodeid: seconds}).
-    Assigns individual tests to shards using "longest processing time first" —
-    the heaviest test goes to the lightest shard. This distributes mega test
-    classes (e.g. OrganizationEventsEndpointTest at 600s+) across all shards
-    instead of pinning them to one.
-
-    Falls back to per-test hash if no durations file is available.
-    """
-    import heapq
-    import json
-    from pathlib import Path
-
-    durations_file = os.environ.get("TEST_DURATIONS_FILE", "")
-    durations: dict[str, float] = {}
-    if durations_file:
-        p = Path(durations_file)
-        if p.exists():
-            with p.open() as f:
-                durations = json.load(f)
-
-    if not durations:
-        # No duration data — fall back to per-test hash distribution.
-        keep, discard = [], []
-        for item in items:
-            to_hash = item.nodeid.encode()
-            group_num = int(sha256(to_hash).hexdigest(), 16) % total_groups
-            if group_num == current_group:
-                keep.append(item)
-            else:
-                discard.append(item)
-        return keep, discard
-
-    # Build per-test duration list: (duration, index)
-    # Use recorded duration if available, otherwise estimate 1.0s.
-    test_durations: list[tuple[float, int]] = []
-    matched = 0
-    for i, item in enumerate(items):
-        dur = durations.get(item.nodeid, 0.0)
-        if dur > 0:
-            matched += 1
-        else:
-            dur = 1.0  # conservative estimate for unknown tests
-        test_durations.append((dur, i))
-
-    # Sort by duration descending (largest first — LPT algorithm)
-    test_durations.sort(key=lambda x: -x[0])
-
-    # Greedy bin packing using a min-heap of (total_duration, group_index)
-    bins: list[list[int]] = [[] for _ in range(total_groups)]
-    bin_durations: list[float] = [0.0] * total_groups
-    heap: list[tuple[float, int]] = [(0.0, i) for i in range(total_groups)]
-    heapq.heapify(heap)
-
-    for dur, idx in test_durations:
-        lightest_dur, lightest_idx = heapq.heappop(heap)
-        bins[lightest_idx].append(idx)
-        bin_durations[lightest_idx] = lightest_dur + dur
-        heapq.heappush(heap, (lightest_dur + dur, lightest_idx))
-
-    # Log shard balance for CI visibility
-    import sys
-
-    print(
-        f"[duration-split] {len(items)} tests, "
-        f"{matched} with timing data, "
-        f"{len(items) - matched} estimated @ 1s",
-        file=sys.stderr,
-    )
-    print(
-        f"[duration-split] shard {current_group}/{total_groups}: "
-        f"{len(bins[current_group])} tests, "
-        f"predicted {bin_durations[current_group]:.0f}s "
-        f"(range: {min(bin_durations):.0f}s – {max(bin_durations):.0f}s)",
-        file=sys.stderr,
-    )
-
-    # Collect items for current group
-    current_indices = set(bins[current_group])
-    keep = []
-    discard = []
-    for i, item in enumerate(items):
-        if i in current_indices:
-            keep.append(item)
-        else:
-            discard.append(item)
-
-    return keep, discard
-
-
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """After collection, select tests based on selective file filter and group strategy.
 
@@ -737,29 +619,23 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     # Reset keep/discard for sharding logic
     keep, discard = [], []
 
-    if grouping_strategy == "duration":
-        # Duration-based bin packing: assign test scopes to shards so each
-        # shard has roughly equal total duration. Uses a greedy "longest
-        # processing time first" algorithm for near-optimal balance.
-        keep, discard = _duration_based_split(items, total_groups, current_group)
-    else:
-        for index, item in enumerate(items):
-            # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
-            # we want to only include items in `accepted` list
-            to_hash = (
-                item.nodeid.rsplit("::", 1)[0].encode()
-                if grouping_strategy == "scope"
-                else item.nodeid.encode()
-            )
-            item_to_group = int(sha256(to_hash).hexdigest(), 16)
+    for index, item in enumerate(items):
+        # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
+        # we want to only include items in `accepted` list
+        to_hash = (
+            item.nodeid.rsplit("::", 1)[0].encode()
+            if grouping_strategy == "scope"
+            else item.nodeid.encode()
+        )
+        item_to_group = int(sha256(to_hash).hexdigest(), 16)
 
-            # Split tests in different groups
-            group_num = item_to_group % total_groups
+        # Split tests in different groups
+        group_num = item_to_group % total_groups
 
-            if group_num == current_group:
-                keep.append(item)
-            else:
-                discard.append(item)
+        if group_num == current_group:
+            keep.append(item)
+        else:
+            discard.append(item)
 
     items[:] = keep
 

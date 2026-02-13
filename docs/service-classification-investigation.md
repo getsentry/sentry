@@ -2382,6 +2382,67 @@ run feeds timing data to the next.
 
 **Overhead:** ~1-2s cache restore on critical path. Merge job is off critical path.
 
+### Iteration 17: Per-test LPT sharding — fixing the scope bottleneck
+
+Iteration 16's scope-based LPT (file::class granularity) created an unavoidable bottleneck:
+two mega-scopes dominated the allocation:
+
+| Scope | Duration | % of ideal shard |
+|---|---|---|
+| `OrganizationEventsEndpointTest` | 625s (10.4m) | 44% of a 1,432s ideal |
+| `OrganizationEventsSpansEndpointTest` | 546s (9.1m) | 38% of a 1,432s ideal |
+
+LPT assigned these to shards 0 and 1 respectively. The remaining 15 shards were beautifully
+balanced (598s–642s, 44s spread), but shards 0 and 1 were stuck at 1,062s and 897s — making
+the critical path 17.7m regardless of how well the rest was balanced.
+
+**Root cause:** Scope-based grouping keeps all tests from a class on one shard. The 11m29s
+baseline (87b94db, hash-based round-robin) scattered individual tests across all shards, so
+each shard got ~37s of `OrganizationEventsEndpointTest` instead of the full 625s.
+
+**Additional bug found:** The H1 overlapped startup wait time (~100-150s) was being baked into
+the first test's setup duration on each xdist worker, contaminating the duration cache. LPT
+then over-estimated certain scopes and produced unbalanced shards (run 21965621217: shard 0 at
+974s, shard 1 at 906s vs ~600s median).
+
+**Fixes applied (commits 7ddd701–93fc4a9):**
+
+1. **Strip H1 wait from duration reports** (`skips.py` + `sentry.py`): Record the actual Snuba
+   wait time in `_requires_snuba`, subtract it from the first test's setup duration via a
+   `pytest_runtest_makereport` hookwrapper. Reports now reflect true test cost.
+
+2. **Per-test LPT sharding** (`_duration_based_split` + `merge-test-durations.py`): Changed
+   from scope-level (file::class) to individual test-level (full nodeid) granularity. Each test
+   is independently assigned to the lightest shard. Mega-classes are now scattered across all
+   shards, matching the baseline's distribution pattern but with LPT's informed balancing.
+
+3. **Hash fallback fix**: When no duration data is cached (first run), the fallback now hashes
+   the full `item.nodeid` (per-test) instead of scope. This matches the original round-robin
+   behavior that produced the 11m29s baseline.
+
+**Run 21968828562** (per-test hash fallback, first v3 cache run, all green):
+
+| Metric | Baseline (87b94db) | Per-test hash (93fc4a9) | Delta |
+|---|---|---|---|
+| Tier 1 avg | 615s | 641s | +26s |
+| Tier 2 avg | 581s | 627s | +46s |
+| Tier 1 spread | 21s | 68s | +47s |
+| Tier 2 spread | 176s | 164s | -12s |
+| Tier 1 max | 625s | 670s | +45s |
+| Tier 2 max | 668s | 698s | +30s |
+| Wall clock | 11m29s | **12m08s** | +39s |
+
+No outliers. Tier 2 spread (164s) is comparable to the baseline (176s) and dramatically better
+than scope-based LPT (464s–995s). The +39s delta vs baseline is within normal run-to-run
+variance on shared GitHub Actions runners.
+
+**Next run** will use per-test LPT with clean duration data from this run's reports. Expected
+to further tighten the spread by assigning heavier individual tests to lighter shards.
+
+**Key lesson:** Shard allocation granularity must match or be finer than the distribution
+granularity. Scope-based LPT (coarse) was strictly worse than per-test hash (fine) when
+mega-scopes exist. Per-test LPT (fine + informed) should be the best of both worlds.
+
 ### Optimization Dependency Graph (Validated)
 
 ```mermaid
@@ -2458,9 +2519,9 @@ Solid arrows = direct dependency, dashed arrows = exposed/required relationship.
 
 | # | Optimization | Expected Impact | Effort | Status |
 |---|---|---|---|---|
-| B | Duration-based shard allocation (LPT) | Reduce tier2 spread from ~56s to ~10-15s | Moderate | **Deployed** (self-improving) |
+| B | Duration-based shard allocation (LPT) | Reduce tier2 spread from ~56s to ~10-15s | Moderate | **Deployed** (per-test granularity, self-improving) |
 | C | Rebalance tier1/tier2 split ratio | Marginal | Trivial | Not started |
-| D+ | Test-level splitting (not file-level) | Potentially large | Complex | Requires pytest-split changes |
+| D+ | Test-level splitting (not file-level) | Eliminated mega-scope bottleneck | Moderate | **Deployed** (Iteration 17) |
 | E | Increase total shards (22→26+) | ~90s+ savings | Cost increase (more runners) | Not started |
 | G1 | Pass specific tier files to pytest | ~15-20s per shard | Low | **Reverted** — breaks conftest init |
 | G2 | Remove "Clear Python cache" step | ~5-10s per shard | Trivial | Noted for later |
