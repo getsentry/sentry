@@ -299,5 +299,5 @@ export default function NetworkList() {
 }
 
 const VirtualRow = styled('div')`
-  ${getTimelineRowStyles({useTransparentBorders: true})}
+  ${p => getTimelineRowStyles({theme: p.theme, useTransparentBorders: true})}
 `;

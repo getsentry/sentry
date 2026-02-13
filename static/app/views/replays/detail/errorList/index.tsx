@@ -222,5 +222,5 @@ const ErrorTable = styled('div')`
 `;
 
 const VirtualRow = styled('div')`
-  ${getTimelineRowStyles()}
+  ${p => getTimelineRowStyles({theme: p.theme})}
 `;

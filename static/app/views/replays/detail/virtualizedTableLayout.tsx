@@ -1,4 +1,4 @@
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 const Root = styled('div')`
@@ -47,22 +47,23 @@ const Offset = styled('div')<{offset: number}>`
 `;
 
 interface TimelineRowStylesOpts {
+  theme: Theme;
   useTransparentBorders?: boolean;
 }
 
 export function getTimelineRowStyles({
+  theme,
   useTransparentBorders = false,
-}: TimelineRowStylesOpts = {}) {
+}: TimelineRowStylesOpts) {
   return css`
     display: grid;
     position: relative;
 
     &.beforeHoverTime + &.afterHoverTime:before {
       border-top: 1px solid
-        ${p =>
-          useTransparentBorders
-            ? p.theme.tokens.border.transparent.accent.moderate
-            : p.theme.tokens.border.accent.moderate};
+        ${useTransparentBorders
+          ? theme.tokens.border.transparent.accent.moderate
+          : theme.tokens.border.accent.moderate};
       content: '';
       left: 0;
       position: absolute;
@@ -72,10 +73,9 @@ export function getTimelineRowStyles({
 
     &.beforeHoverTime.isLastDataRow:before {
       border-bottom: 1px solid
-        ${p =>
-          useTransparentBorders
-            ? p.theme.tokens.border.transparent.accent.moderate
-            : p.theme.tokens.border.accent.moderate};
+        ${useTransparentBorders
+          ? theme.tokens.border.transparent.accent.moderate
+          : theme.tokens.border.accent.moderate};
       content: '';
       left: 0;
       position: absolute;
@@ -85,10 +85,9 @@ export function getTimelineRowStyles({
 
     &.beforeCurrentTime + &.afterCurrentTime:after {
       border-top: 1px solid
-        ${p =>
-          useTransparentBorders
-            ? p.theme.tokens.border.transparent.accent.vibrant
-            : p.theme.tokens.border.accent.vibrant};
+        ${useTransparentBorders
+          ? theme.tokens.border.transparent.accent.vibrant
+          : theme.tokens.border.accent.vibrant};
       content: '';
       left: 0;
       position: absolute;
@@ -98,10 +97,9 @@ export function getTimelineRowStyles({
 
     &.beforeCurrentTime.isLastDataRow:after {
       border-bottom: 1px solid
-        ${p =>
-          useTransparentBorders
-            ? p.theme.tokens.border.transparent.accent.vibrant
-            : p.theme.tokens.border.accent.vibrant};
+        ${useTransparentBorders
+          ? theme.tokens.border.transparent.accent.vibrant
+          : theme.tokens.border.accent.vibrant};
       content: '';
       left: 0;
       position: absolute;
