@@ -513,13 +513,13 @@ export default function ReleaseComparisonChart({
                     {start, end, period: period ?? undefined}
                   ),
                   query: {
+                    ...extractSelectionParameters(location.query),
                     ...getReleaseHandledIssuesUrl(
                       organization.slug,
                       project.id,
                       release.version,
                       {start, end, period: period ?? undefined}
                     ).query,
-                    ...extractSelectionParameters(location.query),
                   },
                 }}
               >
@@ -545,13 +545,13 @@ export default function ReleaseComparisonChart({
                     {start, end, period: period ?? undefined}
                   ),
                   query: {
+                    ...extractSelectionParameters(location.query),
                     ...getReleaseUnhandledIssuesUrl(
                       organization.slug,
                       project.id,
                       release.version,
                       {start, end, period: period ?? undefined}
                     ).query,
-                    ...extractSelectionParameters(location.query),
                   },
                 }}
               >

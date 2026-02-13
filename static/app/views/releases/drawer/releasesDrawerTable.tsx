@@ -170,12 +170,12 @@ export function ReleasesDrawerTable({
                   dataRow.release
                 ),
                 query: {
+                  ...extractSelectionParameters(location.query),
                   ...getReleaseNewIssuesUrl(
                     organization.slug,
                     dataRow.project_id,
                     dataRow.release
                   ).query,
-                  ...extractSelectionParameters(location.query),
                 },
               }}
             >

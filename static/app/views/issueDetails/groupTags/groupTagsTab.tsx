@@ -111,7 +111,7 @@ export function GroupTagsTab() {
                       const baseQuery = tagValue.query
                         ? {query: tagValue.query}
                         : generateQueryWithTag(
-                            {},
+                            location.query,
                             {
                               key: tag.key,
                               value: tagValue.value,
