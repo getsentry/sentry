@@ -92,6 +92,19 @@ SAMPLED_ROUTES = {
     "/api/0/organizations/sentry/ai-conversations/": 1.0,
 }
 
+# High-volume API endpoints sampled at 10% of the backend APM rate.
+# Keys are parameterized transaction names as resolved by the Django URL resolver.
+SAMPLED_API_ENDPOINTS: dict[str, float] = {
+    "/api/0/organizations/{organization_id_or_slug}/chunk-upload/": 0.1
+    * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "/api/0/organizations/{organization_id_or_slug}/artifactbundle/assemble/": 0.1
+    * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "/api/0/organizations/{organization_id_or_slug}/events/": 0.1
+    * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/overview/": 0.1
+    * settings.SENTRY_BACKEND_APM_SAMPLING,
+}
+
 if settings.ADDITIONAL_SAMPLED_TASKS:
     SAMPLED_TASKS.update(settings.ADDITIONAL_SAMPLED_TASKS)
 
@@ -184,6 +197,11 @@ def traces_sampler(sampling_context):
     wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
     if wsgi_path and wsgi_path in SAMPLED_ROUTES:
         return SAMPLED_ROUTES[wsgi_path]
+
+    if "transaction_context" in sampling_context:
+        transaction_name = sampling_context["transaction_context"].get("name")
+        if transaction_name and transaction_name in SAMPLED_API_ENDPOINTS:
+            return SAMPLED_API_ENDPOINTS[transaction_name]
 
     # Apply sample_rate from custom_sampling_context
     custom_sample_rate = sampling_context.get("sample_rate")
