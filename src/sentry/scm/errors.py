@@ -35,3 +35,7 @@ class SCMUnhandledException(SCMError):
 
 class SCMProviderException(SCMError):
     pass
+
+
+class SCMProviderNotSupported(SCMError):
+    pass

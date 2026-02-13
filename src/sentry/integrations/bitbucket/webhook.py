@@ -30,7 +30,7 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.scm.subscriptions.producer import publish_subscription_event
+from sentry.scm.stream_producer import produce_event_to_scm_stream
 from sentry.utils.email import parse_email
 
 logger = logging.getLogger("sentry.webhooks")
@@ -275,7 +275,7 @@ class BitbucketWebhookEndpoint(Endpoint):
         #       been above).
         # NOTE: We are in the correct region silo at this stage. The IntegrationControlMiddleware
         #       middleware has handled routing.
-        publish_subscription_event(
+        produce_event_to_scm_stream(
             {
                 "event": request.body.decode("utf-8"),
                 "event_type_hint": request.headers["X-Event-Key"],
@@ -284,7 +284,7 @@ class BitbucketWebhookEndpoint(Endpoint):
                 "sentry_meta": [
                     {
                         "id": None,
-                        "integration_id": integration.id,
+                        "integration_id": integration.id if integration else None,
                         "organization_id": organization_id,
                     }
                 ],

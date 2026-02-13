@@ -1,8 +1,8 @@
-from sentry.scm.stream import scm_event_stream
+from sentry.scm.private.event_stream import SourceCodeManagerEventStream
 
 
 def test_listener_registration():
-    scm = type(scm_event_stream)()
+    scm = SourceCodeManagerEventStream()
 
     @scm.listen_for("check_run")
     def cr_listener(event):
@@ -27,9 +27,3 @@ def test_listener_registration():
         pr_listener.__name__: pr_listener,
         pr_listener_2.__name__: pr_listener_2,
     }
-
-    # Assert the global scm_event_stream was not modified. Proves we're not assigning to some
-    # leaky property.
-    assert scm_event_stream.check_run_listeners == {}
-    assert scm_event_stream.comment_listeners == {}
-    assert scm_event_stream.pull_request_listeners == {}

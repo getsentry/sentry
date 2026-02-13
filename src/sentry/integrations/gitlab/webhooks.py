@@ -32,7 +32,7 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.scm.subscriptions.producer import publish_subscription_event
+from sentry.scm.stream_producer import produce_event_to_scm_stream
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -361,7 +361,7 @@ class GitlabWebhookEndpoint(Endpoint):
         #       been above).
         # NOTE: We are in the correct region silo at this stage. The IntegrationControlMiddleware
         #       middleware has handled routing.
-        publish_subscription_event(
+        produce_event_to_scm_stream(
             {
                 "event_type_hint": request.headers["X-GitLab-Event"],
                 "event": request.body.decode("utf-8"),

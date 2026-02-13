@@ -16,6 +16,7 @@ from typing import cast
 import msgspec
 import sentry_sdk
 
+from sentry.scm.errors import SCMProviderNotSupported
 from sentry.scm.private.event_stream import SourceCodeManagerEventStream, scm_event_stream
 from sentry.scm.private.webhooks.github import deserialize_github_event
 from sentry.scm.types import (
@@ -334,7 +335,7 @@ def deserialize_raw_event(event: SubscriptionEvent) -> EventType | None:
     if event["type"] == "github":
         return deserialize_github_event(event)
     else:
-        raise ValueError("Provider not implemented.")
+        raise SCMProviderNotSupported("Provider not implemented.")
 
 
 def serialize_event(event: EventType) -> str:
@@ -361,10 +362,13 @@ def serialize_event(event: EventType) -> str:
 # \__|       \______/ \_______/ \__|\__|\_______/ \__|  \__| \_______|\__|
 
 
+PRODUCE_TO_LISTENER = Callable[[str, EventTypeHint, str, HybridCloudSilo], None]
+
+
 def produce_to_listeners(
     event: SubscriptionEvent,
     silo: HybridCloudSilo,
-    produce_to_listener: Callable[[str, EventTypeHint, str, HybridCloudSilo], None],
+    produce_to_listener: PRODUCE_TO_LISTENER,
     stream: SourceCodeManagerEventStream = scm_event_stream,
 ) -> None:
     """
@@ -550,4 +554,5 @@ def exec_listener[T](
         return listeners[listener](arg)
     except Exception:
         record_count(f"{METRIC_PREFIX}.failed", 1, {"reason": "internal", "fn": listener})
+        raise
         raise

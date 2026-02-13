@@ -626,12 +626,12 @@ class SubscriptionEventSentryMeta(TypedDict):
     installation has been explicitly queried.
     """
 
-    integration_id: int
+    integration_id: int | None
     """
     "Integration" model identifier.
     """
 
-    organization_id: int
+    organization_id: int | None
     """
     "Organization" model identifier.
     """
