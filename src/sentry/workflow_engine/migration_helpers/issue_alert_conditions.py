@@ -203,7 +203,7 @@ def create_issue_category_data_condition(
 def create_issue_type_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
-    comparison = {
+    comparison: dict[str, Any] = {
         "value": str(data["value"]),
     }
     include_data = data.get("include")
