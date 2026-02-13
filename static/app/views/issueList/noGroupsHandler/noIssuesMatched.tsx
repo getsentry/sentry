@@ -24,7 +24,7 @@ function NoIssuesMatched() {
     <Wrapper data-test-id="empty-state" className="empty-state">
       <img src={campingImg} alt="Camping spot illustration" height={200} />
       <MessageContainer>
-        <h3>{t('No issues match your search')}</h3>
+        <h3>{t('Nothing matched your search!')}</h3>
         <div>{t('If this is unexpected, check out these tips:')}</div>
         <Tips>
           <li>{t('Double check your project, environment, and date filters')}</li>
