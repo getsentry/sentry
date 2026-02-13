@@ -138,6 +138,8 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
     breadcrumbs = event_data.get("breadcrumbs")
     if isinstance(breadcrumbs, list) and breadcrumbs:
         ret_event["breadcrumbs"] = {"values": breadcrumbs}
+    elif isinstance(breadcrumbs, dict) and breadcrumbs.get("values"):
+        ret_event["breadcrumbs"] = breadcrumbs
 
     ret_event["user"] = event_data.get("user", {})
     if "name" in ret_event["user"]:
