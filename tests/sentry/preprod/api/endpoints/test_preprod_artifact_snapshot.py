@@ -73,6 +73,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "pr_number": 123,
             "images": {
                 "img1": {
+                    "file_name": "screen1.png",
                     "width": 100,
                     "height": 200,
                     "device": "iPhone 14",
@@ -172,6 +173,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "app_id": "com.example.app",
             "images": {
                 "hash1": {
+                    "file_name": "test.png",
                     "width": -100,
                     "height": 812,
                 },
@@ -310,7 +312,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(manifest_json)
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-frontend-routes"):
+        with self.feature("organizations:preprod-snapshots"):
             response = self.client.get(url)
 
         assert response.status_code == 200
@@ -341,7 +343,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         mock_get_session.return_value = self._create_mock_session(manifest_json)
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-frontend-routes"):
+        with self.feature("organizations:preprod-snapshots"):
             response = self.client.get(url)
 
         assert response.status_code == 200
@@ -356,14 +358,19 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
     @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.get_preprod_session")
     def test_get_snapshot_details_pagination(self, mock_get_session):
         images = {
-            f"img{i:03d}": {"display_name": f"Image {i}", "width": 100, "height": 200}
+            f"img{i:03d}": {
+                "display_name": f"Image {i}",
+                "file_name": f"image{i}.png",
+                "width": 100,
+                "height": 200,
+            }
             for i in range(10)
         }
         artifact, _, _, manifest_json, _ = self._create_artifact_with_manifest(images=images)
         mock_get_session.return_value = self._create_mock_session(manifest_json)
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-frontend-routes"):
+        with self.feature("organizations:preprod-snapshots"):
             response = self.client.get(url, {"offset": "2", "limit": "3"})
 
         assert response.status_code == 200
@@ -373,7 +380,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
 
     def test_get_snapshot_not_found(self):
         url = self._get_detail_url(99999)
-        with self.feature("organizations:preprod-frontend-routes"):
+        with self.feature("organizations:preprod-snapshots"):
             response = self.client.get(url)
 
         assert response.status_code == 404
@@ -389,7 +396,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         )
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-frontend-routes"):
+        with self.feature("organizations:preprod-snapshots"):
             response = self.client.get(url)
 
         assert response.status_code == 404
@@ -407,7 +414,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         artifact, _, _, _, _ = self._create_artifact_with_manifest()
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-frontend-routes"):
+        with self.feature("organizations:preprod-snapshots"):
             response = self.client.get(url, {"offset": "-1"})
 
         assert response.status_code == 400
@@ -416,7 +423,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         artifact, _, _, _, _ = self._create_artifact_with_manifest()
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-frontend-routes"):
+        with self.feature("organizations:preprod-snapshots"):
             response = self.client.get(url, {"limit": "101"})
 
         assert response.status_code == 400
@@ -429,7 +436,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         mock_get_session.return_value = mock_session
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-frontend-routes"):
+        with self.feature("organizations:preprod-snapshots"):
             response = self.client.get(url)
 
         assert response.status_code == 500
@@ -444,7 +451,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         )
 
         url = self._get_detail_url(artifact.id)
-        with self.feature("organizations:preprod-frontend-routes"):
+        with self.feature("organizations:preprod-snapshots"):
             response = self.client.get(url)
 
         assert response.status_code == 404
