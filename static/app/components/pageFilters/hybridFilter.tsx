@@ -1,6 +1,7 @@
 import {
-  Fragment,
+  createContext,
   useCallback,
+  useContext,
   useEffect,
   useImperativeHandle,
   useMemo,
@@ -9,8 +10,14 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 import xor from 'lodash/xor';
+import type {DistributedOmit} from 'type-fest';
 
-import {Button} from '@sentry/scraps/button';
+import {
+  Button,
+  LinkButton,
+  type ButtonProps,
+  type LinkButtonProps,
+} from '@sentry/scraps/button';
 import type {
   MultipleSelectProps,
   SelectKey,
@@ -18,8 +25,8 @@ import type {
   SelectOptionOrSection,
   SelectSection,
 } from '@sentry/scraps/compactSelect';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Grid} from '@sentry/scraps/layout';
+import {CompactSelect, ControlContext} from '@sentry/scraps/compactSelect';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -254,7 +261,7 @@ export interface HybridFilterProps<Value extends SelectKey> extends Omit<
    * Message to show in the menu footer. Can be a function that receives
    * whether there are staged changes.
    */
-  menuFooterMessage?: ((hasStagedChanges: boolean) => React.ReactNode) | React.ReactNode;
+  // menuFooterMessage?: ((hasStagedChanges: boolean) => React.ReactNode) | React.ReactNode;
   ref?: React.Ref<HybridFilterRef<Value>>;
 }
 
@@ -270,8 +277,6 @@ export interface HybridFilterProps<Value extends SelectKey> extends Omit<
 export function HybridFilter<Value extends SelectKey>({
   ref,
   options,
-  menuFooter,
-  menuFooterMessage,
   stagedSelect,
   ...selectProps
 }: HybridFilterProps<Value>) {
@@ -329,83 +334,145 @@ export function HybridFilter<Value extends SelectKey>({
     );
   }, [options]);
 
-  const renderFooter = useMemo(() => {
-    const footerMessage =
-      typeof menuFooterMessage === 'function'
-        ? menuFooterMessage(stagedSelect.hasStagedChanges)
-        : menuFooterMessage;
-
-    return menuFooter || footerMessage || stagedSelect.hasStagedChanges
-      ? ({closeOverlay}: any) => (
-          <Fragment>
-            {footerMessage && <FooterMessage>{footerMessage}</FooterMessage>}
-            <FooterWrap>
-              <FooterInnerWrap>{menuFooter as React.ReactNode}</FooterInnerWrap>
-              {stagedSelect.hasStagedChanges && (
-                <FooterInnerWrap>
-                  <Button
-                    priority="transparent"
-                    size="xs"
-                    onClick={() => {
-                      closeOverlay();
-                      stagedSelect.removeStagedChanges();
-                    }}
-                  >
-                    {t('Cancel')}
-                  </Button>
-                  <Button
-                    size="xs"
-                    priority="primary"
-                    disabled={stagedSelect.disableCommit}
-                    onClick={() => {
-                      closeOverlay();
-                      stagedSelect.commit(stagedSelect.stagedValue);
-                    }}
-                  >
-                    {t('Apply')}
-                  </Button>
-                </FooterInnerWrap>
-              )}
-            </FooterWrap>
-          </Fragment>
-        )
-      : null;
-  }, [stagedSelect, menuFooter, menuFooterMessage]);
-
-  const menuHeaderTrailingItems = useCallback(
-    ({closeOverlay}: any) => {
-      if (!stagedSelect.shouldShowReset) {
-        return null;
-      }
-
-      return (
-        <ResetButton
-          onClick={() => {
-            stagedSelect.handleReset();
-            closeOverlay();
-          }}
-          size="zero"
-          priority="transparent"
-        >
-          {t('Reset')}
-        </ResetButton>
-      );
-    },
-    [stagedSelect]
-  );
-
   return (
-    <CompactSelect
-      grid
-      multiple
-      menuHeaderTrailingItems={menuHeaderTrailingItems}
-      options={mappedOptions}
-      menuFooter={renderFooter}
-      {...stagedSelect.compactSelectProps}
-      {...selectProps}
-    />
+    <HybridFilterContext.Provider value={stagedSelect as any}>
+      <CompactSelect
+        grid
+        multiple
+        options={mappedOptions}
+        {...stagedSelect.compactSelectProps}
+        {...selectProps}
+      />
+    </HybridFilterContext.Provider>
   );
 }
+
+const HybridFilterContext = createContext<UseStagedCompactSelectReturn<SelectKey> | null>(
+  null
+);
+
+export const HybridFilterComponents = {
+  LinkButton(props: DistributedOmit<LinkButtonProps, 'priority' | 'size'>) {
+    return <LinkButton size="xs" {...props} />;
+  },
+
+  ResetButton(props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'size'>) {
+    const stagedSelect = useContext(HybridFilterContext);
+
+    if (!stagedSelect) {
+      throw new Error(
+        'HybridFilterContext not found, please make sure that you are not calling this outside of HybridFilter component!'
+      );
+    }
+
+    if (!stagedSelect?.shouldShowReset) {
+      return null;
+    }
+
+    return (
+      <ResetButton
+        {...props}
+        priority="transparent"
+        size="zero"
+        onClick={e => {
+          stagedSelect.handleReset();
+          props.onClick?.(e);
+        }}
+      >
+        {t('Reset')}
+      </ResetButton>
+    );
+  },
+
+  ApplyButton(
+    props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'onClick' | 'size'>
+  ) {
+    const controlContext = useContext(ControlContext);
+    const stagedSelect = useContext(HybridFilterContext);
+
+    if (!stagedSelect || !controlContext.overlayState) {
+      throw new Error(
+        'HybridFilterContext or OverlayContext not found, please make sure that you are not calling this outside of HybridFilter component!'
+      );
+    }
+
+    if (!stagedSelect.hasStagedChanges) {
+      return null;
+    }
+
+    return (
+      <Button
+        {...props}
+        size="xs"
+        priority="primary"
+        disabled={stagedSelect.disableCommit || props.disabled}
+        onClick={() => {
+          controlContext.overlayState?.close();
+          stagedSelect.commit(stagedSelect.stagedValue);
+        }}
+      >
+        {t('Apply')}
+      </Button>
+    );
+  },
+
+  CancelButton(
+    props: DistributedOmit<ButtonProps, 'children' | 'priority' | 'onClick' | 'size'>
+  ) {
+    const controlContext = useContext(ControlContext);
+    const stagedSelect = useContext(HybridFilterContext);
+
+    if (!stagedSelect || !controlContext.overlayState) {
+      throw new Error(
+        'HybridFilterContext or OverlayContext not found, please make sure that you are not calling this outside of HybridFilter component!'
+      );
+    }
+
+    if (!stagedSelect.hasStagedChanges) {
+      return null;
+    }
+
+    return (
+      <Button
+        {...props}
+        size="xs"
+        priority="transparent"
+        onClick={() => {
+          controlContext.overlayState?.close();
+          stagedSelect.removeStagedChanges?.();
+        }}
+      >
+        {t('Cancel')}
+      </Button>
+    );
+  },
+
+  Footer({children}: {children: React.ReactNode}) {
+    return (
+      <Flex gap="md" align="center" justify="between">
+        {children}
+      </Flex>
+    );
+  },
+
+  // Footer() {
+  //   const controlContext = useContext(ControlContext);
+  //   const stagedSelect = useContext(HybridFilterContext);
+
+  //   if (!menuFooter && !footerMessage && !stagedSelect.hasStagedChanges) {
+  //     return null;
+  //   }
+
+  //   return (
+  //     <Fragment>
+  //       {footerMessage && <FooterMessage>{footerMessage}</FooterMessage>}
+  //       <FooterWrap>
+  //         <FooterInnerWrap>{menuFooter}</FooterInnerWrap>
+  //       </FooterWrap>
+  //     </Fragment>
+  //   );
+  // },
+};
 
 const ResetButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
@@ -415,44 +482,33 @@ const ResetButton = styled(Button)`
   margin: -${space(0.5)} -${space(0.5)};
 `;
 
-const FooterWrap = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${space(2)};
+// const FooterMessage = styled('p')`
+//   padding: ${space(0.75)} ${space(1)};
+//   margin: ${space(0.5)} 0;
+//   border-radius: ${p => p.theme.radius.md};
+//   border: solid 1px ${p => p.theme.colors.yellow200};
+//   background: ${p => p.theme.colors.yellow100};
+//   color: ${p => p.theme.tokens.content.primary};
+//   font-size: ${p => p.theme.font.size.sm};
+// `;
 
-  /* If there's FooterMessage above */
-  &:not(:first-child) {
-    margin-top: ${space(1)};
-  }
-`;
+// const FooterInnerWrap = styled('div')`
+//   grid-row: -1;
+//   display: grid;
+//   grid-auto-flow: column;
+//   gap: ${space(1)};
 
-const FooterMessage = styled('p')`
-  padding: ${space(0.75)} ${space(1)};
-  margin: ${space(0.5)} 0;
-  border-radius: ${p => p.theme.radius.md};
-  border: solid 1px ${p => p.theme.colors.yellow200};
-  background: ${p => p.theme.colors.yellow100};
-  color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.font.size.sm};
-`;
+//   &:empty {
+//     display: none;
+//   }
 
-const FooterInnerWrap = styled('div')`
-  grid-row: -1;
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${space(1)};
-
-  &:empty {
-    display: none;
-  }
-
-  &:last-of-type {
-    justify-self: end;
-    justify-items: end;
-  }
-  &:first-of-type,
-  &:only-child {
-    justify-self: start;
-    justify-items: start;
-  }
-`;
+//   &:last-of-type {
+//     justify-self: end;
+//     justify-items: end;
+//   }
+//   &:first-of-type,
+//   &:only-child {
+//     justify-self: start;
+//     justify-items: start;
+//   }
+// `;

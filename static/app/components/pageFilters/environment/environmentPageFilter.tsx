@@ -38,17 +38,11 @@ export interface EnvironmentPageFilterProps extends Partial<
     | 'onToggle'
     | 'menuTitle'
     | 'menuBody'
-    | 'menuFooter'
-    | 'menuFooterMessage'
     | 'shouldCloseOnInteractOutside'
     | 'triggerProps'
     | 'stagedSelect'
   >
 > {
-  /**
-   * Message to show in the menu footer
-   */
-  footerMessage?: React.ReactNode;
   /**
    * Called when the selection changes
    */
@@ -78,7 +72,6 @@ export function EnvironmentPageFilter({
   menuWidth,
   trigger,
   resetParamsOnChange,
-  footerMessage,
   triggerProps = {},
   storageNamespace,
   ...selectProps
@@ -242,7 +235,6 @@ export function EnvironmentPageFilter({
       emptyMessage={emptyMessage ?? t('No environments found')}
       menuTitle={t('Filter Environments')}
       menuWidth={menuWidth ?? defaultMenuWidth}
-      menuFooterMessage={footerMessage}
       trigger={
         trigger ??
         (tp => (

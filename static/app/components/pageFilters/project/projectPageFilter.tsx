@@ -18,6 +18,7 @@ import type {
 } from 'sentry/components/pageFilters/hybridFilter';
 import {
   HybridFilter,
+  HybridFilterComponents,
   useStagedCompactSelect,
 } from 'sentry/components/pageFilters/hybridFilter';
 import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
@@ -410,7 +411,7 @@ export function ProjectPageFilter({
   });
 
   const menuFooterMessage = useMemo(() => {
-    if (selectionLimitExceeded) {
+    if (true) {
       return (hasStagedChanges: any) =>
         hasStagedChanges
           ? tct(
@@ -438,18 +439,21 @@ export function ProjectPageFilter({
       menuTitle={menuTitle ?? t('Filter Projects')}
       menuWidth={menuWidth ?? defaultMenuWidth}
       menuFooter={
-        hasProjectWrite ? (
-          <LinkButton
-            size="xs"
-            aria-label={t('Create Project')}
-            to={makeProjectsPathname({path: '/new/', organization})}
-            icon={<IconAdd />}
-          >
-            {t('Create Project')}
-          </LinkButton>
-        ) : undefined
+        <HybridFilterComponents.Footer>
+          {hasProjectWrite ? (
+            <HybridFilterComponents.LinkButton
+              icon={<IconAdd />}
+              to={makeProjectsPathname({path: '/new/', organization})}
+            >
+              {t('Create Project')}
+            </HybridFilterComponents.LinkButton>
+          ) : undefined}
+          <Flex gap="md" align="center" justify="end">
+            <HybridFilterComponents.CancelButton />
+            <HybridFilterComponents.ApplyButton />
+          </Flex>
+        </HybridFilterComponents.Footer>
       }
-      menuFooterMessage={menuFooterMessage}
       trigger={
         trigger ??
         (triggerProps => (
