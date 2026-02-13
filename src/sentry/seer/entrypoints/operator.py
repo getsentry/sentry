@@ -270,9 +270,15 @@ def process_autofix_updates(
             with SeerOperatorEventLifecycleMetric(
                 interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_AUTOFIX_UPDATE,
                 entrypoint_key=entrypoint_key,
-            ).capture():
-                entrypoint_cls.on_autofix_update(
-                    event_type=event_type,
-                    event_payload=event_payload,
-                    cache_payload=cache_result["payload"],
-                )
+            ).capture() as ept_lifecycle:
+                # We need to wrap here so that no one entrypoint failure can fail the whole task
+                try:
+                    entrypoint_cls.on_autofix_update(
+                        event_type=event_type,
+                        event_payload=event_payload,
+                        cache_payload=cache_result["payload"],
+                    )
+                except Exception as e:
+                    ept_lifecycle.record_failure(
+                        failure_reason="failed_to_on_autofix_update", extra={"error": str(e)}
+                    )
