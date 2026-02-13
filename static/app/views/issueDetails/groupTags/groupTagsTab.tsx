@@ -110,13 +110,10 @@ export function GroupTagsTab() {
                       const tagName = tagValue.name === '' ? t('(empty)') : tagValue.name;
                       const baseQuery = tagValue.query
                         ? {query: tagValue.query}
-                        : generateQueryWithTag(
-                            location.query,
-                            {
-                              key: tag.key,
-                              value: tagValue.value,
-                            }
-                          );
+                        : generateQueryWithTag(location.query, {
+                            key: tag.key,
+                            value: tagValue.value,
+                          });
                       return (
                         <li key={tagValueIdx} data-test-id={tag.key}>
                           <TagBarLink
