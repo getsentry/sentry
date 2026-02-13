@@ -27,12 +27,7 @@ from sentry.preprod.models import (
     PreprodBuildConfiguration,
 )
 from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
-from sentry.preprod.quotas import (
-    has_installable_quota,
-    has_size_quota,
-    should_run_distribution,
-    should_run_size,
-)
+from sentry.preprod.quotas import has_installable_quota, has_size_quota
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.preprod.size_analysis.tasks import compare_preprod_artifact_size_analysis
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
@@ -144,28 +139,17 @@ def assemble_preprod_artifact(
         return
 
     try:
-        requested_features: list[PreprodFeature] = []
-
-        artifact = PreprodArtifact.objects.get(id=artifact_id)
-
-        if should_run_size(artifact):
-            requested_features.append(PreprodFeature.SIZE_ANALYSIS)
-            PreprodArtifactSizeMetrics.objects.get_or_create(
-                preprod_artifact=artifact,
-                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-                defaults={
-                    "state": PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
-                },
-            )
-
-        if should_run_distribution(artifact):
-            requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
-
+        # Note: requested_features is no longer used for filtering - all features are
+        # requested here, and the actual quota/filter checks happen in the update endpoint
+        # (project_preprod_artifact_update.py) after preprocessing completes.
         produce_preprod_artifact_to_kafka(
             project_id=project_id,
             organization_id=org_id,
             artifact_id=artifact_id,
-            requested_features=requested_features,
+            requested_features=[
+                PreprodFeature.SIZE_ANALYSIS,
+                PreprodFeature.BUILD_DISTRIBUTION,
+            ],
         )
     except Exception as e:
         user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
@@ -210,6 +194,7 @@ def create_preprod_artifact(
     checksum: str,
     build_configuration_name: str | None = None,
     release_notes: str | None = None,
+    install_groups: list[str] | None = None,
     head_sha: str | None = None,
     base_sha: str | None = None,
     provider: str | None = None,
@@ -245,17 +230,19 @@ def create_preprod_artifact(
         with transaction.atomic(router.db_for_write(PreprodArtifact)):
             # Create CommitComparison if git information is provided
             commit_comparison = None
-            if head_sha and head_repo_name and provider and head_ref:
+            if head_sha and head_repo_name and provider:
                 commit_comparison, _ = CommitComparison.objects.get_or_create(
                     organization_id=org_id,
+                    head_repo_name=head_repo_name,
                     head_sha=head_sha,
                     base_sha=base_sha,
-                    provider=provider,
-                    head_repo_name=head_repo_name,
-                    base_repo_name=base_repo_name,
-                    head_ref=head_ref,
-                    base_ref=base_ref,
-                    pr_number=pr_number,
+                    defaults={
+                        "provider": provider,
+                        "base_repo_name": base_repo_name,
+                        "head_ref": head_ref,
+                        "base_ref": base_ref,
+                        "pr_number": pr_number,
+                    },
                 )
             else:
                 logger.info(
@@ -281,10 +268,14 @@ def create_preprod_artifact(
                     name=build_configuration_name,
                 )
 
-            # Prepare extras data if release_notes is provided
-            extras = None
-            if release_notes:
-                extras = {"release_notes": release_notes}
+            # Prepare extras data if release_notes, install_groups is provided
+            extras: dict[str, str | list[str]] | None = None
+            if release_notes or install_groups:
+                extras = {}
+                if release_notes:
+                    extras["release_notes"] = release_notes
+                if install_groups:
+                    extras["install_groups"] = install_groups
 
             preprod_artifact, _ = PreprodArtifact.objects.get_or_create(
                 project=project,
@@ -292,6 +283,14 @@ def create_preprod_artifact(
                 state=PreprodArtifact.ArtifactState.UPLOADING,
                 commit_comparison=commit_comparison,
                 extras=extras,
+            )
+
+            PreprodArtifactSizeMetrics.objects.get_or_create(
+                preprod_artifact=preprod_artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                defaults={
+                    "state": PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                },
             )
 
             logger.info(
@@ -518,6 +517,7 @@ def _assemble_preprod_artifact_size_analysis(
                 for size_metric in size_metrics_updated:
                     produce_preprod_size_metric_to_eap(
                         size_metric=size_metric,
+                        organization=organization,
                         organization_id=org_id,
                         project_id=project.id,
                     )
@@ -746,6 +746,7 @@ def _assemble_preprod_artifact_installable_app(
         if features.has("organizations:preprod-build-distribution-eap-write", organization):
             produce_preprod_build_distribution_to_eap(
                 artifact=preprod_artifact,
+                organization=organization,
                 organization_id=org_id,
                 project_id=project.id,
             )

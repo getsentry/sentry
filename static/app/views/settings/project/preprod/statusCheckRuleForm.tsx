@@ -1,15 +1,16 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {NumberInput} from '@sentry/scraps/input';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {NumberInput} from 'sentry/components/core/input/numberInput';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import {t} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {SectionLabel} from './statusCheckSharedComponents';
 import type {StatusCheckRule} from './types';
@@ -29,27 +30,8 @@ interface Props {
   rule: StatusCheckRule;
 }
 
-const FILTER_KEYS: TagCollection = {
-  platform: {key: 'platform', name: 'Platform'},
-  app_id: {key: 'app_id', name: 'App ID'},
-  build_configuration: {
-    key: 'build_configuration',
-    name: 'Build Configuration',
-  },
-  git_head_ref: {key: 'git_head_ref', name: 'Branch'},
-};
-
-const getTagValues = (
-  tag: {key: string; name: string},
-  _searchQuery: string
-): Promise<string[]> => {
-  if (tag.key === 'platform') {
-    return Promise.resolve(['android', 'ios']);
-  }
-  return Promise.resolve([]);
-};
-
 export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
+  const {project} = useProjectSettingsOutlet();
   const [metric, setMetric] = useState(rule.metric);
   const [measurement, setMeasurement] = useState(rule.measurement);
   const displayUnit = getDisplayUnit(measurement);
@@ -57,14 +39,21 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
   const [displayValue, setDisplayValue] = useState(initialDisplayValue);
   const [filterQuery, setFilterQuery] = useState(rule.filterQuery ?? '');
 
+  const currentValueInBytes =
+    displayUnit === '%' ? displayValue : mbToBytes(displayValue);
+  const isDirty =
+    metric !== rule.metric ||
+    measurement !== rule.measurement ||
+    currentValueInBytes !== rule.value ||
+    filterQuery !== (rule.filterQuery ?? '');
+
   const handleSave = () => {
-    const valueInBytes = displayUnit === '%' ? displayValue : mbToBytes(displayValue);
     onSave({
       ...rule,
       filterQuery,
       measurement,
       metric,
-      value: valueInBytes,
+      value: currentValueInBytes,
     });
   };
 
@@ -125,21 +114,26 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
 
       <Stack gap="sm">
         <SectionLabel>{t('For')}</SectionLabel>
-        <SearchQueryBuilder
-          filterKeys={FILTER_KEYS}
-          getTagValues={getTagValues}
+        <PreprodSearchBar
           initialQuery={filterQuery}
-          onChange={handleQueryChange}
+          projects={[Number(project.id)]}
+          onChange={(query, _state) => handleQueryChange(query)}
           searchSource="preprod_status_check_filters"
-          disallowFreeText
-          disallowLogicalOperators
-          placeholder={t('Add build filters...')}
           portalTarget={document.body}
+          disallowFreeText
+          disallowHas
+          disallowLogicalOperators
+          allowedKeys={[
+            'app_id',
+            'git_head_ref',
+            'build_configuration_name',
+            'platform_name',
+          ]}
         />
       </Stack>
 
       <Flex gap="md" marginTop="sm">
-        <Button priority="primary" onClick={handleSave}>
+        <Button priority="primary" onClick={handleSave} disabled={!isDirty}>
           {t('Save Rule')}
         </Button>
         <Button onClick={handleDelete}>{t('Delete Rule')}</Button>

@@ -23,7 +23,6 @@ from sentry.utils import json
 @control_silo_test
 class TestCreator(TestCase):
     def setUp(self) -> None:
-
         self.user = self.create_user()
         self.org = self.create_organization()
 
@@ -105,7 +104,6 @@ class TestCreator(TestCase):
 
     @responses.activate
     def test_notifies_service(self) -> None:
-
         rpc_user = user_service.get_user(user_id=self.user.id)
         with self.tasks():
             responses.add(responses.POST, "https://example.com/webhook")

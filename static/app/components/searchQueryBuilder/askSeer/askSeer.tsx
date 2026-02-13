@@ -3,7 +3,6 @@ import type {ComboBoxState} from '@react-stately/combobox';
 import {makeOrganizationSeerSetupQueryKey} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {setupCheckQueryKey} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {AskSeerConsentOption} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {AskSeerFeedback} from 'sentry/components/searchQueryBuilder/askSeer/askSeerFeedback';
 import {AskSeerOption} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {
@@ -18,10 +17,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
   const organization = useOrganization();
-  const hasAskSeerConsentFlowChanges = organization.features.includes(
-    'gen-ai-consent-flow-removal'
-  );
-  const {gaveSeerConsent, displayAskSeerFeedback} = useSearchQueryBuilder();
+
+  const {displayAskSeerFeedback} = useSearchQueryBuilder();
 
   const isMutating = useIsMutating({
     mutationKey: [setupCheckQueryKey(organization.slug)],
@@ -55,17 +52,9 @@ export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
     );
   }
 
-  if (gaveSeerConsent || hasAskSeerConsentFlowChanges) {
-    return (
-      <AskSeerPane>
-        <AskSeerOption state={state} />
-      </AskSeerPane>
-    );
-  }
-
   return (
     <AskSeerPane>
-      <AskSeerConsentOption state={state} />
+      <AskSeerOption state={state} />
     </AskSeerPane>
   );
 }

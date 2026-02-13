@@ -5,8 +5,10 @@ from django.utils.http import urlencode
 from responses.matchers import query_string_matcher
 
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
     def setUp(self) -> None:
         self.user = self.create_user(email="boop@example.com")

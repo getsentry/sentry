@@ -201,9 +201,7 @@ def cron(**options: Any) -> None:
 @click.option(
     "--hostname",
     "-n",
-    help=(
-        "Set custom hostname, e.g. 'w1.%h'. Expands: %h" "(hostname), %n (name) and %d, (domain)."
-    ),
+    help=("Set custom hostname, e.g. 'w1.%h'. Expands: %h(hostname), %n (name) and %d, (domain)."),
 )
 @click.option(
     "--queues",

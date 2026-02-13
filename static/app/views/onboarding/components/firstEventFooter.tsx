@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
@@ -15,6 +15,7 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
@@ -38,7 +39,11 @@ export default function FirstEventFooter({
   const {activateSidebar} = useOnboardingSidebar();
 
   const {data: issues} = useApiQuery<Group[]>(
-    [`/projects/${organization.slug}/${project.slug}/issues/`],
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
+    ],
     {
       staleTime: Infinity,
       enabled: !!project.firstEvent,
@@ -142,7 +147,7 @@ export default function FirstEventFooter({
           {project?.firstEvent ? t('Error Received') : t('Waiting for error')}
         </AnimatedText>
       </StatusWrapper>
-      <OnboardingButtonBar gap="xl">
+      <OnboardingButtonBar>
         {getSecondaryCta()}
         {getPrimaryCta()}
       </OnboardingButtonBar>
@@ -150,7 +155,9 @@ export default function FirstEventFooter({
   );
 }
 
-const OnboardingButtonBar = styled(ButtonBar)`
+const OnboardingButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="xl" {...props} />
+))`
   margin: ${space(2)} ${space(4)};
   justify-self: end;
   margin-left: auto;

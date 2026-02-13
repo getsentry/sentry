@@ -26,8 +26,14 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
     type = DetectorType.RENDER_BLOCKING_ASSET_SPAN
     settings_key = DetectorType.RENDER_BLOCKING_ASSET_SPAN
 
-    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
-        super().__init__(settings, event)
+    def __init__(
+        self,
+        settings: dict[str, Any],
+        event: dict[str, Any],
+        organization: Organization | None = None,
+        detector_id: int | None = None,
+    ) -> None:
+        super().__init__(settings, event, organization, detector_id)
 
         self.transaction_start = timedelta(seconds=self.event().get("start_timestamp", 0))
         self.fcp = None
@@ -40,12 +46,8 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         fcp_value = fcp_hash.get("value")
         if fcp_value and ("unit" not in fcp_hash or fcp_hash["unit"] == "millisecond"):
             fcp = timedelta(milliseconds=fcp_value)
-            fcp_minimum_threshold = timedelta(
-                milliseconds=self.settings.get("fcp_minimum_threshold")
-            )
-            fcp_maximum_threshold = timedelta(
-                milliseconds=self.settings.get("fcp_maximum_threshold")
-            )
+            fcp_minimum_threshold = timedelta(milliseconds=self.settings["fcp_minimum_threshold"])
+            fcp_maximum_threshold = timedelta(milliseconds=self.settings["fcp_maximum_threshold"])
             if fcp >= fcp_minimum_threshold and fcp < fcp_maximum_threshold:
                 self.fcp = fcp
                 self.fcp_value = fcp_value
@@ -68,6 +70,22 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
             span_id = span.get("span_id", None)
             fingerprint = self._fingerprint(span)
             if span_id and fingerprint:
+                evidence_data = {
+                    "op": op,
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [span_id],
+                    "transaction_name": self.event().get("description", ""),
+                    "slow_span_description": span.get("description", ""),
+                    "slow_span_duration": self._get_duration(span),
+                    "transaction_duration": self._get_duration(self._event),
+                    "fcp": self.fcp_value,
+                    "repeating_spans": get_span_evidence_value(span),
+                    "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
+                }
+                if self.detector_id is not None:
+                    evidence_data["detector_id"] = self.detector_id
+
                 self.stored_problems[fingerprint] = PerformanceProblem(
                     fingerprint=fingerprint,
                     op=op,
@@ -76,19 +94,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                     offender_span_ids=[span_id],
                     parent_span_ids=[],
                     cause_span_ids=[],
-                    evidence_data={
-                        "op": op,
-                        "parent_span_ids": [],
-                        "cause_span_ids": [],
-                        "offender_span_ids": [span_id],
-                        "transaction_name": self.event().get("description", ""),
-                        "slow_span_description": span.get("description", ""),
-                        "slow_span_duration": self._get_duration(span),
-                        "transaction_duration": self._get_duration(self._event),
-                        "fcp": self.fcp_value,
-                        "repeating_spans": get_span_evidence_value(span),
-                        "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
-                    },
+                    evidence_data=evidence_data,
                     evidence_display=[
                         IssueEvidence(
                             name="Offending Spans",
@@ -142,7 +148,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
             return False
 
         span_duration = get_span_duration(span)
-        fcp_ratio_threshold = self.settings.get("fcp_ratio_threshold")
+        fcp_ratio_threshold = self.settings["fcp_ratio_threshold"]
         return span_duration / self.fcp > fcp_ratio_threshold
 
     def _fingerprint(self, span: Span) -> str:

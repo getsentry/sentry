@@ -30,6 +30,26 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
                 internal_name="level",
                 search_type="string",
             ),
+            ResolvedAttribute(
+                public_alias="environment",
+                internal_name="environment",
+                search_type="string",
+            ),
+            ResolvedAttribute(
+                public_alias="title",
+                internal_name="title",
+                search_type="string",
+            ),
+            ResolvedAttribute(
+                public_alias="transaction",
+                internal_name="transaction",
+                search_type="string",
+            ),
+            ResolvedAttribute(
+                public_alias="type",
+                internal_name="type",
+                search_type="string",
+            ),
         ]
     )
 }

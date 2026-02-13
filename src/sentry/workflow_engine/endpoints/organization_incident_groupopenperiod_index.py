@@ -1,4 +1,5 @@
 from drf_spectacular.utils import extend_schema
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
@@ -17,6 +18,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams
 from sentry.incidents.endpoints.serializers.utils import get_object_id_from_fake_id
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.organization import Organization
 from sentry.workflow_engine.endpoints.serializers.incident_groupopenperiod_serializer import (
     IncidentGroupOpenPeriodSerializer,
 )
@@ -47,7 +49,7 @@ class OrganizationIncidentGroupOpenPeriodIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request, organization):
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Returns an incident and group open period relationship.
         Can optionally filter by incident_id, incident_identifier, group_id, or open_period_id.

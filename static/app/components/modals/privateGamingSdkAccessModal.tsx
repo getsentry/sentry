@@ -3,12 +3,12 @@ import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {ButtonBar} from '@sentry/scraps/button/buttonBar';
-import {Prose} from '@sentry/scraps/text/prose';
+import {Grid} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Prose} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {type ModalRenderProps} from 'sentry/actionCreators/modal';
-import {ExternalLink} from 'sentry/components/core/link';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import LoadingError from 'sentry/components/loadingError';
@@ -430,7 +430,7 @@ export function PrivateGamingSdkAccessModal({
         )}
       </Body>
       <Footer>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           {hasNewGitHubFlow ? (
             // New flow footer
             showSuccessView ? (
@@ -466,7 +466,7 @@ export function PrivateGamingSdkAccessModal({
               </Button>
             </Fragment>
           )}
-        </ButtonBar>
+        </Grid>
       </Footer>
     </Fragment>
   );

@@ -2,6 +2,12 @@ import {useCallback, useState} from 'react';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {
+  needsGitHubAuth,
+  type CodingAgentIntegration,
+} from 'sentry/components/events/autofix/useAutofix';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {
   setApiQueryData,
   useApiQuery,
   useQueryClient,
@@ -11,6 +17,7 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import type {
   Artifact,
   Block,
@@ -110,7 +117,9 @@ const POLL_INTERVAL = 500;
 const IDLE_POLL_INTERVAL = 2500; // Slower polling when not actively processing
 
 const makeExplorerAutofixQueryKey = (orgSlug: string, groupId: string): ApiQueryKey => [
-  `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
+  getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
+    path: {organizationIdOrSlug: orgSlug, issueId: groupId},
+  }),
   {query: {mode: 'explorer'}},
 ];
 
@@ -291,6 +300,7 @@ export function useExplorerAutofix(
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
+  const user = useUser();
   const orgSlug = organization.slug;
 
   const [waitingForResponse, setWaitingForResponse] = useState(false);
@@ -327,12 +337,15 @@ export function useExplorerAutofix(
 
       try {
         const response = await api.requestPromise(
-          `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
+          getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
+            path: {organizationIdOrSlug: orgSlug, issueId: groupId},
+          }),
           {
             method: 'POST',
             query: {mode: 'explorer'},
             data: {
               step,
+              intelligence_level: 'low',
               ...(runId !== undefined && {run_id: runId}),
             },
           }
@@ -367,7 +380,9 @@ export function useExplorerAutofix(
     async (runId: number, repoName?: string) => {
       try {
         await api.requestPromise(
-          `/organizations/${orgSlug}/seer/explorer-update/${runId}/`,
+          getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/', {
+            path: {organizationIdOrSlug: orgSlug, runId},
+          }),
           {
             method: 'POST',
             data: {
@@ -407,23 +422,40 @@ export function useExplorerAutofix(
    * Trigger coding agent handoff for an existing run.
    */
   const triggerCodingAgentHandoff = useCallback(
-    async (runId: number, integrationId: number) => {
+    async (runId: number, integration: CodingAgentIntegration) => {
       setWaitingForResponse(true);
 
+      trackAnalytics('coding_integration.send_to_agent_clicked', {
+        organization,
+        group_id: groupId,
+        provider: integration.provider,
+        source: 'explorer',
+        user_id: user.id,
+      });
+
       addLoadingMessage('Launching coding agent...');
+
+      const data: Record<string, string | number> = {
+        step: 'coding_agent_handoff',
+        run_id: runId,
+      };
+
+      if (integration.id === null) {
+        data.provider = integration.provider;
+      } else {
+        data.integration_id = parseInt(integration.id, 10);
+      }
 
       try {
         const response: {failures: Array<{error_message: string}>; successes: unknown[]} =
           await api.requestPromise(
-            `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
+            getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
+              path: {organizationIdOrSlug: orgSlug, issueId: groupId},
+            }),
             {
               method: 'POST',
               query: {mode: 'explorer'},
-              data: {
-                step: 'coding_agent_handoff',
-                run_id: runId,
-                integration_id: integrationId,
-              },
+              data,
             }
           );
 
@@ -439,13 +471,18 @@ export function useExplorerAutofix(
           queryKey: makeExplorerAutofixQueryKey(orgSlug, groupId),
         });
       } catch (e: any) {
+        if (needsGitHubAuth(e)) {
+          const currentUrl = window.location.href;
+          window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
+          return;
+        }
         addErrorMessage(e?.responseJSON?.detail ?? 'Failed to launch coding agent');
         throw e;
       } finally {
         setWaitingForResponse(false);
       }
     },
-    [api, orgSlug, groupId, queryClient]
+    [api, orgSlug, groupId, queryClient, organization, user.id]
   );
 
   // Clear waiting state when we get a response

@@ -19,7 +19,7 @@ class GroupIntegrationsTest(APITestCase):
             title="this is an example title",
             description="this is an example description",
         )
-        path = f"/api/0/issues/{group.id}/integrations/"
+        path = f"/api/0/organizations/{org.slug}/issues/{group.id}/integrations/"
 
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.get(path)
@@ -70,7 +70,7 @@ class GroupIntegrationsTest(APITestCase):
             description="this is an example description",
         )
 
-        path = f"/api/0/issues/{group.id}/integrations/"
+        path = f"/api/0/organizations/{org.slug}/issues/{group.id}/integrations/"
 
         with self.feature(
             {

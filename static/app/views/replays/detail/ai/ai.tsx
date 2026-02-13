@@ -5,11 +5,11 @@ import loadingGif from 'sentry-images/spot/ai-loader.gif';
 import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
 
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {IconSync, IconThumb} from 'sentry/icons';
@@ -29,18 +29,13 @@ const MAX_SEGMENTS_TO_SUMMARIZE = 150;
 
 export default function Ai() {
   const organization = useOrganization();
-  const {
-    areAiFeaturesAllowed,
-    setupAcknowledgement,
-    isPending: isOrgSeerSetupPending,
-  } = useOrganizationSeerSetup();
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
 
   const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
   const segmentCount = replayRecord?.count_segments ?? 0;
   const project = useProjectFromId({project_id: replayRecord?.project_id});
   const analyticsArea = useAnalyticsArea();
-  const skipConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
 
   const replayTooLongMessage = t(
     'If a replay is too long, we may only summarize a small portion of it.'
@@ -82,50 +77,6 @@ export default function Ai() {
             {areAiFeaturesAllowed
               ? t('Replay summaries are not available for this organization.')
               : t('AI features are not available for this organization.')}
-          </div>
-        </EndStateContainer>
-      </Wrapper>
-    );
-  }
-
-  // check for org seer setup first before attempting to fetch summary
-  // only do this if consent flow is not skipped
-  if (!skipConsentFlow && isOrgSeerSetupPending) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <LoadingContainer>
-          <div>
-            <img src={loadingGif} style={{maxHeight: 400}} alt={t('Loading...')} />
-          </div>
-        </LoadingContainer>
-      </Wrapper>
-    );
-  }
-
-  // If our `replay-ai-summaries` ff is enabled and the org has gen AI ff enabled,
-  // but the org hasn't acknowledged the gen AI features, then show CTA.
-  // only do this if consent flow is not skipped
-  if (!skipConsentFlow && !setupAcknowledgement.orgHasAcknowledged) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EndStateContainer>
-          <img src={aiBanner} alt="" />
-          <div>
-            <strong>{t('AI-Powered Replay Summaries')}</strong>
-          </div>
-          <div>
-            {t(
-              'Seer access is required to use replay summaries. Please view the Seer settings page for more information.'
-            )}
-          </div>
-          <div>
-            <LinkButton
-              size="sm"
-              priority="primary"
-              to={`/settings/${organization.slug}/seer/`}
-            >
-              {t('View Seer Settings')}
-            </LinkButton>
           </div>
         </EndStateContainer>
       </Wrapper>
@@ -217,12 +168,12 @@ export default function Ai() {
         </Stack>
       </Summary>
       <StyledTabItemContainer>
-        <OverflowBody>
+        <Container as="section" flex="1 1 auto" overflow="auto">
           <ChapterList timeRanges={summaryData.data.time_ranges} />
           {segmentCount > MAX_SEGMENTS_TO_SUMMARIZE && (
             <Subtext>{replayTooLongMessage}</Subtext>
           )}
-        </OverflowBody>
+        </Container>
       </StyledTabItemContainer>
     </Wrapper>
   );
@@ -275,7 +226,9 @@ function ThumbsUpDownButton({type}: {type: 'positive' | 'negative'}) {
     <FeedbackButton
       aria-label={t('Give feedback on the replay summary section')}
       icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
-      title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
+      tooltipProps={{
+        title: type === 'positive' ? t('I like this') : t(`I don't like this`),
+      }}
       size="xs"
       feedbackOptions={{
         messagePlaceholder:
@@ -375,11 +328,6 @@ const StyledTabItemContainer = styled(TabItemContainer)`
   details.beforeCurrentTime + details.afterCurrentTime {
     border-top-color: transparent;
   }
-`;
-
-const OverflowBody = styled('section')`
-  flex: 1 1 auto;
-  overflow: auto;
 `;
 
 const EndStateContainer = styled('div')`

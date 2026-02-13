@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import EditableText from 'sentry/components/editableText';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
@@ -83,10 +84,12 @@ function ProjectField() {
         {key: 'all', label: t('All Projects')},
       ]}
       name="projectId"
+      label={t('Project')}
       placeholder={t('Project')}
       aria-label={t('Select Project')}
       disabled={fetching}
       size="sm"
+      required
       validate={() => {
         if (!canEditDetector) {
           return [
@@ -125,6 +128,7 @@ function EnvironmentField({
       flexibleControlStateSize
       stacked
       name="environment"
+      label={t('Environment')}
       placeholder={t('Environment')}
       aria-label={t('Select Environment')}
       size="sm"

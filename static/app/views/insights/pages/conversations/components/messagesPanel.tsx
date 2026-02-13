@@ -1,246 +1,20 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import ClippedBox from 'sentry/components/clippedBox';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import {IconUser} from 'sentry/icons';
+import {IconFire, IconUser} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {t} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {
-  getIsAiGenerationSpan,
-  getIsExecuteToolSpan,
-} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import {SpanFields} from 'sentry/views/insights/types';
+import type {ConversationMessage} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
+import {extractMessagesFromNodes} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-
-interface ToolCall {
-  name: string;
-  nodeId: string;
-}
-
-interface ConversationMessage {
-  content: string;
-  id: string;
-  nodeId: string;
-  role: 'user' | 'assistant';
-  timestamp: number;
-  toolCalls?: ToolCall[];
-  userEmail?: string;
-}
-
-interface RequestMessage {
-  role: string;
-  content?: string | Array<{text: string}>;
-  parts?: Array<{type: string; content?: string; text?: string}>;
-}
-
-// often injected into AI prompts to indicate the role of the message
-const AI_PROMPT_TAGS = new Set([
-  'thinking',
-  'reasoning',
-  'instructions',
-  'user_message',
-  'maybe_relevant_context',
-]);
-
-/**
- * Escapes known AI prompt tags so they display as literal text rather than
- * being stripped by the HTML sanitizer.
- */
-function escapeXmlTags(text: string): string {
-  return text.replace(
-    /<(\/?)([a-z_][a-z0-9_:-]*)([^>]*)>/gi,
-    (match, slash, tagName, rest) => {
-      if (AI_PROMPT_TAGS.has(tagName.toLowerCase())) {
-        return `&lt;${slash}${tagName}${rest}&gt;`;
-      }
-      return match;
-    }
-  );
-}
-
-function getNodeTimestamp(node: AITraceSpanNode): number {
-  return 'start_timestamp' in node.value ? node.value.start_timestamp : 0;
-}
-
-function getGenAiOpType(node: AITraceSpanNode): string | undefined {
-  return node.attributes?.[SpanFields.GEN_AI_OPERATION_TYPE] as string | undefined;
-}
-
-function partitionSpansByType(nodes: AITraceSpanNode[]): {
-  generationSpans: AITraceSpanNode[];
-  toolSpans: AITraceSpanNode[];
-} {
-  const generationSpans: AITraceSpanNode[] = [];
-  const toolSpans: AITraceSpanNode[] = [];
-
-  for (const node of nodes) {
-    const opType = getGenAiOpType(node);
-    if (getIsAiGenerationSpan(opType)) {
-      generationSpans.push(node);
-    } else if (getIsExecuteToolSpan(opType)) {
-      toolSpans.push(node);
-    }
-  }
-
-  generationSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
-  toolSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
-
-  return {generationSpans, toolSpans};
-}
-
-function findToolCallsBetween(
-  toolSpans: AITraceSpanNode[],
-  startTime: number,
-  endTime: number
-): ToolCall[] {
-  return toolSpans
-    .filter(span => {
-      const ts = getNodeTimestamp(span);
-      return ts > startTime && ts < endTime;
-    })
-    .map(span => {
-      const name = span.attributes?.[SpanFields.GEN_AI_TOOL_NAME] as string | undefined;
-      return name ? {name, nodeId: span.id} : null;
-    })
-    .filter((tc): tc is ToolCall => tc !== null);
-}
-
-/**
- * Extracts text content from a message that may use the new parts format or old content format.
- */
-function extractTextFromMessage(msg: RequestMessage): string | null {
-  if (msg.parts && Array.isArray(msg.parts)) {
-    const textParts = msg.parts
-      .filter(p => p.type === 'text')
-      .map(p => p.content || p.text)
-      .filter(Boolean);
-    if (textParts.length > 0) {
-      return textParts.join('\n');
-    }
-  }
-
-  if (msg.content) {
-    return typeof msg.content === 'string' ? msg.content : (msg.content[0]?.text ?? null);
-  }
-
-  return null;
-}
-
-function parseUserContent(node: AITraceSpanNode): string | null {
-  const inputMessages = node.attributes?.[SpanFields.GEN_AI_INPUT_MESSAGES] as
-    | string
-    | undefined;
-
-  const requestMessages =
-    inputMessages ??
-    (node.attributes?.[SpanFields.GEN_AI_REQUEST_MESSAGES] as string | undefined);
-
-  if (!requestMessages) {
-    return null;
-  }
-
-  try {
-    const messagesArray: RequestMessage[] = JSON.parse(requestMessages);
-    const userMessage = messagesArray.findLast(
-      msg => msg.role === 'user' && (msg.content || msg.parts)
-    );
-    if (!userMessage) {
-      return null;
-    }
-    return extractTextFromMessage(userMessage);
-  } catch {
-    return requestMessages;
-  }
-}
-
-function parseAssistantContent(node: AITraceSpanNode): string | null {
-  const outputMessages = node.attributes?.[SpanFields.GEN_AI_OUTPUT_MESSAGES] as
-    | string
-    | undefined;
-
-  if (outputMessages) {
-    try {
-      const messagesArray: RequestMessage[] = JSON.parse(outputMessages);
-      const assistantMessage = messagesArray.findLast(
-        msg => msg.role === 'assistant' && (msg.content || msg.parts)
-      );
-      if (assistantMessage) {
-        const content = extractTextFromMessage(assistantMessage);
-        if (content) {
-          return content;
-        }
-      }
-    } catch {
-      // Parsing failed, fall through to legacy attributes
-    }
-  }
-
-  return (
-    (node.attributes?.[SpanFields.GEN_AI_RESPONSE_TEXT] as string | undefined) ||
-    (node.attributes?.[SpanFields.GEN_AI_RESPONSE_OBJECT] as string | undefined) ||
-    null
-  );
-}
-
-/**
- * Extracts messages from LLM generation spans.
- * User messages come from gen_ai.request.messages, assistant messages from gen_ai.response.text.
- * Tool calls are extracted from tool spans that occur just before each generation span.
- */
-function extractMessagesFromNodes(nodes: AITraceSpanNode[]): ConversationMessage[] {
-  const messages: ConversationMessage[] = [];
-  const seenUserContent = new Set<string>();
-  const seenAssistantContent = new Set<string>();
-
-  const {generationSpans, toolSpans} = partitionSpansByType(nodes);
-
-  for (let i = 0; i < generationSpans.length; i++) {
-    const node = generationSpans[i];
-    if (!node) {
-      continue;
-    }
-
-    const timestamp = getNodeTimestamp(node);
-    const prevTimestamp = i > 0 ? getNodeTimestamp(generationSpans[i - 1]!) : 0;
-    const userEmail = node.attributes?.[SpanFields.USER_EMAIL] as string | undefined;
-    const toolCalls = findToolCallsBetween(toolSpans, prevTimestamp, timestamp);
-
-    const userContent = parseUserContent(node);
-    if (userContent && !seenUserContent.has(userContent)) {
-      seenUserContent.add(userContent);
-      messages.push({
-        id: `user-${node.id}`,
-        role: 'user',
-        content: userContent,
-        timestamp,
-        nodeId: node.id,
-        userEmail,
-      });
-    }
-
-    const assistantContent = parseAssistantContent(node);
-    if (assistantContent && !seenAssistantContent.has(assistantContent)) {
-      seenAssistantContent.add(assistantContent);
-      messages.push({
-        id: `assistant-${node.id}`,
-        role: 'assistant',
-        content: assistantContent,
-        timestamp: timestamp + 1,
-        nodeId: node.id,
-        toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-      });
-    }
-  }
-
-  messages.sort((a, b) => a.timestamp - b.timestamp);
-  return messages;
-}
 
 interface MessagesPanelProps {
   nodes: AITraceSpanNode[];
@@ -309,7 +83,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
               isSelected={isAssistant && isSelected}
               onClick={isAssistant ? () => handleMessageClick(message) : undefined}
             >
-              <MessageHeader justify={message.role === 'assistant' ? 'end' : 'start'}>
+              <MessageHeader justify={message.role === 'user' ? 'end' : 'start'}>
                 {message.role === 'user' ? <IconUser size="sm" /> : <IconBot size="sm" />}
                 <Text bold size="sm">
                   {message.role === 'user' ? t('User') : t('Assistant')}
@@ -329,7 +103,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                   <MessageText size="sm">
                     <MarkedText
                       as={TraceDrawerComponents.MarkdownContainer}
-                      text={escapeXmlTags(message.content)}
+                      text={message.content}
                     />
                   </MessageText>
                 </Container>
@@ -353,7 +127,9 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                       return (
                         <ClickableTag
                           key={tool.nodeId}
-                          variant="info"
+                          variant={tool.hasError ? 'danger' : 'info'}
+                          icon={tool.hasError ? <IconFire /> : undefined}
+                          hasError={tool.hasError}
                           isSelected={isToolSelected}
                           onClick={e => {
                             e.stopPropagation();
@@ -399,21 +175,34 @@ const MessageBubble = styled('div')<{
   isClickable?: boolean;
   isSelected?: boolean;
 }>`
-  border: 1px solid ${p => p.theme.tokens.border.primary};
+  position: relative;
+  z-index: 0;
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   width: 90%;
-  align-self: ${p => (p.role === 'user' ? 'flex-start' : 'flex-end')};
+  align-self: ${p => (p.role === 'user' ? 'flex-end' : 'flex-start')};
   background-color: ${p =>
     p.role === 'user'
       ? p.theme.tokens.background.secondary
       : p.theme.tokens.background.primary};
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid ${p => p.theme.tokens.border.primary};
+    border-radius: inherit;
+    box-sizing: border-box;
+    z-index: 1;
+    pointer-events: none;
+  }
   ${p =>
     p.isClickable &&
     `
     cursor: pointer;
-    &:hover {
+    &:hover::after {
       border-color: ${p.theme.tokens.border.accent.moderate};
+    }
+    &:hover {
       background-color: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
     }
     &:active {
@@ -423,8 +212,13 @@ const MessageBubble = styled('div')<{
   ${p =>
     p.isSelected &&
     `
-    outline: 2px solid ${p.theme.tokens.focus.default};
-    outline-offset: -2px;
+    &::after {
+      border-color: ${p.theme.tokens.focus.default};
+      border-width: 2px;
+    }
+    &:hover::after {
+      border-color: ${p.theme.tokens.focus.default};
+    }
   `}
 `;
 
@@ -436,7 +230,7 @@ const ToolCallsFooter = styled(Flex)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
-const ClickableTag = styled(Tag)<{isSelected?: boolean}>`
+const ClickableTag = styled(Tag)<{hasError?: boolean; isSelected?: boolean}>`
   cursor: pointer;
   &:hover {
     opacity: 0.8;
@@ -444,7 +238,7 @@ const ClickableTag = styled(Tag)<{isSelected?: boolean}>`
   ${p =>
     p.isSelected &&
     `
-    outline: 2px solid ${p.theme.tokens.focus.default};
+    outline: 2px solid ${p.hasError ? p.theme.tokens.content.danger : p.theme.tokens.focus.default};
     outline-offset: -2px;
   `}
 `;

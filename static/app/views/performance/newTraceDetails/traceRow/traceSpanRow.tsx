@@ -51,7 +51,9 @@ export function TraceSpanRow(props: TraceRowProps<SpanNode>) {
                   props.node.canFetchChildren ? (
                     '+'
                   ) : (
-                    <TraceIcons.Chevron direction={props.node.expanded ? 'up' : 'down'} />
+                    <TraceIcons.Chevron
+                      direction={props.node.expanded ? 'down' : 'right'}
+                    />
                   )
                 }
                 status={props.node.fetchStatus}

@@ -3,27 +3,32 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
+import {Badge} from '@sentry/scraps/badge';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Badge} from 'sentry/components/core/badge';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {DateTime} from 'sentry/components/dateTime';
 import TextOverflow from 'sentry/components/textOverflow';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {RELEASES_SORT_OPTIONS, ReleasesSortOption} from 'sentry/constants/releases';
 import {IconReleases} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useReleases} from 'sentry/utils/releases/releasesProvider';
+import {defined} from 'sentry/utils';
 
+import {useReleases} from './hooks/useReleases';
 import type {DashboardFilters} from './types';
 import {DashboardFilterKeys} from './types';
 
-type Props = {
+interface ReleasesSelectControlProps {
   selectedReleases: string[];
+  sortBy: ReleasesSortOption;
   className?: string;
   handleChangeFilter?: (activeFilters: DashboardFilters) => void;
   id?: string;
   isDisabled?: boolean;
-};
+}
 
 const ALIASED_RELEASES = [
   {
@@ -35,18 +40,27 @@ const ALIASED_RELEASES = [
   },
 ];
 
-function ReleasesSelectControl({
+export function ReleasesSelectControl({
   handleChangeFilter,
   selectedReleases,
+  sortBy,
   className,
   isDisabled,
   id,
-}: Props) {
-  const {releases, loading, onSearch} = useReleases();
+}: ReleasesSelectControlProps) {
+  const [searchTerm, setSearchTerm] = useState('');
   const [activeReleases, setActiveReleases] = useState<string[]>(selectedReleases);
+  const [isReleasesDropdownOpen, setIsReleasesDropdownOpen] = useState(false);
+
+  // Event counts are lazy-loaded only when the dropdown is open to reduce API calls
+  const {data: releases, isLoading: loading} = useReleases(
+    searchTerm,
+    sortBy,
+    isReleasesDropdownOpen
+  );
 
   function resetSearch() {
-    onSearch('');
+    setSearchTerm('');
   }
 
   useEffect(() => {
@@ -73,30 +87,49 @@ function ReleasesSelectControl({
       menuTitle={<MenuTitleWrapper>{t('Filter Releases')}</MenuTitleWrapper>}
       className={className}
       onSearch={debounce(val => {
-        onSearch(val);
+        setSearchTerm(val);
       }, DEFAULT_DEBOUNCE_DURATION)}
       options={[
         {
           value: '_releases',
-          label: t('Sorted by date created'),
+          label: tct('Sorted by [sortBy]', {
+            sortBy:
+              sortBy in RELEASES_SORT_OPTIONS
+                ? RELEASES_SORT_OPTIONS[sortBy as keyof typeof RELEASES_SORT_OPTIONS]
+                : sortBy,
+          }),
           options: [
             ...ALIASED_RELEASES,
             ...activeReleases
               .filter(version => version !== 'latest')
-              .map(version => ({
-                label: version,
-                value: version,
-              })),
+              .map(version => {
+                // Find the release in the releases array to get dateCreated and count
+                const release = releases.find(r => r.version === version);
+                return {
+                  label: version,
+                  value: version,
+                  details: (
+                    <LabelDetails
+                      eventCount={release?.count}
+                      dateCreated={release?.dateCreated}
+                    />
+                  ),
+                };
+              }),
             ...releases
               .filter(({version}) => !activeReleasesSet.has(version))
-              .map(({version}) => ({
-                label: version,
-                value: version,
-              })),
+              .map(({version, dateCreated, count}) => {
+                return {
+                  label: version,
+                  value: version,
+                  details: <LabelDetails eventCount={count} dateCreated={dateCreated} />,
+                };
+              }),
           ],
         },
       ]}
       onChange={opts => setActiveReleases(opts.map(opt => opt.value as string))}
+      onOpenChange={setIsReleasesDropdownOpen}
       onClose={() => {
         resetSearch();
         if (!isEqual(activeReleases, selectedReleases)) {
@@ -108,21 +141,38 @@ function ReleasesSelectControl({
       value={activeReleases}
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} icon={<IconReleases />}>
-          {
-            <ButtonLabelWrapper>
-              {triggerLabel}{' '}
-              {activeReleases.length > 1 && (
-                <StyledBadge variant="muted">{`+${activeReleases.length - 1}`}</StyledBadge>
-              )}
-            </ButtonLabelWrapper>
-          }
+          <ButtonLabelWrapper>
+            {triggerLabel}{' '}
+            {activeReleases.length > 1 && (
+              <StyledBadge variant="muted">{`+${activeReleases.length - 1}`}</StyledBadge>
+            )}
+          </ButtonLabelWrapper>
         </OverlayTrigger.Button>
       )}
     />
   );
 }
 
-export default ReleasesSelectControl;
+type LabelDetailsProps = {
+  dateCreated?: string;
+  eventCount?: number;
+};
+
+function LabelDetails(props: LabelDetailsProps) {
+  return (
+    <Grid columns="repeat(2, 1fr)" gap="sm" minWidth="200px">
+      <Container>
+        {defined(props.eventCount) && tn('%s event', '%s events', props.eventCount)}
+      </Container>
+
+      <Container justifySelf="right">
+        {defined(props.dateCreated) && (
+          <DateTime dateOnly year date={props.dateCreated} />
+        )}
+      </Container>
+    </Grid>
+  );
+}
 
 const StyledBadge = styled(Badge)`
   flex-shrink: 0;

@@ -14,8 +14,8 @@ import {
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import ConfigStore from 'sentry/stores/configStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {StatusPageComponent} from 'sentry/types/system';
 import CronDetectorsList from 'sentry/views/detectors/list/cron';
 
@@ -154,11 +154,11 @@ describe('CronDetectorsList', () => {
       incident_updates: [],
     });
 
-    fetchMock.mockResponse(req =>
-      req.url.includes('status.sentry.io/api/v2/incidents.json')
+    fetchMock.mockResponse(req => {
+      return req.url.includes('status.sentry.io/api/v2/incidents.json')
         ? Promise.resolve(JSON.stringify({incidents: [incident]}))
-        : Promise.reject({status: 404})
-    );
+        : Promise.reject(new Error('not found'));
+    });
 
     const {router} = render(<CronDetectorsList />, {organization, initialRouterConfig});
 

@@ -2,7 +2,8 @@ import {createContext, Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 import {uuid4} from '@sentry/core';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
@@ -108,7 +109,12 @@ export function SubfiltersList() {
           );
         })}
       </div>
-      <PurpleTextButton borderless icon={<IconAdd />} size="xs" onClick={addSubfilter}>
+      <PurpleTextButton
+        priority="transparent"
+        icon={<IconAdd />}
+        size="xs"
+        onClick={addSubfilter}
+      >
         {t('Sub-filter')}
       </PurpleTextButton>
     </div>
@@ -132,7 +138,7 @@ function SubfilterRow({onRemove, isFirstRow, isLastRow}: SubfilterRowProps) {
           aria-label={t('Delete Subfilter')}
           size="sm"
           icon={<IconDelete />}
-          borderless
+          priority="transparent"
           onClick={onRemove}
         />
       </StyledRowLine>

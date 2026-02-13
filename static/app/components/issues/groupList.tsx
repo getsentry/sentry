@@ -17,6 +17,7 @@ import StreamGroup, {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, PriorityLevel} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -55,6 +56,11 @@ type Props = {
    * Defaults to `/organizations/${orgSlug}/issues/`
    */
   endpointPath?: string;
+  /**
+   * Extra query params to include in the issue details link.
+   * Useful for feature-specific deep-linking.
+   */
+  issueLinkExtraQuery?: Record<string, string>;
   onFetchSuccess?: (
     groupListState: State,
     onCursor: (
@@ -98,6 +104,7 @@ function GroupList({
   renderEmptyMessage,
   renderErrorMessage,
   customStatsPeriod,
+  issueLinkExtraQuery,
   queryFilterDescription,
   source,
   query,
@@ -188,7 +195,13 @@ function GroupList({
 
   const queryClient = useQueryClient();
   const queryKey: ApiQueryKey = [
-    endpointPath ?? `/organizations/${organization.slug}/issues/`,
+    endpointPath
+      ? (endpointPath as any)
+      : getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+          },
+        }),
     {query: computedQueryParams},
   ];
   const {
@@ -349,6 +362,7 @@ function GroupList({
                     statsPeriod={statsPeriod}
                     queryFilterDescription={queryFilterDescription}
                     source={source}
+                    issueLinkExtraQuery={issueLinkExtraQuery}
                     query={query}
                     onAssigneeChange={newAssignee =>
                       updateQueryCacheAssigneeChange(group.id, newAssignee)

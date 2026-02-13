@@ -2,14 +2,14 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
-import {Flex} from '@sentry/scraps/layout';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Button, ButtonBar} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
+import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {
   hasCodeChanges as checkHasCodeChanges,
   getArtifactsFromBlocks,
@@ -106,7 +106,7 @@ function DrawerNavigator({
             external
             href={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
             size="xs"
-            title={t('Configure Seer settings for this project')}
+            tooltipProps={{title: t('Configure Seer settings for this project')}}
             aria-label={t('Configure Seer settings for this project')}
             icon={<IconSettings />}
           />
@@ -114,7 +114,7 @@ function DrawerNavigator({
         <Button
           size="xs"
           onClick={onCopyMarkdown}
-          title={t('Copy analysis as Markdown / LLM prompt')}
+          tooltipProps={{title: t('Copy analysis as Markdown / LLM prompt')}}
           aria-label={t('Copy analysis as Markdown')}
           icon={<IconCopy />}
           disabled={copyButtonDisabled}
@@ -124,7 +124,7 @@ function DrawerNavigator({
           onClick={onReset}
           icon={<IconAdd />}
           aria-label={t('Start a new analysis from scratch')}
-          title={t('Start a new analysis from scratch')}
+          tooltipProps={{title: t('Start a new analysis from scratch')}}
           disabled={!onReset}
         />
       </ButtonWrapper>
@@ -206,9 +206,9 @@ export function ExplorerSeerDrawer({
   }, [runState?.run_id]);
 
   const handleCodingAgentHandoff = useCallback(
-    async (integrationId: number) => {
+    async (integration: CodingAgentIntegration) => {
       if (runState?.run_id) {
-        await triggerCodingAgentHandoff(runState.run_id, integrationId);
+        await triggerCodingAgentHandoff(runState.run_id, integration);
       }
     },
     [triggerCodingAgentHandoff, runState?.run_id]
@@ -394,12 +394,13 @@ export function ExplorerSeerDrawer({
 
           {/* Status card when processing */}
           <AnimatePresence initial={false}>
-            {runState.status === 'processing' && !isChatAlreadyOpen && (
+            {runState.status === 'processing' && (
               <ExplorerStatusCard
                 key="status_card"
                 status={runState.status}
                 loadingBlock={loadingBlock}
                 blocks={blocks}
+                isChatAlreadyOpen={isChatAlreadyOpen}
                 onOpenChat={handleOpenChat}
               />
             )}
@@ -429,7 +430,7 @@ export function ExplorerSeerDrawer({
 const DrawerContainer = styled('div')`
   height: 100%;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: max-content max-content auto;
   position: relative;
   background: ${p => p.theme.tokens.background.secondary};
 `;
@@ -448,6 +449,7 @@ const SeerDrawerNavigator = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   z-index: 1;
   min-height: ${MIN_NAV_HEIGHT}px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: ${p => p.theme.tokens.border.transparent.neutral.muted} 0 1px;
 `;
 
@@ -456,10 +458,8 @@ const SeerDrawerBody = styled(DrawerBody)`
   overscroll-behavior: contain;
   scroll-behavior: smooth;
   scroll-margin: 0 ${p => p.theme.space.xl};
-  direction: rtl;
-  * {
-    direction: ltr;
-  }
+  display: flex;
+  flex-direction: column;
 `;
 
 const Header = styled('h3')`
@@ -479,7 +479,9 @@ const ShortId = styled('div')`
   line-height: 1;
 `;
 
-const ButtonWrapper = styled(ButtonBar)`
+const ButtonWrapper = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   margin-left: auto;
 `;
 

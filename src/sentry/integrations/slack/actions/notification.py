@@ -9,6 +9,7 @@ import orjson
 import sentry_sdk
 from slack_sdk.errors import SlackApiError
 
+from sentry import features
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.integrations.messaging.metrics import (
@@ -38,6 +39,7 @@ from sentry.notifications.additional_attachment_manager import get_additional_at
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
+from sentry.seer.entrypoints.slack.entrypoint import prepare_slack_thread_for_autofix_updates
 from sentry.services.eventstore.models import GroupEvent
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
@@ -107,7 +109,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         lifecycle: EventLifecycle,
         new_notification_message_object: (
             NewIssueAlertNotificationMessage | NewNotificationActionNotificationMessage
-        ) | None,
+        )
+        | None,
     ) -> str | None:
         """Send a message to Slack and handle any errors."""
         try:
@@ -237,7 +240,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         notification_uuid: str | None = None,
         notification_message_object: (
             NewIssueAlertNotificationMessage | NewNotificationActionNotificationMessage
-        ) | None = None,
+        )
+        | None = None,
         save_notification_method: Callable | None = None,
         thread_ts: str | None = None,
     ) -> None:
@@ -252,12 +256,13 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         client = SlackSdkClient(integration_id=integration.id)
         text = str(blocks.get("text"))
+        message_ts: str | None = None
         # Wrap the Slack API call with lifecycle tracking
         with MessagingInteractionEvent(
             interaction_type=MessagingInteractionType.SEND_ISSUE_ALERT_NOTIFICATION,
             spec=SlackMessagingSpec(),
         ).capture() as lifecycle:
-            SlackNotifyServiceAction._send_slack_message(
+            message_ts = SlackNotifyServiceAction._send_slack_message(
                 client=client,
                 json_blocks=json_blocks,
                 text=text,
@@ -272,6 +277,17 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         # Save notification message if needed
         if save_notification_method:
             save_notification_method(data=notification_message_object)
+
+        organization = self.project.organization
+        cache_thread_ts = thread_ts or message_ts
+        if features.has("organizations:seer-slack-workflows", organization) and cache_thread_ts:
+            prepare_slack_thread_for_autofix_updates(
+                thread_ts=cache_thread_ts,
+                channel_id=channel,
+                group=event.group,
+                organization_id=organization.id,
+                integration_id=integration.id,
+            )
 
     def _send_issue_alert_notification(
         self,

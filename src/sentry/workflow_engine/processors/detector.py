@@ -8,7 +8,7 @@ import sentry_sdk
 from django.db import router, transaction
 from rest_framework import status
 
-from sentry import options
+from sentry import features, options
 from sentry.api.exceptions import SentryAPIException
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -124,6 +124,10 @@ def ensure_default_anomaly_detector(
         Detector.objects.filter(type=MetricIssue.slug, project=project).order_by("id").first()
     )
     if existing:
+        logger.info(
+            "create_default_anomaly_detector.already_exists",
+            extra={"project_id": project.id, "detector_id": existing.id},
+        )
         return existing
 
     lock = locks.get(
@@ -145,69 +149,76 @@ def ensure_default_anomaly_detector(
             if existing:
                 return existing
 
-            condition_group = DataConditionGroup.objects.create(
-                logic_type=DataConditionGroup.Type.ANY,
-                organization_id=project.organization_id,
-            )
+            try:
+                condition_group = DataConditionGroup.objects.create(
+                    logic_type=DataConditionGroup.Type.ANY,
+                    organization_id=project.organization_id,
+                )
 
-            DataCondition.objects.create(
-                comparison={
-                    "sensitivity": AnomalyDetectionSensitivity.LOW,
-                    "seasonality": AnomalyDetectionSeasonality.AUTO,
-                    "threshold_type": AnomalyDetectionThresholdType.ABOVE,
-                },
-                condition_result=DetectorPriorityLevel.HIGH,
-                type=Condition.ANOMALY_DETECTION,
-                condition_group=condition_group,
-            )
+                DataCondition.objects.create(
+                    comparison={
+                        "sensitivity": AnomalyDetectionSensitivity.LOW,
+                        "seasonality": AnomalyDetectionSeasonality.AUTO,
+                        "threshold_type": AnomalyDetectionThresholdType.ABOVE,
+                    },
+                    condition_result=DetectorPriorityLevel.HIGH,
+                    type=Condition.ANOMALY_DETECTION,
+                    condition_group=condition_group,
+                )
 
-            detector = Detector.objects.create(
-                project=project,
-                name="High Error Count (Default)",
-                description="Automatically monitors for anomalous spikes in error count",
-                workflow_condition_group=condition_group,
-                type=MetricIssue.slug,
-                config={
-                    "detection_type": AlertRuleDetectionType.DYNAMIC.value,
-                    "comparison_delta": None,
-                },
-                owner_team_id=owner_team_id,
-                enabled=enabled,
-            )
+                detector = Detector.objects.create(
+                    project=project,
+                    name="High Error Count (Default)",
+                    description="Automatically monitors for anomalous spikes in error count",
+                    workflow_condition_group=condition_group,
+                    type=MetricIssue.slug,
+                    config={
+                        "detection_type": AlertRuleDetectionType.DYNAMIC.value,
+                        "comparison_delta": None,
+                    },
+                    owner_team_id=owner_team_id,
+                    enabled=enabled,
+                )
 
-            snuba_query = create_snuba_query(
-                query_type=SnubaQuery.Type.ERROR,
-                dataset=Dataset.Events,
-                query="",
-                aggregate="count()",
-                time_window=timedelta(minutes=15),
-                resolution=timedelta(minutes=15),
-                environment=None,
-                event_types=[SnubaQueryEventType.EventType.ERROR],
-            )
+                snuba_query = create_snuba_query(
+                    query_type=SnubaQuery.Type.ERROR,
+                    dataset=Dataset.Events,
+                    query="",
+                    aggregate="count()",
+                    time_window=timedelta(minutes=15),
+                    resolution=timedelta(minutes=15),
+                    environment=None,
+                    event_types=[SnubaQueryEventType.EventType.ERROR],
+                )
 
-            query_subscription = create_snuba_subscription(
-                project=project,
-                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
-                snuba_query=snuba_query,
-            )
+                query_subscription = create_snuba_subscription(
+                    project=project,
+                    subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+                    snuba_query=snuba_query,
+                )
 
-            data_source = DataSource.objects.create(
-                organization_id=project.organization_id,
-                source_id=str(query_subscription.id),
-                type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-            )
+                data_source = DataSource.objects.create(
+                    organization_id=project.organization_id,
+                    source_id=str(query_subscription.id),
+                    type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+                )
 
-            DataSourceDetector.objects.create(
-                data_source=data_source,
-                detector=detector,
-            )
+                DataSourceDetector.objects.create(
+                    data_source=data_source,
+                    detector=detector,
+                )
+            except Exception:
+                logger.exception(
+                    "create_default_anomaly_detector.create_models_failed",
+                    extra={"project_id": project.id, "organization_id": project.organization_id},
+                )
+                raise
 
             try:
                 send_new_detector_data(detector)
             except Exception:
                 logger.exception(
-                    "Failed to send new detector data to Seer, detector not created",
+                    "create_default_anomaly_detector.send_to_seer_failed",
                     extra={"project_id": project.id, "organization_id": project.organization_id},
                 )
                 raise
@@ -255,6 +266,24 @@ class EventDetectors:
         return {d for d in [self.issue_stream_detector, self.event_detector] if d is not None}
 
 
+def _is_issue_stream_detector_enabled(event_data: WorkflowEventData) -> bool:
+    """
+    Check if the issue stream detector should be enabled for this event's group type.
+
+    Most group types enable the issue stream detector by default. MetricIssue is excluded
+    unless the workflow-engine-metric-issue-ui feature flag is enabled for the organization,
+    which allows incremental rollout of issue alerts for metric issues.
+    """
+    group_type_id = event_data.group.type
+    disabled_type_ids = options.get("workflow_engine.group.type_id.disable_issue_stream_detector")
+    if group_type_id not in disabled_type_ids:
+        return True
+
+    return group_type_id == MetricIssue.type_id and features.has(
+        "organizations:workflow-engine-metric-issue-ui", event_data.event.project.organization
+    )
+
+
 def get_detectors_for_event_data(
     event_data: WorkflowEventData,
     detector: Detector | None = None,
@@ -262,7 +291,7 @@ def get_detectors_for_event_data(
     """
     Returns a list of detectors for the event to process workflows for.
 
-    We always return at least the issue stream detector, unless excluded via option.
+    We always return at least the issue stream detector, unless excluded via option or feature flag.
     If the event has an associated detector, we return it too.
 
     We expect a detector to be passed in for Activity updates.
@@ -270,9 +299,10 @@ def get_detectors_for_event_data(
     issue_stream_detector: Detector | None = None
 
     try:
-        issue_stream_detector = Detector.get_issue_stream_detector_for_project(
-            event_data.group.project_id
-        )
+        if _is_issue_stream_detector_enabled(event_data):
+            issue_stream_detector = Detector.get_issue_stream_detector_for_project(
+                event_data.group.project_id
+            )
     except Detector.DoesNotExist:
         metrics.incr("workflow_engine.detectors.error")
         logger.exception(
@@ -454,11 +484,29 @@ def associate_new_group_with_detector(group: Group, detector_id: int | None = No
     Return whether the group was associated.
     """
     if detector_id is None:
-        # For error Groups, we know there is a Detector and we can find it by project.
+        # For error Groups, we expect there to be a Detector that we can find by project.
+        # The detector may be missing due to concurrent project deletion.
         if group.type == ErrorGroupType.type_id:
             if not options.get("workflow_engine.associate_error_detectors", False):
                 return False
-            detector_id = Detector.get_error_detector_for_project(group.project.id).id
+            try:
+                detector_id = Detector.get_error_detector_for_project(group.project.id).id
+            except Detector.DoesNotExist:
+                # If the project is mid-deletion, the detector will be missing, so infrequently
+                # hitting this case is fine, but we add a metric to make sure it stays infrequent.
+                metrics.incr(
+                    "workflow_engine.associate_new_group_with_detector",
+                    tags={"group_type": group.type, "result": "error_detector_not_found"},
+                )
+                logger.info(
+                    "associate_new_group_with_detector_error_detector_not_found",
+                    extra={
+                        "group_id": group.id,
+                        "group_type": group.type,
+                        "project_id": group.project.id,
+                    },
+                )
+                return False
         else:
             metrics.incr(
                 "workflow_engine.associate_new_group_with_detector",

@@ -144,11 +144,11 @@ config:
             - name: value
               op: glob
               value:
-              - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*'
+              - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,421,422,423,425}*'
             - name: value
               op: glob
               value:
-              - '*https://react.dev/errors/{418,419,422,423,425}*'
+              - '*https://react.dev/errors/{418,419,421,422,423,425}*'
             op: or
           name: event.exception.values
           op: any

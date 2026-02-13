@@ -3,12 +3,11 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {useRole} from 'sentry/components/acl/useRole';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
 import {
@@ -124,7 +123,7 @@ function Screenshot({
       </StyledPanelBody>
       {!onlyRenderScreenshot && (
         <StyledPanelFooter>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <Button
               size="xs"
               onClick={() =>
@@ -168,7 +167,7 @@ function Screenshot({
                 },
               ]}
             />
-          </ButtonBar>
+          </Grid>
         </StyledPanelFooter>
       )}
     </StyledPanel>

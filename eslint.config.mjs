@@ -8,6 +8,22 @@
  * This is your friend:
  * `npx eslint --inspect-config`
  */
+
+/**
+ * Import Linting Strategy
+ *
+ * This configuration uses two complementary approaches for linting imports:
+ *
+ * 1. `no-restricted-imports` - Applied to 3rd party dependencies
+ *    - Controls which external packages can be imported
+ *    - Enforces consistent usage of third-party libraries across the codebase
+ *    - Examples: restricting @testing-library/react, lodash, marked, etc.
+ *
+ * 2. `plugin/boundaries` - Applied to local module scopes
+ *    - Enforces architectural boundaries between different parts of the codebase
+ *    - Controls which internal modules can import from each other
+ *    - Examples: preventing sentry from importing getsentry, core isolation, test boundaries
+ */
 import * as emotion from '@emotion/eslint-plugin';
 import eslint from '@eslint/js';
 import pluginQuery from '@tanstack/eslint-plugin-query';
@@ -148,6 +164,15 @@ const restrictedImportPaths = [
     message:
       'Only @sentry/scraps is allowed to use color package, please use the values set on the team or reach out to design-engineering for help',
   },
+  {
+    name: '@figma/code-connect',
+    message:
+      'The @figma/code-connect package should only be imported in *.figma.tsx files for Figma Code Connect integration',
+  },
+  {
+    name: '@tanstack/react-form',
+    message: 'Use @sentry/scraps/form instead',
+  },
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
@@ -230,6 +255,7 @@ export default typescript.config([
     '**/vendor/**/*',
     'build-utils/**/*',
     'config/chartcuterie/config.js',
+    'figma.config.json',
     'fixtures/artifact_bundle/**/*',
     'fixtures/artifact_bundle_debug_ids/**/*',
     'fixtures/artifact_bundle_duplicated_debug_ids/**/*',
@@ -308,14 +334,6 @@ export default typescript.config([
         {
           patterns: [
             {
-              group: ['admin/*'],
-              message: 'Do not import gsAdmin into sentry',
-            },
-            {
-              group: ['getsentry/*'],
-              message: 'Do not import gsApp into sentry',
-            },
-            {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
               message:
@@ -376,6 +394,7 @@ export default typescript.config([
       'no-self-compare': 'error',
       'no-sequences': 'error',
       'no-throw-literal': 'off', // Disabled in favor of @typescript-eslint/only-throw-error
+      'prefer-promise-reject-errors': 'off', // Disabled in favor of @typescript-eslint/prefer-promise-reject-errors
       'object-shorthand': ['error', 'properties'],
       'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
       radix: 'error',
@@ -437,7 +456,12 @@ export default typescript.config([
     name: 'plugin/@sentry/scraps',
     plugins: {'@sentry/scraps': sentryScrapsPlugin},
     rules: {
+      '@sentry/scraps/no-core-import': 'error',
       '@sentry/scraps/no-token-import': 'error',
+      '@sentry/scraps/use-semantic-token': [
+        'error',
+        {enabledCategories: ['background', 'border', 'content']},
+      ],
     },
   },
   {
@@ -524,6 +548,7 @@ export default typescript.config([
           '@typescript-eslint/no-unnecessary-type-assertion': 'error',
           '@typescript-eslint/only-throw-error': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',
+          '@typescript-eslint/prefer-promise-reject-errors': 'error',
           '@typescript-eslint/require-await': 'error',
           '@typescript-eslint/no-meaningless-void-operator': 'error',
         }
@@ -867,14 +892,6 @@ export default typescript.config([
         {
           patterns: [
             {
-              group: ['admin/*'],
-              message: 'Do not import gsAdmin into sentry',
-            },
-            {
-              group: ['getsentry/*'],
-              message: 'Do not import gsApp into sentry',
-            },
-            {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
               message:
@@ -888,6 +905,19 @@ export default typescript.config([
     },
   },
   {
+    name: 'files/figma-code-connect',
+    files: ['**/*.figma.{tsx,jsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          // Allow @figma/code-connect only in *.figma.tsx files
+          paths: restrictedImportPaths.filter(({name}) => name !== '@figma/code-connect'),
+        },
+      ],
+    },
+  },
+  {
     name: 'files/sentry-test',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     rules: {
@@ -896,14 +926,6 @@ export default typescript.config([
         'error',
         {
           patterns: [
-            {
-              group: ['admin/*'],
-              message: 'Do not import gsAdmin into sentry',
-            },
-            {
-              group: ['getsentry/*'],
-              message: 'Do not import gsApp into sentry',
-            },
             {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
@@ -956,10 +978,6 @@ export default typescript.config([
         'error',
         {
           patterns: [
-            {
-              group: ['admin/*'],
-              message: 'Do not import gsAdmin into gsApp',
-            },
             {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
@@ -1033,6 +1051,12 @@ export default typescript.config([
       'boundaries/dependency-nodes': ['import', 'dynamic-import'],
       // order matters here because of nested directories
       'boundaries/elements': [
+        // --- figma code connect ---
+        {
+          type: 'figma-code-connect',
+          pattern: '**/*.figma.{tsx,jsx}',
+          mode: 'full',
+        },
         // --- stories ---
         {
           type: 'story-files',
@@ -1075,11 +1099,7 @@ export default typescript.config([
           type: 'test',
           pattern: 'tests/js',
         },
-        // --- specifics ---
-        {
-          type: 'core-button',
-          pattern: 'static/app/components/core/button',
-        },
+        // --- scraps core components ---
         {
           type: 'core',
           pattern: 'static/app/components/core',
@@ -1152,6 +1172,11 @@ export default typescript.config([
           default: 'disallow',
           message: '${file.type} is not allowed to import ${dependency.type}',
           rules: [
+            // --- figma code connect ---
+            {
+              from: ['figma-code-connect'],
+              allow: ['core*'],
+            },
             {
               from: ['sentry*'],
               allow: ['core*', 'sentry*'],
@@ -1213,14 +1238,30 @@ export default typescript.config([
               allow: ['core*', 'sentry*', 'debug-tools'],
             },
             // --- core ---
-            {
-              from: ['core-button'],
-              allow: ['core*'],
-            },
             // todo: sentry* shouldn't be allowed
             {
               from: ['core'],
               allow: ['core*', 'sentry*'],
+            },
+          ],
+        },
+      ],
+      'boundaries/entry-point': [
+        'error',
+        {
+          default: 'disallow',
+          rules: [
+            {
+              target: ['core'],
+              allow: [
+                '*.{ts,tsx}', // core/renderToString.tsx at the core root etc.
+                '*/index.{ts,tsx}', // core/form/index.tsx, core/alert/index.tsx etc.
+                '**/*.png', // needed for story-files
+              ],
+            },
+            {
+              target: ['!core'],
+              allow: '**/*',
             },
           ],
         },

@@ -36,7 +36,6 @@ class TestNotificationActionMigrationUtils(TestCase):
     def assert_ticketing_action_data_blob(
         self, action: Action, compare_dict: dict[str, Any], exclude_keys: list[str]
     ) -> None:
-
         # Check dynamic_form_fields
         assert action.data.get(
             TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, {}
@@ -115,10 +114,14 @@ class TestNotificationActionMigrationUtils(TestCase):
                     else:
                         # For unmapped fields, check directly with empty string default
                         if action.type == Action.Type.EMAIL and field == "fallthrough_type":
-                            # for email actions, the default value for fallthrough_type should be "ActiveMembers"
-                            assert action.data.get(field) == compare_dict.get(
-                                field, "ActiveMembers"
+                            fallthrough_fields = ["fallthrough_type", "fallthroughType"]
+                            assert any(
+                                [
+                                    action.data.get(field) == compare_dict.get(f, "ActiveMembers")
+                                    for f in fallthrough_fields
+                                ]
                             )
+                            # for email actions, the default value for fallthrough_type should be "ActiveMembers"
                         else:
                             assert action.data.get(field) == compare_dict.get(field, "")
                 # Ensure no extra fields
@@ -131,7 +134,7 @@ class TestNotificationActionMigrationUtils(TestCase):
                 if key not in exclude_keys:
                     if (
                         action.type == Action.Type.EMAIL
-                        and key == "fallthrough_type"
+                        and (key == "fallthrough_type" or key == "fallthroughType")
                         and action.config.get("target_type") != ActionTarget.ISSUE_OWNERS
                     ):
                         # for email actions, fallthrough_type should only be set for when targetType is ISSUE_OWNERS
@@ -1099,11 +1102,8 @@ class TestNotificationActionMigrationUtils(TestCase):
         # Verify that action type is set correctly
         for action in actions:
             assert action.type == Action.Type.SENTRY_APP
-            assert action.config.get("target_identifier") == install.uuid
-            assert (
-                action.config.get("sentry_app_identifier")
-                == SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
-            )
+            assert action.config.get("target_identifier") == str(install.sentry_app.id)
+            assert action.config.get("sentry_app_identifier") == SentryAppIdentifier.SENTRY_APP_ID
 
     def test_dry_run_flag(self) -> None:
         """Test that the dry_run flag prevents database writes."""

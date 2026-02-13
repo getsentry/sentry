@@ -19,7 +19,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.endpoints.project_rules import find_duplicate_rule
-from sentry.api.fields.actor import ActorField
+from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleNodeField
@@ -44,6 +44,10 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_edited
 from sentry.types.actor import Actor
+from sentry.workflow_engine.utils.legacy_metric_tracking import (
+    report_used_legacy_models,
+    track_alert_endpoint_execution,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +92,7 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
         required=False,
         help_text="A list of filters that determine if a rule fires after the necessary conditions have been met. See [Create an Issue Alert Rule](/api/alerts/create-an-issue-alert-rule-for-a-project) for valid filters.",
     )
-    owner = ActorField(
+    owner = OwnerActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
 
@@ -103,7 +107,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve an Issue Alert Rule for a Project",
+        operation_id="(DEPRECATED) Retrieve an Issue Alert Rule for a Project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -117,8 +121,13 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         },
         examples=IssueAlertExamples.GET_PROJECT_RULE,
     )
+    @track_alert_endpoint_execution("GET", "sentry-api-0-project-rule-details")
     def get(self, request: Request, project, rule) -> Response:
         """
+        ## Deprecated
+        🚧 Use [Fetch an Alert](/api/monitors/fetch-an-alert) instead.
+
+
         Return details on an individual issue alert rule.
 
         An issue alert rule triggers whenever a new event is received for any issue in a project that matches the specified alert conditions. These conditions can include a resolved issue re-appearing or an issue affecting many users. Alert conditions have three parts:
@@ -149,7 +158,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         return Response(serialized_rule)
 
     @extend_schema(
-        operation_id="Update an Issue Alert Rule",
+        operation_id="(DEPRECATED) Update an Issue Alert Rule",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -164,8 +173,13 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         },
         examples=IssueAlertExamples.UPDATE_PROJECT_RULE,
     )
+    @track_alert_endpoint_execution("PUT", "sentry-api-0-project-rule-details")
     def put(self, request: Request, project, rule) -> Response:
         """
+        ## Deprecated
+        🚧 Use [Update an Alert by ID](/api/monitors/update-an-alert-by-id) instead.
+
+
         Updates an issue alert rule.
         > Warning: Calling this endpoint fully overwrites the specified issue alert.
 
@@ -177,14 +191,19 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         rule_data_before = dict(rule.data)
         if rule.environment_id:
             rule_data_before["environment_id"] = rule.environment_id
+        current_owner = None
         if rule.owner_team_id or rule.owner_user_id:
-            rule_data_before["owner"] = Actor.from_id(
-                user_id=rule.owner_user_id, team_id=rule.owner_team_id
-            )
+            current_owner = Actor.from_id(user_id=rule.owner_user_id, team_id=rule.owner_team_id)
+            rule_data_before["owner"] = current_owner
         rule_data_before["label"] = rule.label
 
         serializer = DrfRuleSerializer(
-            context={"project": project, "organization": project.organization, "request": request},
+            context={
+                "project": project,
+                "organization": project.organization,
+                "request": request,
+                "current_owner": current_owner,
+            },
             data=request.data,
             partial=True,
         )
@@ -350,7 +369,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
-        operation_id="Delete an Issue Alert Rule",
+        operation_id="(DEPRECATED) Delete an Issue Alert Rule",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -363,15 +382,21 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
+    @track_alert_endpoint_execution("DELETE", "sentry-api-0-project-rule-details")
     def delete(self, request: Request, project, rule) -> Response:
         """
-        Delete a specific issue alert rule.
+        ## Deprecated
+         🚧 Use [Delete an Alert](/api/monitors/delete-an-alert) instead.
 
-        An issue alert rule triggers whenever a new event is received for any issue in a project that matches the specified alert conditions. These conditions can include a resolved issue re-appearing or an issue affecting many users. Alert conditions have three parts:
-        - Triggers: specify what type of activity you'd like monitored or when an alert should be triggered.
-        - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
-        - Actions: specify what should happen when the trigger conditions are met and the filters match.
+
+         Delete a specific issue alert rule.
+
+         An issue alert rule triggers whenever a new event is received for any issue in a project that matches the specified alert conditions. These conditions can include a resolved issue re-appearing or an issue affecting many users. Alert conditions have three parts:
+         - Triggers: specify what type of activity you'd like monitored or when an alert should be triggered.
+         - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
+         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
+        report_used_legacy_models()
         with transaction.atomic(router.db_for_write(Rule)):
             rule.update(status=ObjectStatus.PENDING_DELETION)
             RuleActivity.objects.create(

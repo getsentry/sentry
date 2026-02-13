@@ -22,7 +22,7 @@ import {
 
 /* eslint-disable typescript-sort-keys/interface */
 interface ContainerLayoutProps {
-  background?: Responsive<SurfaceVariant>;
+  background?: Responsive<Exclude<SurfaceVariant, 'overlay'>>;
   display?: Responsive<
     | 'block'
     | 'inline'
@@ -83,6 +83,11 @@ interface ContainerLayoutProps {
   flexBasis?: Responsive<React.CSSProperties['flexBasis']>;
   alignSelf?: Responsive<React.CSSProperties['alignSelf']>;
   justifySelf?: Responsive<React.CSSProperties['justifySelf']>;
+
+  // Text Wrapping
+  whiteSpace?: Responsive<
+    'break-spaces' | 'normal' | 'nowrap' | 'pre' | 'pre-line' | 'pre-wrap'
+  >;
 
   /**
    * Prefer using Flex or Grid gap as opposed to margin.
@@ -217,6 +222,7 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'row',
   'top',
   'width',
+  'whiteSpace',
 ]);
 
 export const Container = styled(
@@ -301,6 +307,8 @@ export const Container = styled(
   ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder)};
   ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};
   ${p => rc('border-right', p.borderRight, p.theme, getBorder)};
+
+  ${p => rc('white-space', p.whiteSpace, p.theme)};
 
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.

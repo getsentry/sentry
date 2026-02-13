@@ -3,19 +3,21 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
@@ -56,7 +58,9 @@ function TeamAlertsTriggered({
     refetch: refetchAlertsTriggered,
   } = useApiQuery<AlertsTriggered>(
     [
-      `/teams/${organization.slug}/${teamSlug}/alerts-triggered/`,
+      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/alerts-triggered/`, {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
+      }),
       {
         query: {
           ...normalizeDateTimeParams(datetime),
@@ -73,7 +77,9 @@ function TeamAlertsTriggered({
     refetch: refetchAlertsTriggeredRule,
   } = useApiQuery<AlertsTriggeredRule[]>(
     [
-      `/teams/${organization.slug}/${teamSlug}/alerts-triggered-index/`,
+      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/alerts-triggered-index/`, {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
+      }),
       {
         query: {
           ...normalizeDateTimeParams(datetime),

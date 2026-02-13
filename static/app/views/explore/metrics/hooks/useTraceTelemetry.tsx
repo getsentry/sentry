@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {NewQuery} from 'sentry/types/organization';
 import {useDiscoverQuery, type TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -7,7 +8,6 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useMetricsFrozenTracePeriod} from 'sentry/views/explore/metrics/metricsFrozenContext';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 

@@ -87,9 +87,9 @@ class SmsInterfaceSerializer(AuthenticatorInterfaceSerializer):
         **kwargs: Any,
     ) -> SmsInterfaceSerializerResponse:
         data = cast(SmsInterfaceSerializerResponse, super().serialize(obj, attrs, user))
-        assert isinstance(
-            obj, SmsInterface
-        ), "Interface must be SmsInterface to serialize phone number"
+        assert isinstance(obj, SmsInterface), (
+            "Interface must be SmsInterface to serialize phone number"
+        )
         data["phone"] = obj.phone_number
         return data
 

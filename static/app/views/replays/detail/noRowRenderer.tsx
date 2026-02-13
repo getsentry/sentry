@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import EmptyState from 'sentry/views/replays/detail/emptyState';

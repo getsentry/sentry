@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
+import {parseAsBoolean, parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import type {SpanFrame} from 'sentry/utils/replays/types';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
 
 interface SortConfig {
   asc: boolean;
@@ -19,29 +19,28 @@ const SortStrategies: Record<string, (row: any) => any> = {
   startTimestamp: row => row.startTimestamp,
 };
 
-const DEFAULT_ASC = 'true';
-const DEFAULT_BY = 'startTimestamp';
-
 type Opts = {items: SpanFrame[]};
 
-function useSortNetwork({items}: Opts) {
-  const {getParamValue: getSortAsc, setParamValue: setSortAsc} = useUrlParams(
+export default function useSortNetwork({items}: Opts) {
+  const [sortAsc, setSortAsc] = useQueryState(
     's_n_asc',
-    DEFAULT_ASC
+    parseAsBoolean.withDefault(true).withOptions({history: 'push', throttleMs: 0})
   );
-  const {getParamValue: getSortBy, setParamValue: setSortBy} = useUrlParams(
+  const [sortBy, setSortBy] = useQueryState(
     's_n_by',
-    DEFAULT_BY
+    parseAsStringLiteral(Object.keys(SortStrategies))
+      .withDefault('startTimestamp')
+      .withOptions({history: 'push', throttleMs: 0})
   );
-  const {setParamValue: setDetailRow} = useUrlParams('n_detail_row', '');
-
-  const sortAsc = getSortAsc();
-  const sortBy = getSortBy();
+  const [, setDetailRow] = useQueryState(
+    'n_detail_row',
+    parseAsString.withDefault('').withOptions({history: 'push', throttleMs: 0})
+  );
 
   const sortConfig = useMemo(
     () =>
       ({
-        asc: sortAsc === 'true',
+        asc: sortAsc === true,
         by: sortBy,
         getValue: SortStrategies[sortBy],
       }) as SortConfig,
@@ -53,9 +52,9 @@ function useSortNetwork({items}: Opts) {
   const handleSort = useCallback(
     (fieldName: keyof typeof SortStrategies) => {
       if (sortConfig.by === fieldName) {
-        setSortAsc(sortConfig.asc ? 'false' : 'true');
+        setSortAsc(sortConfig.asc ? false : true);
       } else {
-        setSortAsc('true');
+        setSortAsc(true);
         setSortBy(fieldName);
       }
       setDetailRow('');
@@ -98,5 +97,3 @@ function sortNetwork(network: SpanFrame[], sortConfig: SortConfig): SpanFrame[] 
     return valueB > valueA ? 1 : -1;
   });
 }
-
-export default useSortNetwork;

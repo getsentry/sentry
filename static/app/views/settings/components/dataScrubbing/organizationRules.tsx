@@ -2,8 +2,9 @@ import {Component, createRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -87,11 +88,11 @@ export class OrganizationRules extends Component<Props, State> {
         <Header onClick={this.handleToggleCollapsed}>
           <div>{t('Organization Rules')}</div>
           <Button
-            title={
-              isCollapsed
+            tooltipProps={{
+              title: isCollapsed
                 ? t('Expand Organization Rules')
-                : t('Collapse Organization Rules')
-            }
+                : t('Collapse Organization Rules'),
+            }}
             icon={<IconChevron direction={isCollapsed ? 'down' : 'up'} />}
             size="xs"
             aria-label={t('Toggle Organization Rules')}

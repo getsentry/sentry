@@ -890,6 +890,30 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.displayType).toBe(DisplayType.TABLE);
     });
 
+    it('resets display type to first supported type when switching to dataset with limited display types', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.TABLE},
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.TABLE);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.PREPROD_APP_SIZE,
+        });
+      });
+
+      // PREPROD_APP_SIZE only supports LINE, so TABLE should be reset to LINE
+      expect(result.current.state.displayType).toBe(DisplayType.LINE);
+    });
+
     it('resets the fields, yAxis, query, and sort when the dataset is switched', () => {
       mockedUsedLocation.mockReturnValue(
         LocationFixture({
@@ -2112,6 +2136,201 @@ describe('useWidgetBuilderState', () => {
           kind: 'function',
         },
       ]);
+    });
+  });
+
+  describe('categorical bar chart actions', () => {
+    it('updates only the X-axis field with SET_CATEGORICAL_X_AXIS', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.CATEGORICAL_BAR,
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'transaction'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', '', undefined, undefined],
+              },
+            ]),
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_CATEGORICAL_X_AXIS,
+          payload: 'project',
+        });
+      });
+
+      jest.runAllTimers();
+
+      // Should preserve aggregates while updating X-axis
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'project'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', '', undefined, undefined],
+              },
+            ]),
+          }),
+        }),
+        expect.anything()
+      );
+    });
+
+    it('resets sort to first aggregate when X-axis changes and sort was on old X-axis', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.CATEGORICAL_BAR,
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'transaction'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', '', undefined, undefined],
+              },
+            ]),
+            sort: ['-transaction'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_CATEGORICAL_X_AXIS,
+          payload: 'project',
+        });
+      });
+
+      jest.runAllTimers();
+
+      // Sort should be reset to first aggregate
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ['-count()'],
+          }),
+        }),
+        expect.anything()
+      );
+    });
+
+    it('preserves sort when X-axis changes but sort was on aggregate', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.CATEGORICAL_BAR,
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'transaction'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', '', undefined, undefined],
+              },
+            ]),
+            sort: ['-count()'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_CATEGORICAL_X_AXIS,
+          payload: 'project',
+        });
+      });
+
+      jest.runAllTimers();
+
+      // Sort should NOT change since it was already on an aggregate
+      expect(mockNavigate).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: expect.anything(),
+          }),
+        }),
+        expect.anything()
+      );
+    });
+
+    it('sets default X-axis and aggregate when dataset changes with categorical bar', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.CATEGORICAL_BAR,
+            dataset: WidgetType.SPANS,
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'browser.name'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', 'span.duration', undefined, undefined],
+              },
+            ]),
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.ERRORS,
+        });
+      });
+
+      jest.runAllTimers();
+
+      // Each state setter makes a separate navigate call - check each one
+      // Should set default X-axis field and aggregate for new dataset
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            // Errors dataset defaults: title (X-axis) + count_unique(user) (aggregate)
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'title'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count_unique', 'user', undefined, undefined],
+              },
+            ]),
+          }),
+        }),
+        expect.anything()
+      );
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ['-count_unique(user)'],
+          }),
+        }),
+        expect.anything()
+      );
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            limit: 20,
+          }),
+        }),
+        expect.anything()
+      );
     });
   });
 });

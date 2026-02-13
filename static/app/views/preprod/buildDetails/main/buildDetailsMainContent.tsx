@@ -1,10 +1,11 @@
 import {useCallback} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
+import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
@@ -28,6 +29,7 @@ import {TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 import {
   BuildDetailsSizeAnalysisState,
+  isSizeInfoPending,
   isSizeInfoProcessing,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -88,6 +90,11 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     fieldName: 'search',
   });
 
+  const [highlightInsights, setHighlightInsights] = useQueryState(
+    'highlightInsights',
+    parseAsBoolean.withDefault(true)
+  );
+
   const [selectedCategoriesParam, setSelectedCategoriesParam] =
     useQueryParamState<string>({
       fieldName: 'categories',
@@ -118,6 +125,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   const isLoadingRequests = isAppSizeLoading || isBuildDetailsPending;
   const isSizeStarted = sizeInfo !== undefined && sizeInfo !== null;
   const isSizeFailed = sizeInfo?.state === BuildDetailsSizeAnalysisState.FAILED;
+  const isSizeNotRan = sizeInfo?.state === BuildDetailsSizeAnalysisState.NOT_RAN;
   const showNoSizeRequested = !isLoadingRequests && !isSizeStarted;
 
   if (isLoadingRequests) {
@@ -142,6 +150,17 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   }
 
   const isWaitingForData = !appSizeData && !isAppSizeError;
+
+  if (isSizeInfoPending(sizeInfo)) {
+    return (
+      <Flex width="100%" justify="center" align="center" minHeight="60vh">
+        <BuildProcessing
+          title={t('Queued for analysis')}
+          message={t('Your build is in the queue and will start processing soon...')}
+        />
+      </Flex>
+    );
+  }
 
   if (isSizeInfoProcessing(sizeInfo) || isWaitingForData) {
     return (
@@ -185,6 +204,19 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             {isRerunning ? t('Rerunning...') : t('Retry analysis')}
           </Button>
         </BuildError>
+      </Flex>
+    );
+  }
+
+  if (isSizeNotRan) {
+    return (
+      <Flex width="100%" justify="center" align="center" minHeight="60vh">
+        <BuildError
+          title={t('Size analysis not started')}
+          message={
+            sizeInfo.error_message || t('Size analysis was not started for this build.')
+          }
+        />
       </Flex>
     );
   }
@@ -267,6 +299,15 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     }
   };
 
+  // Determine if insights highlighting is available:
+  // 1. The treemap must have flagged_insights support (new schema)
+  // 2. There must be at least one insight in the insights object
+  const hasFlaggedInsightsSupport = 'flagged_insights' in appSizeData.treemap.root;
+  const hasAnyInsights = appSizeData.insights
+    ? Object.keys(appSizeData.insights).length > 0
+    : false;
+  const insightsAvailable = hasFlaggedInsightsSupport && hasAnyInsights;
+
   // Filter data based on search query and categories
   const filteredRoot = filterTreemapElement(
     appSizeData.treemap.root,
@@ -297,6 +338,9 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
                 : undefined
             }
             onSearchChange={value => setSearchQuery(value || undefined)}
+            highlightInsights={highlightInsights}
+            onHighlightInsightsChange={setHighlightInsights}
+            insightsAvailable={insightsAvailable}
           />
         ) : (
           <Alert variant="info">No files found matching "{searchQuery}"</Alert>
@@ -317,6 +361,9 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             : undefined
         }
         onSearchChange={value => setSearchQuery(value || undefined)}
+        highlightInsights={highlightInsights}
+        onHighlightInsightsChange={setHighlightInsights}
+        insightsAvailable={insightsAvailable}
       />
     ) : (
       <Alert variant="info">No files found matching "{searchQuery}"</Alert>
@@ -360,7 +407,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
                   <Button
                     onClick={() => setSearchQuery(undefined)}
                     aria-label="Clear search"
-                    borderless
+                    priority="transparent"
                     size="zero"
                   >
                     <IconClose size="sm" />

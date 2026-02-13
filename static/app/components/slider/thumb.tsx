@@ -70,26 +70,26 @@ const SliderThumbWrap = styled('div')<{
   width: 1rem;
   height: 1rem;
   border-radius: 50%;
-  background: ${p => p.theme.tokens.interactive.link.accent.active};
+  background: ${p => p.theme.tokens.background.accent.vibrant};
   color: ${p => p.theme.tokens.interactive.link.accent.rest};
-  border: solid 2px ${p => p.theme.tokens.background.primary};
+  border: solid 2px ${p => p.theme.tokens.border.primary};
   cursor: pointer;
   transition:
     box-shadow 0.1s,
     background 0.1s;
 
   &:hover {
-    background: ${p => p.theme.tokens.interactive.link.accent.hover};
+    background: ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
   }
 
   ${p =>
     p.error &&
     css`
-      background: ${p.theme.tokens.content.danger};
+      background: ${p.theme.tokens.background.danger.vibrant};
       color: ${p.theme.tokens.content.danger};
 
       &:hover {
-        background: ${p.theme.tokens.content.danger};
+        background: ${p.theme.tokens.background.danger.vibrant};
       }
     `}
 
@@ -104,11 +104,11 @@ const SliderThumbWrap = styled('div')<{
     p.isDisabled &&
     css`
       cursor: initial;
-      background: ${p.theme.tokens.content.disabled};
+      background: ${p.theme.tokens.background.secondary};
       color: ${p.theme.tokens.content.disabled};
 
       &:hover {
-        background: ${p.theme.tokens.content.disabled};
+        background: ${p.theme.tokens.background.secondary};
       }
     `};
 

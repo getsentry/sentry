@@ -35,7 +35,6 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import DataCondition
-from sentry.workflow_engine.models.detector import enforce_config_schema
 from sentry.workflow_engine.types import DataConditionType, DetectorPriorityLevel
 
 
@@ -46,7 +45,7 @@ class DetectorQuota:
     count: int
 
 
-class BaseDetectorTypeValidator(CamelSnakeSerializer):
+class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
     enforce_single_datasource = False
     """
     Set to True in subclasses to enforce that only a single data source can be configured.
@@ -140,7 +139,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     def get_quota(self) -> DetectorQuota:
         return DetectorQuota(has_exceeded=False, limit=-1, count=-1)
 
-    def enforce_quota(self, validated_data) -> None:
+    def enforce_quota(self, validated_data: dict[str, Any]) -> None:
         """
         Enforce quota limits for detector creation.
         Raise ValidationError if quota limits are exceeded.
@@ -150,10 +149,10 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         detector_quota = self.get_quota()
         if detector_quota.has_exceeded:
             raise serializers.ValidationError(
-                f"Used {detector_quota.count}/{detector_quota.limit} of allowed {validated_data["type"].slug} monitors."
+                f"Used {detector_quota.count}/{detector_quota.limit} of allowed {validated_data['type'].slug} monitors."
             )
 
-    def update(self, instance: Detector, validated_data: dict[str, Any]):
+    def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
         with transaction.atomic(router.db_for_write(Detector)):
             if "name" in validated_data:
                 instance.name = validated_data.get("name", instance.name)
@@ -196,7 +195,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             if "config" in validated_data:
                 instance.config = validated_data.get("config", instance.config)
                 try:
-                    enforce_config_schema(instance)
+                    instance.enforce_config_schema()
                 except JSONSchemaValidationError as error:
                     raise serializers.ValidationError({"config": [str(error)]})
 
@@ -224,7 +223,9 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         RegionScheduledDeletion.schedule(self.instance, days=0, actor=self.context["request"].user)
         self.instance.update(status=ObjectStatus.PENDING_DELETION)
 
-    def _create_data_source(self, validated_data_source, detector: Detector):
+    def _create_data_source(
+        self, validated_data_source: dict[str, Any], detector: Detector
+    ) -> None:
         data_source_creator = validated_data_source["_creator"]
         data_source = data_source_creator.create()
 
@@ -235,7 +236,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         )
         DataSourceDetector.objects.create(data_source=detector_data_source, detector=detector)
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> Detector:
         # If quotas are exceeded, we will prevent creation of new detectors.
         # Do not disable or prevent the users from updating existing detectors.
         self.enforce_quota(validated_data)
@@ -277,7 +278,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             )
 
             try:
-                enforce_config_schema(detector)
+                detector.enforce_config_schema()
             except JSONSchemaValidationError as error:
                 # Surface schema errors as a user-facing validation error
                 raise serializers.ValidationError({"config": [str(error)]})

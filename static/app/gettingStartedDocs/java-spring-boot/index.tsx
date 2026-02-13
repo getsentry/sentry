@@ -8,6 +8,7 @@ import {
 
 import {logs} from './logs';
 import {onboarding} from './onboarding';
+import {profiling} from './profiling';
 import {platformOptions, type PlatformOptions} from './utils';
 
 const docs: Docs<PlatformOptions> = {
@@ -18,6 +19,7 @@ const docs: Docs<PlatformOptions> = {
   feedbackOnboardingJsLoader,
   logsOnboarding: logs,
   metricsOnboarding: metrics,
+  profilingOnboarding: profiling,
 };
 
 export default docs;

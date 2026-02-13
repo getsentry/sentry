@@ -1,6 +1,6 @@
-import {Flex} from '@sentry/scraps/layout/flex';
-import {ExternalLink} from '@sentry/scraps/link/link';
-import {Text} from '@sentry/scraps/text/text';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
@@ -90,16 +90,16 @@ export default function BackgroundAgentPicker({
                   onSuccess: () =>
                     addSuccessMessage(
                       value
-                        ? tct('Started using [name] background agent', {
+                        ? tct('Started using [name] as coding agent', {
                             name: <strong>{integration.name}</strong>,
                           })
-                        : tct('Stopped using [name] background agent', {
+                        : tct('Stopped using [name] as coding agent', {
                             name: <strong>{integration.name}</strong>,
                           })
                     ),
                   onError: () =>
                     addErrorMessage(
-                      tct('Failed to enable [name] background agent', {
+                      tct('Failed to set [name] as coding agent', {
                         name: <strong>{integration.name}</strong>,
                       })
                     ),
@@ -156,18 +156,18 @@ export default function BackgroundAgentPicker({
             onSuccess: () =>
               addSuccessMessage(
                 integration
-                  ? tct('Started using [name] background agent', {
+                  ? tct('Started using [name] as coding agent', {
                       name: <strong>{integration.name}</strong>,
                     })
-                  : t('Stopped using background agent')
+                  : t('Removed coding agent')
               ),
             onError: () =>
               addErrorMessage(
                 integration
-                  ? tct('Failed to enable [name] background agent', {
+                  ? tct('Failed to set [name] as coding agent', {
                       name: <strong>{integration.name}</strong>,
                     })
-                  : t('Failed to disable background agent')
+                  : t('Failed to update coding agent')
               ),
           }
         );

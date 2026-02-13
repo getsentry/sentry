@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -12,6 +12,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconRefresh, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import parseApiError from 'sentry/utils/parseApiError';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -38,7 +39,10 @@ import type {
   SizeAnalysisComparisonResults,
   SizeComparisonApiResponse,
 } from 'sentry/views/preprod/types/appSizeTypes';
-import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
+import {
+  getCompareApiUrl,
+  getCompareBuildPath,
+} from 'sentry/views/preprod/utils/buildLinkUtils';
 
 function getMainComparison(
   response: SizeComparisonApiResponse | undefined
@@ -78,27 +82,39 @@ export function SizeCompareMainContent() {
     throw new Error('baseArtifactId is required');
   }
 
+  const compareUrl = getCompareApiUrl({
+    organizationSlug: organization.slug,
+    projectId,
+    headArtifactId,
+    baseArtifactId,
+  });
+
   const sizeComparisonQuery: UseApiQueryResult<SizeComparisonApiResponse, RequestError> =
-    useApiQuery<SizeComparisonApiResponse>(
-      [
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
-      ],
-      {
-        staleTime: 0,
-        enabled: !!projectId && !!headArtifactId && !!baseArtifactId,
-        refetchInterval: query => {
-          const mainComparison = getMainComparison(query.state.data?.[0]);
-          return isSizeAnalysisComparisonInProgress(mainComparison) ? 10_000 : false;
-        },
-      }
-    );
+    useApiQuery<SizeComparisonApiResponse>([compareUrl], {
+      staleTime: 0,
+      enabled: !!projectId && !!headArtifactId && !!baseArtifactId,
+      refetchInterval: query => {
+        const mainComparison = getMainComparison(query.state.data?.[0]);
+        return isSizeAnalysisComparisonInProgress(mainComparison) ? 10_000 : false;
+      },
+    });
 
   const mainArtifactComparison = getMainComparison(sizeComparisonQuery.data);
 
   // Query the comparison download endpoint to get detailed data
   const comparisonDataQuery = useApiQuery<SizeAnalysisComparisonResults>(
     [
-      `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${mainArtifactComparison?.head_size_metric_id}/${mainArtifactComparison?.base_size_metric_id}/download/`,
+      getApiUrl(
+        `/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headSizeMetricId/$baseSizeMetricId/download/`,
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectId,
+            headSizeMetricId: mainArtifactComparison?.head_size_metric_id!,
+            baseSizeMetricId: mainArtifactComparison?.base_size_metric_id!,
+          },
+        }
+      ),
     ],
     {
       staleTime: 0,
@@ -116,10 +132,7 @@ export function SizeCompareMainContent() {
     {baseArtifactId: string; headArtifactId: string}
   >({
     mutationFn: () => {
-      return fetchMutation({
-        url: `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
-        method: 'POST',
-      });
+      return fetchMutation({url: compareUrl, method: 'POST'});
     },
     onSuccess: () => {
       navigate(

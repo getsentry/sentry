@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import Panel from 'sentry/components/panels/panel';
 import {
   GridBodyCell,
@@ -42,6 +43,10 @@ interface EventListTableProps {
      */
     pageCount?: number;
     /**
+     * Which type of pagination implementation is used by the API.
+     */
+    paginatorType?: 'offset' | 'cursor';
+    /**
      * Whether the previous page link is disabled
      */
     previousDisabled?: boolean;
@@ -71,6 +76,7 @@ export function EventListTable({children, pagination, title}: EventListTableProp
     previousDisabled,
     tableUnits = 'events',
     enabled: isPaginationEnabled = true,
+    paginatorType = 'cursor',
   } = pagination ?? {};
 
   const hasHeader = title !== undefined || isPaginationEnabled;
@@ -87,13 +93,14 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                   pageCount={pageCount}
                   totalCount={totalCount}
                   tableUnits={tableUnits}
+                  paginatorType={paginatorType}
                 />
               </HeaderItem>
               <HeaderItem>
-                <ButtonBar gap="2xs">
+                <Grid flow="column" align="center" gap="2xs">
                   <PaginationButton
                     aria-label={t('Previous Page')}
-                    borderless
+                    priority="transparent"
                     size="xs"
                     icon={<IconChevron direction="left" />}
                     to={{
@@ -107,7 +114,7 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                   />
                   <PaginationButton
                     aria-label={t('Next Page')}
-                    borderless
+                    priority="transparent"
                     size="xs"
                     icon={<IconChevron direction="right" />}
                     to={{
@@ -119,7 +126,7 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                     }}
                     disabled={nextDisabled}
                   />
-                </ButtonBar>
+                </Grid>
               </HeaderItem>
             </Fragment>
           ) : null}
@@ -217,6 +224,7 @@ const StreamlineGridEditable = styled('div')`
       a {
         color: ${p => p.theme.tokens.content.primary};
         text-decoration: underline;
+        /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
         text-decoration-color: ${p => p.theme.tokens.border.primary};
       }
     }
@@ -230,31 +238,43 @@ export const PaginationButton = styled(LinkButton)`
 
 export function PaginationText({
   pageCount = 0,
+  paginatorType,
   totalCount,
   tableUnits,
 }: {
   pageCount: Required<EventListTableProps>['pagination']['pageCount'];
+  paginatorType: NonNullable<EventListTableProps['pagination']>['paginatorType'];
   tableUnits: Required<EventListTableProps>['pagination']['tableUnits'];
   totalCount: Required<EventListTableProps>['pagination']['totalCount'];
 }) {
   const location = useLocation();
   const currentCursor = parseCursor(location.query?.cursor);
-  const start = Math.max(currentCursor?.offset ?? 1, 1);
 
   if (pageCount === 0) {
     return null;
   }
 
+  const isOffsetPagination = paginatorType === 'offset';
+
+  const start =
+    isOffsetPagination && currentCursor
+      ? currentCursor.offset * currentCursor.value + 1
+      : Math.max((currentCursor?.offset ?? 0) + 1, 1);
+  const end =
+    isOffsetPagination && currentCursor
+      ? currentCursor.offset * currentCursor.value + pageCount
+      : (currentCursor?.offset ?? 0) + pageCount;
+
   return defined(totalCount)
     ? tct('Showing [start]-[end] of [count] matching [tableUnits]', {
         start: start.toLocaleString(),
-        end: ((currentCursor?.offset ?? 0) + pageCount).toLocaleString(),
+        end: end.toLocaleString(),
         count: totalCount.toLocaleString(),
         tableUnits,
       })
     : tct('Showing [start]-[end] matching [tableUnits]', {
         start: start.toLocaleString(),
-        end: ((currentCursor?.offset ?? 0) + pageCount).toLocaleString(),
+        end: end.toLocaleString(),
         tableUnits,
       });
 }

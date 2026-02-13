@@ -1,6 +1,6 @@
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {
   DashboardFilterKeys,

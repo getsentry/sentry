@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
-
-import {Text} from 'sentry/components/core/text';
+import {Text} from '@sentry/scraps/text';
 
 import type {AskSeerStep} from './types';
 
@@ -248,14 +247,14 @@ const CompletedDot = styled('div')`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: ${p => p.theme.tokens.content.success};
+  background: ${p => p.theme.tokens.background.success.vibrant};
 `;
 
 const LoadingDot = styled('div')`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: ${p => p.theme.tokens.content.promotion};
+  background: ${p => p.theme.tokens.background.promotion.vibrant};
   animation: blink 1s infinite;
 
   @keyframes blink {

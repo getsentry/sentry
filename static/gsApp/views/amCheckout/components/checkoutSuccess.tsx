@@ -8,9 +8,10 @@ import moment from 'moment-timezone';
 import Barcode from 'sentry-images/checkout/barcode.png';
 import SentryLogo from 'sentry-images/checkout/sentry-receipt-logo.png';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -521,9 +522,9 @@ function CheckoutSuccess({
   const onDemandItems = getOnDemandItems({invoiceItems});
   const fees = getFees({invoiceItems});
   const credits = getCredits({invoiceItems});
-  // TODO(isabella): PreviewData never has the 'balance_change' type
+  // XXX: PreviewData never has the 'balance_change' type
   // and instead populates creditApplied with the value of the 'credit_applied' type
-  // this is a temporary fix to ensure we only display CreditApplied if it's not already in the credits array
+  // this is a workaround to ensure we only display CreditApplied if it's not already in the credits array
   const creditApplied = getCreditApplied({
     creditApplied: data?.creditApplied ?? 0,
     invoiceItems,

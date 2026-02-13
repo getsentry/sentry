@@ -98,8 +98,7 @@ type Truncateable = {
 };
 
 export interface TooltipOption
-  extends Omit<TooltipComponentOption, 'valueFormatter'>,
-    Truncateable {
+  extends Omit<TooltipComponentOption, 'valueFormatter'>, Truncateable {
   filter?: (value: number, seriesParam: TooltipComponentOption['formatter']) => boolean;
   formatAxisLabel?: (
     value: number,
@@ -785,6 +784,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     &.arrow-top {
       bottom: 100%;
       top: auto;
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       border-bottom: 8px solid ${p.theme.tokens.background.primary};
       border-top: none;
       &:before {
@@ -801,6 +801,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     pointer-events: none;
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     border-top: 8px solid ${p.theme.tokens.background.primary};
     margin-left: -8px;
     &:before {

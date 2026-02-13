@@ -1,6 +1,7 @@
 import moment from 'moment-timezone';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import type {User} from 'sentry/types/user';
 
 import CustomerContact from 'admin/components/customerContact';

@@ -39,6 +39,20 @@ class TestIssueCategoryCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
+    def test_dual_write_exclude(self) -> None:
+        dcg = self.create_data_condition_group()
+        dc = self.translate_to_data_condition(
+            {"id": IssueCategoryFilter.id, "value": "1", "include": False}, dcg
+        )
+
+        assert dc.type == self.condition
+        assert dc.comparison == {
+            "value": 1,
+            "include": False,
+        }
+        assert dc.condition_result is True
+        assert dc.condition_group == dcg
+
     def test_json_schema(self) -> None:
         self.dc.comparison.update({"value": 2})
         self.dc.save()
@@ -103,3 +117,15 @@ class TestIssueCategoryCondition(ConditionTestCase):
 
         self.dc.update(comparison={"value": GroupCategory.DB_QUERY.value})
         self.assert_passes(self.dc, WorkflowEventData(event=perf_group_event, group=perf_group))
+
+    def test_exclude(self) -> None:
+        assert self.event.group is not None
+        group_event = self.event.for_group(self.group)
+
+        self.dc.update(comparison={"value": GroupCategory.ERROR.value, "include": False})
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=self.event, group=self.group))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event, group=self.group))
+
+        self.dc.update(comparison={"value": GroupCategory.PERFORMANCE.value, "include": False})
+        self.assert_passes(self.dc, WorkflowEventData(event=self.event, group=self.group))
+        self.assert_passes(self.dc, WorkflowEventData(event=group_event, group=self.group))

@@ -780,6 +780,74 @@ class RunSizeAnalysisComparisonTest(TestCase):
         assert "diff_items" in file_content
         assert "size_metric_diff_item" in file_content
 
+    def test_run_size_analysis_comparison_preserves_apple_insights(self):
+        """Test _run_size_analysis_comparison with Apple-only insights."""
+        head_analysis_data = {
+            "analysis_duration": 0.5,
+            "download_size": 1000,
+            "install_size": 2000,
+            "insights": {
+                "platform": "apple",
+                "image_optimization": {
+                    "total_savings": 1200,
+                    "optimizable_files": [
+                        {
+                            "file_path": "Assets/foo.png",
+                            "current_size": 2000,
+                            "minify_savings": 1200,
+                            "minified_size": 800,
+                            "conversion_savings": 0,
+                            "heic_size": None,
+                        }
+                    ],
+                },
+                "strip_binary": {
+                    "total_savings": 500,
+                    "files": [
+                        {
+                            "file_path": "HackerNews",
+                            "debug_sections_savings": 300,
+                            "symbol_table_savings": 200,
+                            "total_savings": 500,
+                        }
+                    ],
+                    "total_debug_sections_savings": 300,
+                    "total_symbol_table_savings": 200,
+                },
+            },
+        }
+        base_analysis_data = {
+            "analysis_duration": 0.4,
+            "download_size": 800,
+            "install_size": 1500,
+        }
+
+        head_size_metrics = self._create_size_metrics_with_analysis_file(head_analysis_data)
+        base_size_metrics = self._create_size_metrics_with_analysis_file(base_analysis_data)
+
+        self.create_preprod_artifact_size_comparison(
+            head_size_analysis=head_size_metrics,
+            base_size_analysis=base_size_metrics,
+            organization=self.organization,
+            state=PreprodArtifactSizeComparison.State.PENDING,
+        )
+
+        _run_size_analysis_comparison(
+            self.organization.id,
+            head_size_metrics,
+            base_size_metrics,
+        )
+
+        comparison = PreprodArtifactSizeComparison.objects.get(
+            head_size_analysis=head_size_metrics,
+            base_size_analysis=base_size_metrics,
+        )
+        comparison_file = File.objects.get(id=comparison.file_id)
+        file_content = json.loads(comparison_file.getfile().read().decode())
+        insight_types = [item["insight_type"] for item in file_content["insight_diff_items"]]
+        assert "image_optimization" in insight_types
+        assert "strip_binary" in insight_types
+
     def test_run_size_analysis_comparison_existing_comparison_processing(self):
         """Test _run_size_analysis_comparison with existing processing comparison."""
         # Create size metrics

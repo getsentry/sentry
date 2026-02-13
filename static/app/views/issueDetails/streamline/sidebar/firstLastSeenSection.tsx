@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import SeenInfo from 'sentry/components/group/seenInfo';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
@@ -8,6 +9,7 @@ import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -30,7 +32,15 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
   const {data: allEnvsGroupData} = useFetchAllEnvsGroupData(organization, group);
   const {data: groupReleaseData} = useApiQuery<GroupRelease>(
     [
-      `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/issues/$issueId/first-last-release/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            issueId: group.id,
+          },
+        }
+      ),
       {
         query: {
           ...(environments.length > 0 ? {environment: environments} : {}),

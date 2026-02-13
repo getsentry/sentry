@@ -7,11 +7,11 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {LeadWrap} from 'sentry/components/core/compactSelect/styles';
-import {InnerWrap, MenuListItem} from 'sentry/components/core/menuListItem';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {LeadWrap} from '@sentry/scraps/compactSelect';
+import {InnerWrap, MenuListItem} from '@sentry/scraps/menuListItem';
+
 import {IconCheckmark} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
 
 export interface GridListOptionProps extends AriaGridListItemOptions {
@@ -89,27 +89,25 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
         ? leadingItems({disabled: isDisabled, isFocused, isSelected})
         : leadingItems;
 
-    if (hideCheck && !leading) {
-      return null;
+    if (hideCheck) {
+      return leading;
     }
 
     return (
       <Fragment>
-        {!hideCheck && (
-          <LeadWrap role="presentation">
-            {multiple ? (
-              <Checkbox
-                {...checkboxProps}
-                size={checkboxSize}
-                checked={isSelected}
-                disabled={isDisabled}
-                readOnly
-              />
-            ) : (
-              isSelected && <IconCheckmark size={checkboxSize} {...checkboxProps} />
-            )}
-          </LeadWrap>
-        )}
+        <LeadWrap role="presentation">
+          {multiple ? (
+            <Checkbox
+              {...checkboxProps}
+              size={checkboxSize}
+              checked={isSelected}
+              disabled={isDisabled}
+              readOnly
+            />
+          ) : (
+            isSelected && <IconCheckmark size={checkboxSize} {...checkboxProps} />
+          )}
+        </LeadWrap>
         {leading ? <LeadWrap role="presentation">{leading}</LeadWrap> : null}
       </Fragment>
     );
@@ -141,6 +139,6 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
 
 const StyledMenuListItem = styled(MenuListItem)`
   > ${InnerWrap} {
-    padding-left: ${space(1)};
+    padding-left: ${p => p.theme.space.md};
   }
 `;

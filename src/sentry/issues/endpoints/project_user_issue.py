@@ -89,7 +89,7 @@ class WebVitalsUserIssueFormatter(BaseUserIssueFormatter):
         vital = self.data.get("vital", "")
         transaction = self.data.get("transaction", "")
         a_or_an = "an" if vital in ["lcp", "fcp", "inp"] else "a"
-        return f"{transaction} has {a_or_an} {vital.upper()} score of {self.data.get("score")}"
+        return f"{transaction} has {a_or_an} {vital.upper()} score of {self.data.get('score')}"
 
     def create_fingerprint(self) -> list[str]:
         vital = self.data.get("vital", "")

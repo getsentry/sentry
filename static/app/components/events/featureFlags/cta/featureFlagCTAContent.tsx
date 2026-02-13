@@ -3,11 +3,10 @@ import styled from '@emotion/styled';
 
 import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -32,11 +31,11 @@ export default function FeatureFlagCTAContent({
     <Fragment>
       <Stack justify="center" padding="xl">
         <BannerTitle>{t('Set Up Feature Flags')}</BannerTitle>
-        <BannerDescription>
+        <Container marginBottom="lg" maxWidth="340px">
           {t(
             'Want to know which feature flags were associated with this issue? Set up your feature flag integration.'
           )}
-        </BannerDescription>
+        </Container>
         <Flex gap="md">
           <Button onClick={handleSetupButtonClick} priority="primary">
             {t('Set Up Now')}
@@ -65,11 +64,6 @@ const BannerTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const BannerDescription = styled('div')`
-  margin-bottom: ${space(1.5)};
-  max-width: 340px;
 `;
 
 const BannerIllustration = styled('img')`

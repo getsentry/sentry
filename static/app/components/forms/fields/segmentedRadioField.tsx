@@ -1,16 +1,19 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Radio} from 'sentry/components/core/radio';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Radio} from '@sentry/scraps/radio';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import type {InputFieldProps, OnEvent} from 'sentry/components/forms/fields/inputField';
 import FormField from 'sentry/components/forms/formField';
 import {space} from 'sentry/styles/space';
 
-interface SegmentedRadioFieldProps<Choices extends string = string>
-  extends Omit<InputFieldProps, 'type'> {
+interface SegmentedRadioFieldProps<Choices extends string = string> extends Omit<
+  InputFieldProps,
+  'type'
+> {
   choices?: RadioGroupProps<Choices>['choices'];
 }
 
@@ -122,7 +125,7 @@ const RadioItem = styled('label', {shouldForwardProp})<{
 
   &[aria-checked='true'] {
     border-color: ${p => p.theme.tokens.border.accent.vibrant} !important;
-    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.accent.vibrant};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
     z-index: ${p => p.theme.zIndex.initial};
   }
 

@@ -1,6 +1,8 @@
 import {Component, Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import type {Client} from 'sentry/api';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -227,14 +229,14 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
               isCritical={isCritical}
               fieldHelp={null}
               triggerLabel={
-                <TriggerLabel>
+                <Flex align="center">
                   {this.getIndicator(
                     isCritical
                       ? AlertRuleTriggerType.CRITICAL
                       : AlertRuleTriggerType.WARNING
                   )}
                   {isCritical ? t('Critical') : t('Warning')}
-                </TriggerLabel>
+                </Flex>
               }
               placeholder={
                 isCritical
@@ -267,10 +269,10 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
           isCritical={false}
           fieldHelp={null}
           triggerLabel={
-            <TriggerLabel>
+            <Flex align="center">
               {this.getIndicator(AlertRuleTriggerType.RESOLVE)}
               {t('Resolved')}
-            </TriggerLabel>
+            </Flex>
           }
           placeholder={t('Automatic')}
           onChange={this.handleChangeResolveTrigger}
@@ -280,12 +282,6 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
     );
   }
 }
-
-const TriggerLabel = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-`;
 
 const StyledIconDiamond = styled(IconDiamond)`
   margin-right: ${space(0.75)};

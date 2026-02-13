@@ -29,6 +29,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.processors.workflow_fire_history import get_last_fired_dates
+from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 
 def generate_rule_label(project, rule, data):
@@ -259,6 +260,9 @@ class RuleSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs) -> RuleSerializerResponse:
+        # Mark that we're using legacy Rule models
+        report_used_legacy_models()
+
         environment = attrs["environment"]
         all_conditions = [
             dict(list(o.items()) + [("name", generate_rule_label(obj.project, obj, o))])
@@ -379,9 +383,7 @@ class WorkflowEngineRuleSerializer(Serializer):
         return dict(
             AlertRuleWorkflow.objects.filter(
                 workflow_id__in=[wf.id for wf in item_list], rule_id__isnull=False
-            ).values_list(
-                "workflow_id", "rule_id"
-            )  # type: ignore[arg-type]
+            ).values_list("workflow_id", "rule_id")  # type: ignore[arg-type]
         )
 
     def _fetch_workflow_created_by(

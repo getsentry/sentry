@@ -21,10 +21,13 @@ DEFAULT_OPTIONS = {
     "spans.buffer.max-memory-percentage": 1.0,
     "spans.buffer.flusher.backpressure-seconds": 10,
     "spans.buffer.flusher.max-unhealthy-seconds": 60,
+    "spans.buffer.flusher.use-stuck-detector": False,
     "spans.buffer.compression.level": 0,
     "spans.buffer.pipeline-batch-size": 0,
+    "spans.buffer.max-spans-per-evalsha": 0,
     "spans.buffer.evalsha-latency-threshold": 100,
     "spans.buffer.debug-traces": [],
+    "spans.buffer.evalsha-cumulative-logger-enabled": True,
 }
 
 
@@ -37,7 +40,7 @@ def shallow_permutations(spans: list[Span]) -> list[list[Span]]:
 
 
 def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentKey:
-    return f"span-buf:z:{{{project_id}:{trace_id}}}:{span_id}".encode("ascii")
+    return f"span-buf:s:{{{project_id}:{trace_id}}}:{span_id}".encode("ascii")
 
 
 def _payload(span_id: str) -> bytes:
@@ -61,10 +64,22 @@ def _normalize_output(output: dict[SegmentKey, FlushedSegment]):
         segment.spans.sort(key=lambda span: span.payload["span_id"])
 
 
-@pytest.fixture(params=["cluster", "single"])
+@pytest.fixture(
+    params=[
+        pytest.param(("cluster", 0), id="cluster-nochunk"),
+        pytest.param(("cluster", 1), id="cluster-chunk1"),
+        pytest.param(("single", 0), id="single-nochunk"),
+        pytest.param(("single", 1), id="single-chunk1"),
+    ]
+)
 def buffer(request):
-    with override_options(DEFAULT_OPTIONS):
-        if request.param == "cluster":
+    redis_type, max_spans_per_evalsha = request.param
+    test_options = {
+        **DEFAULT_OPTIONS,
+        "spans.buffer.max-spans-per-evalsha": max_spans_per_evalsha,
+    }
+    with override_options(test_options):
+        if redis_type == "cluster":
             from sentry.testutils.helpers.redis import use_redis_cluster
 
             with use_redis_cluster("default"):
@@ -683,7 +698,7 @@ def test_compression_functionality(compression_level) -> None:
         buffer.process_spans(spans, now=0)
 
         segment_key = _segment_id(1, "a" * 32, "b" * 16)
-        stored_data = buffer.client.zrange(segment_key, 0, -1, withscores=False)
+        stored_data = buffer.client.smembers(segment_key)
         assert len(stored_data) > 0
 
         segments = buffer.flush_segments(now=11)
@@ -774,9 +789,10 @@ def test_max_segment_spans_limit(mock_project_model, buffer: SpansBuffer) -> Non
     segment = rv[_segment_id(1, "a" * 32, "a" * 16)]
     retained_span_ids = {span.payload["span_id"] for span in segment.spans}
 
-    # NB: The buffer can only remove entire batches, using the minimum timestamp within the batch.
-    # The first batch with "b" and "c" should be removed.
-    assert retained_span_ids == {"a" * 16, "d" * 16, "e" * 16}
+    # Some spans should be evicted because the segment is too large.
+    all_span_ids = {"a" * 16, "b" * 16, "c" * 16, "d" * 16, "e" * 16}
+    assert len(retained_span_ids) < len(all_span_ids), "Some spans should have been evicted"
+    assert retained_span_ids.issubset(all_span_ids)
 
     # NB: We currently accept that we leak redirect keys when we limit segments.
     # buffer.done_flush_segments(rv)

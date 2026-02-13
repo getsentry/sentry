@@ -71,13 +71,19 @@ export type TimeSeriesItem = {
  */
 type IncompleteReason = 'INCOMPLETE_BUCKET';
 
-export type TimeSeriesGroupBy = {
+/**
+ * Shared base type for grouping information.
+ * The `value` can sometimes be an array, because some datasets support array values.
+ * e.g., in the error dataset, the error type could be an array that looks like `["Exception", null, "TypeError"]`
+ */
+type GroupBy = {
   key: string;
-  /**
-   * The `value` of a `groupBy` can sometimes surprisingly be an array, because some datasets support array values. e.g., in the error dataset, the error type could be an array that looks like `["Exception", null, "TypeError"]`
-   */
   value: string | null | Array<string | null> | Array<number | null>;
 };
+
+// Aliases - allows divergence later if unique cases arise
+export type TimeSeriesGroupBy = GroupBy;
+export type CategoricalGroupBy = GroupBy;
 
 /**
  * Time series data. Unlike other time series abstractions, this is tightly supported by both the backend and the frontend. The `/events-timeseries/` endpoint uses this as the respone data, and `TimeSeriesWidgetVisualization` plottable objects accept this as the backing data.
@@ -101,10 +107,11 @@ export type TabularMeta<TFields extends string = string> = {
   fields: Record<TFields, TabularValueType>;
   units: Record<TFields, TabularValueUnit>;
 };
+type TabularRowValue = number | string | string[] | boolean | null;
 
 export type TabularRow<TFields extends string = string> = Record<
   TFields,
-  number | string | string[] | boolean | null
+  TabularRowValue
 >;
 
 export type TabularData<TFields extends string = string> = {
@@ -138,3 +145,69 @@ export type Release = {
 };
 
 export type LegendSelection = Record<string, boolean>;
+
+/**
+ * The type of values in a categorical series.
+ * This is the broadest set of types supported - any value type that can come
+ * from the API. The plottable layer constrains this to plottable types.
+ */
+type CategoricalValueType = AttributeValueType;
+
+/**
+ * The type of a category in a categorical series.
+ * Matches the possible values in a TabularRow, since the source data is from
+ * the same endpoint
+ */
+export type CategoricalItemCategory = TabularRowValue;
+type CategoricalItemValue = number | null;
+
+/**
+ * A single item in a categorical bar chart series.
+ */
+export interface CategoricalItem {
+  /**
+   * The category value for this data point.
+   */
+  category: CategoricalItemCategory;
+  /**
+   * The numeric value for this category.
+   */
+  value: CategoricalItemValue;
+}
+
+/**
+ * Metadata for a categorical series.
+ */
+export interface CategoricalSeriesMeta {
+  /**
+   * The type of the values (e.g., "duration", "number")
+   */
+  valueType: CategoricalValueType;
+  /**
+   * The unit of the values, if applicable.
+   */
+  valueUnit: DataUnit | null;
+}
+
+/**
+ * A categorical data series for bar charts. Unlike time series,
+ * categorical series have discrete labels on the X axis rather than timestamps.
+ */
+export interface CategoricalSeries {
+  /**
+   * Metadata about the series.
+   */
+  meta: CategoricalSeriesMeta;
+  /**
+   * The aggregate function this series represents (e.g., "p95(span.duration)").
+   */
+  valueAxis: string;
+  /**
+   * The data points in this series.
+   */
+  values: CategoricalItem[];
+  /**
+   * Represents the grouping information for the series, if applicable.
+   */
+  groupBy?: CategoricalGroupBy[] | null;
+}

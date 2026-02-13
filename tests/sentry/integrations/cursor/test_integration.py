@@ -287,7 +287,7 @@ class CursorIntegrationTest(IntegrationTestCase):
         assert result.id == "test_session_123"
         assert result.status == CodingAgentStatus.RUNNING
         assert result.provider == CodingAgentProviderType.CURSOR_BACKGROUND_AGENT
-        assert result.name == "Test Session"
+        assert result.name == "testorg/testrepo: Test Session"
 
         mock_post.assert_called_once()
         call_args = mock_post.call_args
@@ -446,9 +446,9 @@ class CursorIntegrationTest(IntegrationTestCase):
             integration_dict_2["external_id"],
             integration_dict_3["external_id"],
         }
-        assert (
-            len(external_ids) == 3
-        ), "Each build_integration call should create a unique external_id"
+        assert len(external_ids) == 3, (
+            "Each build_integration call should create a unique external_id"
+        )
 
         for integration_dict in [integration_dict_1, integration_dict_2, integration_dict_3]:
             assert "external_id" in integration_dict

@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import CommitLink from 'sentry/components/commitLink';
 import type {CommitRowProps} from 'sentry/components/commitRow';
 import {formatCommitMessage} from 'sentry/components/commitRow';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
@@ -21,7 +21,7 @@ function QuickContextCommitRow({commit}: CommitRowProps) {
 
   return (
     <StyledPanelItem key={commit.id} data-test-id="quick-context-commit-row">
-      <UserAvatar size={24} user={commit.author} />
+      {commit.author ? <UserAvatar size={24} user={commit.author} /> : null}
       <CommitLinks>
         {hasPullRequestURL && commit.message && (
           <Tooltip containerDisplayMode="inline" showOnlyOnOverflow title={commitMessage}>

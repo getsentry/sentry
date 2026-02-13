@@ -1,6 +1,7 @@
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 type SuspectFlagScore = {
   baseline_percent: number;
@@ -46,7 +47,15 @@ export function useGroupSuspectFlagScores({
   );
 
   return useApiQuery<SuspectFlagScoresResponse>(
-    [`/organizations/${organization.slug}/issues/${groupId}/suspect/flags/`, {query}],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/suspect/flags/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          issueId: groupId,
+        },
+      }),
+      {query},
+    ],
     {
       staleTime: 30000,
       enabled,

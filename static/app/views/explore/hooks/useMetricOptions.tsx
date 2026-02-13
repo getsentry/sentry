@@ -1,12 +1,12 @@
 import {useMemo} from 'react';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   TraceMetricKnownFieldKey,
   type TraceMetricEventsResult,
@@ -15,6 +15,7 @@ import {
 interface UseMetricOptionsProps {
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
+  environments?: PageFilters['environments'];
   orgSlug?: string;
   projectIds?: PageFilters['projects'];
   search?: string;
@@ -25,6 +26,7 @@ function metricOptionsQueryKey({
   projectIds,
   datetime,
   search,
+  environments,
 }: UseMetricOptionsProps = {}): ApiQueryKey {
   const searchValue = new MutableSearch('');
   if (search) {
@@ -47,6 +49,10 @@ function metricOptionsQueryKey({
     query.project = projectIds.map(String);
   }
 
+  if (environments?.length) {
+    query.environment = environments;
+  }
+
   if (datetime) {
     Object.entries(normalizeDateTimeParams(datetime)).forEach(([key, value]) => {
       if (value !== undefined) {
@@ -66,6 +72,7 @@ export function useMetricOptions({
   search,
   projectIds,
   datetime,
+  environments,
   enabled = true,
 }: UseMetricOptionsProps = {}) {
   const organization = useOrganization();
@@ -78,6 +85,7 @@ export function useMetricOptions({
         orgSlug: organization.slug,
         projectIds: projectIds ?? selection.projects,
         datetime: datetime ?? selection.datetime,
+        environments: environments ?? selection.environments,
       }),
     [
       organization.slug,
@@ -86,6 +94,8 @@ export function useMetricOptions({
       selection.projects,
       selection.datetime,
       datetime,
+      environments,
+      selection.environments,
     ]
   );
 

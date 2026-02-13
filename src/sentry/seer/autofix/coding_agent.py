@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import secrets
 import string
+from typing import Any
 
 import orjson
 from django.conf import settings
@@ -239,14 +240,15 @@ def _launch_agents_for_repos(
 
     # Repos that were in the repos but not in the autofix state
     repos_not_found = repos - autofix_state_repos
-    logger.warning(
-        "coding_agent.post.repos_not_found",
-        extra={
-            "organization_id": organization.id,
-            "run_id": run_id,
-            "repos_not_found": repos_not_found,
-        },
-    )
+    if repos_not_found:
+        logger.warning(
+            "coding_agent.post.repos_not_found",
+            extra={
+                "organization_id": organization.id,
+                "run_id": run_id,
+                "repos_not_found": repos_not_found,
+            },
+        )
 
     validated_repos = repos - repos_not_found
 
@@ -258,7 +260,7 @@ def _launch_agents_for_repos(
         )
 
     short_id = None
-    if autofix_state and auto_create_pr:
+    if autofix_state:
         short_id = autofix_state.request.issue.get("short_id")
 
     prompt = get_coding_agent_prompt(run_id, trigger_source, instruction, short_id)
@@ -465,15 +467,17 @@ def launch_coding_agents_for_run(
 
 
 def poll_github_copilot_agents(
-    autofix_state: AutofixState,
-    user_id: int,
+    autofix_state: AutofixState | None = None,
+    user_id: int = 0,
+    coding_agents: dict[str, Any] | None = None,
 ) -> None:
-    if not autofix_state.coding_agents:
+    agents = coding_agents or (autofix_state.coding_agents if autofix_state else None)
+    if not agents:
         return
 
     user_access_token: str | None = None
 
-    for agent_id, agent_state in autofix_state.coding_agents.items():
+    for agent_id, agent_state in agents.items():
         if agent_state.provider != CodingAgentProviderType.GITHUB_COPILOT_AGENT:
             continue
 
@@ -505,12 +509,14 @@ def poll_github_copilot_agents(
             client = GithubCopilotAgentClient(user_access_token)
             task_status = client.get_task_status(owner, repo, task_id)
 
+            # Find PR in artifacts - look for artifact with data.type == 'pull'
             pr_artifact = next(
-                (a for a in (task_status.artifacts or []) if a.data.type == "pull"),
+                (a for a in (task_status.artifacts or []) if a.data and a.data.type == "pull"),
                 None,
             )
 
-            if pr_artifact:
+            if pr_artifact and pr_artifact.data and pr_artifact.data.global_id:
+                # Get PR info from GraphQL using the global_id
                 pr_info = client.get_pr_from_graphql(pr_artifact.data.global_id)
                 if pr_info:
                     pr_url = pr_info.url
@@ -523,7 +529,8 @@ def poll_github_copilot_agents(
                         pr_url=pr_url,
                     )
 
-                    is_task_done = task_status.status in ("completed", "succeeded")
+                    # Status: queued, in_progress, completed, failed, timed_out
+                    is_task_done = task_status.status == "completed"
                     new_status = (
                         CodingAgentStatus.COMPLETED if is_task_done else CodingAgentStatus.RUNNING
                     )
@@ -544,7 +551,7 @@ def poll_github_copilot_agents(
                         },
                     )
 
-            elif task_status.status in ("failed", "error"):
+            elif task_status.status in ("failed", "timed_out"):
                 update_coding_agent_state(
                     agent_id=agent_id,
                     status=CodingAgentStatus.FAILED,

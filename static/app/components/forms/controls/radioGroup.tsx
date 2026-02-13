@@ -3,8 +3,9 @@ import type {PopperProps} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {Radio} from 'sentry/components/core/radio';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Radio} from '@sentry/scraps/radio';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {space} from 'sentry/styles/space';
 
 interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -45,8 +46,7 @@ export type RadioOption<C extends string = string> = [
 ];
 
 export interface RadioGroupProps<C extends string = string>
-  extends BaseRadioGroupProps<C>,
-    Omit<ContainerProps, 'onChange'> {
+  extends BaseRadioGroupProps<C>, Omit<ContainerProps, 'onChange'> {
   name?: string;
 }
 

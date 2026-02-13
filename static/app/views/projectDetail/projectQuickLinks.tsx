@@ -1,10 +1,11 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
