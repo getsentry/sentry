@@ -120,7 +120,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 SectionBlock(text=data.error_title),
                 SectionBlock(text=MarkdownTextObject(text=f">{data.error_message}")),
             ],
-            text=f"Seer encountered an error: {data.error_title}",
+            text=f"Seer stumbled: {data.error_title}",
         )
 
     @classmethod
@@ -175,7 +175,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         if action_elements:
             blocks.append(ActionsBlock(elements=action_elements))
 
-        return SlackRenderable(blocks=blocks, text="Seer has an update on fixing the issue")
+        return SlackRenderable(blocks=blocks, text="Seer has emerged with news from its voyage")
 
     @classmethod
     def _render_link_button(
