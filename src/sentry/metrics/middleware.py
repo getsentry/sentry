@@ -21,11 +21,6 @@ _METRICS_THAT_CAN_HAVE_BAD_TAGS = frozenset(
         "batching_consumer.batch.size",
         "batching_consumer.batch.flush",
         "batching_consumer.batch.flush.normalized",
-        # TODO(telkins): Remove once we figure out interaction_type org breakdown
-        "integrations.slo.started",
-        "integrations.slo.success",
-        "integrations.slo.halted",
-        "integrations.slo.failure",
     ]
 )
 

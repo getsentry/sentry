@@ -25,10 +25,6 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
-from sentry.integrations.source_code_management.metrics import (
-    SCMIntegrationInteractionEvent,
-    SCMIntegrationInteractionType,
-)
 from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.source_code_management.status_check import StatusCheckClient
@@ -414,12 +410,7 @@ class GitHubBaseClient(
         """This gives information of the current rate limit"""
         # There's more but this is good enough
         assert specific_resource in ("core", "search", "graphql")
-        with SCMIntegrationInteractionEvent(
-            interaction_type=SCMIntegrationInteractionType.GET_RATE_LIMIT,
-            provider_key=self.integration_name,
-            integration_id=self.integration.id,
-        ).capture():
-            return GithubRateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
+        return GithubRateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
 
     # This method is used by RepoTreesIntegration
     def get_remaining_api_requests(self) -> int:
