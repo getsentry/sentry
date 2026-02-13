@@ -1,4 +1,5 @@
 import logging
+import time
 import uuid
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, cast
@@ -786,6 +787,8 @@ def _get_recommended_event(
     organization: Organization,
     start: datetime | None = None,
     end: datetime | None = None,
+    max_date_range: timedelta = timedelta(days=14),
+    timeout: int = 55,  # Sentry API timeout is 60s
 ) -> GroupEvent | None:
     """
     Our own implementation of Group.get_recommended_event. Requires the return event to fall in the time range and have a non-empty trace.
@@ -793,51 +796,85 @@ def _get_recommended_event(
     If multiple events are valid, return the one with highest RECOMMENDED ordering.
     If no events are valid, return the highest recommended event.
     """
+    start_time = time.time()
     start, end = get_group_date_range(group, organization, start, end)
+    # Clamp date range as these queries can be very expensive.
+    start = max(start, end - max_date_range)
     retention_boundary = get_retention_boundary(organization, bool(start.tzinfo))
+
+    # Config
+    event_query_limit = 50  # Events/trace IDs to query in each window.
+    w_size = timedelta(days=3)
+    w_start = max(end - w_size, start)
+    w_end = end
+    # First event we find (most recommended in most recent window).
+    fallback_event: GroupEvent | None = None
 
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
     else:
         dataset = Dataset.IssuePlatform
 
-    w_size = timedelta(days=3)
-    w_start = max(end - w_size, start)
-    w_end = end
-    event_query_limit = 100
-    fallback_event: GroupEvent | None = None  # Highest recommended in most recent window
-
     logger.info(
-        "get_issue_and_event_details_v2: Querying for recommended event with sliding window",
+        "_get_recommended_event: starting query loop",
         extra={
             "organization_id": organization.id,
+            "project_id": group.project.id,
             "issue_id": group.id,
             "timedelta": end - start,
             "start": start,
             "end": end,
-            "window_size": w_size,
+            "dataset": dataset.value,
         },
     )
 
     while w_start >= start:
+        if time.time() - start_time > timeout:
+            logger.warning(
+                "_get_recommended_event: timeout reached",
+                extra={
+                    "organization_id": organization.id,
+                    "project_id": group.project.id,
+                    "issue_id": group.id,
+                    "timedelta": end - start,
+                    "start": start,
+                    "end": end,
+                    "dataset": dataset.value,
+                    "timeout": timeout,
+                },
+            )
+            return fallback_event
+
         # Get candidate events with the standard recommended ordering.
         # This is an expensive orderby, hence the inner limit and sliding window.
-        events: list[Event] = eventstore.backend.get_events_snql(
-            organization_id=organization.id,
-            group_id=group.id,
-            start=w_start,
-            end=w_end,
-            conditions=[
-                Condition(Column("project_id"), Op.IN, [group.project.id]),
-                Condition(Column("group_id"), Op.IN, [group.id]),
-            ],
-            limit=event_query_limit,
-            orderby=EventOrdering.RECOMMENDED.value,
-            referrer=Referrer.SEER_EXPLORER_TOOLS,
-            dataset=dataset,
-            tenant_ids={"organization_id": group.project.organization_id},
-            inner_limit=1000,
-        )
+        try:
+            events: list[Event] = eventstore.backend.get_events_snql(
+                organization_id=organization.id,
+                group_id=group.id,
+                start=w_start,
+                end=w_end,
+                conditions=[
+                    Condition(Column("project_id"), Op.IN, [group.project.id]),
+                    Condition(Column("group_id"), Op.IN, [group.id]),
+                ],
+                limit=event_query_limit,
+                orderby=EventOrdering.RECOMMENDED.value,
+                referrer=Referrer.SEER_EXPLORER_TOOLS,
+                dataset=dataset,
+                tenant_ids={"organization_id": group.project.organization_id},
+                inner_limit=1000,
+            )
+        except Exception:
+            logger.exception(
+                "_get_recommended_event: eventstore query failed",
+                extra={
+                    "organization_id": organization.id,
+                    "project_id": group.project.id,
+                    "issue_id": group.id,
+                    "dataset": dataset.value,
+                },
+            )
+            return fallback_event
 
         if events and not fallback_event:
             fallback_event = events[0].for_group(group)
@@ -850,17 +887,29 @@ def _get_recommended_event(
             # Clamp spans_start to retention boundary to avoid QueryOutsideRetentionError.
             spans_start = max(w_start - timedelta(days=1), retention_boundary)
             spans_end = w_end + timedelta(days=1)
-
             count_field = "count(span.duration)"
-            result = execute_table_query(
-                org_id=organization.id,
-                dataset="spans",
-                per_page=len(trace_ids),
-                fields=["trace", count_field],
-                query=f"trace:[{','.join(trace_ids)}]",
-                start=spans_start.isoformat(),
-                end=spans_end.isoformat(),
-            )
+
+            try:
+                result = execute_table_query(
+                    org_id=organization.id,
+                    dataset="spans",
+                    per_page=len(trace_ids),
+                    fields=["trace", count_field],
+                    query=f"trace:[{','.join(trace_ids)}]",
+                    start=spans_start.isoformat(),
+                    end=spans_end.isoformat(),
+                )
+            except Exception:
+                logger.exception(
+                    "_get_recommended_event: spans query failed",
+                    extra={
+                        "organization_id": organization.id,
+                        "project_id": group.project.id,
+                        "issue_id": group.id,
+                        "num_trace_ids": len(trace_ids),
+                    },
+                )
+                return fallback_event
 
             if result and result.get("data"):
                 # Return the first event with a span count greater than 0.
@@ -881,12 +930,16 @@ def _get_recommended_event(
         w_start = max(w_start - w_size, start)
 
     logger.warning(
-        "_get_recommended_event: No event with a span found",
+        "_get_recommended_event: no event with a span found",
         extra={
-            "group_id": group.id,
+            "issue_id": group.id,
             "organization_id": organization.id,
+            "project_id": group.project.id,
             "start": start,
             "end": end,
+            "timedelta": end - start,
+            "dataset": dataset.value,
+            "has_fallback_event": bool(fallback_event),
         },
     )
     return fallback_event
