@@ -24,7 +24,7 @@ from sentry.seer.entrypoints.metrics import (
     SlackEntrypointEventLifecycleMetric,
     SlackEntrypointInteractionType,
 )
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
@@ -79,9 +79,8 @@ def send_thread_update(
                     thread_ts=thread["thread_ts"],
                     renderable=renderable,
                 )
-        except ValueError as e:
-            lifecycle.record_failure(failure_reason="invalid_integration", extra={"error": str(e)})
-            return
+        except (IntegrationError, IntegrationConfigurationError) as e:
+            lifecycle.record_halt(halt_reason=e)
 
 
 @instrumented_task(
@@ -114,7 +113,7 @@ def process_thread_update(
         try:
             data_dto = NotificationDataDto.from_dict(serialized_data)
         except (NotificationServiceError, NoRegistrationExistsError) as e:
-            lifecycle.record_failure(failure_reason="deserialize_error", extra={"error": str(e)})
+            lifecycle.record_failure(failure_reason=e)
             return
 
         integration = integration_service.get_integration(
@@ -230,7 +229,7 @@ def update_existing_message(
             original_blocks = message_data["blocks"]
             original_text = message_data["text"]
         except (KeyError, TypeError) as e:
-            lifecycle.record_failure(failure_reason="invalid_payload", extra={"error": str(e)})
+            lifecycle.record_failure(failure_reason=e)
             return
 
         blocks = _transform_block_actions(original_blocks, transformer)
@@ -256,5 +255,5 @@ def update_existing_message(
             install.update_message(
                 channel_id=channel_id, message_ts=message_ts, renderable=renderable
             )
-        except IntegrationError as e:
-            lifecycle.record_failure(failure_reason="integration_error", extra={"error": str(e)})
+        except (IntegrationError, IntegrationConfigurationError) as e:
+            lifecycle.record_halt(halt_reason=e)

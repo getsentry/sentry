@@ -279,6 +279,4 @@ def process_autofix_updates(
                         cache_payload=cache_result["payload"],
                     )
                 except Exception as e:
-                    ept_lifecycle.record_failure(
-                        failure_reason="failed_to_on_autofix_update", extra={"error": str(e)}
-                    )
+                    ept_lifecycle.record_failure(failure_reason=e)
