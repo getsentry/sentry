@@ -20,8 +20,9 @@ FULL_SUITE_TRIGGERS: list[str | re.Pattern[str]] = [
     re.compile(r"/migrations/\d{4}_[^/]+\.py$"),
 ]
 
-ALWAYS_EXCLUDED_TESTS: set[str] = {
-    # this test file is selected very frequently since it covers the majority of
+# These test files are excluded if they aren't explicitly modified.
+EXCLUDED_TEST_FILES: set[str] = {
+    # this is selected very frequently since it covers the majority of
     # app warmup, and is almost never actually relevant to changed files
     "tests/sentry/test_wsgi.py",
 }
@@ -134,13 +135,13 @@ def main() -> int:
             print(f"Error querying coverage database: {e}", file=sys.stderr)
             return 1
 
+        affected_test_files -= EXCLUDED_TEST_FILES
+
         # Also include any test files that were directly changed/added in the PR
         changed_test_files = get_changed_test_files(changed_files)
         if changed_test_files:
             print(f"Including {len(changed_test_files)} directly changed test files")
             affected_test_files.update(changed_test_files)
-
-    affected_test_files -= ALWAYS_EXCLUDED_TESTS
 
     print(f"Found {len(affected_test_files)} affected test files")
 
