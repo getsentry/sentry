@@ -61,9 +61,13 @@ HEAVY_SERVICES: set[str] = {"symbolicator", "objectstore", "bigtable"}
 # and some need symbolicator. Consolidating them in the heavy shard removes slow
 # outliers from the light tier2 pool, reducing shard variance.
 # symbolicator/ tests always need the symbolicator container.
+# backup/ tests are individually slow (~15-17s each) and benefit from isolation.
+# mockdata/ has a single 30s test.
 FORCE_TIER2_HEAVY_PATHS: tuple[str, ...] = (
     "tests/relay_integration/",
     "tests/symbolicator/",
+    "tests/sentry/backup/",
+    "tests/sentry/utils/mockdata/",
 )
 
 
