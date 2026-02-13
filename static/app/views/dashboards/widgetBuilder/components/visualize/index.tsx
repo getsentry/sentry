@@ -1016,6 +1016,11 @@ function Visualize({error, setError}: VisualizeProps) {
                                     fields?.filter((_field, i) => i !== index) ?? [],
                                 });
 
+                                // Adjust selectedAggregate index when an aggregate is deleted.
+                                // Three cases:
+                                //   index < selected  → decrement (selected shifted left)
+                                //   index === selected → unset (let state default to last)
+                                //   index > selected  → no-op (selected is unaffected)
                                 if (
                                   (state.displayType === DisplayType.BIG_NUMBER ||
                                     isCategoricalBarWidget) &&

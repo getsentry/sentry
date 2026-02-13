@@ -409,7 +409,14 @@ function useWidgetBuilderState(): {
             setFields(categoricalBarFields, options);
 
             // Set default sort to descending on the last aggregate (like Big Number).
-            // For equations, use the alias format (equation[N]) that getTableSortOptions produces
+            // For equations, use the alias format (equation[N]) that getTableSortOptions produces.
+            //
+            // Equation alias index: equations are numbered independently (equation[0],
+            // equation[1], ...) regardless of their position among regular aggregates.
+            // To find the alias index for an equation at position N, count how many
+            // equations appear at or before position N. This pattern recurs in
+            // SET_CATEGORICAL_X_AXIS, SET_CATEGORICAL_AGGREGATE, chart.tsx, and
+            // convertBuilderStateToWidget.ts.
             const selectedAggregateField = nextAggregates[nextAggregates.length - 1];
             if (selectedAggregateField) {
               const equationIndex =
@@ -890,8 +897,10 @@ function useWidgetBuilderState(): {
             setFields(newCategoricalFields, options);
 
             // Reset sort if it references a field no longer in the widget.
-            // Equation sorts use the alias format (equation[0]) which won't match
-            // generateFieldAsString output, so check for that separately.
+            // Equation sorts use the alias format (equation[0], equation[1], ...)
+            // which won't match generateFieldAsString output, so check separately.
+            // We validate the specific index (not just "any equation exists") because
+            // deleting an equation can leave a stale equation[N] where N >= equationCount.
             const currentSortField = sort?.[0]?.field;
             const newFieldStrings = new Set(
               newCategoricalFields.map(generateFieldAsString)
@@ -934,8 +943,11 @@ function useWidgetBuilderState(): {
             setFields([...existingXAxisFields, ...action.payload], options);
 
             // Only recompute sort when the current sort field is no longer valid
-            // in the new aggregates. This avoids using stale `selectedAggregate`
-            // from the closure (which can be out of bounds during deletions).
+            // in the new aggregates. When deleting an aggregate, two dispatches happen
+            // in the same click handler: SET_CATEGORICAL_AGGREGATE (new field list) and
+            // SET_SELECTED_AGGREGATE (adjusted index). Each reducer call sees state as
+            // of the previous dispatch, so `selectedAggregate` from the closure is stale
+            // during this action. By checking sort validity instead, we avoid the issue.
             if (action.payload.length > 0) {
               const currentSortField = sort?.[0]?.field;
               if (currentSortField) {
