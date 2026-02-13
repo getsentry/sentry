@@ -143,6 +143,33 @@ const AVG_TTFD_BIG_NUMBER_WIDGET: Widget = {
   },
 };
 
+const CRASH_FREE_SESSION_RATE_BIG_NUMBER_WIDGET: Widget = {
+  id: 'crash-free-session-rate-big-number',
+  title: t('Crash Free Session Rate'),
+  description: 'Percentage of sessions that did not crash',
+  displayType: DisplayType.BIG_NUMBER,
+  widgetType: WidgetType.RELEASE,
+  interval: '1h',
+  thresholds: null,
+  queries: [
+    {
+      name: '',
+      fields: ['crash_free_rate(session)'],
+      aggregates: ['crash_free_rate(session)'],
+      columns: [],
+      conditions: '',
+      orderby: '',
+    },
+  ],
+  layout: {
+    h: 1,
+    x: 4,
+    y: 1,
+    w: 1,
+    minH: 1,
+  },
+};
+
 const SLOW_FRAME_RATE_WIDGET: Widget = {
   id: 'slow-frame-rate-big-number',
   title: t('Slow Frame Rate'),
@@ -401,6 +428,7 @@ const FIRST_ROW_WIDGETS: Widget[] = [
   WARM_START_BIG_NUMBER_WIDGET,
   AVG_TTID_BIG_NUMBER_WIDGET,
   AVG_TTFD_BIG_NUMBER_WIDGET,
+  CRASH_FREE_SESSION_RATE_BIG_NUMBER_WIDGET,
 ];
 
 const SECOND_ROW_WIDGETS: Widget[] = [
