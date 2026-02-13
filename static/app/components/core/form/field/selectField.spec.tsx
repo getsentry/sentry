@@ -309,6 +309,14 @@ describe('SelectField placeholder', () => {
 });
 
 describe('SelectField a11y', () => {
+  it('focuses the select input when clicking on the label', async () => {
+    render(<TestForm label="Favorite Fruit" />);
+
+    await userEvent.click(screen.getByText('Favorite Fruit'));
+
+    expect(screen.getByRole('textbox')).toHaveFocus();
+  });
+
   it('includes required text for screen readers when required is true', () => {
     render(<TestForm label="Favorite Fruit" required />);
 
