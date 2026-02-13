@@ -93,7 +93,7 @@ class LLMIssueDetectionTest(TestCase):
             subcategory="Connection Pool Exhaustion",
             category="Database",
             verification_reason="Problem is correctly identified",
-            group_for_fingerprint=None,
+            group_for_fingerprint="",
         )
 
         create_issue_occurrence_from_detection(
@@ -114,11 +114,10 @@ class LLMIssueDetectionTest(TestCase):
         assert occurrence.culprit == "test_transaction"
         assert occurrence.level == "warning"
 
-        assert len(occurrence.fingerprint) == 1
-        assert (
-            occurrence.fingerprint[0]
-            == "llm-detected-database-connection-pool-exhaustion-test_transaction"
-        )
+        assert occurrence.fingerprint == [
+            "llm-detected",
+            "database-connection-pool-exhaustion",
+        ]
 
         assert occurrence.evidence_data["trace_id"] == "abc123xyz"
         assert occurrence.evidence_data["transaction"] == "test_transaction"
@@ -171,7 +170,7 @@ class LLMIssueDetectionTest(TestCase):
             project=self.project,
         )
         occurrence = mock_produce_occurrence.call_args.kwargs["occurrence"]
-        assert occurrence.fingerprint == ["llm-detected-seer-group-key-123-get-/api"]
+        assert occurrence.fingerprint == ["llm-detected", "seer-group-key-123"]
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.mark_traces_as_processed")
