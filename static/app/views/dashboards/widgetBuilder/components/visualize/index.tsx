@@ -738,6 +738,32 @@ function Visualize({error, setError}: VisualizeProps) {
                                     type: BuilderStateAction.SET_SELECTED_AGGREGATE,
                                     payload: index,
                                   });
+                                  // For categorical bar, sync sort to the selected
+                                  // aggregate so bars are ordered by the displayed
+                                  // metric. This is done here (not in the reducer)
+                                  // to avoid stale closure issues when delete handlers
+                                  // also dispatch SET_SELECTED_AGGREGATE.
+                                  if (isCategoricalBarWidget && fields?.[index]) {
+                                    const targetField = fields[index];
+                                    const equationIndex =
+                                      fields
+                                        .slice(0, index + 1)
+                                        .filter(f => f.kind === FieldValueKind.EQUATION)
+                                        .length - 1;
+                                    const sortField =
+                                      targetField.kind === FieldValueKind.EQUATION
+                                        ? `equation[${Math.max(0, equationIndex)}]`
+                                        : generateFieldAsString(targetField);
+                                    dispatch({
+                                      type: BuilderStateAction.SET_SORT,
+                                      payload: [
+                                        {
+                                          kind: state.sort?.[0]?.kind ?? 'desc',
+                                          field: sortField,
+                                        },
+                                      ],
+                                    });
+                                  }
                                 }}
                                 onClick={() => {
                                   setSelectedAggregateSet(true);

@@ -776,30 +776,6 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_SELECTED_AGGREGATE:
           setSelectedAggregate(action.payload, options);
-          // For categorical bar, keep the sort in sync with the selected aggregate
-          // so the chart orders bars by the metric being displayed.
-          if (
-            displayType === DisplayType.CATEGORICAL_BAR &&
-            action.payload !== undefined &&
-            fields
-          ) {
-            const aggregates = fields.filter(
-              f =>
-                f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
-            );
-            const targetAggregate = aggregates[action.payload];
-            if (targetAggregate) {
-              const equationIndex =
-                aggregates
-                  .slice(0, action.payload + 1)
-                  .filter(f => f.kind === FieldValueKind.EQUATION).length - 1;
-              const sortField =
-                targetAggregate.kind === FieldValueKind.EQUATION
-                  ? `equation[${Math.max(0, equationIndex)}]`
-                  : generateFieldAsString(targetAggregate);
-              setSort([{kind: sort?.[0]?.kind ?? 'desc', field: sortField}], options);
-            }
-          }
           break;
         case BuilderStateAction.SET_STATE:
           setDataset(action.payload.dataset, options);
