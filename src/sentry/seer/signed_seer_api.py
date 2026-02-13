@@ -8,24 +8,9 @@ import sentry_sdk
 from django.conf import settings
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
-from sentry.net.http import connection_from_url
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
-
-# Default connection pools for different Seer services
-# These can be reused across multiple requests to the same service
-seer_autofix_default_connection_pool = connection_from_url(
-    settings.SEER_AUTOFIX_URL,
-)
-
-seer_summarization_default_connection_pool = connection_from_url(
-    settings.SEER_SUMMARIZATION_URL,
-)
-
-seer_anomaly_detection_default_connection_pool = connection_from_url(
-    settings.SEER_ANOMALY_DETECTION_URL,
-)
 
 
 @sentry_sdk.tracing.trace
@@ -79,6 +64,6 @@ def sign_with_seer_secret(body: bytes) -> dict[str, str]:
     else:
         # TODO(jstanley): remove this once the shared secret is confirmed to always be set
         logger.warning(
-            "Seer.api.use-shared-secret is set but secret is not set. Unable to add auth headers for call to Seer."
+            "settings.SEER_API_SHARED_SECRET is not set. Unable to add auth headers for call to Seer."
         )
     return auth_headers
