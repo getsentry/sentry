@@ -13,6 +13,9 @@ class Lock {
     if (this.acquiredBy.size === 0) {
       this.initialOverflow = this.container.style.overflow;
       this.container.style.overflow = 'hidden';
+      if (this.container === document.body) {
+        document.documentElement.style.scrollbarGutter = 'stable';
+      }
     }
     this.acquiredBy.add(id);
   }
@@ -22,6 +25,9 @@ class Lock {
 
     if (this.acquiredBy.size === 0 && this.initialOverflow !== null) {
       this.container.style.overflow = this.initialOverflow;
+      if (this.container === document.body) {
+        document.documentElement.style.scrollbarGutter = '';
+      }
       this.initialOverflow = null;
     }
   }
