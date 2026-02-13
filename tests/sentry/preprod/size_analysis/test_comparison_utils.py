@@ -30,6 +30,48 @@ class CanCompareSizeMetricsTest(TestCase):
         assert result.error_message is None
         assert result.error_type is None
 
+    def test_cannot_compare_empty_lists(self):
+        result = can_compare_size_metrics([], [])
+
+        assert result.can_compare is False
+        assert result.error_type == ComparisonValidationResult.ErrorType.DIFFERENT_LENGTH
+        assert result.error_message is not None
+        assert "no completed size metrics" in result.error_message
+
+    def test_cannot_compare_empty_head(self):
+        base_metrics = [
+            PreprodArtifactSizeMetrics(
+                preprod_artifact_id=2,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                identifier="com.example.app",
+                max_install_size=900,
+                max_download_size=450,
+            )
+        ]
+
+        result = can_compare_size_metrics([], base_metrics)
+
+        assert result.can_compare is False
+        assert result.error_type == ComparisonValidationResult.ErrorType.DIFFERENT_LENGTH
+        assert result.error_message is not None
+
+    def test_cannot_compare_empty_base(self):
+        head_metrics = [
+            PreprodArtifactSizeMetrics(
+                preprod_artifact_id=1,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                identifier="com.example.app",
+                max_install_size=1000,
+                max_download_size=500,
+            )
+        ]
+
+        result = can_compare_size_metrics(head_metrics, [])
+
+        assert result.can_compare is False
+        assert result.error_type == ComparisonValidationResult.ErrorType.DIFFERENT_LENGTH
+        assert result.error_message is not None
+
     def test_different_length_error_type(self):
         head_metrics = [
             PreprodArtifactSizeMetrics(

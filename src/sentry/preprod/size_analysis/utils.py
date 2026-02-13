@@ -36,6 +36,13 @@ def build_size_metrics_map(
 def can_compare_size_metrics(
     head_metrics: list[PreprodArtifactSizeMetrics], base_metric: list[PreprodArtifactSizeMetrics]
 ) -> ComparisonValidationResult:
+    if not head_metrics or not base_metric:
+        return ComparisonValidationResult(
+            can_compare=False,
+            error_message="Head or base has no completed size metrics to compare.",
+            error_type=ComparisonValidationResult.ErrorType.DIFFERENT_LENGTH,
+        )
+
     # Check that both lists have the same length
     if len(head_metrics) != len(base_metric):
         # TODO: Add ability to compare size metrics with different lengths
