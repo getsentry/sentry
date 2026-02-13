@@ -32,24 +32,23 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-export interface ProjectPageFilterProps
-  extends Partial<
-    Omit<
-      HybridFilterProps<number>,
-      | 'searchable'
-      | 'multiple'
-      | 'options'
-      | 'value'
-      | 'defaultValue'
-      | 'onReplace'
-      | 'onToggle'
-      | 'menuBody'
-      | 'menuFooter'
-      | 'menuFooterMessage'
-      | 'shouldCloseOnInteractOutside'
-      | 'sizeLimitMessage'
-    >
-  > {
+export interface ProjectPageFilterProps extends Partial<
+  Omit<
+    HybridFilterProps<number>,
+    | 'searchable'
+    | 'multiple'
+    | 'options'
+    | 'value'
+    | 'defaultValue'
+    | 'onReplace'
+    | 'onToggle'
+    | 'menuBody'
+    | 'menuFooter'
+    | 'menuFooterMessage'
+    | 'shouldCloseOnInteractOutside'
+    | 'sizeLimitMessage'
+  >
+> {
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
