@@ -357,7 +357,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     widget_type = serializers.ChoiceField(
         choices=DashboardWidgetTypes.as_text_choices(), required=False
     )
-    limit = serializers.IntegerField(min_value=1, max_value=10, required=False, allow_null=True)
+    limit = serializers.IntegerField(min_value=1, max_value=20, required=False, allow_null=True)
     layout = LayoutField(required=False, allow_null=True)
     query_warnings: QueryWarning = {"queries": [], "columns": {}}
     dataset_source = serializers.ChoiceField(
@@ -540,6 +540,20 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             raise serializers.ValidationError(
                 {"limit": f"limit is required. The maximum limit is ${limit}."}
             )
+        # Validate limit based on display type: categorical bar charts allow up to 20,
+        # all other chart types allow up to 10.
+        widget_limit = data.get("limit")
+        if widget_limit is not None:
+            display_type = data.get("display_type")
+            if display_type == DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART:
+                max_allowed = 20
+            else:
+                max_allowed = 10
+            if widget_limit > max_allowed:
+                raise serializers.ValidationError(
+                    {"limit": f"Ensure this value is less than or equal to {max_allowed}."}
+                )
+
         # Validate widget thresholds
         thresholds = data.get("thresholds")
         if thresholds:
