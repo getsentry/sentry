@@ -176,8 +176,9 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
 
         integration_id = request.GET.get("integrationId")
 
-        # Always filter by projects the user can access
-        projects = self.get_projects(request, organization)
+        # Always filter by projects the user can access, including those
+        # accessible via open team membership (allow_joinleave)
+        projects = self.get_projects(request, organization, include_all_accessible=True)
         queryset = RepositoryProjectPathConfig.objects.filter(project__in=projects).select_related(
             "project", "repository"
         )
