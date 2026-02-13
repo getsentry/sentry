@@ -20,6 +20,12 @@ FULL_SUITE_TRIGGERS: list[str | re.Pattern[str]] = [
     re.compile(r"/migrations/\d{4}_[^/]+\.py$"),
 ]
 
+ALWAYS_EXCLUDED_TESTS: set[str] = {
+    # this test file is selected very frequently since it covers the majority of
+    # app warmup, and is almost never actually relevant to changed files
+    "tests/sentry/test_wsgi.py",
+}
+
 
 def _matches_trigger(file_path: str, trigger: str | re.Pattern[str]) -> bool:
     if isinstance(trigger, re.Pattern):
@@ -133,6 +139,8 @@ def main() -> int:
         if changed_test_files:
             print(f"Including {len(changed_test_files)} directly changed test files")
             affected_test_files.update(changed_test_files)
+
+    affected_test_files -= ALWAYS_EXCLUDED_TESTS
 
     print(f"Found {len(affected_test_files)} affected test files")
 
