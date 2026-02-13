@@ -41,7 +41,7 @@ export function RangeField({
                 }
               }}
             />
-            <Flex>{indicator}</Flex>
+            {indicator ?? <Flex width="14px" flexShrink={0} />}
           </Flex>
         );
 
