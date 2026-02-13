@@ -3,7 +3,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Switch, type SwitchProps} from '@sentry/scraps/switch';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {BaseField, type BaseFieldProps} from './baseField';
+import {BaseField, useFieldStateIndicator, type BaseFieldProps} from './baseField';
 
 export function SwitchField({
   onChange,
@@ -16,12 +16,13 @@ export function SwitchField({
     disabled?: boolean | string;
   }) {
   const autoSaveContext = useAutoSaveContext();
+  const indicator = useFieldStateIndicator();
   const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
   const disabledReason = typeof disabled === 'string' ? disabled : undefined;
 
   return (
     <BaseField>
-      {(fieldProps, {indicator}) => {
+      {fieldProps => {
         const switchElement = (
           <Flex gap="sm" align="center" justify="between">
             <Switch

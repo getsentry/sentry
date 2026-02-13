@@ -6,7 +6,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {SelectValue} from 'sentry/types/core';
 
-import {BaseField, type BaseFieldProps} from './baseField';
+import {BaseField, useFieldStateIndicator, type BaseFieldProps} from './baseField';
 
 function SelectInput({
   selectProps,
@@ -15,6 +15,18 @@ function SelectInput({
   selectProps: {'aria-invalid': boolean};
 }) {
   return <components.Input {...props} aria-invalid={selectProps['aria-invalid']} />;
+}
+
+function SelectIndicatorsContainer({
+  children,
+}: React.ComponentProps<typeof components.IndicatorsContainer>) {
+  const indicator = useFieldStateIndicator();
+  return (
+    <Flex padding="sm" gap="sm" align="center">
+      {indicator}
+      {children}
+    </Flex>
+  );
 }
 
 export function SelectField({
@@ -36,7 +48,7 @@ export function SelectField({
 
   return (
     <BaseField>
-      {({id, ...fieldProps}, {indicator}) => {
+      {({id, ...fieldProps}) => {
         const select = (
           <Select
             {...fieldProps}
@@ -46,14 +58,7 @@ export function SelectField({
             components={{
               ...props.components,
               Input: SelectInput,
-              IndicatorsContainer: ({
-                children,
-              }: React.ComponentProps<typeof components.IndicatorsContainer>) => (
-                <Flex padding="sm" gap="sm" align="center">
-                  {indicator}
-                  {children}
-                </Flex>
-              ),
+              IndicatorsContainer: SelectIndicatorsContainer,
             }}
             onChange={(option: SelectValue<string>) => onChange(option?.value ?? '')}
           />
