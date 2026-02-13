@@ -5,6 +5,7 @@ import {defined} from 'sentry/utils';
 import {
   explodeField,
   generateFieldAsString,
+  getEquationAliasIndex,
   isAggregateFieldOrEquation,
   isEquationAlias,
   type Column,
@@ -895,13 +896,14 @@ function useWidgetBuilderState(): {
             const newFieldStrings = new Set(
               newCategoricalFields.map(generateFieldAsString)
             );
-            const hasEquations = existingAggregates.some(
+            const equationCount = existingAggregates.filter(
               f => f.kind === FieldValueKind.EQUATION
-            );
+            ).length;
             const isSortValid =
               currentSortField &&
               (newFieldStrings.has(currentSortField) ||
-                (isEquationAlias(currentSortField) && hasEquations));
+                (isEquationAlias(currentSortField) &&
+                  getEquationAliasIndex(currentSortField) < equationCount));
 
             if (!isSortValid && existingAggregates.length > 0) {
               // Reset sort to the selected aggregate (last by default, matching Big Number)
@@ -940,11 +942,13 @@ function useWidgetBuilderState(): {
                 const hasMatchingSort = action.payload.some(
                   f => generateFieldAsString(f) === currentSortField
                 );
-                const hasEquations = action.payload.some(
+                const equationCount = action.payload.filter(
                   f => f.kind === FieldValueKind.EQUATION
-                );
+                ).length;
                 const isSortValid =
-                  hasMatchingSort || (isEquationAlias(currentSortField) && hasEquations);
+                  hasMatchingSort ||
+                  (isEquationAlias(currentSortField) &&
+                    getEquationAliasIndex(currentSortField) < equationCount);
 
                 if (!isSortValid) {
                   // Sort field was removed — fall back to last aggregate
