@@ -74,6 +74,7 @@ import {isJavascriptPlatform, isMobilePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
+import {MetricKitHangProfileSection} from 'sentry/views/issueDetails/metricKitHangProfileSection';
 import {ProfilePreviewSection} from 'sentry/views/issueDetails/profilePreviewSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
@@ -112,6 +113,9 @@ export function EventDetailsContent({
   const hasReplay = Boolean(getReplayIdFromEvent(event));
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
+  const isMetricKitHang =
+    mechanism === 'mx_hang_diagnostic' &&
+    organization.features.includes('metrickit-flamegraph');
   const groupingCurrentLevel = group?.metadata?.current_level;
 
   const hasActionableItems = actionableItemsEnabled({
@@ -235,61 +239,65 @@ export function EventDetailsContent({
           <Message event={event} data={eventEntries[EntryType.MESSAGE].data} />
         </EntryErrorBoundary>
       )}
-      {/* Wrapping all stacktrace components since multiple could appear */}
-      <ClassNames>
-        {({css}) => (
-          <GuideAnchor
-            target="stacktrace"
-            position="top"
-            disabled={
-              !(
-                defined(eventEntries[EntryType.EXCEPTION]) ||
-                defined(eventEntries[EntryType.STACKTRACE]) ||
-                defined(eventEntries[EntryType.THREADS]) ||
-                hasStreamlinedUI
-              )
-            }
-            // Prevent the container span from shrinking the content
-            containerClassName={css`
-              display: block !important;
-            `}
-          >
-            {defined(eventEntries[EntryType.EXCEPTION]) && (
-              <EntryErrorBoundary type={EntryType.EXCEPTION}>
-                <Exception
-                  event={event}
-                  data={eventEntries[EntryType.EXCEPTION].data}
-                  projectSlug={project.slug}
-                  group={group}
-                  groupingCurrentLevel={groupingCurrentLevel}
-                />
-              </EntryErrorBoundary>
-            )}
-            {issueTypeConfig.stacktrace.enabled &&
-              defined(eventEntries[EntryType.STACKTRACE]) && (
-                <EntryErrorBoundary type={EntryType.STACKTRACE}>
-                  <StackTrace
+      {isMetricKitHang ? (
+        <MetricKitHangProfileSection event={event} />
+      ) : (
+        /* Wrapping all stacktrace components since multiple could appear */
+        <ClassNames>
+          {({css}) => (
+            <GuideAnchor
+              target="stacktrace"
+              position="top"
+              disabled={
+                !(
+                  defined(eventEntries[EntryType.EXCEPTION]) ||
+                  defined(eventEntries[EntryType.STACKTRACE]) ||
+                  defined(eventEntries[EntryType.THREADS]) ||
+                  hasStreamlinedUI
+                )
+              }
+              // Prevent the container span from shrinking the content
+              containerClassName={css`
+                display: block !important;
+              `}
+            >
+              {defined(eventEntries[EntryType.EXCEPTION]) && (
+                <EntryErrorBoundary type={EntryType.EXCEPTION}>
+                  <Exception
                     event={event}
-                    data={eventEntries[EntryType.STACKTRACE].data}
-                    projectSlug={projectSlug}
+                    data={eventEntries[EntryType.EXCEPTION].data}
+                    projectSlug={project.slug}
+                    group={group}
                     groupingCurrentLevel={groupingCurrentLevel}
                   />
                 </EntryErrorBoundary>
               )}
-            {defined(eventEntries[EntryType.THREADS]) && (
-              <EntryErrorBoundary type={EntryType.THREADS}>
-                <Threads
-                  event={event}
-                  data={eventEntries[EntryType.THREADS].data}
-                  projectSlug={project.slug}
-                  groupingCurrentLevel={groupingCurrentLevel}
-                  group={group}
-                />
-              </EntryErrorBoundary>
-            )}
-          </GuideAnchor>
-        )}
-      </ClassNames>
+              {issueTypeConfig.stacktrace.enabled &&
+                defined(eventEntries[EntryType.STACKTRACE]) && (
+                  <EntryErrorBoundary type={EntryType.STACKTRACE}>
+                    <StackTrace
+                      event={event}
+                      data={eventEntries[EntryType.STACKTRACE].data}
+                      projectSlug={projectSlug}
+                      groupingCurrentLevel={groupingCurrentLevel}
+                    />
+                  </EntryErrorBoundary>
+                )}
+              {defined(eventEntries[EntryType.THREADS]) && (
+                <EntryErrorBoundary type={EntryType.THREADS}>
+                  <Threads
+                    event={event}
+                    data={eventEntries[EntryType.THREADS].data}
+                    projectSlug={project.slug}
+                    groupingCurrentLevel={groupingCurrentLevel}
+                    group={group}
+                  />
+                </EntryErrorBoundary>
+              )}
+            </GuideAnchor>
+          )}
+        </ClassNames>
+      )}
       {hasStreamlinedUI && (
         <ScreenshotDataSection event={event} projectSlug={project.slug} />
       )}
