@@ -760,16 +760,11 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
     query.selectedAggregate ??
     (query.aggregates.length > 0 ? query.aggregates.length - 1 : 0);
   const selectedAgg = query.aggregates[selectedIndex];
-  // The API returns equation data under equation[N] alias keys, not the raw
-  // equation|... format stored in query.aggregates. Convert before passing to
-  // the transform function so row data lookups succeed.
-  let displayAgg = selectedAgg;
-  if (selectedAgg && isEquation(selectedAgg)) {
-    const eqIndex =
-      query.aggregates.slice(0, selectedIndex + 1).filter(isEquation).length - 1;
-    displayAgg = `equation[${eqIndex}]`;
-  }
-  const filteredQuery = displayAgg ? {...query, aggregates: [displayAgg]} : query;
+  // Filter query to only the selected aggregate. The raw format in
+  // query.aggregates (e.g. "equation|count() / 2") matches the keys in the
+  // API response, so no conversion is needed here. (The equation[N] alias
+  // format is only used for the sort/orderby API parameter, not data keys.)
+  const filteredQuery = selectedAgg ? {...query, aggregates: [selectedAgg]} : query;
 
   const categoricalSeriesData = transformTableToCategoricalSeries(filteredQuery, {
     data: tableData.data,
