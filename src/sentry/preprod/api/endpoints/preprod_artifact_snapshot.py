@@ -136,16 +136,16 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             return Response({"detail": "Internal server error"}, status=500)
 
         # Build VCS info from commit_comparison
-        cc = artifact.commit_comparison
+        commit_comparison = artifact.commit_comparison
         vcs_info = BuildDetailsVcsInfo(
-            head_sha=cc.head_sha if cc else None,
-            base_sha=cc.base_sha if cc else None,
-            provider=cc.provider if cc else None,
-            head_repo_name=cc.head_repo_name if cc else None,
-            base_repo_name=cc.base_repo_name if cc else None,
-            head_ref=cc.head_ref if cc else None,
-            base_ref=cc.base_ref if cc else None,
-            pr_number=cc.pr_number if cc else None,
+            head_sha=commit_comparison.head_sha if commit_comparison else None,
+            base_sha=commit_comparison.base_sha if commit_comparison else None,
+            provider=commit_comparison.provider if commit_comparison else None,
+            head_repo_name=commit_comparison.head_repo_name if commit_comparison else None,
+            base_repo_name=commit_comparison.base_repo_name if commit_comparison else None,
+            head_ref=commit_comparison.head_ref if commit_comparison else None,
+            base_ref=commit_comparison.base_ref if commit_comparison else None,
+            pr_number=commit_comparison.pr_number if commit_comparison else None,
         )
 
         offset = request_data.offset
@@ -157,7 +157,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         images = [
             SnapshotImageResponse(
                 key=key,
-                display_name="",  # TODO: Add first-class display name support
+                display_name=metadata.display_name,
                 file_name=metadata.file_name,
                 width=metadata.width,
                 height=metadata.height,
