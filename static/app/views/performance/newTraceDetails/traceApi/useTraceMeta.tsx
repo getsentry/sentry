@@ -37,7 +37,7 @@ function getMetaQueryParams(
 
   if (row.timestamp) {
     return {
-      include_uptime: normalizedParams.includeUptime,
+      include_uptime: '1',
       timestamp: row.timestamp,
     };
   }

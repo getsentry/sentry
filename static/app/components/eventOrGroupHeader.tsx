@@ -27,11 +27,6 @@ interface EventOrGroupHeaderProps {
   eventId?: string;
   hideIcons?: boolean;
   hideLevel?: boolean;
-  /**
-   * Extra query params to include in the issue details link.
-   * Useful for feature-specific deep-linking.
-   */
-  issueLinkExtraQuery?: Record<string, string>;
   /** Group link clicked */
   onClick?: () => void;
   query?: string;
@@ -81,7 +76,6 @@ function usePreloadGroupOnHover({
  */
 function EventOrGroupHeader({
   data,
-  issueLinkExtraQuery,
   query,
   onClick,
   hideIcons,
@@ -133,7 +127,6 @@ function EventOrGroupHeader({
       referrer: source,
       location,
       query,
-      extraQuery: issueLinkExtraQuery,
     });
 
     return (
