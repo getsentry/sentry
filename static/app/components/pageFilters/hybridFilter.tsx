@@ -149,8 +149,6 @@ export function useStagedCompactSelect<Value extends SelectKey>({
     [onToggle]
   );
 
-  useImperativeHandle(ref, () => ({toggleOption}), [toggleOption]);
-
   /**
    * Whether a modifier key (ctrl/alt/shift) is being pressed. If true, the selector is
    * in multiple selection mode.
