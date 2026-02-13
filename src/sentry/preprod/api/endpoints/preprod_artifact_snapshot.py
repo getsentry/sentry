@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 import jsonschema
 import orjson
@@ -20,6 +20,13 @@ from sentry.models.project import Project
 from sentry.objectstore import get_preprod_session
 from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotDetailsEvent
 from sentry.preprod.api.models.project_preprod_build_details_models import BuildDetailsVcsInfo
+from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
+    SnapshotComparisonType,
+    SnapshotDetailsApiResponse,
+    SnapshotGetRequest,
+    SnapshotImageResponse,
+)
+from sentry.preprod.api.request_utils import parse_request_with_pydantic
 from sentry.preprod.api.schemas import VCS_ERROR_MESSAGES, VCS_SCHEMA_PROPERTIES
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
@@ -29,7 +36,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
 
-SNAPSHOT_REQUEST_SCHEMA: dict[str, Any] = {
+SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "app_id": {"type": "string", "maxLength": 255},
@@ -44,23 +51,23 @@ SNAPSHOT_REQUEST_SCHEMA: dict[str, Any] = {
     "additionalProperties": True,
 }
 
-SNAPSHOT_REQUEST_ERROR_MESSAGES: dict[str, str] = {
+SNAPSHOT_POST_REQUEST_ERROR_MESSAGES: dict[str, str] = {
     "app_id": "The app_id field is required and must be a string with maximum length of 255 characters.",
     "images": "The images field is required and must be an object mapping image names to image metadata.",
     **VCS_ERROR_MESSAGES,
 }
 
 
-def validate_preprod_snapshot_schema(request_body: bytes) -> tuple[dict[str, Any], str | None]:
+def validate_preprod_snapshot_post_schema(request_body: bytes) -> tuple[dict[str, Any], str | None]:
     try:
         data = orjson.loads(request_body)
-        jsonschema.validate(data, SNAPSHOT_REQUEST_SCHEMA)
+        jsonschema.validate(data, SNAPSHOT_POST_REQUEST_SCHEMA)
         return data, None
     except jsonschema.ValidationError as e:
         error_message = e.message
         if e.path:
             if field := e.path[0]:
-                error_message = SNAPSHOT_REQUEST_ERROR_MESSAGES.get(str(field), error_message)
+                error_message = SNAPSHOT_POST_REQUEST_ERROR_MESSAGES.get(str(field), error_message)
         return {}, error_message
     except (orjson.JSONDecodeError, TypeError):
         return {}, "Invalid json body"
@@ -93,16 +100,9 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         ):
             return Response({"detail": "Feature not enabled"}, status=403)
 
-        try:
-            offset = int(request.GET.get("offset", "0"))
-            limit = int(request.GET.get("limit", "20"))
-        except ValueError:
-            return Response({"detail": "Invalid offset or limit parameter"}, status=400)
-
-        if offset < 0 or limit <= 0 or limit > 100:
-            return Response(
-                {"detail": "offset must be >= 0, limit must be > 0 and <= 100"}, status=400
-            )
+        request_data: SnapshotGetRequest = parse_request_with_pydantic(
+            request, cast(Any, SnapshotGetRequest)
+        )
 
         try:
             artifact = PreprodArtifact.objects.select_related("commit_comparison").get(
@@ -148,16 +148,20 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             pr_number=cc.pr_number if cc else None,
         )
 
+        offset = request_data.offset
+        limit = request_data.limit
+
         # Paginate images: convert manifest dict to sorted list, apply offset/limit
         sorted_images = sorted(manifest.images.items(), key=lambda item: item[0])
         paginated = sorted_images[offset : offset + limit]
         images = [
-            {
-                "id": image_id,
-                "file_name": metadata.file_name,
-                "width": metadata.width,
-                "height": metadata.height,
-            }
+            SnapshotImageResponse(
+                id=image_id,
+                display_name="",  # TODO: Add first-class display name support
+                file_name=metadata.file_name,
+                width=metadata.width,
+                height=metadata.height,
+            )
             for image_id, metadata in paginated
         ]
 
@@ -170,15 +174,16 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             )
         )
 
-        return Response(
-            {
-                "artifactId": str(artifact.id),
-                "imageCount": snapshot_metrics.image_count,
-                "vcsInfo": vcs_info.dict(exclude_none=True),
-                "images": images,
-            },
-            status=200,
+        response = SnapshotDetailsApiResponse(
+            head_artifact_id=str(artifact.id),
+            state=artifact.state,
+            comparison_type=SnapshotComparisonType.SOLO,
+            vcs_info=vcs_info,
+            images=images,
+            image_count=snapshot_metrics.image_count,
         )
+
+        return Response(response.dict(), status=200)
 
     def post(self, request: Request, project: Project) -> Response:
         if not settings.IS_DEV and not features.has(
@@ -186,7 +191,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         ):
             return Response({"detail": "Feature not enabled"}, status=403)
 
-        data, error_message = validate_preprod_snapshot_schema(request.body)
+        data, error_message = validate_preprod_snapshot_post_schema(request.body)
         if error_message:
             return Response({"detail": error_message}, status=400)
 

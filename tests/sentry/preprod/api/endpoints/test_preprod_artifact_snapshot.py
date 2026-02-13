@@ -266,8 +266,18 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         """Helper to create an artifact with snapshot metrics and a manifest key."""
         if images is None:
             images = {
-                "img1": {"file_name": "Screen1", "width": 375, "height": 812},
-                "img2": {"file_name": "Screen2", "width": 1080, "height": 1920},
+                "img1": {
+                    "display_name": "Screen1",
+                    "file_name": "Screen1",
+                    "width": 375,
+                    "height": 812,
+                },
+                "img2": {
+                    "display_name": "Screen2",
+                    "file_name": "Screen2",
+                    "width": 1080,
+                    "height": 1920,
+                },
             }
 
         artifact = PreprodArtifact.objects.create(
@@ -304,8 +314,10 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
             response = self.client.get(url)
 
         assert response.status_code == 200
-        assert response.data["artifactId"] == str(artifact.id)
-        assert response.data["imageCount"] == 2
+        assert response.data["head_artifact_id"] == str(artifact.id)
+        assert response.data["state"] == PreprodArtifact.ArtifactState.UPLOADED
+        assert response.data["comparison_type"] == "solo"
+        assert response.data["image_count"] == 2
         assert len(response.data["images"]) == 2
         # Images should be sorted by key
         assert response.data["images"][0]["id"] == "img1"
@@ -333,7 +345,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
             response = self.client.get(url)
 
         assert response.status_code == 200
-        vcs_info = response.data["vcsInfo"]
+        vcs_info = response.data["vcs_info"]
         assert vcs_info["head_sha"] == "a" * 40
         assert vcs_info["base_sha"] == "b" * 40
         assert vcs_info["provider"] == "github.com"
@@ -343,7 +355,10 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
 
     @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.get_preprod_session")
     def test_get_snapshot_details_pagination(self, mock_get_session):
-        images = {f"img{i:03d}": {"width": 100, "height": 200} for i in range(10)}
+        images = {
+            f"img{i:03d}": {"display_name": f"Image {i}", "width": 100, "height": 200}
+            for i in range(10)
+        }
         artifact, _, _, manifest_json, _ = self._create_artifact_with_manifest(images=images)
         mock_get_session.return_value = self._create_mock_session(manifest_json)
 
