@@ -231,6 +231,32 @@ jobs:
           mode: backend-ci
           skip-devservices: true
 
+      # F1: Cache Docker images to skip network pulls on subsequent runs.
+      # devservices pulls ~9 images (~67s). Loading from cache takes ~10-15s.
+      - name: Restore Docker image cache
+        id: docker-cache
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4
+        with:
+          path: /tmp/docker-image-cache
+          key: docker-devservices-${{ hashFiles('.github/actions/setup-sentry/action.yml') }}-v1
+          restore-keys: |
+            docker-devservices-
+
+      - name: Load cached Docker images
+        if: steps.docker-cache.outputs.cache-hit == 'true'
+        run: |
+          echo "[docker-cache] Loading cached images..."
+          LOAD_START=$(date +%s)
+          if [ -f /tmp/docker-image-cache/devservices.tar.zst ]; then
+            zstd -d /tmp/docker-image-cache/devservices.tar.zst -o /tmp/devservices.tar
+            docker load -i /tmp/devservices.tar
+            rm -f /tmp/devservices.tar
+            LOAD_END=$(date +%s)
+            echo "[docker-cache] Loaded in $((LOAD_END - LOAD_START))s"
+          else
+            echo "[docker-cache] No cached tarball found"
+          fi
+
       # H1: Start devservices + per-worker bootstrap in background while pytest
       # collects tests. Pytest collection (~100-120s) doesn't need services — it only
       # discovers test functions. By overlapping, we save ~80-113s per shard.
@@ -353,6 +379,22 @@ jobs:
           wait $SERVICES_PID 2>/dev/null || true
 
           exit $PYTEST_EXIT
+
+      # F1: Save Docker images for next run (only on cache miss, shard 0 only).
+      - name: Save Docker images to cache
+        if: steps.docker-cache.outputs.cache-hit != 'true' && matrix.instance == 0
+        run: |
+          echo "[docker-cache] Saving images for next run..."
+          SAVE_START=$(date +%s)
+          mkdir -p /tmp/docker-image-cache
+          # Save all devservices images into one tarball
+          IMAGES=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '(snuba|clickhouse|kafka|zookeeper|postgres|redis|symbolicator|objectstore|bigtable|cbtemulator)' | grep -v '<none>')
+          echo "[docker-cache] Images to save:"
+          echo "$IMAGES"
+          echo "$IMAGES" | xargs docker save | zstd -T0 -3 -o /tmp/docker-image-cache/devservices.tar.zst
+          SAVE_END=$(date +%s)
+          SIZE=$(du -h /tmp/docker-image-cache/devservices.tar.zst | cut -f1)
+          echo "[docker-cache] Saved $SIZE in $((SAVE_END - SAVE_START))s"
 
       - name: Inspect failure
         if: failure()

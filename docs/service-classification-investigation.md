@@ -2543,7 +2543,15 @@ reclassified tests can actually move to Tier 1.
 actually queried Snuba). With test-level splitting, 1,844 of these move to Tier 1, reducing
 Tier 2 from 32.8% to 27.2% of all tests.
 
-**Next:** Run a CI pass with the reclassified data to measure wall-clock impact.
+**Deployment fix (commit 942d486):** Reclassified tests still carry `_requires_snuba` and
+`reset_snuba` fixtures via `SnubaTestCase` inheritance. In Tier 1 (no Snuba), these fixtures
+call `pytest.fail()`, causing all 6 Tier 1 shards to fail (run 21972621389). Fixed by adding
+`SENTRY_SKIP_SNUBA_CHECK=1` env var to Tier 1 job, with early-return checks in both fixtures.
+This is safe because the classifier verified these tests don't query Snuba at runtime — any
+genuinely mislabeled test would fail with a connection error, not pass silently.
+
+**Status:** Deployed and running. Testing 6/16 (run 21972933453) and 7/15 (run 21973191837)
+shard ratios in parallel to find optimal balance for the larger Tier 1 test set.
 
 ### Optimization Dependency Graph (Validated)
 
@@ -2623,9 +2631,11 @@ Solid arrows = direct dependency, dashed arrows = exposed/required relationship.
 |---|---|---|---|---|
 | B | Duration-based shard allocation (LPT) | Reduce tier2 spread from ~56s to ~10-15s | Moderate | **Reverted** (Iteration 18) — complexity without clear gains over round-robin |
 | C | Rebalance tier1/tier2 split ratio | Absorb rescued tests | Trivial | **Deployed** (Iteration 19b) — 5/17 → 6/16 |
-| D | Reclassify Snuba dependencies (runtime-only detection) | Move 1,844 tests to Tier 1 | Moderate | **Testing** (Iteration 20) — classifier complete, CI run pending |
+| D | Reclassify Snuba dependencies (runtime-only detection) | Move 1,844 tests to Tier 1 | Moderate | **Deployed** (Iteration 20) — `SENTRY_SKIP_SNUBA_CHECK` bypass |
 | D+ | Test-level splitting (not file-level) | Rescue 1,700+ tests from Tier 2 | Moderate | **Deployed** (Iteration 19) — `--granularity test` |
 | E | Increase total shards (22→26+) | ~90s+ savings | Cost increase (more runners) | Not started |
+| F1 | Docker image caching (`docker save`/`docker load`) | ~45s per tier2 shard | Low | **In progress** — `actions/cache` for devservices images |
+| F2 | Tier 1 devservices mode (replace service containers) | ~40s per tier1 shard | Medium | **Planned** — create dedicated `devservices` mode for tier1 (Postgres+Redis+Kafka) to enable caching; GH Actions service containers cannot be cached |
 | G1 | Pass specific tier files to pytest | ~15-20s per shard | Low | **Reverted** — breaks conftest init |
 | G2 | Remove "Clear Python cache" step | ~5-10s per shard | Trivial | Noted for later |
 | G3 | Pre-compile .pyc files | ~5-10s per shard | Low | Noted for later |
