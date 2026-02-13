@@ -357,7 +357,15 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     widget_type = serializers.ChoiceField(
         choices=DashboardWidgetTypes.as_text_choices(), required=False
     )
-    limit = serializers.IntegerField(min_value=1, max_value=20, required=False, allow_null=True)
+    limit = serializers.IntegerField(
+        min_value=1,
+        max_value=20,
+        required=False,
+        allow_null=True,
+        error_messages={
+            "max_value": "The maximum limit for this display type is {max_value}.",
+        },
+    )
     layout = LayoutField(required=False, allow_null=True)
     query_warnings: QueryWarning = {"queries": [], "columns": {}}
     dataset_source = serializers.ChoiceField(
@@ -551,7 +559,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 max_allowed = 10
             if widget_limit > max_allowed:
                 raise serializers.ValidationError(
-                    {"limit": f"Ensure this value is less than or equal to {max_allowed}."}
+                    {"limit": f"The maximum limit for this display type is {max_allowed}."}
                 )
 
         # Validate widget thresholds
