@@ -10,7 +10,7 @@ import {
   useStagedCompactSelect,
 } from 'sentry/components/pageFilters/hybridFilter';
 
-function useTestOptions(hybridFilterRef: React.RefObject<HybridFilterRef<any>>) {
+function useTestOptions(hybridFilterRef: React.RefObject<HybridFilterRef<string>>) {
   return [
     {
       value: 'one',
@@ -57,11 +57,11 @@ function useTestOptions(hybridFilterRef: React.RefObject<HybridFilterRef<any>>) 
 describe('HybridFilter', () => {
   it('renders', async () => {
     function TestComponent() {
-      const hybridFilterRef = useRef<HybridFilterRef<any>>({toggleOption: () => {}});
+      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
       const stagedSelect = useStagedCompactSelect({
         value: [] as string[],
-        defaultValue: [] as string[],
+        defaultValue: [],
         onChange: () => {},
         multiple: true,
       });
@@ -90,7 +90,7 @@ describe('HybridFilter', () => {
     const onChange = jest.fn();
 
     function TestComponent({value}: {value: string[]}) {
-      const hybridFilterRef = useRef<HybridFilterRef<any>>({toggleOption: () => {}});
+      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
       const stagedSelect = useStagedCompactSelect({
         value,
@@ -131,7 +131,7 @@ describe('HybridFilter', () => {
     const onChange = jest.fn();
     function ControlledHybridFilter() {
       const [value, setValue] = useState<string[]>([]);
-      const hybridFilterRef = useRef<HybridFilterRef<any>>({toggleOption: () => {}});
+      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
       const stagedSelect = useStagedCompactSelect({
         value,
@@ -187,11 +187,11 @@ describe('HybridFilter', () => {
     const onChange = jest.fn();
 
     function TestComponent() {
-      const hybridFilterRef = useRef<HybridFilterRef<any>>({toggleOption: () => {}});
+      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
       const stagedSelect = useStagedCompactSelect({
         value: [] as string[],
-        defaultValue: [] as string[],
+        defaultValue: [],
         onChange,
         multiple: true,
       });
@@ -227,7 +227,7 @@ describe('HybridFilter', () => {
     const onReset = jest.fn();
 
     function TestComponent() {
-      const hybridFilterRef = useRef<HybridFilterRef<any>>({toggleOption: () => {}});
+      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
       const stagedSelect = useStagedCompactSelect({
         value: ['one'] as string[],
@@ -273,11 +273,11 @@ describe('HybridFilter', () => {
     const onChange = jest.fn();
 
     function TestComponent() {
-      const hybridFilterRef = useRef<HybridFilterRef<any>>({toggleOption: () => {}});
+      const hybridFilterRef = useRef<HybridFilterRef<string>>({toggleOption: () => {}});
       const options = useTestOptions(hybridFilterRef);
       const stagedSelect = useStagedCompactSelect({
         value: [] as string[],
-        defaultValue: [] as string[],
+        defaultValue: [],
         onChange,
         multiple: true,
       });
