@@ -509,7 +509,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             "name": "Test Workflow",
             "enabled": True,
             "config": {},
-            "triggers": {"logicType": "any-short", "conditions": []},
+            "triggers": {"logicType": "any", "conditions": []},
             "actionFilters": [],
         }
         self.member_user = self.create_user()
