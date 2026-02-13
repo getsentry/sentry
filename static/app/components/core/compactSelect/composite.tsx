@@ -5,7 +5,6 @@ import {Item} from '@react-stately/collections';
 import type {DistributedOmit} from 'type-fest';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import type {ControlProps} from './control';
 import {Control} from './control';
@@ -156,18 +155,18 @@ function Region<Value extends SelectKey>({
 const RegionsWrap = styled('div')`
   min-height: 0;
   overflow: auto;
-  padding: ${space(0.5)} 0;
+  padding: ${p => p.theme.space.xs} 0;
 
   /* Add 1px to top padding if preceded by menu header, to account for the header's
   shadow border */
   [data-menu-has-header='true'] > div > & {
-    padding-top: calc(${space(0.5)} + 1px);
+    padding-top: calc(${p => p.theme.space.xs} + 1px);
   }
 
   /* Add 1px to bottom padding if succeeded by menu footer, to account for the footer's
   shadow border */
   [data-menu-has-footer='true'] > div > & {
-    padding-bottom: calc(${space(0.5)} + 1px);
+    padding-bottom: calc(${p => p.theme.space.xs} + 1px);
   }
 
   /* Remove padding inside lists */

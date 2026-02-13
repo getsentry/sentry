@@ -2,35 +2,40 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GroupList from 'sentry/components/issues/groupList';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type DetectorDetailsOngoingIssuesProps = {
+  // The time range used for the issues query.
+  // When null, the query uses 90d as the stats period.
+  dateTimeSelection: PageFilters['datetime'] | null;
   detector: Detector;
   // Extra query params to include in the issue details link.
   // Useful for feature-specific deep-linking.
   issueLinkExtraQuery?: Record<string, string>;
 };
 
+const DEFAULT_STATS_PERIOD = '90d';
+
 export function DetectorDetailsOngoingIssues({
   detector,
+  dateTimeSelection,
   issueLinkExtraQuery,
 }: DetectorDetailsOngoingIssuesProps) {
   const organization = useOrganization();
   const query = `is:unresolved detector:${detector.id}`;
-  const {selection} = usePageFilters();
+  const {start, end, period} = dateTimeSelection ?? {period: DEFAULT_STATS_PERIOD};
+
   const queryParams = {
     query,
     project: detector.projectId,
-    start: selection.datetime.start
-      ? getUtcDateString(selection.datetime.start)
-      : undefined,
-    end: selection.datetime.end ? getUtcDateString(selection.datetime.end) : undefined,
-    statsPeriod: selection.datetime.period ?? undefined,
+    start: start ? getUtcDateString(start) : undefined,
+    end: end ? getUtcDateString(end) : undefined,
+    statsPeriod: period ?? undefined,
   };
 
   return (
@@ -38,6 +43,7 @@ export function DetectorDetailsOngoingIssues({
       title={t('Ongoing Issues')}
       trailingItems={
         <LinkButton
+          data-test-id="view-all-ongoing-issues-button"
           size="xs"
           to={{
             pathname: `/organizations/${organization.slug}/issues/`,

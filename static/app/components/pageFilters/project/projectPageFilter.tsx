@@ -1,20 +1,25 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
+import type {
+  HybridFilterProps,
+  HybridFilterRef,
+} from 'sentry/components/pageFilters/hybridFilter';
 import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
 import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import BookmarkStar from 'sentry/components/projects/bookmarkStar';
+import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
 import {IconAdd, IconOpen, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -40,26 +45,10 @@ export interface ProjectPageFilterProps extends Partial<
     | 'menuBody'
     | 'menuFooter'
     | 'menuFooterMessage'
-    | 'checkboxWrapper'
     | 'shouldCloseOnInteractOutside'
+    | 'sizeLimitMessage'
   >
 > {
-  /**
-   * Message to show in the menu footer
-   */
-  footerMessage?: React.ReactNode;
-  /**
-   * This overrides the selected projects that is DISPLAYED by
-   * the project select.
-   *
-   * Use this when you want to display a disabled project selector
-   * with a fixed set of projects. For example, if you always want
-   * it to show `All Projects`.
-   *
-   * It does NOT override the projects in the store, so hooks like
-   * `usePageFilters` will not reflect this override.
-   */
-  projectOverride?: number[];
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
@@ -82,14 +71,11 @@ export function ProjectPageFilter({
   onReset,
   disabled,
   sizeLimit,
-  sizeLimitMessage,
   emptyMessage,
   menuTitle,
   menuWidth,
   trigger,
-  projectOverride,
   resetParamsOnChange,
-  footerMessage,
   storageNamespace,
   ...selectProps
 }: ProjectPageFilterProps) {
@@ -97,8 +83,16 @@ export function ProjectPageFilter({
   const router = useRouter();
   const routes = useRoutes();
   const organization = useOrganization();
+  const hybridFilterRef = useRef<HybridFilterRef<number>>(null);
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+
+  // Track optimistically bookmarked projects to prevent star from disappearing
+  // during API call when user bookmarks and quickly moves focus
+  const [optimisticallyBookmarkedProjects, setOptimisticallyBookmarkedProjects] =
+    useState<Set<string>>(
+      () => new Set(projects.filter(p => p.isBookmarked).map(p => p.id))
+    );
   const [memberProjects, otherProjects] = useMemo(
     () => partition(projects, project => project.isMember),
     [projects]
@@ -175,13 +169,13 @@ export function ProjectPageFilter({
   );
 
   const value = useMemo<number[]>(
-    () => mapURLValueToNormalValue(projectOverride ?? pageFilterValue),
-    [mapURLValueToNormalValue, pageFilterValue, projectOverride]
+    () => mapURLValueToNormalValue(pageFilterValue),
+    [mapURLValueToNormalValue, pageFilterValue]
   );
 
   const defaultValue = useMemo<number[]>(
-    () => mapURLValueToNormalValue(projectOverride ?? []),
-    [mapURLValueToNormalValue, projectOverride]
+    () => mapURLValueToNormalValue([]),
+    [mapURLValueToNormalValue]
   );
 
   const handleChange = useCallback(
@@ -256,48 +250,79 @@ export function ProjectPageFilter({
     const getProjectItem = (project: Project) => {
       return {
         value: parseInt(project.id, 10),
-        label: project.slug,
-        leadingItems: (
-          <ProjectBadge project={project} avatarSize={16} hideName disableLink />
+        textValue: project.slug,
+        leadingItems: ({isSelected}) => (
+          <Checkbox
+            size="sm"
+            checked={isSelected}
+            onChange={() =>
+              hybridFilterRef.current?.toggleOption?.(parseInt(project.id, 10))
+            }
+            aria-label={t('Select %s', project.slug)}
+            tabIndex={-1}
+          />
         ),
-        trailingItems: ({isFocused}: any) => (
-          <Fragment>
-            <TrailingButton
-              priority="transparent"
-              size="zero"
-              icon={<IconOpen />}
-              tooltipProps={{title: t('Project Details')}}
-              aria-label={t('Project Details')}
-              to={
-                makeProjectsPathname({
-                  path: `/${project.slug}/`,
-                  organization,
-                }) + `?project=${project.id}`
-              }
-              visible={isFocused}
-            />
-            <TrailingButton
-              priority="transparent"
-              size="zero"
-              icon={<IconSettings />}
-              tooltipProps={{title: t('Project Settings')}}
-              aria-label={t('Project Settings')}
-              to={`/settings/${organization.slug}/projects/${project.slug}/`}
-              visible={isFocused}
-            />
-            <StyledBookmarkStar
-              project={project}
-              organization={organization}
-              visible={isFocused}
-              onToggle={(isBookmarked: boolean) => {
-                trackAnalytics('projectselector.bookmark_toggle', {
-                  bookmarked: isBookmarked,
-                  organization,
-                });
-              }}
-            />
-          </Fragment>
+        label: (
+          <Flex align="center" gap="sm">
+            <ProjectBadge project={project} avatarSize={16} hideName disableLink />
+            <Text ellipsis>{project.slug}</Text>
+          </Flex>
         ),
+        trailingItems: (props: {isFocused: boolean}) => {
+          return (
+            <Flex align="center">
+              {props.isFocused ? (
+                <Fragment>
+                  <LinkButton
+                    size="xs"
+                    priority="transparent"
+                    icon={<IconOpen variant="muted" />}
+                    aria-label={t('Open Project Details')}
+                    tooltipProps={{title: t('Open Project Details'), delay: 400}}
+                    to={
+                      makeProjectsPathname({
+                        path: `/${project.slug}/`,
+                        organization,
+                      }) + `?project=${project.id}`
+                    }
+                  />
+                  <LinkButton
+                    size="xs"
+                    priority="transparent"
+                    icon={<IconSettings variant="muted" />}
+                    tooltipProps={{title: t('Open Project Settings'), delay: 400}}
+                    aria-label={t('Open Project Settings')}
+                    to={`/settings/${organization.slug}/projects/${project.slug}/`}
+                  />
+                </Fragment>
+              ) : null}
+              {props.isFocused || optimisticallyBookmarkedProjects.has(project.id) ? (
+                <BookmarkStar
+                  size="xs"
+                  project={project}
+                  organization={organization}
+                  tooltipProps={{delay: 400}}
+                  onToggle={(isBookmarked: boolean) => {
+                    // Update optimistic state immediately
+                    setOptimisticallyBookmarkedProjects(prev => {
+                      const next = new Set(prev);
+                      if (isBookmarked) {
+                        next.add(project.id);
+                      } else {
+                        next.delete(project.id);
+                      }
+                      return next;
+                    });
+                    trackAnalytics('projectselector.bookmark_toggle', {
+                      bookmarked: isBookmarked,
+                      organization,
+                    });
+                  }}
+                />
+              ) : null}
+            </Flex>
+          );
+        },
       } satisfies SelectOptionOrSection<number>;
     };
 
@@ -329,6 +354,7 @@ export function ProjectPageFilter({
     memberProjects,
     nonMemberProjects,
     mapURLValueToNormalValue,
+    optimisticallyBookmarkedProjects,
     pageFilterValue,
   ]);
 
@@ -338,11 +364,10 @@ export function ProjectPageFilter({
     );
 
     // ProjectPageFilter will try to expand to accommodate the longest project slug
-    const longestSlugLength = flatOptions.slice(0, 25).reduce(
-      // eslint-disable-next-line @typescript-eslint/no-base-to-string
-      (acc, cur) => (String(cur.label).length > acc ? String(cur.label).length : acc),
-      0
-    );
+    const longestSlugLength = flatOptions.slice(0, 25).reduce((acc, cur) => {
+      const length = cur.textValue?.length ?? 0;
+      return length > acc ? length : acc;
+    }, 0);
 
     // Calculate an appropriate width for the menu. It should be between 22  and 28em.
     // Within that range, the width is a function of the length of the longest slug.
@@ -367,19 +392,19 @@ export function ProjectPageFilter({
               'Only up to [limit] projects can be selected at a time. You can still press “Clear” to see all projects.',
               {limit: SELECTION_COUNT_LIMIT}
             )
-          : footerMessage;
+          : undefined;
     }
 
-    return footerMessage;
-  }, [selectionLimitExceeded, footerMessage]);
+    return undefined;
+  }, [selectionLimitExceeded]);
 
   const hasProjectWrite = organization.access.includes('project:write');
 
   return (
     <HybridFilter
+      ref={hybridFilterRef}
       {...selectProps}
       searchable
-      checkboxPosition="trailing"
       multiple
       options={options}
       value={value}
@@ -392,21 +417,20 @@ export function ProjectPageFilter({
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       disableCommit={selectionLimitExceeded}
       sizeLimit={sizeLimit ?? 25}
-      sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more projects…')}
       emptyMessage={emptyMessage ?? t('No projects found')}
       menuTitle={menuTitle ?? t('Filter Projects')}
       menuWidth={menuWidth ?? defaultMenuWidth}
       menuFooter={
-        hasProjectWrite && (
+        hasProjectWrite ? (
           <LinkButton
             size="xs"
-            aria-label={t('Add Project')}
+            aria-label={t('Create Project')}
             to={makeProjectsPathname({path: '/new/', organization})}
             icon={<IconAdd />}
           >
-            {t('Project')}
+            {t('Create Project')}
           </LinkButton>
-        )
+        ) : undefined
       }
       menuFooterMessage={menuFooterMessage}
       trigger={
@@ -434,15 +458,3 @@ function shouldCloseOnInteractOutside(target: Element) {
   );
   return !powerHovercard && !disabledFeatureHovercard;
 }
-
-const TrailingButton = styled(LinkButton)<{visible: boolean}>`
-  color: ${p => p.theme.tokens.content.secondary};
-  display: ${p => (p.visible ? 'block' : 'none')};
-`;
-
-const StyledBookmarkStar = styled(BookmarkStar)<{visible: boolean}>`
-  display: ${p => (p.visible ? 'block' : 'none')};
-  &[aria-pressed='true'] {
-    display: block;
-  }
-`;
