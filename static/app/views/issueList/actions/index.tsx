@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
@@ -18,8 +18,6 @@ import {Sticky} from 'sentry/components/sticky';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
@@ -31,6 +29,10 @@ import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {
+  useIssueSelectionActions,
+  useIssueSelectionSummary,
+} from 'sentry/views/issueList/issueSelectionContext';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
@@ -71,6 +73,7 @@ function ActionsBarPriority({
   handleDelete,
   handleMerge,
   handleUpdate,
+  toggleSelectAllVisible,
   selectedProjectSlug,
   onSelectStatsPeriod,
   isSavedSearchesOpen,
@@ -94,6 +97,7 @@ function ActionsBarPriority({
   selectedProjectSlug: string | undefined;
   selection: PageFilters;
   statsPeriod: string;
+  toggleSelectAllVisible: () => void;
 }) {
   const shouldDisplayActions = anySelected && !narrowViewport;
 
@@ -101,7 +105,7 @@ function ActionsBarPriority({
     <ActionsBarContainer>
       {!narrowViewport && (
         <Checkbox
-          onChange={() => SelectedGroupStore.toggleSelectAll()}
+          onChange={toggleSelectAllVisible}
           checked={pageSelected || (anySelected ? 'indeterminate' : false)}
           aria-label={pageSelected ? t('Deselect all') : t('Select all')}
           disabled={displayReprocessingActions}
@@ -164,15 +168,18 @@ function IssueListActions({
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const {
-    pageSelected,
-    multiSelected,
-    anySelected,
-    allInQuerySelected,
-    selectedIdsSet,
-    selectedProjectSlug,
-    setAllInQuerySelected,
-  } = useSelectedGroupsState();
+  const {setAllInQuerySelected, deselectAll, toggleSelectAllVisible} =
+    useIssueSelectionActions();
+  const {pageSelected, multiSelected, anySelected, allInQuerySelected, selectedIdsSet} =
+    useIssueSelectionSummary();
+  const selectedProjectSlug = useMemo(() => {
+    const projects = [...selectedIdsSet]
+      .map(id => GroupStore.get(id))
+      .filter((group): group is Group => !!group?.project)
+      .map(group => group.project.slug);
+    const uniqProjects = uniq(projects);
+    return uniqProjects.length === 1 ? uniqProjects[0] : undefined;
+  }, [selectedIdsSet]);
   const [isSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
@@ -192,7 +199,7 @@ function IssueListActions({
 
     callback(selectedIds);
 
-    SelectedGroupStore.deselectAll();
+    deselectAll();
   }
 
   // TODO: Remove issue.category:error filter when merging/deleting performance issues is supported
@@ -362,6 +369,7 @@ function IssueListActions({
         handleDelete={handleDelete}
         handleMerge={handleMerge}
         handleUpdate={handleUpdate}
+        toggleSelectAllVisible={toggleSelectAllVisible}
         multiSelected={multiSelected}
         narrowViewport={disableActions}
         selectedProjectSlug={selectedProjectSlug}
@@ -412,57 +420,6 @@ function IssueListActions({
       )}
     </StickyActions>
   );
-}
-
-function useSelectedGroupsState() {
-  const [allInQuerySelected, setAllInQuerySelected] = useState(false);
-  const selectedGroupState = useLegacyStore(SelectedGroupStore);
-
-  const {selectedIdsSet, pageSelected, multiSelected, anySelected, selectedProjectSlug} =
-    useMemo(() => {
-      const {records} = selectedGroupState;
-
-      // Compute selectedIds from records (equivalent to getSelectedIds)
-      const selectedIds = new Set([...records.keys()].filter(id => records.get(id)));
-
-      // Compute derived boolean values
-      const any = selectedIds.size > 0;
-      const multi = selectedIds.size > 1;
-      const all = any && selectedIds.size === records.size;
-
-      // Compute selectedProjectSlug
-      const projects = [...selectedIds]
-        .map(id => GroupStore.get(id))
-        .filter((group): group is Group => !!group?.project)
-        .map(group => group.project.slug);
-      const uniqProjects = uniq(projects);
-      // we only want selectedProjectSlug set if there is 1 project
-      // more or fewer should result in a null so that the action toolbar
-      // can behave correctly.
-      const projectSlug = uniqProjects.length === 1 ? uniqProjects[0] : undefined;
-
-      return {
-        selectedIdsSet: selectedIds,
-        pageSelected: all,
-        multiSelected: multi,
-        anySelected: any,
-        selectedProjectSlug: projectSlug,
-      };
-    }, [selectedGroupState]);
-
-  useEffect(() => {
-    setAllInQuerySelected(false);
-  }, [selectedGroupState]);
-
-  return {
-    pageSelected,
-    multiSelected,
-    anySelected,
-    allInQuerySelected,
-    selectedIdsSet,
-    selectedProjectSlug,
-    setAllInQuerySelected,
-  };
 }
 
 function shouldConfirm(
