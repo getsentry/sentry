@@ -18,10 +18,10 @@ class TestGroupAutofixUpdate(APITestCase):
             f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/autofix/update/"
         )
 
-    @patch("sentry.seer.endpoints.group_autofix_update.requests.post")
-    def test_autofix_update_successful(self, mock_post: MagicMock) -> None:
-        mock_post.return_value.status_code = 202
-        mock_post.return_value.json.return_value = {}
+    @patch("sentry.seer.endpoints.group_autofix_update.make_signed_seer_api_request")
+    def test_autofix_update_successful(self, mock_request: MagicMock) -> None:
+        mock_request.return_value.status_code = 202
+        mock_request.return_value.json.return_value = {}
 
         response = self.client.post(
             self.url,
@@ -55,15 +55,15 @@ class TestGroupAutofixUpdate(APITestCase):
             "content-type": "application/json;charset=utf-8",
             **sign_with_seer_secret(expected_body),
         }
-        mock_post.assert_called_once_with(
+        mock_request.assert_called_once_with(
             expected_url,
             data=expected_body,
             headers=expected_headers,
         )
 
-    @patch("sentry.seer.endpoints.group_autofix_update.requests.post")
-    def test_autofix_update_failure(self, mock_post: MagicMock) -> None:
-        mock_post.return_value.raise_for_status.side_effect = Exception("Failed to update")
+    @patch("sentry.seer.endpoints.group_autofix_update.make_signed_seer_api_request")
+    def test_autofix_update_failure(self, mock_request: MagicMock) -> None:
+        mock_request.return_value.raise_for_status.side_effect = Exception("Failed to update")
 
         response = self.client.post(
             self.url,
@@ -83,11 +83,11 @@ class TestGroupAutofixUpdate(APITestCase):
         response = self.client.post(self.url, data={}, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    @patch("sentry.seer.endpoints.group_autofix_update.requests.post")
-    def test_autofix_update_updates_last_triggered_field(self, mock_post):
+    @patch("sentry.seer.endpoints.group_autofix_update.make_signed_seer_api_request")
+    def test_autofix_update_updates_last_triggered_field(self, mock_request):
         """Test that a successful call updates the seer_autofix_last_triggered field."""
-        mock_post.return_value.status_code = 202
-        mock_post.return_value.json.return_value = {}
+        mock_request.return_value.status_code = 202
+        mock_request.return_value.json.return_value = {}
 
         self.group.refresh_from_db()
         assert self.group.seer_autofix_last_triggered is None

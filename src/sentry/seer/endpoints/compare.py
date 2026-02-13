@@ -4,10 +4,11 @@ import logging
 from typing import Any
 
 import orjson
-import requests
-from django.conf import settings
 
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_anomaly_detection_default_connection_pool,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,13 +35,11 @@ def compare_distributions(
             "meta": meta,
         }
     )
-    response = requests.post(
-        f"{settings.SEER_ANOMALY_DETECTION_URL}/v1/workflows/compare/cohort",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
+    response = make_signed_seer_api_request(
+        seer_anomaly_detection_default_connection_pool,
+        "/v1/workflows/compare/cohort",
+        body,
     )
-    response.raise_for_status()
+    if response.status >= 400:
+        raise Exception(f"Seer request failed with status {response.status}")
     return response.json()

@@ -417,7 +417,7 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
             "repos": [],
         }
 
-    @patch("sentry.seer.endpoints.group_autofix_setup_check.requests.post")
+    @patch("sentry.seer.endpoints.group_autofix_setup_check.make_signed_seer_api_request")
     @patch(
         "sentry.seer.endpoints.group_autofix_setup_check.get_autofix_repos_from_project_code_mappings",
         return_value=[
@@ -429,9 +429,9 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
             }
         ],
     )
-    def test_non_github_provider(self, mock_get_repos: MagicMock, mock_post: MagicMock) -> None:
+    def test_non_github_provider(self, mock_get_repos: MagicMock, mock_request: MagicMock) -> None:
         # Mock the response from the Seer service
-        mock_response = mock_post.return_value
+        mock_response = mock_request.return_value
         mock_response.json.return_value = {"has_access": True}
 
         group = self.create_group()
@@ -449,13 +449,13 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
         ]
 
         # Verify the API call was made correctly
-        mock_post.assert_called_once()
-        call_kwargs = mock_post.call_args.kwargs
+        mock_request.assert_called_once()
+        call_kwargs = mock_request.call_args.kwargs
         assert "data" in call_kwargs
         assert "headers" in call_kwargs
         assert "content-type" in call_kwargs["headers"]
 
-    @patch("sentry.seer.endpoints.group_autofix_setup_check.requests.post")
+    @patch("sentry.seer.endpoints.group_autofix_setup_check.make_signed_seer_api_request")
     @patch(
         "sentry.seer.endpoints.group_autofix_setup_check.get_autofix_repos_from_project_code_mappings",
         return_value=[
@@ -467,9 +467,9 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
             }
         ],
     )
-    def test_repo_without_access(self, mock_get_repos: MagicMock, mock_post: MagicMock) -> None:
+    def test_repo_without_access(self, mock_get_repos: MagicMock, mock_request: MagicMock) -> None:
         # Mock the response to indicate no access
-        mock_response = mock_post.return_value
+        mock_response = mock_request.return_value
         mock_response.json.return_value = {"has_access": False}
 
         group = self.create_group()
