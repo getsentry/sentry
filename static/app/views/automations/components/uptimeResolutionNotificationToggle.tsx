@@ -60,9 +60,7 @@ export function UptimeResolutionNotificationToggle() {
               {tct(
                 'Add an If/Then block with the [condition] filter to receive notifications when your uptime monitors come back online. [link:Learn more]',
                 {
-                  condition: (
-                    <strong>{t('"The issue priority de-escalates"')}</strong>
-                  ),
+                  condition: <strong>{t('"The issue priority de-escalates"')}</strong>,
                   link: (
                     <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/" />
                   ),
