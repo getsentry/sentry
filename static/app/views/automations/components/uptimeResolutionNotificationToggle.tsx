@@ -58,7 +58,7 @@ export function UptimeResolutionNotificationToggle() {
             </Text>
             <Text size="sm">
               {tct(
-                'Add an If/Then block with [condition] to send notifications when monitors recover. [link:Learn more]',
+                'Add an If/Then block with [condition] to be notified on recovery. [link:Learn more]',
                 {
                   condition: <strong>{t('"The issue priority de-escalates"')}</strong>,
                   link: <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/" />,
