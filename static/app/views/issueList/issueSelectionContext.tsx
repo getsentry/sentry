@@ -1,12 +1,6 @@
 import type {ReactNode} from 'react';
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useReducer,
-} from 'react';
+import {createContext, useCallback, useContext, useMemo, useReducer, useRef} from 'react';
+import isEqual from 'lodash/isEqual';
 
 interface IssueSelectionState {
   allInQuerySelected: boolean;
@@ -64,6 +58,13 @@ function createInitialState(visibleGroupIds: string[]): IssueSelectionState {
   };
 }
 
+/**
+ * Align the selection map with the latest visible group ids.
+ *
+ * Existing ids keep their selection value, missing ids are dropped, and newly
+ * visible ids inherit the page-level all-selected state so checkbox behavior
+ * stays consistent across pagination/stream updates.
+ */
 function reconcileRecords(
   records: Map<string, boolean>,
   visibleGroupIds: string[]
@@ -97,6 +98,8 @@ function issueSelectionReducer(
 ): IssueSelectionState {
   switch (action.type) {
     case 'RECONCILE_VISIBLE_GROUP_IDS': {
+      // Reducer-level reconciliation keeps this transition idempotent regardless
+      // of which caller triggers it.
       const {changed, records} = reconcileRecords(state.records, action.groupIds);
       if (!changed) {
         return state;
@@ -206,14 +209,16 @@ export function IssueSelectionProvider({
     visibleGroupIds,
     createInitialState
   );
+  const previousVisibleGroupIdsRef = useRef(visibleGroupIds);
+
+  if (!isEqual(previousVisibleGroupIdsRef.current, visibleGroupIds)) {
+    previousVisibleGroupIdsRef.current = visibleGroupIds;
+    dispatch({type: 'RECONCILE_VISIBLE_GROUP_IDS', groupIds: visibleGroupIds});
+  }
 
   const reconcileVisibleGroupIds = useCallback((groupIds: string[]) => {
     dispatch({type: 'RECONCILE_VISIBLE_GROUP_IDS', groupIds});
   }, []);
-
-  useEffect(() => {
-    reconcileVisibleGroupIds(visibleGroupIds);
-  }, [reconcileVisibleGroupIds, visibleGroupIds]);
 
   const toggleSelect = useCallback((groupId: string) => {
     dispatch({type: 'TOGGLE_SELECT', groupId});

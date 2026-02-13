@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import type {ComponentProps, ReactNode} from 'react';
 import {useLayoutEffect} from 'react';
 
 import {act, render, renderHook} from 'sentry-test/reactTestingLibrary';
@@ -11,6 +11,7 @@ import {
 
 type SelectionState = ReturnType<typeof useIssueSelectionSummary> &
   ReturnType<typeof useIssueSelectionActions>;
+type ProviderProps = Omit<ComponentProps<typeof IssueSelectionProvider>, 'children'>;
 
 function useSelectionState(): SelectionState {
   const summary = useIssueSelectionSummary();
@@ -26,28 +27,14 @@ function SelectionProbe({onUpdate}: {onUpdate: (state: SelectionState) => void})
   return null;
 }
 
-function TestRoot({
-  onUpdate,
-  visibleGroupIds,
-}: {
-  onUpdate: (state: SelectionState) => void;
-  visibleGroupIds: string[];
-}) {
-  return (
-    <IssueSelectionProvider visibleGroupIds={visibleGroupIds}>
-      <SelectionProbe onUpdate={onUpdate} />
-    </IssueSelectionProvider>
-  );
-}
-
-function makeWrapper(visibleGroupIds: string[]) {
-  return function Wrapper({children}: {children?: ReactNode}) {
-    return (
-      <IssueSelectionProvider visibleGroupIds={visibleGroupIds}>
-        {children}
-      </IssueSelectionProvider>
-    );
-  };
+function renderSelectionHook(providerProps: ProviderProps) {
+  return renderHook(useSelectionState, {
+    wrapper: function Wrapper({children}: {children?: ReactNode}) {
+      return (
+        <IssueSelectionProvider {...providerProps}>{children}</IssueSelectionProvider>
+      );
+    },
+  });
 }
 
 describe('IssueSelectionContext', () => {
@@ -56,9 +43,10 @@ describe('IssueSelectionContext', () => {
     const onUpdate = (value: SelectionState) => {
       current = value;
     };
-
-    const {rerender} = render(
-      <TestRoot visibleGroupIds={['1', '2']} onUpdate={onUpdate} />
+    const view = render(
+      <IssueSelectionProvider visibleGroupIds={['1', '2']}>
+        <SelectionProbe onUpdate={onUpdate} />
+      </IssueSelectionProvider>
     );
 
     expect([...current!.records.entries()]).toEqual([
@@ -73,7 +61,11 @@ describe('IssueSelectionContext', () => {
       ['2', true],
     ]);
 
-    rerender(<TestRoot visibleGroupIds={['2', '3']} onUpdate={onUpdate} />);
+    view.rerender(
+      <IssueSelectionProvider visibleGroupIds={['2', '3']}>
+        <SelectionProbe onUpdate={onUpdate} />
+      </IssueSelectionProvider>
+    );
 
     expect([...current!.records.entries()]).toEqual([
       ['2', true],
@@ -83,9 +75,7 @@ describe('IssueSelectionContext', () => {
   });
 
   it('computes derived selection values from toggles', () => {
-    const {result} = renderHook(useSelectionState, {
-      wrapper: makeWrapper(['1', '2', '3']),
-    });
+    const {result} = renderSelectionHook({visibleGroupIds: ['1', '2', '3']});
 
     expect(result.current.anySelected).toBe(false);
     expect(result.current.multiSelected).toBe(false);
@@ -104,8 +94,8 @@ describe('IssueSelectionContext', () => {
   });
 
   it('supports shift-range selection using visible row order', () => {
-    const {result} = renderHook(useSelectionState, {
-      wrapper: makeWrapper(['10', '11', '12', '13', '14']),
+    const {result} = renderSelectionHook({
+      visibleGroupIds: ['10', '11', '12', '13', '14'],
     });
 
     act(() => result.current.toggleSelect('12'));
@@ -120,9 +110,7 @@ describe('IssueSelectionContext', () => {
   });
 
   it('resets all-in-query selection when selection changes', () => {
-    const {result} = renderHook(useSelectionState, {
-      wrapper: makeWrapper(['1', '2']),
-    });
+    const {result} = renderSelectionHook({visibleGroupIds: ['1', '2']});
 
     act(() => result.current.setAllInQuerySelected(true));
     expect(result.current.allInQuerySelected).toBe(true);

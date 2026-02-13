@@ -46,31 +46,20 @@ const defaultProps = {
 const EMPTY_SELECTED_IDS: string[] = [];
 
 function SelectionInitializer({
-  groupIds,
-  selectedIds = EMPTY_SELECTED_IDS,
   allSelected = false,
+  selectedIds = EMPTY_SELECTED_IDS,
 }: {
-  groupIds: string[];
   allSelected?: boolean;
   selectedIds?: string[];
 }) {
-  const {reconcileVisibleGroupIds, toggleSelect, toggleSelectAllVisible} =
-    useIssueSelectionActions();
+  const {toggleSelect, toggleSelectAllVisible} = useIssueSelectionActions();
 
   useLayoutEffect(() => {
-    reconcileVisibleGroupIds(groupIds);
     selectedIds.forEach(id => toggleSelect(id));
     if (allSelected) {
       toggleSelectAllVisible();
     }
-  }, [
-    allSelected,
-    groupIds,
-    reconcileVisibleGroupIds,
-    selectedIds,
-    toggleSelect,
-    toggleSelectAllVisible,
-  ]);
+  }, [allSelected, selectedIds, toggleSelect, toggleSelectAllVisible]);
 
   return null;
 }
@@ -90,11 +79,7 @@ function WrappedComponent({
     <Fragment>
       <GlobalModal />
       <IssueSelectionProvider visibleGroupIds={groupIds}>
-        <SelectionInitializer
-          groupIds={groupIds}
-          selectedIds={selectedIds}
-          allSelected={allSelected}
-        />
+        <SelectionInitializer selectedIds={selectedIds} allSelected={allSelected} />
         <IssueListActions {...defaultProps} {...props} groupIds={groupIds} />
       </IssueSelectionProvider>
     </Fragment>
