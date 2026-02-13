@@ -18,7 +18,7 @@ import {defined} from 'sentry/utils';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
-import {useScrollLock} from 'sentry/utils/useScrollLock';
+import {useScrollLock} from 'sentry/components/core/useScrollLock';
 
 export interface DrawerOptions {
   /**

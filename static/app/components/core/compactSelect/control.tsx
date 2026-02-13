@@ -32,7 +32,7 @@ import type {FormSize} from 'sentry/utils/theme';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
-import {useScrollLock} from 'sentry/utils/useScrollLock';
+import {useScrollLock} from 'sentry/components/core/useScrollLock';
 
 import type {SingleListProps} from './list';
 import type {SelectKey, SelectOptionOrSection} from './types';
