@@ -313,6 +313,8 @@ class Provider(Protocol):
     of behaviors which may or may not be explicitly defined on a service-provider.
     """
 
+    name: str
+
     def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool: ...
 
     def get_pull_request(

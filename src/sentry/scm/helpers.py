@@ -8,6 +8,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.repository import Repository as RepositoryModel
 from sentry.scm.errors import SCMCodedError, SCMError, SCMUnhandledException
+from sentry.scm.private.ipc import record_count_metric
 from sentry.scm.private.providers.github import GitHubProvider
 from sentry.scm.types import ExternalId, Provider, ProviderName, Referrer, Repository, RepositoryId
 
@@ -120,6 +121,7 @@ def exec_provider_fn[T](
     fetch_repository: Callable[[int, RepositoryId], Repository | None] = fetch_repository,
     fetch_service_provider: Callable[[int, int], Provider] = fetch_service_provider,
     provider_fn: Callable[[Repository, Provider], T],
+    record_count: Callable[[str, int, dict[str, str]], None] = record_count_metric,
 ) -> T:
     repository = fetch_repository(organization_id, repository_id)
     if not repository:
@@ -134,8 +136,12 @@ def exec_provider_fn[T](
         raise SCMCodedError(provider, organization_id, referrer, code="rate_limit_exceeded")
 
     try:
-        return provider_fn(repository, provider)
+        result = provider_fn(repository, provider)
+        record_count("sentry.scm.actions.success", 1, {"provider": provider.__class__.__name__})
+        record_count("sentry.scm.actions.success", 1, {"referrer": referrer})
+        return result
     except SCMError:
         raise
     except Exception as e:
+        record_count("sentry.scm.actions.failed", 1, {})
         raise SCMUnhandledException from e
