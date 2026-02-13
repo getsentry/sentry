@@ -1,9 +1,10 @@
 import type React from 'react';
 import {Fragment, memo, useCallback, useRef, useState} from 'react';
-import {AutoSizer, List, type ListRowRenderer} from 'react-virtualized';
 import styled from '@emotion/styled';
+import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -48,8 +49,8 @@ interface Props {
   onChange?: (projectId: string, value: string) => void;
 }
 
-const COLUMN_COUNT = 4;
-const BASE_ROW_HEIGHT = 68;
+const BASE_ROW_HEIGHT = 63;
+const MAX_SCROLL_HEIGHT = 400;
 
 export function ProjectsTable({
   items,
@@ -65,7 +66,7 @@ export function ProjectsTable({
   const [tableSort, setTableSort] = useState<'asc' | 'desc'>('desc');
   // We store the expanded items at list level to allow calculating item height
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-  const listRef = useRef<List | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const handleToggleItemExpanded = useCallback((id: string) => {
     setExpandedItems(value => {
@@ -77,12 +78,10 @@ export function ProjectsTable({
       }
       return newSet;
     });
-    listRef.current?.recomputeRowHeights();
   }, []);
 
   const handleTableSort = useCallback(() => {
     setTableSort(value => (value === 'asc' ? 'desc' : 'asc'));
-    listRef.current?.recomputeRowHeights();
   }, []);
 
   const itemsWithExpanded = items.map(item => ({
@@ -100,26 +99,16 @@ export function ProjectsTable({
     return b.count - a.count;
   });
 
-  const rowRenderer: ListRowRenderer = ({key, index, style}) => {
-    const item = sortedItems[index];
-    if (!item) {
-      return null;
-    }
-    return (
-      <TableRow
-        key={key}
-        style={style}
-        canEdit={canEdit}
-        onChange={onChange}
-        inputTooltip={inputTooltip}
-        toggleExpanded={handleToggleItemExpanded}
-        hasAccess={hasAccess}
-        {...item}
-      />
-    );
-  };
-
-  const estimatedListSize = sortedItems.length * BASE_ROW_HEIGHT;
+  const virtualizer = useVirtualizer({
+    count: sortedItems.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: index =>
+      sortedItems[index].isExpanded
+        ? BASE_ROW_HEIGHT + (sortedItems[index].subProjects.length + 1) * 21
+        : BASE_ROW_HEIGHT,
+    overscan: 5,
+    getItemKey: index => sortedItems[index].project.id,
+  });
 
   return (
     <Fragment>
@@ -142,27 +131,42 @@ export function ProjectsTable({
         </EmptyStateWarning>
       )}
       {!isLoading && items.length > 0 && (
-        <SizingWrapper style={{height: `${estimatedListSize}px`}}>
-          <AutoSizer>
-            {({width, height}) => (
-              <List
-                ref={list => {
-                  listRef.current = list;
-                }}
-                width={width}
-                height={height}
-                rowCount={sortedItems.length}
-                rowRenderer={rowRenderer}
-                rowHeight={({index}) =>
-                  sortedItems[index]?.isExpanded
-                    ? BASE_ROW_HEIGHT + (sortedItems[index]?.subProjects.length + 1) * 21
-                    : BASE_ROW_HEIGHT
-                }
-                columnCount={COLUMN_COUNT}
-              />
-            )}
-          </AutoSizer>
-        </SizingWrapper>
+        <ScrollContainer
+          ref={scrollContainerRef}
+          style={{height: Math.min(virtualizer.getTotalSize(), MAX_SCROLL_HEIGHT)}}
+        >
+          <div style={{height: virtualizer.getTotalSize(), position: 'relative'}}>
+            {virtualizer.getVirtualItems().map(virtualRow => {
+              const item = sortedItems[virtualRow.index];
+              if (!item) {
+                return null;
+              }
+              return (
+                <div
+                  key={virtualRow.key}
+                  data-index={virtualRow.index}
+                  ref={virtualizer.measureElement}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                >
+                  <TableRow
+                    canEdit={canEdit}
+                    onChange={onChange}
+                    inputTooltip={inputTooltip}
+                    toggleExpanded={handleToggleItemExpanded}
+                    hasAccess={hasAccess}
+                    {...item}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </ScrollContainer>
       )}
     </Fragment>
   );
@@ -274,7 +278,6 @@ const TableRow = memo(function TableRow({
   error,
   inputTooltip: inputTooltipProp,
   onChange,
-  style,
 }: {
   count: number;
   hasAccess: boolean;
@@ -283,7 +286,6 @@ const TableRow = memo(function TableRow({
   ownCount: number;
   project: Project;
   sampleRate: string;
-  style: React.CSSProperties;
   subProjects: SubProject[];
   toggleExpanded: (id: string) => void;
   canEdit?: boolean;
@@ -313,7 +315,7 @@ const TableRow = memo(function TableRow({
 
   const storedSpans = Math.floor(count * parsePercent(sampleRate));
   return (
-    <TableRowWrapper style={style}>
+    <TableRowWrapper>
       <Cell>
         <FirstCellLine data-has-chevron={isExpandable}>
           <HiddenButton
@@ -360,7 +362,7 @@ const TableRow = memo(function TableRow({
           )}
         </SubContent>
       </Cell>
-      <Cell>
+      <Flex direction="column" padding="xl xl md xl" style={{minWidth: 0}}>
         <FirstCellLine>
           <Tooltip disabled={!inputTooltip} title={inputTooltip}>
             <PercentInput
@@ -377,13 +379,13 @@ const TableRow = memo(function TableRow({
         ) : sampleRate === initialSampleRate ? null : (
           <SmallPrint>{t('previous: %s%%', initialSampleRate)}</SmallPrint>
         )}
-      </Cell>
+      </Flex>
     </TableRowWrapper>
   );
 });
 
-const SizingWrapper = styled('div')`
-  max-height: 400px;
+const ScrollContainer = styled('div')`
+  overflow-y: auto;
 `;
 
 const SmallPrint = styled('span')`
@@ -422,15 +424,12 @@ const TableRowWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr 165px 165px 152px;
   overflow: hidden;
-  &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  }
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const Cell = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.25)};
   padding: ${space(1)} ${space(2)};
   min-width: 0;
 
