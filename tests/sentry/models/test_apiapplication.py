@@ -91,7 +91,7 @@ class ApiApplicationTest(TestCase):
         app = ApiApplication.objects.create(
             owner=self.user,
             redirect_uris=(
-                "http://127.0.0.1/callback\n" "http://localhost/callback\n" "http://[::1]/callback"
+                "http://127.0.0.1/callback\nhttp://localhost/callback\nhttp://[::1]/callback"
             ),
         )
 

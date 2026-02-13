@@ -519,7 +519,6 @@ class VercelIntegrationTest(IntegrationTestCase):
 
 
 class VercelIntegrationMetadataTest(TestCase):
-
     def test_asdict(self) -> None:
         assert metadata.asdict() == {
             "description": "Vercel is an all-in-one platform with Global CDN supporting static & JAMstack deployment and Serverless Functions.",

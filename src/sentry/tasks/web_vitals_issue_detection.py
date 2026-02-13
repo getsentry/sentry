@@ -314,12 +314,12 @@ def get_highest_opportunity_page_vitals_for_project(
                         "values": {vital: p75_value},
                     }
                 else:
-                    web_vital_issue_groups[(VITAL_GROUPING_MAP[vital], name)]["scores"][
-                        vital
-                    ] = score
-                    web_vital_issue_groups[(VITAL_GROUPING_MAP[vital], name)]["values"][
-                        vital
-                    ] = p75_value
+                    web_vital_issue_groups[(VITAL_GROUPING_MAP[vital], name)]["scores"][vital] = (
+                        score
+                    )
+                    web_vital_issue_groups[(VITAL_GROUPING_MAP[vital], name)]["values"][vital] = (
+                        p75_value
+                    )
 
     metrics.incr(
         "web_vitals_issue_detection.rejected",

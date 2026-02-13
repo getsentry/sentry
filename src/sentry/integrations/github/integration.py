@@ -772,7 +772,6 @@ class GitHubIntegrationProvider(IntegrationProvider):
         *,
         extra: dict[str, Any],
     ) -> None:
-
         # Check if this is the Codecov GitHub app to trigger account linking
         github_app_id = extra.get("app_id")
         SENTRY_GITHUB_APP_ID = options.get("github-app.id")

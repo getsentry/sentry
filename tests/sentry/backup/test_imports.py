@@ -2550,6 +2550,6 @@ class TestLegacyTestSuite:
         handles monolith- and hybrid-database modes with the same code path,
         which is planned work.
         """
-        assert date.today() <= date(
-            2023, 11, 11
-        ), "Please delete the monolith-dbs test suite!"  # or else bump the date
+        assert date.today() <= date(2023, 11, 11), (
+            "Please delete the monolith-dbs test suite!"
+        )  # or else bump the date

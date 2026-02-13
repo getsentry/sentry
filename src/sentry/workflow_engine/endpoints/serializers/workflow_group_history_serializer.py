@@ -125,9 +125,7 @@ def fetch_workflow_groups_paginated(
     # The detector does not currently need to be connected to the workflow.
     detector_subquery = DetectorGroup.objects.filter(
         group=OuterRef("group"),
-    ).values(
-        "detector_id"
-    )[:1]
+    ).values("detector_id")[:1]
 
     qs = (
         filtered_history.select_related("group")

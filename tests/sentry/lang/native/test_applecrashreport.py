@@ -481,12 +481,10 @@ def test_binary_images_without_code_file() -> None:
     binary_images = acr.get_binary_images_apple_string()
     assert (
         binary_images
-        == "Binary Images:\n\
-0x1400c000 - 0x1404cfff {0} x86  <766dfb1472ee32d28961687d32548f2b> {0}\n\
-0x1406f000 - 0x1414dfff {0} x86  <be602dc1d3a03389b8f4922c37dea3dc> {0}\n\
-0x141c5000 - 0x141c9fff {0} x86  <4b5a054fb7a13ad081e1513b4dbe2a33> {0}".format(
-            NATIVE_UNKNOWN_STRING
-        )
+        == f"Binary Images:\n\
+0x1400c000 - 0x1404cfff {NATIVE_UNKNOWN_STRING} x86  <766dfb1472ee32d28961687d32548f2b> {NATIVE_UNKNOWN_STRING}\n\
+0x1406f000 - 0x1414dfff {NATIVE_UNKNOWN_STRING} x86  <be602dc1d3a03389b8f4922c37dea3dc> {NATIVE_UNKNOWN_STRING}\n\
+0x141c5000 - 0x141c9fff {NATIVE_UNKNOWN_STRING} x86  <4b5a054fb7a13ad081e1513b4dbe2a33> {NATIVE_UNKNOWN_STRING}"
     )
 
 

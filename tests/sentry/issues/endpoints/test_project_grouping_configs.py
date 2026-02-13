@@ -7,7 +7,6 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class ProjectGroupingConfigsTest(APITestCase):
-
     endpoint = "sentry-api-0-project-grouping-configs"
 
     def test_permissions(self) -> None:

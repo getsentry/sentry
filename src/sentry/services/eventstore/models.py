@@ -599,8 +599,8 @@ class Event(BaseEvent):
         return state
 
     def __repr__(self) -> str:
-        return "<sentry.services.eventstore.models.Event at 0x{:x}: event_id={}>".format(
-            id(self), self.event_id
+        return (
+            f"<sentry.services.eventstore.models.Event at 0x{id(self):x}: event_id={self.event_id}>"
         )
 
     @property

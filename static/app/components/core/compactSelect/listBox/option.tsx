@@ -15,7 +15,6 @@ import {
 } from '@sentry/scraps/menuListItem';
 
 import {IconCheckmark} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 export interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;
@@ -128,6 +127,6 @@ export function ListBoxOption({
 
 const StyledMenuListItem = styled(MenuListItem)`
   > ${InnerWrap} {
-    padding-left: ${space(1)};
+    padding-left: ${p => p.theme.space.md};
   }
 `;

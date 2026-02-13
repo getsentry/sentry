@@ -11,7 +11,6 @@ from sentry.testutils.helpers.features import with_feature
 
 
 class BuildsEndpointTest(APITestCase):
-
     @cached_property
     def user_auth_token(self):
         auth_token = self.create_user_auth_token(

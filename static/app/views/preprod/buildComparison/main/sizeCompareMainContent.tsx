@@ -39,7 +39,10 @@ import type {
   SizeAnalysisComparisonResults,
   SizeComparisonApiResponse,
 } from 'sentry/views/preprod/types/appSizeTypes';
-import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
+import {
+  getCompareApiUrl,
+  getCompareBuildPath,
+} from 'sentry/views/preprod/utils/buildLinkUtils';
 
 function getMainComparison(
   response: SizeComparisonApiResponse | undefined
@@ -79,30 +82,22 @@ export function SizeCompareMainContent() {
     throw new Error('baseArtifactId is required');
   }
 
+  const compareUrl = getCompareApiUrl({
+    organizationSlug: organization.slug,
+    projectId,
+    headArtifactId,
+    baseArtifactId,
+  });
+
   const sizeComparisonQuery: UseApiQueryResult<SizeComparisonApiResponse, RequestError> =
-    useApiQuery<SizeComparisonApiResponse>(
-      [
-        getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headArtifactId/$baseArtifactId/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              projectIdOrSlug: projectId,
-              headArtifactId,
-              baseArtifactId,
-            },
-          }
-        ),
-      ],
-      {
-        staleTime: 0,
-        enabled: !!projectId && !!headArtifactId && !!baseArtifactId,
-        refetchInterval: query => {
-          const mainComparison = getMainComparison(query.state.data?.[0]);
-          return isSizeAnalysisComparisonInProgress(mainComparison) ? 10_000 : false;
-        },
-      }
-    );
+    useApiQuery<SizeComparisonApiResponse>([compareUrl], {
+      staleTime: 0,
+      enabled: !!projectId && !!headArtifactId && !!baseArtifactId,
+      refetchInterval: query => {
+        const mainComparison = getMainComparison(query.state.data?.[0]);
+        return isSizeAnalysisComparisonInProgress(mainComparison) ? 10_000 : false;
+      },
+    });
 
   const mainArtifactComparison = getMainComparison(sizeComparisonQuery.data);
 
@@ -137,10 +132,7 @@ export function SizeCompareMainContent() {
     {baseArtifactId: string; headArtifactId: string}
   >({
     mutationFn: () => {
-      return fetchMutation({
-        url: `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
-        method: 'POST',
-      });
+      return fetchMutation({url: compareUrl, method: 'POST'});
     },
     onSuccess: () => {
       navigate(

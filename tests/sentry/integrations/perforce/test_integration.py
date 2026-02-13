@@ -84,7 +84,9 @@ class PerforceIntegrationTest(IntegrationTestCase):
                 "password": "testpass",
             },
         )
-        installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
+        installation: PerforceIntegration = integration_with_swarm.get_installation(
+            self.organization.id
+        )  # type: ignore[assignment]
 
         url = installation.format_source_url(
             repo=self.repo, filepath="app/services/processor.cpp#1", branch=None
@@ -105,7 +107,9 @@ class PerforceIntegrationTest(IntegrationTestCase):
                 "password": "testpass",
             },
         )
-        installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
+        installation: PerforceIntegration = integration_with_swarm.get_installation(
+            self.organization.id
+        )  # type: ignore[assignment]
 
         url = installation.format_source_url(
             repo=self.repo, filepath="app/services/processor.cpp", branch=None
@@ -126,7 +130,9 @@ class PerforceIntegrationTest(IntegrationTestCase):
                 "password": "testpass",
             },
         )
-        installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
+        installation: PerforceIntegration = integration_with_swarm.get_installation(
+            self.organization.id
+        )  # type: ignore[assignment]
 
         url = installation.format_source_url(
             repo=self.repo, filepath="//depot/app/services/processor.cpp", branch=None
@@ -148,7 +154,9 @@ class PerforceIntegrationTest(IntegrationTestCase):
                 "password": "testpass",
             },
         )
-        installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
+        installation: PerforceIntegration = integration_with_swarm.get_installation(
+            self.organization.id
+        )  # type: ignore[assignment]
 
         url = installation.format_source_url(
             repo=self.repo, filepath="depot/app/services/processor.cpp", branch=None
@@ -420,7 +428,9 @@ class PerforceIntegrationWebViewersTest(IntegrationTestCase):
                 "password": "testpass",
             },
         )
-        installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
+        installation: PerforceIntegration = integration_with_swarm.get_installation(
+            self.organization.id
+        )  # type: ignore[assignment]
 
         # Filename with revision
         url = installation.format_source_url(

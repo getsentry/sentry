@@ -36,7 +36,6 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsEndpointBase):
     def get_field_list(
         self, organization: Organization, request: Request, param_name: str = "field"
     ) -> list[str]:
-
         fields = [
             "error.type",
             "id",

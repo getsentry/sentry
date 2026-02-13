@@ -99,7 +99,7 @@ class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsEndpointBase):
                 validated_data = serializer.validated_data
 
                 # generate the appropriate query for the selected type
-                transaction_query = f'transaction:{validated_data["transaction"]}'
+                transaction_query = f"transaction:{validated_data['transaction']}"
                 measurements = MEASUREMENT_TYPES[validated_data["type"]]
                 has_queries = [f"has:{measurement}" for measurement in measurements]
                 measurement_query = " OR ".join(has_queries)

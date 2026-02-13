@@ -183,7 +183,6 @@ const TRANSACTIONS_TABLE: Widget = {
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
   interval: '5m',
-  limit: 50,
   tableWidths: TABLE_FIELDS.map(() => -1),
   queries: [
     {

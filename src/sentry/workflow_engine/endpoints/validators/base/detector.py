@@ -149,7 +149,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
         detector_quota = self.get_quota()
         if detector_quota.has_exceeded:
             raise serializers.ValidationError(
-                f"Used {detector_quota.count}/{detector_quota.limit} of allowed {validated_data["type"].slug} monitors."
+                f"Used {detector_quota.count}/{detector_quota.limit} of allowed {validated_data['type'].slug} monitors."
             )
 
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:

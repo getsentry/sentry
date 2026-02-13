@@ -6,8 +6,6 @@ import {motion, type Transition} from 'framer-motion';
 
 import {BoundaryContextProvider} from '@sentry/scraps/boundaryContext';
 
-import {space} from 'sentry/styles/space';
-
 const RIGHT_SIDE_PANEL_WIDTH = '50vw';
 const LEFT_SIDE_PANEL_WIDTH = '40vw';
 const PANEL_HEIGHT = '50vh';
@@ -136,10 +134,10 @@ const _SlideOverPanel = styled(motion.div, {
 }>`
   position: fixed;
 
-  top: ${p => (p.position === 'left' ? '54px' : space(2))};
-  right: ${p => (p.position === 'left' ? space(2) : 0)};
-  bottom: ${space(2)};
-  left: ${p => (p.position === 'left' ? 0 : space(2))};
+  top: ${p => (p.position === 'left' ? '54px' : p.theme.space.xl)};
+  right: ${p => (p.position === 'left' ? p.theme.space.xl : 0)};
+  bottom: ${p => p.theme.space.xl};
+  left: ${p => (p.position === 'left' ? 0 : p.theme.space.xl)};
 
   overflow: auto;
   pointer-events: auto;

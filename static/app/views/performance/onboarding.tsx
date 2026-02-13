@@ -10,7 +10,7 @@ import tourMetrics from 'sentry-images/spot/performance-tour-metrics.svg';
 import tourTrace from 'sentry-images/spot/performance-tour-trace.svg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Container, Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {
   addErrorMessage,
@@ -28,6 +28,10 @@ import FeatureTourModal, {
 } from 'sentry/components/modals/featureTourModal';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {
+  CopySetupInstructionsGate,
+  OnboardingCopyMarkdownButton,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
   TabSelectionScope,
@@ -583,6 +587,11 @@ export function Onboarding({organization, project}: OnboardingProps) {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
+      <CopySetupInstructionsGate>
+        <Container paddingBottom="md">
+          <OnboardingCopyMarkdownButton steps={steps} source="performance_onboarding" />
+        </Container>
+      </CopySetupInstructionsGate>
       <GuidedSteps
         initialStep={decodeInteger(location.query.guidedStep)}
         onStepChange={step => {

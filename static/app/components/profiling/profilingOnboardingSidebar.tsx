@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import useDrawer from 'sentry/components/globalDrawer';
@@ -11,6 +11,10 @@ import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DeprecatedPlatformInfo} from 'sentry/components/onboarding/gettingStartedDoc/deprecatedPlatformInfo';
+import {
+  CopySetupInstructionsGate,
+  OnboardingCopyMarkdownButton,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
@@ -363,6 +367,14 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     <TabSelectionScope>
       <Wrapper>
         {doc.introduction && <Introduction>{doc.introduction(docParams)}</Introduction>}
+        <CopySetupInstructionsGate>
+          <Container paddingBottom="md">
+            <OnboardingCopyMarkdownButton
+              steps={steps}
+              source="profiling_sidebar_onboarding"
+            />
+          </Container>
+        </CopySetupInstructionsGate>
         <Steps>
           {steps.map((step, index) => {
             return <Step key={step.title ?? step.type} stepIndex={index} {...step} />;
