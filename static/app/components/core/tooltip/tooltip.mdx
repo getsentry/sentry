@@ -16,7 +16,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
 
 import documentation from '!!type-loader!@sentry/scraps/tooltip/index';
 
@@ -40,11 +39,11 @@ To create a basic tooltip, wrap any element with `<Tooltip>` and provide the `ti
 Tooltips can be positioned in different directions using the `position` prop. Available positions include `top`, `bottom`, `left`, and `right`.
 
 <Storybook.Demo>
-  <Flex direction="column" gap={space(1)} align="center">
+  <Flex direction="column" gap="md" align="center">
     <Tooltip title="Top tooltip" position="top" forceVisible>
       <Button>Top</Button>
     </Tooltip>
-    <Flex gap={space(1)}>
+    <Flex gap="md">
       <Tooltip title="Left tooltip" position="left" forceVisible>
         <Button>Left</Button>
       </Tooltip>
@@ -77,7 +76,7 @@ Tooltips can be positioned in different directions using the `position` prop. Av
 By default, tooltips hide when you move your cursor toward them. For interactive tooltips that contain clickable content, use the `isHoverable` prop to allow users to hover over the tooltip itself.
 
 <Storybook.Demo>
-  <Flex gap={space(1)}>
+  <Flex gap="md">
     <Tooltip title="You can hover over this tooltip" isHoverable>
       <Button>Hoverable</Button>
     </Tooltip>
@@ -100,7 +99,7 @@ By default, tooltips hide when you move your cursor toward them. For interactive
 Control the maximum width of tooltips using the `maxWidth` prop. The default maximum width is 225px.
 
 <Storybook.Demo>
-  <Flex gap={space(1)}>
+  <Flex gap="md">
     <Tooltip title="This tooltip has a very long message that will wrap to multiple lines by default">
       <Button>Default width</Button>
     </Tooltip>
@@ -129,7 +128,7 @@ Control the maximum width of tooltips using the `maxWidth` prop. The default max
 Tooltips can display rich content including formatted text, multiple lines, and React elements.
 
 <Storybook.Demo>
-  <Flex gap={space(1)}>
+  <Flex gap="md">
     <Tooltip
       title={
         <div>
@@ -192,7 +191,7 @@ Tooltips can display rich content including formatted text, multiple lines, and 
 Tooltips can be disabled entirely using the `disabled` prop, which prevents them from showing on hover.
 
 <Storybook.Demo>
-  <Flex gap={space(1)}>
+  <Flex gap="md">
     <Tooltip title="This tooltip is enabled">
       <Button>Enabled tooltip</Button>
     </Tooltip>
@@ -216,7 +215,7 @@ Tooltips can be disabled entirely using the `disabled` prop, which prevents them
 For text that may or may not overflow, use the `showOnlyOnOverflow` prop to conditionally show tooltips only when content is truncated.
 
 <Storybook.Demo>
-  <Flex direction="column" gap={space(1)}>
+  <Flex direction="column" gap="md">
     <div style={{width: 200}}>
       <Tooltip
         title="This text is long and will be truncated with overflow"

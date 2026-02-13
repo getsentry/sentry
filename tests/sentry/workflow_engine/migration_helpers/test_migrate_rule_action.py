@@ -36,7 +36,6 @@ class TestNotificationActionMigrationUtils(TestCase):
     def assert_ticketing_action_data_blob(
         self, action: Action, compare_dict: dict[str, Any], exclude_keys: list[str]
     ) -> None:
-
         # Check dynamic_form_fields
         assert action.data.get(
             TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, {}

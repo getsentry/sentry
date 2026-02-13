@@ -142,16 +142,12 @@ default = true
 
 [dependency-groups]
 dev = [
-    "black>=25.1.0",
     "covdefaults>=2.3.0",
     "devservices>=1.2.4",
     "docker>=7.1.0",
     "ephemeral-port-reserve>=1.1.4",
     "flake8>=7.3.0",
-    "flake8-bugbear>=22.10.27",
-    "flake8-logging>=1.5.0",
     "honcho>=2.0.0",
-    "isort>=6",
     "lxml-stubs>=0.4.0",
     "msgpack-types>=0.2.0",
     "mypy>=1.19.1",
@@ -170,7 +166,6 @@ dev = [
     "pytest-sentry>=0.3.0",
     "pytest-workaround-12888>=1.0.0",
     "pytest-xdist>=3.0.2",
-    "pyupgrade>=3.19.1",
     "responses>=0.23.1",
     "ruff>=0.14.0",
     "selenium>=4.16.0",
@@ -200,19 +195,73 @@ dev = [
     "types-unidiff>=0.7.0.20240505",
 ]
 
-[tool.black]
-# File filtering is taken care of in pre-commit.
+[tool.ruff]
 line-length = 100
-target-version = ['py313']
+target-version = "py313"
 
-[tool.isort]
-profile = "black"
-line_length = 100
-lines_between_sections = 1
-known_first_party = "sentry"
-skip = "migrations"
-# feature appears bugged in isort 6.x pycqa/isort#2352
-split_on_trailing_comma = false
+[tool.ruff.format]
+# Use black-compatible defaults
+quote-style = "double"
+indent-style = "space"
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "B",      # flake8-bugbear
+    "LOG",    # flake8-logging
+    "I",      # isort
+    "T20",    # flake8-print (replaces S002)
+    "UP",     # pyupgrade
+]
+ignore = [
+    "E203",   # whitespace before ':' (black compatibility)
+    "E402",   # module level import not at top of file
+    "E501",   # line too long (formatter handles this)
+    "E731",   # do not assign a lambda expression
+    "B007",   # unused loop control variable
+    "B009",   # do not call getattr with a constant attribute value
+    "B010",   # do not call setattr with a constant attribute value
+    "B011",   # do not call assert False (we don't use PYTHONOPTIMIZE)
+    "B017",   # assert-raises-exception (not enforced before)
+    "B018",   # useless-expression (not enforced before)
+    "B020",   # loop variable overwritten by assignment target
+    "B023",   # function definition does not bind loop variable
+    "B024",   # abstract base class with no abstract methods
+    "B026",   # star-arg unpacking after a keyword argument
+    "B027",   # empty method in abstract base class
+    "B904",   # raise-without-from-inside-except (not enforced before)
+    "B905",   # zip-without-explicit-strict (not enforced before)
+    "B911",   # itertools.batched without strict (not enforced before)
+    "B028",   # no explicit stacklevel in warnings (not enforced before)
+    "B033",   # duplicate set items (not enforced before)
+    "B039",   # mutable ContextVar default (not enforced before)
+    # --- flake8-logging rules not previously enforced ---
+    "LOG014", # exc-info-outside-except-handler
+    "LOG015", # root-logger-call
+    # --- pyupgrade rules to ignore for now ---
+    "UP007",  # use X | Y for union types (fix in future PR)
+    "UP017",  # datetime-utc-alias
+    "UP031",  # printf-string-formatting (fix with f-strings in future PR)
+    "UP035",  # deprecated typing imports (fix in future PR)
+    "UP040",  # use type keyword instead of TypeAlias (fix in future PR)
+    "UP045",  # use X | None instead of Optional (fix in future PR)
+    "UP046",  # non-pep695-generic-class (PEP 695 migration is a larger effort)
+    "UP047",  # non-pep695-generic-function (PEP 695 migration is a larger effort)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Allow print statements in specific files (matches S002 ignores)
+".github/*" = ["T20"]
+"devenv/*.py" = ["T20"]
+"src/sentry/build/*" = ["T20"]
+"tools/*" = ["T20"]
+"src/flagpole/*" = ["T20"]
+"**/migrations/*" = ["I"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["sentry"]
 
 [tool.pytest.ini_options]
 python_files = "test_*.py sentry/testutils/*"

@@ -145,15 +145,6 @@ jobs:
           CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
         run: make compute-selected-tests
 
-      - name: Upload coverage database artifact
-        if: steps.download-coverage.outputs.coverage-file != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-db-${{ github.run_id }}
-          path: .coverage/
-          retention-days: 1
-          include-hidden-files: true
-
       - name: Upload selected tests artifact
         if: steps.compute-tests.outputs.has-selected-tests == 'true'
         uses: actions/upload-artifact@v4

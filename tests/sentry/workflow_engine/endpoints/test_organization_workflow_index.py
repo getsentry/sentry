@@ -15,7 +15,13 @@ from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
-from sentry.workflow_engine.models import Action, DetectorWorkflow, Workflow, WorkflowFireHistory
+from sentry.workflow_engine.models import (
+    Action,
+    DataConditionGroup,
+    DetectorWorkflow,
+    Workflow,
+    WorkflowFireHistory,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.typings.notification_action import (
     ActionTarget,
@@ -969,6 +975,88 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             raw_data=self.valid_workflow,
             status_code=403,
         )
+
+    def test_create_trigger_condition_from_different_organization(self) -> None:
+        """Test that conditionGroupId in trigger conditions cannot reference another org's group"""
+        other_org = self.create_organization()
+        other_dcg = DataConditionGroup.objects.create(
+            organization=other_org,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+        original_condition_count = other_dcg.conditions.count()
+
+        data = {
+            **self.valid_workflow,
+            "triggers": {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "conditionGroupId": other_dcg.id,
+                        "type": "first_seen_event",
+                        "comparison": True,
+                        "conditionResult": True,
+                    }
+                ],
+            },
+        }
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=data,
+            status_code=201,
+        )
+
+        # Workflow should be created successfully, but the conditionGroupId should be ignored
+        new_workflow = Workflow.objects.get(id=response.data["id"])
+        assert new_workflow.when_condition_group is not None
+        assert new_workflow.when_condition_group.organization_id == self.organization.id
+
+        # Verify the other org's condition group was not modified
+        other_dcg.refresh_from_db()
+        assert other_dcg.conditions.count() == original_condition_count
+
+    def test_create_action_filter_condition_from_different_organization(self) -> None:
+        """Test that conditionGroupId in action filter conditions cannot reference another org's group"""
+        other_org = self.create_organization()
+        other_dcg = DataConditionGroup.objects.create(
+            organization=other_org,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+        original_condition_count = other_dcg.conditions.count()
+
+        data = {
+            **self.valid_workflow,
+            "actionFilters": [
+                {
+                    "logicType": "any",
+                    "conditions": [
+                        {
+                            "conditionGroupId": other_dcg.id,
+                            "type": "first_seen_event",
+                            "comparison": True,
+                            "conditionResult": True,
+                        }
+                    ],
+                    "actions": [],
+                }
+            ],
+        }
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=data,
+            status_code=201,
+        )
+
+        # Workflow should be created successfully, but the conditionGroupId should be ignored
+        new_workflow = Workflow.objects.get(id=response.data["id"])
+        action_filter_dcgs = new_workflow.workflowdataconditiongroup_set.all()
+        for dcg_wrapper in action_filter_dcgs:
+            assert dcg_wrapper.condition_group.organization_id == self.organization.id
+
+        # Verify the other org's condition group was not modified
+        other_dcg.refresh_from_db()
+        assert other_dcg.conditions.count() == original_condition_count
 
 
 @region_silo_test

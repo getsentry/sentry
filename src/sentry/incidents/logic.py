@@ -1995,7 +1995,7 @@ def get_slack_channel_ids(
     slack_actions = get_slack_actions_with_async_lookups(organization, data)
     mapped_slack_channels = {}
     for action in slack_actions:
-        if not action["target_identifier"] in mapped_slack_channels:
+        if action["target_identifier"] not in mapped_slack_channels:
             target = get_target_identifier_display_for_integration(
                 action["type"].value,
                 action["target_identifier"],

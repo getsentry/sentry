@@ -41,7 +41,10 @@ import {
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
-import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
+import {
+  getCompareApiUrl,
+  getCompareBuildPath,
+} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {
   formattedPrimaryMetricDownloadSize,
   formattedPrimaryMetricInstallSize,
@@ -113,10 +116,13 @@ export function SizeCompareSelectionContent({
   >({
     mutationFn: ({headArtifactId, baseArtifactId}) => {
       return api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
-        {
-          method: 'POST',
-        }
+        getCompareApiUrl({
+          organizationSlug: organization.slug,
+          projectId,
+          headArtifactId,
+          baseArtifactId,
+        }),
+        {method: 'POST'}
       );
     },
     onSuccess: () => {

@@ -825,7 +825,6 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
         )
 
     def test_schema(self) -> None:
-
         res = self.get_replays_response("fruit", {})
 
         assert sorted(res[0].keys()) == [

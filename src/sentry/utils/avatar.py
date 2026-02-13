@@ -26,10 +26,7 @@ def get_gravatar_url(
 ) -> str:
     if email is None:
         email = ""
-    gravatar_url = "{}/avatar/{}".format(
-        settings.SENTRY_GRAVATAR_BASE_URL,
-        sha256_text(email.strip().lower()).hexdigest(),
-    )
+    gravatar_url = f"{settings.SENTRY_GRAVATAR_BASE_URL}/avatar/{sha256_text(email.strip().lower()).hexdigest()}"
 
     properties: MutableMapping[str, int | str] = {}
     if size:

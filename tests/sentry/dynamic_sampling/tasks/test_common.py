@@ -22,7 +22,6 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 @freeze_time(MOCK_DATETIME)
 class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     def setUp(self) -> None:
-
         # create 10 orgs each with 10 transactions
         for i in range(10):
             org = self.create_organization(f"org-{i}")

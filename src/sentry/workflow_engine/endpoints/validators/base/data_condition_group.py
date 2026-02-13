@@ -63,8 +63,8 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
         conditions = validated_data.pop("conditions", None)
         if conditions:
             for condition_data in conditions:
-                if not condition_data.get("condition_group_id"):
-                    condition_data["condition_group_id"] = instance.id
+                # Always set condition_group_id programmatically to prevent cross-org IDOR
+                condition_data["condition_group_id"] = instance.id
                 self.update_or_create_condition(condition_data, context_org.id)
 
         # update the condition group
@@ -79,8 +79,8 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
             )
 
             for condition in validated_data["conditions"]:
-                if not condition.get("condition_group_id"):
-                    condition["condition_group_id"] = condition_group.id
+                # Always set condition_group_id programmatically to prevent cross-org IDOR
+                condition["condition_group_id"] = condition_group.id
                 condition_validator = BaseDataConditionValidator()
                 condition_validator.create(condition)
 

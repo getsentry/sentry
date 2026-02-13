@@ -48,8 +48,6 @@ def test_diff() -> None:
 + <Thread(Thread-2 (commit), started daemon 456)>@module.Committer
 +   File "test.py", line 20
 + # noqa
-""".replace(
-        "# noqa", ""
-    )
+""".replace("# noqa", "")
 
     assert "".join(result) == expected_output

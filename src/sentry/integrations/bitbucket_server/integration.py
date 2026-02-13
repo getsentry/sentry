@@ -333,7 +333,7 @@ class BitbucketServerIntegration(RepositoryIntegration):
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         project = quote(repo.config["project"])
         repo_name = quote(repo.config["repo"])
-        source_url = f"{self.model.metadata["base_url"]}/projects/{project}/repos/{repo_name}/browse/{filepath}"
+        source_url = f"{self.model.metadata['base_url']}/projects/{project}/repos/{repo_name}/browse/{filepath}"
 
         if branch:
             source_url += "?" + urlencode({"at": branch})
