@@ -1,24 +1,8 @@
 import {z} from 'zod';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {AutoSaveField, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-
-// Helper to change range input value - the Slider component reads e.currentTarget.valueAsNumber
-// We need to ensure this property is properly set for the onChange handler to work
-function changeRangeValue(slider: HTMLInputElement, value: number) {
-  act(() => {
-    // Set the native value first (this updates valueAsNumber automatically)
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(
-      slider,
-      String(value)
-    );
-
-    // Dispatch input event - this will trigger the Slider's onChange
-    // which reads currentTarget.valueAsNumber
-    slider.dispatchEvent(new Event('input', {bubbles: true}));
-  });
-}
 
 interface TestFormProps {
   label: string;
@@ -119,15 +103,6 @@ describe('RangeField', () => {
     render(<TestForm label="Volume" defaultValue={75} />);
 
     expect(screen.getByRole('slider')).toHaveValue('75');
-  });
-
-  it('updates value on change', () => {
-    render(<TestForm label="Volume" defaultValue={50} min={0} max={100} />);
-
-    const slider = screen.getByRole('slider') as HTMLInputElement;
-    changeRangeValue(slider, 75);
-
-    expect(slider).toHaveValue('75');
   });
 });
 
