@@ -1,12 +1,19 @@
+from typing import Any
+
 import pytest
 
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
 from sentry.services import eventstore
+from sentry.testutils.pytest.fixtures import InstaSnapshotter
+from tests.sentry.event_manager.interfaces import CustomSnapshotter as CustomSnapshotterBase
+
+SnapshotInput = dict[str, Any]
+CustomSnapshotter = CustomSnapshotterBase[SnapshotInput]
 
 
 @pytest.fixture
-def make_csp_snapshot(insta_snapshot):
-    def inner(data):
+def make_csp_snapshot(insta_snapshot: InstaSnapshotter) -> CustomSnapshotter:
+    def inner(data: SnapshotInput) -> None:
         mgr = EventManager(
             data={
                 "expectstaple": data,
@@ -45,5 +52,5 @@ interface_json = {
 }
 
 
-def test_basic(make_csp_snapshot) -> None:
+def test_basic(make_csp_snapshot: CustomSnapshotter) -> None:
     make_csp_snapshot(interface_json)

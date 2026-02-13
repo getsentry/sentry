@@ -1,12 +1,19 @@
+from typing import Any
+
 import pytest
 
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
 from sentry.services import eventstore
+from sentry.testutils.pytest.fixtures import InstaSnapshotter
+from tests.sentry.event_manager.interfaces import CustomSnapshotter as CustomSnapshotterBase
+
+SnapshotInput = dict[str, Any]
+CustomSnapshotter = CustomSnapshotterBase[SnapshotInput]
 
 
 @pytest.fixture
-def make_csp_snapshot(insta_snapshot):
-    def inner(data):
+def make_csp_snapshot(insta_snapshot: InstaSnapshotter) -> CustomSnapshotter:
+    def inner(data: SnapshotInput) -> None:
         mgr = EventManager(
             data={"csp": data, "logentry": {"message": "XXX CSP MESSAGE NOT THROUGH RELAY XXX"}}
         )
@@ -30,7 +37,7 @@ def make_csp_snapshot(insta_snapshot):
     return inner
 
 
-def test_basic(make_csp_snapshot) -> None:
+def test_basic(make_csp_snapshot: CustomSnapshotter) -> None:
     make_csp_snapshot(
         dict(
             document_uri="http://example.com",
@@ -41,7 +48,7 @@ def test_basic(make_csp_snapshot) -> None:
     )
 
 
-def test_coerce_blocked_uri_if_missing(make_csp_snapshot) -> None:
+def test_coerce_blocked_uri_if_missing(make_csp_snapshot: CustomSnapshotter) -> None:
     make_csp_snapshot(dict(document_uri="http://example.com", effective_directive="script-src"))
 
 
@@ -96,5 +103,5 @@ def test_coerce_blocked_uri_if_missing(make_csp_snapshot) -> None:
         ),
     ],
 )
-def test_get_message(make_csp_snapshot, input) -> None:
+def test_get_message(make_csp_snapshot: CustomSnapshotter, input: SnapshotInput) -> None:
     make_csp_snapshot(input)
