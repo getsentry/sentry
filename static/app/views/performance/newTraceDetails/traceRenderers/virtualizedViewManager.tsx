@@ -1151,13 +1151,13 @@ export class VirtualizedViewManager {
     // |---text|
     const right_inside =
       this.transformXFromTimestamp(span_space[0] + span_space[1]) -
-      text_width -
-      TEXT_PADDING;
+      TEXT_PADDING -
+      Math.ceil(text_width);
     // |text---|
     const left_inside = this.transformXFromTimestamp(span_space[0]) + TEXT_PADDING;
     /// text |---|
     const left_outside =
-      this.transformXFromTimestamp(text_left) - TEXT_PADDING - text_width;
+      this.transformXFromTimestamp(text_left) - TEXT_PADDING - Math.ceil(text_width);
 
     // Right edge of the window (when span extends beyond the view)
     const window_right =
