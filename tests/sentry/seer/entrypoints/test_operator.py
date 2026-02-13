@@ -30,14 +30,16 @@ class MockEntrypoint(SeerEntrypoint[MockCachePayload]):
         self.autofix_errors = []
         self.autofix_run_ids = []
         self.autofix_update_cache_payloads = []
-        self.autofix_already_exists_states: list[AutofixState] = []
+        self.autofix_already_exists_states: list[tuple[AutofixState, bool]] = []
 
     @staticmethod
     def has_access(organization: Organization) -> bool:
         return True
 
-    def on_trigger_autofix_already_exists(self, *, state: AutofixState) -> None:
-        self.autofix_already_exists_states.append(state)
+    def on_trigger_autofix_already_exists(
+        self, *, state: AutofixState, has_complete_stage: bool
+    ) -> None:
+        self.autofix_already_exists_states.append((state, has_complete_stage))
 
     def on_trigger_autofix_error(self, *, error: str) -> None:
         self.autofix_errors.append(error)
@@ -159,7 +161,7 @@ class SeerOperatorTest(TestCase):
         )
 
         mock_trigger_autofix_helper.assert_not_called()
-        assert self.entrypoint.autofix_already_exists_states == [existing_state]
+        assert self.entrypoint.autofix_already_exists_states == [(existing_state, False)]
         assert self.entrypoint.autofix_run_ids == []
         assert self.entrypoint.autofix_errors == []
 

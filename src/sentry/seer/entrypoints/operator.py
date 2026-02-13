@@ -144,9 +144,7 @@ class SeerOperator[CachePayloadT]:
                 lifecycle.add_extras(
                     {
                         "existing_run_id": str(existing_state.run_id),
-                        "has_complete_stage": str(
-                            has_complete_stage_from_state(stopping_point, existing_state)
-                        ),
+                        "has_complete_stage": str(has_complete_stage),
                     }
                 )
                 if existing_state.status == AutofixStatus.PROCESSING:
