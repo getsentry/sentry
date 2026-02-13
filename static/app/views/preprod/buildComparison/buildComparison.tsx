@@ -26,24 +26,10 @@ import {SizeCompareMainContent} from 'sentry/views/preprod/buildComparison/main/
 import {SizeCompareSelectionContent} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectionContent';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getCompareApiUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
-
-type ErrorDetail = string | {code?: string; message?: string} | null | undefined;
-
-function handleStaffPermissionError(responseDetail: ErrorDetail) {
-  if (typeof responseDetail !== 'string' && responseDetail?.code === 'staff-required') {
-    addErrorMessage(
-      t(
-        'Re-authenticate as staff first and then return to this page and try again. Redirecting...'
-      )
-    );
-    setTimeout(() => {
-      window.location.href = '/_admin/';
-    }, 2000);
-    return;
-  }
-
-  addErrorMessage(t('Access denied. You may need to re-authenticate as staff.'));
-}
+import {
+  handleStaffPermissionError,
+  type StaffErrorDetail,
+} from 'sentry/views/preprod/utils/staffPermissionError';
 
 export default function BuildComparison() {
   const organization = useOrganization();
@@ -90,13 +76,13 @@ export default function BuildComparison() {
 
   const queryClient = useQueryClient();
   const {mutate: rerunComparison, isPending: isRerunning} = useMutation<
-    void,
+    {status: string},
     RequestError
   >({
     mutationFn: () => {
       return fetchMutation({url: compareUrl, method: 'POST'});
     },
-    onSuccess: (response: any) => {
+    onSuccess: response => {
       if (response?.status === 'exists') {
         addErrorMessage(t('Comparison already exists'));
       } else {
@@ -106,7 +92,7 @@ export default function BuildComparison() {
     },
     onError: (error: RequestError) => {
       if (error.status === 403) {
-        handleStaffPermissionError(error.responseJSON?.detail as ErrorDetail);
+        handleStaffPermissionError(error.responseJSON?.detail as StaffErrorDetail);
         return;
       }
       addErrorMessage(t('Failed to rerun comparison'));
