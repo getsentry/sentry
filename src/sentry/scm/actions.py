@@ -11,6 +11,7 @@ from sentry.scm.helpers import (
     map_integration_to_provider,
     map_repository_model_to_repository,
 )
+from sentry.scm.private.ipc import record_count_metric
 from sentry.scm.types import (
     CheckRunActionResult,
     CheckRunOutput,
@@ -49,6 +50,7 @@ class SourceCodeManager:
         referrer: Referrer = "shared",
         fetch_repository: Callable[[int, RepositoryId], Repository | None] = fetch_repository,
         fetch_service_provider: Callable[[int, int], Provider] = fetch_service_provider,
+        record_count: Callable[[str, int, dict[str, str]], None] = record_count_metric,
     ):
         """
         The SourceCodeManager class manages ACLs, rate-limits, environment setup, and a
@@ -77,6 +79,7 @@ class SourceCodeManager:
         self.referrer = referrer
         self.fetch_repository = fetch_repository
         self.fetch_service_provider = fetch_service_provider
+        self.record_count = record_count
 
     @classmethod
     def make_from_repository_id(
@@ -116,6 +119,7 @@ class SourceCodeManager:
             fetch_repository=self.fetch_repository,
             fetch_service_provider=self.fetch_service_provider,
             provider_fn=provider_fn,
+            record_count=self.record_count,
         )
 
     def get_issue_comments(self, issue_id: str) -> list[CommentActionResult]:

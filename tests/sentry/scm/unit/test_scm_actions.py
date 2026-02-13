@@ -532,8 +532,24 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
 
 @pytest.mark.parametrize(("method", "kwargs", "check"), ACTION_TESTS)
 def test_action_success(method, kwargs: dict[str, Any], check):
-    result = method(make_scm(), **kwargs)
-    check(result)
+    metrics = []
+
+    def record_count(k, a, t):
+        metrics.append((k, a, t))
+
+    scm = SourceCodeManager(
+        organization_id=1,
+        repository_id=1,
+        fetch_repository=fetch_repository,
+        fetch_service_provider=lambda _a, _b: BaseTestProvider(),
+        record_count=record_count,
+    )
+    check(method(scm, **kwargs))
+
+    assert metrics == [
+        ("sentry.scm.actions.success", 1, {"provider": "BaseTestProvider"}),
+        ("sentry.scm.actions.success", 1, {"referrer": "shared"}),
+    ]
 
 
 def test_active_repository_with_int_status_is_not_rejected():
