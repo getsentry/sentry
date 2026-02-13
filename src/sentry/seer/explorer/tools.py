@@ -787,8 +787,6 @@ def _get_recommended_event(
     organization: Organization,
     start: datetime | None = None,
     end: datetime | None = None,
-    max_date_range: timedelta = timedelta(days=14),
-    timeout: int = 55,  # Sentry API timeout is 60s
 ) -> GroupEvent | None:
     """
     Our own implementation of Group.get_recommended_event. Requires the return event to fall in the time range and have a non-empty trace.
@@ -797,17 +795,21 @@ def _get_recommended_event(
     If no events are valid, return the highest recommended event.
     """
     start_time = time.time()
+
+    # Config
+    max_date_range = timedelta(days=14)
+    timeout = 55  # Sentry API timeout is 60s - 5s buffer.
+    event_query_limit = 50  # Events/trace IDs to query in each window.
+    w_size = timedelta(days=3)
+
     start, end = get_group_date_range(group, organization, start, end)
     # Clamp date range as these queries can be very expensive.
     start = max(start, end - max_date_range)
     retention_boundary = get_retention_boundary(organization, bool(start.tzinfo))
 
-    # Config
-    event_query_limit = 50  # Events/trace IDs to query in each window.
-    w_size = timedelta(days=3)
     w_start = max(end - w_size, start)
     w_end = end
-    # First event we find (most recommended in most recent window).
+    # Fallback to first event we find (most recommended in most recent window).
     fallback_event: GroupEvent | None = None
 
     if group.issue_category == GroupCategory.ERROR:
