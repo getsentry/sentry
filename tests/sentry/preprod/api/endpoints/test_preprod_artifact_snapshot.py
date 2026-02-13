@@ -320,9 +320,9 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.data["image_count"] == 2
         assert len(response.data["images"]) == 2
         # Images should be sorted by key
-        assert response.data["images"][0]["id"] == "img1"
+        assert response.data["images"][0]["key"] == "img1"
         assert response.data["images"][0]["file_name"] == "Screen1"
-        assert response.data["images"][1]["id"] == "img2"
+        assert response.data["images"][1]["key"] == "img2"
 
     @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.get_preprod_session")
     def test_get_snapshot_details_with_vcs_info(self, mock_get_session):
@@ -368,8 +368,8 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
 
         assert response.status_code == 200
         assert len(response.data["images"]) == 3
-        assert response.data["images"][0]["id"] == "img002"
-        assert response.data["images"][2]["id"] == "img004"
+        assert response.data["images"][0]["key"] == "img002"
+        assert response.data["images"][2]["key"] == "img004"
 
     def test_get_snapshot_not_found(self):
         url = self._get_detail_url(99999)

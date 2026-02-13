@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from sentry.preprod.api.models.project_preprod_build_details_models import BuildDetailsVcsInfo
 from sentry.preprod.models import PreprodArtifact
@@ -24,8 +24,8 @@ class SnapshotDiffSection(StrEnum):
 
 
 class SnapshotGetRequest(BaseModel):
-    offset: int = 0
-    limit: int = 20
+    offset: int = Field(default=0, ge=0)
+    limit: int = Field(default=20, ge=1, le=100)
     section: SnapshotDiffSection | None = None
 
 

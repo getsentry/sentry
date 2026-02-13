@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
+from typing import Any
 
 import jsonschema
 import orjson
@@ -26,7 +26,6 @@ from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import 
     SnapshotGetRequest,
     SnapshotImageResponse,
 )
-from sentry.preprod.api.request_utils import parse_request_with_pydantic
 from sentry.preprod.api.schemas import VCS_ERROR_MESSAGES, VCS_SCHEMA_PROPERTIES
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
@@ -100,9 +99,10 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         ):
             return Response({"detail": "Feature not enabled"}, status=403)
 
-        request_data: SnapshotGetRequest = parse_request_with_pydantic(
-            request, cast(Any, SnapshotGetRequest)
-        )
+        try:
+            request_data = SnapshotGetRequest(**request.GET.dict())
+        except Exception:
+            return Response({"detail": "Invalid query parameters"}, status=400)
 
         try:
             artifact = PreprodArtifact.objects.select_related("commit_comparison").get(
