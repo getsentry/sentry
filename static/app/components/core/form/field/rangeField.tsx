@@ -1,25 +1,23 @@
+import type {DistributedOmit} from 'type-fest';
+
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Flex} from '@sentry/scraps/layout';
-import {Slider} from '@sentry/scraps/slider';
+import {Slider, type SliderProps} from '@sentry/scraps/slider';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {BaseField, useFieldStateIndicator, type BaseFieldProps} from './baseField';
 
-interface RangeFieldProps {
-  onChange: (value: number) => void;
-  value: number;
-  disabled?: boolean | string;
-  formatLabel?: (value: number | '') => React.ReactNode;
-  max?: number;
-  min?: number;
-  step?: number;
-}
-
 export function RangeField({
   onChange,
   disabled,
+  value,
   ...props
-}: BaseFieldProps & RangeFieldProps) {
+}: BaseFieldProps &
+  DistributedOmit<SliderProps, 'value' | 'onChange' | 'onBlur' | 'disabled'> & {
+    onChange: (value: number) => void;
+    value: number;
+    disabled?: boolean | string;
+  }) {
   const autoSaveContext = useAutoSaveContext();
   const indicator = useFieldStateIndicator();
   const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
@@ -34,7 +32,14 @@ export function RangeField({
               {...fieldProps}
               {...props}
               disabled={isDisabled}
-              onChange={(value: number) => onChange(value)}
+              value={value}
+              onChange={onChange}
+              onPointerUp={e => {
+                props.onPointerUp?.(e);
+                if (autoSaveContext) {
+                  fieldProps.onBlur();
+                }
+              }}
             />
             <Flex>{indicator}</Flex>
           </Flex>
