@@ -11,7 +11,7 @@ from unittest.mock import ANY, MagicMock, patch
 import pytest
 from django.core.cache import cache
 
-from sentry import audit_log
+from sentry import audit_log, options
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG, SENTRY_GROUPING_CONFIG_TRANSITION_DURATION
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
@@ -23,7 +23,6 @@ from sentry.grouping.ingest.caching import (
 )
 from sentry.grouping.ingest.config import update_or_set_grouping_config_if_needed
 from sentry.grouping.ingest.hashing import (
-    _get_cache_expiry,
     find_grouphash_with_group,
     get_or_create_grouphashes,
 )
@@ -441,19 +440,13 @@ class GroupHashCachingTest(TestCase):
             grouping_config_id = "old_config"
             grouping_config_option = "sentry:secondary_grouping_config"
             cache_key = get_grouphash_existence_cache_key(hash_value, self.project.id)
-            # TODO: This can go back to being `options.get("grouping.ingest_grouphash_existence_cache_expiry")`
-            # once we've settled on a retention period
-            cache_expiry, expiry_option_version = _get_cache_expiry(
-                cache_key, cache_type="existence"
-            )
+            cache_expiry = options.get("grouping.ingest_grouphash_existence_cache_expiry")
             cached_value: Any = grouphash_exists
         else:
             grouping_config_id = "new_config"
             grouping_config_option = "sentry:grouping_config"
             cache_key = get_grouphash_object_cache_key(hash_value, self.project.id)
-            # TODO: This can go back to being `options.get("grouping.ingest_grouphash_object_cache_expiry")`
-            # once we've settled on a retention period
-            cache_expiry, expiry_option_version = _get_cache_expiry(cache_key, cache_type="object")
+            cache_expiry = options.get("grouping.ingest_grouphash_object_cache_expiry")
             cached_value = grouphash
 
         self.project.update_option(grouping_config_option, grouping_config_id)

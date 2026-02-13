@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import logging
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import sentry_sdk
 from django.core.cache import cache
@@ -211,21 +211,6 @@ def find_grouphash_with_group(
     return winning_grouphash
 
 
-# TODO: This can go once we've settled on an expiry time for each cache
-def _get_cache_expiry(
-    cache_key: str, cache_type: Literal["existence", "object"]
-) -> tuple[int, int]:
-    option_name = f"grouping.ingest_grouphash_{cache_type}_cache_expiry.trial_values"
-    possible_cache_expiries = options.get(option_name)
-    expiry_for_cache_key = possible_cache_expiries[hash(cache_key) % len(possible_cache_expiries)]
-
-    # Calculate a option version value so that when the option value changes, we invalidate the
-    # cache entries stored under the old value of the option
-    option_version = abs(hash(tuple(possible_cache_expiries)))
-
-    return (expiry_for_cache_key, option_version)
-
-
 def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_caching: bool) -> bool:
     """
     Check whether a given hash value has a corresponding `GroupHash` record in the database.
@@ -241,10 +226,7 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
     ) as metrics_tags:
         if use_caching:
             cache_key = get_grouphash_existence_cache_key(hash_value, project.id)
-            # TODO: This can go back to being just
-            #     cache_expiry = options.get("grouping.ingest_grouphash_existence_cache_expiry")
-            # once we've settled on a good retention period
-            cache_expiry, option_version = _get_cache_expiry(cache_key, cache_type="existence")
+            cache_expiry = options.get("grouping.ingest_grouphash_existence_cache_expiry")
 
             # TODO: We can remove the version once we've settled on a good retention period
             grouphash_exists = cache.get(cache_key, version=option_version)
@@ -288,10 +270,7 @@ def _get_or_create_single_grouphash(
     ) as metrics_tags:
         if use_caching:
             cache_key = get_grouphash_object_cache_key(hash_value, project.id)
-            # TODO: This can go back to being just
-            #     cache_expiry = options.get("grouping.ingest_grouphash_object_cache_expiry")
-            # once we've settled on a good retention period
-            cache_expiry, option_version = _get_cache_expiry(cache_key, cache_type="object")
+            cache_expiry = options.get("grouping.ingest_grouphash_object_cache_expiry")
 
             # TODO: We can remove the version once we've settled on a good retention period
             grouphash = cache.get(cache_key, version=option_version)
