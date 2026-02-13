@@ -28,6 +28,7 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {lockBodyOverflow} from 'sentry/utils/bodyOverflow';
 import type {FormSize} from 'sentry/utils/theme';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import useOverlay from 'sentry/utils/useOverlay';
@@ -246,7 +247,7 @@ export function Control({
   const [search, setSearch] = useState('');
   const [searchInputValue, setSearchInputValue] = useState(search);
   const searchRef = useRef<HTMLInputElement>(null);
-  const previousOverflowRef = useRef<string | null>(null);
+  const unlockBodyOverflowRef = useRef<(() => void) | null>(null);
   const updateSearch = (newValue: string) => {
     onSearch?.(newValue);
 
@@ -318,8 +319,8 @@ export function Control({
 
       nextFrameCallback(() => {
         if (open) {
-          previousOverflowRef.current ??= document.body.style.overflow;
-          document.body.style.overflow = 'hidden';
+          // Prevent body scroll while the select menu is open
+          unlockBodyOverflowRef.current = lockBodyOverflow();
 
           // Force a overlay update, as sometimes the overlay is misaligned when opened
           updateOverlay?.();
@@ -349,8 +350,9 @@ export function Control({
         // On close
         onClose?.();
 
-        document.body.style.overflow = previousOverflowRef.current ?? '';
-        previousOverflowRef.current = null;
+        // Restore body overflow
+        unlockBodyOverflowRef.current?.();
+        unlockBodyOverflowRef.current = null;
 
         // Clear search string
         setSearchInputValue('');
@@ -367,6 +369,13 @@ export function Control({
       });
     },
   });
+
+  // Cleanup: Restore body overflow if component unmounts while menu is open
+  useEffect(() => {
+    return () => {
+      unlockBodyOverflowRef.current?.();
+    };
+  }, []);
 
   // Recalculate overlay position when its main content changes
   const prevMenuBody = usePrevious(menuBody);

@@ -15,6 +15,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {DrawerComponents} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {lockBodyOverflow} from 'sentry/utils/bodyOverflow';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
@@ -118,16 +119,15 @@ export function GlobalDrawer({children}: any) {
 
   // If no config is set, the global drawer is closed.
   const isDrawerOpen = !!currentDrawerConfig;
-  const previousOverflowRef = useRef<string>(null);
+  const unlockBodyOverflowRef = useRef<(() => void) | null>(null);
   const openDrawer = useCallback<DrawerContextType['openDrawer']>((renderer, options) => {
-    previousOverflowRef.current ??= document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    unlockBodyOverflowRef.current = lockBodyOverflow();
     overwriteDrawerConfig({renderer, options});
     options.onOpen?.();
   }, []);
   const closeDrawer = useCallback<DrawerContextType['closeDrawer']>(() => {
-    document.body.style.overflow = previousOverflowRef.current ?? '';
-    previousOverflowRef.current = null;
+    unlockBodyOverflowRef.current?.();
+    unlockBodyOverflowRef.current = null;
     overwriteDrawerConfig(undefined);
   }, []);
 
