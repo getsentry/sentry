@@ -4,7 +4,6 @@ import pytest
 from django.test import override_settings
 
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.testutils.helpers import override_options
 
 REQUEST_BODY = b'{"b": 12, "thing": "thing"}'
 PATH = "/v0/some/url"
@@ -81,15 +80,14 @@ def test_uses_given_retries() -> None:
 
 @pytest.mark.django_db
 def test_uses_shared_secret_missing_secret() -> None:
-    with override_options({"seer.api.use-shared-secret": 1.0}):
-        mock_url_open = run_test_case(shared_secret="")
+    mock_url_open = run_test_case(shared_secret="")
 
-        mock_url_open.assert_called_once_with(
-            "POST",
-            PATH,
-            body=REQUEST_BODY,
-            headers={"content-type": "application/json;charset=utf-8"},
-        )
+    mock_url_open.assert_called_once_with(
+        "POST",
+        PATH,
+        body=REQUEST_BODY,
+        headers={"content-type": "application/json;charset=utf-8"},
+    )
 
 
 @pytest.mark.django_db
