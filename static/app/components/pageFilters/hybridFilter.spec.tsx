@@ -1,4 +1,4 @@
-import {Fragment, useRef, useState} from 'react';
+import {useRef, useState} from 'react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
