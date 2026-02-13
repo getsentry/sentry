@@ -36,7 +36,6 @@ class ProjectManagementFailuresReason(StrEnum):
 class ProjectManagementEvent(IntegrationEventLifecycleMetric):
     action_type: ProjectManagementActionType
     integration: Integration | RpcIntegration
-    organization_id: int | None = None
 
     def get_integration_name(self) -> str:
         return self.integration.provider
@@ -47,5 +46,5 @@ class ProjectManagementEvent(IntegrationEventLifecycleMetric):
     def get_interaction_type(self) -> str:
         return str(self.action_type)
 
-    def get_organization_id(self) -> int | None:
-        return self.organization_id
+    def get_integration_id(self) -> int | None:
+        return self.integration.id

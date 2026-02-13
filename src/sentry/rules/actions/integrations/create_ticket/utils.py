@@ -169,7 +169,6 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
         with ProjectManagementEvent(
             action_type=ProjectManagementActionType.CREATE_EXTERNAL_ISSUE,
             integration=integration,
-            organization_id=organization.id,
         ).capture() as lifecycle:
             lifecycle.add_extra("provider", provider)
             lifecycle.add_extra("integration_id", integration.id)

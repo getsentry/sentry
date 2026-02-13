@@ -48,7 +48,6 @@ def update_comment(external_issue_id: int, user_id: int, group_note_id: int) -> 
     with ProjectManagementEvent(
         action_type=ProjectManagementActionType.SYNC_EXTERNAL_ISSUE_COMMENT_UPDATE,
         integration=installation.model,
-        organization_id=external_issue.organization_id,
     ).capture() as lifecycle:
         lifecycle.add_extras(
             {

@@ -125,9 +125,6 @@ class CommitContextIntegration(ABC):
     Base class for integrations that include commit context features: suspect commits, suspect PR comments
     """
 
-    # Provided by IntegrationInstallation, which all concrete implementations mix in
-    organization_id: int
-
     @property
     @abstractmethod
     def integration_name(self) -> str:
@@ -148,7 +145,6 @@ class CommitContextIntegration(ABC):
         with CommitContextIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.GET_BLAME_FOR_FILES,
             provider_key=self.integration_name,
-            organization_id=self.organization_id,
         ).capture() as lifecycle:
             try:
                 client = self.get_client()
@@ -338,7 +334,6 @@ class CommitContextIntegration(ABC):
         with CommitContextIntegrationInteractionEvent(
             interaction_type=interaction_type,
             provider_key=self.integration_name,
-            organization_id=self.organization_id,
             repository=repo,
             pull_request_id=pr.id,
         ).capture():

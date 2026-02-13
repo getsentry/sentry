@@ -87,8 +87,8 @@ class IntegrationEventLifecycleMetric(EventLifecycleMetric, ABC):
         tokens = ("integrations", self.get_metrics_domain(), str(outcome))
         return ".".join(tokens)
 
-    def get_organization_id(self) -> int | None:
-        """Return the organization ID if available. Override in subclasses."""
+    def get_integration_id(self) -> int | None:
+        """Return the integration ID if available. Override in subclasses."""
         return None
 
     def get_metric_tags(self) -> Mapping[str, str]:
@@ -97,12 +97,12 @@ class IntegrationEventLifecycleMetric(EventLifecycleMetric, ABC):
             "integration_name": self.get_integration_name(),
             "interaction_type": self.get_interaction_type(),
         }
-        # TODO(telkins): Remove killswitch once we no longer need organization_id on SLO metrics
-        organization_id = self.get_organization_id()
-        if organization_id is not None and options.get(
-            "integrations.slo.organization-id-tag-enabled"
+        # TODO(telkins): Remove killswitch once we no longer need integration_id on SLO metrics
+        integration_id = self.get_integration_id()
+        if integration_id is not None and options.get(
+            "integrations.slo.integration-id-tag-enabled"
         ):
-            tags["organization_id"] = str(organization_id)
+            tags["integration_id"] = str(integration_id)
         return tags
 
     def capture(
