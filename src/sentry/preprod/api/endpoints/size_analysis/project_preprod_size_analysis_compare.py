@@ -332,22 +332,6 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                 status=404,
             )
 
-        # Check if any of the size metrics are not completed
-        if (
-            head_size_metrics_qs.filter(
-                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
-            ).count()
-            == 0
-        ):
-            body = SizeAnalysisComparePOSTResponse(
-                status="processing",
-                message=f"Head PreprodArtifact with id {head_artifact_id} has no completed size metrics yet. Size analysis may still be processing. Please try again later.",
-            )
-            return Response(
-                body.dict(),
-                status=202,  # Accepted, processing not complete
-            )
-
         base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=[base_artifact.id],
             preprod_artifact__project=project,
@@ -356,21 +340,6 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             return Response(
                 {"detail": f"Base PreprodArtifact with id {base_artifact_id} has no size metrics."},
                 status=404,
-            )
-
-        if (
-            base_size_metrics_qs.filter(
-                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
-            ).count()
-            == 0
-        ):
-            body = SizeAnalysisComparePOSTResponse(
-                status="processing",
-                message=f"Base PreprodArtifact with id {base_artifact_id} has no completed size metrics yet. Size analysis may still be processing. Please try again later.",
-            )
-            return Response(
-                body.dict(),
-                status=202,  # Accepted, processing not complete
             )
 
         head_size_metrics = list(head_size_metrics_qs)
