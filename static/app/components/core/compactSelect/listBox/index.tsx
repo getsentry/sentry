@@ -1,4 +1,4 @@
-import {Fragment, useContext, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
@@ -7,7 +7,6 @@ import type {CollectionChildren, Node} from '@react-types/shared';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {
-  ControlContext,
   ListLabel,
   ListSeparator,
   ListWrap,
