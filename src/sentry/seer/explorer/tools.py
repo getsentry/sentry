@@ -800,11 +800,12 @@ def _get_recommended_event(
 
     # Config
     max_date_range = timedelta(days=14)  # Clamp date range as the query loop can be very expensive.
-    timeout = 55  # Sentry API timeout is 60s - 5s buffer.
+    timeout = 50  # Sentry API timeout is 60s - 10s buffer.
     event_query_limit = 50  # Events/trace IDs to query in each window.
     w_size = timedelta(days=3)
 
     start, end = get_group_date_range(group, organization, start, end)
+    unclamped_start = start
     start = max(start, end - max_date_range)
     retention_boundary = get_retention_boundary(organization, bool(start.tzinfo))
     w_start = max(end - w_size, start)
@@ -816,6 +817,24 @@ def _get_recommended_event(
         dataset = Dataset.Events
     else:
         dataset = Dataset.IssuePlatform
+
+    def get_default_event() -> GroupEvent | None:
+        """If no events are found in the clamped range, use this query to return most recent event in the full range."""
+        events = eventstore.backend.get_events(
+            filter=eventstore.Filter(
+                start=unclamped_start,
+                end=end,
+                project_ids=[group.project.id],
+                group_ids=[group.id],
+            ),
+            limit=1,
+            referrer=Referrer.SEER_EXPLORER_TOOLS,
+            dataset=dataset,
+            tenant_ids={"organization_id": group.project.organization_id},
+        )
+        if events:
+            return events[0].for_group(group)
+        return None
 
     logger.info(
         "_get_recommended_event: starting query loop",
@@ -845,7 +864,7 @@ def _get_recommended_event(
                     "timeout": timeout,
                 },
             )
-            return fallback_event
+            return fallback_event or get_default_event()
 
         # Get candidate events with the standard recommended ordering.
         # This is an expensive orderby, hence the inner limit and sliding window.
@@ -876,7 +895,7 @@ def _get_recommended_event(
                     "dataset": dataset.value,
                 },
             )
-            return fallback_event
+            return fallback_event or get_default_event()
 
         if events and not fallback_event:
             fallback_event = events[0].for_group(group)
@@ -911,7 +930,7 @@ def _get_recommended_event(
                         "num_trace_ids": len(trace_ids),
                     },
                 )
-                return fallback_event
+                return fallback_event or get_default_event()
 
             if result and result.get("data"):
                 # Return the first event with a span count greater than 0.
@@ -944,7 +963,7 @@ def _get_recommended_event(
             "has_fallback_event": bool(fallback_event),
         },
     )
-    return fallback_event
+    return fallback_event or get_default_event()
 
 
 # Activity types to include in issue details for Seer Explorer (manual actions only)
