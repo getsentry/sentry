@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
+from typing import NamedTuple
 
 from django.db import connection, models
 from django.db.models import Case, Value, When
@@ -35,9 +36,13 @@ from sentry.workflow_engine.utils import log_context, scopedstats
 logger = log_context.get_logger(__name__)
 
 EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
-UpdatedStatuses = int
-CreatedStatuses = int
-ConflictedStatuses = list[tuple[int, int]]  # (workflow_id, action_id)
+DroppedStatuses = list[tuple[int, int]]  # (workflow_id, action_id)
+
+
+class StatusUpdateResult(NamedTuple):
+    updated: int
+    created: int
+    not_created: DroppedStatuses
 
 
 def get_workflow_action_group_statuses(
@@ -116,13 +121,13 @@ def process_workflow_action_group_statuses(
 
 def update_workflow_action_group_statuses(
     now: datetime, statuses_to_update: set[int], missing_statuses: list[WorkflowActionGroupStatus]
-) -> tuple[UpdatedStatuses, CreatedStatuses, ConflictedStatuses]:
+) -> StatusUpdateResult:
     updated_count = WorkflowActionGroupStatus.objects.filter(
         id__in=statuses_to_update, date_updated__lt=now
     ).update(date_updated=now)
 
     if not missing_statuses:
-        return updated_count, 0, []
+        return StatusUpdateResult(updated=updated_count, created=0, not_created=[])
 
     # Use INSERT ... SELECT with EXISTS checks so that rows referencing
     # deleted groups / workflows / actions are silently skipped instead of
@@ -152,8 +157,8 @@ def update_workflow_action_group_statuses(
         cursor.execute(sql, values_data)
         created_rows = set(cursor.fetchall())  # Only returns newly inserted rows
 
-    # Figure out which ones conflicted (weren't returned)
-    conflicted_statuses = [
+    # Rows not returned were either unique conflicts or FK-missing (dropped)
+    dropped_statuses: DroppedStatuses = [
         (s.workflow_id, s.action_id)
         for s in missing_statuses
         if (s.workflow_id, s.action_id) not in created_rows
@@ -170,8 +175,11 @@ def update_workflow_action_group_statuses(
         },
     )
 
-    created_count = len(created_rows)
-    return updated_count, created_count, conflicted_statuses
+    return StatusUpdateResult(
+        updated=updated_count,
+        created=len(created_rows),
+        not_created=dropped_statuses,
+    )
 
 
 def get_unique_active_actions(
@@ -243,12 +251,10 @@ def filter_recently_fired_workflow_actions(
             now=now,
         )
     )
-    _, _, conflicted_statuses = update_workflow_action_group_statuses(
-        now, statuses_to_update, missing_statuses
-    )
+    update_result = update_workflow_action_group_statuses(now, statuses_to_update, missing_statuses)
 
     # if statuses were not created for some reason, we should not fire for them
-    for workflow_id, action_id in conflicted_statuses:
+    for workflow_id, action_id in update_result.not_created:
         action_to_workflows_ids[action_id].remove(workflow_id)
         if not action_to_workflows_ids[action_id]:
             action_to_workflows_ids.pop(action_id)
