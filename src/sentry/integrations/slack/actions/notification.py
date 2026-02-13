@@ -109,7 +109,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         lifecycle: EventLifecycle,
         new_notification_message_object: (
             NewIssueAlertNotificationMessage | NewNotificationActionNotificationMessage
-        ) | None,
+        )
+        | None,
     ) -> str | None:
         """Send a message to Slack and handle any errors."""
         try:
@@ -239,7 +240,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         notification_uuid: str | None = None,
         notification_message_object: (
             NewIssueAlertNotificationMessage | NewNotificationActionNotificationMessage
-        ) | None = None,
+        )
+        | None = None,
         save_notification_method: Callable | None = None,
         thread_ts: str | None = None,
     ) -> None:

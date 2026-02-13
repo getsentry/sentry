@@ -37,7 +37,6 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class DeleteGroupTest(TestCase, SnubaTestCase):
-
     def _generate_data(self, fingerprint: str | None = None) -> dict[str, Any]:
         return {
             "fingerprint": [fingerprint or uuid4().hex],

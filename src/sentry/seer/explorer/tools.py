@@ -1015,7 +1015,6 @@ def get_issue_and_event_details_v2(
     project_slug: str | None = None,
     include_issue: bool = True,
 ) -> dict[str, Any] | None:
-
     if bool(issue_id) == bool(event_id):
         raise BadRequest("Either issue_id or event_id must be provided, but not both.")
 

@@ -112,9 +112,11 @@ export function IntegrationReposAddRepository({
     return (
       <DropdownButton
         disabled
-        title={t(
-          'You must be an organization owner, manager or admin to add repositories'
-        )}
+        tooltipProps={{
+          title: t(
+            'You must be an organization owner, manager or admin to add repositories'
+          ),
+        }}
         isOpen={false}
         size="xs"
       >

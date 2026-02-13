@@ -383,9 +383,7 @@ class WorkflowEngineRuleSerializer(Serializer):
         return dict(
             AlertRuleWorkflow.objects.filter(
                 workflow_id__in=[wf.id for wf in item_list], rule_id__isnull=False
-            ).values_list(
-                "workflow_id", "rule_id"
-            )  # type: ignore[arg-type]
+            ).values_list("workflow_id", "rule_id")  # type: ignore[arg-type]
         )
 
     def _fetch_workflow_created_by(

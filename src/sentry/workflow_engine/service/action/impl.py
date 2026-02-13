@@ -32,6 +32,21 @@ class DatabaseBackedActionService(ActionService):
             dataconditiongroupaction__condition_group__organization_id=organization_id,
         ).update(status=status)
 
+    def update_action_status_for_sentry_app_installation(
+        self,
+        *,
+        region_name: str,
+        status: int,
+        organization_id: int,
+        sentry_app_id: int,
+    ) -> None:
+        Action.objects.filter(
+            config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_ID,
+            config__target_identifier=str(sentry_app_id),
+            type=Action.Type.SENTRY_APP,
+            dataconditiongroupaction__condition_group__organization_id=organization_id,
+        ).update(status=status)
+
     def update_action_status_for_sentry_app_via_uuid(
         self,
         *,

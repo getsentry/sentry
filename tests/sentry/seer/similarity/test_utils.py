@@ -325,7 +325,7 @@ class GetStacktraceStringTest(TestCase):
                                         "id": "frame",
                                         "name": None,
                                         "contributes": True,
-                                        "hint": "marked out of app by stack trace rule (function:dbx v-group -group v-app -app)",
+                                        "hint": "marked out of app by stacktrace rule (function:dbx v-group -group v-app -app)",
                                         "values": [
                                             {
                                                 "id": "module",
@@ -514,9 +514,9 @@ class GetStacktraceStringTest(TestCase):
 
     def test_non_contributing_frame(self) -> None:
         data_non_contributing_frame = copy.deepcopy(self.BASE_APP_DATA)
-        data_non_contributing_frame["app"]["component"]["values"][0]["values"][0][
-            "values"
-        ] += self.create_frames(1, False)
+        data_non_contributing_frame["app"]["component"]["values"][0]["values"][0]["values"] += (
+            self.create_frames(1, False)
+        )
         stacktrace_str = get_stacktrace_string(data_non_contributing_frame)
         assert stacktrace_str == self.EXPECTED_STACKTRACE_STRING
 
@@ -1033,7 +1033,6 @@ class GetTokenCountTest(TestCase):
         with patch(
             "sentry.seer.similarity.utils.get_stacktrace_string"
         ) as mock_get_stacktrace_string:
-
             # Use empty variants since we're testing cached behavior
             variants: dict[str, BaseVariant] = {}
             token_count = get_token_count(self.event, variants, "python")

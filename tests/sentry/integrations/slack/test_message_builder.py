@@ -1243,9 +1243,9 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                         found_old_suggested_assignees = True
 
         assert found_suggested_in_context, "Suggested assignees should be in context block"
-        assert (
-            not found_old_suggested_assignees
-        ), "Old 'Suggested Assignees:' format should not appear"
+        assert not found_old_suggested_assignees, (
+            "Old 'Suggested Assignees:' format should not appear"
+        )
 
     def _has_autofix_button(self, blocks: dict[str, Any]) -> bool:
         for block in blocks.get("blocks", []):

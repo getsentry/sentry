@@ -244,7 +244,9 @@ class SentryAppUpdater:
                     assert (
                         installation_org_id_to_region_name.get(installation.organization_id)
                         is not None
-                    ), f"OrganizationMapping must exist for installation {installation.id} and organization {installation.organization_id}"
+                    ), (
+                        f"OrganizationMapping must exist for installation {installation.id} and organization {installation.organization_id}"
+                    )
 
                     ControlOutbox(
                         shard_scope=OutboxScope.APP_SCOPE,
@@ -383,9 +385,9 @@ class SentryAppCreator:
 
     def __post_init__(self) -> None:
         if self.is_internal:
-            assert (
-                not self.verify_install
-            ), "Internal apps should not require installation verification"
+            assert not self.verify_install, (
+                "Internal apps should not require installation verification"
+            )
 
     def run(
         self,
@@ -394,7 +396,6 @@ class SentryAppCreator:
         request: HttpRequest | None = None,
         skip_default_auth_token: bool = False,
     ) -> SentryApp:
-
         with SentryAppInteractionEvent(
             operation_type=SentryAppInteractionType.MANAGEMENT,
             event_type=SentryAppEventType.APP_CREATE,

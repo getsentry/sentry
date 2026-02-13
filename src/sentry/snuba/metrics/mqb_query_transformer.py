@@ -13,8 +13,8 @@ from sentry.snuba.metrics.query import (
     MetricConditionField,
     MetricField,
     MetricGroupByField,
+    MetricOrderByField,
 )
-from sentry.snuba.metrics.query import MetricOrderByField
 from sentry.snuba.metrics.query import MetricOrderByField as MetricOrderBy
 from sentry.snuba.metrics.query_builder import FUNCTION_ALLOWLIST
 

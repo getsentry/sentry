@@ -517,7 +517,6 @@ def maybe_check_seer_for_matching_grouphash(
         # Update the relevant GroupHash with Seer results
         gh_metadata = event_grouphash.metadata
         if gh_metadata:
-
             # TODO: This should never be true (anything created with `objects.create` should have an
             # id), but it seems in some cases to happen anyway. While we debug the problem, to avoid
             # errors, bail early.

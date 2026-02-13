@@ -137,7 +137,7 @@ def update_workflow_action_group_statuses(
         sql = f"""
             INSERT INTO workflow_engine_workflowactiongroupstatus
             (workflow_id, action_id, group_id, date_added, date_updated)
-            VALUES {', '.join(values_placeholders)}
+            VALUES {", ".join(values_placeholders)}
             ON CONFLICT (workflow_id, action_id, group_id) DO NOTHING
             RETURNING workflow_id, action_id
         """

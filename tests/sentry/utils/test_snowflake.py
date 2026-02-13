@@ -85,7 +85,6 @@ class SnowflakeUtilsTest(TestCase):
             r2 := Region("test-region-2", 2, "localhost:8002", RegionCategory.MULTI_TENANT),
         ]
         with override_settings(SILO_MODE=SiloMode.REGION):
-
             with override_regions(regions, r1):
                 snowflake1 = generate_snowflake_id("test_redis_key")
             with override_regions(regions, r2):

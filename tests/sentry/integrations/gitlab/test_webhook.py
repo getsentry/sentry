@@ -392,7 +392,8 @@ class WebhookTest(GitLabTestCase):
         )
         repo_out_of_date_path.update(
             config=dict(
-                repo_out_of_date_path.config, path="uncool-group/sentry"  # path out of date
+                repo_out_of_date_path.config,
+                path="uncool-group/sentry",  # path out of date
             )
         )
 

@@ -1053,7 +1053,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "sentry.integrations.source_code_management.repo_trees.MAX_CONNECTION_ERRORS",
             new=2,
         ):
-
             trees = installation.get_trees_for_org()
             assert trees == self._expected_trees(
                 [
@@ -1087,7 +1086,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "sentry.integrations.source_code_management.repo_trees.MAX_CONNECTION_ERRORS",
             new=1,
         ):
-
             trees = installation.get_trees_for_org()
             assert trees == self._expected_trees(
                 [

@@ -573,7 +573,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
 
     def test_invalid_rel_time_filter(self) -> None:
         with pytest.raises(InvalidSearchQuery) as excinfo:
-            parse_search_query(f'time:+{"1" * 9999}d')
+            parse_search_query(f"time:+{'1' * 9999}d")
         (msg,) = excinfo.value.args
         assert msg.endswith(" is not a valid datetime query")
 
@@ -600,7 +600,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
 
     def test_invalid_aggregate_rel_time_filter(self) -> None:
         with pytest.raises(InvalidSearchQuery) as excinfo:
-            parse_search_query(f'last_seen():+{"1" * 9999}d')
+            parse_search_query(f"last_seen():+{'1' * 9999}d")
         (msg,) = excinfo.value.args
         assert msg.endswith(" is not a valid datetime query")
 
