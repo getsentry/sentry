@@ -364,4 +364,4 @@ class MonitorAddAuditLogEvent(AuditLogEvent):
         name = entry_data.get("name")
         upsert = entry_data.get("upsert")
 
-        return f"added{" upsert " if upsert else " "}monitor {name}"
+        return f"added{' upsert ' if upsert else ' '}monitor {name}"

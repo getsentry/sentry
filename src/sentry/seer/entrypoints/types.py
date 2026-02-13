@@ -2,6 +2,7 @@ from enum import StrEnum
 from typing import Any, Literal, Protocol, TypedDict
 
 from sentry.models.organization import Organization
+from sentry.seer.autofix.utils import AutofixState
 from sentry.sentry_apps.metrics import SentryAppEventType
 
 
@@ -27,6 +28,15 @@ class SeerEntrypoint[CachePayloadT](Protocol):
         Used by the operator (SeerOperator.has_access) to gate access prevent a workflow unless
         the organization has access to at least one entrypoint. The operator will check for
         seer-access prior to this check, so no need to repeat that check on the entrypoint.
+        """
+        ...
+
+    def on_trigger_autofix_already_exists(self, *, state: AutofixState, step_state: dict) -> None:
+        """
+        Called when an autofix run already exists for the group.
+        Also passes the most recent state from the matching stopping_point step for convenience.
+
+        Example Usage: Sending a 'run in progress' message, etc.
         """
         ...
 

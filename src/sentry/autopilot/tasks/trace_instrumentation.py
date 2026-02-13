@@ -329,7 +329,6 @@ def run_trace_instrumentation_detector_for_project_task(
                 "project_id": project.id,
                 "project_slug": project.slug,
                 "trace_id": trace_id,
-                "transaction_name": trace_metadata.transaction_name,
                 "run_id": run_id,
                 "finish_reason": finish_reason,
                 "issue_count": len(issues),

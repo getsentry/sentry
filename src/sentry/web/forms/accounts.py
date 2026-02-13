@@ -41,7 +41,7 @@ class AuthenticationForm(forms.Form):
             "Note that both fields may be case-sensitive."
         ),
         "rate_limited": _(
-            "You have made too many failed authentication " "attempts. Please try again later."
+            "You have made too many failed authentication attempts. Please try again later."
         ),
         "no_cookies": _(
             "Your Web browser doesn't appear to have cookies "

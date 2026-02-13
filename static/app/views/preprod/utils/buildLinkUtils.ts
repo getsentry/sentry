@@ -48,6 +48,16 @@ export function getListBuildPath(params: {
   return `/organizations/${organizationSlug}/preprod/?project=${projectId}`;
 }
 
+export function getCompareApiUrl(params: {
+  baseArtifactId: string;
+  headArtifactId: string;
+  organizationSlug: string;
+  projectId: string;
+}): string {
+  const {organizationSlug, projectId, headArtifactId, baseArtifactId} = params;
+  return `/projects/${organizationSlug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`;
+}
+
 export function formatBuildName(
   version: string | number | null | undefined,
   buildNumber: string | number | null | undefined

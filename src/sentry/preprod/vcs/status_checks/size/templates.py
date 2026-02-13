@@ -300,7 +300,7 @@ def _format_failure_summary(
             processing_text = str(_("Processing..."))
             table_rows.append(f"| {app_id_link} | {version_string} | {processing_text} |")
 
-    table = _("| Name | Version | Error |\n" "|------|---------|-------|\n" "{table_rows}").format(
+    table = _("| Name | Version | Error |\n|------|---------|-------|\n{table_rows}").format(
         table_rows="\n".join(table_rows)
     )
     return table

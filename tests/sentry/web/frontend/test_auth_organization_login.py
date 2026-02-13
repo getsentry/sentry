@@ -1274,7 +1274,6 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
 
 @control_silo_test
 class OrganizationAuthLoginDemoModeTest(AuthProviderTestCase):
-
     def setUp(self) -> None:
         self.demo_user = self.create_user()
         self.demo_org = self.create_organization(owner=self.demo_user)

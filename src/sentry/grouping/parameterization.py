@@ -12,7 +12,6 @@ __all__ = [
 
 @dataclasses.dataclass
 class ParameterizationRegex:
-
     name: str  # name of the pattern (also used as group name in combined regex)
     raw_pattern: str  # regex pattern w/o matching group name
     raw_pattern_experimental: str | None = None

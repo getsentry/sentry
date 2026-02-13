@@ -542,7 +542,6 @@ def post_process_group(
             # need to rewind history.
             data = event_processing_store.get(cache_key)
             if not data:
-
                 logger.info(
                     "post_process.skipped",
                     extra={"cache_key": cache_key, "reason": "missing_cache"},

@@ -157,7 +157,7 @@ class GitHubPlugin(CorePluginMixin, IssuePlugin2):
                     issue_id=group.qualified_short_id,
                 ),
                 "type": "textarea",
-                "help": ("Leave blank if you don't want to " "add a comment to the GitHub issue."),
+                "help": ("Leave blank if you don't want to add a comment to the GitHub issue."),
                 "required": False,
             },
         ]
@@ -244,10 +244,10 @@ class GitHubPlugin(CorePluginMixin, IssuePlugin2):
                 "placeholder": "e.g. getsentry/sentry",
                 "help": (
                     "If you want to add a repository to integrate commit data with releases, please install the "
-                    'new <a href="/settings/{}/integrations/github/">'
+                    f'new <a href="/settings/{project.organization.slug}/integrations/github/">'
                     "GitHub global integration</a>.  "
                     "You cannot add repositories to the legacy GitHub integration."
-                ).format(project.organization.slug),
+                ),
                 "required": True,
             }
         ]

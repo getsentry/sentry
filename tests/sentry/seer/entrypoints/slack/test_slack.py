@@ -7,11 +7,13 @@ from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import SeerAutofixUpdate
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.entrypoints.integrations.slack import (
+from sentry.seer.entrypoints.slack.entrypoint import (
     SlackEntrypoint,
     SlackEntrypointCachePayload,
     SlackThreadDetails,
-    handle_prepare_autofix_update,
+    prepare_slack_thread_for_autofix_updates,
+)
+from sentry.seer.entrypoints.slack.messaging import (
     process_thread_update,
     schedule_all_thread_updates,
     send_thread_update,
@@ -46,7 +48,6 @@ class SlackEntrypointTest(TestCase):
     def _create_update(
         self,
         current_point: AutofixStoppingPoint = AutofixStoppingPoint.ROOT_CAUSE,
-        has_progressed: bool = False,
     ) -> SeerAutofixUpdate:
         return SeerAutofixUpdate(
             run_id=MOCK_RUN_ID,
@@ -55,7 +56,6 @@ class SlackEntrypointTest(TestCase):
             group_id=self.group.id,
             current_point=current_point,
             group_link=self.group.get_absolute_url(),
-            has_progressed=has_progressed,
         )
 
     def _get_entrypoint(self) -> SlackEntrypoint:
@@ -111,7 +111,7 @@ class SlackEntrypointTest(TestCase):
         assert cache_payload["group_id"] == self.group.id
         assert cache_payload["threads"] == [self.thread]
 
-    @patch("sentry.seer.entrypoints.integrations.slack.schedule_all_thread_updates")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
     def test_on_autofix_update(self, mock_schedule_all_thread_updates):
         ep = self._get_entrypoint()
         for event_type, event_payload in MOCK_SEER_WEBHOOKS.items():
@@ -185,7 +185,7 @@ class SlackEntrypointTest(TestCase):
             }
         }
 
-        data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE, has_progressed=True)
+        data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
         install = self.integration.get_installation(organization_id=self.organization.id)
         update_existing_message(
             request=self.slack_request,
@@ -193,6 +193,7 @@ class SlackEntrypointTest(TestCase):
             channel_id=self.channel_id,
             message_ts=self.thread_ts,
             data=data,
+            has_complete_stage=False,
             slack_user_id=self.slack_user_id,
         )
 
@@ -201,8 +202,8 @@ class SlackEntrypointTest(TestCase):
         assert call_args.kwargs["channel_id"] == self.channel_id
         assert call_args.kwargs["message_ts"] == self.thread_ts
         renderable = call_args.kwargs["renderable"]
-        # Original section block + actions block (with non-autofix button) + footer section + footer context
-        assert len(renderable["blocks"]) == 4
+        # Original section block + actions block (with non-autofix button) + footer section
+        assert len(renderable["blocks"]) == 3
         # The second block is an ActionsBlock with only the non-autofix button remaining
         actions_block = renderable["blocks"][1]
         assert len(actions_block.elements) == 1
@@ -245,7 +246,7 @@ class SlackEntrypointTest(TestCase):
         assert str(self.group.id) in lock_key
         assert AutofixStoppingPoint.ROOT_CAUSE.value in lock_key
 
-    @patch("sentry.seer.entrypoints.integrations.slack.process_thread_update")
+    @patch("sentry.seer.entrypoints.slack.messaging.process_thread_update")
     def test_schedule_all_thread_updates(self, mock_process_thread_update):
         threads = [
             SlackThreadDetails(thread_ts="1234567890.123456", channel_id="C1234567890"),
@@ -281,15 +282,17 @@ class SlackEntrypointTest(TestCase):
         )
 
     @patch(
-        "sentry.seer.entrypoints.integrations.slack.SeerOperatorAutofixCache.populate_pre_autofix_cache",
+        "sentry.seer.entrypoints.slack.entrypoint.SeerOperatorAutofixCache.populate_pre_autofix_cache",
         return_value={"key": "just_returning_for_logging", "source": "group_id"},
     )
-    @patch("sentry.seer.entrypoints.integrations.slack.SeerOperatorAutofixCache.get")
-    def test_handle_prepare_autofix_update_empty_cache(self, mock_cache_get, mock_populate_cache):
+    @patch("sentry.seer.entrypoints.slack.entrypoint.SeerOperatorAutofixCache.get")
+    def test_prepare_slack_thread_for_autofix_updates_empty_cache(
+        self, mock_cache_get, mock_populate_cache
+    ):
         mock_cache_get.return_value = None
         mock_populate_cache.return_value = {"key": "test_key", "source": "group_id"}
 
-        handle_prepare_autofix_update(
+        prepare_slack_thread_for_autofix_updates(
             thread_ts=self.thread_ts,
             channel_id=self.channel_id,
             organization_id=self.organization.id,
@@ -305,11 +308,11 @@ class SlackEntrypointTest(TestCase):
         assert cache_payload["threads"][0]["channel_id"] == self.channel_id
 
     @patch(
-        "sentry.seer.entrypoints.integrations.slack.SeerOperatorAutofixCache.populate_pre_autofix_cache",
+        "sentry.seer.entrypoints.slack.entrypoint.SeerOperatorAutofixCache.populate_pre_autofix_cache",
         return_value={"key": "just_returning_for_logging", "source": "group_id"},
     )
-    @patch("sentry.seer.entrypoints.integrations.slack.SeerOperatorAutofixCache.get")
-    def test_handle_prepare_autofix_update_merges_threads(
+    @patch("sentry.seer.entrypoints.slack.entrypoint.SeerOperatorAutofixCache.get")
+    def test_prepare_slack_thread_for_autofix_updates_merges_threads(
         self, mock_cache_get, mock_populate_cache
     ):
         existing_thread = SlackThreadDetails(
@@ -322,7 +325,7 @@ class SlackEntrypointTest(TestCase):
         }
         mock_populate_cache.return_value = {"key": "test_key", "source": "group_id"}
 
-        handle_prepare_autofix_update(
+        prepare_slack_thread_for_autofix_updates(
             thread_ts=self.thread_ts,
             channel_id=self.channel_id,
             organization_id=self.organization.id,
@@ -339,11 +342,11 @@ class SlackEntrypointTest(TestCase):
         assert new_thread in cache_payload["threads"]
 
     @patch(
-        "sentry.seer.entrypoints.integrations.slack.SeerOperatorAutofixCache.populate_pre_autofix_cache",
+        "sentry.seer.entrypoints.slack.entrypoint.SeerOperatorAutofixCache.populate_pre_autofix_cache",
         return_value={"key": "just_returning_for_logging", "source": "group_id"},
     )
-    @patch("sentry.seer.entrypoints.integrations.slack.SeerOperatorAutofixCache.get")
-    def test_handle_prepare_autofix_update_no_duplicate_threads(
+    @patch("sentry.seer.entrypoints.slack.entrypoint.SeerOperatorAutofixCache.get")
+    def test_prepare_slack_thread_for_autofix_updates_no_duplicate_threads(
         self, mock_cache_get, mock_populate_cache
     ):
         existing_thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
@@ -353,7 +356,7 @@ class SlackEntrypointTest(TestCase):
             "key": "test_key",
         }
 
-        handle_prepare_autofix_update(
+        prepare_slack_thread_for_autofix_updates(
             thread_ts=self.thread_ts,
             channel_id=self.channel_id,
             organization_id=self.organization.id,
@@ -396,7 +399,7 @@ class SlackEntrypointTest(TestCase):
             }
         }
 
-        data = self._create_update(AutofixStoppingPoint.SOLUTION, has_progressed=True)
+        data = self._create_update(AutofixStoppingPoint.SOLUTION)
         install = self.integration.get_installation(organization_id=self.organization.id)
         update_existing_message(
             request=self.slack_request,
@@ -404,12 +407,13 @@ class SlackEntrypointTest(TestCase):
             channel_id=self.channel_id,
             message_ts=self.thread_ts,
             data=data,
+            has_complete_stage=False,
             slack_user_id=self.slack_user_id,
         )
         mock_update_message.assert_called_once()
         renderable: SlackRenderable = mock_update_message.call_args.kwargs["renderable"]
-        # Original section block + footer section + footer context (actions block removed entirely)
-        assert len(renderable["blocks"]) == 3
+        # Original section block + footer section (actions block removed entirely)
+        assert len(renderable["blocks"]) == 2
         assert all(block.type != "actions" for block in renderable["blocks"])
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
@@ -418,7 +422,7 @@ class SlackEntrypointTest(TestCase):
             "message": {"ts": self.thread_ts, "text": "Issue notification", "blocks": []}
         }
 
-        data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE, has_progressed=True)
+        data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
         install = self.integration.get_installation(organization_id=self.organization.id)
         update_existing_message(
             request=self.slack_request,
@@ -426,6 +430,7 @@ class SlackEntrypointTest(TestCase):
             channel_id=self.channel_id,
             message_ts=self.thread_ts,
             data=data,
+            has_complete_stage=False,
             slack_user_id=None,
         )
 
@@ -461,7 +466,7 @@ class SlackEntrypointTest(TestCase):
     def test_update_existing_message_handles_invalid_payload(self, mock_update_message):
         self.slack_request.data = {"message": None}
 
-        data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE, has_progressed=True)
+        data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
         install = self.integration.get_installation(organization_id=self.organization.id)
         update_existing_message(
             request=self.slack_request,
@@ -469,6 +474,7 @@ class SlackEntrypointTest(TestCase):
             channel_id=self.channel_id,
             message_ts=self.thread_ts,
             data=data,
+            has_complete_stage=False,
             slack_user_id=self.slack_user_id,
         )
 

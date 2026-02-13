@@ -1,6 +1,8 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
+
+import {Checkbox} from '@sentry/scraps/checkbox';
 
 import {updateEnvironments} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
@@ -9,7 +11,10 @@ import {
   type EnvironmentPageFilterTriggerProps,
 } from 'sentry/components/pageFilters/environment/environmentPageFilterTrigger';
 import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
-import {HybridFilter} from 'sentry/components/pageFilters/hybridFilter';
+import {
+  HybridFilter,
+  type HybridFilterRef,
+} from 'sentry/components/pageFilters/hybridFilter';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -33,7 +38,6 @@ export interface EnvironmentPageFilterProps extends Partial<
     | 'menuBody'
     | 'menuFooter'
     | 'menuFooterMessage'
-    | 'checkboxWrapper'
     | 'shouldCloseOnInteractOutside'
     | 'triggerProps'
   >
@@ -66,6 +70,7 @@ export function EnvironmentPageFilter({
 }: EnvironmentPageFilterProps) {
   const router = useRouter();
   const organization = useOrganization();
+  const hybridFilterRef = useRef<HybridFilterRef<string>>(null);
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
@@ -169,6 +174,15 @@ export function EnvironmentPageFilter({
       environments.map(env => ({
         value: env,
         label: env,
+        leadingItems: ({isSelected}: {isSelected: boolean}) => (
+          <Checkbox
+            size="sm"
+            checked={isSelected}
+            onChange={() => hybridFilterRef.current?.toggleOption?.(env)}
+            aria-label={t('Select %s', env)}
+            tabIndex={-1}
+          />
+        ),
       })),
     [environments]
   );
@@ -193,7 +207,7 @@ export function EnvironmentPageFilter({
   return (
     <HybridFilter
       {...selectProps}
-      checkboxPosition="leading"
+      ref={hybridFilterRef}
       searchable
       multiple
       options={options}

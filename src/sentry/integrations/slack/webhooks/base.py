@@ -209,7 +209,6 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
     def command_handlers(
         self,
     ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[Response]]]:
-
         yield commands.HELP, self.help_handler
         yield commands.LINK_IDENTITY, self.link_user_handler
         yield commands.UNLINK_IDENTITY, self.unlink_user_handler
