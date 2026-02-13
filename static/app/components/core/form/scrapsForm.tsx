@@ -15,6 +15,7 @@ import {InputField} from './field/inputField';
 import {NumberField} from './field/numberField';
 import {SelectField} from './field/selectField';
 import {SwitchField} from './field/switchField';
+import {TextAreaField} from './field/textAreaField';
 import {fieldContext, formContext, useFormContext} from './formContext';
 
 export const defaultFormOptions = formOptions({
@@ -36,6 +37,7 @@ const fieldComponents = {
   Number: NumberField,
   Select: SelectField,
   Switch: SwitchField,
+  TextArea: TextAreaField,
   Meta: FieldMeta,
   Layout: FieldLayout,
 } as const;
