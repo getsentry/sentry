@@ -1000,8 +1000,7 @@ function Visualize({error, setError}: VisualizeProps) {
                                 }}
                               />
                             )}
-                          {((!isBigNumberWidget && !isCategoricalBarWidget) ||
-                            datasetConfig.enableEquations) && (
+                          {(!isBigNumberWidget || datasetConfig.enableEquations) && (
                             <Button
                               priority="transparent"
                               icon={<IconDelete />}
