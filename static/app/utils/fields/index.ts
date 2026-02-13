@@ -3465,12 +3465,6 @@ function _getFieldFromMappings(
       if (Object.hasOwn(SPAN_FIELD_DEFINITIONS, key)) {
         return SPAN_FIELD_DEFINITIONS[key];
       }
-      if (Object.hasOwn(PREPROD_FIELD_DEFINITIONS, key)) {
-        return PREPROD_FIELD_DEFINITIONS[key];
-      }
-      if (Object.hasOwn(SPAN_FIELD_DEFINITIONS, key)) {
-        return SPAN_FIELD_DEFINITIONS[key];
-      }
 
       if (kind === FieldKind.MEASUREMENT) {
         return {kind: FieldKind.FIELD, valueType: FieldValueType.NUMBER};
