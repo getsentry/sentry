@@ -76,7 +76,15 @@ class ManualTokenRefresher:
                 token = None
                 with lock_context, transaction.atomic(router.db_for_write(ApiToken)):
                     self._validate()
-                    self.installation.api_token.delete()
+                    # Re-fetch to verify token still exists inside lock
+                    installation.refresh_from_db()
+                    if installation.api_token is None:
+                        raise SentryAppIntegratorError(
+                            message="Installation does not have a token",
+                            status_code=401,
+                            webhook_context={"installation_uuid": self.install.uuid},
+                        )
+                    installation.api_token.delete()
 
                     token = self._create_new_token()
                     self._record_token_exchange()
