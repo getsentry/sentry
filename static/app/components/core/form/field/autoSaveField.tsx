@@ -114,12 +114,12 @@ interface AutoSaveFieldProps<
 /**
  * Checks if a Zod schema field is a boolean type (including optional/nullable booleans).
  */
-function isBooleanField(fieldSchema: z.ZodTypeAny): boolean {
+function isBooleanField(fieldSchema: z.core.$ZodType): boolean {
   if (fieldSchema instanceof ZodBoolean) {
     return true;
   }
   if (fieldSchema instanceof ZodOptional || fieldSchema instanceof ZodNullable) {
-    return isBooleanField(fieldSchema.unwrap() as z.ZodTypeAny);
+    return isBooleanField(fieldSchema.unwrap());
   }
   return false;
 }
@@ -134,7 +134,7 @@ export function AutoSaveField<
   const mutation = useMutation(mutationOptions);
 
   // Boolean fields (like switches) save on change, others save on blur
-  const fieldSchema = schema.shape[name] as z.ZodTypeAny | undefined;
+  const fieldSchema = schema.shape[name];
   const saveOnChange = fieldSchema ? isBooleanField(fieldSchema) : false;
 
   const form = useScrapsForm({
