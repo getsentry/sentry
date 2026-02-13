@@ -1399,7 +1399,6 @@ class SetResponseCaptureEnabledTest(UptimeTestCase):
 
 
 class UptimeDetectorCacheInvalidationTest(UptimeTestCase):
-
     @with_feature("organizations:cache-detectors-by-data-source")
     @mock.patch("sentry.quotas.backend.disable_seat")
     def test_disable_detector_invalidates_cache(self, mock_disable_seat: mock.MagicMock) -> None:
