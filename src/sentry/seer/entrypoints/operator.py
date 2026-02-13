@@ -262,16 +262,11 @@ def process_autofix_updates(
             return
 
         for entrypoint_key, entrypoint_cls in entrypoint_registry.registrations.items():
-            lifecycle.add_extra("entrypoint_key", entrypoint_key)
             cache_result = SeerOperatorAutofixCache.get(
                 entrypoint_key=entrypoint_key, group_id=group_id, run_id=run_id
             )
             if not cache_result:
-                lifecycle.record_halt(halt_reason="cache_miss")
                 continue
-            lifecycle.add_extras(
-                {"cache_source": cache_result["source"], "cache_key": cache_result["key"]}
-            )
             with SeerOperatorEventLifecycleMetric(
                 interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_AUTOFIX_UPDATE,
                 entrypoint_key=entrypoint_key,
