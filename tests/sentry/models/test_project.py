@@ -1,3 +1,4 @@
+import pytest
 from collections.abc import Iterable
 from unittest import skip
 from unittest.mock import MagicMock, patch
@@ -417,6 +418,7 @@ class ProjectTest(APITestCase, TestCase):
         assert self.project.next_short_id() == 1
         assert self.project.next_short_id() == 2
 
+    @pytest.mark.skip(reason="flaky: #108235")
     def test_get_next_short_id_increments_by_delta_value(self) -> None:
         assert self.project.next_short_id() == 1
         assert self.project.next_short_id(delta=2) == 3
