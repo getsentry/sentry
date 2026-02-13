@@ -46,7 +46,7 @@ function WidgetTemplatesList({
         0,
         widgets.findIndex(w => w.id === widgetTemplateId)
       )
-    : 0;
+    : null;
   const [selectedWidget, setSelectedWidget] = useState<number | null>(
     initialSelectedIndex
   );
@@ -56,12 +56,14 @@ function WidgetTemplatesList({
   const api = useApi();
 
   useEffect(() => {
-    const initialWidget = widgets[initialSelectedIndex];
-    if (initialWidget) {
-      dispatch({
-        type: BuilderStateAction.SET_STATE,
-        payload: convertWidgetToBuilderStateParams(initialWidget),
-      });
+    if (initialSelectedIndex !== null) {
+      const initialWidget = widgets[initialSelectedIndex];
+      if (initialWidget) {
+        dispatch({
+          type: BuilderStateAction.SET_STATE,
+          payload: convertWidgetToBuilderStateParams(initialWidget),
+        });
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
