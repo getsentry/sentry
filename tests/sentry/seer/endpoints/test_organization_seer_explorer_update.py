@@ -23,13 +23,13 @@ class TestOrganizationSeerExplorerUpdate(APITestCase):
     @patch(
         "sentry.seer.endpoints.organization_seer_explorer_update.has_seer_explorer_access_with_detail"
     )
-    @patch("sentry.seer.endpoints.organization_seer_explorer_update.requests.post")
+    @patch("sentry.seer.endpoints.organization_seer_explorer_update.make_signed_seer_api_request")
     def test_explorer_update_successful(
-        self, mock_post: MagicMock, mock_has_access: MagicMock
+        self, mock_request: MagicMock, mock_has_access: MagicMock
     ) -> None:
         mock_has_access.return_value = (True, None)
-        mock_post.return_value.status_code = 200
-        mock_post.return_value.json.return_value = {"run_id": 123}
+        mock_request.return_value.status_code = 200
+        mock_request.return_value.json.return_value = {"run_id": 123}
 
         response = self.client.post(
             self.url,
@@ -45,8 +45,8 @@ class TestOrganizationSeerExplorerUpdate(APITestCase):
         assert response.data == {"run_id": 123}
 
         # Verify the request was made to Seer
-        mock_post.assert_called_once()
-        call_args = mock_post.call_args
+        mock_request.assert_called_once()
+        call_args = mock_request.call_args
         assert f"{settings.SEER_AUTOFIX_URL}/v1/automation/explorer/update" in call_args[0]
 
         # Verify the payload
@@ -58,9 +58,9 @@ class TestOrganizationSeerExplorerUpdate(APITestCase):
     @patch(
         "sentry.seer.endpoints.organization_seer_explorer_update.has_seer_explorer_access_with_detail"
     )
-    @patch("sentry.seer.endpoints.organization_seer_explorer_update.requests.post")
+    @patch("sentry.seer.endpoints.organization_seer_explorer_update.make_signed_seer_api_request")
     def test_explorer_update_missing_payload(
-        self, mock_post: MagicMock, mock_has_access: MagicMock
+        self, mock_request: MagicMock, mock_has_access: MagicMock
     ) -> None:
         mock_has_access.return_value = (True, None)
 
@@ -72,7 +72,7 @@ class TestOrganizationSeerExplorerUpdate(APITestCase):
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Need a body with a payload" in str(response.data)
-        mock_post.assert_not_called()
+        mock_request.assert_not_called()
 
     @patch(
         "sentry.seer.endpoints.organization_seer_explorer_update.has_seer_explorer_access_with_detail"
