@@ -24,6 +24,7 @@ class MockCommitContextIntegration(CommitContextIntegration):
     integration_name = "mock_integration"
 
     def __init__(self) -> None:
+        self.organization_id = 1
         self.client = Mock()
         self.client.base_url = "https://example.com"
 
