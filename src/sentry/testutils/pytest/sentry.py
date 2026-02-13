@@ -583,27 +583,37 @@ def _force_serial(item: pytest.Item) -> bool:
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    """After collection, select tests based on selective file filter and group strategy.
+    """After collection, select tests based on selective tier filter and group strategy.
 
-    When SELECTED_TESTS_FILE is set, only tests from files listed in that file are kept.
+    When SELECTED_TESTS_FILE is set, only tests matching identifiers in that file are
+    kept. The file may contain identifiers at file, class, or test granularity — the
+    matching logic checks all three levels automatically.
+
     This enables selective testing while maintaining proper conftest loading order by
     invoking pytest with the tests/ directory instead of specific file paths.
     """
 
     keep, discard = [], []
 
-    # Filter by selected test files if SELECTED_TESTS_FILE is set
+    # Filter by selected tests if SELECTED_TESTS_FILE is set.
+    # The file may contain identifiers at any granularity:
+    #   file-level:  tests/foo/test_bar.py
+    #   class-level: tests/foo/test_bar.py::TestClass
+    #   test-level:  tests/foo/test_bar.py::TestClass::test_method
+    # We check all three levels so this works regardless of granularity.
     selected_tests_file = os.environ.get("SELECTED_TESTS_FILE")
     if selected_tests_file:
         selected_path = Path(selected_tests_file)
         if selected_path.exists():
             with selected_path.open() as f:
-                selected_files = {line.strip() for line in f if line.strip()}
+                selected_set = {line.strip() for line in f if line.strip()}
 
-            if selected_files:
+            if selected_set:
                 for item in items:
                     test_file = item.nodeid.split("::")[0]
-                    if test_file in selected_files:
+                    test_scope = "::".join(item.nodeid.split("::")[:2])
+                    test_id = item.nodeid
+                    if test_id in selected_set or test_scope in selected_set or test_file in selected_set:
                         keep.append(item)
                     else:
                         discard.append(item)

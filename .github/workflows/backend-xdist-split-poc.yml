@@ -6,6 +6,8 @@ on:
     branches:
       - mchen/tiered-xdist-hybrid
       - mchen/per-worker-snuba-db
+      - mchen/tier-split-class
+      - mchen/tier-split-test
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -14,6 +16,12 @@ concurrency:
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   SNUBA_NO_WORKERS: 1
+  # Tier split granularity: file (default), class, or test
+  # Controls how tests are grouped when assigning to tier1 vs tier2.
+  # - file:  entire file → tier2 if any test needs Snuba
+  # - class: file::class scope → tier2 if any test in class needs Snuba
+  # - test:  each individual test independently classified
+  TIER_GRANULARITY: file
 
 jobs:
   # ─── Step 1: Download runtime classification and split into tiers ────
@@ -48,16 +56,21 @@ jobs:
       - name: Split tests by tier
         id: split
         run: |
+          echo "Using tier granularity: $TIER_GRANULARITY"
+
           python3 .github/workflows/scripts/split-tests-by-tier.py \
             --classification /tmp/classification/test-service-classification.json \
+            --granularity "$TIER_GRANULARITY" \
             --summary
 
           python3 .github/workflows/scripts/split-tests-by-tier.py \
             --classification /tmp/classification/test-service-classification.json \
+            --granularity "$TIER_GRANULARITY" \
             --tier tier1 --output /tmp/tier1-tests.txt
 
           python3 .github/workflows/scripts/split-tests-by-tier.py \
             --classification /tmp/classification/test-service-classification.json \
+            --granularity "$TIER_GRANULARITY" \
             --tier tier2 --output /tmp/tier2-tests.txt
 
           echo "tier1-test-count=$(wc -l < /tmp/tier1-tests.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
