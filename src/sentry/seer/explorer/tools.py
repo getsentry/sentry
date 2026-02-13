@@ -793,20 +793,20 @@ def _get_recommended_event(
     Time range defaults to the group's first and last seen times.
     If multiple events are valid, return the one with highest RECOMMENDED ordering.
     If no events are valid, return the highest recommended event.
+
+    Also falls back to the regular recommended event in case of query failures or custom timeout.
     """
     start_time = time.time()
 
     # Config
-    max_date_range = timedelta(days=14)
+    max_date_range = timedelta(days=14)  # Clamp date range as the query loop can be very expensive.
     timeout = 55  # Sentry API timeout is 60s - 5s buffer.
     event_query_limit = 50  # Events/trace IDs to query in each window.
     w_size = timedelta(days=3)
 
     start, end = get_group_date_range(group, organization, start, end)
-    # Clamp date range as these queries can be very expensive.
     start = max(start, end - max_date_range)
     retention_boundary = get_retention_boundary(organization, bool(start.tzinfo))
-
     w_start = max(end - w_size, start)
     w_end = end
     # Fallback to first event we find (most recommended in most recent window).
