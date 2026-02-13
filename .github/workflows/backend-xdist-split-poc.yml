@@ -21,7 +21,7 @@ env:
   # - file:  entire file → tier2 if any test needs Snuba
   # - class: file::class scope → tier2 if any test in class needs Snuba
   # - test:  each individual test independently classified
-  TIER_GRANULARITY: file
+  TIER_GRANULARITY: test
 
 jobs:
   # ─── Step 1: Download runtime classification and split into tiers ────
@@ -132,10 +132,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3, 4]
+        instance: [0, 1, 2, 3, 4, 5]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 5
+      MATRIX_INSTANCE_TOTAL: 6
       TEST_GROUP_STRATEGY: roundrobin
       # Fixed hash seed ensures deterministic collection across xdist workers
       PYTHONHASHSEED: '0'
@@ -198,10 +198,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 17
+      MATRIX_INSTANCE_TOTAL: 16
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       # Enable per-worker Snuba database routing
