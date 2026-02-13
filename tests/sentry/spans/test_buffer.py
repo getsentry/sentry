@@ -11,6 +11,7 @@ from sentry_redis_tools.clients import StrictRedis
 from sentry import options
 from sentry.spans.buffer import FlushedSegment, OutputSpan, SegmentKey, Span, SpansBuffer
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 
 DEFAULT_OPTIONS = {
     "spans.buffer.timeout": 60,
@@ -776,83 +777,6 @@ class TestSpansBuffer:
         assert_clean(buffer.client)
 
     @mock.patch("sentry.spans.buffer.Project")
-    def test_max_segment_spans_limit(self, mock_project_model, buffer: SpansBuffer) -> None:
-        # Mock the project lookup to avoid database access
-        mock_project = mock.Mock()
-        mock_project.id = 1
-        mock_project.organization_id = 100
-        mock_project_model.objects.get_from_cache.return_value = mock_project
-
-        batch1 = [
-            Span(
-                payload=_payload("c" * 16),
-                trace_id="a" * 32,
-                span_id="c" * 16,
-                parent_span_id="b" * 16,
-                segment_id=None,
-                project_id=1,
-                end_timestamp=1700000001.0,
-            ),
-            Span(
-                payload=_payload("b" * 16),
-                trace_id="a" * 32,
-                span_id="b" * 16,
-                parent_span_id="a" * 16,
-                segment_id=None,
-                project_id=1,
-                end_timestamp=1700000002.0,
-            ),
-        ]
-        batch2 = [
-            Span(
-                payload=_payload("d" * 16),
-                trace_id="a" * 32,
-                span_id="d" * 16,
-                parent_span_id="a" * 16,
-                segment_id=None,
-                project_id=1,
-                end_timestamp=1700000003.0,
-            ),
-            Span(
-                payload=_payload("e" * 16),
-                trace_id="a" * 32,
-                span_id="e" * 16,
-                parent_span_id="a" * 16,
-                segment_id=None,
-                project_id=1,
-                end_timestamp=1700000004.0,
-            ),
-            Span(
-                payload=_payload("a" * 16),
-                trace_id="a" * 32,
-                span_id="a" * 16,
-                parent_span_id=None,
-                project_id=1,
-                segment_id=None,
-                is_segment_span=True,
-                end_timestamp=1700000005.0,
-            ),
-        ]
-
-        with override_options({"spans.buffer.max-segment-bytes": 200}):
-            buffer.process_spans(batch1, now=0)
-            buffer.process_spans(batch2, now=0)
-            rv = buffer.flush_segments(now=11)
-
-        segment_key = _segment_id_for_config(1, "a" * 32, "a" * 16)
-        segment = rv[segment_key]
-        retained_span_ids = {span.payload["span_id"] for span in segment.spans}
-
-        # Some spans should be evicted because the segment is too large.
-        all_span_ids = {"a" * 16, "b" * 16, "c" * 16, "d" * 16, "e" * 16}
-        assert len(retained_span_ids) < len(all_span_ids), "Some spans should have been evicted"
-        assert retained_span_ids.issubset(all_span_ids)
-
-        # NB: We currently accept that we leak redirect keys when we limit segments.
-        # buffer.done_flush_segments(rv)
-        # assert_clean(buffer.client)
-
-    @mock.patch("sentry.spans.buffer.Project")
     @mock.patch("sentry.spans.buffer.track_outcome")
     @mock.patch("sentry.spans.buffer.metrics.timing")
     def test_dropped_spans_emit_outcomes(
@@ -1041,6 +965,91 @@ class TestSpansBuffer:
         assert list(buffer.get_memory_info())
 
         assert_clean(buffer.client)
+
+
+############################################################
+# Tests that have different behaviour for set vs payload set
+############################################################
+
+
+@django_db_all
+@mock.patch("sentry.spans.buffer.Project")
+def test_max_segment_spans_limit(mock_project_model) -> None:
+    buffer = SpansBuffer(assigned_shards=list(range(32)))
+    # Mock the project lookup to avoid database access
+    mock_project = mock.Mock()
+    mock_project.id = 1
+    mock_project.organization_id = 100
+    mock_project_model.objects.get_from_cache.return_value = mock_project
+
+    batch1 = [
+        Span(
+            payload=_payload("c" * 16),
+            trace_id="a" * 32,
+            span_id="c" * 16,
+            parent_span_id="b" * 16,
+            segment_id=None,
+            project_id=1,
+            end_timestamp=1700000001.0,
+        ),
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id="a" * 16,
+            segment_id=None,
+            project_id=1,
+            end_timestamp=1700000002.0,
+        ),
+    ]
+    batch2 = [
+        Span(
+            payload=_payload("d" * 16),
+            trace_id="a" * 32,
+            span_id="d" * 16,
+            parent_span_id="a" * 16,
+            segment_id=None,
+            project_id=1,
+            end_timestamp=1700000003.0,
+        ),
+        Span(
+            payload=_payload("e" * 16),
+            trace_id="a" * 32,
+            span_id="e" * 16,
+            parent_span_id="a" * 16,
+            segment_id=None,
+            project_id=1,
+            end_timestamp=1700000004.0,
+        ),
+        Span(
+            payload=_payload("a" * 16),
+            trace_id="a" * 32,
+            span_id="a" * 16,
+            parent_span_id=None,
+            project_id=1,
+            segment_id=None,
+            is_segment_span=True,
+            end_timestamp=1700000005.0,
+        ),
+    ]
+
+    with override_options({"spans.buffer.max-segment-bytes": 200}):
+        buffer.process_spans(batch1, now=0)
+        buffer.process_spans(batch2, now=0)
+        rv = buffer.flush_segments(now=11)
+
+    segment_key = _segment_id_for_config(1, "a" * 32, "a" * 16)
+    segment = rv[segment_key]
+    retained_span_ids = {span.payload["span_id"] for span in segment.spans}
+
+    # Some spans should be evicted because the segment is too large.
+    all_span_ids = {"a" * 16, "b" * 16, "c" * 16, "d" * 16, "e" * 16}
+    assert len(retained_span_ids) < len(all_span_ids), "Some spans should have been evicted"
+    assert retained_span_ids.issubset(all_span_ids)
+
+    # NB: We currently accept that we leak redirect keys when we limit segments.
+    # buffer.done_flush_segments(rv)
+    # assert_clean(buffer.client)
 
 
 @pytest.mark.parametrize("compression_level", [-1, 0])
