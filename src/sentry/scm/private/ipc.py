@@ -50,8 +50,8 @@ class SubscriptionEventParser(msgspec.Struct, gc=False, frozen=True):
 
 class SubscriptionEventSentryMetaParser(msgspec.Struct, gc=False, frozen=True):
     id: int | None
-    integration_id: int
-    organization_id: int
+    integration_id: int | None
+    organization_id: int | None
 
 
 class AuthorParser(msgspec.Struct, gc=False, frozen=True):
