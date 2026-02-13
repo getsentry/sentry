@@ -1,7 +1,8 @@
-import pytest
 from collections.abc import Iterable
 from unittest import skip
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
