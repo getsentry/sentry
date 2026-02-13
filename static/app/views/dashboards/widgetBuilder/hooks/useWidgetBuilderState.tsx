@@ -931,20 +931,48 @@ function useWidgetBuilderState(): {
               fields?.filter(f => f.kind === FieldValueKind.FIELD) ?? [];
             setFields([...existingXAxisFields, ...action.payload], options);
 
-            // Update sort to use the selected aggregate (last by default, matching Big Number).
-            // For equations, use the alias format (equation[N]) that getTableSortOptions produces
+            // Only recompute sort when the current sort field is no longer valid
+            // in the new aggregates. This avoids using stale `selectedAggregate`
+            // from the closure (which can be out of bounds during deletions).
             if (action.payload.length > 0) {
-              const selectedIdx = selectedAggregate ?? action.payload.length - 1;
-              const targetAggregate = action.payload[selectedIdx] ?? action.payload[0]!;
-              const equationIndex =
-                action.payload
-                  .slice(0, selectedIdx + 1)
-                  .filter(f => f.kind === FieldValueKind.EQUATION).length - 1;
-              const sortField =
-                targetAggregate.kind === FieldValueKind.EQUATION
-                  ? `equation[${Math.max(0, equationIndex)}]`
-                  : generateFieldAsString(targetAggregate);
-              setSort([{kind: 'desc', field: sortField}], options);
+              const currentSortField = sort?.[0]?.field;
+              if (currentSortField) {
+                const hasMatchingSort = action.payload.some(
+                  f => generateFieldAsString(f) === currentSortField
+                );
+                const hasEquations = action.payload.some(
+                  f => f.kind === FieldValueKind.EQUATION
+                );
+                const isSortValid =
+                  hasMatchingSort || (isEquationAlias(currentSortField) && hasEquations);
+
+                if (!isSortValid) {
+                  // Sort field was removed — fall back to last aggregate
+                  const lastAgg = action.payload[action.payload.length - 1]!;
+                  const eqIdx =
+                    action.payload.filter(f => f.kind === FieldValueKind.EQUATION)
+                      .length - 1;
+                  const newSortField =
+                    lastAgg.kind === FieldValueKind.EQUATION
+                      ? `equation[${Math.max(0, eqIdx)}]`
+                      : generateFieldAsString(lastAgg);
+                  setSort(
+                    [{kind: sort[0]?.kind ?? 'desc', field: newSortField}],
+                    options
+                  );
+                }
+              } else {
+                // No sort exists yet — set default to last aggregate
+                const lastAgg = action.payload[action.payload.length - 1]!;
+                const eqIdx =
+                  action.payload.filter(f => f.kind === FieldValueKind.EQUATION).length -
+                  1;
+                const newSortField =
+                  lastAgg.kind === FieldValueKind.EQUATION
+                    ? `equation[${Math.max(0, eqIdx)}]`
+                    : generateFieldAsString(lastAgg);
+                setSort([{kind: 'desc', field: newSortField}], options);
+              }
             }
           }
           break;
