@@ -288,6 +288,12 @@ export function List<Value extends SelectKey>({
    * event was intercepted. If yes, then no further callback function should be run.
    */
   const keyDownHandler = (e: React.KeyboardEvent<HTMLUListElement>) => {
+    // Close the overlay on Escape key press
+    if (e.key === 'Escape') {
+      overlayState?.close();
+      return false; // event intercepted, don't run any further callbacks
+    }
+
     // Don't handle ArrowDown/Up key presses if focus already wraps
     if (shouldFocusWrap && !grid) {
       return true;

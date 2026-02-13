@@ -140,7 +140,6 @@ export function ListBox<T extends ObjectLike>({
   ...props
 }: ListBoxProps<T>) {
   const listElementRef = useRef<HTMLUListElement>(null);
-  const {overlayState} = useContext(ControlContext);
 
   const {listBoxProps, labelProps} = useListBox(
     {
@@ -157,12 +156,7 @@ export function ListBox<T extends ObjectLike>({
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLUListElement>) => {
     const continueCallback = keyDownHandler?.(e);
-    // Close the overlay on Escape key press
-    if (e.key === 'Escape') {
-      overlayState?.close();
-      return;
-    }
-    // Prevent list box from clearing value on other keys
+    // Prevent list box from clearing value if event was not intercepted
     if (continueCallback) {
       listBoxProps.onKeyDown?.(e);
     }
