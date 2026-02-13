@@ -34,8 +34,6 @@ import {
   FieldValueType,
   prettifyTagKey,
 } from 'sentry/utils/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
@@ -61,7 +59,10 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
-import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {
+  BuilderStateAction,
+  generateSortField,
+} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {SESSIONS_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
@@ -275,12 +276,6 @@ function Visualize({error, setError}: VisualizeProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   const tags = useTags();
   const {customMeasurements} = useCustomMeasurements();
-  const {selectedAggregate: queryParamSelectedAggregate} = useLocationQuery({
-    fields: {selectedAggregate: decodeScalar},
-  });
-  const [selectedAggregateSet, setSelectedAggregateSet] = useState(
-    defined(queryParamSelectedAggregate)
-  );
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
   const disableTransactionWidget = useDisableTransactionWidget();
@@ -739,34 +734,20 @@ function Visualize({error, setError}: VisualizeProps) {
                                     payload: index,
                                   });
                                   // For categorical bar, sync sort to the selected
-                                  // aggregate so bars are ordered by the displayed
-                                  // metric. This is done here (not in the reducer)
-                                  // to avoid stale closure issues when delete handlers
-                                  // also dispatch SET_SELECTED_AGGREGATE.
+                                  // aggregate so bars are ordered by the displayed metric.
                                   if (isCategoricalBarWidget && fields?.[index]) {
-                                    const targetField = fields[index];
-                                    const equationIndex =
-                                      fields
-                                        .slice(0, index + 1)
-                                        .filter(f => f.kind === FieldValueKind.EQUATION)
-                                        .length - 1;
-                                    const sortField =
-                                      targetField.kind === FieldValueKind.EQUATION
-                                        ? `equation[${Math.max(0, equationIndex)}]`
-                                        : generateFieldAsString(targetField);
                                     dispatch({
                                       type: BuilderStateAction.SET_SORT,
                                       payload: [
                                         {
                                           kind: state.sort?.[0]?.kind ?? 'desc',
-                                          field: sortField,
+                                          field: generateSortField(fields, index),
                                         },
                                       ],
                                     });
                                   }
                                 }}
                                 onClick={() => {
-                                  setSelectedAggregateSet(true);
                                   trackAnalytics(
                                     'dashboards_views.widget_builder.change',
                                     {
@@ -1036,38 +1017,9 @@ function Visualize({error, setError}: VisualizeProps) {
                               }
                               onClick={() => {
                                 dispatch({
-                                  type: updateAction,
-                                  payload:
-                                    fields?.filter((_field, i) => i !== index) ?? [],
+                                  type: BuilderStateAction.DELETE_AGGREGATE,
+                                  payload: index,
                                 });
-
-                                // Adjust selectedAggregate index when an aggregate is deleted.
-                                // Three cases:
-                                //   index < selected  → decrement (selected shifted left)
-                                //   index === selected → unset (let state default to last)
-                                //   index > selected  → no-op (selected is unaffected)
-                                if (
-                                  (state.displayType === DisplayType.BIG_NUMBER ||
-                                    isCategoricalBarWidget) &&
-                                  selectedAggregateSet &&
-                                  state.selectedAggregate !== undefined
-                                ) {
-                                  if (index < state.selectedAggregate) {
-                                    // Deleted an item before the selection — decrement to
-                                    // keep pointing at the same aggregate
-                                    dispatch({
-                                      type: BuilderStateAction.SET_SELECTED_AGGREGATE,
-                                      payload: state.selectedAggregate - 1,
-                                    });
-                                  } else if (index === state.selectedAggregate) {
-                                    // Deleted the selected item itself — unset
-                                    // so the state defaults to the last aggregate
-                                    dispatch({
-                                      type: BuilderStateAction.SET_SELECTED_AGGREGATE,
-                                      payload: undefined,
-                                    });
-                                  }
-                                }
 
                                 trackAnalytics('dashboards_views.widget_builder.change', {
                                   builder_version: WidgetBuilderVersion.SLIDEOUT,
