@@ -43,12 +43,20 @@ interface UseStagedCompactSelectOptions<Value extends SelectKey> {
 }
 
 interface UseStagedCompactSelectReturn<Value extends SelectKey> {
+  // Additional state and utilities
   commit: (val: Value[]) => void;
-  commitStagedChanges: () => void;
-  handleChange: (selectedOptions: Array<SelectOption<Value>>) => void;
-  handleKeyDown: (e: any) => void;
-  handleKeyUp: () => void;
-  handleSectionToggle: (section: SelectSection<SelectKey>) => void;
+  // Props that can be spread directly into CompactSelect
+  compactSelectProps: Pick<
+    MultipleSelectProps<Value>,
+    | 'value'
+    | 'onChange'
+    | 'onSectionToggle'
+    | 'onInteractOutside'
+    | 'onKeyDown'
+    | 'onKeyUp'
+  > & {
+    closeOnSelect: boolean;
+  };
   hasStagedChanges: boolean;
   modifierKeyPressed: boolean;
   removeStagedChanges: () => void;
@@ -201,18 +209,22 @@ function useStagedCompactSelect<Value extends SelectKey>({
   const shouldShowReset = xor(stagedValue, defaultValue).length > 0;
 
   return {
+    compactSelectProps: {
+      value: stagedValue,
+      onChange: handleChange,
+      onSectionToggle: handleSectionToggle,
+      onInteractOutside: commitStagedChanges,
+      onKeyDown: handleKeyDown,
+      onKeyUp: handleKeyUp,
+      closeOnSelect: !(multiple && modifierKeyPressed),
+    },
     stagedValue,
     hasStagedChanges,
     modifierKeyPressed,
     commit,
     removeStagedChanges,
-    commitStagedChanges,
-    toggleOption,
-    handleChange,
-    handleKeyDown,
-    handleKeyUp,
-    handleSectionToggle,
     shouldShowReset,
+    toggleOption,
   };
 }
 
@@ -434,16 +446,10 @@ export function HybridFilter<Value extends SelectKey>({
     <CompactSelect
       grid
       multiple
-      closeOnSelect={!(multiple && stagedSelect.modifierKeyPressed)}
       menuHeaderTrailingItems={menuHeaderTrailingItems}
       options={mappedOptions}
-      value={stagedSelect.stagedValue}
-      onChange={stagedSelect.handleChange}
-      onSectionToggle={stagedSelect.handleSectionToggle}
-      onInteractOutside={stagedSelect.commitStagedChanges}
       menuFooter={renderFooter}
-      onKeyDown={stagedSelect.handleKeyDown}
-      onKeyUp={stagedSelect.handleKeyUp}
+      {...stagedSelect.compactSelectProps}
       {...selectProps}
     />
   );
