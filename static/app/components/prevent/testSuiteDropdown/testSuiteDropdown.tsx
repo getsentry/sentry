@@ -10,8 +10,8 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {
   HybridFilter,
-  type HybridFilterRef,
   useStagedCompactSelect,
+  type HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
 import {useTestSuites} from 'sentry/components/prevent/testSuiteDropdown/useTestSuites';
 import {t} from 'sentry/locale';

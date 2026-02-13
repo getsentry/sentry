@@ -35,25 +35,26 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-export interface ProjectPageFilterProps extends Partial<
-  Omit<
-    HybridFilterProps<number>,
-    | 'searchable'
-    | 'multiple'
-    | 'options'
-    | 'value'
-    | 'defaultValue'
-    | 'onReplace'
-    | 'onReset'
-    | 'onToggle'
-    | 'menuBody'
-    | 'menuFooter'
-    | 'menuFooterMessage'
-    | 'shouldCloseOnInteractOutside'
-    | 'sizeLimitMessage'
-    | 'stagedSelect'
-  >
-> {
+export interface ProjectPageFilterProps
+  extends Partial<
+    Omit<
+      HybridFilterProps<number>,
+      | 'searchable'
+      | 'multiple'
+      | 'options'
+      | 'value'
+      | 'defaultValue'
+      | 'onReplace'
+      | 'onReset'
+      | 'onToggle'
+      | 'menuBody'
+      | 'menuFooter'
+      | 'menuFooterMessage'
+      | 'shouldCloseOnInteractOutside'
+      | 'sizeLimitMessage'
+      | 'stagedSelect'
+    >
+  > {
   /**
    * Called when the selection changes
    */

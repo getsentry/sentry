@@ -11,8 +11,8 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   HybridFilter,
-  type HybridFilterRef,
   useStagedCompactSelect,
+  type HybridFilterRef,
 } from 'sentry/components/pageFilters/hybridFilter';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {
