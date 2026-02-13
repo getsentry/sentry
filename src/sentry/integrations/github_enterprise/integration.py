@@ -177,6 +177,10 @@ class GitHubEnterpriseIntegration(
     def integration_name(self) -> str:
         return IntegrationProviderSlug.GITHUB_ENTERPRISE.value
 
+    @property
+    def integration_id(self) -> int:
+        return self.model.id
+
     def get_client(self):
         if not self.org_integration:
             raise IntegrationError("Organization Integration does not exist")
