@@ -2443,14 +2443,116 @@ to further tighten the spread by assigning heavier individual tests to lighter s
 granularity. Scope-based LPT (coarse) was strictly worse than per-test hash (fine) when
 mega-scopes exist. Per-test LPT (fine + informed) should be the best of both worlds.
 
+### Iteration 18: Revert to round-robin baseline
+
+LPT sharding (Iteration 16–17) introduced complexity (duration caching, merge jobs, H1 wait
+stripping) without clear gains over the simpler round-robin baseline. Reverted all LPT-related
+changes to return to the proven 11m29s baseline:
+
+- **Removed:** `_duration_based_split()`, `merge-durations` job, cache steps, `TEST_DURATIONS_FILE`,
+  pytest report artifact uploads, H1 wait-time stripping from `skips.py`
+- **Restored:** `TEST_GROUP_STRATEGY=roundrobin` with per-test hash sharding in `sentry.py`
+- **Commit:** 5388cd9
+
+**Baseline restored:** ~11m29s wall clock (5 tier1 / 17 tier2, file-level classification).
+
+### Iteration 19: Test-level tier classification
+
+**Problem:** The tier splitter (`split-tests-by-tier.py`) grouped at file level — if *any* test
+in a file needed Snuba, the *entire* file went to Tier 2. The runtime classifier
+(`service_classifier.py`) already collected per-test dependencies, but this granularity was lost
+during splitting. With file-level splitting: 10,742 tests (32.8%) in Tier 2.
+
+**Hypothesis:** Splitting at test or class granularity should rescue tests that don't individually
+need Snuba but share a file with tests that do, moving them to Tier 1 and reducing Tier 2 load.
+
+**Changes (commit c60e6df):**
+
+1. **`split-tests-by-tier.py`**: Added `--granularity {file,class,test}` argument. New
+   `_scope_key()` helper extracts the grouping key at the chosen granularity. Tier assignment
+   is now per-key rather than per-file.
+
+2. **`sentry.py` filtering**: Made robust to all granularity levels — for each test, checks
+   `test_id` (full nodeid), `test_scope` (file::class or file::func), and `test_file` against
+   the selected tests set. Any match includes the test.
+
+3. **Workflow**: Added `TIER_GRANULARITY` env var, passed to `split-tests-by-tier.py`.
+
+**Experiments:** Ran class-level and test-level in parallel via Git worktrees on the existing
+5/17 shard split:
+
+| Granularity | Tier 1 tests | Tier 2 tests | T2 % | Tier 1 avg | Tier 2 avg | Overall max |
+|---|---|---|---|---|---|---|
+| File (baseline) | 21,308 | 10,742 | 33.5% | 9m29s | 9m40s | 11m29s |
+| Class-level | 21,795 | 10,255 | 32.0% | 12m24s | 10m15s | 12m24s |
+| Test-level | 22,030 | 10,742→10,742 | 32.8% | 12m48s | 10m30s | 12m48s |
+
+**Result:** Both experiments were *slower* because ~1,700+ rescued tests overloaded Tier 1's 5
+shards without adding capacity. Tier 1 became the new bottleneck.
+
+### Iteration 19b: Test-level + shard rebalance (6/16 split)
+
+**Fix:** Moved 1 shard from Tier 2 (17→16) to Tier 1 (5→6) to absorb the rescued tests.
+
+**Changes (commit d901f13):**
+- `TIER_GRANULARITY=test`
+- Tier 1: 6 shards, Tier 2: 16 shards
+
+| Metric | Baseline (5/17 file) | Test-level (6/16) | Delta |
+|---|---|---|---|
+| Tier 1 avg | 9m29s | 10m42s | +73s |
+| Tier 2 avg | 9m40s | 10m12s | +32s |
+| Tier 1 max | 9m53s | 11m06s | +73s |
+| Tier 2 max | 11m29s | 11m30s | +1s |
+| Wall clock | 11m29s | 11m30s | +1s |
+
+**Result:** Wall clock parity with baseline (11m30s vs 11m29s). The extra Tier 1 shard absorbed
+the rescued tests. More importantly, this creates headroom for further optimizations — if we can
+further reduce Tier 2 tests, they can be absorbed without adding total shards.
+
+**Test-level classification is now the default on the main branch.**
+
+### Iteration 20: Reclassification experiment (Optimization D revisited)
+
+**Background:** Optimization D (reclassifying Snuba dependencies) was first attempted in an
+earlier iteration but had no effect because file-level splitting trapped reclassified tests
+in Tier 2 alongside their file-mates. Now that test-level splitting is deployed, these
+reclassified tests can actually move to Tier 1.
+
+**Approach:** Rerun the classifier with modified Snuba detection:
+- Removed `_requires_snuba` from `FIXTURE_SERVICE_MAP` in `service_classifier.py` — Snuba
+  dependency is now detected purely via runtime socket monitoring (`getpeername()` on
+  port 1218/1230-1232)
+- Added `SENTRY_SKIP_SNUBA_RESET=1` to conditionally skip `_requires_snuba` session fixture
+  and `reset_snuba` per-test fixture, allowing tests to run without Snuba infrastructure
+- Tests that truly call Snuba are detected by socket activity; tests that only inherited
+  Snuba via `SnubaTestCase` but never actually query it are reclassified as non-Snuba
+
+**Classifier run:** 21972126334 (branch `mchen/reclassify-snuba-v2`, isolated worktree)
+
+**Results:**
+
+| Metric | Old classification | Reclassified | Delta |
+|---|---|---|---|
+| Snuba-tagged tests | 10,591 | 8,729 | -1,862 |
+| Tier 1 (test-level) | 22,030 | 23,874 | +1,844 |
+| Tier 2 (test-level) | 10,742 | 8,898 | -1,844 |
+| Tier 2 % | 32.8% | 27.2% | -5.6pp |
+
+1,862 tests were reclassified as not needing Snuba (they inherited `SnubaTestCase` but never
+actually queried Snuba). With test-level splitting, 1,844 of these move to Tier 1, reducing
+Tier 2 from 32.8% to 27.2% of all tests.
+
+**Next:** Run a CI pass with the reclassified data to measure wall-clock impact.
+
 ### Optimization Dependency Graph (Validated)
 
 ```mermaid
 graph TD
     %% ═══ Foundation: Classification Pipeline ═══
     CLASS["<b>1. Runtime Service Classifier</b><br/><code>classify-services.yml</code> + <code>service_classifier.py</code><br/>Socket getpeername() on send/sendall<br/>+ static fixtures/markers<br/><i>Produces test-service-classification.json</i>"]
-    SPLIT["<b>2. Tier Splitting</b><br/><code>split-tests-by-tier.py</code><br/>Reads classification JSON → tier1-tests.txt + tier2-tests.txt<br/><i>File-level: entire file → tier2 if any test needs Snuba</i>"]
-    TIER["<b>3. Two-Tier CI Workflow</b><br/><code>backend-xdist-split-poc.yml</code><br/>Tier 1: 5 shards (Postgres+Redis, <code>migrations</code> mode)<br/>Tier 2: 17 shards (full Snuba, <code>backend-ci</code> mode)<br/><i>Eliminates ~4-5min Snuba startup for 71% of tests</i>"]
+    SPLIT["<b>2. Tier Splitting</b><br/><code>split-tests-by-tier.py --granularity test</code><br/>Reads classification JSON → tier1-tests.txt + tier2-tests.txt<br/><i>Test-level: individual tests assigned by their own services</i>"]
+    TIER["<b>3. Two-Tier CI Workflow</b><br/><code>backend-xdist-split-poc.yml</code><br/>Tier 1: 6 shards (Postgres+Redis, <code>migrations</code> mode)<br/>Tier 2: 16 shards (full Snuba, <code>backend-ci</code> mode)<br/><i>Eliminates ~4-5min Snuba startup for 73% of tests</i>"]
 
     %% ═══ Tier 1 infrastructure ═══
     KAFKA["<b>4. Kafka + Redis-cluster via services: block</b><br/>Real Kafka+Zookeeper+Redis-cluster<br/>as GH Actions service containers<br/><i>Prevents Kafka MSG_TIMED_OUT from on_commit hooks<br/>without starting full Snuba stack</i>"]
@@ -2519,9 +2621,10 @@ Solid arrows = direct dependency, dashed arrows = exposed/required relationship.
 
 | # | Optimization | Expected Impact | Effort | Status |
 |---|---|---|---|---|
-| B | Duration-based shard allocation (LPT) | Reduce tier2 spread from ~56s to ~10-15s | Moderate | **Deployed** (per-test granularity, self-improving) |
-| C | Rebalance tier1/tier2 split ratio | Marginal | Trivial | Not started |
-| D+ | Test-level splitting (not file-level) | Eliminated mega-scope bottleneck | Moderate | **Deployed** (Iteration 17) |
+| B | Duration-based shard allocation (LPT) | Reduce tier2 spread from ~56s to ~10-15s | Moderate | **Reverted** (Iteration 18) — complexity without clear gains over round-robin |
+| C | Rebalance tier1/tier2 split ratio | Absorb rescued tests | Trivial | **Deployed** (Iteration 19b) — 5/17 → 6/16 |
+| D | Reclassify Snuba dependencies (runtime-only detection) | Move 1,844 tests to Tier 1 | Moderate | **Testing** (Iteration 20) — classifier complete, CI run pending |
+| D+ | Test-level splitting (not file-level) | Rescue 1,700+ tests from Tier 2 | Moderate | **Deployed** (Iteration 19) — `--granularity test` |
 | E | Increase total shards (22→26+) | ~90s+ savings | Cost increase (more runners) | Not started |
 | G1 | Pass specific tier files to pytest | ~15-20s per shard | Low | **Reverted** — breaks conftest init |
 | G2 | Remove "Clear Python cache" step | ~5-10s per shard | Trivial | Noted for later |
