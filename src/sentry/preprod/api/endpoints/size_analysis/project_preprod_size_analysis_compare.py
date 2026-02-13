@@ -14,7 +14,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.exceptions import StaffRequired
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
-from sentry.models.files.file import File
 from sentry.models.project import Project
 from sentry.preprod.analytics import (
     PreprodArtifactApiSizeAnalysisCompareGetEvent,
@@ -48,7 +47,7 @@ def _delete_existing_comparisons(
     comparisons_qs: models.QuerySet[PreprodArtifactSizeComparison],
 ) -> tuple[int, int]:
     comparisons = list(comparisons_qs)
-    file_ids = [c.file_id for c in comparisons if c.file_id is not None]
+    files = [c.file for c in comparisons if c.file_id is not None]
 
     comparison_ids = [c.id for c in comparisons]
     with transaction.atomic(using=router.db_for_write(PreprodArtifactSizeComparison)):
@@ -57,8 +56,9 @@ def _delete_existing_comparisons(
         ).delete()
 
         files_deleted = 0
-        if file_ids:
-            files_deleted, _ = File.objects.filter(id__in=file_ids).delete()
+        for file in files:
+            file.delete()
+            files_deleted += 1
 
     return comparisons_deleted, files_deleted
 
