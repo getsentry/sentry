@@ -32,23 +32,24 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-export interface ProjectPageFilterProps extends Partial<
-  Omit<
-    HybridFilterProps<number>,
-    | 'searchable'
-    | 'multiple'
-    | 'options'
-    | 'value'
-    | 'defaultValue'
-    | 'onReplace'
-    | 'onToggle'
-    | 'menuBody'
-    | 'menuFooter'
-    | 'menuFooterMessage'
-    | 'shouldCloseOnInteractOutside'
-    | 'sizeLimitMessage'
-  >
-> {
+export interface ProjectPageFilterProps
+  extends Partial<
+    Omit<
+      HybridFilterProps<number>,
+      | 'searchable'
+      | 'multiple'
+      | 'options'
+      | 'value'
+      | 'defaultValue'
+      | 'onReplace'
+      | 'onToggle'
+      | 'menuBody'
+      | 'menuFooter'
+      | 'menuFooterMessage'
+      | 'shouldCloseOnInteractOutside'
+      | 'sizeLimitMessage'
+    >
+  > {
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
@@ -86,6 +87,13 @@ export function ProjectPageFilter({
   const hybridFilterRef = useRef<HybridFilterRef<number>>(null);
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+
+  // Track optimistically bookmarked projects to prevent star from disappearing
+  // during API call when user bookmarks and quickly moves focus
+  const [optimisticallyBookmarkedProjects, setOptimisticallyBookmarkedProjects] =
+    useState<Set<string>>(
+      () => new Set(projects.filter(p => p.isBookmarked).map(p => p.id))
+    );
   const [memberProjects, otherProjects] = useMemo(
     () => partition(projects, project => project.isMember),
     [projects]
@@ -289,16 +297,23 @@ export function ProjectPageFilter({
                   />
                 </Fragment>
               ) : null}
-              {props.isFocused || project.isBookmarked ? (
+              {props.isFocused || optimisticallyBookmarkedProjects.has(project.id) ? (
                 <BookmarkStar
                   size="xs"
                   project={project}
                   organization={organization}
-                  tooltipProps={{
-                    title: project.isBookmarked ? t('Remove Bookmark') : t('Bookmark'),
-                    delay: 400,
-                  }}
+                  tooltipProps={{delay: 400}}
                   onToggle={(isBookmarked: boolean) => {
+                    // Update optimistic state immediately
+                    setOptimisticallyBookmarkedProjects(prev => {
+                      const next = new Set(prev);
+                      if (isBookmarked) {
+                        next.add(project.id);
+                      } else {
+                        next.delete(project.id);
+                      }
+                      return next;
+                    });
                     trackAnalytics('projectselector.bookmark_toggle', {
                       bookmarked: isBookmarked,
                       organization,
@@ -340,6 +355,7 @@ export function ProjectPageFilter({
     memberProjects,
     nonMemberProjects,
     mapURLValueToNormalValue,
+    optimisticallyBookmarkedProjects,
     pageFilterValue,
   ]);
 

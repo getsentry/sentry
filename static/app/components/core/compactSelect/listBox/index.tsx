@@ -51,7 +51,6 @@ interface ListBoxProps<T extends ObjectLike>
   /**
    * Whether the list is filtered by search query or not.
    * Used to determine whether to show the size limit message or not.
-   * @deprecated Use searchable instead
    */
   hasSearch?: boolean;
   /**

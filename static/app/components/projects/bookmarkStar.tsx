@@ -21,6 +21,7 @@ export function BookmarkStar({
   organization,
   project,
   onToggle,
+  tooltipProps,
   ...props
 }: BookmarkStarProps) {
   const api = useApi({persistInFlight: true});
@@ -46,7 +47,12 @@ export function BookmarkStar({
 
   return (
     <Button
-      tooltipProps={{title: isBookmarked ? t('Remove Bookmark') : t('Bookmark')}}
+      {...props}
+      tooltipProps={{
+        ...tooltipProps,
+        // Always use optimistic state for title
+        title: isBookmarked ? t('Remove Bookmark') : t('Bookmark'),
+      }}
       aria-label={isBookmarked ? t('Remove Bookmark') : t('Bookmark')}
       aria-pressed={isBookmarked}
       busy={isBookmarking}
@@ -56,7 +62,6 @@ export function BookmarkStar({
       icon={
         <IconStar variant={isBookmarked ? 'warning' : 'muted'} isSolid={isBookmarked} />
       }
-      {...props}
     />
   );
 }
