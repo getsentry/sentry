@@ -172,19 +172,19 @@ function SummaryTextArea({
   isSummaryPending: boolean;
   summaryText: string | undefined;
 }) {
-  if (isSummaryPending) {
-    return (
-      <Flex flexGrow={1}>
-        <Placeholder height="20px" />
-      </Flex>
-    );
-  }
-
   if (hasError) {
     return (
       <Text as="p" size="md" variant="secondary" wrap="pre-wrap" density="comfortable">
         {errorMessage}
       </Text>
+    );
+  }
+
+  if (isSummaryPending) {
+    return (
+      <Flex flexGrow={1}>
+        <Placeholder height="20px" />
+      </Flex>
     );
   }
 
@@ -218,10 +218,6 @@ function SummaryContent({
   segmentCount: number;
   summaryData: ReturnType<typeof useReplaySummaryContext>['summaryData'];
 }) {
-  if (isSummaryPending) {
-    return <ReplaySummaryLoading />;
-  }
-
   if (hasError) {
     return (
       <Stack overflow="auto" gap="3xl" padding="xl" align="center">
@@ -229,6 +225,10 @@ function SummaryContent({
         <Text align="center">{errorMessage}</Text>
       </Stack>
     );
+  }
+
+  if (isSummaryPending) {
+    return <ReplaySummaryLoading />;
   }
 
   if (hasInsufficientReplayFrames) {
