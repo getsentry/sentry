@@ -39,6 +39,7 @@ export interface HybridFilterRef<Value extends SelectKey> {
 export interface UseStagedCompactSelectOptions<Value extends SelectKey> {
   defaultValue: Value[];
   onChange: (selected: Value[]) => void;
+  options: Array<SelectOptionOrSection<Value>>;
   value: Value[];
   disableCommit?: boolean;
   hasExternalChanges?: boolean;
@@ -62,6 +63,7 @@ export interface UseStagedCompactSelectReturn<Value extends SelectKey> {
     | 'onInteractOutside'
     | 'onKeyDown'
     | 'onKeyUp'
+    | 'options'
   > & {
     closeOnSelect: boolean;
   };
@@ -85,6 +87,7 @@ export function useStagedCompactSelect<Value extends SelectKey>({
   value,
   defaultValue,
   onChange,
+  options,
   onStagedValueChange,
   onToggle,
   onReplace,
@@ -217,69 +220,12 @@ export function useStagedCompactSelect<Value extends SelectKey>({
     [commit, stagedValue, toggleOption, onReplace, multiple, modifierKeyPressed]
   );
 
-  // Don't show reset button if current value is already equal to the default one.
-  const shouldShowReset = xor(stagedValue, defaultValue).length > 0;
-
   const handleReset = useCallback(() => {
     commit(defaultValue);
     onReset?.();
   }, [commit, defaultValue, onReset]);
 
-  return {
-    compactSelectProps: {
-      value: stagedValue,
-      onChange: handleChange,
-      onSectionToggle: handleSectionToggle,
-      onInteractOutside: commitStagedChanges,
-      onKeyDown: handleKeyDown,
-      onKeyUp: handleKeyUp,
-      closeOnSelect: !(multiple && modifierKeyPressed),
-    },
-    defaultValue,
-    handleReset,
-    stagedValue,
-    hasStagedChanges,
-    modifierKeyPressed,
-    commit,
-    removeStagedChanges,
-    shouldShowReset,
-    toggleOption,
-    disableCommit,
-  };
-}
-
-export interface HybridFilterProps<Value extends SelectKey> extends Omit<
-  MultipleSelectProps<Value>,
-  'value' | 'onChange' | 'grid' | 'multiple'
-> {
-  /**
-   * The staged selection state manager from useStagedCompactSelect.
-   * This handles all the state management and provides props for CompactSelect.
-   */
-  stagedSelect: UseStagedCompactSelectReturn<Value>;
-  ref?: React.Ref<HybridFilterRef<Value>>;
-}
-
-/**
- * A special filter component with "hybrid" (both single and multiple) selection, made
- * specifically for page filters. Clicking on an option will select only that option
- * (single selection). Command/ctrl-clicking on an option or clicking on its checkbox
- * will add the option to the selection state (multiple selection).
- *
- * Note: this component is controlled only — changes must be handled via the `onChange`
- * callback.
- */
-export function HybridFilter<Value extends SelectKey>({
-  ref,
-  options,
-  stagedSelect,
-  ...selectProps
-}: HybridFilterProps<Value>) {
-  useImperativeHandle(ref, () => ({toggleOption: stagedSelect.toggleOption}), [
-    stagedSelect.toggleOption,
-  ]);
-
-  const mappedOptions = useMemo<Array<SelectOptionOrSection<Value>>>(() => {
+  const optionsWithCheckbox = useMemo<Array<SelectOptionOrSection<Value>>>(() => {
     const mapOption = (option: SelectOption<Value>): SelectOption<Value> => ({
       ...option,
       hideCheck: true,
@@ -329,12 +275,65 @@ export function HybridFilter<Value extends SelectKey>({
     );
   }, [options]);
 
+  return {
+    compactSelectProps: {
+      value: stagedValue,
+      options: optionsWithCheckbox,
+      onChange: handleChange,
+      onSectionToggle: handleSectionToggle,
+      onInteractOutside: commitStagedChanges,
+      onKeyDown: handleKeyDown,
+      onKeyUp: handleKeyUp,
+      closeOnSelect: !(multiple && modifierKeyPressed),
+    },
+    defaultValue,
+    handleReset,
+    stagedValue,
+    hasStagedChanges,
+    modifierKeyPressed,
+    commit,
+    removeStagedChanges,
+    shouldShowReset: xor(stagedValue, defaultValue).length > 0,
+    toggleOption,
+    disableCommit,
+  };
+}
+
+export interface HybridFilterProps<Value extends SelectKey> extends Omit<
+  MultipleSelectProps<Value>,
+  'value' | 'onChange' | 'grid' | 'multiple' | 'options'
+> {
+  /**
+   * The staged selection state manager from useStagedCompactSelect.
+   * This handles all the state management and provides props for CompactSelect.
+   */
+  stagedSelect: UseStagedCompactSelectReturn<Value>;
+  ref?: React.Ref<HybridFilterRef<Value>>;
+}
+
+/**
+ * A special filter component with "hybrid" (both single and multiple) selection, made
+ * specifically for page filters. Clicking on an option will select only that option
+ * (single selection). Command/ctrl-clicking on an option or clicking on its checkbox
+ * will add the option to the selection state (multiple selection).
+ *
+ * Note: this component is controlled only — changes must be handled via the `onChange`
+ * callback.
+ */
+export function HybridFilter<Value extends SelectKey>({
+  ref,
+  stagedSelect,
+  ...selectProps
+}: HybridFilterProps<Value>) {
+  useImperativeHandle(ref, () => ({toggleOption: stagedSelect.toggleOption}), [
+    stagedSelect.toggleOption,
+  ]);
+
   return (
     <HybridFilterContext.Provider value={stagedSelect as any}>
       <CompactSelect
         grid
         multiple
-        options={mappedOptions}
         {...stagedSelect.compactSelectProps}
         {...selectProps}
       />

@@ -98,6 +98,7 @@ export function TestSuiteDropdown() {
   const stagedSelect = useStagedCompactSelect({
     value,
     defaultValue: [],
+    options,
     onChange: handleChange,
     multiple: true,
   });
@@ -107,7 +108,6 @@ export function TestSuiteDropdown() {
       ref={hybridFilterRef}
       stagedSelect={stagedSelect}
       searchable
-      options={options}
       onSearch={handleOnSearch}
       emptyMessage={getEmptyMessage()}
       menuTitle={t('Filter Test Suites')}

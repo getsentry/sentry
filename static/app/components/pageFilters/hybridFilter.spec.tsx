@@ -63,16 +63,12 @@ describe('HybridFilter', () => {
         value: [] as string[],
         defaultValue: [],
         onChange: () => {},
+        options,
         multiple: true,
       });
 
       return (
-        <HybridFilter
-          searchable
-          ref={hybridFilterRef}
-          options={options}
-          stagedSelect={stagedSelect}
-        />
+        <HybridFilter searchable ref={hybridFilterRef} stagedSelect={stagedSelect} />
       );
     }
 
@@ -96,16 +92,12 @@ describe('HybridFilter', () => {
         value,
         defaultValue: [],
         onChange,
+        options,
         multiple: true,
       });
 
       return (
-        <HybridFilter
-          searchable
-          ref={hybridFilterRef}
-          options={options}
-          stagedSelect={stagedSelect}
-        />
+        <HybridFilter searchable ref={hybridFilterRef} stagedSelect={stagedSelect} />
       );
     }
 
@@ -140,16 +132,12 @@ describe('HybridFilter', () => {
           onChange(newValue);
           setValue(newValue);
         },
+        options,
         multiple: true,
       });
 
       return (
-        <HybridFilter
-          searchable
-          ref={hybridFilterRef}
-          options={options}
-          stagedSelect={stagedSelect}
-        />
+        <HybridFilter searchable ref={hybridFilterRef} stagedSelect={stagedSelect} />
       );
     }
 
@@ -192,17 +180,13 @@ describe('HybridFilter', () => {
       const stagedSelect = useStagedCompactSelect({
         value: [] as string[],
         defaultValue: [],
+        options,
         onChange,
         multiple: true,
       });
 
       return (
-        <HybridFilter
-          searchable
-          ref={hybridFilterRef}
-          options={options}
-          stagedSelect={stagedSelect}
-        />
+        <HybridFilter searchable ref={hybridFilterRef} stagedSelect={stagedSelect} />
       );
     }
 
@@ -234,16 +218,12 @@ describe('HybridFilter', () => {
         defaultValue: ['one'] as string[],
         onChange,
         onReset,
+        options,
         multiple: true,
       });
 
       return (
-        <HybridFilter
-          searchable
-          ref={hybridFilterRef}
-          options={options}
-          stagedSelect={stagedSelect}
-        />
+        <HybridFilter searchable ref={hybridFilterRef} stagedSelect={stagedSelect} />
       );
     }
 
@@ -279,16 +259,12 @@ describe('HybridFilter', () => {
         value: [] as string[],
         defaultValue: [],
         onChange,
+        options,
         multiple: true,
       });
 
       return (
-        <HybridFilter
-          searchable
-          ref={hybridFilterRef}
-          options={options}
-          stagedSelect={stagedSelect}
-        />
+        <HybridFilter searchable ref={hybridFilterRef} stagedSelect={stagedSelect} />
       );
     }
 

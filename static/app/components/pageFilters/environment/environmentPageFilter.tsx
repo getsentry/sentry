@@ -221,6 +221,7 @@ export function EnvironmentPageFilter({
     onToggle,
     onReplace,
     onReset,
+    options,
     multiple: true,
   });
 
@@ -230,7 +231,6 @@ export function EnvironmentPageFilter({
       ref={hybridFilterRef}
       stagedSelect={stagedSelect}
       searchable
-      options={options}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}
       sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more environments…')}

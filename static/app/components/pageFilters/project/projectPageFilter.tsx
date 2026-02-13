@@ -407,6 +407,7 @@ export function ProjectPageFilter({
     onStagedValueChange: setStagedValue,
     onToggle,
     onReplace,
+    options,
     onReset: handleReset,
     multiple: true,
     disableCommit: selectionLimitExceeded,
@@ -420,7 +421,6 @@ export function ProjectPageFilter({
       {...selectProps}
       stagedSelect={stagedSelect}
       searchable
-      options={options}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}
       emptyMessage={emptyMessage ?? t('No projects found')}
