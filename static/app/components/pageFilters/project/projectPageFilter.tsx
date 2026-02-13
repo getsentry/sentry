@@ -5,7 +5,7 @@ import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
 import {Flex, Stack} from '@sentry/scraps/layout';

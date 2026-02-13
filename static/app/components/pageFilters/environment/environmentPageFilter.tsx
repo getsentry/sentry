@@ -3,7 +3,7 @@ import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
 import {updateEnvironments} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';

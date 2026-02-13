@@ -26,7 +26,7 @@ import type {
   SelectSection,
 } from '@sentry/scraps/compactSelect';
 import {CompactSelect, ControlContext} from '@sentry/scraps/compactSelect';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
