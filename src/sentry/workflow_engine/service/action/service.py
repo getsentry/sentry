@@ -39,8 +39,8 @@ class ActionService(RpcService):
     def update_action_status_for_sentry_app_installation(
         self,
         *,
-        organization_id: int,
         status: int,
+        organization_id: int,
         sentry_app_id: int,
     ) -> None:
         pass
