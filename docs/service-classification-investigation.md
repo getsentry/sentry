@@ -2553,6 +2553,54 @@ genuinely mislabeled test would fail with a connection error, not pass silently.
 **Status:** Deployed and running. Testing 6/16 (run 21972933453) and 7/15 (run 21973191837)
 shard ratios in parallel to find optimal balance for the larger Tier 1 test set.
 
+### Iteration 21: Docker image caching experiment (Optimization F1)
+
+**Goal:** Reduce Docker image acquisition time for Tier 2 shards. `devservices up --mode backend-ci`
+pulls ~9 images (~67s). The hypothesis was that caching images locally would skip network pulls.
+
+**Attempt 1: `docker save`/`docker load` with `actions/cache` + zstd compression**
+
+- Save: `docker save <images> | zstd -T0 -3 -o devservices.tar.zst` (~1.2GB compressed)
+- Load: `zstd -d ... -o devservices.tar && docker load -i devservices.tar`
+- Runs: 21973362995 (cache-hit), 21973362995 (rerun)
+
+**Result: Net negative.** The `docker load` step took ~55s and ran sequentially **before** the H1
+overlapped startup block, meaning it was on the critical path. Breakdown:
+
+| Phase | Time | Notes |
+|---|---|---|
+| Cache restore (actions/cache) | ~5s | Download 1.2GB from GitHub cache |
+| zstd decompress | ~15s | 1.2GB → 2.5GB tar |
+| docker load | ~35s | CPU-bound layer decompression + disk writes |
+| **Total overhead** | **~55s** | **Sequential, blocking, before H1** |
+
+Meanwhile, native `docker pull` during H1 takes ~67s but overlaps almost entirely with pytest
+collection (~110s). So the cache added 55s of overhead to "save" 67s that was already hidden.
+
+**Attempt 2: Background pre-pull (current approach)**
+
+Instead of caching, pre-pull the 2 locally-defined images (`cbtemulator`, `docker-redis-cluster`)
+in background immediately after checkout, overlapping with `setup-sentry` (~35s). The remaining
+~7 remote images (snuba, clickhouse, kafka, postgres, redis, symbolicator, objectstore) are
+resolved by `devservices` at runtime and cannot be pre-pulled without Python.
+
+**Why full image caching doesn't work:**
+
+1. **`docker load` is CPU-bound** — it must decompress every layer (gzip), compute checksums, and
+   write to `overlay2`. This takes ~35-55s regardless of I/O speed.
+2. **Sequential blocking** — `docker load` must complete before `devservices up` can reference
+   the images. It can't overlap with pytest collection like native pulls can.
+3. **Native `docker pull` is already overlapped** — H1 runs `devservices up` in background while
+   pytest collects tests. The 67s pull is fully hidden behind the 110s collection phase.
+4. **`docker save` doesn't preserve registry metadata** — loaded images lose manifest info,
+   potentially causing devservices to re-pull anyway.
+
+**Key insight:** Docker image caching only helps when pulls are on the critical path. With H1's
+overlapped startup, pulls are NOT on the critical path — they're hidden behind pytest collection.
+The only images that benefit from pre-pulling are the locally-defined ones (not resolved by
+devservices at runtime), and only because their pull can overlap with `setup-sentry` (~35s)
+which happens BEFORE H1 starts.
+
 ### Optimization Dependency Graph (Validated)
 
 ```mermaid
@@ -2634,7 +2682,7 @@ Solid arrows = direct dependency, dashed arrows = exposed/required relationship.
 | D | Reclassify Snuba dependencies (runtime-only detection) | Move 1,844 tests to Tier 1 | Moderate | **Deployed** (Iteration 20) — `SENTRY_SKIP_SNUBA_CHECK` bypass |
 | D+ | Test-level splitting (not file-level) | Rescue 1,700+ tests from Tier 2 | Moderate | **Deployed** (Iteration 19) — `--granularity test` |
 | E | Increase total shards (22→26+) | ~90s+ savings | Cost increase (more runners) | Not started |
-| F1 | Docker image caching (`docker save`/`docker load`) | ~45s per tier2 shard | Low | **In progress** — `actions/cache` for devservices images |
+| F1 | Docker image pre-pull (background overlap) | ~10-15s per tier2 shard | Low | **Deployed** — pre-pull locally-defined images during setup-sentry; `docker save/load` approach reverted (added 55s sequential overhead, see below) |
 | F2 | Tier 1 devservices mode (replace service containers) | ~40s per tier1 shard | Medium | **Planned** — create dedicated `devservices` mode for tier1 (Postgres+Redis+Kafka) to enable caching; GH Actions service containers cannot be cached |
 | G1 | Pass specific tier files to pytest | ~15-20s per shard | Low | **Reverted** — breaks conftest init |
 | G2 | Remove "Clear Python cache" step | ~5-10s per shard | Trivial | Noted for later |
