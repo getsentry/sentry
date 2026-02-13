@@ -11,13 +11,15 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 type DetectorDetailsOngoingIssuesProps = {
   // The time range used for the issues query.
-  // When null, the query uses the default set by the backend: 90d
+  // When null, the query uses 90d as the stats period.
   dateTimeSelection: PageFilters['datetime'] | null;
   detector: Detector;
   // Extra query params to include in the issue details link.
   // Useful for feature-specific deep-linking.
   issueLinkExtraQuery?: Record<string, string>;
 };
+
+const DEFAULT_STATS_PERIOD = '90d';
 
 export function DetectorDetailsOngoingIssues({
   detector,
@@ -26,7 +28,8 @@ export function DetectorDetailsOngoingIssues({
 }: DetectorDetailsOngoingIssuesProps) {
   const organization = useOrganization();
   const query = `is:unresolved detector:${detector.id}`;
-  const {start, end, period} = dateTimeSelection ?? {};
+  const {start, end, period} = dateTimeSelection ?? {period: DEFAULT_STATS_PERIOD};
+
   const queryParams = {
     query,
     project: detector.projectId,
@@ -40,6 +43,7 @@ export function DetectorDetailsOngoingIssues({
       title={t('Ongoing Issues')}
       trailingItems={
         <LinkButton
+          data-test-id="view-all-ongoing-issues-button"
           size="xs"
           to={{
             pathname: `/organizations/${organization.slug}/issues/`,
