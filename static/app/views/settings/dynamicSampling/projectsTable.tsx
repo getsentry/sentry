@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -112,16 +113,20 @@ export function ProjectsTable({
 
   return (
     <Fragment>
-      <TableHeader>
-        <HeaderCell>{t('Originating Project')}</HeaderCell>
+      <TableHeader background="secondary" overflow="hidden">
+        <Cell direction="column" padding="xl">
+          {t('Originating Project')}
+        </Cell>
         <SortableHeader type="button" key="spans" onClick={handleTableSort}>
           {t('Accepted Spans')}
           <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
         </SortableHeader>
-        <HeaderCell data-align="right">
+        <Cell direction="column" padding="xl" align="end">
           {period === '24h' ? t('Stored Spans (24h)') : t('Stored Spans (30d)')}
-        </HeaderCell>
-        <HeaderCell data-align="right">{rateHeader}</HeaderCell>
+        </Cell>
+        <Cell direction="column" padding="xl" align="end">
+          {rateHeader}
+        </Cell>
       </TableHeader>
       {isLoading && <LoadingIndicator />}
 
@@ -131,8 +136,9 @@ export function ProjectsTable({
         </EmptyStateWarning>
       )}
       {!isLoading && items.length > 0 && (
-        <ScrollContainer
+        <Container
           ref={scrollContainerRef}
+          overflowY="auto"
           style={{height: Math.min(virtualizer.getTotalSize(), MAX_SCROLL_HEIGHT)}}
         >
           <div style={{height: virtualizer.getTotalSize(), position: 'relative'}}>
@@ -166,7 +172,7 @@ export function ProjectsTable({
               );
             })}
           </div>
-        </ScrollContainer>
+        </Container>
       )}
     </Fragment>
   );
@@ -178,7 +184,9 @@ function getSubProjectContent(
   isExpanded: boolean
 ) {
   let subProjectContent: React.ReactNode = (
-    <Ellipsis>{t('No distributed traces')}</Ellipsis>
+    <Text variant="muted" ellipsis>
+      {t('No distributed traces')}
+    </Text>
   );
   if (subProjects.length > 0) {
     const truncatedSubProjects = subProjects.slice(0, MAX_PROJECTS_COLLAPSED);
@@ -197,7 +205,9 @@ function getSubProjectContent(
         ))}
       </Fragment>
     ) : (
-      <Ellipsis>{t('Including spans in ') + stringifiedSubProjects}</Ellipsis>
+      <Text variant="muted" ellipsis>
+        {t('Including spans in ') + stringifiedSubProjects}
+      </Text>
     );
   }
 
@@ -315,9 +325,13 @@ const TableRow = memo(function TableRow({
 
   const storedSpans = Math.floor(count * parsePercent(sampleRate));
   return (
-    <TableRowWrapper>
-      <Cell>
-        <FirstCellLine data-has-chevron={isExpandable}>
+    <TableRowWrapper overflow="hidden">
+      <Cell direction="column" padding="md xl">
+        <FirstCellLine
+          align="center"
+          height="32px"
+          paddingLeft={isExpandable ? undefined : 'xl'}
+        >
           <HiddenButton
             type="button"
             disabled={!isExpandable}
@@ -345,12 +359,14 @@ const TableRow = memo(function TableRow({
         </FirstCellLine>
         <SubProjects data-is-first-column>{subProjectContent}</SubProjects>
       </Cell>
-      <Cell>
-        <FirstCellLine data-align="right">{formatAbbreviatedNumber(count)}</FirstCellLine>
+      <Cell direction="column" padding="md xl" align="end">
+        <FirstCellLine align="center" height="32px" justify="end">
+          {formatAbbreviatedNumber(count)}
+        </FirstCellLine>
         <SubContent>{subSpansContent}</SubContent>
       </Cell>
-      <Cell>
-        <FirstCellLine data-align="right">
+      <Cell direction="column" padding="md xl" align="end">
+        <FirstCellLine align="center" height="32px" justify="end">
           {formatAbbreviatedNumber(storedSpans)}
         </FirstCellLine>
         <SubContent data-is-last-column>
@@ -363,7 +379,7 @@ const TableRow = memo(function TableRow({
         </SubContent>
       </Cell>
       <Flex direction="column" padding="xl xl md xl" style={{minWidth: 0}}>
-        <FirstCellLine>
+        <FirstCellLine align="center" height="32px">
           <Tooltip disabled={!inputTooltip} title={inputTooltip}>
             <PercentInput
               type="number"
@@ -375,39 +391,18 @@ const TableRow = memo(function TableRow({
           </Tooltip>
         </FirstCellLine>
         {error ? (
-          <ErrorMessage>{error}</ErrorMessage>
+          <Text size="xs" variant="danger" align="right">
+            {error}
+          </Text>
         ) : sampleRate === initialSampleRate ? null : (
-          <SmallPrint>{t('previous: %s%%', initialSampleRate)}</SmallPrint>
+          <Text size="xs" variant="secondary" align="right">
+            {t('previous: %s%%', initialSampleRate)}
+          </Text>
         )}
       </Flex>
     </TableRowWrapper>
   );
 });
-
-const ScrollContainer = styled('div')`
-  overflow-y: auto;
-`;
-
-const SmallPrint = styled('span')`
-  font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.tokens.content.secondary};
-  line-height: 1.5;
-  text-align: right;
-`;
-
-const Ellipsis = styled('span')`
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const ErrorMessage = styled('span')`
-  color: ${p => p.theme.tokens.content.danger};
-  font-size: ${p => p.theme.font.size.xs};
-  line-height: 1.5;
-  text-align: right;
-`;
 
 const SortableHeader = styled('button')`
   border: none;
@@ -420,40 +415,18 @@ const SortableHeader = styled('button')`
   gap: ${space(0.5)};
 `;
 
-const TableRowWrapper = styled('div')`
-  display: grid;
+const TableRowWrapper = styled(Grid)`
   grid-template-columns: 1fr 165px 165px 152px;
-  overflow: hidden;
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
-const Cell = styled('div')`
-  display: flex;
-  flex-direction: column;
-  padding: ${space(1)} ${space(2)};
+const Cell = styled(Flex)`
   min-width: 0;
-
-  &[data-align='right'] {
-    align-items: flex-end;
-  }
 `;
 
-const HeaderCell = styled(Cell)`
-  padding: ${space(2)};
-`;
-
-const FirstCellLine = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 32px;
+const FirstCellLine = styled(Flex)`
   & > * {
     flex-shrink: 0;
-  }
-  &[data-align='right'] {
-    justify-content: flex-end;
-  }
-  &[data-has-chevron='false'] {
-    padding-left: ${space(2)};
   }
 `;
 
@@ -537,7 +510,6 @@ const TableHeader = styled(TableRowWrapper)`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
-  background: ${p => p.theme.tokens.background.secondary};
   white-space: nowrap;
   line-height: 1;
   height: 45px;
