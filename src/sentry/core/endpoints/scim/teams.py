@@ -358,7 +358,12 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return (
             settings.SENTRY_MODE == SentryMode.SAAS
             and team.organization.id == settings.SUPERUSER_ORG_ID
-            and team.slug in ("snty-staff", "snty-superuser-read", "snty-superuser-write")
+            and team.slug
+            in (
+                settings.SENTRY_SCIM_STAFF_TEAM_SLUG,
+                settings.SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG,
+                settings.SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG,
+            )
         )
 
     def _grant_privilege(self, member: OrganizationMember, team: Team) -> None:
@@ -368,11 +373,11 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         attrs = {}
         permission_added = False
 
-        if team.slug == "snty-staff":
+        if team.slug == settings.SENTRY_SCIM_STAFF_TEAM_SLUG:
             attrs["is_staff"] = True
-        elif team.slug == "snty-superuser-read":
+        elif team.slug == settings.SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG:
             attrs["is_superuser"] = True
-        elif team.slug == "snty-superuser-write":
+        elif team.slug == settings.SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG:
             attrs["is_superuser"] = True
             # Add permission first, track if successful
             permission_added = user_service.add_permission(
@@ -403,11 +408,11 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
         attrs = {}
 
-        if team.slug == "snty-staff":
+        if team.slug == settings.SENTRY_SCIM_STAFF_TEAM_SLUG:
             attrs["is_staff"] = False
-        elif team.slug == "snty-superuser-read":
+        elif team.slug == settings.SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG:
             attrs["is_superuser"] = False
-        elif team.slug == "snty-superuser-write":
+        elif team.slug == settings.SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG:
             attrs["is_superuser"] = False
             # Remove permission - if update_user fails later, we keep permission removed
             user_service.remove_permission(user_id=member.user_id, permission="superuser.write")

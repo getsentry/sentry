@@ -346,7 +346,13 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
         self.member_two = self.create_member(user=self.user_two, organization=self.organization)
 
     def test_adding_to_staff_group_grants_is_staff(self) -> None:
-        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
             staff_team = self.create_team(
                 organization=self.organization, slug="snty-staff", idp_provisioned=True
             )
@@ -378,7 +384,13 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
             assert user.is_staff
 
     def test_adding_to_superuser_group_grants_is_superuser(self) -> None:
-        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
             superuser_team = self.create_team(
                 organization=self.organization, slug="snty-superuser-read", idp_provisioned=True
             )
@@ -410,7 +422,13 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
             assert user.is_superuser
 
     def test_removing_from_staff_group_revokes_only_is_staff(self) -> None:
-        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
             staff_team = self.create_team(
                 organization=self.organization, slug="snty-staff", idp_provisioned=True
             )
@@ -444,7 +462,13 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
             assert user.is_superuser
 
     def test_removing_from_superuser_group_revokes_only_is_superuser(self) -> None:
-        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
             superuser_team = self.create_team(
                 organization=self.organization, slug="snty-superuser-read", idp_provisioned=True
             )
@@ -478,7 +502,13 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
             assert not user.is_superuser
 
     def test_replace_members_revokes_privileges_for_removed_members(self) -> None:
-        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
             staff_team = self.create_team(
                 organization=self.organization, slug="snty-staff", idp_provisioned=True
             )
@@ -518,7 +548,13 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
             assert user_two.is_staff
 
     def test_regular_team_does_not_affect_privileges(self) -> None:
-        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
             regular_team = self.create_team(
                 organization=self.organization, slug="engineering", idp_provisioned=True
             )
@@ -551,7 +587,13 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
             assert not user.is_superuser
 
     def test_non_default_org_does_not_grant_privileges(self) -> None:
-        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
             other_org = self.create_organization(name="Other Org")
             other_member = self.create_member(user=self.user_one, organization=other_org)
 
@@ -598,7 +640,11 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
 
     def test_non_saas_mode_does_not_grant_privileges(self) -> None:
         with override_settings(
-            SENTRY_MODE=SentryMode.SELF_HOSTED, SUPERUSER_ORG_ID=self.organization.id
+            SENTRY_MODE=SentryMode.SELF_HOSTED,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
         ):
             staff_team = self.create_team(
                 organization=self.organization, slug="snty-staff", idp_provisioned=True
@@ -630,7 +676,13 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
             assert not user.is_staff
 
     def test_privilege_grant_failure_returns_500(self) -> None:
-        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
             staff_team = self.create_team(
                 organization=self.organization, slug="snty-staff", idp_provisioned=True
             )
@@ -662,7 +714,13 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 assert response.data["detail"] == "Failed to grant user privileges"
 
     def test_privilege_revocation_failure_returns_500(self) -> None:
-        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
             staff_team = self.create_team(
                 organization=self.organization, slug="snty-staff", idp_provisioned=True
             )
@@ -695,7 +753,13 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
 
     def test_superuser_write_grant_failure_rolls_back_permission(self) -> None:
         """Test that if update_user fails, add_permission is rolled back for snty-superuser-write."""
-        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
             from sentry.users.models.userpermission import UserPermission
 
             superuser_write_team = self.create_team(
@@ -741,7 +805,13 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 ).exists()
 
     def test_adding_to_superuser_write_group_grants_is_superuser_and_permission(self) -> None:
-        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
             from sentry.users.models.userpermission import UserPermission
 
             superuser_write_team = self.create_team(
@@ -787,7 +857,13 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 ).exists()
 
     def test_removing_from_superuser_write_group_revokes_is_superuser_and_permission(self) -> None:
-        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
             from sentry.users.models.userpermission import UserPermission
 
             superuser_write_team = self.create_team(
@@ -840,7 +916,13 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
 
     def test_superuser_write_revoke_failure_keeps_permission_removed(self) -> None:
         """Test that if update_user fails, permission stays removed (fail-secure) for snty-superuser-write."""
-        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
             from sentry.users.models.userpermission import UserPermission
 
             superuser_write_team = self.create_team(
@@ -906,7 +988,13 @@ class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
         self.member_two = self.create_member(user=self.user_two, organization=self.organization)
 
     def test_deleting_staff_team_revokes_privileges(self) -> None:
-        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
             staff_team = self.create_team(
                 organization=self.organization, slug="snty-staff", idp_provisioned=True
             )
@@ -944,7 +1032,13 @@ class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
             assert not user_two.is_staff
 
     def test_deleting_superuser_team_revokes_privileges(self) -> None:
-        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
             superuser_team = self.create_team(
                 organization=self.organization, slug="snty-superuser-read", idp_provisioned=True
             )
@@ -972,7 +1066,13 @@ class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
             assert not user.is_superuser
 
     def test_deleting_regular_team_does_not_affect_privileges(self) -> None:
-        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
             regular_team = self.create_team(
                 organization=self.organization, slug="engineering", idp_provisioned=True
             )
@@ -995,7 +1095,13 @@ class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
             assert user.is_superuser
 
     def test_deleting_team_with_privilege_revocation_failure_returns_500(self) -> None:
-        with override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=self.organization.id):
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
             staff_team = self.create_team(
                 organization=self.organization, slug="snty-staff", idp_provisioned=True
             )
