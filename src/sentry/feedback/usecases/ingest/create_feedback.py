@@ -135,6 +135,10 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
         ret_event["sdk"] = event_data["sdk"]
     ret_event["request"] = event_data.get("request", {})
 
+    breadcrumbs = event_data.get("breadcrumbs")
+    if isinstance(breadcrumbs, list) and breadcrumbs:
+        ret_event["breadcrumbs"] = {"values": breadcrumbs}
+
     ret_event["user"] = event_data.get("user", {})
     if "name" in ret_event["user"]:
         del ret_event["user"]["name"]

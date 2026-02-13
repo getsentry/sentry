@@ -232,6 +232,15 @@ def test_feedbacks_spawn_save_event_feedback(
             "timestamp": now.isoformat(),
             "start_timestamp": now.isoformat(),
             "spans": [],
+            "breadcrumbs": [
+                {
+                    "type": "default",
+                    "category": "ui.click",
+                    "message": "clicked send feedback",
+                    "level": "info",
+                    "timestamp": now.isoformat(),
+                }
+            ],
             "contexts": {
                 "feedback": {
                     "contact_email": "test_test.com",
@@ -264,6 +273,7 @@ def test_feedbacks_spawn_save_event_feedback(
         == event["contexts"]["feedback"]
     )
     assert save_event_feedback.delay.call_args[1]["data"]["type"] == "feedback"
+    assert save_event_feedback.delay.call_args[1]["data"]["breadcrumbs"] == payload["breadcrumbs"]
 
 
 @django_db_all

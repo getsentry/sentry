@@ -244,6 +244,52 @@ def test_fix_for_issue_platform_environment(environment) -> None:
         assert fixed_event["environment"] == "production"
 
 
+def test_fix_for_issue_platform_includes_nonempty_breadcrumbs() -> None:
+    event = mock_feedback_event(1)
+    event["breadcrumbs"] = [
+        {
+            "category": "ui.click",
+            "message": "clicked submit",
+            "level": "info",
+            "timestamp": datetime.now(UTC).isoformat(),
+            "type": "default",
+        }
+    ]
+
+    fixed_event = fix_for_issue_platform(event)
+    assert fixed_event["breadcrumbs"] == {"values": event["breadcrumbs"]}
+
+
+def test_fix_for_issue_platform_omits_empty_breadcrumbs() -> None:
+    event = mock_feedback_event(1)
+    event["breadcrumbs"] = []
+
+    fixed_event = fix_for_issue_platform(event)
+    assert "breadcrumbs" not in fixed_event
+
+
+@django_db_all
+def test_create_feedback_includes_breadcrumbs_in_produced_event(
+    default_project, mock_produce_occurrence_to_kafka
+) -> None:
+    event = mock_feedback_event(default_project.id)
+    event["breadcrumbs"] = [
+        {
+            "category": "ui.click",
+            "message": "clicked submit",
+            "level": "info",
+            "timestamp": datetime.now(UTC).isoformat(),
+            "type": "default",
+        }
+    ]
+
+    create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    assert produced_event["breadcrumbs"] == {"values": event["breadcrumbs"]}
+
+
 @django_db_all
 def test_create_feedback_filters_unreal(default_project, mock_produce_occurrence_to_kafka) -> None:
     event = {
