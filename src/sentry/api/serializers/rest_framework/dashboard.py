@@ -540,13 +540,13 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             raise serializers.ValidationError(
                 {"limit": f"limit is required. The maximum limit is ${limit}."}
             )
-        # Validate limit based on display type: categorical bar charts allow up to 20,
+        # Validate limit based on display type: categorical bar charts allow up to 25,
         # all other chart types allow up to 10.
         widget_limit = data.get("limit")
         if widget_limit is not None:
             display_type = data.get("display_type")
             if display_type == DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART:
-                max_allowed = 20
+                max_allowed = 25
             else:
                 max_allowed = 10
             if widget_limit > max_allowed:

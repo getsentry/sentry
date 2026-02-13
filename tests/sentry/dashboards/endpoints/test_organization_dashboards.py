@@ -1318,7 +1318,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 {
                     "displayType": "categorical_bar",
                     "interval": "5m",
-                    "limit": 21,
+                    "limit": 26,
                     "title": "Categorical Bar Widget",
                     "queries": [
                         {
@@ -1334,7 +1334,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         }
         response = self.do_request("post", self.url, data=data)
         assert response.status_code == 400
-        assert b"The maximum limit for this display type is 20" in response.content
+        assert b"The maximum limit for this display type is 25" in response.content
 
     def test_add_widget_with_invalid_limit_below_minimum(self) -> None:
         data = {

@@ -1396,7 +1396,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "title": "Categorical Bar Widget",
                     "displayType": "categorical_bar",
                     "interval": "5m",
-                    "limit": 21,
+                    "limit": 26,
                     "queries": [
                         {
                             "name": "",
@@ -1412,7 +1412,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
-        assert b"The maximum limit for this display type is 20" in response.content
+        assert b"The maximum limit for this display type is 25" in response.content
 
     def test_add_widget_with_invalid_limit_below_minimum(self) -> None:
         data = {
