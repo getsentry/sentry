@@ -128,17 +128,30 @@ class SeerOperator[CachePayloadT]:
                     "stopping_point": str(stopping_point),
                 }
             )
-            existing_state = (
-                get_autofix_state(
-                    run_id=run_id,
-                    organization_id=group.organization.id,
+            try:
+                existing_state = (
+                    get_autofix_state(
+                        run_id=run_id,
+                        organization_id=group.organization.id,
+                    )
+                    if run_id
+                    else get_autofix_state(
+                        group_id=group.id,
+                        organization_id=group.organization.id,
+                    )
                 )
-                if run_id
-                else get_autofix_state(
-                    group_id=group.id,
-                    organization_id=group.organization.id,
+            except Exception as e:
+                lifecycle.record_failure(
+                    failure_reason="failed_to_get_autofix_state", extra={"error": str(e)}
                 )
-            )
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_autofix_error(
+                        error="Encountered an error while talking to Seer"
+                    )
+                return
             if existing_state:
                 has_complete_stage = has_complete_stage_from_state(stopping_point, existing_state)
                 lifecycle.add_extras(
