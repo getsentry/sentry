@@ -237,6 +237,9 @@ export function EnvironmentPageFilter({
       emptyMessage={emptyMessage ?? t('No environments found')}
       menuTitle={t('Filter Environments')}
       menuWidth={menuWidth ?? defaultMenuWidth}
+      menuHeaderTrailingItems={
+        stagedSelect.shouldShowReset ? <HybridFilterComponents.ResetButton /> : null
+      }
       menuFooter={
         stagedSelect.hasStagedChanges ? (
           <Flex gap="md" align="center" justify="end">

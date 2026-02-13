@@ -426,7 +426,9 @@ export function ProjectPageFilter({
       emptyMessage={emptyMessage ?? t('No projects found')}
       menuTitle={menuTitle ?? t('Filter Projects')}
       menuWidth={menuWidth ?? defaultMenuWidth}
-      menuHeaderTrailingItems={<HybridFilterComponents.ResetButton />}
+      menuHeaderTrailingItems={
+        stagedSelect.shouldShowReset ? <HybridFilterComponents.ResetButton /> : null
+      }
       menuFooter={
         <Stack gap="md" direction="column">
           {selectionLimitExceeded && (

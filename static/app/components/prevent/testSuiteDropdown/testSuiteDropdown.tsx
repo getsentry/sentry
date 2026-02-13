@@ -111,6 +111,9 @@ export function TestSuiteDropdown() {
       onSearch={handleOnSearch}
       emptyMessage={getEmptyMessage()}
       menuTitle={t('Filter Test Suites')}
+      menuHeaderTrailingItems={
+        stagedSelect.shouldShowReset ? <HybridFilterComponents.ResetButton /> : null
+      }
       menuFooter={
         stagedSelect.hasStagedChanges ? (
           <Flex gap="md" align="center" justify="end">

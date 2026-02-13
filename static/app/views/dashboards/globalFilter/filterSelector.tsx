@@ -310,34 +310,6 @@ function FilterSelector({
     hasExternalChanges: hasOperatorChanges,
   });
 
-  const renderMenuHeaderTrailingItems = ({closeOverlay}: any) => (
-    <Flex gap="lg">
-      {activeFilterValues.length > 0 && (
-        <StyledButton
-          aria-label={t('Clear Selections')}
-          size="zero"
-          priority="transparent"
-          onClick={() => {
-            setSearchQuery('');
-            handleChange([]);
-            closeOverlay();
-          }}
-        >
-          {t('Clear')}
-        </StyledButton>
-      )}
-      {!disableRemoveFilter && (
-        <StyledButton
-          aria-label={t('Remove Filter')}
-          size="zero"
-          onClick={() => onRemoveFilter(globalFilter)}
-        >
-          {t('Remove Filter')}
-        </StyledButton>
-      )}
-    </Flex>
-  );
-
   const renderFilterSelectorTrigger = (filterValues: string[]) => (
     <FilterSelectorTrigger
       globalFilter={globalFilter}
@@ -367,7 +339,34 @@ function FilterSelector({
             {t('%s Filter', getDatasetLabel(globalFilter.dataset))}
           </MenuTitleWrapper>
         }
-        menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
+        menuHeaderTrailingItems={({closeOverlay}) => (
+          <Flex gap="lg">
+            {activeFilterValues.length > 0 && (
+              <StyledButton
+                aria-label={t('Clear Selections')}
+                size="zero"
+                priority="transparent"
+                onClick={() => {
+                  setSearchQuery('');
+                  handleChange([]);
+                  closeOverlay();
+                }}
+              >
+                {t('Clear')}
+              </StyledButton>
+            )}
+            {!disableRemoveFilter && (
+              <StyledButton
+                aria-label={t('Remove Filter')}
+                size="zero"
+                priority="transparent"
+                onClick={() => onRemoveFilter(globalFilter)}
+              >
+                {t('Remove Filter')}
+              </StyledButton>
+            )}
+          </Flex>
+        )}
         trigger={triggerProps => (
           <OverlayTrigger.Button {...triggerProps}>
             {renderFilterSelectorTrigger(activeFilterValues)}
@@ -427,7 +426,34 @@ function FilterSelector({
           </OperatorFlex>
         </MenuTitleWrapper>
       }
-      menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
+      menuHeaderTrailingItems={({closeOverlay}) => (
+        <Flex gap="lg">
+          {activeFilterValues.length > 0 && (
+            <StyledButton
+              aria-label={t('Clear Selections')}
+              size="zero"
+              priority="transparent"
+              onClick={() => {
+                setSearchQuery('');
+                handleChange([]);
+                closeOverlay();
+              }}
+            >
+              {t('Clear')}
+            </StyledButton>
+          )}
+          {!disableRemoveFilter && (
+            <StyledButton
+              size="zero"
+              priority="transparent"
+              aria-label={t('Remove Filter')}
+              onClick={() => onRemoveFilter(globalFilter)}
+            >
+              {t('Remove Filter')}
+            </StyledButton>
+          )}
+        </Flex>
+      )}
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps}>
           {renderFilterSelectorTrigger(stagedFilterValues)}
