@@ -3849,6 +3849,17 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Lists all the consumers we need verbose multiprocess logs for.
+# We observed some consumers hanging after restarts. We narrowed down the
+# issue to the shared memory manager initialization. Specifically,
+# the consumer hangs when the shared memory manager initializes a subprocess.
+register(
+    "consumer.verbose_multiprocessing_logs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Rate at which to forward events to eap_items. 1.0
 # means that 100% of projects will forward events to eap_items.
