@@ -1,10 +1,9 @@
-import styled from '@emotion/styled';
-
 import {InfoTip} from '@sentry/scraps/info';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface PageHeadingQuestionTooltipProps {
   /**
@@ -27,19 +26,11 @@ export function PageHeadingQuestionTooltip({
   linkLabel,
 }: PageHeadingQuestionTooltipProps) {
   const contents = (
-    <Container>
-      {title}
+    <Flex direction="column" align="start" gap="sm">
+      <Text align="left">{title}</Text>
       <ExternalLink href={docsUrl}>{linkLabel ?? t('Read the Docs')}</ExternalLink>
-    </Container>
+    </Flex>
   );
 
   return <InfoTip title={contents} size="sm" variant="muted" position="right" />;
 }
-
-const Container = styled('div')`
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  gap: ${space(1)};
-`;
