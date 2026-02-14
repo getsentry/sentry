@@ -126,3 +126,4 @@ class SystemOptionsTest(APITestCase):
             )
         finally:
             options.delete("auth.allow-registration")
+
