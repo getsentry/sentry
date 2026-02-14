@@ -196,4 +196,51 @@ describe('ProjectPageFilter', () => {
 
     expect(await screen.findByRole('button', {name: 'project-2'})).toBeInTheDocument();
   });
+
+  it('sorts projects with bookmarked appearing before non-bookmarked', async () => {
+    // Set up projects with different bookmark states
+    const projectsWithBookmarks = [
+      ProjectFixture({id: '1', slug: 'selected-project', isMember: true}),
+      ProjectFixture({
+        id: '2',
+        slug: 'bookmarked-project',
+        isMember: true,
+        isBookmarked: true,
+      }),
+      ProjectFixture({id: '3', slug: 'regular-project-a', isMember: true}),
+      ProjectFixture({id: '4', slug: 'regular-project-b', isMember: true}),
+    ];
+
+    ProjectsStore.loadInitialData(projectsWithBookmarks);
+
+    // Set project-1 as selected
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
+
+    render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {project: '1'}},
+      },
+    });
+
+    // Open menu
+    await userEvent.click(screen.getByRole('button', {name: 'selected-project'}));
+
+    // Get all project rows (they're in a flat list when all are member projects)
+    const projectRows = screen.getAllByRole('row');
+
+    // Verify sort order:
+    // 1. Selected project (selected-project)
+    // 2. Bookmarked project (bookmarked-project)
+    // 3. Regular projects (alphabetically)
+    expect(projectRows).toHaveLength(4);
+    expect(within(projectRows[0]).getByText('selected-project')).toBeInTheDocument();
+    expect(within(projectRows[1]).getByText('bookmarked-project')).toBeInTheDocument();
+    expect(within(projectRows[2]).getByText('regular-project-a')).toBeInTheDocument();
+    expect(within(projectRows[3]).getByText('regular-project-b')).toBeInTheDocument();
+  });
 });
