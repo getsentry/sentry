@@ -426,11 +426,6 @@ export function ProjectPageFilter({
 
   const hasProjectWrite = organization.access.includes('project:write');
 
-  const handleOpenChange = useCallback(() => {
-    // Sync bookmarked projects whenever the menu opens or closes
-    bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
-  }, [optimisticallyBookmarkedProjects]);
-
   return (
     <HybridFilter
       ref={hybridFilterRef}
@@ -443,7 +438,9 @@ export function ProjectPageFilter({
       emptyMessage={emptyMessage ?? t('No projects found')}
       menuTitle={menuTitle ?? t('Filter Projects')}
       menuWidth={menuWidth ?? defaultMenuWidth}
-      onOpenChange={handleOpenChange}
+      onOpenChange={() => {
+        bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
+      }}
       menuHeaderTrailingItems={
         stagedSelect.shouldShowReset ? (
           <HybridFilterComponents.ResetButton
